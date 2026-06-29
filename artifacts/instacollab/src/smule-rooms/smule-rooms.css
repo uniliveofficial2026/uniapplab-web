@@ -1,0 +1,880 @@
+@theme {
+  --animate-slow-spin-reverse: slow-spin-reverse 10s linear infinite;
+  --animate-fade-in: fade-in 0.5s ease-out forwards;
+  --animate-slide-in-left: slide-in-left 0.5s ease-out forwards;
+  --animate-waving-hand: waving-hand 2.5s infinite;
+  --animate-shake: shake 0.5s ease-in-out infinite;
+
+  @keyframes slow-spin-reverse {
+    from { transform: rotate(360deg); }
+    to { transform: rotate(0deg); }
+  }
+  @keyframes fade-in {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes slide-in-left {
+    from { opacity: 0; transform: translateX(-20px); }
+    to { opacity: 1; transform: translateX(0); }
+  }
+  @keyframes waving-hand {
+    0% { transform: rotate(0deg); }
+    10% { transform: rotate(14deg); }
+    20% { transform: rotate(-8deg); }
+    30% { transform: rotate(14deg); }
+    40% { transform: rotate(-4deg); }
+    50% { transform: rotate(10deg); }
+    60% { transform: rotate(0deg); }
+    100% { transform: rotate(0deg); }
+  }
+  @keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px) rotate(-1deg); }
+    75% { transform: translateX(2px) rotate(1deg); }
+  }
+}
+
+@import "tailwindcss";
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+}
+
+@keyframes marquee {
+  0% { transform: translateX(100%); }
+  100% { transform: translateX(-100%); }
+}
+
+@keyframes heart-rate {
+  0% { stroke-dasharray: 1 200; stroke-dashoffset: 200; }
+  50% { stroke-dasharray: 100 200; stroke-dashoffset: 0; }
+  100% { stroke-dasharray: 1 200; stroke-dashoffset: -200; }
+}
+
+@layer utilities {
+  .scrollbar-hide {
+    -ms-overflow-style: none; /* IE and Edge */
+    scrollbar-width: none; /* Firefox */
+  }
+  .scrollbar-hide::-webkit-scrollbar {
+    display: none; /* Chrome, Safari and Opera */
+  }
+  .animate-heart-rate {
+    animation: heart-rate 6s infinite linear;
+  }
+  .animate-flatline {
+    animation: flatline 2s infinite alternate;
+  }
+}
+
+@keyframes flatline {
+  0% { opacity: 0.5; }
+  50% { opacity: 0.2; }
+  100% { opacity: 0.5; }
+}
+
+/* Voice activity — clean cyan water ripple around seated avatars */
+@keyframes party-voice-water-ripple {
+  0% {
+    transform: scale(1);
+    opacity: 0.78;
+  }
+  100% {
+    transform: scale(1.24);
+    opacity: 0;
+  }
+}
+
+@keyframes party-voice-water-core {
+  0%,
+  100% {
+    opacity: 0.82;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
+.party-voice-water-ripple {
+  animation: party-voice-water-ripple 1.9s ease-out infinite;
+  will-change: transform, opacity;
+}
+
+.party-voice-water-core {
+  animation: party-voice-water-core 1.25s ease-in-out infinite;
+}
+
+/* Party guest seat sizes (standalone smule room) */
+.party-guest-avatar {
+  width: 2.375rem;
+  height: 2.375rem;
+}
+
+.party-empty-seat {
+  width: 2.25rem;
+  height: 2.25rem;
+}
+
+.party-seat-grid {
+  --party-seat-gap: var(--party-seat-col-gap, 0.75rem);
+  --party-col-w: calc((100% - 3 * var(--party-seat-gap)) / 4);
+  --party-heartbeat-ref-size: 2.375rem;
+  display: grid;
+  width: 100%;
+  position: relative;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--party-seat-gap);
+}
+
+/* Centered in the gap between two adjacent seat avatars */
+.party-heartbeat-slot {
+  top: calc(var(--party-heartbeat-ref-size) / 2);
+  width: max(
+    0.75rem,
+    calc(var(--party-col-w) + var(--party-seat-gap) - var(--party-heartbeat-ref-size))
+  );
+}
+
+.party-heartbeat-slot-0 {
+  left: calc(var(--party-col-w) + var(--party-seat-gap) / 2);
+}
+
+.party-heartbeat-slot-1 {
+  left: calc(var(--party-col-w) * 2 + var(--party-seat-gap) * 1.5);
+}
+
+.party-heartbeat-slot-2 {
+  left: calc(var(--party-col-w) * 3 + var(--party-seat-gap) * 2.5);
+}
+
+.party-heartbeat-segment {
+  display: block;
+  width: 100%;
+  height: 2.5rem;
+  overflow: visible;
+}
+
+@media (min-width: 640px) {
+  .party-guest-avatar {
+    width: 3.375rem;
+    height: 3.375rem;
+  }
+
+  .party-empty-seat {
+    width: 3.25rem;
+    height: 3.25rem;
+  }
+
+  .party-seat-grid {
+    --party-heartbeat-ref-size: 3.375rem;
+  }
+}
+
+@media (min-width: 768px) {
+  #party-room-body {
+    --party-seat-col-gap: clamp(0.875rem, 3vw, 1.375rem);
+    --party-seat-row-gap: clamp(1rem, 3vw, 1.375rem);
+  }
+}
+
+/* Party seat spacing — one scale for staff row, guest grid, and labels */
+#party-room-body {
+  --party-staff-gap: clamp(1.125rem, 5vw, 2rem);
+  --party-staff-to-guest: clamp(0.75rem, 2.5vw, 1rem);
+  --party-seat-col-gap: clamp(0.625rem, 2.75vw, 1rem);
+  --party-seat-row-gap: clamp(0.75rem, 2.5vw, 1rem);
+  --party-staff-pad-top: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.party-host-seat-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: var(--party-staff-gap);
+  margin-bottom: var(--party-staff-to-guest);
+}
+
+.party-host-seat-block,
+.party-coowner-seat-block,
+.party-admin-seat-block {
+  margin-bottom: 0;
+}
+
+.party-staff-seat-cell {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding-top: var(--party-staff-pad-top);
+}
+
+.party-guest-seat-rows {
+  display: flex;
+  flex-direction: column;
+  gap: var(--party-seat-row-gap);
+  margin-bottom: clamp(0.5rem, 2vw, 0.875rem);
+}
+
+@media (min-width: 640px) {
+  #party-room-body {
+    --party-staff-gap: clamp(1.5rem, 5.5vw, 2.25rem);
+    --party-staff-to-guest: clamp(0.875rem, 2.75vw, 1.125rem);
+    --party-seat-col-gap: clamp(0.75rem, 3vw, 1.25rem);
+    --party-seat-row-gap: clamp(0.875rem, 2.75vw, 1.25rem);
+    --party-staff-pad-top: clamp(0.625rem, 2.25vw, 0.875rem);
+  }
+}
+
+/* Party chat — seats shrink on small screens; chat fills space above in-flow footer */
+#party-room-body,
+.party-seats-stage {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+#chat_and_action_container {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+#chat-feed-module {
+  min-height: 0;
+  min-width: 0;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+/* Party chat legibility — slightly larger than smule-clone defaults */
+#chat-feed-module .party-chat-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+#chat-feed-module .party-chat-username {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+#chat-feed-module .party-chat-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+  border-radius: 0.25rem;
+  font-size: 9px;
+  line-height: 1.2;
+  padding: 3px 7px;
+  min-height: 1.125rem;
+  white-space: nowrap;
+}
+
+#chat-feed-module .party-chat-member-badges {
+  min-height: 1.25rem;
+  align-items: center;
+}
+
+.watch-together-chat .party-chat-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+  border-radius: 0.25rem;
+  font-size: 9px;
+  line-height: 1.2;
+  padding: 3px 7px;
+  min-height: 1.125rem;
+  white-space: nowrap;
+}
+
+.watch-together-chat .party-chat-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.watch-together-chat .party-chat-username {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.watch-together-chat .party-chat-message-inline .party-chat-username {
+  color: rgba(244, 114, 182, 0.9);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.watch-together-chat .party-chat-message-inline .party-chat-bubble-text {
+  font-weight: 500;
+}
+
+.watch-together-chat .party-chat-bubble-text {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.watch-together-chat .party-chat-join-line {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.watch-together-chat .party-chat-bubble-indent {
+  margin-left: 1.75rem;
+}
+
+.watch-together-chat .party-chat-gift-line {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+#chat-feed-module .party-chat-bubble-text {
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+#chat-feed-module .party-chat-join-line {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+#chat-feed-module .party-chat-bubble-indent {
+  margin-left: 1.75rem;
+}
+
+#chat-feed-module .party-chat-gift-line {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+/* Party footer — full-width row aligned with chat padding (in-flow, not absolute) */
+#party-room-footer {
+  box-sizing: border-box;
+  position: relative;
+  flex-shrink: 0;
+}
+
+#party-room-footer .party-room-footer-row {
+  width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 480px) {
+  #party-room-footer .party-room-footer-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  #party-room-footer .party-room-footer-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+#party-room-footer .party-room-footer-actions {
+  flex-shrink: 0;
+}
+
+#party-room-footer input[type="text"] {
+  min-width: 0;
+}
+
+/* Watch Together footer — same full-width row as party */
+#watch-together-footer {
+  box-sizing: border-box;
+}
+
+#watch-together-footer .watch-together-footer-row {
+  width: 100%;
+  min-width: 0;
+}
+
+#watch-together-footer .watch-together-footer-actions {
+  flex-shrink: 0;
+}
+
+#watch-together-footer input[type="text"] {
+  min-width: 0;
+}
+
+@media (min-width: 640px) {
+  #chat-feed-module .party-chat-username {
+    font-size: 12px;
+  }
+
+  #chat-feed-module .party-chat-role,
+  .watch-together-chat .party-chat-role {
+    font-size: 10px;
+    min-height: 1.25rem;
+    padding: 3px 8px;
+  }
+
+  #chat-feed-module .party-chat-bubble-text {
+    font-size: 13px;
+  }
+
+  #chat-feed-module .party-chat-join-line,
+  #chat-feed-module .party-chat-gift-line {
+    font-size: 12px;
+  }
+
+  .watch-together-chat .party-chat-username {
+    font-size: 11px;
+  }
+
+  .watch-together-chat .party-chat-bubble-text {
+    font-size: 12px;
+  }
+
+  .watch-together-chat .party-chat-join-line,
+  .watch-together-chat .party-chat-gift-line {
+    font-size: 11px;
+  }
+}
+
+.party-arena-column {
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  width: clamp(8.75rem, 24vw, 10.75rem);
+}
+
+/* ── Unified room responsive shell (Party, Chorus, Watch Together) ── */
+.room-shell {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.room-stage,
+.chorus-room-stage {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.room-conversation {
+  flex: 1 1 0%;
+  min-height: 0;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.room-conversation:not(.party-chat-grid) {
+  display: flex;
+  flex-direction: column;
+}
+
+#chat_and_action_container.party-chat-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: stretch;
+  column-gap: 0.5rem;
+}
+
+@media (min-width: 640px) {
+  #chat_and_action_container.party-chat-grid {
+    column-gap: 0.75rem;
+  }
+}
+
+.party-room-layout {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.chorus-guest-seat {
+  width: clamp(2rem, 14vw, 2.75rem);
+  height: clamp(2rem, 14vw, 2.75rem);
+}
+
+.chorus-seat-grid {
+  --party-seat-col-gap: clamp(0.5rem, 2.25vw, 0.875rem);
+  --party-seat-row-gap: clamp(0.625rem, 2.5vw, 1rem);
+  display: flex;
+  flex-direction: column;
+  gap: var(--party-seat-row-gap);
+}
+
+.chorus-seat-row {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: var(--party-seat-col-gap);
+  justify-items: center;
+  width: 100%;
+}
+
+.chorus-performance-stage {
+  height: min(200px, 26vh);
+}
+
+@media (min-width: 640px) {
+  .chorus-guest-seat {
+    width: clamp(2.25rem, 7vw, 3rem);
+    height: clamp(2.25rem, 7vw, 3rem);
+  }
+
+  .chorus-seat-grid {
+    --party-seat-col-gap: clamp(0.625rem, 2.5vw, 1rem);
+    --party-seat-row-gap: clamp(0.75rem, 2.75vw, 1.125rem);
+  }
+
+  .chorus-performance-stage {
+    height: min(280px, 32vh);
+  }
+}
+
+@media (min-width: 1024px) {
+  .chorus-performance-stage {
+    height: min(320px, 34vh);
+  }
+}
+
+#chat-feed-module .party-chat-scroll {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+@media (min-width: 1024px) {
+  #chat-feed-module .party-chat-scroll {
+    margin-top: -2.5rem;
+    padding-top: 2.5rem;
+    margin-right: -0.5rem;
+    margin-left: 0.125rem;
+  }
+}
+
+@media (max-width: 639px) {
+  .party-seats-stage,
+  .chorus-room-stage {
+    max-height: 42vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  #chat_and_action_container.room-conversation:not(.party-chat-grid) {
+    min-height: 36vh;
+  }
+}
+
+@media (min-width: 640px) and (max-width: 1023px) {
+  .party-arena-column {
+    max-width: 5.75rem;
+  }
+
+  .party-arena-leaderboard {
+    padding: 0.375rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .party-seat-grid {
+    --party-seat-gap: 1.75rem;
+  }
+
+  .party-guest-avatar {
+    width: 3.625rem;
+    height: 3.625rem;
+  }
+
+  .party-empty-seat {
+    width: 3.5rem;
+    height: 3.5rem;
+  }
+}
+
+/* Room Details / Edit Room — glass shell aligned with main app */
+.smule-room-settings-shell {
+  background-color: var(--background);
+  background-image:
+    radial-gradient(at 0% 0%, rgba(58, 134, 255, 0.14) 0px, transparent 52%),
+    radial-gradient(at 100% 100%, rgba(255, 0, 110, 0.12) 0px, transparent 52%),
+    radial-gradient(at 50% 40%, rgba(98, 40, 215, 0.08) 0px, transparent 55%);
+  background-attachment: local;
+}
+
+.dark .smule-room-settings-shell {
+  background-image:
+    radial-gradient(at 0% 0%, rgba(58, 134, 255, 0.1) 0px, transparent 52%),
+    radial-gradient(at 100% 100%, rgba(255, 0, 110, 0.08) 0px, transparent 52%),
+    radial-gradient(at 50% 40%, rgba(98, 40, 215, 0.06) 0px, transparent 55%);
+}
+
+/* Watch Together — native HTML5 audio/video controls */
+.watch-together-native-media {
+  display: block;
+  width: 100%;
+  max-height: 100%;
+  border-radius: 0;
+  outline: none;
+}
+
+.watch-together-native-media::-webkit-media-controls-panel {
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.88), rgba(0, 0, 0, 0.35));
+}
+
+.watch-together-native-media::-webkit-media-controls-enclosure {
+  border-radius: 0;
+}
+
+audio.watch-together-native-media {
+  min-height: 2.75rem;
+  filter: drop-shadow(0 8px 24px rgba(0, 0, 0, 0.45));
+}
+
+video.watch-together-native-media {
+  border-radius: 0;
+}
+
+/* Watch Together — player, seats, and chat stack without overlap */
+.watch-together-player {
+  width: 100%;
+  margin-bottom: clamp(0.375rem, 1.5vh, 0.625rem);
+}
+
+.watch-together-player-frame {
+  width: 100%;
+  aspect-ratio: 16 / 9;
+  max-height: min(38vh, 56vw);
+}
+
+.watch-together-seats {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  gap: clamp(0.5rem, 2.2vh, 0.875rem);
+  padding-top: clamp(1.125rem, 4.5vh, 1.625rem);
+  padding-bottom: clamp(1rem, 3.5vh, 1.375rem);
+  overflow-x: clip;
+}
+
+.watch-together-seat-grid-5 {
+  --wt-seat-gap: clamp(0.375rem, 2.5vw, 0.75rem);
+  --party-col-w: calc((100% - 4 * var(--wt-seat-gap)) / 5);
+  --party-seat-gap: var(--wt-seat-gap);
+  --party-heartbeat-ref-size: clamp(2.375rem, 9.5vw, 3.125rem);
+  display: grid;
+  width: 100%;
+  position: relative;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  column-gap: var(--wt-seat-gap);
+  align-items: start;
+  overflow-x: clip;
+}
+
+.watch-together-heartbeat-slot {
+  top: calc(var(--party-heartbeat-ref-size) / 2);
+  width: max(
+    0.75rem,
+    calc(var(--party-col-w) + var(--wt-seat-gap) - var(--party-heartbeat-ref-size))
+  );
+}
+
+.watch-together-heartbeat-slot-0 {
+  left: calc(var(--party-col-w) + var(--wt-seat-gap) / 2);
+}
+
+.watch-together-heartbeat-slot-1 {
+  left: calc(var(--party-col-w) * 2 + var(--wt-seat-gap) * 1.5);
+}
+
+.watch-together-heartbeat-slot-2 {
+  left: calc(var(--party-col-w) * 3 + var(--wt-seat-gap) * 2.5);
+}
+
+.watch-together-heartbeat-slot-3 {
+  left: calc(var(--party-col-w) * 4 + var(--wt-seat-gap) * 3.5);
+}
+
+.watch-together-seat-cell {
+  min-width: 0;
+  max-width: 100%;
+}
+
+.watch-together-chat {
+  flex: 1 1 0%;
+  min-height: clamp(4rem, 14vh, 8rem);
+  padding-top: clamp(0.5rem, 2vh, 1.5rem);
+  background: transparent;
+}
+
+.watch-together-chat-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 0%;
+}
+
+.watch-together-chat-feed {
+  width: 100%;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.watch-together-chat-item {
+  width: 100%;
+  max-width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.watch-together-chat-item .party-chat-join-line {
+  margin-left: 0;
+  max-width: 100%;
+}
+
+.watch-together-chat-item .party-chat-message-inline {
+  width: 100%;
+  max-width: 100%;
+}
+
+.watch-together-layout {
+  height: 100%;
+  min-height: 0;
+}
+
+.watch-together-stage {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.watch-together-conversation {
+  flex: 1 1 0%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: transparent;
+}
+
+.watch-together-conversation #chat_and_action_container.party-chat-grid {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.watch-together-header {
+  flex-shrink: 0;
+}
+
+.watch-together-footer {
+  flex-shrink: 0;
+  background-color: rgba(0, 0, 0, 0.3);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+}
+
+/* Default room theme preset used by roomBackground.ts */
+.bg-radial-gradient {
+  background-color: #07010a;
+  background-image:
+    radial-gradient(at 0% 0%, rgba(58, 134, 255, 0.15) 0px, transparent 50%),
+    radial-gradient(at 100% 100%, rgba(255, 0, 110, 0.15) 0px, transparent 50%),
+    radial-gradient(at 50% 50%, rgba(98, 40, 215, 0.1) 0px, transparent 50%);
+}
+
+@media (max-width: 639px) {
+  .watch-together-stage {
+    max-height: 44vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .watch-together-conversation {
+    min-height: 38vh;
+  }
+
+  .watch-together-player-frame {
+    max-height: min(18vh, 34vw);
+    aspect-ratio: 16 / 9;
+  }
+
+  .watch-together-seats {
+    padding-top: 0.5rem;
+    padding-bottom: 0.375rem;
+    gap: clamp(0.5rem, 2vh, 0.75rem);
+  }
+
+  .watch-together-seat-grid-5 {
+    --wt-seat-gap: clamp(0.375rem, 2.25vw, 0.625rem);
+    --party-heartbeat-ref-size: clamp(1.75rem, 7.5vw, 2.125rem);
+  }
+
+  .watch-together-seat-cell .party-seat-stars {
+    display: none;
+  }
+
+  .watch-together-seats .party-host-avatar {
+    width: clamp(1.875rem, 8vw, 2.25rem);
+    height: clamp(1.875rem, 8vw, 2.25rem);
+  }
+
+  .watch-together-seats .party-guest-avatar,
+  .watch-together-seats .party-empty-seat {
+    width: clamp(1.75rem, 7.5vw, 2.125rem);
+    height: clamp(1.75rem, 7.5vw, 2.125rem);
+  }
+
+  .watch-together-seats .party-host-name,
+  .watch-together-seats .party-seat-name {
+    font-size: clamp(0.4375rem, 1.8vw, 0.5625rem);
+    margin-top: 0.125rem;
+  }
+
+  .watch-together-heartbeat-slot .party-heartbeat-segment {
+    height: 1.5rem;
+  }
+
+  .watch-together-chat {
+    padding-top: 0.25rem;
+    min-height: 0;
+  }
+
+  #watch-together-footer .watch-together-footer-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  #watch-together-footer .watch-together-footer-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+}
+
+@media (min-width: 640px) {
+  .watch-together-stage {
+    flex-shrink: 0;
+    overflow: visible;
+    max-height: none;
+  }
+}
+
+.watch-together-seats .party-host-avatar {
+  width: clamp(2.625rem, 10.5vw, 3.5rem);
+  height: clamp(2.625rem, 10.5vw, 3.5rem);
+}
+
+.watch-together-seats .party-guest-avatar {
+  width: clamp(2.375rem, 9.5vw, 3.125rem);
+  height: clamp(2.375rem, 9.5vw, 3.125rem);
+}
+
+.watch-together-seats .party-empty-seat {
+  width: clamp(2.25rem, 9vw, 2.875rem);
+  height: clamp(2.25rem, 9vw, 2.875rem);
+}
+
+.watch-together-seats .party-host-name,
+.watch-together-seats .party-seat-name {
+  margin-top: 0.25rem;
+  font-size: clamp(0.5rem, 2vw, 0.6875rem);
+}
+
+video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
+  display: inline-flex;
+}

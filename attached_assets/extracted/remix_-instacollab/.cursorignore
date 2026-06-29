@@ -1,0 +1,24 @@
+# Keep Cursor indexing small — improves memory and agent speed
+node_modules/
+dist/
+build/
+coverage/
+
+package-lock.json
+*.log
+.env
+.env.*
+
+.DS_Store
+
+*.tsbuildinfo
+
+# Vite pre-bundle cache (large .map files)
+node_modules/.vite/
+
+# Dev-only scripts (not app source)
+src/validate.js
+src/validate-tags.js
+
+# Built assets
+dist/assets/

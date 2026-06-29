@@ -1,0 +1,6 @@
+{
+  "name": "Remix: InstaCollab",
+  "description": "Collab Workspace is a professional team suite with live Google Workspace integrations, including Google Calendar, Google Meet rooms, Gmail, Contacts, Drive Pickers, and editable Google Docs.",
+  "requestFramePermissions": ["microphone", "geolocation"],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}

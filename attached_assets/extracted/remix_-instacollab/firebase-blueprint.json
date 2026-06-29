@@ -1,0 +1,113 @@
+{
+  "entities": {
+    "users": {
+      "title": "User Profile",
+      "description": "Secure user profile information and settings",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Auth UID" },
+        "username": { "type": "string", "description": "Unique handle" },
+        "displayName": { "type": "string" },
+        "avatarUrl": { "type": "string" },
+        "email": { "type": "string" },
+        "bio": { "type": "string" },
+        "language": { "type": "string", "enum": ["English", "Spanish", "French", "German", "Japanese", "Korean", "Chinese"] },
+        "followersCount": { "type": "number" },
+        "followingCount": { "type": "number" },
+        "storageTier": { "type": "string", "enum": ["50GB", "100GB", "Unlimited"] },
+        "isVerified": { "type": "boolean" },
+        "theme": { "type": "string", "enum": ["light", "dark"] },
+        "createdAt": { "type": "string", "format": "date-time" },
+        "updatedAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["id", "username", "createdAt"]
+    },
+    "posts": {
+      "title": "Post",
+      "description": "Feed post content",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "content": { "type": "string" },
+        "media": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "type": { "type": "string", "enum": ["image", "video", "audio"] },
+              "url": { "type": "string" },
+              "thumbnail": { "type": "string" }
+            }
+          }
+        },
+        "likesCount": { "type": "number" },
+        "commentsCount": { "type": "number" },
+        "isReel": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "createdAt"]
+    },
+    "messages": {
+      "title": "Message",
+      "description": "Direct message between users",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "senderId": { "type": "string" },
+        "text": { "type": "string" },
+        "media": { "type": "array" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["senderId", "createdAt"]
+    },
+    "notifications": {
+      "title": "Notification",
+      "description": "User notification",
+      "type": "object",
+      "properties": {
+        "userId": { "type": "string" },
+        "type": { "type": "string", "enum": ["like", "follow", "comment", "mention"] },
+        "fromUserId": { "type": "string" },
+        "text": { "type": "string" },
+        "isRead": { "type": "boolean" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      }
+    },
+    "verification_requests": {
+      "title": "Verification Request",
+      "description": "Request for a verified blue checkmark",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "userId": { "type": "string" },
+        "status": { "type": "string", "enum": ["pending", "approved", "rejected"] },
+        "reason": { "type": "string" },
+        "createdAt": { "type": "string", "format": "date-time" }
+      },
+      "required": ["userId", "status", "createdAt"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": "users",
+      "description": "Main user collection"
+    },
+    "/posts/{postId}": {
+      "schema": "posts",
+      "description": "Public posts collection"
+    },
+    "/chats/{chatId}/messages/{messageId}": {
+      "schema": "messages",
+      "description": "Real-time chat messages"
+    },
+    "/users/{userId}/notifications/{notificationId}": {
+      "schema": "notifications",
+      "description": "User specific notifications"
+    },
+    "/verification_requests/{requestId}": {
+      "schema": "verification_requests",
+      "description": "User requests for profile verification"
+    }
+  }
+}

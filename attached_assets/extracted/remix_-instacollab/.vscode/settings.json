@@ -1,0 +1,57 @@
+{
+  "files.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/.cursor": true,
+    "**/.agents": true
+  },
+  "files.watcherExclude": {
+    "**/node_modules/**": true,
+    "**/node_modules/.vite/**": true,
+    "**/dist/**": true,
+    "**/package-lock.json": true,
+    "**/.cursor/**": true,
+    "**/.agents/**": true,
+    "**/supabase/.temp/**": true,
+    "**/supabase/.branches/**": true,
+    "**/*.map": true
+  },
+  "search.exclude": {
+    "**/node_modules": true,
+    "**/dist": true,
+    "**/package-lock.json": true,
+    "**/.cursor": true,
+    "**/.agents": true,
+    "**/supabase/.temp": true,
+    "**/supabase/.branches": true,
+    "**/*.map": true
+  },
+  "typescript.tsserver.watchOptions": {
+    "watchFile": "useFsEventsOnParentDirectory",
+    "watchDirectory": "useFsEvents",
+    "fallbackPolling": "dynamicPriority",
+    "synchronousWatchDirectory": false
+  },
+  "typescript.tsserver.useSyntaxServer": "auto",
+  "typescript.disableAutomaticTypeAcquisition": true,
+  "typescript.tsserver.maxTsServerMemory": 768,
+  "typescript.disableReferencedProjectLoad": true,
+  "typescript.disableSolutionSearching": true,
+  "typescript.suggest.autoImports": false,
+  "typescript.updateImportsOnFileMove.enabled": "never",
+  "javascript.disableReferencedProjectLoad": true,
+  "javascript.disableSolutionSearching": true,
+  "javascript.suggest.autoImports": false,
+  "terminal.integrated.scrollback": 2000,
+  "terminal.integrated.enablePersistentSessions": false,
+  "search.followSymlinks": false,
+  "git.autorefresh": false,
+  "files.maxMemoryForLargeFilesMB": 32,
+  "npm.autoDetect": "off",
+  "editor.semanticHighlighting.enabled": false,
+  "workbench.tree.enableStickyScroll": false,
+  "explorer.autoReveal": false,
+  "eslint.useFlatConfig": true,
+  "editor.minimap.enabled": false,
+  "editor.largeFileOptimizations": true
+}

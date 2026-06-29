@@ -1,0 +1,33 @@
+{
+  "name": "workspace",
+  "version": "0.0.0",
+  "license": "MIT",
+  "packageManager": "pnpm@10.34.4",
+  "scripts": {
+    "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
+    "setup": "bash scripts/ensure-pnpm.sh",
+    "build": "pnpm -r --filter \"./artifacts/instacollab\" --filter \"./artifacts/api-server\" --if-present run build",
+    "typecheck:libs": "tsc --build",
+    "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
+    "dev": "pnpm --filter @workspace/instacollab run dev",
+    "dev:mobile": "pnpm --filter @workspace/instacollab run dev:mobile",
+    "mobile:preview": "pnpm --filter @workspace/instacollab run mobile:preview",
+    "mobile:live": "pnpm --filter @workspace/instacollab run mobile:live",
+    "auth:bootstrap-db": "pnpm --filter @workspace/instacollab run auth:bootstrap-db",
+    "auth:repair-policies": "pnpm --filter @workspace/instacollab run auth:repair-policies",
+    "auth:check": "pnpm --filter @workspace/instacollab run auth:check",
+    "oauth:setup": "pnpm --filter @workspace/instacollab run oauth:setup",
+    "git:push": "bash scripts/github-push.sh",
+    "git:clean-history": "bash scripts/reset-clean-main.sh --yes"
+  },
+  "private": true,
+  "devDependencies": {
+    "prettier": "^3.8.3",
+    "typescript": "~5.9.3"
+  },
+  "dependencies": {
+    "@rollup/rollup-darwin-arm64": "4.60.3",
+    "@tailwindcss/oxide-darwin-arm64": "4.1.14",
+    "lightningcss-darwin-arm64": "1.32.0"
+  }
+}

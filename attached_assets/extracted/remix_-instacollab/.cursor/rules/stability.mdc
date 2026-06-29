@@ -1,0 +1,35 @@
+---
+description: Stability guardrails for InstaCollab — verification, db.ts safety, file size, and sustainable feature work. Apply to all implementation and refactors.
+alwaysApply: true
+---
+
+# Stability — future-safe development
+
+Read **`docs/STABILITY.md`** and **`AGENTS.md`**.
+
+## Before claiming work is done
+
+```bash
+npm run verify
+```
+
+Must pass: `tsc --noEmit`, ESLint, `vite build`, `check:health`.
+
+## db.ts
+
+- Never run `scripts/split-db.mjs` or `scripts/restore-db-monolith.mjs` unless the user explicitly requests it **and** there is a git checkpoint.
+- All persistence stays in `src/lib/db.ts` via catalogued `db.*` methods (`appDataTasks.ts`).
+- After touching `db.ts`, confirm `export const db = new LocalDB();` and `initIDB` / `notifyListeners` still exist.
+
+## Component size
+
+- Do not grow a single `.tsx` past **1500 lines** (hard fail in `check:health`).
+- Prefer extracting **presentational** sections (sidebar, thread, compose) with props; keep state/handlers in the screen parent.
+- `MessagesScreen` orchestrates; `MessagesChatThread` / `MessagesComposeBar` render.
+
+## New features checklist
+
+1. `db` method + `appDataTasks.ts` row + AGENTS.md table if user-facing.
+2. `useDB()` + resolvers for display; ids into modals.
+3. `npm run verify`.
+4. Note in `devChangelog.ts` if shipping behavior users should test.

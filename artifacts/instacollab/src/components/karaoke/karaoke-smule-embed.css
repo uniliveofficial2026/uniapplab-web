@@ -1,0 +1,513 @@
+/**
+ * Karaoke embed adapter — smule room pages use position:fixed overlays (SongSelector,
+ * seat sheets, instructions). Inside overflow-hidden embed shells those get clipped.
+ * Remap fixed → absolute within the embed panel without editing smule source files.
+ */
+.karaoke-smule-room-embed {
+  isolation: isolate;
+}
+
+.karaoke-smule-room-embed .fixed {
+  position: absolute !important;
+}
+
+/* Profile preview portals outside the embed — keep true viewport-fixed layering. */
+#party-room-profile-preview-portal .karaoke-room-profile-preview,
+.karaoke-room-profile-preview.fixed {
+  position: fixed !important;
+}
+
+/* ── Party room layout: seats on top, chat docked above footer ── */
+.karaoke-smule-room-embed #party-room-body,
+.karaoke-smule-room-embed .party-seats-stage,
+.karaoke-smule-room-embed .chorus-room-stage {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.karaoke-smule-room-embed #chat_and_action_container {
+  flex: 1 1 0%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.karaoke-smule-room-embed #chat-feed-module {
+  min-width: 0;
+  min-height: 0;
+  max-height: 100%;
+  overflow: hidden;
+  flex: 1 1 auto;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-username {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-role {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.125rem;
+  flex-shrink: 0;
+  border-radius: 0.25rem;
+  font-size: 9px;
+  line-height: 1.2;
+  padding: 3px 7px;
+  min-height: 1.125rem;
+  white-space: nowrap;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-member-badges {
+  min-height: 1.25rem;
+  align-items: center;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-bubble-text {
+  font-size: 12.5px;
+  line-height: 1.35;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-join-line {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-bubble-indent {
+  margin-left: 1.75rem;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .party-chat-gift-line {
+  font-size: 11px;
+  line-height: 1.25;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-avatar {
+  width: 1.5rem;
+  height: 1.5rem;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-username {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-message-inline .party-chat-username {
+  color: rgba(244, 114, 182, 0.9);
+  text-transform: none;
+  letter-spacing: 0.01em;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-message-inline .party-chat-bubble-text {
+  font-weight: 500;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-bubble-text {
+  font-size: 11.5px;
+  line-height: 1.35;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-join-line {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-bubble-indent {
+  margin-left: 1.75rem;
+}
+
+.karaoke-smule-room-embed .watch-together-chat .party-chat-gift-line {
+  font-size: 10px;
+  line-height: 1.25;
+}
+
+.karaoke-smule-room-embed .watch-together-chat-scroll {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  flex: 1 1 0%;
+}
+
+.karaoke-smule-room-embed .watch-together-chat-feed {
+  width: 100%;
+  align-items: flex-start;
+  text-align: left;
+}
+
+.karaoke-smule-room-embed .watch-together-chat-item {
+  width: 100%;
+  max-width: 100%;
+  justify-content: flex-start;
+  text-align: left;
+}
+
+.karaoke-smule-room-embed .watch-together-chat-item .party-chat-join-line {
+  margin-left: 0;
+  max-width: 100%;
+}
+
+.karaoke-smule-room-embed .watch-together-chat-item .party-chat-message-inline {
+  width: 100%;
+  max-width: 100%;
+}
+
+.karaoke-smule-room-embed #chat-feed-module .overflow-y-auto {
+  min-height: 0;
+}
+
+.karaoke-smule-room-embed #party-room-footer .party-room-footer-row {
+  width: 100%;
+  min-width: 0;
+}
+
+.karaoke-smule-room-embed #party-room-footer .party-room-footer-actions {
+  flex-shrink: 0;
+}
+
+.karaoke-smule-room-embed #party-room-footer input[type="text"] {
+  min-width: 0;
+}
+
+.karaoke-smule-room-embed #watch-together-footer .watch-together-footer-row {
+  width: 100%;
+  min-width: 0;
+}
+
+.karaoke-smule-room-embed #watch-together-footer .watch-together-footer-actions {
+  flex-shrink: 0;
+}
+
+.karaoke-smule-room-embed #watch-together-footer input[type="text"] {
+  min-width: 0;
+}
+
+.karaoke-smule-room-embed #guest-seats-grid-parent {
+  width: 100%;
+  max-width: min(100%, 40rem);
+  min-height: 0;
+}
+
+.karaoke-smule-room-embed #party-room-body {
+  --party-staff-gap: clamp(1.125rem, 5vw, 2rem);
+  --party-staff-to-guest: clamp(0.75rem, 2.5vw, 1rem);
+  --party-seat-col-gap: clamp(0.625rem, 2.75vw, 1.125rem);
+  --party-seat-row-gap: clamp(0.75rem, 2.5vw, 1.125rem);
+  --party-staff-pad-top: clamp(0.5rem, 2vw, 0.75rem);
+}
+
+.karaoke-smule-room-embed .party-guest-seat-rows {
+  min-height: 0;
+  gap: var(--party-seat-row-gap);
+  margin-bottom: 0;
+}
+
+/* Heartbeat slots — separate ref size so we never override guest avatar sizing */
+.karaoke-smule-room-embed .party-seat-grid {
+  --party-seat-gap: var(--party-seat-col-gap);
+  --party-heartbeat-ref-size: var(--party-guest-size);
+}
+
+.karaoke-smule-room-embed .party-heartbeat-slot {
+  width: max(
+    0.75rem,
+    calc(var(--party-col-w) + var(--party-seat-gap) - var(--party-heartbeat-ref-size))
+  );
+}
+
+.karaoke-smule-room-embed .party-heartbeat-segment {
+  height: 2.5rem;
+}
+
+.karaoke-smule-room-embed #room-arena-leaderboard {
+  width: 100%;
+}
+
+/* Arena leaderboard — readable on mobile through desktop embed widths */
+.karaoke-smule-room-embed .party-arena-column {
+  width: clamp(8.75rem, 24vw, 10.5rem);
+  max-height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.karaoke-smule-room-embed .party-arena-leaderboard {
+  max-height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  font-size: clamp(0.5625rem, 2.2vw, 0.6875rem);
+}
+
+@media (min-width: 640px) {
+  .karaoke-smule-room-embed #party-room-body {
+    --party-staff-gap: clamp(1.5rem, 5.5vw, 2.25rem);
+    --party-staff-to-guest: clamp(0.875rem, 2.75vw, 1.125rem);
+    --party-seat-col-gap: clamp(0.75rem, 3vw, 1.25rem);
+    --party-seat-row-gap: clamp(0.875rem, 2.75vw, 1.25rem);
+    --party-staff-pad-top: clamp(0.625rem, 2.25vw, 0.875rem);
+  }
+
+  .karaoke-smule-room-embed .party-arena-column {
+    width: clamp(9.25rem, 18vw, 10.75rem);
+  }
+}
+
+@media (min-width: 768px) {
+  .karaoke-smule-room-embed .party-arena-column {
+    width: 10.75rem;
+  }
+}
+
+/* Responsive seat avatar sizes (viewport-aware, always readable) */
+.karaoke-smule-room-embed {
+  --party-host-size: clamp(3.5rem, 15vw, 4.75rem);
+  --party-guest-size: clamp(3.125rem, 13vw, 4.25rem);
+  --party-empty-size: clamp(3rem, 12vw, 4rem);
+  --party-seat-name: clamp(0.5625rem, 2.3vw, 0.75rem);
+  --party-host-name: clamp(0.625rem, 2.5vw, 0.8125rem);
+}
+
+.karaoke-smule-room-embed .party-host-avatar {
+  width: var(--party-host-size);
+  height: var(--party-host-size);
+}
+
+.karaoke-smule-room-embed .party-coowner-avatar {
+  width: var(--party-host-size);
+  height: var(--party-host-size);
+}
+
+.karaoke-smule-room-embed .party-admin-avatar {
+  width: var(--party-host-size);
+  height: var(--party-host-size);
+}
+
+.karaoke-smule-room-embed .party-guest-avatar {
+  width: var(--party-guest-size);
+  height: var(--party-guest-size);
+}
+
+.karaoke-smule-room-embed .party-empty-seat {
+  width: var(--party-empty-size);
+  height: var(--party-empty-size);
+}
+
+.karaoke-smule-room-embed .party-host-name {
+  font-size: var(--party-host-name);
+  max-width: clamp(6.5rem, 28vw, 9rem);
+}
+
+.karaoke-smule-room-embed .party-coowner-name {
+  font-size: var(--party-host-name);
+  max-width: clamp(6.5rem, 28vw, 9rem);
+}
+
+.karaoke-smule-room-embed .party-admin-name {
+  font-size: var(--party-host-name);
+  max-width: clamp(6.5rem, 28vw, 9rem);
+}
+
+.karaoke-smule-room-embed .party-seat-name {
+  font-size: var(--party-seat-name);
+  max-width: clamp(4.5rem, 20vw, 6.5rem);
+}
+
+/* Header viewer count chip */
+.karaoke-smule-room-embed .party-viewers-chip img {
+  width: clamp(1.375rem, 5.5vw, 1.75rem);
+  height: clamp(1.375rem, 5.5vw, 1.75rem);
+}
+
+.karaoke-smule-room-embed .party-viewers-chip .party-viewers-count {
+  font-size: clamp(0.6875rem, 2.8vw, 0.8125rem);
+}
+
+.karaoke-smule-room-embed .watch-together-seat-grid-5 {
+  --wt-seat-gap: clamp(0.25rem, 2.2vw, 0.625rem);
+  --party-heartbeat-ref-size: var(--party-guest-size);
+}
+
+.karaoke-smule-room-embed .watch-together-heartbeat-slot {
+  width: max(
+    0.75rem,
+    calc(var(--party-col-w) + var(--wt-seat-gap) - var(--party-heartbeat-ref-size))
+  );
+}
+
+.karaoke-smule-room-embed .watch-together-heartbeat-segment,
+.karaoke-smule-room-embed .watch-together-heartbeat-slot .party-heartbeat-segment {
+  height: 2.25rem;
+}
+
+.karaoke-smule-room-embed .watch-together-seats {
+  --party-host-size: clamp(2.625rem, 10.5vw, 3.5rem);
+  --party-guest-size: clamp(2.375rem, 9.5vw, 3.125rem);
+  --party-empty-size: clamp(2.25rem, 9vw, 2.875rem);
+  --party-host-name: clamp(0.5rem, 2vw, 0.6875rem);
+  --party-seat-name: clamp(0.5rem, 1.9vw, 0.625rem);
+  padding-top: clamp(1.25rem, 5vh, 1.75rem);
+  padding-bottom: clamp(1.125rem, 4vh, 1.5rem);
+  gap: clamp(0.625rem, 2.5vh, 1rem);
+}
+
+.karaoke-smule-room-embed .watch-together-player {
+  margin-bottom: clamp(0.5rem, 2vh, 0.75rem);
+}
+
+.karaoke-smule-room-embed .watch-together-seats .party-host-avatar {
+  width: var(--party-host-size);
+  height: var(--party-host-size);
+}
+
+.karaoke-smule-room-embed .watch-together-seats .party-guest-avatar,
+.karaoke-smule-room-embed .watch-together-seats .party-empty-seat {
+  width: var(--party-guest-size);
+  height: var(--party-guest-size);
+}
+
+.karaoke-smule-room-embed .watch-together-layout {
+  height: 100%;
+  min-height: 0;
+  max-height: 100%;
+}
+
+.karaoke-smule-room-embed .watch-together-stage {
+  flex: 0 1 auto;
+  min-height: 0;
+}
+
+.karaoke-smule-room-embed .watch-together-conversation {
+  flex: 1 1 0%;
+  min-height: 0;
+}
+
+.karaoke-smule-room-embed .watch-together-player-frame {
+  width: 100%;
+  max-height: min(36vh, 54vw);
+}
+
+.karaoke-smule-room-embed .watch-together-chat {
+  padding-top: 0.5rem;
+}
+
+@media (max-width: 639px) {
+  .karaoke-smule-room-embed .watch-together-stage {
+    max-height: 44vh;
+    overflow-y: auto;
+    overflow-x: hidden;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .karaoke-smule-room-embed .watch-together-conversation {
+    min-height: 38vh;
+  }
+
+  .karaoke-smule-room-embed .watch-together-player-frame {
+    max-height: min(18vh, 34vw);
+  }
+
+  .karaoke-smule-room-embed .watch-together-seats {
+    --party-host-size: clamp(1.875rem, 8vw, 2.25rem);
+    --party-guest-size: clamp(1.75rem, 7.5vw, 2.125rem);
+    --party-empty-size: clamp(1.75rem, 7.5vw, 2.125rem);
+    --party-host-name: clamp(0.4375rem, 1.8vw, 0.5625rem);
+    --party-seat-name: clamp(0.4375rem, 1.7vw, 0.5625rem);
+    padding-top: 0.5rem;
+    padding-bottom: 0.375rem;
+    gap: 0.375rem;
+  }
+
+  .karaoke-smule-room-embed .watch-together-seat-grid-5 {
+    --wt-seat-gap: 0.125rem;
+    --party-heartbeat-ref-size: clamp(1.75rem, 7.5vw, 2.125rem);
+  }
+
+  .karaoke-smule-room-embed .watch-together-seat-cell .party-seat-stars {
+    display: none;
+  }
+
+  .karaoke-smule-room-embed .watch-together-chat {
+    padding-top: 0.25rem;
+    min-height: 0;
+  }
+
+  .karaoke-smule-room-embed .watch-together-heartbeat-slot .party-heartbeat-segment {
+    height: 1.5rem;
+  }
+
+  .karaoke-smule-room-embed #watch-together-footer .watch-together-footer-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+
+  .karaoke-smule-room-embed #watch-together-footer .watch-together-footer-actions {
+    width: 100%;
+    max-width: 100%;
+    justify-content: space-between;
+    overflow-x: auto;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .karaoke-smule-room-embed .watch-together-header {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
+@media (min-width: 640px) {
+  .karaoke-smule-room-embed .watch-together-stage {
+    flex-shrink: 0;
+    overflow: visible;
+    max-height: none;
+  }
+
+  .karaoke-smule-room-embed .watch-together-chat {
+    padding-top: clamp(0.75rem, 3vh, 1.25rem);
+  }
+
+  .karaoke-smule-room-embed .watch-together-chat .party-chat-username {
+    font-size: 11px;
+  }
+
+  .karaoke-smule-room-embed .watch-together-chat .party-chat-bubble-text {
+    font-size: 12px;
+  }
+
+  .karaoke-smule-room-embed .watch-together-chat .party-chat-join-line,
+  .karaoke-smule-room-embed .watch-together-chat .party-chat-gift-line {
+    font-size: 11px;
+  }
+}
+
+.karaoke-smule-room-embed .watch-together-seats .party-host-name,
+.karaoke-smule-room-embed .watch-together-seats .party-seat-name {
+  margin-top: 0.25rem;
+}
+
+.karaoke-smule-room-embed .watch-together-seats .party-host-name + div,
+.karaoke-smule-room-embed .watch-together-seats .party-seat-name + div {
+  margin-top: 0.125rem;
+}
+
+@media (min-width: 640px) {
+  .karaoke-smule-room-embed {
+    --party-host-size: clamp(3.75rem, 11vw, 5rem);
+    --party-guest-size: clamp(3.375rem, 9.5vw, 4.5rem);
+    --party-empty-size: clamp(3.125rem, 9vw, 4.25rem);
+  }
+}
+
+@media (min-width: 768px) {
+  .karaoke-smule-room-embed #guest-seats-grid-parent {
+    max-width: 42rem;
+  }
+
+  .karaoke-smule-room-embed #party-room-body {
+    --party-seat-col-gap: clamp(0.875rem, 3vw, 1.375rem);
+    --party-seat-row-gap: clamp(1rem, 3vw, 1.375rem);
+  }
+}

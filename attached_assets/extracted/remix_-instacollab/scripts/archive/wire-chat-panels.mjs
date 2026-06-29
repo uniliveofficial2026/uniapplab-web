@@ -1,0 +1,109 @@
+import fs from 'fs';
+
+const path = 'src/components/messages/MessagesScreen.tsx';
+const lines = fs.readFileSync(path, 'utf8').split('\n');
+
+const replacement = `          <MessagesChatThread
+            selectedUser={selectedUser}
+            activeCustomWallpaper={activeCustomWallpaper}
+            videoWallpaperSequence={videoWallpaperSequence}
+            playNextVideoWallpaper={playNextVideoWallpaper}
+            getWallpaperStyle={getWallpaperStyle}
+            visibleMessageEntries={visibleMessageEntries}
+            chatSearchQuery={chatSearchQuery}
+            isPeerTyping={!!typingByUserId[selectedUser.id]}
+            messagesEndRef={messagesEndRef}
+            messageElementRefs={messageElementRefs}
+            highlightedMessageId={highlightedMessageId}
+            selectedMessageKeys={selectedMessageKeys}
+            openMessageMenuKey={openMessageMenuKey}
+            setOpenMessageMenuKey={setOpenMessageMenuKey}
+            messageMenuDirection={messageMenuDirection}
+            setMessageMenuDirection={setMessageMenuDirection}
+            openReactionPickerKey={openReactionPickerKey}
+            setOpenReactionPickerKey={setOpenReactionPickerKey}
+            reactionPickerDirection={reactionPickerDirection}
+            setReactionPickerDirection={setReactionPickerDirection}
+            selectedChatId={selectedChatId}
+            chatLastReadAt={chatLastReadAt}
+            chatPeerReadAt={chatPeerReadAt}
+            inlineVideoRefs={inlineVideoRefs}
+            onViewProfile={handleViewProfile}
+            getMessageReactionKey={getMessageReactionKey}
+            getMessageSelectionKey={getMessageSelectionKey}
+            toggleMessageSelection={toggleMessageSelection}
+            decideMessageMenuDirection={decideMessageMenuDirection}
+            decideReactionPickerDirection={decideReactionPickerDirection}
+            jumpToOriginalMessage={jumpToOriginalMessage}
+            setFullscreenMedia={setFullscreenMedia}
+            handleSharedItemClick={handleSharedItemClick}
+            extractMessageSegments={extractMessageSegments}
+            tryOpenMediaFullscreen={tryOpenMediaFullscreen}
+            handleAttachmentTokenClick={handleAttachmentTokenClick}
+            toggleMessageReaction={toggleMessageReaction}
+            handleReplyMessage={handleReplyMessage}
+            handleForwardMessage={handleForwardMessage}
+            handleCopyMessage={handleCopyMessage}
+            handleTogglePinMessage={handleTogglePinMessage}
+            handleDeleteForMe={handleDeleteForMe}
+            handleDeleteForEveryone={handleDeleteForEveryone}
+            handleEditMessage={handleEditMessage}
+            handleSelectAllMessages={handleSelectAllMessages}
+          />
+
+          <MessagesComposeBar
+            chatMedia={chatMedia}
+            setChatMedia={setChatMedia}
+            selectedMessageKeys={selectedMessageKeys}
+            setSelectedMessageKeys={setSelectedMessageKeys}
+            currentMessages={currentMessages}
+            replyToMessage={replyToMessage}
+            setReplyToMessage={setReplyToMessage}
+            replyToMessages={replyToMessages}
+            setReplyToMessages={setReplyToMessages}
+            editingMessageIndex={editingMessageIndex}
+            setEditingMessageIndex={setEditingMessageIndex}
+            showAttachmentMenu={showAttachmentMenu}
+            setShowAttachmentMenu={setShowAttachmentMenu}
+            isSharingLocation={isSharingLocation}
+            messageText={messageText}
+            setMessageText={setMessageText}
+            showEmojiPicker={showEmojiPicker}
+            setShowEmojiPicker={setShowEmojiPicker}
+            isRecording={isRecording}
+            recordedVoice={recordedVoice}
+            isListening={isListening}
+            tokenSuggestion={tokenSuggestion}
+            activeSuggestions={activeSuggestions}
+            activeTokenIndex={activeTokenIndex}
+            setActiveTokenIndex={setActiveTokenIndex}
+            messageInputRef={messageInputRef}
+            inlineVideoRefs={inlineVideoRefs}
+            onSendMessage={handleSendMessage}
+            onToggleSelectAllMessages={handleToggleSelectAllMessages}
+            onSelectionCopy={handleSelectionCopy}
+            onSelectionPin={handleSelectionPin}
+            onSelectionReply={handleSelectionReply}
+            onSelectionForward={handleSelectionForward}
+            onSelectionDeleteForMe={handleSelectionDeleteForMe}
+            onSelectionDeleteForEveryone={handleSelectionDeleteForEveryone}
+            onMediaUpload={handleMediaUpload}
+            onFileUploadMenu={handleFileUploadMenu}
+            onMusicUpload={handleMusicUpload}
+            onLocationShare={handleLocationShare}
+            tryOpenMediaFullscreen={tryOpenMediaFullscreen}
+            setFullscreenMedia={setFullscreenMedia}
+            clearRecording={clearRecording}
+            showToast={showToast}
+            handleMicDown={handleMicDown}
+            handleMicUp={handleMicUp}
+            updateTokenSuggestion={updateTokenSuggestion}
+            insertTokenSuggestion={insertTokenSuggestion}
+            setTokenSuggestion={setTokenSuggestion}
+          />`;
+
+const before = lines.slice(0, 1890);
+const after = lines.slice(2958);
+const next = [...before, replacement, ...after].join('\n');
+fs.writeFileSync(path, next);
+console.log('Replaced lines 1891-2958 in MessagesScreen.tsx');

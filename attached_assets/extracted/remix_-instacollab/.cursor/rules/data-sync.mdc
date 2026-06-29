@@ -1,0 +1,14 @@
+---
+description: Entire-app data sync for EVERY user task (like, save, follow, comment, message, story, create, delete, settings, workspace, etc.) on ANY screen. Required for all existing fixes and future implementation—not limited to follow/unfollow.
+alwaysApply: true
+---
+
+# Data sync — all tasks, all screens
+
+Read **`AGENTS.md`** and **`src/lib/appDataTasks.ts`**.
+
+**Any user action** must use the catalogued **`db.*` method** and show live state via **`useDB()` + `resolve*` / hooks**.
+
+Covers: post/reel like & save, comments & replies & comment likes, follow, create/delete/report, stories, messages (send/edit/react/read), notifications, profile edit, workspace, settings, mute/fullscreen/badges, and **new tasks you add** (extend `db.ts` + `appDataTasks.ts` + AGENTS.md).
+
+Never mirror engagement or user/post snapshots in component state. Pass **ids** into modals.
