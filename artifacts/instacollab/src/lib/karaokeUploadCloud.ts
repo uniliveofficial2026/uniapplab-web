@@ -1,7 +1,8 @@
 import { hasSupabaseSessionForUser } from './auth/activeBackend';
+import { db } from './db/localDb';
 import { isCloudAuthConfigured } from './auth/config';
 import { isCloudAuthUserId } from './auth/cloudProfile';
-import { db } from './db/localDb';
+import { readActiveDeviceUid } from './auth/deviceAccounts';
 import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
 
@@ -73,6 +74,8 @@ function isEligibleKaraokeOwnerId(userId: string | undefined | null): userId is 
 export function getKaraokeCloudUserId(): string {
   const fromUser = db.currentUser?.id?.trim();
   if (isEligibleKaraokeOwnerId(fromUser)) return fromUser;
+  const activeUid = readActiveDeviceUid()?.trim();
+  if (isEligibleKaraokeOwnerId(activeUid)) return activeUid;
   if (!db.isLoggedIn) return isCloudAuthConfigured() ? '' : 'u1';
   const stored = db.load('currentUserId', '')?.trim();
   if (isEligibleKaraokeOwnerId(stored)) return stored;

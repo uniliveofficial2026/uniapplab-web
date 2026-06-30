@@ -44,6 +44,11 @@ import { resolveCanonicalAppUserId } from '../../lib/profileIdentity';
 import type { User } from '../../types';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
+import { useAuth } from '../../lib/AuthContext';
+import { useCloudAuth } from '../../contexts/CloudAuthContext';
+import { isCloudAuthConfigured } from '../../lib/auth/config';
+import { AccountSwitcherModal } from '../profile/AccountSwitcherModal';
+import { reconcileWalletAndKstarCoins } from '../../lib/walletKstarSync';
 import {
   addKstarCoins,
   ensureKstarUserStateMigrated,
@@ -51,7 +56,10 @@ import {
   isKstarVip,
   spendKstarCoins,
 } from '../../lib/kstarUserState';
+import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
+import { compressAvatarDataUrl } from '../../lib/auth/cloudAvatar';
 import { safeAvatarUrl, safeUsername } from '../../lib/safe';
+import { fileToBase64, handleAvatarError, resolveAvatarSrc } from '../../lib/utils';
 import {
   deleteKaraokeUpload,
   hydrateKaraokeUploadsFromCloud,
@@ -145,15 +153,19 @@ function resolveUserIdFromKaraokeHandle(handle: string, users: User[]): string |
   return users.find((u) => u.username?.toLowerCase() === clean)?.id ?? null;
 }
 
+function karaokeAvatarSrc(avatar: string | null | undefined, seed: string): string {
+  const resolved = resolveAvatarSrc(avatar || '');
+  if (resolved && resolved !== '/favicon.svg') return resolved;
+  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
+}
+
 function buildKaraokeProfileFromDbUser(user: User): KaraokeSelectedProfile {
   const background = karaokeProfileBackgroundForUser(user.id);
   return {
     userId: user.id,
     name: getProfileDisplayName(user),
     handle: formatProfileHandle(user) || `@${user.username}`,
-    avatar:
-      safeAvatarUrl(user.avatarUrl) ||
-      `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
+    avatar: karaokeAvatarSrc(user.avatarUrl, user.id),
     description: user.bio?.trim() || '',
     ...background,
   };
@@ -586,12 +598,24 @@ export function KaraokeScreen() {
   const db = useDB();
   useDbRevision();
   const appUser = useCurrentUser();
+  const {
+    userAccounts,
+    selectAccount,
+    removeAccount,
+    linkEmailAccount,
+    linkGoogleAccount,
+    ensureDeviceAccountsSynced,
+  } = useAuth();
+  const { session: cloudSession } = useCloudAuth();
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [accountLinking, setAccountLinking] = useState(false);
 
   const userCoins = getKstarCoins(appUser.id);
   const userVip = isKstarVip(appUser);
 
   useEffect(() => {
     ensureKstarUserStateMigrated(appUser.id);
+    reconcileWalletAndKstarCoins(appUser.id);
   }, [appUser.id]);
 
   // Dynamic state for duets that makes interactions (likes, comments, gifts) reactive and persistent
@@ -958,7 +982,7 @@ export function KaraokeScreen() {
       handle:
         formatProfileHandle(appUser) ||
         `@${(appUser.username || appUser.displayName || 'you').toLowerCase().replace(/\s+/g, '_')}`,
-      avatar: safeAvatarUrl(appUser.avatarUrl),
+      avatar: karaokeAvatarSrc(appUser.avatarUrl, appUser.id),
       coins: userCoins,
       vip: userVip,
       followers: selfProfileStats.followerCount.toLocaleString(),
@@ -1274,6 +1298,27 @@ export function KaraokeScreen() {
       );
     }
   }, []);
+
+  const applySelfProfileAvatarFile = useCallback(
+    async (file: File) => {
+      try {
+        const raw = await fileToBase64(file);
+        const avatarUrl = await compressAvatarDataUrl(raw);
+        db.updateUser(appUser.id, (user) => ({ ...user, avatarUrl }));
+        const next = db.users.find((user) => user.id === appUser.id);
+        if (next) scheduleCloudProfileSync(next);
+        setEditProfileAvatar(avatarUrl);
+        window.dispatchEvent(
+          new CustomEvent('app-toast', { detail: 'Profile photo updated!' }),
+        );
+      } catch {
+        window.dispatchEvent(
+          new CustomEvent('app-toast', { detail: 'Could not update profile photo.' }),
+        );
+      }
+    },
+    [appUser.id, db],
+  );
 
   const handleBackgroundEditorSave = useCallback(
     (background: KaraokeProfileBackgroundRecord) => {
@@ -3703,7 +3748,7 @@ export function KaraokeScreen() {
              const handleEditProfileClick = () => {
                setEditProfileName(appUser.username || appUser.displayName || '');
                setEditProfileBio(appUser.bio || '');
-               setEditProfileAvatar(safeAvatarUrl(appUser.avatarUrl));
+               setEditProfileAvatar(karaokeAvatarSrc(appUser.avatarUrl, appUser.id));
                const background = getKaraokeProfileBackground(appUser.id);
                setEditProfileBackgroundUrl(background?.url ?? null);
                setEditProfileBackgroundMediaId(background?.mediaId ?? null);
@@ -3780,8 +3825,44 @@ export function KaraokeScreen() {
                 </KaraokeProfileBackground>
                 
                 <div className="px-6 relative -mt-20 sm:-mt-24 md:-mt-28 lg:-mt-32 flex flex-col gap-4 pb-6 border-b border-border sm:grid sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-end sm:gap-x-4">
-                   <div className="w-32 h-32 rounded-full border-4 border-background bg-zinc-800 overflow-hidden shadow-xl shrink-0 bg-yellow-100 relative sm:col-start-1 sm:row-start-1">
-                     <img src={profileUser.avatar} alt="Profile" className="w-full h-full rounded-full object-cover relative z-10" />
+                   <div className="w-32 h-32 rounded-full border-4 border-background bg-muted overflow-hidden shadow-xl shrink-0 relative sm:col-start-1 sm:row-start-1">
+                     {!selectedUserProfile ? (
+                       <label
+                         className="group relative block h-full w-full cursor-pointer"
+                         aria-label="Change profile photo"
+                         title="Change profile photo"
+                       >
+                         <img
+                           src={karaokeAvatarSrc(profileUser.avatar, appUser.id)}
+                           alt="Profile"
+                           className="block h-full w-full object-cover relative z-10"
+                           onError={handleAvatarError}
+                         />
+                         <span className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-full bg-black/45 text-[10px] font-bold uppercase tracking-wide text-white opacity-0 transition-opacity group-hover:opacity-100">
+                           Photo
+                         </span>
+                         <input
+                           type="file"
+                           className="sr-only"
+                           accept="image/*,image/svg+xml,.svg,.webp"
+                           onChange={(event) => {
+                             const file = event.target.files?.[0];
+                             event.target.value = '';
+                             if (file) void applySelfProfileAvatarFile(file);
+                           }}
+                         />
+                       </label>
+                     ) : (
+                       <img
+                         src={karaokeAvatarSrc(
+                           profileUser.avatar,
+                           karaokeViewedProfileUserId || profileUser.handle.replace(/^@/, ''),
+                         )}
+                         alt="Profile"
+                         className="block h-full w-full object-cover relative z-10"
+                         onError={handleAvatarError}
+                       />
+                     )}
                    </div>
                    <div className="flex-1 pb-2 sm:col-start-2 sm:row-start-1 min-w-0">
                      <h2 className="text-2xl font-extrabold flex items-center gap-2">{profileUser.name} {profileUser.vip || profileUser.name.toLowerCase().includes('master') ? <Crown className="w-5 h-5 text-amber-500" /> : null}</h2>
@@ -3883,6 +3964,15 @@ export function KaraokeScreen() {
                        </>
                      ) : (
                        <>
+                       <button
+                         type="button"
+                         onClick={() => setShowAccountSwitcher(true)}
+                         className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
+                         aria-label="Switch account"
+                         title="Switch account"
+                       >
+                         <Users className="w-[18px] h-[18px]" />
+                       </button>
                        <button
                          type="button"
                          onClick={handleEditProfileClick}
@@ -4597,8 +4687,21 @@ export function KaraokeScreen() {
 
                   <button 
                     onClick={() => {
+                      const result = db.purchasePremiumPackage('profile_premium_1m');
                       setShowVipModal(false);
-                      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'VIP Premium Unlocked! Enjoy exclusive features.' }));
+                      if (result.ok) {
+                        window.dispatchEvent(
+                          new CustomEvent('app-toast', {
+                            detail: 'VIP Premium unlocked — synced across main app and K-Star!',
+                          }),
+                        );
+                      } else {
+                        window.dispatchEvent(
+                          new CustomEvent('app-toast', {
+                            detail: result.reason ?? 'Could not unlock VIP. Check your wallet balance.',
+                          }),
+                        );
+                      }
                     }}
                     className="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-transform text-lg"
                   >
@@ -4750,15 +4853,26 @@ export function KaraokeScreen() {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Choose Avatar / Seed</label>
                 <div className="flex items-center gap-4 bg-secondary/40 p-3 rounded-2xl border border-border">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-yellow-100 shrink-0 border border-border relative">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-muted shrink-0 border border-border relative">
                     <img 
-                      src={editProfileAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=user`} 
+                      src={karaokeAvatarSrc(editProfileAvatar, appUser.id)} 
                       alt="Avatar Preview" 
-                      className="w-full h-full object-cover" 
+                      className="block h-full w-full object-cover" 
+                      onError={handleAvatarError}
                     />
-                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
+                    <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/25 hover:bg-black/40 transition-colors">
                       <Camera className="w-4 h-4 text-white" />
-                    </div>
+                      <input
+                        type="file"
+                        className="sr-only"
+                        accept="image/*,image/svg+xml,.svg,.webp"
+                        onChange={(event) => {
+                          const file = event.target.files?.[0];
+                          event.target.value = '';
+                          if (file) void applySelfProfileAvatarFile(file);
+                        }}
+                      />
+                    </label>
                   </div>
                   <div className="flex-1 min-w-0">
                     <input 
@@ -4900,13 +5014,16 @@ export function KaraokeScreen() {
                     window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Name cannot be empty! ⚠️' }));
                     return;
                   }
-                  
-                  const updatedUsers = db.users.map((u: any) => 
-                    u.id === appUser.id 
-                    ? { ...u, username: editProfileName, bio: editProfileBio, avatarUrl: editProfileAvatar } 
-                    : u
-                  );
-                  db.save('users', updatedUsers);
+
+                  db.updateUser(appUser.id, (user) => ({
+                    ...user,
+                    username: editProfileName.trim(),
+                    displayName: editProfileName.trim(),
+                    bio: editProfileBio,
+                    avatarUrl: editProfileAvatar || user.avatarUrl,
+                  }));
+                  const next = db.users.find((user) => user.id === appUser.id);
+                  if (next) scheduleCloudProfileSync(next);
                   setKaraokeProfileBackground(
                     appUser.id,
                     editProfileBackgroundUrl || editProfileBackgroundMediaId
@@ -5740,6 +5857,60 @@ export function KaraokeScreen() {
         shareText={karaokeShareModal?.shareText ?? 'Shared from K-Star'}
         kind={karaokeShareModal?.kind ?? 'karaoke-track'}
         notificationText={karaokeShareModal?.notificationText}
+      />
+      <AccountSwitcherModal
+        open={showAccountSwitcher}
+        accounts={userAccounts}
+        activeUid={cloudSession?.user?.id ?? appUser.id}
+        linking={accountLinking}
+        cloudAuthEnabled={isCloudAuthConfigured()}
+        onClose={() => setShowAccountSwitcher(false)}
+        onSelectAccount={async (uid, password) => {
+          try {
+            const label =
+              userAccounts.find((account) => account.uid === uid)?.displayName || 'account';
+            window.dispatchEvent(
+              new CustomEvent('app-toast', { detail: `Switching to ${label}…` }),
+            );
+            await selectAccount(uid, password);
+            setShowAccountSwitcher(false);
+            reconcileWalletAndKstarCoins(uid);
+            void loadUserUploads();
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to switch account.';
+            window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
+          }
+        }}
+        onRemoveAccount={removeAccount}
+        onSignInWithEmail={async (email, password) => {
+          try {
+            setAccountLinking(true);
+            await ensureDeviceAccountsSynced();
+            const result = await linkEmailAccount(email, password);
+            if (result.ok) {
+              window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Signed in!' }));
+              setShowAccountSwitcher(false);
+              if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
+              void loadUserUploads();
+            }
+            return result;
+          } catch {
+            return { ok: false, reason: 'Failed to sign in with email.' };
+          } finally {
+            setAccountLinking(false);
+          }
+        }}
+        onLinkGoogle={async () => {
+          setAccountLinking(true);
+          try {
+            const result = await linkGoogleAccount();
+            if (!result.ok && result.reason) {
+              window.dispatchEvent(new CustomEvent('app-toast', { detail: result.reason }));
+            }
+          } finally {
+            setAccountLinking(false);
+          }
+        }}
       />
     </div>
   );

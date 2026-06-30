@@ -82,3 +82,14 @@ export function isKstarVip(user: User | null | undefined): boolean {
   const row = readStore()[user.id];
   return Boolean(row?.vip);
 }
+
+export function setKstarVip(userId: string, vip: boolean): void {
+  const id = userId?.trim();
+  if (!id) return;
+  const store = { ...readStore() };
+  store[id] = {
+    coins: store[id]?.coins ?? getKstarCoins(id),
+    vip,
+  };
+  writeStore(store);
+}

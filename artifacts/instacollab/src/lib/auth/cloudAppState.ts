@@ -119,6 +119,17 @@ export function scheduleCloudAppStateSync(store: LocalDB = db): void {
   }, 700);
 }
 
+/** Push pending local changes immediately (call before account switch / sign-out). */
+export async function flushCloudAppStateSync(): Promise<void> {
+  if (pushTimer) {
+    clearTimeout(pushTimer);
+    pushTimer = null;
+  }
+  const userId = db.currentUserId;
+  if (!userId || !isCloudAuthUserId(userId)) return;
+  await pushNow(userId);
+}
+
 export function isCloudAppStateRemoteApply(): boolean {
   return applyingRemote;
 }

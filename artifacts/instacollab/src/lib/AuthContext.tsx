@@ -16,11 +16,13 @@ import { getFirebaseAuth, getFirestoreDB } from './firebase';
 import { db } from './db/localDb';
 import { safeLocalStorage } from './utils';
 import { isSupabaseConfigured, isPrimarySupabaseCloud } from './auth/config';
-import { authSignInWithEmail, authSignInWithGoogle, authSignOut } from './auth/authService';
+import { authSignInWithEmail, authSignInWithGoogle, authSignOut, authSignUp, authRequestPasswordReset } from './auth/authService';
 import { syncCloudSessionNow } from './auth/syncSession';
-import { isCloudAuthUserId } from './auth/cloudProfile';
+import { flushCloudAppStateSync, stopCloudAppStateRealtimeAsync } from './auth/cloudAppState';
+import { flushCloudProfileSync, isCloudAuthUserId } from './auth/cloudProfile';
 import { teardownCloudSession, applySupabaseSessionToLocalDb } from './auth/sessionManager';
 import { getSupabaseClient } from './supabase/client';
+import { reconcileWalletAndKstarCoins } from './walletKstarSync';
 import { createWorkspaceGoogleAuthProvider } from './auth/googleAuthProvider';
 import {
   accountFromAppUser,
@@ -178,6 +180,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const persistCurrentAccountBeforeSwitch = async () => {
+    await flushCloudAppStateSync();
+    await flushCloudProfileSync();
     await ensureDeviceAccountsSynced();
 
     const supabase = getSupabaseClient();
@@ -217,8 +221,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (session) {
           await applySupabaseSessionToLocalDb(session);
         } else {
-          await applyLocalAccountSelection(uid);
+          const sync = await syncCloudSessionNow();
+          if (!sync.ok) {
+            throw new Error(sync.reason);
+          }
         }
+        reconcileWalletAndKstarCoins(uid);
         return;
       }
 
@@ -241,6 +249,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         await ensureDeviceAccountsSynced();
+        reconcileWalletAndKstarCoins(db.currentUser?.id ?? uid);
         return;
       }
 
@@ -349,6 +358,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await ensureDeviceAccountsSynced();
+      if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
       return { ok: true };
     }
 
@@ -520,12 +530,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const loginWithEmail = async (email: string, pass: string) => {
+    if (isPrimarySupabaseCloud()) {
+      const result = await authSignInWithEmail(email, pass);
+      if (!result.ok) throw new Error(result.reason ?? 'Email sign-in failed.');
+      const sync = await syncCloudSessionNow();
+      if (!sync.ok) throw new Error(sync.reason);
+      await ensureDeviceAccountsSynced();
+      if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
+      return;
+    }
     const auth = getFirebaseAuth();
     if (!auth) return;
     await signInWithEmailAndPassword(auth, email, pass);
   };
 
   const signupWithEmail = async (email: string, pass: string, name: string) => {
+    if (isPrimarySupabaseCloud()) {
+      const username = name.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_') || 'user';
+      const result = await authSignUp({
+        email,
+        password: pass,
+        username,
+        displayName: name.trim() || username,
+      });
+      if (!result.ok) throw new Error(result.reason ?? 'Sign-up failed.');
+      const sync = await syncCloudSessionNow();
+      if (!sync.ok) throw new Error(sync.reason);
+      await ensureDeviceAccountsSynced();
+      if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
+      return;
+    }
     const auth = getFirebaseAuth();
     if (!auth) return;
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
@@ -535,6 +569,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const resetPassword = async (email: string) => {
+    if (isPrimarySupabaseCloud()) {
+      const result = await authRequestPasswordReset(email);
+      if (!result.ok) throw new Error(result.reason ?? 'Password reset failed.');
+      return;
+    }
     const { sendPasswordResetEmail } = await import('firebase/auth');
     const auth = getFirebaseAuth();
     if (!auth) return;
@@ -542,20 +581,32 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    await flushCloudAppStateSync();
+    await flushCloudProfileSync();
+    if (isSupabaseConfigured()) {
+      try {
+        await authSignOut();
+      } catch (err) {
+        console.warn('[auth] signOut failed:', err);
+      }
+      teardownCloudSession();
+      await stopCloudAppStateRealtimeAsync();
+      clearActiveDeviceUid();
+      setGoogleAccessToken(null);
+      setUser(null);
+      setProfile(null);
+      db.logoutSession();
+      return;
+    }
     const auth = getFirebaseAuth();
     if (auth) {
       await signOut(auth);
-    }
-    if (isSupabaseConfigured()) {
-      await authSignOut();
     }
     clearActiveDeviceUid();
     setGoogleAccessToken(null);
     setUser(null);
     setProfile(null);
-    if (!isSupabaseConfigured()) {
-      db.logoutSession();
-    }
+    db.logoutSession();
   };
 
   const switchAccount = linkGoogleAccount;

@@ -1,5 +1,7 @@
 import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
+import { useCurrentUser } from '../../lib/useCurrentUser';
+import { spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
   ShoppingBag, 
   Tag, 
@@ -27,6 +29,7 @@ import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsThe
 
 export function ShopTab() {
   const db = useDB();
+  const appUser = useCurrentUser();
   const chartTheme = useRechartsTheme();
 
   // Load balances
@@ -101,13 +104,10 @@ export function ShopTab() {
     }
 
     if (product.priceType === 'coins') {
-      if (coinsBalance < product.price) {
+      if (!spendWalletCoins(appUser.id, product.price)) {
         alert('Insufficient streaming Coins to purchase this item.');
         return;
       }
-      
-      // Deduct coins
-      db.save('coins_balance', coinsBalance - product.price);
     } else {
       if (cashBalance < product.price) {
         alert('Insufficient cash USD balance to purchase this item.');

@@ -179,6 +179,19 @@ export function scheduleCloudProfileSync(
   }, 450);
 }
 
+/** Push pending profile row immediately (call before account switch / sign-out). */
+export async function flushCloudProfileSync(): Promise<void> {
+  if (debounceTimer) {
+    clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
+  const target = pendingUser;
+  const setup = pendingSetupFlag;
+  pendingUser = null;
+  pendingSetupFlag = undefined;
+  if (target) await pushCloudProfile(target, { profileSetupComplete: setup });
+}
+
 /** @deprecated use scheduleCloudProfileSync */
 export const scheduleSupabaseProfileSync = scheduleCloudProfileSync;
 
