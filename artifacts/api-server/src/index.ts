@@ -1,5 +1,9 @@
+import { injectSpeedInsights } from "@vercel/speed-insights";
 import app from "./app";
 import { logger } from "./lib/logger";
+
+// Initialize Vercel Speed Insights
+injectSpeedInsights();
 
 const rawPort = process.env["PORT"];
 const host = process.env["HOST"] ?? "0.0.0.0";
