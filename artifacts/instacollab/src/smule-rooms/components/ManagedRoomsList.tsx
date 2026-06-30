@@ -3,11 +3,13 @@ import { Crown, Pencil, Shield, Users, Zap } from 'lucide-react';
 import { getAppUserId } from '../../lib/appUserId';
 import { useDbRevision } from '../../lib/useDB';
 import { getRoomExpProgress } from '../utils/roomExp';
-import { canEditRoomForUser, ensureRoomRoleUserIds } from '../utils/roomRoleUsers';
+import { canEditRoomForUser, ensureRoomRoleUserIds, ensureDemoRoomFollowAccess } from '../utils/roomRoleUsers';
+import { getRoomSettings } from '../utils/storage';
 import { RoomHostLabel } from './RoomHostLabel';
 import {
   formatManagedRoomRoleLabel,
   formatRoomModeLabel,
+  ensureManagedRoomsHydrated,
   getManagedRooms,
   groupManagedRoomsByRole,
   type ManagedRoom,
@@ -78,6 +80,15 @@ export function ManagedRoomsList({
   useDbRevision();
   const [rooms, setRooms] = useState<ManagedRoom[]>(() => getManagedRooms());
   const [, setExpRevision] = useState(0);
+
+  useEffect(() => {
+    ensureManagedRoomsHydrated();
+    for (const room of getManagedRooms()) {
+      ensureRoomRoleUserIds(room.id);
+      ensureDemoRoomFollowAccess(room.id);
+    }
+    setRooms(getManagedRooms());
+  }, []);
 
   useEffect(() => {
     const refresh = () => {
@@ -157,7 +168,7 @@ export function ManagedRoomsList({
             <div className="space-y-2">
               {sectionRooms.map((room) => {
                 const canEdit = canEditRoomForUser(
-                  ensureRoomRoleUserIds(room.id),
+                  getRoomSettings(room.id),
                   getAppUserId(),
                   { sessionRole: room.role },
                 );

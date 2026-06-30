@@ -68,8 +68,11 @@ export function setKstarCoins(userId: string, coins: number): void {
   const id = userId?.trim();
   if (!id) return;
   ensureKstarUserStateMigrated(id);
+  const next = Math.max(0, Math.floor(coins));
   const store = { ...readStore() };
-  store[id] = { ...store[id], coins: Math.max(0, Math.floor(coins)) };
+  const prev = store[id]?.coins;
+  if (prev === next) return;
+  store[id] = { ...store[id], coins: next };
   writeStore(store);
 }
 

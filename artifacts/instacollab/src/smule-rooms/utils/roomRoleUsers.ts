@@ -307,7 +307,10 @@ export function ensureRoomRoleUserIds(roomId: string): RoomSettings {
       ? (saveRoomSettings(roomId, patch), getRoomSettings(roomId))
       : settings;
 
-  seedDemoRoomFollowGraph(roomId);
-
   return nextSettings;
+}
+
+/** Backfill follow edges for demo room join policies — writes to db; call from effects only. */
+export function ensureDemoRoomFollowAccess(roomId: string): void {
+  seedDemoRoomFollowGraph(roomId);
 }

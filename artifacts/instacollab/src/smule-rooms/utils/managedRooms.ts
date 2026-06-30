@@ -1,7 +1,7 @@
 import { getAppUserId } from '../../lib/appUserId';
 import { formatRoomRoleLabel, normalizeRoomRole, type RoomMemberRole } from './roles';
 import { getRoomSettings, saveRoomSettings, ensureRoomSettingsSeeded, type RoomMode } from './storage';
-import { ensureRoomRoleUserIds, resolveEffectiveMemberRole } from './roomRoleUsers';
+import { ensureRoomRoleUserIds, resolveEffectiveMemberRole, ensureDemoRoomFollowAccess } from './roomRoleUsers';
 import { initRoomExp } from './roomExp';
 import { initRoomGifts } from './roomGifts';
 import { seedDemoRoomMedia, ensureDemoRoomMediaRegistry } from './roomMedia';
@@ -72,6 +72,20 @@ function writeManagedRooms(rooms: ManagedRoom[]) {
   window.dispatchEvent(new CustomEvent('managed-rooms-updated'));
 }
 
+function mergeDemoGrantsInMemory(existing: ManagedRoom[]): ManagedRoom[] {
+  const now = Date.now();
+  const merged = [...existing];
+  for (const grant of DEMO_GRANTS) {
+    if (merged.some((room) => room.id === grant.id)) continue;
+    merged.push({
+      ...grant,
+      grantedAt: now,
+      updatedAt: now,
+    });
+  }
+  return merged;
+}
+
 function seedDemoGrants(existing: ManagedRoom[]): ManagedRoom[] {
   const now = Date.now();
   const merged = [...existing];
@@ -102,14 +116,18 @@ function seedDemoGrants(existing: ManagedRoom[]): ManagedRoom[] {
   return merged;
 }
 
-export function getManagedRooms(): ManagedRoom[] {
+/** Persist demo grants + room settings — call from effects, not during render. */
+export function ensureManagedRoomsHydrated(): void {
   ensureDemoRoomMediaRegistry();
-  let rooms = readManagedRooms();
+  const rooms = readManagedRooms();
   const seeded = seedDemoGrants(rooms);
   if (seeded.length !== rooms.length) {
     writeManagedRooms(seeded);
-    rooms = seeded;
   }
+}
+
+export function getManagedRooms(): ManagedRoom[] {
+  const rooms = mergeDemoGrantsInMemory(readManagedRooms());
   return rooms.sort((a, b) => {
     const roleOrder = roleSortWeight(a.role) - roleSortWeight(b.role);
     if (roleOrder !== 0) return roleOrder;
@@ -224,6 +242,7 @@ export function activateRoomContext(
     owner: room.hostName,
   });
   const settings = ensureRoomRoleUserIds(room.id);
+  ensureDemoRoomFollowAccess(room.id);
   const appUserId = getAppUserId();
   const effectiveRole = resolveEffectiveMemberRole(settings, appUserId, {
     sessionRole: normalizeManagedRoomRole(room.role),

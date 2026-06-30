@@ -21,7 +21,8 @@
     "auth:repair-policies": "node scripts/auth-repair-policies.mjs",
     "auth:check": "node scripts/check-cloud-auth.mjs",
     "auth:check:prod": "node scripts/check-production-auth.mjs",
-    "oauth:setup": "node scripts/print-oauth-setup.mjs"
+    "oauth:setup": "node scripts/print-oauth-setup.mjs",
+    "smoke:manage-tab": "node scripts/smoke-manage-tab.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
@@ -47,6 +48,7 @@
     "date-fns": "^4.2.1",
     "emoji-picker-react": "^4.19.1",
     "lucide-react": "catalog:",
+    "playwright": "1.49.1",
     "react": "catalog:",
     "react-dom": "catalog:",
     "recharts": "^2.15.2",
