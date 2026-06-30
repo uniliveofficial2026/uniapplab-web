@@ -19,6 +19,7 @@ import { isSupabaseConfigured } from '../../lib/supabase/config';
 import { clearSupabaseUnhealthy } from '../../lib/auth/providerState';
 import { completeSupabaseOAuthReturnOnce } from '../../lib/auth/oauthReturnGuard';
 import { isKnownLocalDemoEmail, tryLocalDemoLogin } from '../../lib/auth/localDemoAuth';
+import { signInDemoWithCloudSync } from '../../lib/auth/demoCloudAuth';
 import { isSupabaseOAuthReturnInUrl } from '../../lib/auth/supabaseOAuthReturn';
 import { reconcileWalletAndKstarCoins } from '../../lib/walletKstarSync';
 import {
@@ -80,9 +81,21 @@ export function AuthScreen() {
     setBusy(true);
     try {
       if (useCloudAuth) {
+        if (isKnownLocalDemoEmail(email)) {
+          const demoCloud = await signInDemoWithCloudSync(email, password);
+          if (demoCloud.ok) {
+            showToast('Welcome back! (demo — synced to cloud)');
+            return;
+          }
+          if (!import.meta.env.DEV) {
+            showToast(demoCloud.reason);
+            return;
+          }
+        }
+
         const demoLogin = tryLocalDemoLogin(email, password);
         if (demoLogin?.ok) {
-          showToast('Welcome back! (demo account — local only)');
+          showToast('Welcome back! (demo account — offline dev only)');
           return;
         }
         if (demoLogin && !demoLogin.ok) {
@@ -266,7 +279,7 @@ export function AuthScreen() {
     mode === 'login'
       ? useCloudAuth
         ? import.meta.env.DEV
-          ? 'Cloud account: email + password, Google, or Apple. Dev demo: demo@instacollab.app / demo123 (or button below).'
+          ? 'Cloud: email, Google, or Apple. Demo (syncs live): demo@instacollab.app / demo123.'
           : 'Sign in with email, Google, or Apple (syncs across devices).'
         : import.meta.env.DEV
           ? 'Demo mode — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to a .env file, then restart npm run dev.'

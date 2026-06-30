@@ -205,10 +205,28 @@ async function hydrateCloudAppStateForUser(
         applyPayloadIfNewer(existing, 'bootstrap');
       }
     } else {
-      db.prepareLocalStoreForFirstCloudSession(userId);
-      lastPushedAt = 0;
-      lastAppliedRemoteAt = 0;
-      db.save(LOCAL_REV_KEY, { userId, updatedAt: 0 });
+      let appliedDemoMigration = false;
+      if (isSupabaseConfigured()) {
+        const { consumePendingDemoMigration, resolveDemoSessionEmail } = await import(
+          './demoCloudAuth'
+        );
+        const sessionEmail = await resolveDemoSessionEmail(userId);
+        const pending = sessionEmail ? consumePendingDemoMigration(sessionEmail) : null;
+        if (pending?.collections && Object.keys(pending.collections).length > 0) {
+          db.applyRemoteCollections(pending.collections);
+          persistLocalRevision(userId, pending.updatedAt);
+          lastPushedAt = Math.max(lastPushedAt, pending.updatedAt);
+          lastAppliedRemoteAt = 0;
+          appliedDemoMigration = true;
+          pushLocal = true;
+        }
+      }
+      if (!appliedDemoMigration) {
+        db.prepareLocalStoreForFirstCloudSession(userId);
+        lastPushedAt = 0;
+        lastAppliedRemoteAt = 0;
+        db.save(LOCAL_REV_KEY, { userId, updatedAt: 0 });
+      }
     }
 
     if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };

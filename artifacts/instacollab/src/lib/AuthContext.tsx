@@ -23,6 +23,8 @@ import { flushCloudProfileSync, isCloudAuthUserId } from './auth/cloudProfile';
 import { teardownCloudSession, applySupabaseSessionToLocalDb } from './auth/sessionManager';
 import { getSupabaseClient } from './supabase/client';
 import { reconcileWalletAndKstarCoins } from './walletKstarSync';
+import { isKnownLocalDemoEmail } from './auth/localDemoAuth';
+import { signInDemoWithCloudSync } from './auth/demoCloudAuth';
 import { createWorkspaceGoogleAuthProvider } from './auth/googleAuthProvider';
 import {
   accountFromAppUser,
@@ -534,6 +536,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const loginWithEmail = async (email: string, pass: string) => {
     if (isPrimarySupabaseCloud()) {
+      if (isKnownLocalDemoEmail(email)) {
+        const demo = await signInDemoWithCloudSync(email, pass);
+        if (demo.ok) {
+          await ensureDeviceAccountsSynced();
+          return;
+        }
+        throw new Error(demo.reason);
+      }
       const result = await authSignInWithEmail(email, pass);
       if (!result.ok) throw new Error(result.reason ?? 'Email sign-in failed.');
       const sync = await syncCloudSessionNow();

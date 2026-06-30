@@ -39,7 +39,10 @@ export async function authSignInWithEmail(email: string, password: string): Prom
   const trimmed = email.trim();
   if (isSupabaseConfigured()) {
     const supabaseResult = await supabaseSignIn(trimmed, password);
-    if (supabaseResult.ok) return supabaseResult;
+    if (supabaseResult.ok) {
+      clearDevLocalAuthBypass();
+      return supabaseResult;
+    }
     if (isFirebaseConfigured() && isCredentialMismatch(supabaseResult.reason)) {
       const firebaseResult = await firebaseSignIn(trimmed, password);
       if (firebaseResult.ok) return firebaseResult;
