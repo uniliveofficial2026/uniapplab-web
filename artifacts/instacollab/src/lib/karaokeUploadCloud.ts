@@ -1,4 +1,6 @@
 import { hasSupabaseSessionForUser } from './auth/activeBackend';
+import { isCloudAuthConfigured } from './auth/config';
+import { isCloudAuthUserId } from './auth/cloudProfile';
 import { db } from './db/localDb';
 import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
@@ -61,11 +63,20 @@ export async function getKaraokeFilePublicUrl(path: string): Promise<string | nu
   return data.publicUrl || null;
 }
 
+function isEligibleKaraokeOwnerId(userId: string | undefined | null): userId is string {
+  const id = userId?.trim();
+  if (!id) return false;
+  if (!isCloudAuthConfigured()) return true;
+  return isCloudAuthUserId(id);
+}
+
 export function getKaraokeCloudUserId(): string {
   const fromUser = db.currentUser?.id?.trim();
-  if (fromUser) return fromUser;
-  if (!db.isLoggedIn) return 'u1';
-  return db.load('currentUserId', 'u1')?.trim() || '';
+  if (isEligibleKaraokeOwnerId(fromUser)) return fromUser;
+  if (!db.isLoggedIn) return isCloudAuthConfigured() ? '' : 'u1';
+  const stored = db.load('currentUserId', '')?.trim();
+  if (isEligibleKaraokeOwnerId(stored)) return stored;
+  return isCloudAuthConfigured() ? '' : 'u1';
 }
 
 /** Canonical owner for local My Uploads lists — always matches `useCurrentUser().id`. */

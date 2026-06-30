@@ -90,7 +90,10 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
 
   const appUser = userFromSession(session, profile);
   db.syncAuthUser(appUser);
-  syncDeviceAccountForAppUser(appUser);
+  syncDeviceAccountForAppUser({
+    ...appUser,
+    email: session.user.email ?? undefined,
+  });
   db.advanceLaunchProgressAfterLogin(Boolean(profile?.profile_setup_complete));
   writeStoredAuthBackend('supabase');
   clearSupabaseUnhealthy();

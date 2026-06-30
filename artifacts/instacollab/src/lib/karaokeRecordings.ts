@@ -1,4 +1,5 @@
 import { db } from './db/localDb';
+import { getKaraokeUploadOwnerUserId } from './karaokeUploadCloud';
 
 export type KaraokePerformanceType = 'solo' | 'duet' | 'group';
 
@@ -50,8 +51,23 @@ const MEDIA_STORE = 'media';
 
 const mediaUrlCache = new Map<string, string>();
 
+function assignMissingRecordingPerformers(
+  list: KaraokeCoverRecordingMeta[],
+): KaraokeCoverRecordingMeta[] {
+  const ownerId = getKaraokeUploadOwnerUserId();
+  if (!ownerId) return list;
+  let changed = false;
+  const next = list.map((row) => {
+    if (row.performerUserId) return row;
+    changed = true;
+    return { ...row, performerUserId: ownerId };
+  });
+  if (changed) db.save(DB_KEY, next);
+  return next;
+}
+
 function readMetaList(): KaraokeCoverRecordingMeta[] {
-  return db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []);
+  return assignMissingRecordingPerformers(db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []));
 }
 
 function writeMetaList(

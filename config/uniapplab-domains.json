@@ -1,0 +1,56 @@
+{
+  "brand": "UniAppLab",
+  "apex": "uniapplab.com",
+  "hosts": {
+    "landing": "uniapplab.com",
+    "www": "www.uniapplab.com",
+    "app": "app.uniapplab.com",
+    "api": "api.uniapplab.com",
+    "live": "live.uniapplab.com",
+    "call": "call.uniapplab.com",
+    "chat": "chat.uniapplab.com",
+    "media": "media.uniapplab.com",
+    "cdn": "cdn.uniapplab.com",
+    "admin": "admin.uniapplab.com"
+  },
+  "roles": {
+    "landing": "Marketing / landing website",
+    "www": "Public website",
+    "app": "Mobile & web app (React / Vercel)",
+    "api": "Backend API",
+    "live": "Live streaming",
+    "call": "Voice & video calls",
+    "chat": "Chat services",
+    "media": "Images & videos",
+    "cdn": "Static CDN assets",
+    "admin": "Admin dashboard"
+  },
+  "productionOrigins": {
+    "app": "https://app.uniapplab.com",
+    "www": "https://www.uniapplab.com",
+    "landing": "https://uniapplab.com",
+    "api": "https://api.uniapplab.com"
+  },
+  "devOrigins": [
+    "http://localhost:5173",
+    "http://127.0.0.1:5173",
+    "http://localhost:3000",
+    "http://127.0.0.1:3000"
+  ],
+  "supabase": {
+    "siteUrl": "https://app.uniapplab.com",
+    "redirectUrls": [
+      "https://app.uniapplab.com/**",
+      "https://uniapplab.com/**",
+      "https://www.uniapplab.com/**",
+      "http://localhost:5173/**",
+      "http://127.0.0.1:5173/**",
+      "http://localhost:3000/**",
+      "http://127.0.0.1:3000/**"
+    ]
+  },
+  "vercel": {
+    "appProjectRoot": "artifacts/instacollab",
+    "customDomains": ["app.uniapplab.com"]
+  }
+}

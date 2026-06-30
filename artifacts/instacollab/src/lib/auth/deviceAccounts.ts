@@ -1,5 +1,8 @@
+import type { User as SupabaseUser } from '@supabase/supabase-js';
 import type { User as FirebaseUser } from 'firebase/auth';
 import { safeLocalStorage } from '../utils';
+import { isCloudAuthConfigured } from './config';
+import { isCloudAuthUserId } from './cloudProfile';
 
 export type StoredDeviceAccount = {
   uid: string;
@@ -19,6 +22,27 @@ function dedupeAccounts(list: StoredDeviceAccount[]): StoredDeviceAccount[] {
     (item, idx, self) =>
       item?.uid && self.findIndex((t) => t.uid === item.uid) === idx
   );
+}
+
+export function isDeviceAccountEligible(account: StoredDeviceAccount): boolean {
+  if (!account?.uid?.trim()) return false;
+  if (isCloudAuthConfigured()) {
+    return isCloudAuthUserId(account.uid);
+  }
+  return true;
+}
+
+export function filterEligibleDeviceAccounts(
+  accounts: StoredDeviceAccount[] = readDeviceAccounts(),
+): StoredDeviceAccount[] {
+  return dedupeAccounts(accounts).filter(isDeviceAccountEligible);
+}
+
+/** Drop demo/local ids (u1, u2, …) from the switcher when cloud auth is enabled. */
+export function pruneIneligibleDeviceAccounts(): StoredDeviceAccount[] {
+  const kept = filterEligibleDeviceAccounts();
+  writeDeviceAccounts(kept);
+  return kept;
 }
 
 export function readDeviceAccounts(): StoredDeviceAccount[] {
@@ -94,6 +118,26 @@ export function clearGoogleAccessToken(uid?: string): void {
   });
 }
 
+export function accountFromSupabaseUser(user: SupabaseUser): StoredDeviceAccount {
+  const meta = (user.user_metadata || {}) as Record<string, unknown>;
+  const displayName =
+    (typeof meta.display_name === 'string' && meta.display_name) ||
+    (typeof meta.full_name === 'string' && meta.full_name) ||
+    (typeof meta.name === 'string' && meta.name) ||
+    user.email?.split('@')[0] ||
+    'User';
+  const photoURL =
+    (typeof meta.avatar_url === 'string' && meta.avatar_url) ||
+    (typeof meta.picture === 'string' && meta.picture) ||
+    null;
+  return {
+    uid: user.id,
+    displayName,
+    email: user.email,
+    photoURL,
+  };
+}
+
 export function accountFromFirebaseUser(user: FirebaseUser): StoredDeviceAccount {
   return {
     uid: user.uid,
@@ -118,7 +162,7 @@ export function accountFromAppUser(user: {
   };
 }
 
-/** Persist the active app user into the on-device account list (Supabase / demo / Firebase). */
+/** Persist the active app user into the on-device account list (cloud accounts only when configured). */
 export function syncDeviceAccountForAppUser(user: {
   id: string;
   displayName?: string;
@@ -126,6 +170,9 @@ export function syncDeviceAccountForAppUser(user: {
   avatarUrl?: string;
   email?: string;
 }): StoredDeviceAccount[] {
+  if (isCloudAuthConfigured() && !isCloudAuthUserId(user.id)) {
+    return filterEligibleDeviceAccounts();
+  }
   writeActiveDeviceUid(user.id);
   return upsertDeviceAccount(accountFromAppUser(user));
 }

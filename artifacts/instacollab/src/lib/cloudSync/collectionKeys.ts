@@ -32,6 +32,8 @@ export const CLOUD_SYNC_COLLECTION_KEYS = [
   'dating_state',
   'karaoke_uploads',
   'karaoke_profile_backgrounds',
+  'karaoke_recordings',
+  'karaoke_user_state',
 ] as const;
 
 export type CloudSyncCollectionKey = (typeof CLOUD_SYNC_COLLECTION_KEYS)[number];

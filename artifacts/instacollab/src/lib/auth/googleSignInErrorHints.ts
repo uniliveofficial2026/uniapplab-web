@@ -8,9 +8,9 @@ export function formatGoogleSignInCode11Hint(origin?: string): string {
   return (
     'Google sign-in failed (code 11 — configuration). ' +
     `In Google Cloud → Credentials → Web client: add redirect URI ${supabaseCallback} ` +
-    `(not the tunnel URL). Add ${site} under JavaScript origins only. ` +
+    `(not the tunnel URL). Add ${site} and https://app.uniapplab.com under JavaScript origins. ` +
     'In Supabase → Authentication → Providers → Google: enable and paste the same Web client ID + secret. ' +
-    `Also add ${site} under Supabase → URL Configuration.`
+    `Set Supabase Site URL to https://app.uniapplab.com and add ${site}/** under Redirect URLs.`
   );
 }
 

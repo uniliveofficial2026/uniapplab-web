@@ -87,11 +87,14 @@ export async function authUpdatePassword(newPassword: string): Promise<AuthResul
   return noCloud();
 }
 
-export async function authSignInWithGoogle(): Promise<AuthResult> {
+export async function authSignInWithGoogle(options?: {
+  selectAccount?: boolean;
+  loginHint?: string;
+}): Promise<AuthResult> {
   clearDevLocalAuthBypass();
   if (isSupabaseConfigured()) {
     await firebaseSignOut().catch(() => {});
-    const result = await supabaseSignInWithGoogle();
+    const result = await supabaseSignInWithGoogle(options);
     return result.ok ? { ok: true, redirecting: true } : result;
   }
   if (isFirebaseConfigured()) {

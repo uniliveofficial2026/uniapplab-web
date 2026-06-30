@@ -239,7 +239,11 @@ export function AuthScreen() {
             onClick={async () => {
               try {
                 const result = await loginWithGoogle();
-                if (!result?.ok) return;
+                if (!result?.ok) {
+                  if (result?.reason) alert(result.reason);
+                  return;
+                }
+                if (result.redirecting) return;
                 finishAuthLaunch();
               } catch (e: unknown) {
                 console.error(e);

@@ -1,0 +1,24 @@
+{
+  "version": 2,
+  "installCommand": "pnpm install && pnpm --filter @workspace/api-server run build",
+  "env": {
+    "NODE_ENV": "sandbox"
+  },
+  "builds": [
+    {
+      "src": "artifacts/instacollab/package.json",
+      "use": "@vercel/static-build",
+      "config": { "distDir": "dist/public" }
+    },
+    { "src": "artifacts/api-server/index.js", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/api/(.*)", "dest": "artifacts/api-server/index.js" },
+    {
+      "src": "/supabase-config\\.json",
+      "dest": "artifacts/instacollab/dist/public/supabase-config.json"
+    },
+    { "handle": "filesystem" },
+    { "src": "/(.*)", "dest": "artifacts/instacollab/dist/public/index.html" }
+  ]
+}

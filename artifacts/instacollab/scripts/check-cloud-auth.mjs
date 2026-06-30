@@ -84,6 +84,34 @@ async function main() {
 
   if (supabaseUrl && supabaseKey) {
     try {
+      const base = supabaseUrl.replace(/\/$/, '');
+      const settingsRes = await fetch(`${base}/auth/v1/settings`, {
+        headers: {
+          apikey: supabaseKey,
+          Authorization: `Bearer ${supabaseKey}`,
+        },
+      });
+      if (settingsRes.ok) {
+        const settings = await settingsRes.json();
+        const googleOn = Boolean(settings?.external?.google);
+        const emailOn = Boolean(settings?.external?.email);
+        if (googleOn) {
+          ok.push('Supabase Google provider: enabled');
+        } else {
+          exitCode = 1;
+          issues.push(
+            'Supabase Google provider is OFF — enable at Dashboard → Authentication → Providers → Google',
+          );
+        }
+        if (emailOn) {
+          ok.push('Supabase email provider: enabled');
+        } else {
+          issues.push('Supabase email provider is OFF — enable under Authentication → Providers → Email');
+        }
+      } else {
+        issues.push(`Could not read Supabase auth settings (HTTP ${settingsRes.status})`);
+      }
+
       const profilesProbe = await probeTable(supabaseUrl, supabaseKey, 'profiles');
       if (profilesProbe.ok) {
         ok.push('public.profiles table: exists');
@@ -140,9 +168,19 @@ async function main() {
     console.log('  Issues:');
     for (const line of issues) console.log(`    ✗ ${line}`);
   } else if (supabaseUrl && supabaseKey && exitCode === 0) {
-    console.log('  Cloud DB + env look ready. Dashboard:');
-    console.log('    • Enable Email + Google providers');
-    console.log('    • URL Configuration: Site URL + Redirect URLs');
+    const ref = (() => {
+      try {
+        return new URL(supabaseUrl).hostname.split('.')[0];
+      } catch {
+        return null;
+      }
+    })();
+    console.log('  Cloud DB + env look ready.');
+    if (ref) {
+      console.log(`    • Google OAuth uses signInWithOAuth({ provider: "google" }) → project ${ref}`);
+    }
+    console.log('    • Vercel: set VITE_SUPABASE_URL + VITE_SUPABASE_ANON_KEY (same project) and redeploy');
+    console.log('    • Supabase URL Configuration: Site URL + Redirect URLs (pnpm run oauth:setup)');
   }
 
   console.log('');

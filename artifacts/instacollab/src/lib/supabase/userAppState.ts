@@ -1,17 +1,22 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { getSupabaseClient } from './client';
 import { isSupabaseConfigured } from './config';
-import { removeSupabaseChannelsContaining } from './realtimeChannelUtils';
+import {
+  isSupabaseChannelLive,
+  removeSupabaseChannelsContaining,
+} from './realtimeChannelUtils';
 import type { CloudAppStatePayload } from '../cloudSync/types';
 
 let channelSeq = 0;
 
 type ActiveSubscription = {
   cleanup: () => void;
+  cleanupAsync: () => Promise<void>;
   channel: RealtimeChannel;
 };
 
 const activeByUserId = new Map<string, ActiveSubscription>();
+const opTailByUserId = new Map<string, Promise<void>>();
 
 function uniqueChannelName(userId: string): string {
   channelSeq += 1;
@@ -22,16 +27,33 @@ function uniqueChannelName(userId: string): string {
   return `user_app_state:${userId}:${suffix}`;
 }
 
-export async function teardownSupabaseUserAppState(userId: string): Promise<void> {
+function runSerialized<T>(userId: string, op: () => Promise<T>): Promise<T> {
+  const prev = opTailByUserId.get(userId) ?? Promise.resolve();
+  const run = prev.catch(() => undefined).then(op);
+  opTailByUserId.set(
+    userId,
+    run.then(
+      () => undefined,
+      () => undefined,
+    ),
+  );
+  return run;
+}
+
+async function teardownSupabaseUserAppStateUnlocked(userId: string): Promise<void> {
   const active = activeByUserId.get(userId);
   if (active) {
-    active.cleanup();
+    await active.cleanupAsync();
     activeByUserId.delete(userId);
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
   await removeSupabaseChannelsContaining(supabase, `user_app_state:${userId}`);
+}
+
+export async function teardownSupabaseUserAppState(userId: string): Promise<void> {
+  return runSerialized(userId, () => teardownSupabaseUserAppStateUnlocked(userId));
 }
 
 export async function fetchSupabaseUserAppState(
@@ -79,41 +101,52 @@ export async function subscribeSupabaseUserAppState(
   const supabase = getSupabaseClient();
   if (!supabase) return () => {};
 
-  await teardownSupabaseUserAppState(userId);
+  return runSerialized(userId, async () => {
+    const existing = activeByUserId.get(userId);
+    if (existing && isSupabaseChannelLive(existing.channel)) {
+      return existing.cleanup;
+    }
 
-  const channel = supabase.channel(uniqueChannelName(userId));
-  channel.on(
-    'postgres_changes',
-    {
-      event: '*',
-      schema: 'public',
-      table: 'user_app_state',
-      filter: `user_id=eq.${userId}`,
-    },
-    (payload) => {
-      const row = payload.new as { payload?: CloudAppStatePayload } | null;
-      const next = row?.payload;
-      if (next && typeof next === 'object' && next.v === 1) {
-        onPayload(next);
-      }
-    }
-  );
-  channel.subscribe((status) => {
-    if (import.meta.env.DEV && status === 'CHANNEL_ERROR') {
-      console.warn(
-        '[sync] user_app_state realtime error — enable Replication for public.user_app_state in Supabase'
-      );
-    }
+    await teardownSupabaseUserAppStateUnlocked(userId);
+
+    const channel = supabase
+      .channel(uniqueChannelName(userId))
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'user_app_state',
+          filter: `user_id=eq.${userId}`,
+        },
+        (payload) => {
+          const row = payload.new as { payload?: CloudAppStatePayload } | null;
+          const next = row?.payload;
+          if (next && typeof next === 'object' && next.v === 1) {
+            onPayload(next);
+          }
+        }
+      )
+      .subscribe((status) => {
+        if (import.meta.env.DEV && status === 'CHANNEL_ERROR') {
+          console.warn(
+            '[sync] user_app_state realtime error — enable Replication for public.user_app_state in Supabase'
+          );
+        }
+      });
+
+    let removed = false;
+    const cleanupAsync = async () => {
+      if (removed) return;
+      removed = true;
+      activeByUserId.delete(userId);
+      await supabase.removeChannel(channel);
+    };
+    const cleanup = () => {
+      void cleanupAsync();
+    };
+
+    activeByUserId.set(userId, { cleanup, cleanupAsync, channel });
+    return cleanup;
   });
-
-  let removed = false;
-  const cleanup = () => {
-    if (removed) return;
-    removed = true;
-    activeByUserId.delete(userId);
-    void supabase.removeChannel(channel);
-  };
-
-  activeByUserId.set(userId, { cleanup, channel });
-  return cleanup;
 }

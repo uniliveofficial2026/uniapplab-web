@@ -205,6 +205,15 @@ export class DbCore {
           if (key === 'karaoke_uploads') {
             window.dispatchEvent(new CustomEvent('karaoke-uploads-updated'));
           }
+          if (key === 'karaoke_profile_backgrounds') {
+            window.dispatchEvent(new CustomEvent('karaoke-profile-background-updated'));
+          }
+          if (key === 'karaoke_recordings') {
+            window.dispatchEvent(new CustomEvent('karaoke-recordings-updated'));
+          }
+          if (key === 'karaoke_user_state') {
+            window.dispatchEvent(new CustomEvent('kstar-user-state-updated'));
+          }
         }
         this.notifyListeners();
         this.postSyncMessage();
@@ -254,6 +263,10 @@ export class DbCore {
           passedUserIds: [],
           matchedUserIds: [],
         },
+        karaoke_uploads: [],
+        karaoke_profile_backgrounds: {},
+        karaoke_recordings: [],
+        karaoke_user_state: {},
         unreadMessagesCount: 0,
         hasUnreadNotifications: false,
       };

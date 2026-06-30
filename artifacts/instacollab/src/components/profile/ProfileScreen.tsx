@@ -56,8 +56,8 @@ export function ProfileScreen({
 }) {
   const db = useDB();
   const dbRevision = useDbRevision();
-  const { logout: firebaseLogout, switchAccount, deleteAccount, profile: authProfile, setProfile, userAccounts, selectAccount, removeAccount, ensureDeviceAccountsSynced } = useAuth();
-  const { signOut: cloudSignOut } = useCloudAuth();
+  const { logout: firebaseLogout, switchAccount, deleteAccount, profile: authProfile, setProfile, userAccounts, selectAccount, removeAccount, ensureDeviceAccountsSynced, linkEmailAccount } = useAuth();
+  const { signOut: cloudSignOut, session: cloudSession } = useCloudAuth();
   const currentUser = useCurrentUser();
   const { showToast } = useToast();
   
@@ -98,6 +98,7 @@ export function ProfileScreen({
   
   const [localUser, setLocalUser] = useState(profileUser);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [accountLinking, setAccountLinking] = useState(false);
   const [followListMode, setFollowListMode] = useState<'followers' | 'following' | null>(null);
   const [showCreatorProgress, setShowCreatorProgress] = useState(false);
   const [profileStoryOpen, setProfileStoryOpen] = useState(false);
@@ -504,8 +505,7 @@ export function ProfileScreen({
             setShowBlockedUsers(true);
           }}
           onOpenAccountSwitcher={() => {
-            ensureDeviceAccountsSynced();
-            setShowAccountSwitcher(true);
+            void ensureDeviceAccountsSynced().then(() => setShowAccountSwitcher(true));
           }}
           onRequestVerification={() => setShowVerificationModal(true)}
           onDeleteAccount={deleteAccount}
@@ -930,24 +930,51 @@ export function ProfileScreen({
       <AccountSwitcherModal
         open={showAccountSwitcher}
         accounts={userAccounts}
-        activeUid={currentUser?.id}
+        activeUid={cloudSession?.user?.id ?? currentUser?.id}
+        linking={accountLinking}
+        cloudAuthEnabled={isCloudAuthConfigured()}
         onClose={() => setShowAccountSwitcher(false)}
-        onSelectAccount={async (uid) => {
+        onSelectAccount={async (uid, password) => {
           try {
-            showToast(`Switching to ${userAccounts.find((a) => a.uid === uid)?.displayName || 'selected account'}...`);
-            await selectAccount(uid);
+            const label =
+              userAccounts.find((a) => a.uid === uid)?.displayName || 'selected account';
+            showToast(`Switching to ${label}…`);
+            await selectAccount(uid, password);
             setShowAccountSwitcher(false);
-          } catch {
-            showToast('Failed to switch account.');
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to switch account.';
+            showToast(message);
           }
         }}
         onRemoveAccount={removeAccount}
+        onSignInWithEmail={async (email, password) => {
+          try {
+            setAccountLinking(true);
+            await ensureDeviceAccountsSynced();
+            const result = await linkEmailAccount(email, password);
+            if (result.ok) {
+              showToast('Signed in!');
+              setShowAccountSwitcher(false);
+              setShowEditProfile(false);
+            }
+            return result;
+          } catch {
+            return { ok: false, reason: 'Failed to sign in with email.' };
+          } finally {
+            setAccountLinking(false);
+          }
+        }}
         onLinkGoogle={async () => {
           try {
+            setAccountLinking(true);
             setShowAccountSwitcher(false);
             setShowEditProfile(false);
-            ensureDeviceAccountsSynced();
+            await ensureDeviceAccountsSynced();
             const result = await switchAccount();
+            if (result.redirecting) {
+              showToast('Opening Google sign-in…');
+              return;
+            }
             if (result.ok) {
               showToast('Google account linked!');
             } else if (result.reason) {
@@ -955,6 +982,8 @@ export function ProfileScreen({
             }
           } catch {
             showToast('Failed to start account linking.');
+          } finally {
+            setAccountLinking(false);
           }
         }}
       />

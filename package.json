@@ -16,7 +16,9 @@
     "auth:bootstrap-db": "pnpm --filter @workspace/instacollab run auth:bootstrap-db",
     "auth:repair-policies": "pnpm --filter @workspace/instacollab run auth:repair-policies",
     "auth:check": "pnpm --filter @workspace/instacollab run auth:check",
+    "auth:check:prod": "pnpm --filter @workspace/instacollab run auth:check:prod",
     "oauth:setup": "pnpm --filter @workspace/instacollab run oauth:setup",
+    "domains:setup": "node scripts/print-domains-setup.mjs",
     "git:push": "bash scripts/github-push.sh",
     "git:clean-history": "bash scripts/reset-clean-main.sh --yes"
   },

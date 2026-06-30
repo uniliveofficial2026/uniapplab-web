@@ -32,10 +32,10 @@ function resolveEnvDir(): string {
   return appRoot;
 }
 
-/** Merge VITE_* (and GEMINI) from every known env location; later dirs override earlier. */
+/** Merge VITE_* (and GEMINI) from every known env location; app `.env` wins over root/legacy. */
 function loadMergedViteEnv(mode: string): Record<string, string> {
   let merged: Record<string, string> = {};
-  for (const dir of envSourceDirs) {
+  for (const dir of [...envSourceDirs].reverse()) {
     if (!fs.existsSync(dir)) continue;
     merged = { ...merged, ...loadEnv(mode, dir, "VITE_") };
     const all = loadEnv(mode, dir, "");

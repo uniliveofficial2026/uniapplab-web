@@ -27,6 +27,7 @@ let lastPushedAt = 0;
 let realtimeUnsub: (() => void) | null = null;
 let subscribedUserId: string | null = null;
 let startCloudAppStateTask: Promise<void> | null = null;
+let stopCloudAppStateTask: Promise<void> | null = null;
 /** False until cloud row is fetched (or first-session prep done) — blocks uploading stale local demo data. */
 let cloudSyncReady = false;
 let cloudSyncHydratedUserId: string | null = null;
@@ -154,7 +155,6 @@ async function hydrateCloudAppStateForUser(
       realtimeUnsub();
       realtimeUnsub = null;
     }
-    await teardownSupabaseUserAppState(userId);
     if (generation !== hydrateGeneration) return 'error';
 
     realtimeUnsub = await subscribeSupabaseUserAppState(userId, (payload) => {
@@ -192,7 +192,7 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
     return;
   }
 
-  stopCloudAppStateRealtime();
+  await stopCloudAppStateRealtimeAsync();
   subscribedUserId = userId;
   cloudSyncReady = false;
   cloudSyncHydratedUserId = userId;
@@ -210,13 +210,14 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
   cloudSyncReady = hydrateResult !== 'error';
   if (hydrateResult === 'error') {
     window.setTimeout(() => {
-      if (subscribedUserId !== userId || generation !== hydrateGeneration) return;
-      void hydrateCloudAppStateForUser(userId, generation).then((retry) => {
+      void (async () => {
+        if (subscribedUserId !== userId || generation !== hydrateGeneration) return;
+        const retry = await hydrateCloudAppStateForUser(userId, generation);
         if (generation !== hydrateGeneration) return;
         if (retry !== 'error' && subscribedUserId === userId) {
           cloudSyncReady = true;
         }
-      });
+      })();
     }, 5000);
     window.setTimeout(() => {
       if (subscribedUserId === userId && !cloudSyncReady) {
@@ -234,6 +235,10 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
 }
 
 export async function startCloudAppStateRealtime(userId: string): Promise<void> {
+  if (stopCloudAppStateTask) {
+    await stopCloudAppStateTask;
+  }
+
   if (startCloudAppStateTask) {
     await startCloudAppStateTask;
     if (
@@ -255,21 +260,36 @@ export async function startCloudAppStateRealtime(userId: string): Promise<void> 
 }
 
 export function stopCloudAppStateRealtime(): void {
-  hydrateGeneration += 1;
-  const userId = subscribedUserId;
-  if (realtimeUnsub) {
-    realtimeUnsub();
-    realtimeUnsub = null;
+  void stopCloudAppStateRealtimeAsync();
+}
+
+export async function stopCloudAppStateRealtimeAsync(): Promise<void> {
+  if (stopCloudAppStateTask) {
+    await stopCloudAppStateTask;
+    return;
   }
-  if (userId) {
-    void teardownSupabaseUserAppState(userId);
-  }
-  subscribedUserId = null;
-  if (pushTimer) {
-    clearTimeout(pushTimer);
-    pushTimer = null;
-  }
-  resetCloudSyncSessionState();
+
+  stopCloudAppStateTask = (async () => {
+    hydrateGeneration += 1;
+    const userId = subscribedUserId;
+    if (realtimeUnsub) {
+      realtimeUnsub();
+      realtimeUnsub = null;
+    }
+    if (userId) {
+      await teardownSupabaseUserAppState(userId);
+    }
+    subscribedUserId = null;
+    if (pushTimer) {
+      clearTimeout(pushTimer);
+      pushTimer = null;
+    }
+    resetCloudSyncSessionState();
+  })().finally(() => {
+    stopCloudAppStateTask = null;
+  });
+
+  await stopCloudAppStateTask;
 }
 
 export function getCloudAppStateSubscribedUserId(): string | null {

@@ -14,6 +14,8 @@ import { mapGoogleSignInConfigurationError } from '../auth/googleSignInErrorHint
 import { getFirebaseGoogleRedirectUri } from '../auth/googleOAuthSetup';
 import { writeStoredAuthBackend } from '../auth/providerState';
 import { isDevTunnelHostname } from '../auth/tunnelHost';
+import { getConfiguredAppOrigin } from '../auth/redirectUrl';
+import { isUniapplabHost } from '../domains/uniapplab';
 import type { ProfileRow } from '../supabase/types';
 import { fetchFirebaseProfile, upsertFirebaseProfile } from './profile';
 
@@ -122,7 +124,7 @@ export function stripOAuthParamsFromUrl(): void {
 
 /** Shown under Google/Apple buttons so console setup matches the exact URL you use. */
 export function getFirebaseOAuthSetupOrigin(): string {
-  if (typeof window === 'undefined') return 'http://localhost:3000';
+  if (typeof window === 'undefined') return getConfiguredAppOrigin();
   return window.location.origin;
 }
 
@@ -131,7 +133,10 @@ function oauthOriginHint(): string {
   const host = window.location.hostname;
   const origin = getFirebaseOAuthSetupOrigin();
   if (host === '127.0.0.1') {
-    return ' Open the app at http://localhost:3000 (not 127.0.0.1) and add localhost under Firebase → Authentication → Authorized domains.';
+    return ` Open the app at ${getConfiguredAppOrigin()} (not 127.0.0.1) and add localhost under Firebase → Authentication → Authorized domains.`;
+  }
+  if (isUniapplabHost(host)) {
+    return ` Add "${host}" to Firebase → Authentication → Authorized domains and "${origin}" to Google Cloud → Web client → JavaScript origins.`;
   }
   if (isDevTunnelHostname(host)) {
     return (

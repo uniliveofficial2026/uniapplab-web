@@ -1,10 +1,10 @@
 import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import { getAuthRedirectUrl } from '../auth/redirectUrl';
-import { getSupabaseClient } from './client';
+import { getSupabaseClient, getSupabaseClientAsync } from './client';
+import { getSupabaseProjectRef } from './config';
 import { ensureProfileFromSession } from './profile';
 import { mapGoogleSignInConfigurationError } from '../auth/googleSignInErrorHints';
-
-export type AuthResult = { ok: true } | { ok: false; reason: string };
+import type { AuthResult } from '../auth/types';
 
 function mapAuthError(message: string, code?: string): string {
   const code11 = mapGoogleSignInConfigurationError(message, code);
@@ -25,7 +25,16 @@ function mapAuthError(message: string, code?: string): string {
     return 'Google OAuth is not linked to this app yet. In Google Cloud, add the Supabase callback URL (run npm run oauth:setup). In Supabase → Authentication → URL Configuration, add this site URL.';
   }
   if (/provider is not enabled|unsupported provider/i.test(message)) {
-    return 'Enable Google in Supabase → Authentication → Providers and paste your Google Web client ID + secret.';
+    const ref = getSupabaseProjectRef();
+    const projectHint = ref
+      ? ` Supabase project: ${ref} — open Dashboard → Authentication → Providers → Google.`
+      : ' Enable Google in Supabase → Authentication → Providers.';
+    return (
+      'Google sign-in is not enabled for this Supabase project.' +
+      projectHint +
+      ' Toggle Google ON and paste your Google Cloud Web client ID + secret.' +
+      ' On Vercel, confirm VITE_SUPABASE_URL matches the same project.'
+    );
   }
   return message;
 }
@@ -94,24 +103,33 @@ export async function supabaseUpdatePassword(newPassword: string): Promise<AuthR
 
 async function supabaseSignInWithOAuthProvider(
   provider: 'google' | 'apple',
-  options?: { scopes?: string }
+  options?: { scopes?: string; selectAccount?: boolean; loginHint?: string }
 ): Promise<AuthResult> {
-  const supabase = getSupabaseClient();
+  const supabase = await getSupabaseClientAsync();
   if (!supabase) return { ok: false, reason: 'Supabase is not configured.' };
+
+  const queryParams: Record<string, string> = {};
+  if (options?.selectAccount) queryParams.prompt = 'select_account';
+  if (options?.loginHint?.trim()) queryParams.login_hint = options.loginHint.trim();
+
   const { error } = await supabase.auth.signInWithOAuth({
-    provider,
+    provider: provider === 'google' ? 'google' : 'apple',
     options: {
       redirectTo: getAuthRedirectUrl(),
       ...(options?.scopes ? { scopes: options.scopes } : {}),
+      ...(Object.keys(queryParams).length > 0 ? { queryParams } : {}),
     },
   });
   if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
-  return { ok: true };
+  return { ok: true, redirecting: true };
 }
 
 /** Opens Google OAuth (login or sign-up — same flow). Redirects away from the app. */
-export function supabaseSignInWithGoogle(): Promise<AuthResult> {
-  return supabaseSignInWithOAuthProvider('google');
+export function supabaseSignInWithGoogle(options?: {
+  selectAccount?: boolean;
+  loginHint?: string;
+}): Promise<AuthResult> {
+  return supabaseSignInWithOAuthProvider('google', options);
 }
 
 /** Opens Apple OAuth (login or sign-up). Requests name + email scopes on first sign-in. */

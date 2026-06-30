@@ -4,13 +4,13 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "dev": "node scripts/free-port.mjs 5173; vite --config vite.config.ts",
+    "dev": "node scripts/dev.mjs",
     "dev:mobile": "node scripts/free-port.mjs 5173; DEV_BIND_HOST=0.0.0.0 vite --config vite.config.ts --host 0.0.0.0",
     "dev:mobile:https": "node scripts/free-port.mjs 4173 && PORT=4173 DEV_HTTPS=true vite --config vite.config.ts --host 0.0.0.0",
     "dev:https": "DEV_HTTPS=true vite --config vite.config.ts --host 0.0.0.0",
     "dev:pwa": "VITE_PWA_DEV=true PWA_DEV=true vite --config vite.config.ts --host 0.0.0.0",
     "dev:pwa:https": "VITE_PWA_DEV=true DEV_HTTPS=true PWA_DEV=true vite --config vite.config.ts --host 0.0.0.0",
-    "build": "vite build --config vite.config.ts",
+    "build": "node scripts/write-public-supabase-config.mjs && node scripts/assert-vite-env.mjs && vite build --config vite.config.ts",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "serve:https": "node scripts/free-port.mjs 4173 && DEV_HTTPS=true vite preview --config vite.config.ts --host 0.0.0.0",
     "mobile:preview": "pnpm run build && node scripts/free-port.mjs 4173 && DEV_HTTPS=true vite preview --config vite.config.ts --host 0.0.0.0",
@@ -20,11 +20,13 @@
     "auth:bootstrap-db": "node scripts/auth-bootstrap-db.mjs",
     "auth:repair-policies": "node scripts/auth-repair-policies.mjs",
     "auth:check": "node scripts/check-cloud-auth.mjs",
+    "auth:check:prod": "node scripts/check-production-auth.mjs",
     "oauth:setup": "node scripts/print-oauth-setup.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
     "@supabase/supabase-js": "^2.106.2",
+    "@vercel/speed-insights": "^2.0.0",
     "firebase": "^11.10.0",
     "motion": "^12.23.24",
     "react-router-dom": "^7.17.0",
@@ -39,6 +41,7 @@
     "@types/node": "catalog:",
     "@types/react": "catalog:",
     "@types/react-dom": "catalog:",
+    "@vitejs/plugin-basic-ssl": "^2.0.0",
     "@vitejs/plugin-react": "catalog:",
     "clsx": "catalog:",
     "date-fns": "^4.2.1",
@@ -50,7 +53,6 @@
     "tailwind-merge": "catalog:",
     "tailwindcss": "catalog:",
     "vite": "catalog:",
-    "vite-plugin-pwa": "^1.0.1",
-    "@vitejs/plugin-basic-ssl": "^2.0.0"
+    "vite-plugin-pwa": "^1.0.1"
   }
 }

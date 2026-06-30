@@ -44,6 +44,13 @@ import { resolveCanonicalAppUserId } from '../../lib/profileIdentity';
 import type { User } from '../../types';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
+import {
+  addKstarCoins,
+  ensureKstarUserStateMigrated,
+  getKstarCoins,
+  isKstarVip,
+  spendKstarCoins,
+} from '../../lib/kstarUserState';
 import { safeAvatarUrl, safeUsername } from '../../lib/safe';
 import {
   deleteKaraokeUpload,
@@ -579,10 +586,13 @@ export function KaraokeScreen() {
   const db = useDB();
   useDbRevision();
   const appUser = useCurrentUser();
-  
-  // Real-time reactive states for tracking user coins and membership tiers
-  const [userCoins, setUserCoins] = useState(1250);
-  const [userVip, setUserVip] = useState(false);
+
+  const userCoins = getKstarCoins(appUser.id);
+  const userVip = isKstarVip(appUser);
+
+  useEffect(() => {
+    ensureKstarUserStateMigrated(appUser.id);
+  }, [appUser.id]);
 
   // Dynamic state for duets that makes interactions (likes, comments, gifts) reactive and persistent
   const [duets, setDuets] = useState<KaraokeDuetPost[]>(() => [
@@ -923,6 +933,10 @@ export function KaraokeScreen() {
 
   const [karaokeShareModal, setKaraokeShareModal] = useState<SharePayload | null>(null);
   const [profileBackgroundRevision, setProfileBackgroundRevision] = useState(0);
+
+  useEffect(() => {
+    setProfileBackgroundRevision((value) => value + 1);
+  }, [appUser.id]);
 
   useEffect(() => {
     const onBackgroundUpdated = () => setProfileBackgroundRevision((value) => value + 1);
@@ -1429,12 +1443,11 @@ export function KaraokeScreen() {
     const selectedGift = giftsList.find(g => g.id === selectedGiftId);
     if (!selectedGift) return;
 
-    if (userCoins < selectedGift.cost) {
+    if (!spendKstarCoins(appUser.id, selectedGift.cost)) {
       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Insufficient Coins! Please recharge some. 🪙' }));
       return;
     }
 
-    setUserCoins(prev => prev - selectedGift.cost);
     setShowGiftModal(false);
 
     if (giftingDuetId) {
@@ -2742,7 +2755,7 @@ export function KaraokeScreen() {
         <div className="p-4 mb-4 shrink-0">
            <button type="button" onClick={() => handleKaraokeTabTap('profile')} className={`${navTapButtonClass} w-full flex items-center justify-center lg:justify-start gap-3 p-2 min-h-[44px] rounded-2xl transition border border-transparent ${activeTab === 'profile' ? 'bg-secondary border-border shadow-sm' : 'hover:bg-secondary/50'}`}>
              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-400 to-pink-500 p-0.5 shrink-0 shadow-sm">
-               <img src={CURRENT_USER.avatar} alt="Profile" className="w-full h-full bg-card rounded-full" />
+               <img src={CURRENT_USER.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
              </div>
              <div className="hidden lg:block text-left min-w-0">
                 <div className="font-bold text-sm truncate">{CURRENT_USER.name}</div>
@@ -3768,7 +3781,7 @@ export function KaraokeScreen() {
                 
                 <div className="px-6 relative -mt-20 sm:-mt-24 md:-mt-28 lg:-mt-32 flex flex-col gap-4 pb-6 border-b border-border sm:grid sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-end sm:gap-x-4">
                    <div className="w-32 h-32 rounded-full border-4 border-background bg-zinc-800 overflow-hidden shadow-xl shrink-0 bg-yellow-100 relative sm:col-start-1 sm:row-start-1">
-                     <img src={profileUser.avatar} alt="Profile" className="w-full h-full bg-cover relative z-10" />
+                     <img src={profileUser.avatar} alt="Profile" className="w-full h-full rounded-full object-cover relative z-10" />
                    </div>
                    <div className="flex-1 pb-2 sm:col-start-2 sm:row-start-1 min-w-0">
                      <h2 className="text-2xl font-extrabold flex items-center gap-2">{profileUser.name} {profileUser.vip || profileUser.name.toLowerCase().includes('master') ? <Crown className="w-5 h-5 text-amber-500" /> : null}</h2>
@@ -4462,7 +4475,7 @@ export function KaraokeScreen() {
                <div className="font-black text-center w-6 text-sm text-primary z-10">42</div>
                <div className="relative z-10 shrink-0">
                  <div className="w-12 h-12 rounded-full border-2 overflow-hidden bg-background border-primary">
-                    <img src={CURRENT_USER.avatar} className="w-full h-full bg-yellow-100" />
+                    <img src={CURRENT_USER.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
                  </div>
                </div>
                <div className="flex-1 min-w-0 z-10">
@@ -4493,7 +4506,7 @@ export function KaraokeScreen() {
                   </div>
                   <button 
                     onClick={() => {
-                      setUserCoins(prev => prev + 500);
+                      addKstarCoins(appUser.id, 500);
                       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Added +500 free test Coins! 🪙' }));
                     }}
                     className="text-xs font-black bg-amber-500 text-white px-3 py-1.5 rounded-full hover:bg-amber-600 active:scale-95 transition"
