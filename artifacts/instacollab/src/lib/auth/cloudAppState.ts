@@ -19,8 +19,9 @@ import { isCloudAuthUserId } from './cloudProfile';
 import { hasSupabaseSessionForUser } from './activeBackend';
 import { isDevLocalAuthBypass } from './devLocalAuth';
 
-let pushTimer: ReturnType<typeof setTimeout> | null = null;
 let pushInFlight = false;
+let pushAgainAfterFlight = false;
+let syncMicrotaskQueued = false;
 let applyingRemote = false;
 let lastAppliedRemoteAt = 0;
 let lastPushedAt = 0;
@@ -110,7 +111,10 @@ function applyPayloadIfNewer(payload: CloudAppStatePayload, source: 'remote' | '
 
 async function pushNow(userId: string): Promise<void> {
   if (!cloudSyncReady || cloudSyncHydratedUserId !== userId) return;
-  if (pushInFlight || applyingRemote) return;
+  if (pushInFlight) {
+    pushAgainAfterFlight = true;
+    return;
+  }
   pushInFlight = true;
   try {
     const payload = collectPayload(db);
@@ -138,11 +142,44 @@ async function pushNow(userId: string): Promise<void> {
     console.warn('[sync] cloud app state push failed:', message, err);
   } finally {
     pushInFlight = false;
+    if (pushAgainAfterFlight) {
+      pushAgainAfterFlight = false;
+      queueMicrotask(() => void pushNow(userId));
+    }
   }
 }
 
-/** Debounced push after local db.save — all catalogued collections. */
-export function scheduleCloudAppStateSync(store: LocalDB = db): void {
+/** Keys that always push on the next microtask (wallet / chat presence). */
+const INSTANT_CLOUD_SYNC_KEYS = new Set([
+  'coins_balance',
+  'karaoke_user_state',
+  'game_coins',
+  'cash_balance',
+  'wallet_transactions',
+  'messages',
+  'chat_read_state',
+  'chat_peer_read_state',
+  'chat_presence',
+  'unreadMessagesCount',
+  'hasUnreadNotifications',
+]);
+
+function queueCloudPush(userId: string, urgent = false): void {
+  const run = () => void pushNow(userId);
+  if (urgent) {
+    queueMicrotask(run);
+    return;
+  }
+  if (syncMicrotaskQueued) return;
+  syncMicrotaskQueued = true;
+  queueMicrotask(() => {
+    syncMicrotaskQueued = false;
+    run();
+  });
+}
+
+/** Push after local db.save — microtask batching (no debounce delay). */
+export function scheduleCloudAppStateSync(store: LocalDB = db, changedKey?: string): void {
   if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || applyingRemote) return;
   const userId = store.currentUserId;
   if (!isCloudAuthUserId(userId)) return;
@@ -150,19 +187,12 @@ export function scheduleCloudAppStateSync(store: LocalDB = db): void {
   const bumped = bumpLocalRevision(userId);
   lastPushedAt = Math.max(lastPushedAt, bumped);
 
-  if (pushTimer) clearTimeout(pushTimer);
-  pushTimer = setTimeout(() => {
-    pushTimer = null;
-    void pushNow(userId);
-  }, 700);
+  queueCloudPush(userId, changedKey ? INSTANT_CLOUD_SYNC_KEYS.has(changedKey) : false);
 }
 
 /** Push pending local changes immediately (call before account switch / sign-out). */
 export async function flushCloudAppStateSync(): Promise<void> {
-  if (pushTimer) {
-    clearTimeout(pushTimer);
-    pushTimer = null;
-  }
+  syncMicrotaskQueued = false;
   const userId = db.currentUserId;
   if (!userId || !isCloudAuthUserId(userId)) return;
   await pushNow(userId);
@@ -314,12 +344,12 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
           });
         }
       })();
-    }, 5000);
+    }, 500);
     window.setTimeout(() => {
       if (subscribedUserId === userId && !cloudSyncReady) {
         cloudSyncReady = true;
       }
-    }, 15000);
+    }, 3000);
   }
   if (hydrateResult !== 'error' && generation === hydrateGeneration) {
     queueMicrotask(() => {
@@ -383,10 +413,8 @@ export async function stopCloudAppStateRealtimeAsync(): Promise<void> {
       await teardownSupabaseUserAppState(userId);
     }
     subscribedUserId = null;
-    if (pushTimer) {
-      clearTimeout(pushTimer);
-      pushTimer = null;
-    }
+    syncMicrotaskQueued = false;
+    pushAgainAfterFlight = false;
     resetCloudSyncSessionState();
   })().finally(() => {
     stopCloudAppStateTask = null;

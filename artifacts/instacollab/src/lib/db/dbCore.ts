@@ -117,6 +117,16 @@ export class DbCore {
               return;
             }
             if (data === 'sync' || data?.t === 'sync') {
+              if (
+                typeof data === 'object' &&
+                data?.key &&
+                Object.prototype.hasOwnProperty.call(data, 'value')
+              ) {
+                this.cache[data.key as string] = data.value;
+                this.dispatchCollectionLiveEvent(data.key as string);
+                this.notifyListeners();
+                return;
+              }
               void this.refreshFromDB().then(() => this.notifyListeners());
             }
           };
@@ -192,6 +202,29 @@ export class DbCore {
       });
     }
 
+    protected dispatchCollectionLiveEvent(key: string): void {
+      if (typeof window === 'undefined') return;
+      switch (key) {
+        case 'karaoke_uploads':
+          window.dispatchEvent(new CustomEvent('karaoke-uploads-updated'));
+          break;
+        case 'karaoke_profile_backgrounds':
+          window.dispatchEvent(new CustomEvent('karaoke-profile-background-updated'));
+          break;
+        case 'karaoke_recordings':
+          window.dispatchEvent(new CustomEvent('karaoke-recordings-updated'));
+          break;
+        case 'karaoke_user_state':
+          window.dispatchEvent(new CustomEvent('kstar-user-state-updated'));
+          break;
+        case 'coins_balance':
+          window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+          break;
+        default:
+          break;
+      }
+    }
+
     /** Merge collections from cloud realtime / bootstrap without re-pushing. */
     public applyRemoteCollections(
       collections: Partial<Record<CloudSyncCollectionKey, unknown>>
@@ -213,21 +246,7 @@ export class DbCore {
           if (this.db) {
             idbWrites.push(this.persistToIDBWithoutNotify(key, value));
           }
-          if (key === 'karaoke_uploads') {
-            window.dispatchEvent(new CustomEvent('karaoke-uploads-updated'));
-          }
-          if (key === 'karaoke_profile_backgrounds') {
-            window.dispatchEvent(new CustomEvent('karaoke-profile-background-updated'));
-          }
-          if (key === 'karaoke_recordings') {
-            window.dispatchEvent(new CustomEvent('karaoke-recordings-updated'));
-          }
-          if (key === 'karaoke_user_state') {
-            window.dispatchEvent(new CustomEvent('kstar-user-state-updated'));
-          }
-          if (key === 'coins_balance') {
-            window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
-          }
+          this.dispatchCollectionLiveEvent(key);
         }
         this.notifyListeners();
         this.postSyncMessage();
@@ -705,9 +724,8 @@ export class DbCore {
       this.cache[key] = data;
       if (import.meta.env.DEV) recordCollectionSave(key, data);
       this.notifyListeners();
-      this.postSyncMessage();
-      
-      // Background persistence to IndexedDB
+      this.postSyncMessage(key, data);
+      this.dispatchCollectionLiveEvent(key);
       this.saveToIDB(key, data).catch(err => {
         console.error(`IDB Save Error for ${key}:`, err);
       });
@@ -729,7 +747,7 @@ export class DbCore {
         this.isInitialized &&
         !DbCore.LOCAL_ONLY_DB_KEYS.has(key)
       ) {
-        scheduleCloudAppStateSync(this.asLocalDB());
+        scheduleCloudAppStateSync(this.asLocalDB(), key);
       }
     }
 
@@ -769,8 +787,13 @@ export class DbCore {
       return limitNewest(items, limit);
     }
 
-    protected postSyncMessage() {
-      this.channel?.postMessage({ t: 'sync', from: this.syncTabId });
+    protected postSyncMessage(key?: string, value?: unknown) {
+      if (!this.channel) return;
+      if (key !== undefined) {
+        this.channel.postMessage({ t: 'sync', from: this.syncTabId, key, value });
+        return;
+      }
+      this.channel.postMessage({ t: 'sync', from: this.syncTabId });
     }
 
     public load<T>(key: string, defaultData: T): T {

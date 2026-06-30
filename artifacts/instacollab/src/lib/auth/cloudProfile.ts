@@ -156,7 +156,7 @@ export async function isCloudUsernameAvailable(
   }
 }
 
-let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+let profileSyncQueued = false;
 let pendingUser: User | null = null;
 let pendingSetupFlag: boolean | undefined;
 
@@ -169,22 +169,21 @@ export function scheduleCloudProfileSync(
   if (options?.profileSetupComplete !== undefined) {
     pendingSetupFlag = options.profileSetupComplete;
   }
-  if (debounceTimer) clearTimeout(debounceTimer);
-  debounceTimer = setTimeout(() => {
+  if (profileSyncQueued) return;
+  profileSyncQueued = true;
+  queueMicrotask(() => {
+    profileSyncQueued = false;
     const target = pendingUser;
     const setup = pendingSetupFlag;
     pendingUser = null;
     pendingSetupFlag = undefined;
     if (target) void pushCloudProfile(target, { profileSetupComplete: setup });
-  }, 450);
+  });
 }
 
 /** Push pending profile row immediately (call before account switch / sign-out). */
 export async function flushCloudProfileSync(): Promise<void> {
-  if (debounceTimer) {
-    clearTimeout(debounceTimer);
-    debounceTimer = null;
-  }
+  profileSyncQueued = false;
   const target = pendingUser;
   const setup = pendingSetupFlag;
   pendingUser = null;
