@@ -3,7 +3,8 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
-import React, { useState, useEffect, useRef, useMemo, lazy, Suspense } from 'react';
+import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
+import { lazyWithRetry as lazy } from './lib/lazyWithRetry';
 import { consumePendingAppProfileUserId } from './lib/profileIdentity';
 import { appTabBackLabel } from './lib/karaokeReturnContext';
 import { Shell } from './components/layout/Shell';

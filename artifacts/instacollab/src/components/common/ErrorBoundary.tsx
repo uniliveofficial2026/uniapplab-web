@@ -18,6 +18,14 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     return { hasError: true, message };
   }
 
+  private handleRetry = () => {
+    if (/out of date after a deploy/i.test(this.state.message)) {
+      window.location.reload();
+      return;
+    }
+    this.setState({ hasError: false, message: '' });
+  };
+
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
     console.error('UI error boundary:', error, info.componentStack);
   }
@@ -32,9 +40,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
           <button
             type="button"
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
-            onClick={() => this.setState({ hasError: false, message: '' })}
+            onClick={this.handleRetry}
           >
-            Try again
+            {/out of date after a deploy/i.test(this.state.message) ? 'Reload app' : 'Try again'}
           </button>
         </div>
       );

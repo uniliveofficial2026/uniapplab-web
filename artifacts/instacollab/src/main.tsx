@@ -10,8 +10,10 @@ import { initSupabaseClient } from './lib/supabase/client';
 import { initWalletKstarSyncListeners } from './lib/walletKstarSync';
 import { installPersistenceGuards } from './lib/persistSession';
 import { bootstrapDocumentTheme } from './lib/theme';
+import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithRetry';
 
 bootstrapDocumentTheme();
+installChunkLoadRecovery();
 registerAppServiceWorker();
 initWalletKstarSyncListeners();
 installPersistenceGuards();
@@ -24,6 +26,7 @@ if (import.meta.env.DEV && typeof window !== 'undefined') {
 
 async function bootstrap() {
   await initSupabaseClient();
+  clearChunkReloadGuard();
 
   const rootEl = document.getElementById('root');
   if (!rootEl) return;

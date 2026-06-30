@@ -127,6 +127,8 @@ export default defineConfig(({ mode }) => {
         enabled: pwaDevEnabled,
       },
       workbox: {
+        skipWaiting: true,
+        clientsClaim: true,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: `${normalizedBase}index.html`,
         navigateFallbackDenylist: [/^\/api\//, /\/__local_game__\//],
