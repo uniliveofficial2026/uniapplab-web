@@ -1,37 +1,78 @@
-import { addKstarCoins, getKstarCoins, spendKstarCoins } from './kstarUserState';
+import { isCloudAppStateRemoteApply } from './auth/cloudAppState';
+import {
+  ensureKstarUserStateMigrated,
+  getKstarCoinsFromStore,
+  setKstarCoins,
+} from './kstarUserState';
 import { db } from './db/localDb';
 
-/** Keep K-Star coin balance in sync when the main Wallet changes `coins_balance`. */
-export function mirrorWalletCoinsDelta(userId: string, delta: number): void {
+/** Shared default when `coins_balance` has never been persisted. */
+export const DEFAULT_WALLET_COINS = 0;
+
+let listenersInstalled = false;
+
+function activeWalletUserId(): string {
+  return db.currentUserId?.trim() ?? '';
+}
+
+function isActiveWalletUser(userId: string): boolean {
   const id = userId?.trim();
-  if (!id || !Number.isFinite(delta) || delta === 0) return;
-  if (delta > 0) {
-    addKstarCoins(id, Math.floor(delta));
-  } else {
-    spendKstarCoins(id, Math.floor(-delta));
+  return Boolean(id && id === activeWalletUserId());
+}
+
+/** Read canonical wallet coins for the active session. */
+export function loadWalletCoinsBalance(): number {
+  return Number(db.load('coins_balance', DEFAULT_WALLET_COINS));
+}
+
+/** Live spendable coins — wallet for active user, per-user K-Star row otherwise. */
+export function getLiveCoinsBalance(userId: string): number {
+  const id = userId?.trim();
+  if (!id) return 0;
+  if (isActiveWalletUser(id)) {
+    return loadWalletCoinsBalance();
   }
+  return getKstarCoinsFromStore(id);
+}
+
+/** Keep wallet scalar and per-user K-Star row at the same absolute balance. */
+function setUnifiedCoinsForUser(userId: string, nextBalance: number): void {
+  const id = userId?.trim();
+  if (!id) return;
+  const next = Math.max(0, Math.floor(nextBalance));
+  if (isActiveWalletUser(id)) {
+    db.save('coins_balance', next);
+  }
+  setKstarCoins(id, next);
 }
 
 export function saveWalletCoinsBalance(userId: string, nextBalance: number): void {
-  const prev = Number(db.load('coins_balance', 0));
-  const next = Math.max(0, Math.floor(nextBalance));
-  db.save('coins_balance', next);
-  mirrorWalletCoinsDelta(userId, next - prev);
+  setUnifiedCoinsForUser(userId, nextBalance);
 }
 
 export function addWalletCoins(userId: string, amount: number): number {
-  const prev = Number(db.load('coins_balance', 0));
+  const prev = loadWalletCoinsBalance();
   const next = prev + Math.max(0, Math.floor(amount));
-  saveWalletCoinsBalance(userId, next);
+  setUnifiedCoinsForUser(userId, next);
   return next;
 }
 
 export function spendWalletCoins(userId: string, amount: number): boolean {
   const cost = Math.max(0, Math.floor(amount));
-  const prev = Number(db.load('coins_balance', 0));
+  const prev = loadWalletCoinsBalance();
   if (prev < cost) return false;
-  saveWalletCoinsBalance(userId, prev - cost);
+  setUnifiedCoinsForUser(userId, prev - cost);
   return true;
+}
+
+/** K-Star spends — same ledger as Wallet (`coins_balance`). */
+export function spendKstarCoins(userId: string, amount: number): boolean {
+  return spendWalletCoins(userId, amount);
+}
+
+/** K-Star grants — same ledger as Wallet. */
+export function addKstarCoins(userId: string, amount: number): number {
+  return addWalletCoins(userId, amount);
 }
 
 type GameCoinsRow = {
@@ -42,8 +83,8 @@ type GameCoinsRow = {
   slot_game?: number;
 };
 
-/** Sync in-house game coin purchases into K-Star balance (live with Wallet). */
-export function saveGameInHouseCoins(userId: string, nextInHouse: number): void {
+/** Persist in-house game inventory only (not spendable wallet coins). */
+export function saveGameInHouseCoins(_userId: string, nextInHouse: number): void {
   const raw = db.load<GameCoinsRow>('game_coins', {
     pubg: 0,
     roblox: 0,
@@ -51,21 +92,55 @@ export function saveGameInHouseCoins(userId: string, nextInHouse: number): void 
     in_house: 0,
     slot_game: 0,
   });
-  const prev = Number(raw.in_house) || 0;
   const next = Math.max(0, Math.floor(nextInHouse));
   db.save('game_coins', { ...raw, in_house: next });
-  mirrorWalletCoinsDelta(userId, next - prev);
 }
 
-/** On login / cloud hydrate — align K-Star with wallet if wallet is ahead. */
+/**
+ * After login, account switch, or cloud hydrate — merge wallet + K-Star row once.
+ * Uses max() only to heal drift; never inflates above the higher of the two stores.
+ */
 export function reconcileWalletAndKstarCoins(userId: string): void {
   const id = userId?.trim();
-  if (!id) return;
-  const wallet = Number(db.load('coins_balance', 0));
-  const inHouse = Number((db.load<GameCoinsRow>('game_coins', {}) as GameCoinsRow).in_house) || 0;
-  const kstar = getKstarCoins(id);
-  const target = Math.max(wallet, inHouse, kstar);
-  if (target > kstar) {
-    addKstarCoins(id, target - kstar);
+  if (!id || isCloudAppStateRemoteApply()) return;
+
+  ensureKstarUserStateMigrated(id);
+  if (!isActiveWalletUser(id)) return;
+
+  const wallet = loadWalletCoinsBalance();
+  const kstarRow = getKstarCoinsFromStore(id);
+  const canonical = Math.max(wallet, kstarRow);
+  if (canonical !== wallet || canonical !== kstarRow) {
+    setUnifiedCoinsForUser(id, canonical);
   }
+}
+
+/**
+ * Single entry point after any session becomes active (local demo, account switch, cloud hydrate).
+ * Local/demo accounts reconcile immediately; cloud UUIDs reconcile after remote hydrate too.
+ */
+export function onUserSessionActive(userId: string): void {
+  const id = userId?.trim();
+  if (!id) return;
+  reconcileWalletAndKstarCoins(id);
+}
+
+function scheduleReconcileForActiveUser(): void {
+  const uid = activeWalletUserId();
+  if (!uid) return;
+  queueMicrotask(() => onUserSessionActive(uid));
+}
+
+/** Wire remote wallet / K-Star updates into a single balance. */
+export function initWalletKstarSyncListeners(): void {
+  if (listenersInstalled || typeof window === 'undefined') return;
+  listenersInstalled = true;
+
+  window.addEventListener('kstar-user-state-updated', scheduleReconcileForActiveUser);
+  window.addEventListener('wallet-coins-updated', scheduleReconcileForActiveUser);
+}
+
+/** @deprecated — use onUserSessionActive */
+export function scheduleLocalWalletSync(userId: string): void {
+  onUserSessionActive(userId);
 }

@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
-import { saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
+import { loadWalletCoinsBalance, saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
   Gamepad2, 
   Coins, 
@@ -16,8 +16,8 @@ import {
 export function GameCoinTab() {
   const db = useDB();
   const appUser = useCurrentUser();
-  const coinsBalance = db.load('coins_balance', 4200);
-  const gameCoins = db.load('game_coins', { pubg: 0, roblox: 0, mobile_legends: 0, in_house: 500, slot_game: 0 });
+  const coinsBalance = loadWalletCoinsBalance();
+  const gameCoins = db.load('game_coins', { pubg: 0, roblox: 0, mobile_legends: 0, in_house: 0, slot_game: 0 });
 
   // Game types & reward pacs
   const GAMES = [
@@ -112,7 +112,7 @@ export function GameCoinTab() {
         // Deduct Coins
         if (!spendWalletCoins(appUser.id, selectedPack.cost)) return;
 
-        const currentInventory = db.load('game_coins', { pubg: 0, roblox: 0, mobile_legends: 0, in_house: 500, slot_game: 0 });
+        const currentInventory = db.load('game_coins', { pubg: 0, roblox: 0, mobile_legends: 0, in_house: 0, slot_game: 0 });
         const key = selectedGame.id as keyof typeof currentInventory;
         const nextAmount = (Number(currentInventory[key]) || 0) + selectedPack.amount;
         if (key === 'in_house') {

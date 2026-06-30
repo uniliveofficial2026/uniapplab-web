@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
-import { addWalletCoins, saveWalletCoinsBalance, spendWalletCoins } from '../../lib/walletKstarSync';
+import { addWalletCoins, loadWalletCoinsBalance, saveWalletCoinsBalance, spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
   Coins, 
   DollarSign, 
@@ -18,7 +18,7 @@ export function BuyExchangeTab() {
   const db = useDB();
   const appUser = useCurrentUser();
   
-  const coinsBalance = db.load('coins_balance', 4200);
+  const coinsBalance = loadWalletCoinsBalance();
   const cashBalance = db.load('cash_balance', 180.50);
   const transactions = db.load('wallet_transactions', []);
 
@@ -63,7 +63,6 @@ export function BuyExchangeTab() {
     
     setTimeout(() => {
       // Deliver coins
-      const currentCoins = db.load('coins_balance', 4200);
       addWalletCoins(appUser.id, selectedBundle.coins);
 
       // Record transaction

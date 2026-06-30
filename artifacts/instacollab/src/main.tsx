@@ -7,8 +7,14 @@ import { CloudAuthProvider } from './contexts/CloudAuthContext';
 import { AuthProvider } from './lib/AuthContext';
 import { registerAppServiceWorker } from './lib/pwaRegister';
 import { initSupabaseClient } from './lib/supabase/client';
+import { initWalletKstarSyncListeners } from './lib/walletKstarSync';
+import { installPersistenceGuards } from './lib/persistSession';
+import { bootstrapDocumentTheme } from './lib/theme';
 
+bootstrapDocumentTheme();
 registerAppServiceWorker();
+initWalletKstarSyncListeners();
+installPersistenceGuards();
 
 if (import.meta.env.DEV && typeof window !== 'undefined') {
   window.addEventListener('unhandledrejection', (event) => {

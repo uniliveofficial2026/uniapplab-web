@@ -19,5 +19,8 @@ export function tryLocalDemoLogin(
     return { ok: false, reason: 'Demo password is demo123 for demo@instacollab.app and sarah@instacollab.app.' };
   }
   enableDevLocalAuthBypass();
+  void import('../walletKstarSync').then(({ onUserSessionActive }) => {
+    onUserSessionActive(result.userId);
+  });
   return { ok: true };
 }

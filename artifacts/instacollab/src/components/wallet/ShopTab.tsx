@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
-import { spendWalletCoins } from '../../lib/walletKstarSync';
+import { loadWalletCoinsBalance, spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
   ShoppingBag, 
   Tag, 
@@ -33,7 +33,7 @@ export function ShopTab() {
   const chartTheme = useRechartsTheme();
 
   // Load balances
-  const coinsBalance = db.load('coins_balance', 4200);
+  const coinsBalance = loadWalletCoinsBalance();
   const cashBalance = db.load('cash_balance', 180.50);
 
   // Sub-sections toggling

@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import type { Post, User } from '../types';
 import type { CreatorProgress } from './creatorXP';
 import { postUserId, resolveUser, safeUserId } from './safe';
-import { useDB } from './useDB';
+import { useDB, useDbRevision } from './useDB';
 
 export type ProfileStats = {
   profileUser: User;
@@ -18,16 +18,30 @@ export function useProfileStats(
   userId?: string | null
 ): ProfileStats {
   const db = useDB();
+  const revision = useDbRevision();
+  const resolvedId = safeUserId(user?.id ?? userId);
 
   const profileUser = useMemo(() => {
-    const id = safeUserId(user?.id ?? userId);
+    const id = resolvedId;
     const row = id ? db.users.find((u) => u?.id === id) : undefined;
     return resolveUser(
       db.users,
       user ?? row ?? (id ? { id } : null),
       db.currentUser
     );
-  }, [db.users, user, userId, db.currentUser]);
+  }, [
+    resolvedId,
+    revision,
+    db.users,
+    db.currentUser?.id,
+    user?.username,
+    user?.displayName,
+    user?.avatarUrl,
+    user?.bio,
+    user?.isVerified,
+    user?.followers,
+    user?.following,
+  ]);
 
   const profileUserId = profileUser.id;
 

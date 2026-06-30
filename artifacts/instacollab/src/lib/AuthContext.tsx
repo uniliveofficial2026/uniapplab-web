@@ -177,6 +177,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           }
         });
     }
+
+    reconcileWalletAndKstarCoins(uid);
   };
 
   const persistCurrentAccountBeforeSwitch = async () => {
@@ -457,6 +459,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           writeActiveDeviceUid(firebaseUser.uid);
           setUser(firebaseUser);
           db.login(firebaseUser.uid);
+          reconcileWalletAndKstarCoins(firebaseUser.uid);
 
           setUserAccounts((prev) => {
             const uniqueList = upsertDeviceAccount(accountFromFirebaseUser(firebaseUser), prev);
@@ -542,6 +545,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const auth = getFirebaseAuth();
     if (!auth) return;
     await signInWithEmailAndPassword(auth, email, pass);
+    if (auth.currentUser?.uid) reconcileWalletAndKstarCoins(auth.currentUser.uid);
   };
 
   const signupWithEmail = async (email: string, pass: string, name: string) => {
@@ -566,6 +570,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (name) {
       await updateProfile(cred.user, { displayName: name });
     }
+    reconcileWalletAndKstarCoins(cred.user.uid);
   };
 
   const resetPassword = async (email: string) => {

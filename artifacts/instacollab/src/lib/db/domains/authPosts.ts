@@ -162,6 +162,9 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       }
       this.save('currentUserId', userId);
       this.save('isLoggedIn', true);
+      void import('../../walletKstarSync').then(({ onUserSessionActive }) => {
+        onUserSessionActive(userId);
+      });
     }
 
     deleteAccountSnapshot(userId: string) {

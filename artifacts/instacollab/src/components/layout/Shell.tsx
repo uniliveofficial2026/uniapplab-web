@@ -7,7 +7,7 @@ import { handleAvatarError, handleMediaError } from '../../lib/utils';
 import { PostAudioPlaybackRoot } from '../playback/PostAudioPlaybackRoot';
 import { pauseAllPlayback } from '../../lib/playbackAudio';
 import { resetMediaOverlayLocks } from '../../lib/mediaOverlayLock';
-import { nextTheme } from '../../lib/theme';
+import { applyDocumentTheme, nextTheme } from '../../lib/theme';
 import { useDB } from '../../lib/useDB';
 import { dispatchTapRefresh, scrollAppMainToTop } from '../../lib/appRefresh';
 import { requestKaraokeStudioOpen } from '../../lib/karaokeSearch';
@@ -38,7 +38,9 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   };
 
   const toggleAppTheme = () => {
-    db.updateSettings({ theme: nextTheme(db.settings.theme) });
+    const next = nextTheme(db.settings.theme);
+    applyDocumentTheme(next);
+    db.updateSettings({ theme: next });
   };
 
   const navigateToTab = (tab: Tab) => {

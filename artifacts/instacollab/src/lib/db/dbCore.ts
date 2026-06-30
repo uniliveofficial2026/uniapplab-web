@@ -37,6 +37,18 @@ const CLEAR_CACHE_EPHEMERAL_KEYS = new Set([
   'cloud_meta',
 ]);
 
+/** Small keys mirrored to localStorage for fast restore after refresh / IDB lag. */
+const LOCAL_STORAGE_MIRROR_KEYS = new Set([
+  'isLoggedIn',
+  'currentUserId',
+  'app_settings',
+  'users',
+  'coins_balance',
+  'karaoke_user_state',
+  'game_coins',
+  'cash_balance',
+]);
+
 export class DbCore {
     /** Typed view of the fully composed DB (all domain mixins). */
     protected asLocalDB(): LocalDB {
@@ -186,13 +198,12 @@ export class DbCore {
     ) {
       this.cloudSyncSuppressPush = true;
       const idbWrites: Promise<void>[] = [];
-      const essentialKeys = ['isLoggedIn', 'currentUserId', 'app_settings', 'users'];
       try {
         for (const [key, value] of Object.entries(collections)) {
           if (!isCloudSyncCollectionKey(key) || value === undefined) continue;
           this.cache[key] = value;
           if (import.meta.env.DEV) recordCollectionSave(key, value);
-          if (essentialKeys.includes(key)) {
+          if (LOCAL_STORAGE_MIRROR_KEYS.has(key)) {
             try {
               localStorage.setItem(key, JSON.stringify(value));
             } catch {
@@ -213,6 +224,9 @@ export class DbCore {
           }
           if (key === 'karaoke_user_state') {
             window.dispatchEvent(new CustomEvent('kstar-user-state-updated'));
+          }
+          if (key === 'coins_balance') {
+            window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
           }
         }
         this.notifyListeners();
@@ -267,12 +281,23 @@ export class DbCore {
         karaoke_profile_backgrounds: {},
         karaoke_recordings: [],
         karaoke_user_state: {},
+        coins_balance: 0,
+        game_coins: {
+          pubg: 0,
+          roblox: 0,
+          mobile_legends: 0,
+          in_house: 0,
+          slot_game: 0,
+        },
+        cash_balance: 0,
+        wallet_transactions: [],
         unreadMessagesCount: 0,
         hasUnreadNotifications: false,
       };
       if (me) cleared.users = [me];
       this.applyRemoteCollections(cleared);
       this.save('profile_stories_migrated', true);
+      this.save('user_app_state_local_rev', { userId, updatedAt: 0 });
     }
 
     /** IDB write only — used when batching remote sync (avoid N full save() cycles). */
@@ -672,6 +697,7 @@ export class DbCore {
       'launch_user_gates',
       'launch_progress',
       'account_local_snapshots',
+      'user_app_state_local_rev',
     ]);
 
     public save(key: string, data: unknown) {
@@ -687,8 +713,7 @@ export class DbCore {
       });
 
       // Also mirror essential small keys to localStorage for faster initial load
-      const essentialKeys = ['isLoggedIn', 'currentUserId', 'app_settings', 'users'];
-      if (essentialKeys.includes(key)) {
+      if (LOCAL_STORAGE_MIRROR_KEYS.has(key)) {
         try {
           localStorage.setItem(key, JSON.stringify(data));
         } catch {}

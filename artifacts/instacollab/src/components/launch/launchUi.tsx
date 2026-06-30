@@ -17,7 +17,7 @@ export function LaunchShell({
 
   return (
     <div
-      className={`min-h-dvh w-full text-foreground flex flex-col ${hasBackground ? 'bg-black' : 'bg-background'} ${className}`}
+      className={`min-h-dvh max-w-[100vw] w-full overflow-x-hidden text-foreground flex flex-col ${hasBackground ? 'bg-black' : 'bg-background'} ${className}`}
     >
       <div className="pointer-events-none fixed inset-0 z-0 overflow-hidden">
         {hasBackground ? (

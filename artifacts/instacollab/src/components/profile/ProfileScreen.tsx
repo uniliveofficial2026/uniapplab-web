@@ -179,8 +179,31 @@ export function ProfileScreen({
   );
 
   React.useEffect(() => {
-    setLocalUser(profileUser);
-  }, [profileUser]);
+    setLocalUser((prev) => {
+      if (
+        prev.id === profileUser.id &&
+        prev.username === profileUser.username &&
+        prev.displayName === profileUser.displayName &&
+        prev.avatarUrl === profileUser.avatarUrl &&
+        prev.bio === profileUser.bio &&
+        prev.isVerified === profileUser.isVerified &&
+        prev.followers === profileUser.followers &&
+        prev.following === profileUser.following
+      ) {
+        return prev;
+      }
+      return profileUser;
+    });
+  }, [
+    profileUser.id,
+    profileUser.username,
+    profileUser.displayName,
+    profileUser.avatarUrl,
+    profileUser.bio,
+    profileUser.isVerified,
+    profileUser.followers,
+    profileUser.following,
+  ]);
 
   const handleFollowToggle = () => {
     db.toggleFollow(profileUserId);

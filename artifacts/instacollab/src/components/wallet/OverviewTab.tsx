@@ -23,6 +23,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
+import { loadWalletCoinsBalance } from '../../lib/walletKstarSync';
 
 interface OverviewTabProps {
   cryptoPrices: { BTC: number; ETH: number; SOL: number };
@@ -41,7 +42,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   }, []);
   
   // High fidelity default states
-  const coinsBalance = db.load('coins_balance', 4200);
+  const coinsBalance = loadWalletCoinsBalance();
   const cashBalance = db.load('cash_balance', 180.50);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
   const transactions = db.load('wallet_transactions', [

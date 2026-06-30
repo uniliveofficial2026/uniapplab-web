@@ -152,7 +152,11 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
      */
     advanceLaunchProgressAfterLogin(profileSetupCompleteFromServer: boolean) {
       const userId = this.asLocalDB().currentUserId;
-      const returning = Boolean(profileSetupCompleteFromServer);
+      const priorGates = userId ? this.getUserLaunchGates(userId) : { ...DEFAULT_USER_GATES };
+      const returning =
+        Boolean(profileSetupCompleteFromServer) ||
+        priorGates.profileSetupComplete ||
+        priorGates.hasSeenTrending;
 
       this.saveLaunchProgress({
         hasSeenSplash: true,
@@ -161,8 +165,8 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
 
       if (userId) {
         this.saveUserLaunchGates(userId, {
-          profileSetupComplete: returning,
-          hasSeenTrending: returning,
+          profileSetupComplete: returning || priorGates.profileSetupComplete,
+          hasSeenTrending: returning || priorGates.hasSeenTrending,
         });
       }
     }

@@ -48,14 +48,12 @@ import { useAuth } from '../../lib/AuthContext';
 import { useCloudAuth } from '../../contexts/CloudAuthContext';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
 import { AccountSwitcherModal } from '../profile/AccountSwitcherModal';
-import { reconcileWalletAndKstarCoins } from '../../lib/walletKstarSync';
 import {
   addKstarCoins,
-  ensureKstarUserStateMigrated,
-  getKstarCoins,
-  isKstarVip,
+  getLiveCoinsBalance,
   spendKstarCoins,
-} from '../../lib/kstarUserState';
+} from '../../lib/walletKstarSync';
+import { isKstarVip } from '../../lib/kstarUserState';
 import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
 import { compressAvatarDataUrl } from '../../lib/auth/cloudAvatar';
 import { safeAvatarUrl, safeUsername } from '../../lib/safe';
@@ -596,7 +594,7 @@ function karaokeProfileBackLabel(
 
 export function KaraokeScreen() {
   const db = useDB();
-  useDbRevision();
+  const dbRevision = useDbRevision();
   const appUser = useCurrentUser();
   const {
     userAccounts,
@@ -607,16 +605,15 @@ export function KaraokeScreen() {
     ensureDeviceAccountsSynced,
   } = useAuth();
   const { session: cloudSession } = useCloudAuth();
+
+  const userCoins = useMemo(
+    () => getLiveCoinsBalance(appUser.id),
+    [appUser.id, dbRevision],
+  );
+  const userVip = useMemo(() => isKstarVip(appUser), [appUser, dbRevision]);
+
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [accountLinking, setAccountLinking] = useState(false);
-
-  const userCoins = getKstarCoins(appUser.id);
-  const userVip = isKstarVip(appUser);
-
-  useEffect(() => {
-    ensureKstarUserStateMigrated(appUser.id);
-    reconcileWalletAndKstarCoins(appUser.id);
-  }, [appUser.id]);
 
   // Dynamic state for duets that makes interactions (likes, comments, gifts) reactive and persistent
   const [duets, setDuets] = useState<KaraokeDuetPost[]>(() => [
@@ -905,7 +902,7 @@ export function KaraokeScreen() {
   const [karaokeProfileStack, setKaraokeProfileStack] = useState<KaraokeSelectedProfile[]>([]);
   const [userCovers, setUserCovers] = useState<KaraokeUserCoverCard[]>([]);
 
-  const selfProfileStats = useProfileStats(appUser, appUser.id);
+  const selfProfileStats = useProfileStats(null, appUser.id);
 
   const karaokeViewedProfileUserId = useMemo(() => {
     if (!selectedUserProfile) return appUser.id;
@@ -993,7 +990,18 @@ export function KaraokeScreen() {
       ...background,
     };
     },
-    [appUser, selfProfileStats, userCoins, userVip, profileBackgroundRevision],
+    [
+      appUser.id,
+      appUser.username,
+      appUser.displayName,
+      appUser.avatarUrl,
+      appUser.bio,
+      selfProfileStats.followerCount,
+      selfProfileStats.followingCount,
+      userCoins,
+      userVip,
+      profileBackgroundRevision,
+    ],
   );
 
   // Profile-specific states
@@ -4594,6 +4602,7 @@ export function KaraokeScreen() {
                      <Coins className="w-5 h-5 text-amber-500" />
                      <span className="font-black text-amber-500">{userCoins.toLocaleString()} Coins</span>
                   </div>
+                  {import.meta.env.DEV ? (
                   <button 
                     onClick={() => {
                       addKstarCoins(appUser.id, 500);
@@ -4603,6 +4612,7 @@ export function KaraokeScreen() {
                   >
                     Recharge
                   </button>
+                  ) : null}
                </div>
 
                <div className="grid grid-cols-3 gap-3 mb-6">
@@ -5874,7 +5884,6 @@ export function KaraokeScreen() {
             );
             await selectAccount(uid, password);
             setShowAccountSwitcher(false);
-            reconcileWalletAndKstarCoins(uid);
             void loadUserUploads();
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to switch account.';
@@ -5890,7 +5899,6 @@ export function KaraokeScreen() {
             if (result.ok) {
               window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Signed in!' }));
               setShowAccountSwitcher(false);
-              if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
               void loadUserUploads();
             }
             return result;

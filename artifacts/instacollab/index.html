@@ -7,8 +7,22 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="InstaCollab" />
-    <meta name="theme-color" content="#020617" media="(prefers-color-scheme: dark)" />
-    <meta name="theme-color" content="#f8fafc" media="(prefers-color-scheme: light)" />
+    <meta name="theme-color" content="#020617" />
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('app_settings');
+          var theme = 'dark';
+          if (raw && raw !== 'undefined') {
+            var s = JSON.parse(raw);
+            if (s && (s.theme === 'light' || s.theme === 'dark')) theme = s.theme;
+          }
+          var root = document.documentElement;
+          if (theme === 'dark') root.classList.add('dark');
+          root.style.colorScheme = theme;
+        } catch (e) {}
+      })();
+    </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/opengraph.jpg" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />

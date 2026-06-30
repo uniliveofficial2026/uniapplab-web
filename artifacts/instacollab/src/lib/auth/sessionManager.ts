@@ -100,8 +100,11 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
 
   startProfileRealtime(appUser.id);
   await startCloudAppStateRealtime(appUser.id);
-  const { reconcileWalletAndKstarCoins } = await import('../walletKstarSync');
-  reconcileWalletAndKstarCoins(appUser.id);
+  queueMicrotask(() => {
+    void import('../walletKstarSync').then(({ onUserSessionActive }) => {
+      onUserSessionActive(appUser.id);
+    });
+  });
 }
 
 export async function restoreSupabaseSession(): Promise<Session | null> {

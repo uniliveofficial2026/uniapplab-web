@@ -1,4 +1,3 @@
-import { isCloudAuthConfigured } from './auth/config';
 import { db } from './db/localDb';
 import { userHasProfilePremium } from './premium';
 import type { User } from '../types';
@@ -12,7 +11,12 @@ type KstarUserRow = {
 
 type KstarUserStateStore = Record<string, KstarUserRow>;
 
-const DEMO_DEFAULT_COINS = 1250;
+export const DEMO_STARTER_COINS = 1250;
+
+/** Local seed/demo accounts (`u1`, `u2`, …) — not Supabase UUIDs. */
+export function isLegacyDemoUserId(userId: string): boolean {
+  return /^u\d+$/i.test(userId?.trim() || '');
+}
 
 function readStore(): KstarUserStateStore {
   return db.load<KstarUserStateStore>(DB_KEY, {});
@@ -23,7 +27,7 @@ function writeStore(store: KstarUserStateStore): void {
 }
 
 function defaultCoinsForUser(userId: string): number {
-  if (!isCloudAuthConfigured() && userId === 'u1') return DEMO_DEFAULT_COINS;
+  if (isLegacyDemoUserId(userId)) return DEMO_STARTER_COINS;
   return 0;
 }
 
@@ -46,31 +50,41 @@ export function ensureKstarUserStateMigrated(userId: string): void {
   writeStore({ ...store, [id]: { coins, vip: store[id]?.vip } });
 }
 
-export function getKstarCoins(userId: string): number {
+/** Read-only row from `karaoke_user_state` — never writes (safe during React render). */
+export function getKstarCoinsFromStore(userId: string): number {
   const id = userId?.trim();
   if (!id) return 0;
-  ensureKstarUserStateMigrated(id);
-  return readStore()[id]?.coins ?? defaultCoinsForUser(id);
+  const row = readStore()[id];
+  if (row?.coins != null) return row.coins;
+  return defaultCoinsForUser(id);
+}
+
+/** @deprecated Prefer `getLiveCoinsBalance` from `walletKstarSync` for UI. */
+export function getKstarCoins(userId: string): number {
+  return getKstarCoinsFromStore(userId);
 }
 
 export function setKstarCoins(userId: string, coins: number): void {
   const id = userId?.trim();
   if (!id) return;
+  ensureKstarUserStateMigrated(id);
   const store = { ...readStore() };
   store[id] = { ...store[id], coins: Math.max(0, Math.floor(coins)) };
   writeStore(store);
 }
 
-export function addKstarCoins(userId: string, delta: number): number {
-  const next = getKstarCoins(userId) + delta;
+/** Low-level row update — prefer `walletKstarSync` add/spend for live balance changes. */
+export function addKstarCoinsRow(userId: string, delta: number): number {
+  const next = getKstarCoinsFromStore(userId) + delta;
   setKstarCoins(userId, next);
   return next;
 }
 
-export function spendKstarCoins(userId: string, amount: number): boolean {
+/** Low-level row update — prefer `walletKstarSync.spendKstarCoins` for live spends. */
+export function spendKstarCoinsRow(userId: string, amount: number): boolean {
   const cost = Math.max(0, Math.floor(amount));
   if (cost <= 0) return true;
-  const current = getKstarCoins(userId);
+  const current = getKstarCoinsFromStore(userId);
   if (current < cost) return false;
   setKstarCoins(userId, current - cost);
   return true;
@@ -87,8 +101,9 @@ export function setKstarVip(userId: string, vip: boolean): void {
   const id = userId?.trim();
   if (!id) return;
   const store = { ...readStore() };
+  const existing = store[id];
   store[id] = {
-    coins: store[id]?.coins ?? getKstarCoins(id),
+    coins: existing?.coins ?? defaultCoinsForUser(id),
     vip,
   };
   writeStore(store);

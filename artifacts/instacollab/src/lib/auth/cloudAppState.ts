@@ -33,6 +33,40 @@ let cloudSyncReady = false;
 let cloudSyncHydratedUserId: string | null = null;
 let hydrateGeneration = 0;
 
+/** Device-local LWW timestamp — survives refresh so cloud hydrate cannot stomp newer IDB data. */
+const LOCAL_REV_KEY = 'user_app_state_local_rev';
+
+type LocalAppStateRev = { userId: string; updatedAt: number };
+
+function readPersistedLocalRevision(userId: string): number {
+  const rev = db.load<LocalAppStateRev>(LOCAL_REV_KEY, { userId: '', updatedAt: 0 });
+  if (rev.userId !== userId) return 0;
+  return typeof rev.updatedAt === 'number' ? rev.updatedAt : 0;
+}
+
+function persistLocalRevision(userId: string, updatedAt: number): void {
+  const ts = Math.max(0, Math.floor(updatedAt));
+  const prev = readPersistedLocalRevision(userId);
+  if (ts <= prev) return;
+  db.save(LOCAL_REV_KEY, { userId, updatedAt: ts });
+}
+
+function bumpLocalRevision(userId: string): number {
+  const now = Date.now();
+  persistLocalRevision(userId, now);
+  return now;
+}
+
+/** One-time guard: existing IDB data without a revision stamp must not lose to stale cloud on refresh. */
+function seedLocalRevisionIfNeeded(userId: string): void {
+  if (readPersistedLocalRevision(userId) > 0) return;
+  const cache = (db as unknown as { cache: Record<string, unknown> }).cache;
+  const hasLocal = CLOUD_SYNC_COLLECTION_KEYS.some(
+    (key) => cache[key] !== undefined && cache[key] !== null,
+  );
+  if (hasLocal) bumpLocalRevision(userId);
+}
+
 function resetCloudSyncSessionState(): void {
   lastAppliedRemoteAt = 0;
   lastPushedAt = 0;
@@ -91,6 +125,7 @@ async function pushNow(userId: string): Promise<void> {
     }
     lastPushedAt = payload.updatedAt;
     lastAppliedRemoteAt = payload.updatedAt;
+    persistLocalRevision(userId, payload.updatedAt);
     if (import.meta.env.DEV) {
       console.info('[sync] pushed user_app_state', {
         userId: userId.slice(0, 8),
@@ -111,6 +146,9 @@ export function scheduleCloudAppStateSync(store: LocalDB = db): void {
   if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || applyingRemote) return;
   const userId = store.currentUserId;
   if (!isCloudAuthUserId(userId)) return;
+
+  const bumped = bumpLocalRevision(userId);
+  lastPushedAt = Math.max(lastPushedAt, bumped);
 
   if (pushTimer) clearTimeout(pushTimer);
   pushTimer = setTimeout(() => {
@@ -136,46 +174,59 @@ export function isCloudAppStateRemoteApply(): boolean {
 
 type HydrateResult = 'ok' | 'empty' | 'error';
 
+type HydrateOutcome = { result: HydrateResult; pushLocal: boolean };
+
 /** Start realtime listener + initial fetch for the signed-in cloud user. */
 async function hydrateCloudAppStateForUser(
   userId: string,
   generation: number,
-): Promise<HydrateResult> {
+): Promise<HydrateOutcome> {
   if (isSupabaseConfigured() && (await hasSupabaseSessionForUser(userId))) {
     let existing: CloudAppStatePayload | null;
+    let pushLocal = false;
     try {
       existing = await fetchSupabaseUserAppState(userId);
     } catch (err) {
       console.warn('[sync] fetch user_app_state failed — keeping local data:', err);
-      return 'error';
+      return { result: 'error', pushLocal: false };
     }
 
-    if (generation !== hydrateGeneration) return 'error';
+    if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
 
     if (existing) {
-      applyPayloadIfNewer(existing, 'bootstrap');
+      const localRev = readPersistedLocalRevision(userId);
+      lastPushedAt = Math.max(lastPushedAt, localRev);
+      if (existing.updatedAt > localRev) {
+        applyPayloadIfNewer(existing, 'bootstrap');
+      } else if (localRev > existing.updatedAt) {
+        lastAppliedRemoteAt = existing.updatedAt;
+        pushLocal = true;
+      } else {
+        applyPayloadIfNewer(existing, 'bootstrap');
+      }
     } else {
       db.prepareLocalStoreForFirstCloudSession(userId);
       lastPushedAt = 0;
       lastAppliedRemoteAt = 0;
+      db.save(LOCAL_REV_KEY, { userId, updatedAt: 0 });
     }
 
-    if (generation !== hydrateGeneration) return 'error';
+    if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
 
     if (realtimeUnsub) {
       realtimeUnsub();
       realtimeUnsub = null;
     }
-    if (generation !== hydrateGeneration) return 'error';
+    if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
 
     realtimeUnsub = await subscribeSupabaseUserAppState(userId, (payload) => {
       applyPayloadIfNewer(payload, 'remote');
     });
-    return existing ? 'ok' : 'empty';
+    return { result: existing ? 'ok' : 'empty', pushLocal };
   }
 
   if (isFirebaseConfigured()) {
-    if (generation !== hydrateGeneration) return 'error';
+    if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
 
     if (realtimeUnsub) {
       realtimeUnsub();
@@ -185,10 +236,10 @@ async function hydrateCloudAppStateForUser(
     realtimeUnsub = subscribeFirebaseUserAppState(userId, (payload) => {
       applyPayloadIfNewer(payload, 'remote');
     });
-    return 'ok';
+    return { result: 'ok', pushLocal: false };
   }
 
-  return 'error';
+  return { result: 'error', pushLocal: false };
 }
 
 async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
@@ -207,11 +258,16 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
   subscribedUserId = userId;
   cloudSyncReady = false;
   cloudSyncHydratedUserId = userId;
+  seedLocalRevisionIfNeeded(userId);
+  lastPushedAt = readPersistedLocalRevision(userId);
 
   const generation = ++hydrateGeneration;
   let hydrateResult: HydrateResult;
+  let pushLocalAfterHydrate = false;
   try {
-    hydrateResult = await hydrateCloudAppStateForUser(userId, generation);
+    const outcome = await hydrateCloudAppStateForUser(userId, generation);
+    hydrateResult = outcome.result;
+    pushLocalAfterHydrate = outcome.pushLocal;
   } catch (err) {
     console.warn('[sync] cloud app state hydrate failed:', err);
     hydrateResult = 'error';
@@ -219,14 +275,25 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
 
   if (generation !== hydrateGeneration) return;
   cloudSyncReady = hydrateResult !== 'error';
+  if (pushLocalAfterHydrate && cloudSyncReady) {
+    queueMicrotask(() => void pushNow(userId));
+  }
   if (hydrateResult === 'error') {
     window.setTimeout(() => {
       void (async () => {
         if (subscribedUserId !== userId || generation !== hydrateGeneration) return;
         const retry = await hydrateCloudAppStateForUser(userId, generation);
         if (generation !== hydrateGeneration) return;
-        if (retry !== 'error' && subscribedUserId === userId) {
+        if (retry.result !== 'error' && subscribedUserId === userId) {
           cloudSyncReady = true;
+          if (retry.pushLocal) {
+            queueMicrotask(() => void pushNow(userId));
+          }
+          queueMicrotask(() => {
+            void import('../walletKstarSync').then(({ onUserSessionActive }) => {
+              onUserSessionActive(userId);
+            });
+          });
         }
       })();
     }, 5000);
@@ -235,6 +302,13 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
         cloudSyncReady = true;
       }
     }, 15000);
+  }
+  if (hydrateResult !== 'error' && generation === hydrateGeneration) {
+    queueMicrotask(() => {
+      void import('../walletKstarSync').then(({ onUserSessionActive }) => {
+        onUserSessionActive(userId);
+      });
+    });
   }
   if (import.meta.env.DEV) {
     console.info('[sync] cloud app state ready', {
