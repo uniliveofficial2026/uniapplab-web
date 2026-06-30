@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
-import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Gamepad2, Globe, Wallet, Circle, X, Heart } from 'lucide-react';
+import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Gamepad2, Globe, Wallet, Circle, X, Heart, Sun, Moon } from 'lucide-react';
 import { Tab, User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
 import { handleAvatarError, handleMediaError } from '../../lib/utils';
@@ -36,6 +36,10 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     setCreateLaunch({ type, step: 'upload' });
     setShowCreateMenu(true);
   };
+
+  const isDarkTheme = db.settings.theme === 'dark';
+  const ThemeToggleIcon = isDarkTheme ? Sun : Moon;
+  const themeToggleLabel = isDarkTheme ? 'Light mode' : 'Dark mode';
 
   const toggleAppTheme = () => {
     const next = nextTheme(db.settings.theme);
@@ -358,11 +362,11 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
             </div>
             <span className="hidden lg:block text-[15px]">Marketplace</span>
           </button>
-          <button type="button" onClick={toggleAppTheme} className={`${navTapRowButtonClass} p-2 hover:text-foreground text-muted-foreground font-medium transition-colors group`}>
+          <button type="button" onClick={toggleAppTheme} aria-label={themeToggleLabel} className={`${navTapRowButtonClass} p-2 hover:text-foreground text-muted-foreground font-medium transition-colors group`}>
             <div className="p-2 rounded-xl bg-muted group-hover:bg-foreground group-hover:text-background transition-colors">
-              <Menu className="w-5 h-5 stroke-[2px]" />
+              <ThemeToggleIcon className="w-5 h-5 stroke-[2px]" />
             </div>
-            <span className="hidden lg:block text-[15px]">Toggle Theme</span>
+            <span className="hidden lg:block text-[15px]">{themeToggleLabel}</span>
           </button>
         </div>
       </div>
@@ -488,8 +492,8 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                  <button type="button" onClick={() => {
                    toggleAppTheme();
                    setShowMobileMenu(false);
-                 }} className={`${navTapRowButtonClass} p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}>
-                   <Menu className="w-6 h-6 text-foreground" /> Toggle Theme
+                 }} aria-label={themeToggleLabel} className={`${navTapRowButtonClass} p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}>
+                   <ThemeToggleIcon className="w-6 h-6 text-foreground" /> {themeToggleLabel}
                  </button>
                </div>
             </motion.div>
