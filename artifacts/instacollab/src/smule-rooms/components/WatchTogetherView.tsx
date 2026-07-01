@@ -26,6 +26,8 @@ import { resolveSeatGuestDisplay } from '../utils/roomSeats';
 import type { RoomViewerEntry } from '../utils/roomViewers';
 import type { RoomSettings } from '../utils/storage';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { safeAvatarUrl, safeMediaUrl, safeVideoUrl } from '../../lib/safe';
 import {
   type WatchTogetherMedia,
   type WatchTogetherMediaUpdateDetail,
@@ -392,7 +394,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                 }
               >
                 <img
-                  src={occupant.avatar}
+                  src={safeAvatarUrl(occupant.avatar)}
                   className="w-full h-full rounded-full object-cover border-2 border-[#050510]"
                   alt={occupant.name}
                 />
@@ -458,12 +460,12 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
               type="button"
               onClick={() => handleSeatClick(key)}
               disabled={isLocked}
-              className={`party-empty-seat rounded-full flex items-center justify-center transition transform active:scale-95 shadow-inner cursor-pointer ${
+              className={`party-empty-seat party-glass-tap rounded-full flex items-center justify-center transform active:scale-95 cursor-pointer ${
                 isLocked
-                  ? 'bg-red-950/50 border border-red-500/40 text-red-400 hover:border-red-500/60'
+                  ? 'party-glass-seat-locked text-red-400 hover:border-red-500/60'
                   : isHost
-                    ? 'bg-white/10 border border-cyan-400/30 text-cyan-200/80 hover:border-cyan-300/50'
-                    : 'bg-[#3d2c25]/80 border border-[#6b4c3e]/40 text-[#d2a38b] hover:text-white hover:border-pink-500/40'
+                    ? 'hover:border-cyan-300/50 text-cyan-200/80'
+                    : 'party-glass-seat-guest hover:text-white'
               }`}
               aria-label={isLocked ? `${seatLabel(key)} locked` : `Take ${seatLabel(key)}`}
             >
@@ -520,13 +522,13 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
               type="button"
               onClick={() => setIsRoomViewersOpen(true)}
               aria-label={`${viewers.length} viewers in room`}
-              className="party-viewers-chip flex min-h-[32px] cursor-pointer items-center space-x-2 rounded-full px-2.5 py-1.5 backdrop-blur-md transition hover:bg-white/10 sm:px-3"
+              className="party-viewers-chip party-glass-chip flex min-h-[32px] cursor-pointer items-center space-x-2 rounded-full px-2.5 py-1.5 sm:px-3 transition"
             >
               <div className="-space-x-2 mr-0.5 flex">
                 {viewers.slice(0, 3).map((v) => (
                   <img
                     key={v.id}
-                    src={v.avatar}
+                    src={safeAvatarUrl(v.avatar)}
                     className="rounded-full border-2 border-[#07010a] object-cover"
                     alt=""
                   />
@@ -580,7 +582,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
           {playbackMedia.kind === 'audio' ? (
             <>
               <img
-                src={playbackMedia.posterUrl}
+                src={safeMediaUrl(playbackMedia.posterUrl)}
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover opacity-45 pointer-events-none"
               />
@@ -603,7 +605,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                   <audio
                     ref={audioRef}
                     key={playbackMedia.streamUrl}
-                    src={playbackMedia.streamUrl}
+                    src={safeVideoUrl(playbackMedia.streamUrl)}
                     controls
                     controlsList="nodownload"
                     preload="auto"
@@ -621,7 +623,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                 <video
                   ref={videoRef}
                   key={playbackMedia.streamUrl}
-                  src={playbackMedia.streamUrl}
+                  src={safeVideoUrl(playbackMedia.streamUrl)}
                   poster={playbackMedia.posterUrl}
                   controls
                   controlsList="nodownload"
@@ -631,10 +633,11 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                   onCanPlay={handlePlaybackReady}
                   onError={handlePlaybackError}
                   className="watch-together-native-media h-full w-full bg-black object-contain"
+                  {...nativeVideoControlGuardProps()}
                 />
               ) : (
                 <img
-                  src={playbackMedia.posterUrl}
+                  src={safeMediaUrl(playbackMedia.posterUrl)}
                   alt=""
                   className="h-full w-full bg-black object-contain opacity-60"
                 />
@@ -788,7 +791,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                         onClick={() => selectMention(user.name)}
                         className="w-full flex items-center space-x-2 px-3 py-2 hover:bg-white/10 text-left"
                       >
-                        <img src={user.avatar} className="w-6 h-6 rounded-full object-cover" alt="" />
+                        <img src={safeAvatarUrl(user.avatar)} className="w-6 h-6 rounded-full object-cover" alt="" />
                         <span className="text-xs font-bold text-gray-200 truncate">{user.name}</span>
                       </button>
                     ))
@@ -803,7 +806,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
               value={chatInput}
               onChange={(e) => handleChatInputChange(e.target.value)}
               placeholder="Say Hi..."
-              className="w-full min-w-0 bg-white/5 border border-white/10 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] text-white font-bold placeholder:text-white/30 outline-none focus:border-pink-500/50"
+              className="party-glass-input w-full min-w-0 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] text-white font-bold placeholder:text-white/30"
             />
             {chatInput.trim() && (
               <button

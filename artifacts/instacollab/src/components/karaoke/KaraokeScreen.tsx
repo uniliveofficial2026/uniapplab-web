@@ -21,6 +21,7 @@ import { ensureRoomSettingsSeeded } from '../../smule-rooms/utils/storage';
 import { ensureRoomRoleUserIds } from '../../smule-rooms/utils/roomRoleUsers';
 import { formatRoomHostMeta, resolveRoomHostDisplay } from '../../smule-rooms/utils/roomHostDisplay';
 import { formatProfileHandle, getProfileDisplayName } from '../../lib/profileDisplay';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { getFollowButtonHoverLabel } from '../../lib/followPrivacy';
 import {
   getOptionsMenuItemClass,
@@ -53,13 +54,15 @@ import {
   getLiveCoinsBalance,
   spendKstarCoins,
 } from '../../lib/walletKstarSync';
+import { syncLiveSessionData } from '../../lib/liveSessionSync';
 import { isKstarVip } from '../../lib/kstarUserState';
 import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
 import { compressAvatarDataUrl } from '../../lib/auth/cloudAvatar';
-import { safeAvatarUrl, safeUsername } from '../../lib/safe';
+import { safeAvatarUrl, safeMediaUrl, safeString, safeUsername, safeVideoUrl } from '../../lib/safe';
 import { fileToBase64, handleAvatarError, resolveAvatarSrc } from '../../lib/utils';
 import {
   deleteKaraokeUpload,
+  ensureKaraokeUploadsHydrated,
   hydrateKaraokeUploadsFromCloud,
   listKaraokeUploads,
   listKaraokeUploadsForUser,
@@ -81,6 +84,13 @@ import {
   type KaraokeProfileTab,
   type KaraokeUrlParams,
 } from '../../lib/karaokeSearch';
+import {
+  clearPersistedKaraokeRoomFlow,
+  NAV_PERSIST_EVENT,
+  readPersistedKaraokeRoomFlow,
+  writePersistedKaraokeRoomFlow,
+  type PersistedKaraokeRoomFlow,
+} from '../../lib/navigationRestore';
 import { dispatchTapRefresh, TAP_REFRESH_EVENT } from '../../lib/appRefresh';
 import { navTapButtonClass, navTapIconButtonClass, navTapRowButtonClass } from '../../lib/navTap';
 import {
@@ -91,6 +101,7 @@ import {
   studioLyricsFromUpload,
 } from '../../lib/karaokeUploadSession';
 import {
+  ensureKaraokeRecordingsHydrated,
   formatRecordingAge,
   formatRecordingCount,
   incrementKaraokeCoverRecordingPlays,
@@ -407,7 +418,8 @@ function resolveTrackDetailsCreator(options: {
   if (activeCoverRecording) {
     const lead = activeCoverRecording.performers[0];
     if (!lead) return null;
-    const handle = lead.handle.startsWith('@') ? lead.handle : `@${lead.handle}`;
+    const handleRaw = safeString(lead.handle, '@unknown');
+    const handle = handleRaw.startsWith('@') ? handleRaw : `@${handleRaw}`;
     const followKey = handle.replace(/^@/, '');
     const isSelf = activeCoverRecording.performerUserId === currentUser.id;
     return {
@@ -612,6 +624,10 @@ export function KaraokeScreen() {
   );
   const userVip = useMemo(() => isKstarVip(appUser), [appUser, dbRevision]);
 
+  useEffect(() => {
+    void syncLiveSessionData(appUser.id);
+  }, [appUser.id]);
+
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
   const [accountLinking, setAccountLinking] = useState(false);
 
@@ -647,6 +663,8 @@ export function KaraokeScreen() {
   }, [appUser.id, mergeUploadedIntoLibrary]);
 
   useEffect(() => {
+    ensureKaraokeUploadsHydrated();
+    ensureKaraokeRecordingsHydrated();
     loadUserUploads();
     void hydrateKaraokeUploadsFromCloud().then(loadUserUploads);
     window.addEventListener('karaoke-uploads-updated', loadUserUploads);
@@ -769,12 +787,54 @@ export function KaraokeScreen() {
     registerKaraokeTabGetter(() => activeTabRef.current);
     return () => registerKaraokeTabGetter(null);
   }, []);
+
+  const persistedRoomFlow = readPersistedKaraokeRoomFlow();
+  const [showSmuleRoomFlow, setShowSmuleRoomFlow] = useState(
+    persistedRoomFlow?.showSmuleRoomFlow ?? false,
+  );
+  const [smuleRoomFlowKey, setSmuleRoomFlowKey] = useState(
+    persistedRoomFlow?.showSmuleRoomFlow ? 1 : 0,
+  );
+  const [smuleRoomInitialPath, setSmuleRoomInitialPath] = useState(
+    persistedRoomFlow?.smuleRoomInitialPath ?? '/room/create',
+  );
+  const [smuleRoomFlowEntry, setSmuleRoomFlowEntry] = useState<RoomFlowEntry>(
+    persistedRoomFlow?.smuleRoomFlowEntry ?? 'default',
+  );
+  const roomFlowSnapshotRef = useRef<PersistedKaraokeRoomFlow>({
+    showSmuleRoomFlow: persistedRoomFlow?.showSmuleRoomFlow ?? false,
+    smuleRoomInitialPath: persistedRoomFlow?.smuleRoomInitialPath ?? '/room/create',
+    smuleRoomFlowEntry: persistedRoomFlow?.smuleRoomFlowEntry ?? 'default',
+  });
+  roomFlowSnapshotRef.current = {
+    showSmuleRoomFlow,
+    smuleRoomInitialPath,
+    smuleRoomFlowEntry,
+  };
+
+  useEffect(() => {
+    if (!showSmuleRoomFlow) {
+      clearPersistedKaraokeRoomFlow();
+      return;
+    }
+    writePersistedKaraokeRoomFlow({
+      showSmuleRoomFlow,
+      smuleRoomInitialPath,
+      smuleRoomFlowEntry,
+    });
+  }, [showSmuleRoomFlow, smuleRoomInitialPath, smuleRoomFlowEntry]);
+
+  useEffect(() => {
+    const onPersist = () => {
+      if (!roomFlowSnapshotRef.current.showSmuleRoomFlow) return;
+      writePersistedKaraokeRoomFlow(roomFlowSnapshotRef.current);
+    };
+    window.addEventListener(NAV_PERSIST_EVENT, onPersist);
+    return () => window.removeEventListener(NAV_PERSIST_EVENT, onPersist);
+  }, []);
+
   const [selectedSong, setSelectedSong] = useState<any>(null);
   const [activeLiveStream, setActiveLiveStream] = useState<any>(null);
-  const [showSmuleRoomFlow, setShowSmuleRoomFlow] = useState(false);
-  const [smuleRoomFlowKey, setSmuleRoomFlowKey] = useState(0);
-  const [smuleRoomInitialPath, setSmuleRoomInitialPath] = useState('/room/create');
-  const [smuleRoomFlowEntry, setSmuleRoomFlowEntry] = useState<RoomFlowEntry>('default');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const contentScrollRef = useRef<HTMLDivElement>(null);
 
@@ -788,6 +848,7 @@ export function KaraokeScreen() {
     }
     setPreviousTab(null);
     setShowSmuleRoomFlow(false);
+    clearPersistedKaraokeRoomFlow();
     clearActiveRoomSession();
     setKaraokeMessagesChatId(null);
     setActiveTab('sing');
@@ -1031,6 +1092,7 @@ export function KaraokeScreen() {
     setProfileReturnContext(null);
     setPreviousTab(null);
     setShowSmuleRoomFlow(false);
+    clearPersistedKaraokeRoomFlow();
     clearActiveRoomSession();
     window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'home' } }));
   }, []);
@@ -2337,8 +2399,9 @@ export function KaraokeScreen() {
     const uploadActive = Boolean(playingTrack?.audioUrl && !coverActive);
     if (!coverActive && !uploadActive) return null;
 
-    const isVideo = coverActive
-      ? isCoverRecordingVideo(activeCoverRecording!)
+    const coverRecording = coverActive ? activeCoverRecording : null;
+    const isVideo = coverRecording
+      ? isCoverRecordingVideo(coverRecording)
       : isUploadedVideoTrack(playingTrack);
 
     if (coverActive) {
@@ -3066,7 +3129,12 @@ export function KaraokeScreen() {
 
           {activeTab === 'feed' && (
             <div className="space-y-4 bg-secondary/10 p-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
-              {duets.map(post => (
+              {duets.map(post => {
+                const duetUser0 = safeString(post.users?.[0], '@unknown');
+                const duetUser1 = safeString(post.users?.[1], '@guest');
+                const feedVideoUrl = safeVideoUrl(post.videoUrl);
+                const feedPosterUrl = safeMediaUrl(post.img);
+                return (
                  <div key={post.id} className="bg-card rounded-3xl overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow">
                       {/* Post Header */}
                    <div className="p-4 flex items-center justify-between col-span-12">
@@ -3074,9 +3142,9 @@ export function KaraokeScreen() {
                         <div className="flex -space-x-3">
                           <button 
                             onClick={() => navigateToKaraokeOtherProfile({
-                                name: post.users[0].replace('@', ''),
-                                handle: post.users[0],
-                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.users[0]}`,
+                                name: duetUser0.replace('@', ''),
+                                handle: duetUser0,
+                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser0}`,
                                 followers: '12.4k',
                                 likes: '2.1M',
                                 gifts: '4.5M',
@@ -3084,13 +3152,13 @@ export function KaraokeScreen() {
                               })}
                             className="w-10 h-10 rounded-full border-2 border-card bg-zinc-800 z-10 overflow-hidden shadow-sm cursor-pointer hover:scale-110 transition-transform"
                           >
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${post.users[0]}`} className="w-full h-full bg-amber-100" />
+                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser0}`} className="w-full h-full bg-amber-100" />
                           </button>
                           <button 
                             onClick={() => navigateToKaraokeOtherProfile({
-                                name: post.users[1].replace('@', ''),
-                                handle: post.users[1],
-                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.users[1]}`,
+                                name: duetUser1.replace('@', ''),
+                                handle: duetUser1,
+                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser1}`,
                                 followers: '8.4k',
                                 likes: '1.2M',
                                 gifts: '2.1M',
@@ -3098,16 +3166,16 @@ export function KaraokeScreen() {
                               })}
                             className="w-10 h-10 rounded-full border-2 border-card bg-zinc-700 z-0 overflow-hidden shadow-sm cursor-pointer hover:scale-110 transition-transform"
                           >
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${post.users[1]}`} className="w-full h-full bg-blue-100" />
+                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser1}`} className="w-full h-full bg-blue-100" />
                           </button>
                         </div>
                         <div>
                           <span className="text-sm font-bold block flex items-center gap-1">
                             <span 
                               onClick={() => navigateToKaraokeOtherProfile({
-                                  name: post.users[0].replace('@', ''),
-                                  handle: post.users[0],
-                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.users[0]}`,
+                                  name: duetUser0.replace('@', ''),
+                                  handle: duetUser0,
+                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser0}`,
                                   followers: '12.4k',
                                   likes: '2.1M',
                                   gifts: '4.5M',
@@ -3115,14 +3183,14 @@ export function KaraokeScreen() {
                                 })}
                               className="cursor-pointer hover:underline hover:text-primary transition-colors"
                             >
-                              {post.users[0]}
+                              {duetUser0}
                             </span>
                             <span className="text-muted-foreground text-xs font-normal">&</span>
                             <span 
                               onClick={() => navigateToKaraokeOtherProfile({
-                                  name: post.users[1].replace('@', ''),
-                                  handle: post.users[1],
-                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${post.users[1]}`,
+                                  name: duetUser1.replace('@', ''),
+                                  handle: duetUser1,
+                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser1}`,
                                   followers: '8.4k',
                                   likes: '1.2M',
                                   gifts: '2.1M',
@@ -3130,34 +3198,35 @@ export function KaraokeScreen() {
                                 })}
                               className="cursor-pointer hover:underline hover:text-primary transition-colors"
                             >
-                              {post.users[1]}
+                              {duetUser1}
                             </span>
                           </span>
                           <span className="text-xs text-muted-foreground">Collab • 2h ago</span>
                         </div>
                      </div>
                      <button 
-                       onClick={() => toggleFollowUser(post.users[0])}
+                       onClick={() => toggleFollowUser(duetUser0)}
                        className={`text-sm font-bold px-4 py-1.5 rounded-full transition-all ${
-                         isFollowingUser(post.users[0]) 
+                         isFollowingUser(duetUser0) 
                          ? 'bg-secondary text-muted-foreground border border-border' 
                          : 'bg-primary text-primary-foreground hover:bg-primary/95 hover:scale-105'
                        }`}
                      >
-                       {isFollowingUser(post.users[0]) ? 'Following' : 'Follow'}
+                       {isFollowingUser(duetUser0) ? 'Following' : 'Follow'}
                      </button>
                    </div>
                    
                    {/* Video/Image Area */}
                    <div className="relative aspect-[4/5] sm:aspect-video bg-black group">
                      <video 
-                       src={post.videoUrl} 
-                       poster={post.img} 
+                       src={feedVideoUrl} 
+                       poster={feedPosterUrl} 
                        controls 
                        controlsList="nodownload" 
                        className="w-full h-full object-contain bg-black" 
                        preload="metadata"
                        playsInline
+                       {...nativeVideoControlGuardProps()}
                      />
                                           {/* Song Info Overlay has clickable info button to open Track details (lyrics and recordings) */}
                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex items-center justify-between pointer-events-auto">
@@ -3171,7 +3240,7 @@ export function KaraokeScreen() {
                                 const matchedSong = [...trendingSongs, ...librarySongs].find(s => 
                                   s.title.toLowerCase().includes(post.song.toLowerCase()) || 
                                   post.song.toLowerCase().includes(s.title.toLowerCase())
-                                ) || { id: 'temp', title: post.song, artist: post.users.join(' & '), mode: 'join', type: 'duet' };
+                                ) || { id: 'temp', title: post.song, artist: [duetUser0, duetUser1].join(' & '), mode: 'join', type: 'duet' };
                                 setSelectedSong({ ...matchedSong, mode: 'join' });
                               }}
                               className="px-3 py-1 bg-primary text-primary-foreground text-[10px] font-black rounded-full uppercase tracking-widest hover:scale-105 transition-transform"
@@ -3192,7 +3261,7 @@ export function KaraokeScreen() {
                             const track = matchedSong || {
                               id: post.songId || 'epic_underworld',
                               title: post.song.split(' — ')[0],
-                              artist: post.users.join(' & '),
+                              artist: [duetUser0, duetUser1].join(' & '),
                               img: post.img,
                             };
                             setPlayingTrack(track);
@@ -3267,7 +3336,8 @@ export function KaraokeScreen() {
                       </div>
                     </div>
                   </div>
-               ))}
+               );
+              })}
             </div>
           )}
 
@@ -5072,8 +5142,8 @@ export function KaraokeScreen() {
             )
           ) && (
             <>
-              <video ref={uploadPreviewVideoRef} preload="auto" playsInline muted={false} />
-              <video ref={coverPreviewVideoRef} preload="auto" playsInline muted={false} />
+              <video ref={uploadPreviewVideoRef} preload="auto" playsInline muted={false} controls {...nativeVideoControlGuardProps()} />
+              <video ref={coverPreviewVideoRef} preload="auto" playsInline muted={false} controls {...nativeVideoControlGuardProps()} />
             </>
           )}
         </div>
@@ -5380,7 +5450,9 @@ export function KaraokeScreen() {
                     preload="auto"
                     playsInline
                     muted={false}
+                    controls
                     className="w-full h-full object-contain bg-black"
+                    {...nativeVideoControlGuardProps()}
                   />
                 ) : (
                   <video
@@ -5388,7 +5460,9 @@ export function KaraokeScreen() {
                     preload="auto"
                     playsInline
                     muted={false}
+                    controls
                     className="w-full h-full object-contain bg-black"
+                    {...nativeVideoControlGuardProps()}
                   />
                 )
               ) : (

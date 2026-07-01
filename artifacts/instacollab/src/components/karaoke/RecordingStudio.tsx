@@ -2157,7 +2157,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                                 >
                                   <div className="w-7 h-7 rounded-full overflow-hidden shrink-0 border border-white/10">
                                     <img
-                                      src={u.avatarUrl}
+                                      src={safeAvatarUrl(u.avatarUrl)}
                                       alt={u.username}
                                       className="w-full h-full object-cover"
                                       onError={handleAvatarError}

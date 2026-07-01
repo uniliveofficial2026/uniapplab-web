@@ -1,4 +1,4 @@
-import { isCloudAppStateRemoteApply } from './auth/cloudAppState';
+import { isCloudAppStateRemoteApply } from './auth/cloudAppStateFlags';
 import {
   ensureKstarUserStateMigrated,
   getKstarCoinsFromStore,
@@ -41,9 +41,14 @@ function setUnifiedCoinsForUser(userId: string, nextBalance: number): void {
   if (!id) return;
   const next = Math.max(0, Math.floor(nextBalance));
   if (isActiveWalletUser(id)) {
-    db.save('coins_balance', next);
+    const wallet = loadWalletCoinsBalance();
+    if (wallet !== next) {
+      db.save('coins_balance', next);
+    }
   }
-  setKstarCoins(id, next);
+  if (getKstarCoinsFromStore(id) !== next) {
+    setKstarCoins(id, next);
+  }
 }
 
 export function saveWalletCoinsBalance(userId: string, nextBalance: number): void {

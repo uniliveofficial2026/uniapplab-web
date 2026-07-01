@@ -219,7 +219,7 @@ export function LyricsOverlay({
     ? getActiveLyricIndex(
         displayElapsedSec,
         displayDurationSec,
-        resolvedSong.lyrics.length,
+        resolvedSong.lyrics?.length ?? 1,
         resolvedSong.lyricStartTimes,
       )
     : 0;
@@ -469,7 +469,7 @@ export function LyricsOverlay({
           ref={scrollRef}
           className="relative flex-1 overflow-y-auto px-6 py-4 flex flex-col items-center justify-start space-y-3 text-center scrollbar-hide min-h-0 z-10"
         >
-          <LyricsLines large lines={activeSong.lyrics} activeIndex={activeLyricIndex} lineRefs={lineRefs} />
+          <LyricsLines large lines={activeSong.lyrics ?? []} activeIndex={activeLyricIndex} lineRefs={lineRefs} />
         </div>
 
         <div className="relative px-4 pb-6 pt-2 shrink-0 border-t border-white/5 bg-black/30 z-20">
@@ -536,7 +536,7 @@ export function LyricsOverlay({
           ref={scrollRef}
           className="overflow-y-auto mb-2 text-gray-300 font-medium space-y-1 text-center px-1 h-[160px] scrollbar-hide w-full"
         >
-          <LyricsLines lines={activeSong.lyrics} activeIndex={activeLyricIndex} lineRefs={lineRefs} />
+          <LyricsLines lines={activeSong.lyrics ?? []} activeIndex={activeLyricIndex} lineRefs={lineRefs} />
         </div>
 
         <div className="w-full h-1.5 bg-white/10 rounded-full mb-2 overflow-hidden shrink-0">

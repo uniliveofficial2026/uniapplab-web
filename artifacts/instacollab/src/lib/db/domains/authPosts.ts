@@ -17,6 +17,7 @@ import type {
 } from '../../../types';
 import type { WorkspaceTask } from '../../dbTypes';
 import { scheduleSupabaseProfileSync } from '../../supabase/syncProfile';
+import { scheduleLiveSessionSync } from '../../liveSessionSync';
 import type { AuthPostsLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
 
@@ -162,9 +163,7 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       }
       this.save('currentUserId', userId);
       this.save('isLoggedIn', true);
-      void import('../../walletKstarSync').then(({ onUserSessionActive }) => {
-        onUserSessionActive(userId);
-      });
+      scheduleLiveSessionSync(userId);
     }
 
     deleteAccountSnapshot(userId: string) {
@@ -209,10 +208,30 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
 
     /** Merge Supabase-authenticated user into local store and set session. */
     syncAuthUser(user: User) {
+      const existing = this.users.find((u) => u.id === user.id);
+      const merged: User = existing ? { ...existing, ...user } : user;
       const users = this.users.filter((u) => u.id !== user.id);
-      this.save('users', [...users, user]);
-      this.login(user.id);
-      this.syncUserRefsInContent(user.id);
+      const userRowChanged =
+        !existing ||
+        existing.username !== merged.username ||
+        existing.displayName !== merged.displayName ||
+        existing.avatarUrl !== merged.avatarUrl ||
+        existing.bio !== merged.bio ||
+        existing.role !== merged.role ||
+        existing.bannedAt !== merged.bannedAt ||
+        existing.banReason !== merged.banReason ||
+        existing.mutedUntil !== merged.mutedUntil ||
+        existing.publicUserId !== merged.publicUserId;
+
+      if (userRowChanged) {
+        this.save('users', [...users, merged]);
+      }
+
+      if (!this.isLoggedIn || this.currentUserId !== user.id) {
+        this.login(user.id);
+      } else if (userRowChanged) {
+        this.syncUserRefsInContent(user.id);
+      }
     }
 
     registerUser(user: User) {

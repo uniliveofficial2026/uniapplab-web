@@ -15,14 +15,16 @@ import { isSupabaseConfigured } from '../supabase/config';
 import { upsertFirebaseUserAppState, subscribeFirebaseUserAppState } from '../firebase/userAppState';
 import { isFirebaseConfigured } from '../firebase/config';
 import { isCloudAuthConfigured } from './config';
+import { isCloudAppStateRemoteApply, withCloudAppStateRemoteApply } from './cloudAppStateFlags';
 import { isCloudAuthUserId } from './cloudProfile';
+import { consumePendingDemoMigration, resolveDemoSessionEmail } from './demoCloudMigration';
 import { hasSupabaseSessionForUser } from './activeBackend';
 import { isDevLocalAuthBypass } from './devLocalAuth';
+import { scheduleLiveSessionSync } from '../liveSessionSync';
 
 let pushInFlight = false;
 let pushAgainAfterFlight = false;
 let syncMicrotaskQueued = false;
-let applyingRemote = false;
 let lastAppliedRemoteAt = 0;
 let lastPushedAt = 0;
 let realtimeUnsub: (() => void) | null = null;
@@ -100,13 +102,10 @@ function applyPayloadIfNewer(payload: CloudAppStatePayload, source: 'remote' | '
   if (source === 'remote' && payload.updatedAt <= lastAppliedRemoteAt) return;
   if (source === 'bootstrap' && payload.updatedAt <= lastPushedAt) return;
 
-  applyingRemote = true;
-  try {
+  withCloudAppStateRemoteApply(() => {
     db.applyRemoteCollections(payload.collections);
     lastAppliedRemoteAt = payload.updatedAt;
-  } finally {
-    applyingRemote = false;
-  }
+  });
 }
 
 async function pushNow(userId: string): Promise<void> {
@@ -180,7 +179,7 @@ function queueCloudPush(userId: string, urgent = false): void {
 
 /** Push after local db.save — microtask batching (no debounce delay). */
 export function scheduleCloudAppStateSync(store: LocalDB = db, changedKey?: string): void {
-  if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || applyingRemote) return;
+  if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || isCloudAppStateRemoteApply()) return;
   const userId = store.currentUserId;
   if (!isCloudAuthUserId(userId)) return;
 
@@ -197,11 +196,6 @@ export async function flushCloudAppStateSync(): Promise<void> {
   if (!userId || !isCloudAuthUserId(userId)) return;
   await pushNow(userId);
 }
-
-export function isCloudAppStateRemoteApply(): boolean {
-  return applyingRemote;
-}
-
 type HydrateResult = 'ok' | 'empty' | 'error';
 
 type HydrateOutcome = { result: HydrateResult; pushLocal: boolean };
@@ -237,9 +231,6 @@ async function hydrateCloudAppStateForUser(
     } else {
       let appliedDemoMigration = false;
       if (isSupabaseConfigured()) {
-        const { consumePendingDemoMigration, resolveDemoSessionEmail } = await import(
-          './demoCloudAuth'
-        );
         const sessionEmail = await resolveDemoSessionEmail(userId);
         const pending = sessionEmail ? consumePendingDemoMigration(sessionEmail) : null;
         if (pending?.collections && Object.keys(pending.collections).length > 0) {
@@ -338,9 +329,7 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
             queueMicrotask(() => void pushNow(userId));
           }
           queueMicrotask(() => {
-            void import('../walletKstarSync').then(({ onUserSessionActive }) => {
-              onUserSessionActive(userId);
-            });
+            scheduleLiveSessionSync(userId);
           });
         }
       })();
@@ -353,9 +342,7 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
   }
   if (hydrateResult !== 'error' && generation === hydrateGeneration) {
     queueMicrotask(() => {
-      void import('../walletKstarSync').then(({ onUserSessionActive }) => {
-        onUserSessionActive(userId);
-      });
+      scheduleLiveSessionSync(userId);
     });
   }
   if (import.meta.env.DEV) {

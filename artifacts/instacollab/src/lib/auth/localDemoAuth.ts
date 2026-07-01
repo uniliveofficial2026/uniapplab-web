@@ -1,5 +1,7 @@
 import { db } from '../db/localDb';
+import { scheduleLiveSessionSync } from '../liveSessionSync';
 import { isSupabaseConfigured } from '../supabase/config';
+import { isUnifiedLiveMode } from '../unifiedLive';
 import { enableDevLocalAuthBypass } from './devLocalAuth';
 
 const DEMO_EMAILS = new Set(['demo@instacollab.app', 'sarah@instacollab.app']);
@@ -15,14 +17,13 @@ export function tryLocalDemoLogin(
 ): { ok: true } | { ok: false; reason: string } | null {
   if (!import.meta.env.DEV || !isKnownLocalDemoEmail(email)) return null;
   if (isSupabaseConfigured()) return null;
+  if (isUnifiedLiveMode()) return null;
   db.ensureDemoAuthAccounts();
   const result = db.signInWithCredentials(email, password);
   if (!result.ok) {
     return { ok: false, reason: 'Demo password is demo123 for demo@instacollab.app and sarah@instacollab.app.' };
   }
   enableDevLocalAuthBypass();
-  void import('../walletKstarSync').then(({ onUserSessionActive }) => {
-    onUserSessionActive(result.userId);
-  });
+  scheduleLiveSessionSync(result.userId);
   return { ok: true };
 }

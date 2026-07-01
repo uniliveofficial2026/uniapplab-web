@@ -13,6 +13,7 @@ import { ShareIcon } from "../../components/common/ShareIcon";
 
 import { ShareModal } from "../../components/feed/ShareModal";
 import { buildPartySharePayload } from "../../lib/shareLinks";
+import { nativeVideoControlGuardProps } from "../../lib/nativeVideoControls";
 import { SongSelector } from "../components/SongSelector";
 import { LyricsOverlay } from "../components/LyricsOverlay";
 import { ChorusPerformanceStage } from "../components/ChorusPerformanceStage";
@@ -153,6 +154,7 @@ import { useSongPerformanceTimer } from "../hooks/useSongPerformanceTimer";
 import { useSingingSession } from "../hooks/useSingingSession";
 import { usePerformanceBackingTrack } from "../hooks/usePerformanceBackingTrack";
 import { useUploadSongPlayback } from "../hooks/useUploadSongPlayback";
+import { safeAvatarUrl } from "../../lib/safe";
 import { getActiveLyricIndex, resolveActiveSong, DEFAULT_TRACK_DURATION_SEC, type ActiveSong } from "../utils/songPerformance";
 import type { VoiceChangerEffectId } from "../utils/voiceEffects";
 
@@ -973,7 +975,7 @@ export function Room() {
   const performanceLyricIndex = getActiveLyricIndex(
     performanceElapsedSec,
     performanceDurationSec,
-    currentlySinging?.lyrics.length ?? 1,
+    currentlySinging?.lyrics?.length ?? 1,
     currentlySinging?.lyricStartTimes,
   );
   usePerformanceBackingTrack(Boolean(performanceKey) && !isUploadPerformance, performanceLyricIndex);
@@ -1545,7 +1547,7 @@ export function Room() {
         >
           <div className="flex items-center space-x-2 mb-1">
             <img
-              src={chatAuthor.avatar}
+              src={safeAvatarUrl(chatAuthor.avatar)}
               alt=""
               className="party-chat-avatar rounded-full object-cover border border-purple-500/30 shrink-0"
             />
@@ -1586,17 +1588,21 @@ export function Room() {
       return (
         <div
           key={message.id}
-          className="party-chat-join-line font-black text-gray-400 flex items-center space-x-1.5 bg-black/25 px-2.5 py-1.5 rounded-lg w-fit max-w-[95%] ml-[2px] animate-fade-in my-1.5 border border-white/5 cursor-pointer hover:bg-black/40 transition select-none"
+          className="party-chat-join-line font-black text-gray-400 flex items-start gap-1.5 bg-black/25 px-2.5 py-1.5 rounded-lg w-fit max-w-[95%] ml-[2px] animate-fade-in my-1.5 border border-white/5 cursor-pointer hover:bg-black/40 transition select-none"
           onClick={() => handleSelectViewer(chatViewer)}
         >
           <img
-            src={chatAuthor.avatar}
+            src={safeAvatarUrl(chatAuthor.avatar)}
             alt=""
             className="party-chat-avatar rounded-full object-cover border border-purple-500/30 shrink-0"
           />
-          <span className="text-teal-400">🎤</span>
-          <span className="text-white font-black">{formatLiveChatUserLabel(message)}</span>
-          <span>joined the room</span>
+          <div className="party-chat-join-line-body flex min-w-0 flex-col leading-tight">
+            <div className="party-chat-join-line-user flex min-w-0 items-center gap-1">
+              <span className="shrink-0 text-teal-400">🎤</span>
+              <span className="truncate text-white font-black">{formatLiveChatUserLabel(message)}</span>
+            </div>
+            <span className="party-chat-join-line-action">joined the room</span>
+          </div>
         </div>
       );
     },
@@ -1623,7 +1629,7 @@ export function Room() {
         >
           <div className="flex items-center space-x-1.5 flex-wrap party-chat-gift-line">
             <img
-              src={giftAuthor.avatar}
+              src={safeAvatarUrl(giftAuthor.avatar)}
               alt=""
               className="party-chat-avatar rounded-full object-cover border border-purple-500/30 shrink-0"
             />
@@ -1697,7 +1703,7 @@ export function Room() {
           >
             <div className="grid grid-cols-[1.5rem_minmax(0,1fr)] items-start gap-x-2 gap-y-0.5">
               <img
-                src={chatAuthor.avatar}
+                src={safeAvatarUrl(chatAuthor.avatar)}
                 alt=""
                 className="party-chat-avatar row-span-2 self-start rounded-full object-cover border border-white/10 shrink-0 cursor-pointer hover:scale-105 transition-transform"
                 onClick={() => handleSelectViewer(chatViewer)}
@@ -1713,7 +1719,7 @@ export function Room() {
         <div key={message.id} className="flex flex-col space-y-1 pl-[2px] animate-fade-in transition-all">
           <div className="flex items-center space-x-1.5 flex-wrap gap-y-0.5">
             <img
-              src={chatAuthor.avatar}
+              src={safeAvatarUrl(chatAuthor.avatar)}
               alt=""
               className="party-chat-avatar rounded-full object-cover border border-purple-500/30 shrink-0 cursor-pointer hover:scale-105 transition-transform"
               onClick={() => handleSelectViewer(chatViewer)}
@@ -2877,7 +2883,7 @@ export function Room() {
           
           <div className="flex items-center space-x-4 mb-4">
             <img 
-              src={occupant.avatar} 
+              src={safeAvatarUrl(occupant.avatar)} 
               className="w-14 h-14 rounded-full border-2 border-purple-500/50 object-cover"
               alt="Profile"
             />
@@ -3144,7 +3150,7 @@ export function Room() {
             <div className="relative w-full h-32 rounded-2xl mb-6 overflow-hidden border border-white/20 shadow-inner">
               <div className={`absolute inset-0 z-0 ${ (pendingBackgroundMode || backgroundMode).type === 'css' ? (pendingBackgroundMode || backgroundMode).value : ''}`}>
                 {(pendingBackgroundMode || backgroundMode).type === 'video' && (
-                  <video src={(pendingBackgroundMode || backgroundMode).value} autoPlay loop muted className="absolute inset-0 w-full h-full object-cover" />
+                  <video src={(pendingBackgroundMode || backgroundMode).value} autoPlay loop muted playsInline controls className="absolute inset-0 w-full h-full object-cover pointer-events-auto" {...nativeVideoControlGuardProps()} />
                 )}
                 {(pendingBackgroundMode || backgroundMode).type === 'image' && (
                   <div className="absolute inset-0 w-full h-full" style={{ backgroundImage: `url(${(pendingBackgroundMode || backgroundMode).value})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -3296,13 +3302,13 @@ export function Room() {
                 <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
                     <div 
                       onClick={() => setIsRoomViewersOpen(true)}
-                      className="party-viewers-chip flex min-h-[32px] items-center space-x-2 backdrop-blur-md bg-black/40 border border-white/10 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full cursor-pointer hover:bg-white/10 transition group shrink-0"
+                      className="party-viewers-chip party-glass-chip flex min-h-[32px] items-center space-x-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full cursor-pointer transition group shrink-0"
                     >
                         <div className="flex -space-x-2 mr-0.5">
                           {viewers.slice(0, 3).map(v => (
                             <img 
                               key={v.id} 
-                              src={v.avatar} 
+                              src={safeAvatarUrl(v.avatar)} 
                               className="rounded-full border-2 border-[#07010a] object-cover" 
                               alt="" 
                             />
@@ -3500,7 +3506,7 @@ export function Room() {
                             >
                                 {guest ? (
                                     <div className="w-full h-full rounded-full overflow-hidden border border-black/50">
-                                        <img src={guest.avatar} className="w-full h-full object-cover" alt={guest.name} />
+                                        <img src={safeAvatarUrl(guest.avatar)} className="w-full h-full object-cover" alt={guest.name} />
                                     </div>
                                 ) : (
                                     <Sofa size={rowIndex === 0 ? 18 : 16} />
@@ -3522,7 +3528,7 @@ export function Room() {
                                     </div>
                                 )}
                             </button>
-                            <span className="text-[8px] font-black mt-1.5 text-gray-400 uppercase tracking-tighter">NO.{sNum}</span>
+                            <span className="party-guest-seat-number text-[8px] font-black mt-1.5 uppercase tracking-tighter">NO.{sNum}</span>
                         </div>
                     );
                     })}
@@ -3593,13 +3599,13 @@ export function Room() {
              <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
                 <div 
                   onClick={() => setIsRoomViewersOpen(true)} 
-                  className="party-viewers-chip flex items-center space-x-2 backdrop-blur-md px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full cursor-pointer hover:bg-white/10 transition group"
+                  className="party-viewers-chip party-glass-chip flex items-center space-x-2 px-2.5 sm:px-3 py-1.5 sm:py-2 rounded-full cursor-pointer transition group"
                 >
                     <div className="flex -space-x-2 mr-0.5">
                       {viewers.slice(0, 3).map(v => (
                         <img 
                           key={v.id} 
-                          src={v.avatar} 
+                          src={safeAvatarUrl(v.avatar)} 
                           className="rounded-full border-2 border-[#07010a] object-cover" 
                           alt="" 
                         />
@@ -3729,7 +3735,7 @@ export function Room() {
                 {/* Profile Avatar Frame */}
                 <div className="party-host-avatar relative rounded-full p-[2px] bg-gradient-to-tr from-cyan-400 via-purple-600 to-pink-500 shadow-[0_0_12px_rgba(34,211,238,0.4)]">
                   <img 
-                    src={activeSeats.host.avatar} 
+                    src={safeAvatarUrl(activeSeats.host.avatar)} 
                     className="w-full h-full rounded-full object-cover border-2 border-[#07010a]" 
                     alt="Host avatar" 
                   />
@@ -3776,11 +3782,11 @@ export function Room() {
             <div className="party-staff-seat-cell">
               <button 
                 onClick={() => handleSeatClick("host")}
-                className="party-empty-seat rounded-full bg-white/5 border border-white/10 hover:border-[#FF3B70]/50 flex items-center justify-center text-gray-400 transition transform active:scale-95 shadow-md shadow-black/30 cursor-pointer"
+                className="party-empty-seat party-glass-tap rounded-full hover:border-[#FF3B70]/50 flex items-center justify-center transform active:scale-95 cursor-pointer"
               >
-                <User size={18} className="text-gray-500 sm:w-6 sm:h-6" />
+                <User size={18} className="sm:w-6 sm:h-6" />
               </button>
-              <span className="text-[10px] sm:text-xs font-bold text-gray-500 mt-1.5 sm:mt-2 tracking-wide uppercase">Host</span>
+              <span className="party-staff-seat-label text-[10px] sm:text-xs font-bold mt-1.5 sm:mt-2 tracking-wide uppercase">Host</span>
             </div>
           )}
         </div>
@@ -3798,7 +3804,7 @@ export function Room() {
                 />
                 <div className="party-coowner-avatar relative rounded-full p-[2px] bg-gradient-to-tr from-amber-400 via-orange-500 to-yellow-500 shadow-[0_0_12px_rgba(251,191,36,0.45)]">
                   <img
-                    src={activeSeats.coowner.avatar}
+                    src={safeAvatarUrl(activeSeats.coowner.avatar)}
                     className="w-full h-full rounded-full object-cover border-2 border-[#07010a]"
                     alt="Co-owner avatar"
                   />
@@ -3842,11 +3848,11 @@ export function Room() {
             <div className="party-staff-seat-cell">
               <button
                 onClick={() => handleSeatClick("coowner")}
-                className="party-empty-seat rounded-full bg-white/5 border border-white/10 hover:border-amber-400/50 flex items-center justify-center text-gray-400 transition transform active:scale-95 shadow-md shadow-black/30 cursor-pointer"
+                className="party-empty-seat party-glass-tap rounded-full hover:border-amber-400/50 flex items-center justify-center transform active:scale-95 cursor-pointer"
               >
-                <User size={18} className="text-gray-500 sm:w-6 sm:h-6" />
+                <User size={18} className="sm:w-6 sm:h-6" />
               </button>
-              <span className="text-[10px] sm:text-xs font-bold text-gray-500 mt-1.5 sm:mt-2 tracking-wide uppercase">Co-owner</span>
+              <span className="party-staff-seat-label text-[10px] sm:text-xs font-bold mt-1.5 sm:mt-2 tracking-wide uppercase">Co-owner</span>
             </div>
           )}
         </div>
@@ -3864,7 +3870,7 @@ export function Room() {
                 />
                 <div className="party-admin-avatar relative rounded-full p-[2px] bg-gradient-to-tr from-violet-400 via-purple-500 to-fuchsia-500 shadow-[0_0_12px_rgba(168,85,247,0.45)]">
                   <img
-                    src={activeSeats.admin.avatar}
+                    src={safeAvatarUrl(activeSeats.admin.avatar)}
                     className="w-full h-full rounded-full object-cover border-2 border-[#07010a]"
                     alt="Boss avatar"
                   />
@@ -3908,11 +3914,11 @@ export function Room() {
             <div className="party-staff-seat-cell">
               <button
                 onClick={() => handleSeatClick("admin")}
-                className="party-empty-seat rounded-full bg-white/5 border border-white/10 hover:border-violet-400/50 flex items-center justify-center text-gray-400 transition transform active:scale-95 shadow-md shadow-black/30 cursor-pointer"
+                className="party-empty-seat party-glass-tap rounded-full hover:border-violet-400/50 flex items-center justify-center transform active:scale-95 cursor-pointer"
               >
-                <User size={18} className="text-gray-500 sm:w-6 sm:h-6" />
+                <User size={18} className="sm:w-6 sm:h-6" />
               </button>
-              <span className="text-[10px] sm:text-xs font-bold text-gray-500 mt-1.5 sm:mt-2 tracking-wide uppercase">
+              <span className="party-staff-seat-label text-[10px] sm:text-xs font-bold mt-1.5 sm:mt-2 tracking-wide uppercase">
                 {formatStaffSeatLabel('admin')}
               </span>
             </div>
@@ -3976,7 +3982,7 @@ export function Room() {
                             className={`party-guest-avatar relative rounded-full p-[2px] cursor-pointer hover:scale-105 transition-transform ${getAvatarFrameStyles(seatValue.frameStyle).border} ${getAvatarFrameStyles(seatValue.frameStyle).shadow}`}
                           >
                             <img 
-                              src={seatValue.avatar} 
+                              src={safeAvatarUrl(seatValue.avatar)} 
                               className="w-full h-full rounded-full object-cover border-2 border-black" 
                               alt={seatValue.name} 
                             />
@@ -4025,10 +4031,10 @@ export function Room() {
                       <div className="flex flex-col items-center relative">
                         <button 
                           onClick={() => handleSeatClick(key)}
-                          className={`party-empty-seat rounded-full flex items-center justify-center transition transform active:scale-95 shadow-inner cursor-pointer ${
+                          className={`party-empty-seat party-glass-tap rounded-full flex items-center justify-center transform active:scale-95 cursor-pointer ${
                             lockedSeats[key]
-                              ? "bg-red-950/40 border border-red-500/30 text-red-400 hover:border-red-500/50"
-                              : "bg-[#3d2c25]/75 border border-[#6b4c3e]/30 text-[#d2a38b]/70 hover:text-white hover:border-[#FF3B70]/40"
+                              ? "party-glass-seat-locked text-red-400 hover:border-red-500/50"
+                              : "party-glass-seat-guest"
                           }`}
                         >
                           {lockedSeats[key] ? (
@@ -4038,7 +4044,7 @@ export function Room() {
                           )}
                         </button>
                         <span className="text-[9px] sm:text-[10px] font-black mt-1 sm:mt-2 tracking-wider inline-flex items-center space-x-0.5 sm:space-x-1 uppercase">
-                          <span className={lockedSeats[key] ? "text-red-400/80" : "text-[#856353]"}>NO.{sNum}</span>
+                          <span className={lockedSeats[key] ? "text-red-400/80" : "party-guest-seat-number"}>NO.{sNum}</span>
                           {lockedSeats[key] && <Lock size={5} className="text-red-500 sm:w-[7px] sm:h-[7px]" />}
                         </span>
                       </div>
@@ -4184,7 +4190,7 @@ export function Room() {
                         className="w-full flex items-center space-x-2.5 px-3.5 py-2.5 hover:bg-white/10 transition-all text-left group"
                       >
                         <div className="relative">
-                          <img src={user.avatar} className="w-7 h-7 rounded-full object-cover border border-white/10 group-hover:border-purple-400/50 transition-colors" />
+                          <img src={safeAvatarUrl(user.avatar)} className="w-7 h-7 rounded-full object-cover border border-white/10 group-hover:border-purple-400/50 transition-colors" />
                           <div className="absolute -bottom-0.5 -right-0.5 w-2 h-2 bg-green-500 rounded-full border-2 border-[#1a0f2e]" />
                         </div>
                         <span className="text-xs text-gray-200 group-hover:text-white font-bold truncate tracking-tight">{user.name}</span>
@@ -4201,7 +4207,7 @@ export function Room() {
               value={chatInput}
               onChange={e => handleChatInputChange(e.target.value)}
               placeholder="Let's talk" 
-              className="w-full bg-white/5 border border-white/10 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] text-white placeholder-gray-400 focus:outline-none focus:border-pink-500 transition shadow-inner"
+              className="party-glass-input w-full rounded-full py-2.5 pl-4 pr-10 text-[12.5px] text-white placeholder-gray-400"
             />
           </form>
 
@@ -4241,7 +4247,7 @@ export function Room() {
                         ? 'bg-cyan-500/25 border-cyan-400/60 text-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.45)] animate-pulse'
                         : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
                       : 'bg-red-500/15 border-red-500/40 text-red-300'
-                    : 'bg-white/5 border-white/10 text-gray-300'
+                    : 'party-glass-tap text-gray-300'
                 }`}
             >
                 {userSeatKey && !userMicOn ? <MicOff size={16} /> : <Mic size={16} />}
@@ -4254,7 +4260,7 @@ export function Room() {
                 className={`w-9 h-9 rounded-full border flex items-center justify-center active:scale-90 transition ${
                   isGuestManagementOpen
                     ? "bg-purple-500/20 border-purple-500/40 text-purple-300"
-                    : "bg-white/5 border-white/10 text-gray-300"
+                    : "party-glass-tap text-gray-300"
                 }`}
             >
                 <Users size={16} />
@@ -4265,7 +4271,7 @@ export function Room() {
                 onClick={handleOpenRoomModePicker}
                 title="Change room mode"
                 aria-label="Change room mode"
-                className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 active:scale-90 transition cursor-pointer"
+                className="w-9 h-9 rounded-full party-glass-tap flex items-center justify-center text-gray-300 active:scale-90 transition cursor-pointer"
               >
                 <LayoutGrid size={16} />
               </button>
@@ -4277,7 +4283,7 @@ export function Room() {
                     onClick={handleOpenRoomBackgroundMenu}
                     title="Change room background"
                     aria-label="Change room background"
-                    className="w-9 h-9 rounded-full bg-white/5 border border-white/10 flex items-center justify-center text-gray-300 active:scale-90 transition cursor-pointer"
+                    className="w-9 h-9 rounded-full party-glass-tap flex items-center justify-center text-gray-300 active:scale-90 transition cursor-pointer"
                 >
                     <Menu size={16} />
                 </button>

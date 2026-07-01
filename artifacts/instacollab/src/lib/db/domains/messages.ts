@@ -5,6 +5,7 @@ import type {
   MessagesByChatStore,
 } from '../../dbTypes';
 import { safeUserId } from '../../safe';
+import { queueCloudMessageSend } from '../../chat/cloudChatSync';
 import type { ChatPresenceStore, ChatTimestampStore } from '../../../types';
 import type { MessagesLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
@@ -186,6 +187,9 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       this.save('messages', {
         ...msgs,
         [chatId]: this.cappedList([...existing, nextMessage], 'messages'),
+      });
+      queueMicrotask(() => {
+        queueCloudMessageSend(chatId, nextMessage);
       });
       const meId = this.asLocalDB().currentUserId;
       const recipientId = safeUserId(chatId);

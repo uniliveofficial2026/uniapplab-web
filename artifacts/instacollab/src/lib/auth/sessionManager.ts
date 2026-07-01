@@ -19,6 +19,8 @@ import { startCloudAppStateRealtime, stopCloudAppStateRealtime } from './cloudAp
 import { isCloudAuthUserId } from './cloudProfile';
 import { clearSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
 import { syncDeviceAccountForAppUser } from './deviceAccounts';
+import { scheduleLiveSessionSync } from '../liveSessionSync';
+import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
 
 const DB_READY_MS = 8_000;
 const PROFILE_MS = 12_000;
@@ -51,6 +53,10 @@ function startProfileRealtime(userId: string): void {
       bio: merged.bio,
       publicUserId: merged.publicUserId,
       publicUserIdChangedAt: merged.publicUserIdChangedAt,
+      role: merged.role,
+      bannedAt: merged.bannedAt,
+      banReason: merged.banReason,
+      mutedUntil: merged.mutedUntil,
     });
     if (row.profile_setup_complete && !db.getLaunchProgress().profileSetupComplete) {
       db.advanceLaunchProgressAfterLogin(true);
@@ -101,9 +107,8 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
   startProfileRealtime(appUser.id);
   await startCloudAppStateRealtime(appUser.id);
   queueMicrotask(() => {
-    void import('../walletKstarSync').then(({ onUserSessionActive }) => {
-      onUserSessionActive(appUser.id);
-    });
+    scheduleLiveSessionSync(appUser.id);
+    void startCloudChatRealtime(appUser.id);
   });
 }
 
@@ -145,4 +150,5 @@ export function subscribeSupabaseAuthChanges(handlers: {
 export function teardownCloudSession(): void {
   stopProfileRealtime();
   stopCloudAppStateRealtime();
+  stopCloudChatRealtime();
 }

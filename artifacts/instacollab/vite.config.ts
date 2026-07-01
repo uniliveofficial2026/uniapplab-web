@@ -92,6 +92,10 @@ function resolveLanHost(): string | undefined {
 const devBindHost = process.env.DEV_BIND_HOST ?? "127.0.0.1";
 const lanHost = devBindHost === "0.0.0.0" ? resolveLanHost() : undefined;
 const disableHmr = process.env.DISABLE_HMR === "true";
+const useWatchPolling =
+  process.env.DEV_USE_POLLING === "true" ||
+  workspaceRoot.startsWith("/Volumes/") ||
+  appRoot.startsWith("/Volumes/");
 
 const replitPlugins =
   process.env.NODE_ENV !== "production" && process.env.REPL_ID !== undefined
@@ -105,6 +109,12 @@ const replitPlugins =
 
 export default defineConfig(({ mode }) => {
   const viteEnv = loadMergedViteEnv(mode);
+  const unifiedLive =
+    viteEnv.VITE_UNIFIED_LIVE === "true" ||
+    process.env.VITE_UNIFIED_LIVE === "true";
+  const unifiedApiOrigin =
+    (viteEnv.VITE_UNIFIED_LIVE_API || process.env.VITE_UNIFIED_LIVE_API || "https://app.uniapplab.com")
+      .replace(/\/$/, "");
   const envDefine = Object.fromEntries(
     Object.entries(viteEnv).map(([key, val]) => [
       `import.meta.env.${key}`,
@@ -121,14 +131,14 @@ export default defineConfig(({ mode }) => {
     runtimeErrorOverlay(),
     ...(useDevHttps ? [basicSsl()] : []),
     VitePWA({
-      registerType: "autoUpdate",
+      registerType: "prompt",
       includeAssets: ["favicon.svg", "pwa-icon.svg", "robots.txt", "opengraph.jpg"],
       devOptions: {
         enabled: pwaDevEnabled,
       },
       workbox: {
-        skipWaiting: true,
-        clientsClaim: true,
+        skipWaiting: false,
+        clientsClaim: false,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: `${normalizedBase}index.html`,
         navigateFallbackDenylist: [/^\/api\//, /\/__local_game__\//],
@@ -190,11 +200,15 @@ export default defineConfig(({ mode }) => {
     chunkSizeWarningLimit: 600,
     rollupOptions: {
       output: {
-        manualChunks: {
-          "vendor-motion": ["motion/react"],
-          "vendor-charts": ["recharts"],
-          "vendor-firebase": ["firebase/app", "firebase/auth", "firebase/firestore"],
-          "vendor-supabase": ["@supabase/supabase-js"],
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return;
+          if (id.includes('motion')) return 'vendor-motion';
+          if (id.includes('recharts')) return 'vendor-charts';
+          if (id.includes('firebase')) return 'vendor-firebase';
+          if (id.includes('@supabase')) return 'vendor-supabase';
+          if (id.includes('lucide-react')) return 'vendor-icons';
+          if (id.includes('react-router')) return 'vendor-router';
+          if (id.includes('/react-dom/') || id.includes('/react/')) return 'vendor-react';
         },
       },
     },
@@ -204,6 +218,21 @@ export default defineConfig(({ mode }) => {
     strictPort: false,
     host: devBindHost,
     allowedHosts: true,
+    watch: useWatchPolling
+      ? {
+          usePolling: true,
+          interval: Number(process.env.DEV_POLL_INTERVAL_MS ?? 300),
+        }
+      : undefined,
+    proxy: {
+      "/api": {
+        target: unifiedLive
+          ? unifiedApiOrigin
+          : (process.env.VITE_API_PROXY ?? "http://127.0.0.1:3000"),
+        changeOrigin: true,
+        secure: unifiedLive,
+      },
+    },
     hmr: disableHmr
       ? false
       : lanHost
@@ -211,9 +240,10 @@ export default defineConfig(({ mode }) => {
             host: lanHost,
             port: devPort,
             clientPort: devPort,
+            overlay: false,
             ...(useDevHttps ? { protocol: "wss" as const } : {}),
           }
-        : true,
+        : { overlay: false },
   },
   preview: {
     port: previewPort,
