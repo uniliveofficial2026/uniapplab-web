@@ -2,7 +2,6 @@ import { db } from './db/localDb';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { fetchWallet, fetchMe, isPlatformApiAvailable } from './platformApi';
 import { saveWalletCoinsBalance } from './walletKstarSync';
-import { getKstarCoinsFromStore } from './kstarUserState';
 
 let meCache: Awaited<ReturnType<typeof fetchMe>> | null = null;
 
@@ -47,11 +46,11 @@ export async function syncServerWalletBalance(userId: string): Promise<void> {
     if (typeof balance !== 'number' || !Number.isFinite(balance)) return;
     const server = Math.floor(balance);
     const local = Math.floor(Number(db.load('coins_balance', 0)));
-    const kstar = getKstarCoinsFromStore(userId);
-    const canonical = Math.max(server, local, kstar);
-    if (canonical === local) return;
-    saveWalletCoinsBalance(userId, canonical);
-    window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+    // Cloud ledger is authoritative — never keep inflated local/K-Star balances.
+    if (server !== local) {
+      saveWalletCoinsBalance(userId, server);
+      window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+    }
   } catch {
     // fall back to local ledger
   }

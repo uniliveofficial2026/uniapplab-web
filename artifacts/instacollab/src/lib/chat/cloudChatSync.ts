@@ -62,6 +62,8 @@ function mergeRemoteMessage(peerId: string, body: string, createdAt: string, sen
   const isAuthor = senderId === meId;
   // Own sends are already in IDB; Realtime echo would re-trigger cloud send + render storms.
   if (isAuthor) return;
+  // 1:1 chats are keyed by peer id — ignore inserts from unrelated senders.
+  if (senderId !== peerId) return;
   const msgs = db.messages[peerId] || [];
   const ts = Date.parse(createdAt) || Date.now();
   const exists = msgs.some(

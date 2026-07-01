@@ -6,6 +6,16 @@ import { getSupabaseService } from "../lib/supabase";
 
 const router: IRouter = Router();
 
+async function assertThreadMember(threadId: string, userId: string): Promise<boolean> {
+  const { data, error } = await getSupabaseService()
+    .from("chat_thread_members")
+    .select("user_id")
+    .eq("thread_id", threadId)
+    .eq("user_id", userId)
+    .maybeSingle();
+  return !error && Boolean(data);
+}
+
 router.post("/threads", auth, requireNotBanned, async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
@@ -54,6 +64,12 @@ router.post("/messages", auth, requireNotBanned, async (req, res, next) => {
     }
     if (isBad(text)) {
       res.status(400).json({ error: "Message blocked by moderation" });
+      return;
+    }
+
+    const isMember = await assertThreadMember(threadId, userId);
+    if (!isMember) {
+      res.status(403).json({ error: "Not a member of this thread" });
       return;
     }
 
