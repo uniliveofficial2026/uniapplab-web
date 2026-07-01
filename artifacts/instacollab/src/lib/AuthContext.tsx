@@ -22,7 +22,7 @@ import { flushCloudAppStateSync, stopCloudAppStateRealtimeAsync } from './auth/c
 import { flushCloudProfileSync, isCloudAuthUserId } from './auth/cloudProfile';
 import { teardownCloudSession, applySupabaseSessionToLocalDb } from './auth/sessionManager';
 import { getSupabaseClient } from './supabase/client';
-import { scheduleLiveSessionSync } from './liveSessionSync';
+import { scheduleLiveSessionSync, syncLiveSessionData } from './liveSessionSync';
 import { isKnownLocalDemoEmail } from './auth/localDemoAuth';
 import { signInDemoWithCloudSync } from './auth/demoCloudAuth';
 import { createWorkspaceGoogleAuthProvider } from './auth/googleAuthProvider';
@@ -112,6 +112,21 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUserAccounts(next);
   }, []);
 
+  useEffect(() => {
+    const onDeviceAccountsChanged = () => {
+      setUserAccounts(filterEligibleDeviceAccounts(readDeviceAccounts()));
+    };
+    const onLiveSessionSynced = () => {
+      void ensureDeviceAccountsSynced();
+    };
+    window.addEventListener('device-accounts-changed', onDeviceAccountsChanged);
+    window.addEventListener('live-session-synced', onLiveSessionSynced);
+    return () => {
+      window.removeEventListener('device-accounts-changed', onDeviceAccountsChanged);
+      window.removeEventListener('live-session-synced', onLiveSessionSynced);
+    };
+  }, [ensureDeviceAccountsSynced]);
+
   const applyLocalAccountSelection = async (uid: string) => {
     writeActiveDeviceUid(uid);
     setProfile(null);
@@ -180,7 +195,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
     }
 
-    scheduleLiveSessionSync(uid);
+    await syncLiveSessionData(uid);
   };
 
   const persistCurrentAccountBeforeSwitch = async () => {
@@ -230,7 +245,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             throw new Error(sync.reason);
           }
         }
-        scheduleLiveSessionSync(uid);
+        await ensureDeviceAccountsSynced();
+        await syncLiveSessionData(uid);
         return;
       }
 
@@ -253,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         await ensureDeviceAccountsSynced();
-        scheduleLiveSessionSync(db.currentUser?.id ?? uid);
+        await syncLiveSessionData(db.currentUser?.id ?? uid);
         return;
       }
 
@@ -362,7 +378,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await ensureDeviceAccountsSynced();
-      if (db.currentUser?.id) scheduleLiveSessionSync(db.currentUser.id);
+      if (db.currentUser?.id) await syncLiveSessionData(db.currentUser.id);
       return { ok: true };
     }
 
@@ -396,7 +412,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       teardownCloudSession();
       await authSignOut();
       const result = await authSignInWithGoogle({ selectAccount: true });
-      await ensureDeviceAccountsSynced();
       if (!result.ok) {
         return { ok: false, reason: result.reason };
       }

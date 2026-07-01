@@ -49,6 +49,22 @@ async function probeGoogleEnabled(url, key) {
   return { ok: true, google: Boolean(data?.external?.google) };
 }
 
+/** Detect Supabase Auth OAuth upstream down (Envoy 503 + connect error 111). */
+async function probeAuthAuthorize(url) {
+  const base = url.replace(/\/$/, '');
+  const res = await fetch(
+    `${base}/auth/v1/authorize?provider=google&redirect_to=https%3A%2F%2Fexample.com`,
+    { redirect: 'manual' },
+  );
+  if (res.status !== 503) return { ok: true, status: res.status };
+  const text = await res.text().catch(() => '');
+  const upstreamDown =
+    text.includes('upstream connect error') ||
+    text.includes('delayed connect error') ||
+    text.includes('111');
+  return { ok: !upstreamDown, status: res.status, upstreamDown, snippet: text.slice(0, 120) };
+}
+
 async function main() {
   const envPath = findEnvFile(import.meta.dirname);
   const env = readEnvFile(envPath);
@@ -88,6 +104,17 @@ async function main() {
         );
       } else if (localRef && effectiveRef && localRef === effectiveRef) {
         console.log('    ✓ Effective project matches local .env');
+      }
+
+      if (localUrl) {
+        const authorizeProbe = await probeAuthAuthorize(localUrl);
+        if (!authorizeProbe.ok && authorizeProbe.upstreamDown) {
+          exitCode = 1;
+          console.log('    ✗ Supabase Auth OAuth endpoint is DOWN (503 / connect error 111)');
+          console.log('      → Supabase Dashboard → restore project if Paused; check Logs → Auth');
+        } else if (authorizeProbe.ok) {
+          console.log('    ✓ Supabase Auth OAuth endpoint reachable');
+        }
       }
 
       if (effectiveRef && localUrl && localKey && effectiveRef === localRef) {

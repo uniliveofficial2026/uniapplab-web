@@ -19,7 +19,7 @@ import { startCloudAppStateRealtime, stopCloudAppStateRealtime } from './cloudAp
 import { isCloudAuthUserId } from './cloudProfile';
 import { clearSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
 import { syncDeviceAccountForAppUser } from './deviceAccounts';
-import { scheduleLiveSessionSync } from '../liveSessionSync';
+import { syncLiveSessionData } from '../liveSessionSync';
 import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
 
 const DB_READY_MS = 8_000;
@@ -74,6 +74,12 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
 
   if (!session?.user) {
     if (isDevLocalAuthBypass() && db.isLoggedIn) return;
+    // Ignore stale SIGNED_OUT during account switch — a newer session may already exist.
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data } = await supabase.auth.getSession();
+      if (data.session?.user) return;
+    }
     stopProfileRealtime();
     stopCloudAppStateRealtime();
     db.logout();
@@ -106,10 +112,8 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
 
   startProfileRealtime(appUser.id);
   await startCloudAppStateRealtime(appUser.id);
-  queueMicrotask(() => {
-    scheduleLiveSessionSync(appUser.id);
-    void startCloudChatRealtime(appUser.id);
-  });
+  void startCloudChatRealtime(appUser.id);
+  await syncLiveSessionData(appUser.id);
 }
 
 export async function restoreSupabaseSession(): Promise<Session | null> {

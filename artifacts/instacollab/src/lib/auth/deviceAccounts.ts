@@ -57,9 +57,15 @@ export function readDeviceAccounts(): StoredDeviceAccount[] {
   }
 }
 
+function notifyDeviceAccountsChanged(): void {
+  if (typeof window === 'undefined') return;
+  window.dispatchEvent(new CustomEvent('device-accounts-changed'));
+}
+
 export function writeDeviceAccounts(accounts: StoredDeviceAccount[]): void {
   const unique = dedupeAccounts(accounts).slice(-MAX_DEVICE_ACCOUNTS);
   safeLocalStorage.setItem(DEVICE_ACCOUNTS_KEY, JSON.stringify(unique));
+  notifyDeviceAccountsChanged();
 }
 
 export function upsertDeviceAccount(

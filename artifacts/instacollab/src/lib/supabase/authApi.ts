@@ -3,10 +3,15 @@ import { getAuthRedirectUrl } from '../auth/redirectUrl';
 import { getSupabaseClient, getSupabaseClientAsync } from './client';
 import { getSupabaseProjectRef } from './config';
 import { ensureProfileFromSession } from './profile';
-import { mapGoogleSignInConfigurationError } from '../auth/googleSignInErrorHints';
+import {
+  mapGoogleSignInConfigurationError,
+  mapSupabaseAuthServiceError,
+} from '../auth/googleSignInErrorHints';
 import type { AuthResult } from '../auth/types';
 
 function mapAuthError(message: string, code?: string): string {
+  const upstream = mapSupabaseAuthServiceError(message);
+  if (upstream) return upstream;
   const code11 = mapGoogleSignInConfigurationError(message, code);
   if (code11) return code11;
   if (/invalid login credentials/i.test(message)) return 'Incorrect email or password.';
