@@ -7,7 +7,7 @@
 | SPA | `app.uniapplab.com` | Vercel (`artifacts/instacollab`) |
 | REST API | `api.uniapplab.com` | Vercel Node (`artifacts/api-server`) or Render web service |
 | Chat WS | `chat.uniapplab.com` | Render web service (`artifacts/chat-ws`) |
-| DB/Auth | Supabase `kgiaflmukkguzjtmcuqd` | Supabase |
+| DB/Auth | Supabase `otiqckextvdbudbxzmau` | Supabase |
 
 Root `vercel.monorepo.json` routes `/api/*` to the built api-server bundle (use when Vercel Root Directory is `.`).
 

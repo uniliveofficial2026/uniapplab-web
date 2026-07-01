@@ -73,7 +73,7 @@ if (ref && STALE_PROJECT_REFS.has(ref)) {
     console.warn(`[supabase-config] Ignoring stale Vercel project ${ref}; keeping ${projectRef(url)} from public/supabase-config.json`);
   } else {
     console.error(`[supabase-config] Refusing to write stale Supabase project ${ref}.`);
-    console.error('  Set VITE_SUPABASE_URL=https://kgiaflmukkguzjtmcuqd.supabase.co on Vercel, or commit public/supabase-config.json.');
+    console.error('  Set VITE_SUPABASE_URL=https://otiqckextvdbudbxzmau.supabase.co on Vercel, or commit public/supabase-config.json.');
     process.exit(1);
   }
 }

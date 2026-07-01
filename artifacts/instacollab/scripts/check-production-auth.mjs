@@ -79,6 +79,20 @@ async function main() {
 
   let exitCode = 0;
 
+  if (localUrl) {
+    const authorizeProbe = await probeAuthAuthorize(localUrl);
+    if (!authorizeProbe.ok && authorizeProbe.upstreamDown) {
+      exitCode = 1;
+      console.log(`  ✗ Supabase Auth OAuth endpoint is DOWN for ${localRef} (503 / connect error 111)`);
+      console.log('      → Project may be deleted or paused. Point .env at an ACTIVE project in your Supabase org.');
+    } else if (authorizeProbe.ok) {
+      console.log(`  ✓ Supabase Auth OAuth endpoint reachable (${localRef})`);
+      if (authorizeProbe.status === 400) {
+        console.log('    (400 = provider not enabled yet — enable Google in Supabase → Authentication → Providers)');
+      }
+    }
+  }
+
   for (const site of SITES) {
     try {
       const bundleUrl = await fetchMainBundleUrl(site);
@@ -102,40 +116,35 @@ async function main() {
         console.log(
           `    ✗ MISMATCH: effective project ${effectiveRef} vs local .env ${localRef}.`,
         );
-      } else if (localRef && effectiveRef && localRef === effectiveRef) {
+      } else       if (localRef && effectiveRef && localRef === effectiveRef) {
         console.log('    ✓ Effective project matches local .env');
-      }
-
-      if (localUrl) {
-        const authorizeProbe = await probeAuthAuthorize(localUrl);
-        if (!authorizeProbe.ok && authorizeProbe.upstreamDown) {
-          exitCode = 1;
-          console.log('    ✗ Supabase Auth OAuth endpoint is DOWN (503 / connect error 111)');
-          console.log('      → Supabase Dashboard → restore project if Paused; check Logs → Auth');
-        } else if (authorizeProbe.ok) {
-          console.log('    ✓ Supabase Auth OAuth endpoint reachable');
-        }
-      }
-
-      if (effectiveRef && localUrl && localKey && effectiveRef === localRef) {
-        const probe = await probeGoogleEnabled(localUrl, localKey);
-        if (probe.ok && !probe.google) {
-          exitCode = 1;
-          console.log('    ✗ Google provider is OFF on this Supabase project');
-        } else if (probe.ok && probe.google) {
-          console.log('    ✓ Google provider enabled on Supabase');
-        }
       }
     } catch (err) {
       console.log(`  ✗ ${site}: ${err instanceof Error ? err.message : err}`);
     }
   }
 
+  if (localUrl && localKey && localRef) {
+    const probe = await probeGoogleEnabled(localUrl, localKey);
+    if (probe.ok && !probe.google) {
+      exitCode = 1;
+      console.log('  ✗ Google provider is OFF on this Supabase project');
+      console.log('      → Supabase Dashboard → Authentication → Providers → Google → enable');
+      console.log('      → Add callback https://otiqckextvdbudbxzmau.supabase.co/auth/v1/callback in Google Cloud');
+      console.log('      → Run: pnpm run oauth:setup');
+    } else if (probe.ok && probe.google) {
+      console.log('  ✓ Google provider enabled on Supabase');
+    }
+  }
+
   console.log('');
   if (exitCode !== 0) {
-    console.log('  Fix: deploy latest build (includes public/supabase-config.json), then verify:');
-    console.log('    pnpm run auth:check:prod');
-    console.log('  Also set Vercel Production env to kgiaflmukkguzjtmcuqd and redeploy when possible.');
+    console.log('  Fix checklist:');
+    console.log('    1. Vercel Production env → VITE_SUPABASE_URL=https://otiqckextvdbudbxzmau.supabase.co');
+    console.log('    2. Vercel Production env → VITE_SUPABASE_ANON_KEY (from Supabase → Settings → API)');
+    console.log('    3. Deploy latest main (includes public/supabase-config.json)');
+    console.log('    4. Enable Google provider on the new Supabase project (pnpm run oauth:setup)');
+    console.log('    5. Re-run: pnpm run auth:check:prod');
   }
   console.log('');
   process.exit(exitCode);
