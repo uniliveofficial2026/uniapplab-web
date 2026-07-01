@@ -7,6 +7,7 @@ import {
   serializeRoomBackground,
   type RoomBackgroundMode,
 } from '../utils/roomBackground';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 export function RoomSettingsSheet({
   title,
@@ -286,7 +287,10 @@ export function RoomSettingsBackgroundEditor({
               autoPlay
               loop
               muted
+              controls
+              playsInline
               className="absolute inset-0 h-full w-full object-cover"
+              {...nativeVideoControlGuardProps()}
             />
           ) : null}
           {active.type === 'image' ? (

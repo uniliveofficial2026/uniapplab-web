@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { handleMediaError } from '../../lib/utils';
 import { touchClientX } from '../../lib/safe';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 export type WorkspaceFullscreenMedia = {
   items: Array<{ url: string; isVideo?: boolean }>;
@@ -89,6 +90,7 @@ export function WorkspaceMediaFullscreenPortal({
                 controls
                 playsInline
                 preload="auto"
+                {...nativeVideoControlGuardProps()}
               />
             );
           }

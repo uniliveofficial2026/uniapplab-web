@@ -23,6 +23,10 @@ export function profileRowToUser(row: ProfileRow, _email?: string | null): User 
     followers: 0,
     following: 0,
     status: 'none',
+    role: row.role ?? 'user',
+    bannedAt: row.banned_at ? Date.parse(row.banned_at) : undefined,
+    banReason: row.ban_reason ?? undefined,
+    mutedUntil: row.muted_until ? Date.parse(row.muted_until) : undefined,
   };
 }
 

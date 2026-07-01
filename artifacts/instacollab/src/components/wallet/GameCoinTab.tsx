@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
-import { loadWalletCoinsBalance, saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
+import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
+import { saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
   Gamepad2, 
   Coins, 
@@ -16,7 +17,7 @@ import {
 export function GameCoinTab() {
   const db = useDB();
   const appUser = useCurrentUser();
-  const coinsBalance = loadWalletCoinsBalance();
+  const coinsBalance = useLiveCoinsBalance(appUser.id);
   const gameCoins = db.load('game_coins', { pubg: 0, roblox: 0, mobile_legends: 0, in_house: 0, slot_game: 0 });
 
   // Game types & reward pacs

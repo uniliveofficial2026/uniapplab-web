@@ -4,6 +4,12 @@ import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
+function parseCorsOrigins(): string[] | true {
+  const raw = process.env.CORS_ORIGINS?.trim();
+  if (!raw || raw === "*") return true;
+  return raw.split(",").map((o) => o.trim()).filter(Boolean);
+}
+
 const app: Express = express();
 
 app.use(
@@ -25,7 +31,7 @@ app.use(
     },
   }),
 );
-app.use(cors());
+app.use(cors({ origin: parseCorsOrigins(), credentials: true }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

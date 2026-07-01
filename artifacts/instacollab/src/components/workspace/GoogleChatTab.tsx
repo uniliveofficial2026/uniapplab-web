@@ -6,6 +6,7 @@ import {
   Sparkles, Check, AlertCircle, Plus, Info, Paperclip, X, FileText, Download
 } from 'lucide-react';
 import { handleAvatarError, handleMediaError, fileToBase64 } from '../../lib/utils';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 interface ChatSpace {
   name: string;
@@ -481,6 +482,7 @@ export function GoogleChatTab() {
                                 controls
                                 playsInline
                                 className="max-w-[220px] max-h-[200px] rounded-xl border border-border shadow-sm bg-black"
+                                {...nativeVideoControlGuardProps()}
                               />
                             ) : (
                               <a
@@ -527,7 +529,7 @@ export function GoogleChatTab() {
                       {att.isImage ? (
                         <img src={att.url || undefined} alt={att.name} onError={handleMediaError} className="w-16 h-16 rounded-lg object-cover border border-border" />
                       ) : att.isVideo ? (
-                        <video src={att.url || undefined} className="w-16 h-16 rounded-lg object-cover border border-border bg-black" muted playsInline />
+                        <video src={att.url || undefined} className="w-16 h-16 rounded-lg object-cover border border-border bg-black" muted playsInline controls {...nativeVideoControlGuardProps()} />
                       ) : (
                         <div className="w-16 h-16 rounded-lg border border-border bg-secondary/50 flex flex-col items-center justify-center p-1 gap-1">
                           <FileText className="w-5 h-5 text-primary" />

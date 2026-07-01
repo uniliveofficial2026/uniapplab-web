@@ -1,0 +1,22 @@
+{
+  "name": "@workspace/chat-ws",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "tsx watch src/index.ts",
+    "build": "node build.mjs",
+    "start": "node dist/index.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.106.2",
+    "ws": "^8.19.0"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "@types/ws": "^8.18.1",
+    "esbuild": "0.27.3",
+    "tsx": "catalog:"
+  }
+}

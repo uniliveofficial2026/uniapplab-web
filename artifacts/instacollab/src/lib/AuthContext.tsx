@@ -22,7 +22,7 @@ import { flushCloudAppStateSync, stopCloudAppStateRealtimeAsync } from './auth/c
 import { flushCloudProfileSync, isCloudAuthUserId } from './auth/cloudProfile';
 import { teardownCloudSession, applySupabaseSessionToLocalDb } from './auth/sessionManager';
 import { getSupabaseClient } from './supabase/client';
-import { reconcileWalletAndKstarCoins } from './walletKstarSync';
+import { scheduleLiveSessionSync } from './liveSessionSync';
 import { isKnownLocalDemoEmail } from './auth/localDemoAuth';
 import { signInDemoWithCloudSync } from './auth/demoCloudAuth';
 import { createWorkspaceGoogleAuthProvider } from './auth/googleAuthProvider';
@@ -180,7 +180,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         });
     }
 
-    reconcileWalletAndKstarCoins(uid);
+    scheduleLiveSessionSync(uid);
   };
 
   const persistCurrentAccountBeforeSwitch = async () => {
@@ -230,7 +230,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             throw new Error(sync.reason);
           }
         }
-        reconcileWalletAndKstarCoins(uid);
+        scheduleLiveSessionSync(uid);
         return;
       }
 
@@ -253,7 +253,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
 
         await ensureDeviceAccountsSynced();
-        reconcileWalletAndKstarCoins(db.currentUser?.id ?? uid);
+        scheduleLiveSessionSync(db.currentUser?.id ?? uid);
         return;
       }
 
@@ -362,7 +362,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
 
       await ensureDeviceAccountsSynced();
-      if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
+      if (db.currentUser?.id) scheduleLiveSessionSync(db.currentUser.id);
       return { ok: true };
     }
 
@@ -461,7 +461,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           writeActiveDeviceUid(firebaseUser.uid);
           setUser(firebaseUser);
           db.login(firebaseUser.uid);
-          reconcileWalletAndKstarCoins(firebaseUser.uid);
+          scheduleLiveSessionSync(firebaseUser.uid);
 
           setUserAccounts((prev) => {
             const uniqueList = upsertDeviceAccount(accountFromFirebaseUser(firebaseUser), prev);
@@ -549,13 +549,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sync = await syncCloudSessionNow();
       if (!sync.ok) throw new Error(sync.reason);
       await ensureDeviceAccountsSynced();
-      if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
+      if (db.currentUser?.id) scheduleLiveSessionSync(db.currentUser.id);
       return;
     }
     const auth = getFirebaseAuth();
     if (!auth) return;
     await signInWithEmailAndPassword(auth, email, pass);
-    if (auth.currentUser?.uid) reconcileWalletAndKstarCoins(auth.currentUser.uid);
+    if (auth.currentUser?.uid) scheduleLiveSessionSync(auth.currentUser.uid);
   };
 
   const signupWithEmail = async (email: string, pass: string, name: string) => {
@@ -571,7 +571,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const sync = await syncCloudSessionNow();
       if (!sync.ok) throw new Error(sync.reason);
       await ensureDeviceAccountsSynced();
-      if (db.currentUser?.id) reconcileWalletAndKstarCoins(db.currentUser.id);
+      if (db.currentUser?.id) scheduleLiveSessionSync(db.currentUser.id);
       return;
     }
     const auth = getFirebaseAuth();
@@ -580,7 +580,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (name) {
       await updateProfile(cred.user, { displayName: name });
     }
-    reconcileWalletAndKstarCoins(cred.user.uid);
+    scheduleLiveSessionSync(cred.user.uid);
   };
 
   const resetPassword = async (email: string) => {

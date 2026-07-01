@@ -17,7 +17,8 @@ let revision = 0;
 
 function notify() {
   revision += 1;
-  listeners.forEach((l) => l());
+  // Defer so db.save() during render cannot synchronously update DevLivePanel.
+  queueMicrotask(() => listeners.forEach((l) => l()));
 }
 
 function push(kind: DevActivityEntry['kind'], message: string, detail?: string) {

@@ -2,7 +2,9 @@ import { flushCloudAppStateSync } from './auth/cloudAppState';
 import { flushCloudProfileSync } from './auth/cloudProfile';
 import { db } from './db/localDb';
 import { healLaunchProgressForReturningUser } from './launchRoute';
-import { onUserSessionActive } from './walletKstarSync';
+import { ensureKaraokeRecordingsHydrated } from './karaokeRecordings';
+import { ensureKaraokeUploadsHydrated } from './karaokeUploads';
+import { scheduleLiveSessionSync } from './liveSessionSync';
 
 let guardsInstalled = false;
 
@@ -31,8 +33,10 @@ export function installPersistenceGuards(): void {
 
   void db.whenStorageReady().then(() => {
     healLaunchProgressForReturningUser(db);
+    ensureKaraokeUploadsHydrated();
+    ensureKaraokeRecordingsHydrated();
     if (db.isLoggedIn && db.currentUserId) {
-      onUserSessionActive(db.currentUserId);
+      scheduleLiveSessionSync(db.currentUserId);
     }
   });
 }

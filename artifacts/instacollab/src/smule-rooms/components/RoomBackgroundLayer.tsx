@@ -1,4 +1,5 @@
 import type { RoomBackgroundMode } from '../utils/roomBackground';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type RoomBackgroundLayerProps = {
   mode: RoomBackgroundMode;
@@ -18,7 +19,9 @@ export function RoomBackgroundLayer({ mode, className = '' }: RoomBackgroundLaye
           loop
           muted
           playsInline
-          className="absolute inset-0 h-full w-full object-cover"
+          controls
+          className="absolute inset-0 h-full w-full object-cover pointer-events-auto"
+          {...nativeVideoControlGuardProps()}
         />
       )}
       {mode.type === 'image' && (

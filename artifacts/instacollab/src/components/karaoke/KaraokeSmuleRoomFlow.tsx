@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import CreateRoom from '../../smule-rooms/pages/CreateRoom';
 import { Room } from '../../smule-rooms/pages/Room';
@@ -13,9 +13,12 @@ import '../../smule-rooms/smule-rooms.css';
 import './karaoke-smule-embed.css';
 
 function KaraokeFlowBack({ onClose }: { onClose: () => void }) {
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+
   useEffect(() => {
-    onClose();
-  }, [onClose]);
+    onCloseRef.current();
+  }, []);
 
   return null;
 }

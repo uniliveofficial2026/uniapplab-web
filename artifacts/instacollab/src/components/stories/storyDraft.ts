@@ -107,7 +107,11 @@ export const DEFAULT_TEXT_STORY_DRAFT = (): StoryDraftMedia => ({
   backgroundAudio: null,
 });
 
-export function storyDraftFilterStyle(draft: StoryDraftMedia | null): CSSProperties {
+export function storyDraftFilterStyle(
+  draft: StoryDraftMedia | null,
+  filterOverride?: string | null,
+): CSSProperties {
   if (!draft || draft.isText) return {};
-  return buildMediaEditorStyle(draft.filter ?? 'none', resolveDraftMediaAdjust(draft));
+  const filterId = filterOverride ?? draft.filter ?? 'none';
+  return buildMediaEditorStyle(filterId, resolveDraftMediaAdjust(draft), { preview: true });
 }

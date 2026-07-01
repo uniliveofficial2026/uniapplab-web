@@ -1,11 +1,15 @@
-import React from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Radio } from 'lucide-react';
 import { useDB, useDbRevision } from '../../lib/useDB';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { Avatar } from '../common/Avatar';
 import { ProfileNameLines } from '../common/ProfileNameLines';
 import { LIVE_KIND_LABELS } from '../../lib/liveRing';
 import type { LiveKind, User } from '../../types';
 import { openProfilePreview } from '../../lib/utils';
+import { resolveUser } from '../../lib/safe';
+import { usePlatformStream } from '../../lib/live/platformStream';
+import { isPlatformApiAvailable } from '../../lib/platformApi';
 
 const LIVE_KIND_OPTIONS: LiveKind[] = [
   'solo',
@@ -19,21 +23,35 @@ const LIVE_KIND_OPTIONS: LiveKind[] = [
 export function LiveScreen() {
   const db = useDB();
   useDbRevision();
-  const me = db.currentUser;
+  const me = resolveUser(db.users, db.currentUser);
+  const platformStream = usePlatformStream();
+  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const [platformBusy, setPlatformBusy] = useState(false);
   const liveUsers = db.users.filter(
-    (u: User) => u.status === 'live' && u.id !== me?.id
+    (u: User) => u.status === 'live' && u.id !== me.id
   );
-  const isLive = me?.status === 'live';
+  const isLive = me.status === 'live' || Boolean(platformStream.streamId);
 
   const startLive = (kind: LiveKind) => {
-    if (!me?.id) return;
+    if (!me.id) return;
     db.setUserLiveStatus(me.id, true, kind);
+    if (isPlatformApiAvailable() && (me.role === 'streamer' || me.role === 'admin')) {
+      setPlatformBusy(true);
+      void platformStream.goLive(LIVE_KIND_LABELS[kind]).finally(() => setPlatformBusy(false));
+    }
   };
 
   const endLive = () => {
     if (!me?.id) return;
     db.setUserLiveStatus(me.id, false);
+    void platformStream.endLive();
   };
+
+  useEffect(() => {
+    const el = previewVideoRef.current;
+    if (!el) return;
+    el.srcObject = platformStream.localStream;
+  }, [platformStream.localStream]);
 
   return (
     <div className="flex flex-col h-full w-full max-w-[600px] mx-auto px-4 py-6 md:py-10 gap-6">
@@ -63,14 +81,26 @@ export function LiveScreen() {
                     : ''}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Followers were notified. End live when you are done.
+                  {platformStream.streamId ? 'Platform stream active (WebRTC MVP).' : 'Followers were notified. End live when you are done.'}
                 </p>
               </div>
             </div>
+            {platformStream.localStream ? (
+              <video
+                autoPlay
+                muted
+                playsInline
+                controls
+                ref={previewVideoRef}
+                className="w-full sm:w-40 aspect-video rounded-lg border border-border object-cover"
+                {...nativeVideoControlGuardProps()}
+              />
+            ) : null}
             <button
               type="button"
               onClick={endLive}
-              className="shrink-0 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground font-bold text-sm hover:bg-destructive/90 transition-colors"
+              disabled={platformBusy}
+              className="shrink-0 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground font-bold text-sm hover:bg-destructive/90 transition-colors disabled:opacity-50"
             >
               End live
             </button>

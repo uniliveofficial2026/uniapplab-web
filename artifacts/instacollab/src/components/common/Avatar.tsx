@@ -7,6 +7,7 @@ import { useDB } from '../../lib/useDB';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '../../lib/ToastContext';
+import { subscribeThoughtNoteLive } from '../../lib/thoughtNoteLiveSync';
 import { THOUGHT_NOTE_MAX_LENGTH, patchUserThoughtNote } from '../../lib/thoughtNote';
 import { ThoughtViewOverlay } from './ThoughtViewOverlay';
 import { AvatarThoughtBubble, InlineAvatarThoughtBubble } from './AvatarThoughtBubble';
@@ -48,6 +49,9 @@ export function Avatar({
   const isStory = resolvedUser.status === 'story';
   const isCurrentUser = db.currentUser?.id === resolvedUser.id;
   const thoughtNote = resolvedUser.note?.trim() ?? '';
+  const [, bumpThoughtLive] = useState(0);
+
+  useEffect(() => subscribeThoughtNoteLive(() => bumpThoughtLive((n) => n + 1)), []);
 
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
@@ -190,7 +194,12 @@ export function Avatar({
                 {/* Centered Avatar at the bottom of the bubble */}
                 <div className="relative w-20 h-20 rounded-full p-[2px] bg-gradient-to-tr from-accent via-primary to-orange-500 shadow-lg">
                   <div className="bg-background w-full h-full rounded-full p-[2px]">
-                    <img src={resolvedUser.avatarUrl} className="w-full h-full rounded-full object-cover" />
+                    <img
+                      src={resolveAvatarSrc(resolvedUser.avatarUrl)}
+                      className="w-full h-full rounded-full object-cover"
+                      alt={resolvedUser.username}
+                      onError={handleAvatarError}
+                    />
                   </div>
                 </div>
               </div>

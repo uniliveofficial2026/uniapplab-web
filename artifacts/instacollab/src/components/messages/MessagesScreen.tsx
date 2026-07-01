@@ -11,7 +11,7 @@ import {
 } from '../../types';
 import { AnimatePresence } from 'motion/react';
 import { useToast } from '../../lib/ToastContext';
-import { fileToBase64 } from '../../lib/utils';
+import { detectMediaKind, fileToBase64, processUploadFile, processUploadFileAsUrl } from '../../lib/utils';
 import { resolveUser, findUserById, safeMediaUrl, safeIdArray } from '../../lib/safe';
 import {
   openNativeVideoFullscreen,
@@ -181,10 +181,12 @@ export function MessagesScreen({
         try {
           const files = Array.from(e.target.files);
           const newMedia = await Promise.all(files.map(async (file) => {
-            const base64 = await fileToBase64(file);
+            const uploaded = await processUploadFile(file);
             return {
-              url: base64,
-              isVideo: file.type.startsWith("video/") || /\.(mp4|mov|webm|ogg|m4v|avi|wmv)$/i.test(file.name),
+              url: uploaded.url,
+              isVideo: uploaded.type === 'video',
+              isAudio: uploaded.type === 'audio',
+              name: uploaded.name,
             };
           }));
           setChatMedia((prev) => [...prev, ...newMedia]);
@@ -964,7 +966,7 @@ export function MessagesScreen({
       return;
     }
     try {
-      const url = await fileToBase64(file);
+      const url = await processUploadFileAsUrl(file);
       setChatMedia((prev) => [
         ...prev,
         {
@@ -990,12 +992,15 @@ export function MessagesScreen({
     try {
       const files = Array.from(e.target.files);
       const newMedia = await Promise.all(
-        files.map(async (file) => ({
-          url: await fileToBase64(file),
-          isVideo: false,
-          isAudio: true,
-          name: file.name,
-        }))
+        files.map(async (file) => {
+          const uploaded = await processUploadFile(file);
+          return {
+            url: uploaded.url,
+            isVideo: false,
+            isAudio: uploaded.type === 'audio',
+            name: uploaded.name,
+          };
+        }),
       );
       setChatMedia((prev) => [...prev, ...newMedia]);
       setShowAttachmentMenu(false);

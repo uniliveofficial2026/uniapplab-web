@@ -4,6 +4,7 @@ import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
 import { useInlineVideoVisibility } from '../../lib/useInlineVideoVisibility';
 import { useChatMediaVideo } from '../../lib/useChatMediaVideo';
 import { safeMediaUrl } from '../../lib/safe';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import {
   mediaReachedEnd,
   useMessageMediaPlaylist,
@@ -121,6 +122,7 @@ export function ChatInlineVideo({
         }}
         onEnded={handleEnded}
         onVolumeChange={(e) => db.setGlobalMuted(e.currentTarget.muted)}
+        {...nativeVideoControlGuardProps()}
       />
       {overlay}
     </div>

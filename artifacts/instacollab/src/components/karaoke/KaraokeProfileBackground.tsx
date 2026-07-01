@@ -4,6 +4,7 @@ import type {
   KaraokeProfileBackgroundMediaKind,
 } from '../../lib/karaokeProfileBackground';
 import { layoutKaraokeProfileBackgroundMedia } from '../../lib/karaokeProfileBackground';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { useKaraokeProfileBackgroundUrl } from './useKaraokeProfileBackgroundUrl';
 
 type KaraokeProfileBackgroundProps = {
@@ -103,8 +104,8 @@ function KaraokeProfileBackgroundMedia({
           src={playableUrl}
           className={
             useFocusLayout
-              ? 'absolute left-1/2 top-1/2 max-w-none'
-              : 'absolute inset-0 h-full w-full object-cover'
+              ? 'absolute left-1/2 top-1/2 max-w-none pointer-events-auto'
+              : 'absolute inset-0 h-full w-full object-cover pointer-events-auto'
           }
           style={
             useFocusLayout
@@ -119,12 +120,14 @@ function KaraokeProfileBackgroundMedia({
           muted
           loop
           playsInline
+          controls
           preload="auto"
           aria-hidden
           onLoadedMetadata={(event) => {
             const video = event.currentTarget;
             setMediaSize({ w: video.videoWidth, h: video.videoHeight });
           }}
+          {...nativeVideoControlGuardProps()}
         />
       ) : (
         <img

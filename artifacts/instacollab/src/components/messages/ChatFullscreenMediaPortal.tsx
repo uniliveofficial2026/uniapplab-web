@@ -9,6 +9,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { formatMentionsAndTags, handleMediaError } from '../../lib/utils';
 import { safeMediaUrl } from '../../lib/safe';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { pauseAllChatMediaPlayers } from '../../lib/chatMediaPlayback';
 import { useChatMediaVideo } from '../../lib/useChatMediaVideo';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
@@ -144,6 +145,7 @@ export function ChatFullscreenMediaPortal({
               preload="auto"
               onPlay={onPortalVideoPlay}
               onVolumeChange={(e) => onGlobalMutedChange(e.currentTarget.muted)}
+              {...nativeVideoControlGuardProps()}
             />
           ) : (
             <img

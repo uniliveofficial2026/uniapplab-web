@@ -79,7 +79,6 @@ import {
 import { CaptionModal } from './CaptionModal';
 import { PostModalCommentItem } from "./PostModalCommentItem";
 import { RepostPostMediaPanel } from './RepostPostMediaPanel';
-import { PostMediaStage } from './PostMediaStage';
 import { PostContentFullscreenPortal } from './PostContentFullscreenPortal';
 import { Avatar } from "../common/Avatar";
 import { ProfileNamePrimary } from "../common/ProfileNameLines";
@@ -92,6 +91,7 @@ import { Waveform } from "../messages/Waveform";
 import { VoiceMessagePlayer } from "../messages/VoiceMessagePlayer";
 import { InlineAttachmentVideo } from "../common/InlineAttachmentVideo";
 import { PLAYBACK_SCOPE } from "../../lib/playbackScope";
+import { nativeVideoControlGuardProps } from "../../lib/nativeVideoControls";
 import type { Post } from "../../types";
 
 export function PostModal({
@@ -857,13 +857,7 @@ export function PostModal({
                     }}
                     style={postFilterStyle}
                     className="w-full h-full object-contain"
-                    onClick={(e) => {
-                      const rect = e.currentTarget.getBoundingClientRect();
-                      const clickY = e.clientY - rect.top;
-                      if (clickY > rect.height - 60) {
-                        e.stopPropagation();
-                      }
-                    }}
+                    {...nativeVideoControlGuardProps()}
                   />
                   </MediaWithSoundtrack>
                 ) : currentMedia.type === 'audio' ? (
@@ -1092,13 +1086,7 @@ export function PostModal({
                         }}
                         style={postFilterStyle}
                         className="w-full h-full object-contain"
-                        onClick={(e) => {
-                          const rect = e.currentTarget.getBoundingClientRect();
-                          const clickY = e.clientY - rect.top;
-                          if (clickY > rect.height - 60) {
-                            e.stopPropagation();
-                          }
-                        }}
+                        {...nativeVideoControlGuardProps()}
                       />
                       </MediaWithSoundtrack>
                     ) : currentMedia.type === 'audio' ? (

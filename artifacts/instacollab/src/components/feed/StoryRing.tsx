@@ -352,17 +352,16 @@ export function StoryRing({
   const segmentHasSoundtrack =
     !!currentSegment?.backgroundAudio?.url &&
     isPlayableAudioUrl(currentSegment.backgroundAudio.url);
-  const storyVideoWantsSound =
+  const storyVideoWantsPlay =
     showStory &&
     !isPaused &&
     currentSegment?.isVideo === true &&
-    !db.globalMuted &&
     !segmentHasSoundtrack;
 
   useExclusivePlayback(
     storyPlaybackId,
     PLAYBACK_PRIORITY.STORY,
-    storyVideoWantsSound,
+    storyVideoWantsPlay,
     storyVideoRef
   );
 
@@ -374,7 +373,7 @@ export function StoryRing({
       video.pause();
       return;
     }
-    if (segmentHasSoundtrack || db.globalMuted || !storyVideoWantsSound) {
+    if (segmentHasSoundtrack || !storyVideoWantsPlay) {
       if (video.paused) {
         video.play().catch(() => {});
       }
@@ -383,10 +382,9 @@ export function StoryRing({
     isPaused,
     currentSegmentIndex,
     showStory,
-    db.globalMuted,
     currentSegment?.isVideo,
     segmentHasSoundtrack,
-    storyVideoWantsSound,
+    storyVideoWantsPlay,
   ]);
 
   const openCreateStoryFlow = (skipEmpty = false) => {

@@ -7,6 +7,7 @@ import { OnboardingScreen } from './OnboardingScreen';
 import { AuthScreen } from './AuthScreen';
 import { ProfileSetupScreen } from './ProfileSetupScreen';
 import { TrendingScreen } from './TrendingScreen';
+import { BannedScreen } from '../auth/BannedScreen';
 
 export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
   const db = useDB();
@@ -27,6 +28,8 @@ export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
       return <ProfileSetupScreen />;
     case 'trending':
       return <TrendingScreen />;
+    case 'banned':
+      return <BannedScreen />;
     default:
       return null;
   }

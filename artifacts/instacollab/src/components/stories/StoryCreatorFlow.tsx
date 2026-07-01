@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import type { User } from '../../types';
 import { Camera, X, Type } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
-import { handleAvatarError, fileToBase64 } from '../../lib/utils';
+import { detectMediaKind, processUploadFileAsUrl, handleAvatarError } from '../../lib/utils';
 import { fileFromInput } from '../../lib/safe';
 import { useDB } from '../../lib/useDB';
 import { acquireMediaOverlayLock } from '../../lib/mediaOverlayLock';
@@ -93,10 +93,8 @@ export function StoryCreatorFlow({
     const file = fileFromInput(e.target.files);
     if (!file) return;
     try {
-      const url = await fileToBase64(file);
-      const isVideo =
-        file.type.startsWith('video/') ||
-        /\.(mp4|mov|webm|ogg|m4v|avi|wmv)$/i.test(file.name);
+      const url = await processUploadFileAsUrl(file);
+      const isVideo = detectMediaKind(file) === 'video';
       setDraftMedia(DEFAULT_MEDIA_STORY_DRAFT(url, isVideo));
       setStepAndNotify('edit');
     } catch {

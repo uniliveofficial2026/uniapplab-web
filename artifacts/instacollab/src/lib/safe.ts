@@ -1,4 +1,5 @@
 import type { Post, User } from '../types';
+import { resolveAppMediaUrlSync, isAppMediaRef } from './appMediaStore';
 import { safeLiveKind } from './liveRing';
 
 const FALLBACK_AVATAR =
@@ -80,18 +81,37 @@ export function safeAvatarUrl(value: unknown): string {
   return url || FALLBACK_AVATAR;
 }
 
-export function safeMediaUrl(value: unknown): string {
+export function safeMediaUrl(value: unknown, options?: { fallback?: string }): string {
   const s = safeString(value);
-  if (!s) return FALLBACK_MEDIA;
+  const fallback = options?.fallback ?? '';
+  if (!s) return fallback;
+  if (isAppMediaRef(s)) {
+    const resolved = resolveAppMediaUrlSync(s);
+    if (isAppMediaRef(resolved)) return s;
+    return resolved;
+  }
   if (s.startsWith('data:') || s.startsWith('blob:')) return s;
   const url = safeHttpUrl(s);
-  return url || FALLBACK_MEDIA;
+  return url || fallback;
 }
 
-/** HTTP(S) / blob / data video URL only — never substitutes an image URL as video src. */
+/** Keep app-media/data/blob refs for hooks to hydrate; only validate http(s). */
+export function preserveMediaRef(value: unknown): string {
+  const s = safeString(value);
+  if (!s) return '';
+  if (isAppMediaRef(s) || s.startsWith('data:') || s.startsWith('blob:')) return s;
+  return safeHttpUrl(s);
+}
+
+/** HTTP(S) / blob / data / app-media video URL — never substitutes an image URL as video src. */
 export function safeVideoUrl(value: unknown): string {
   const s = safeString(value);
   if (!s) return '';
+  if (isAppMediaRef(s)) {
+    const resolved = resolveAppMediaUrlSync(s);
+    if (isAppMediaRef(resolved)) return s;
+    return resolved;
+  }
   if (s.startsWith('data:') || s.startsWith('blob:')) return s;
   return safeHttpUrl(s);
 }
@@ -106,16 +126,19 @@ export type ResolvedPostMedia = {
 
 /** Normalize post media for feed/modal rendering with safe URLs and image fallback for bad videos. */
 export function resolvePostDisplayMedia(post: Post, mediaIdx = 0): ResolvedPostMedia {
-  const posterUrl = safeMediaUrl(post.imageUrl);
-  const list = safeArray<{ url: string; type: 'image' | 'video' | 'audio'; name: string }>(
-    post.mediaList
-  );
+  const list = safeArray<{
+    url: string;
+    type: 'image' | 'video' | 'audio';
+    name: string;
+    coverUrl?: string;
+  }>(post.mediaList);
+
+  const item = list.length > 0 ? (list[safeIndex(mediaIdx, list.length)] ?? list[0]) : null;
 
   let type: 'image' | 'video' | 'audio' = 'image';
   let rawUrl: string;
 
-  if (list.length > 0) {
-    const item = list[safeIndex(mediaIdx, list.length)] ?? list[0];
+  if (item) {
     type = item.type === 'video' || item.type === 'audio' ? item.type : 'image';
     rawUrl = item.url;
   } else if (post.videoUrl) {
@@ -125,8 +148,15 @@ export function resolvePostDisplayMedia(post: Post, mediaIdx = 0): ResolvedPostM
     rawUrl = post.imageUrl;
   }
 
+  const posterRef =
+    item?.coverUrl ||
+    post.audioCoverUrl ||
+    post.imageUrl ||
+    (type === 'image' ? rawUrl : '');
+  const posterUrl = preserveMediaRef(posterRef);
+
   if (type === 'video') {
-    const videoUrl = safeVideoUrl(rawUrl);
+    const videoUrl = preserveMediaRef(rawUrl);
     if (!videoUrl) {
       return { type: 'image', url: posterUrl, posterUrl, showAsImage: true };
     }
@@ -136,7 +166,7 @@ export function resolvePostDisplayMedia(post: Post, mediaIdx = 0): ResolvedPostM
   if (type === 'audio') {
     return {
       type: 'audio',
-      url: safeVideoUrl(rawUrl),
+      url: preserveMediaRef(rawUrl),
       posterUrl,
       showAsImage: false,
     };
@@ -144,7 +174,7 @@ export function resolvePostDisplayMedia(post: Post, mediaIdx = 0): ResolvedPostM
 
   return {
     type: 'image',
-    url: safeMediaUrl(rawUrl || post.imageUrl),
+    url: preserveMediaRef(rawUrl || post.imageUrl),
     posterUrl,
     showAsImage: false,
   };

@@ -1,6 +1,7 @@
 import { Plus, Music, Play } from 'lucide-react';
-import React, { useEffect, useRef } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { User } from '../../types';
+import { useResolvedMediaUrl } from '../../hooks/useResolvedMediaUrl';
 import {
   handleMediaError,
   resolveEditorTextColorClass,
@@ -34,6 +35,7 @@ import {
   CREATE_EDITOR_PREVIEW_PANE,
 } from '../common/createEditorPreview';
 import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { ShellCreateCaptionPanel } from './ShellCreateCaptionPanel';
 
 export type CreateMediaItem = {
@@ -176,6 +178,7 @@ export function ShellCreatePostEditor({
   onTriggerFileUpload,
 }: ShellCreatePostEditorProps) {
   const previewVideoRef = useRef<HTMLVideoElement>(null);
+  const [filterPreviewId, setFilterPreviewId] = useState<MediaFilterId | null>(null);
   const mediaAdjust = mediaAdjustProp ?? {
     ...DEFAULT_MEDIA_EDITOR_ADJUSTMENTS,
     brightness,
@@ -190,8 +193,10 @@ export function ShellCreatePostEditor({
       type: 'image' as const,
       name: '',
     };
+  const resolvedActiveUrl = useResolvedMediaUrl(activeItem.url);
   const soundtrackSelected = hasSelectedAudio(backgroundAudio, audioTrack);
-  const filterStyle = buildMediaEditorStyle(filter, mediaAdjust);
+  const effectiveFilter = filterPreviewId ?? filter;
+  const filterStyle = buildMediaEditorStyle(effectiveFilter, mediaAdjust, { preview: true });
   const editorMode: 'text' | 'photo' | 'video' =
     uploadedMediaList.length === 0 ? 'text' : uploadedIsVideo ? 'video' : 'photo';
   const editorTools = editorToolsForMode(editorMode);
@@ -199,6 +204,10 @@ export function ShellCreatePostEditor({
   const toggleVideoEditTab = (tab: EditorToolTabId) => {
     onVideoEditTabChange(videoEditTab === tab ? 'none' : tab);
   };
+
+  useEffect(() => {
+    setFilterPreviewId(null);
+  }, [activeItem.url, filter, videoEditTab]);
 
   useEffect(() => {
     const video = previewVideoRef.current;
@@ -243,7 +252,7 @@ export function ShellCreatePostEditor({
           ) : activeItem.type === 'video' ? (
             <video
               ref={previewVideoRef}
-              src={activeItem.url}
+              src={resolvedActiveUrl || undefined}
               style={filterStyle}
               className={`${CREATE_EDITOR_PREVIEW_MEDIA} ${cropAspectClass(mediaAdjust.cropAspect)}`}
               preload="auto"
@@ -252,6 +261,7 @@ export function ShellCreatePostEditor({
               muted={!!backgroundAudio?.url}
               playsInline
               controls
+              {...nativeVideoControlGuardProps()}
             />
           ) : activeItem.type === 'audio' ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 bg-black">
@@ -264,13 +274,13 @@ export function ShellCreatePostEditor({
                   {activeItem.name || 'Audio Track'}
                 </p>
                 <p className="text-xs text-muted-foreground mb-4">Audio Playback Preview</p>
-                <audio src={activeItem.url} controls className="w-full accent-primary focus:outline-none" />
+                <audio src={resolvedActiveUrl || undefined} controls className="w-full accent-primary focus:outline-none" />
               </div>
             </div>
           ) : (
             <img
               style={filterStyle}
-              src={activeItem.url}
+              src={resolvedActiveUrl || undefined}
               className={`${CREATE_EDITOR_PREVIEW_MEDIA} ${cropAspectClass(mediaAdjust.cropAspect)}`}
               alt="Preview"
               onError={handleMediaError}
@@ -425,7 +435,11 @@ export function ShellCreatePostEditor({
                     : null
                 }
                 filter={filter}
-                onFilterChange={(id: MediaFilterId) => onFilterChange(id)}
+                onFilterChange={(id: MediaFilterId) => {
+                  setFilterPreviewId(null);
+                  onFilterChange(id);
+                }}
+                onFilterPreview={setFilterPreviewId}
                 mediaAdjust={mediaAdjust}
                 onMediaAdjustChange={(patch) => {
                   onMediaAdjustChange?.(patch);

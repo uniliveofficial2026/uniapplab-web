@@ -50,7 +50,8 @@
     ]
   },
   "vercel": {
-    "appProjectRoot": "artifacts/instacollab",
-    "customDomains": ["app.uniapplab.com"]
+    "appProjectRoot": ".",
+    "note": "Deploy from repo root (not artifacts/instacollab) so vercel.json routes /api/* to api-server.",
+    "customDomains": ["app.uniapplab.com", "uniapplab.com", "www.uniapplab.com"]
   }
 }

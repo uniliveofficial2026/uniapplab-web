@@ -126,6 +126,20 @@ export function ensureManagedRoomsHydrated(): void {
   }
 }
 
+const hydratedManagedRoomsForUser = new Set<string>();
+
+/** One-shot per user session: persist demo grants, role ids, and follow edges off the render path. */
+export function hydrateManagedRoomsForUser(userId: string): void {
+  const id = userId?.trim() || 'guest';
+  if (hydratedManagedRoomsForUser.has(id)) return;
+  hydratedManagedRoomsForUser.add(id);
+  ensureManagedRoomsHydrated();
+  for (const room of getManagedRooms()) {
+    ensureRoomRoleUserIds(room.id);
+    ensureDemoRoomFollowAccess(room.id);
+  }
+}
+
 export function getManagedRooms(): ManagedRoom[] {
   const rooms = mergeDemoGrantsInMemory(readManagedRooms());
   return rooms.sort((a, b) => {

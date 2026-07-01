@@ -2,7 +2,7 @@ import type { Post } from '../types';
 import type { LocalDB } from './db/localDbType';
 import { countCommentThread, resolvePost } from './entityResolve';
 import { resolvePostMediaSource } from './repostMedia';
-import { resolvePostDisplayMedia, safeMediaUrl } from './safe';
+import { resolvePostDisplayMedia, preserveMediaRef } from './safe';
 
 export type ProfileGridPost = {
   id: string;
@@ -25,8 +25,8 @@ export function resolveProfileGridPost(
     countCommentThread(thread),
   );
   const media = resolvePostDisplayMedia(mediaPost);
-  const thumbUrl = safeMediaUrl(
-    media.showAsImage ? media.url : media.posterUrl || media.url,
+  const thumbUrl = preserveMediaRef(
+    media.posterUrl || (media.type !== 'video' ? media.url : ''),
   );
   return {
     id: livePost.id,

@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Upload, FileText, Music, Check, X, ArrowRight, ArrowLeft, Play, Pause, FastForward, Info, Timer, Undo, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { KaraokeUploadInput } from '../../lib/karaokeUploads';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type UploadStep = 'audio' | 'details' | 'lyrics' | 'timing' | 'review';
 
@@ -464,11 +465,13 @@ Each line will be timed separately."
                     {isVideo && (
                       <video 
                         src={audioUrl}
-                        className="absolute inset-0 w-full h-full object-cover opacity-30 grayscale"
+                        className="absolute inset-0 w-full h-full object-cover opacity-30 grayscale pointer-events-auto"
                         muted
                         autoPlay
                         loop
                         playsInline
+                        controls
+                        {...nativeVideoControlGuardProps()}
                       />
                     )}
                     <div className="absolute inset-0 bg-gradient-to-t from-primary/10 via-transparent to-transparent pointer-events-none" />

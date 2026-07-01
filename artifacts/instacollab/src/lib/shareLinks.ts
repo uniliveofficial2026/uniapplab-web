@@ -15,6 +15,7 @@ import {
   safeVideoUrl,
 } from './safe';
 import { getRoomSettings } from '../smule-rooms/utils/storage';
+import { getShareOrigin } from './domains/uniapplab';
 
 export type ShareKind =
   | 'post'
@@ -34,6 +35,7 @@ export type ShareLinkRef = {
   storyUsername?: string;
   storySegment?: number;
   profileUsername?: string;
+  profileUserId?: string;
   liveUserId?: string;
   partyRoomId?: string;
   karaokeTrackId?: string;
@@ -85,10 +87,35 @@ export type ShareCardMeta = {
   profileSurface?: 'app' | 'karaoke';
 };
 
-const SHARE_HOST = 'instacollab.app';
+const LEGACY_SHARE_HOST = 'instacollab.app';
 
 export function shareOrigin(): string {
-  return `https://${SHARE_HOST}`;
+  return getShareOrigin();
+}
+
+const SHARE_URL_PATTERN =
+  /https?:\/\/(?:(?:app\.|www\.)?uniapplab\.com|(?:www\.)?instacollab\.app)\/[^\s]+/i;
+
+function isShareLinkHost(hostname: string): boolean {
+  const host = hostname.toLowerCase().replace(/^www\./, '');
+  return (
+    host === LEGACY_SHARE_HOST ||
+    host === 'uniapplab.com' ||
+    host === 'app.uniapplab.com'
+  );
+}
+
+function pathFromShareUrl(rawUrl: string): { rawUrl: string; path: string } | null {
+  try {
+    const url = new URL(rawUrl);
+    if (!isShareLinkHost(url.hostname)) return null;
+    return {
+      rawUrl,
+      path: `${url.pathname}${url.search}${url.hash}`,
+    };
+  } catch {
+    return null;
+  }
 }
 
 export function formatShareMessage(shareText: string, shareUrl: string): string {
@@ -96,7 +123,7 @@ export function formatShareMessage(shareText: string, shareUrl: string): string 
 }
 
 export function extractShareUrl(text: string): string | null {
-  const match = text.match(/https?:\/\/(?:www\.)?instacollab\.app\/[^\s]+/i);
+  const match = text.match(SHARE_URL_PATTERN);
   if (match) return match[0];
   const hashRoom = text.match(/#karaoke-room\/([^\s#?]+)/i);
   if (hashRoom) {
@@ -110,7 +137,9 @@ export function extractShareUrl(text: string): string | null {
 
 export function isShareLinkMessage(text: string | null | undefined): boolean {
   if (!text || typeof text !== 'string') return false;
+  if (SHARE_URL_PATTERN.test(text)) return true;
   if (/instacollab\.app\//i.test(text)) return true;
+  if (/(?:app\.|www\.)?uniapplab\.com\//i.test(text)) return true;
   if (/#karaoke-room\//i.test(text)) return true;
   return parseShareLink(text) !== null;
 }
@@ -124,19 +153,21 @@ export function parseShareLink(text: string): ShareLinkRef | null {
   const rawUrl = extractShareUrl(text);
   if (!rawUrl) return null;
 
-  const normalized = rawUrl.replace(/^https?:\/\/(?:www\.)?/i, '');
+  const located = pathFromShareUrl(rawUrl);
+  if (!located) return null;
+  const path = located.path;
 
-  let m = normalized.match(/^instacollab\.app\/p\/([^/?#\s]+)/i);
+  let m = path.match(/^\/p\/([^/?#\s]+)/i);
   if (m) {
     return { kind: 'post', rawUrl, postId: m[1] };
   }
 
-  m = normalized.match(/^instacollab\.app\/r\/([^/?#\s]+)/i);
+  m = path.match(/^\/r\/([^/?#\s]+)/i);
   if (m) {
     return { kind: 'reel', rawUrl, reelId: m[1] };
   }
 
-  m = normalized.match(/^instacollab\.app\/s\/([^/?#\s]+)/i);
+  m = path.match(/^\/s\/([^/?#\s]+)/i);
   if (m) {
     return {
       kind: 'story',
@@ -146,7 +177,7 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(/^instacollab\.app\/u\/([^/?#\s]+)/i);
+  m = path.match(/^\/u\/([^/?#\s]+)/i);
   if (m) {
     return {
       kind: 'profile',
@@ -155,17 +186,26 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(/^instacollab\.app\/live\/([^/?#\s]+)/i);
+  m = path.match(/^\/profile\/([^/?#\s]+)/i);
+  if (m) {
+    return {
+      kind: 'profile',
+      rawUrl,
+      profileUserId: decodeURIComponent(m[1]),
+    };
+  }
+
+  m = path.match(/^\/live\/([^/?#\s]+)/i);
   if (m) {
     return { kind: 'live', rawUrl, liveUserId: m[1] };
   }
 
-  m = normalized.match(/^instacollab\.app\/room\/([^/?#\s]+)/i);
+  m = path.match(/^\/room\/([^/?#\s]+)/i);
   if (m) {
     return { kind: 'party', rawUrl, partyRoomId: m[1] };
   }
 
-  m = normalized.match(/^instacollab\.app\/k\/t\/([^/?#\s]+)/i);
+  m = path.match(/^\/k\/t\/([^/?#\s]+)/i);
   if (m) {
     const rec = rawUrl.match(/[?&]recording=([^&\s]+)/i);
     return {
@@ -176,7 +216,7 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(/^instacollab\.app\/k\/u\/id\/([^/?#\s]+)/i);
+  m = path.match(/^\/k\/u\/id\/([^/?#\s]+)/i);
   if (m) {
     const tab = rawUrl.match(/[?&]profileTab=([^&\s]+)/i)?.[1] as KaraokeProfileTab | undefined;
     return {
@@ -187,7 +227,7 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(/^instacollab\.app\/k\/u\/([^/?#\s]+)/i);
+  m = path.match(/^\/k\/u\/([^/?#\s]+)/i);
   if (m) {
     const tab = rawUrl.match(/[?&]profileTab=([^&\s]+)/i)?.[1] as KaraokeProfileTab | undefined;
     const segment = decodeURIComponent(m[1]);
@@ -304,7 +344,7 @@ export function buildProfileSharePayloadFromUser(
 
   const shareUrl = handle
     ? `${shareOrigin()}/u/${encodeURIComponent(handle)}`
-    : `${shareOrigin()}/?tab=profile&userId=${encodeURIComponent(user.id)}`;
+    : `${shareOrigin()}/profile/${encodeURIComponent(user.id)}`;
 
   return {
     kind: 'profile',
@@ -790,10 +830,14 @@ export function openShareLink(ref: ShareLinkRef, users: User[] = []): void {
       break;
     }
     case 'profile': {
-      const user = findUser(ref.profileUsername);
-      if (user) {
+      const user =
+        (ref.profileUserId
+          ? users.find((u) => u.id === ref.profileUserId)
+          : undefined) ?? findUser(ref.profileUsername);
+      const userId = user?.id ?? ref.profileUserId;
+      if (userId) {
         window.dispatchEvent(
-          new CustomEvent('show-profile-preview', { detail: { userId: user.id } }),
+          new CustomEvent('show-profile-preview', { detail: { userId } }),
         );
       }
       break;

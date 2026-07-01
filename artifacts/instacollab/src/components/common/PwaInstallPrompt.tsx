@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
-import { applyPwaUpdate, getIosInstallInstructions, isIosDevice, isPwaInstallableHost, isPrivateDevHost, isStandaloneDisplayMode } from '../../lib/pwaRegister';
+import { getIosInstallInstructions, isIosDevice, isPwaInstallableHost, isPrivateDevHost, isStandaloneDisplayMode } from '../../lib/pwaRegister';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -12,7 +12,6 @@ const DISMISS_KEY = 'instacollab_pwa_install_dismissed';
 export function PwaInstallPrompt() {
   const [deferredPrompt, setDeferredPrompt] = useState<BeforeInstallPromptEvent | null>(null);
   const [showIosHint, setShowIosHint] = useState(false);
-  const [showUpdateBanner, setShowUpdateBanner] = useState(false);
   const [dismissed, setDismissed] = useState(() => {
     if (typeof window === 'undefined') return true;
     return window.localStorage.getItem(DISMISS_KEY) === '1';
@@ -25,41 +24,16 @@ export function PwaInstallPrompt() {
       event.preventDefault();
       setDeferredPrompt(event as BeforeInstallPromptEvent);
     };
-    const onNeedRefresh = () => setShowUpdateBanner(true);
 
     window.addEventListener('beforeinstallprompt', onBeforeInstall);
-    window.addEventListener('pwa-need-refresh', onNeedRefresh);
 
     return () => {
       window.removeEventListener('beforeinstallprompt', onBeforeInstall);
-      window.removeEventListener('pwa-need-refresh', onNeedRefresh);
     };
   }, []);
 
   if (isStandaloneDisplayMode()) {
-    if (!showUpdateBanner) return null;
-    return (
-      <div className="fixed bottom-[calc(58px+env(safe-area-inset-bottom))] left-3 right-3 z-[120] md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
-        <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-md">
-          <p className="flex-1 text-sm font-medium text-foreground">A new version is ready.</p>
-          <button
-            type="button"
-            onClick={() => applyPwaUpdate()}
-            className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
-          >
-            Update
-          </button>
-          <button
-            type="button"
-            onClick={() => setShowUpdateBanner(false)}
-            className="rounded-full p-1 text-muted-foreground hover:bg-secondary"
-            aria-label="Dismiss update"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
-      </div>
-    );
+    return null;
   }
 
   const installableHost = typeof window !== 'undefined' && isPwaInstallableHost();
@@ -71,7 +45,7 @@ export function PwaInstallPrompt() {
     !dismissed &&
     (deferredPrompt != null || showIosHint || (isIosDevice() && !deferredPrompt));
 
-  if (!visible && !showUpdateBanner && !(privateDevHost && isIosDevice())) return null;
+  if (!visible && !(privateDevHost && isIosDevice())) return null;
 
   const dismiss = () => {
     setDismissed(true);
@@ -161,21 +135,6 @@ export function PwaInstallPrompt() {
               <code className="rounded bg-secondary px-1 py-0.5">pnpm run mobile:preview</code> on your Mac for install
               testing.
             </p>
-          </div>
-        </div>
-      ) : null}
-
-      {showUpdateBanner ? (
-        <div className="fixed bottom-[calc(58px+env(safe-area-inset-bottom))] left-3 right-3 z-[120] md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
-          <div className="flex items-center gap-3 rounded-2xl border border-border bg-card/95 p-3 shadow-xl backdrop-blur-md">
-            <p className="flex-1 text-sm font-medium text-foreground">Update available.</p>
-            <button
-              type="button"
-              onClick={() => applyPwaUpdate()}
-              className="rounded-xl bg-primary px-3 py-2 text-xs font-bold text-primary-foreground"
-            >
-              Reload
-            </button>
           </div>
         </div>
       ) : null}

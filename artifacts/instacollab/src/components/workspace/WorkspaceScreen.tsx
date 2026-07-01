@@ -9,12 +9,15 @@ import {
 } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { handleAvatarError, handleMediaError, fileToBase64 } from '../../lib/utils';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { safeAvatarUrl } from '../../lib/safe';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
 import { useAuth } from '../../lib/AuthContext';
 import { GoogleChatTab } from './GoogleChatTab';
 import { GoogleKeepTab } from './GoogleKeepTab';
 import { GmailTab } from './GmailTab';
+import { AdminPanel } from '../admin/AdminPanel';
 import { GoogleContactsTab } from './GoogleContactsTab';
 import { GoogleCalendarTab } from './GoogleCalendarTab';
 import { GoogleDocsTab } from './GoogleDocsTab';
@@ -738,9 +741,11 @@ export function WorkspaceScreen() {
                                           className="w-full h-full object-cover"
                                           muted
                                           playsInline
+                                          controls
                                           preload="auto"
                                           autoPlay
                                           loop
+                                          {...nativeVideoControlGuardProps()}
                                         />
                                       ) : (
                                         <img
@@ -812,7 +817,7 @@ export function WorkspaceScreen() {
                                             <Trash2 className="w-4 h-4" />
                                         </button>
                                         <div className="flex items-center">
-                                            <img src={(USERS.length > 0 ? USERS[(task.user as number ?? 0) % USERS.length]?.avatarUrl : db.currentUser.avatarUrl) || undefined} className="w-8 h-8 rounded-full border-2 border-background object-cover shadow-sm bg-secondary" alt="assignee" onError={handleAvatarError} />
+                                            <img src={safeAvatarUrl(USERS.length > 0 ? USERS[(task.user as number ?? 0) % USERS.length]?.avatarUrl : db.currentUser?.avatarUrl)} className="w-8 h-8 rounded-full border-2 border-background object-cover shadow-sm bg-secondary" alt="assignee" onError={handleAvatarError} />
                                         </div>
                                     </div>
                                 </div>
@@ -884,7 +889,7 @@ export function WorkspaceScreen() {
                                     <h3 className="font-bold text-sm truncate relative z-10" title={file.name}>{file.name}</h3>
                                     <div className="flex justify-between items-center mt-4 relative z-10">
                                     <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                                        <img src={(USERS.length > 0 ? USERS[(file.author as number ?? 0) % USERS.length]?.avatarUrl : db.currentUser.avatarUrl) || undefined} className="w-4 h-4 rounded-full object-cover" alt="author" onError={handleAvatarError}/>
+                                        <img src={safeAvatarUrl(USERS.length > 0 ? USERS[(file.author as number ?? 0) % USERS.length]?.avatarUrl : db.currentUser?.avatarUrl)} className="w-4 h-4 rounded-full object-cover" alt="author" onError={handleAvatarError}/>
                                         {String(file.date ?? '')} • {String(file.size ?? '')}
                                     </div>
                                     <div className="flex items-center gap-1 text-[11px] font-bold text-accent bg-accent/10 px-2 py-0.5 rounded-full"><History className="w-3 h-3" /> v{Math.floor((Number(file.id) || 123) % 5) + 1}</div>
@@ -934,6 +939,7 @@ export function WorkspaceScreen() {
                 {/* Admin & Integrations View */}
                 {activeTab === 'admin' && (
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                     <AdminPanel />
                      
                      <div className="border border-border bg-card rounded-2xl overflow-hidden shadow-sm">
                         <div className="p-5 border-b border-border bg-destructive/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
@@ -949,7 +955,7 @@ export function WorkspaceScreen() {
                            {activeFlags.map((flag) => (
                                <div key={flag.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-destructive/20 rounded-xl bg-destructive/5 mb-3 gap-4">
                                   <div className="flex items-center gap-3">
-                                    <img src={(USERS.length > 0 ? USERS[flag.user % USERS.length]?.avatarUrl : db.currentUser.avatarUrl) || undefined} className="w-10 h-10 rounded-lg object-cover border border-border" alt="flagged" onError={handleAvatarError} />
+                                    <img src={safeAvatarUrl(USERS.length > 0 ? USERS[flag.user % USERS.length]?.avatarUrl : db.currentUser?.avatarUrl)} className="w-10 h-10 rounded-lg object-cover border border-border" alt="flagged" onError={handleAvatarError} />
                                     <div>
                                        <div className="font-bold text-[14px]">{flag.text}</div>
                                        <div className="text-xs text-destructive flex items-center gap-1 mt-0.5"><Zap className="w-3 h-3"/> Reason: {flag.reason}</div>
@@ -1025,7 +1031,7 @@ export function WorkspaceScreen() {
                                     {splashAdUrl && (
                                       <div className="w-full max-w-sm bg-black/10 rounded-xl border border-border overflow-hidden flex items-center justify-center mt-2 mx-auto sm:mx-0 relative group shadow-inner" style={{ aspectRatio: '16/9' }}>
                                          {(splashAdUrl.includes('video') || splashAdUrl.endsWith('.mp4') || splashAdUrl.endsWith('.mov') || splashAdUrl.endsWith('.webm') || splashAdUrl.startsWith('data:video/')) ? (
-                                           <video src={splashAdUrl} className="w-full h-full object-cover" controls />
+                                           <video src={splashAdUrl} className="w-full h-full object-cover" controls {...nativeVideoControlGuardProps()} />
                                          ) : (
                                            <img src={splashAdUrl} alt="Ad preview" className="w-full h-full object-cover" />
                                          )}
@@ -1142,6 +1148,7 @@ export function WorkspaceScreen() {
                             loop
                             playsInline
                             preload="auto"
+                            {...nativeVideoControlGuardProps()}
                           />
                         );
                       } else {

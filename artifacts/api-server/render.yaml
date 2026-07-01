@@ -1,0 +1,21 @@
+services:
+  - type: web
+    name: uniapplab-api
+    runtime: node
+    plan: free
+    buildCommand: cd ../.. && pnpm install && pnpm --filter @workspace/api-server run build
+    startCommand: node artifacts/api-server/dist/index.mjs
+    healthCheckPath: /api/healthz
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
+      - key: CORS_ORIGINS
+        value: https://app.uniapplab.com,https://uniapplab.com,https://www.uniapplab.com,http://localhost:5173
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false

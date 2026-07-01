@@ -9,20 +9,23 @@ const base = process.argv[2] ?? 'http://localhost:5173';
 const errors = [];
 
 async function openKaraokeManageTab(page) {
-  await page.goto(`${base}/?launch=main`, { waitUntil: 'networkidle', timeout: 60_000 });
-  await page.getByRole('button', { name: 'Karaoke', exact: true }).click();
+  await page.goto(`${base}/?launch=main&tab=profile&profileTab=manage`, {
+    waitUntil: 'networkidle',
+    timeout: 60_000,
+  });
   await page.getByText('Party Rooms', { exact: false }).first().waitFor({
     state: 'visible',
     timeout: 30_000,
   });
-  await page.evaluate(() => {
-    window.dispatchEvent(
-      new CustomEvent('karaoke-profile-open', {
-        detail: { profileTab: 'manage' },
-      }),
-    );
-  });
   await page.waitForTimeout(2500);
+}
+
+async function openKaraokeManageTabViaDeepLink(page) {
+  await page.goto(`${base}/?launch=main&tab=profile&profileTab=manage`, {
+    waitUntil: 'networkidle',
+    timeout: 60_000,
+  });
+  await page.waitForTimeout(4000);
 }
 
 async function main() {

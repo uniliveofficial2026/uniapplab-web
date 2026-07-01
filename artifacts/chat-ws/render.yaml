@@ -1,0 +1,12 @@
+services:
+  - type: web
+    name: uniapplab-chat-ws
+    runtime: node
+    plan: free
+    buildCommand: cd ../.. && pnpm install && pnpm --filter @workspace/chat-ws run build
+    startCommand: node artifacts/chat-ws/dist/index.mjs
+    envVars:
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_ANON_KEY
+        sync: false

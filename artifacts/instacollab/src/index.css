@@ -575,6 +575,24 @@ html.chat-open-mobile .mobile-top-nav {
   animation: thought-shimmer 3.2s ease-in-out infinite;
 }
 
+.thought-bubble-living .thought-bubble-tail-1 {
+  animation: thought-tail-glow 2.6s ease-in-out infinite;
+}
+
+.thought-bubble-living .thought-bubble-tail-2 {
+  animation: thought-tail-glow 2.6s ease-in-out 0.35s infinite;
+}
+
+@keyframes thought-tail-glow {
+  0%,
+  100% {
+    opacity: 0.72;
+  }
+  50% {
+    opacity: 1;
+  }
+}
+
 @keyframes thought-type-cursor-blink {
   0%,
   40% {
@@ -600,6 +618,8 @@ html.chat-open-mobile .mobile-top-nav {
 @media (prefers-reduced-motion: reduce) {
   .thought-bubble-living,
   .thought-bubble-living .thought-bubble-shimmer,
+  .thought-bubble-living .thought-bubble-tail-1,
+  .thought-bubble-living .thought-bubble-tail-2,
   .thought-type-cursor {
     animation: none !important;
   }

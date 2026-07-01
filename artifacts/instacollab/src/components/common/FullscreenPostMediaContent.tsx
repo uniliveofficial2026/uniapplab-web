@@ -1,6 +1,7 @@
 import React, { type CSSProperties, type Ref, type RefObject } from 'react';
 import { Music } from 'lucide-react';
 import { Post as PostType, Reel } from '../../types';
+import { useResolvedMediaUrl } from '../../hooks/useResolvedMediaUrl';
 import {
   formatMentionsAndTags,
   getAlignClass,
@@ -8,12 +9,12 @@ import {
   handleMediaError,
   resolveEditorTextColorClass,
 } from '../../lib/utils';
-import { resolvePostDisplayMedia, safeMediaUrl, safeVideoUrl } from '../../lib/safe';
+import { resolvePostDisplayMedia, preserveMediaRef } from '../../lib/safe';
 import { MediaWithSoundtrack } from './MediaWithSoundtrack';
 import { FULLSCREEN_MEDIA_CLASS } from './FullscreenMediaStage';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
-import { PLAYBACK_PRIORITY, setPlaybackIntent } from '../../lib/playbackAudio';
-import { postPlaybackId } from '../../lib/postPlayback';
+import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type ResolvedPost = ReturnType<typeof import('../../lib/entityResolve').resolvePost>;
 
@@ -68,6 +69,51 @@ export function FullscreenPostMediaContent({
   onNextCarouselItem,
   onRequestNativeVideoFullscreen,
 }: FullscreenPostMediaContentProps) {
+  const resolvedFromPost = resolvePostDisplayMedia(post as PostType, currentMediaIdx);
+  const posterFallback =
+    mediaOverride?.posterUrl ??
+    resolvedFromPost.posterUrl ??
+    preserveMediaRef((post as PostType).imageUrl);
+  const fsMedia = isTextPost
+    ? null
+    : mediaOverride
+      ? (() => {
+          if (mediaOverride.type === 'video') {
+            const videoUrl = preserveMediaRef(mediaOverride.url);
+            if (!videoUrl) {
+              return {
+                type: 'image' as const,
+                url: posterFallback,
+                posterUrl: posterFallback,
+                showAsImage: true,
+              };
+            }
+            return {
+              type: 'video' as const,
+              url: videoUrl,
+              posterUrl: posterFallback,
+              showAsImage: false,
+            };
+          }
+          if (mediaOverride.type === 'audio') {
+            return {
+              type: 'audio' as const,
+              url: preserveMediaRef(mediaOverride.url),
+              posterUrl: posterFallback,
+              showAsImage: false,
+            };
+          }
+          return {
+            type: 'image' as const,
+            url: preserveMediaRef(mediaOverride.url) || posterFallback,
+            posterUrl: posterFallback,
+            showAsImage: false,
+          };
+        })()
+      : resolvedFromPost;
+  const resolvedFsUrl = useResolvedMediaUrl(fsMedia?.url);
+  const resolvedFsPoster = useResolvedMediaUrl(fsMedia?.posterUrl);
+
   if (isTextPost) {
     return (
       <div
@@ -85,55 +131,21 @@ export function FullscreenPostMediaContent({
     );
   }
 
-  const resolvedFromPost = resolvePostDisplayMedia(post as PostType, currentMediaIdx);
-  const posterFallback =
-    mediaOverride?.posterUrl ??
-    resolvedFromPost.posterUrl ??
-    safeMediaUrl((post as PostType).imageUrl);
-  const fsMedia = mediaOverride
-    ? (() => {
-        if (mediaOverride.type === 'video') {
-          const videoUrl = safeVideoUrl(mediaOverride.url);
-          if (!videoUrl) {
-            return {
-              type: 'image' as const,
-              url: posterFallback,
-              posterUrl: posterFallback,
-              showAsImage: true,
-            };
-          }
-          return {
-            type: 'video' as const,
-            url: videoUrl,
-            posterUrl: posterFallback,
-            showAsImage: false,
-          };
-        }
-        if (mediaOverride.type === 'audio') {
-          return {
-            type: 'audio' as const,
-            url: safeVideoUrl(mediaOverride.url),
-            posterUrl: posterFallback,
-            showAsImage: false,
-          };
-        }
-        return {
-          type: 'image' as const,
-          url: safeMediaUrl(mediaOverride.url) || posterFallback,
-          posterUrl: posterFallback,
-          showAsImage: false,
-        };
-      })()
-    : resolvedFromPost;
+  if (!fsMedia) return null;
+
   const fsImageSrc =
     fsMedia.type === 'video' || videoError || fsMedia.showAsImage
-      ? fsMedia.posterUrl
-      : fsMedia.url;
+      ? resolvedFsPoster || fsMedia.posterUrl
+      : resolvedFsUrl || fsMedia.url;
   const fsAudioList = post.mediaList || [];
   const fsAudioItem = mediaOverride?.name
     ? { name: mediaOverride.name }
     : fsAudioList[currentMediaIdx];
-  const showVideo = fsMedia.type === 'video' && !videoError && !fsMedia.showAsImage;
+  const showVideo =
+    fsMedia.type === 'video' &&
+    !videoError &&
+    !fsMedia.showAsImage &&
+    !!(resolvedFsUrl || fsMedia.url);
   const playbackPostId = postId ?? livePost.id;
 
   if (fsMedia.type === 'audio') {
@@ -153,7 +165,7 @@ export function FullscreenPostMediaContent({
         {fsMedia.url ? (
           <audio
             ref={carouselAudioRef}
-            src={fsMedia.url}
+            src={resolvedFsUrl || fsMedia.url || undefined}
             controls
             loop={loopCarouselItem}
             onEnded={loopCarouselItem ? undefined : onNextCarouselItem}
@@ -166,16 +178,17 @@ export function FullscreenPostMediaContent({
     );
   }
 
-  if (showVideo && fsMedia.url) {
+  if (showVideo && (resolvedFsUrl || fsMedia.url)) {
+    const poster = resolvedFsPoster || fsMedia.posterUrl || undefined;
     return (
       <MediaWithSoundtrack className="inline-flex max-w-full">
         <video
           key={`fs-vid-${currentMediaIdx}`}
           data-playback-scope={PLAYBACK_SCOPE.MANAGED}
           ref={videoRef}
-          src={fsMedia.url}
-          poster={fsMedia.posterUrl}
-          data-poster={fsMedia.posterUrl}
+          src={resolvedFsUrl || fsMedia.url || undefined}
+          poster={poster}
+          data-poster={poster}
           loop={loopCarouselItem}
           playsInline
           controls
@@ -194,34 +207,7 @@ export function FullscreenPostMediaContent({
             e.stopPropagation();
             onRequestNativeVideoFullscreen?.();
           }}
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickY = e.clientY - rect.top;
-            if (clickY > rect.height - 56) {
-              e.stopPropagation();
-              return;
-            }
-            e.stopPropagation();
-            const v = e.currentTarget;
-            if (!postAudioPriority) return;
-            const videoPlaybackId = postPlaybackId(playbackPostId, 'video-fs');
-            if (v.paused) {
-              setPlaybackIntent(
-                videoPlaybackId,
-                postAudioIntentKey,
-                postAudioPriority,
-                true
-              );
-            } else {
-              setPlaybackIntent(
-                videoPlaybackId,
-                postAudioIntentKey,
-                postAudioPriority,
-                false
-              );
-              v.pause();
-            }
-          }}
+          {...nativeVideoControlGuardProps()}
         />
       </MediaWithSoundtrack>
     );
@@ -231,7 +217,7 @@ export function FullscreenPostMediaContent({
     <MediaWithSoundtrack className="inline-flex max-w-full">
       <img
         key={`fs-img-${currentMediaIdx}`}
-        src={fsImageSrc}
+        src={fsImageSrc || undefined}
         alt="Post content"
         style={filterStyle}
         className={`${FULLSCREEN_MEDIA_CLASS} z-10`}

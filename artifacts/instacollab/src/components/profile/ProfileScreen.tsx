@@ -23,12 +23,14 @@ import { CreatorProgressModal } from './CreatorProgressModal';
 import { handleAvatarError, handleMediaError, fileToBase64 } from '../../lib/utils';
 import { useProfileStats } from '../../lib/useProfileStats';
 import { resolveProfileGridPost } from '../../lib/profilePostGrid';
+import { ProfileGridThumb } from './ProfileGridThumb';
 import {
   formatProfileHandle,
   getProfileMentionLabel,
   getProfileDisplayName,
   shouldShowProfileHandle,
 } from '../../lib/profileDisplay';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { reelUserId } from '../../lib/safe';
 import { SavedRoomsList } from '../../smule-rooms/components/SavedRoomsList';
 import { StoryStrip } from '../feed/StoryStrip';
@@ -821,7 +823,11 @@ export function ProfileScreen({
         <div className="grid grid-cols-3 gap-1 md:gap-4 lg:gap-8">
           {profileGridPosts.map((gridPost) => (
             <div key={gridPost.id} onClick={() => setSelectedPostId(gridPost.id)} className="aspect-square bg-secondary group cursor-pointer relative rounded-xl overflow-hidden shadow-sm">
-              <img src={gridPost.thumbUrl || undefined} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" alt="Post" onError={handleMediaError} />
+              <ProfileGridThumb
+                thumbUrl={gridPost.thumbUrl}
+                isVideo={gridPost.isVideo}
+                className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
+              />
               {gridPost.isVideo && (
                 <div className="absolute top-2 right-2 text-white drop-shadow-md">
                   <PlaySquare className="w-5 h-5 fill-white" />
@@ -865,7 +871,11 @@ export function ProfileScreen({
           <div className="grid grid-cols-3 gap-1 md:gap-4 lg:gap-8">
             {savedGridPosts.map((gridPost) => (
               <div key={gridPost.id} onClick={() => setSelectedPostId(gridPost.id)} className="aspect-square bg-secondary group cursor-pointer relative rounded-xl overflow-hidden shadow-sm">
-                <img src={gridPost.thumbUrl || undefined} className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500" alt="Post" onError={handleMediaError} />
+                <ProfileGridThumb
+                thumbUrl={gridPost.thumbUrl}
+                isVideo={gridPost.isVideo}
+                className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
+              />
                 <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center text-white gap-4 backdrop-blur-[2px]">
                   <div className="flex items-center gap-1 font-bold"><Heart className="w-5 h-5 fill-white" /> {gridPost.likes.toLocaleString()}</div>
                   <div className="flex items-center gap-1 font-bold"><MessageCircle className="w-5 h-5 fill-white" /> {gridPost.comments.toLocaleString()}</div>
@@ -893,7 +903,9 @@ export function ProfileScreen({
                   className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
                   muted
                   playsInline
+                  controls
                   preload="metadata"
+                  {...nativeVideoControlGuardProps()}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-muted-foreground">

@@ -9,8 +9,14 @@ export type LiveKind =
   | 'commerce'
   | 'game';
 
+export type PlatformRole = 'user' | 'streamer' | 'admin';
+
 export interface User {
   id: string;
+  role?: PlatformRole;
+  bannedAt?: number;
+  banReason?: string;
+  mutedUntil?: number;
   /** Public User ID (customizable on setup; changeable every 7 days in settings). */
   publicUserId?: string;
   /** Unix ms when publicUserId was last set or changed. */

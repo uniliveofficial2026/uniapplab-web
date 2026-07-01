@@ -5,11 +5,14 @@
   "packageManager": "pnpm@10.34.4",
   "scripts": {
     "preinstall": "sh -c 'rm -f package-lock.json yarn.lock; case \"$npm_config_user_agent\" in pnpm/*) ;; *) echo \"Use pnpm instead\" >&2; exit 1 ;; esac'",
-    "setup": "bash scripts/ensure-pnpm.sh",
+    "postinstall": "node scripts/ensure-live.mjs",
+    "setup": "bash scripts/ensure-pnpm.sh && node scripts/ensure-live.mjs",
     "build": "pnpm -r --filter \"./artifacts/instacollab\" --filter \"./artifacts/api-server\" --if-present run build",
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
-    "dev": "pnpm --filter @workspace/instacollab run dev",
+    "dev": "node scripts/live-sync.mjs",
+    "live": "node scripts/live-sync.mjs",
+    "ensure:live": "node scripts/ensure-live.mjs",
     "dev:mobile": "pnpm --filter @workspace/instacollab run dev:mobile",
     "mobile:preview": "pnpm --filter @workspace/instacollab run mobile:preview",
     "mobile:live": "pnpm --filter @workspace/instacollab run mobile:live",
@@ -20,7 +23,9 @@
     "oauth:setup": "pnpm --filter @workspace/instacollab run oauth:setup",
     "domains:setup": "node scripts/print-domains-setup.mjs",
     "git:push": "bash scripts/github-push.sh",
-    "git:clean-history": "bash scripts/reset-clean-main.sh --yes"
+    "git:clean-history": "bash scripts/reset-clean-main.sh --yes",
+    "deploy:vercel": "bash scripts/vercel-deploy.sh --prod",
+    "deploy:vercel:fast": "LIVE_SYNC_PREBUILT=1 bash scripts/vercel-deploy.sh --prod"
   },
   "private": true,
   "devDependencies": {

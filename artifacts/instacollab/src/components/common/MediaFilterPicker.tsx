@@ -1,10 +1,12 @@
 import React from 'react';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useResolvedMediaUrl } from '../../hooks/useResolvedMediaUrl';
 import {
   MEDIA_FILTER_PRESETS,
   type MediaFilterId,
-  mediaFilterEffectCss,
+  buildMediaFilterStyle,
 } from '../../lib/mediaFilters';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type PreviewMedia = {
   url: string;
@@ -14,6 +16,8 @@ type PreviewMedia = {
 type MediaFilterPickerProps = {
   value: string;
   onChange: (id: MediaFilterId) => void;
+  /** Live preview on the main editor canvas while hovering or touching a chip. */
+  onPreviewChange?: (id: MediaFilterId | null) => void;
   previewMedia?: PreviewMedia | null;
   brightness?: number;
   contrast?: number;
@@ -22,6 +26,7 @@ type MediaFilterPickerProps = {
 export function MediaFilterPicker({
   value,
   onChange,
+  onPreviewChange,
   previewMedia,
   brightness = 100,
   contrast = 100,
@@ -29,8 +34,10 @@ export function MediaFilterPicker({
   const scrollRef = React.useRef<HTMLDivElement>(null);
   const [scrollEdges, setScrollEdges] = React.useState({ atStart: true, atEnd: false });
   const activeId = (value || 'none') as MediaFilterId;
+  const resolvedPreviewUrl = useResolvedMediaUrl(previewMedia?.url);
   const hasVisualPreview =
-    !!previewMedia?.url &&
+    !!resolvedPreviewUrl &&
+    previewMedia &&
     (previewMedia.type === 'image' || previewMedia.type === 'video');
 
   const updateScrollEdges = React.useCallback(() => {
@@ -98,17 +105,29 @@ export function MediaFilterPicker({
         <div className="relative min-w-0 overflow-hidden">
           <div
             ref={scrollRef}
+            onPointerLeave={() => onPreviewChange?.(null)}
             className="flex gap-2 overflow-x-auto overflow-y-visible no-scrollbar py-2 px-1 md:px-0.5 scroll-smooth snap-x snap-mandatory scroll-px-2 md:scroll-px-1 min-h-[5.25rem] touch-pan-x overscroll-x-contain [-webkit-overflow-scrolling:touch]"
           >
             {MEDIA_FILTER_PRESETS.map((preset) => {
               const isActive = activeId === preset.id;
-              const chipFilter = mediaFilterEffectCss(preset.id, { preview: true });
+              const chipStyle = buildMediaFilterStyle(preset.id, {
+                brightness,
+                contrast,
+                preview: true,
+              });
 
               return (
                 <div key={preset.id} className="shrink-0 snap-start p-1">
                   <button
                     type="button"
-                    onClick={() => onChange(preset.id)}
+                    onClick={() => {
+                      onPreviewChange?.(null);
+                      onChange(preset.id);
+                    }}
+                    onPointerEnter={() => onPreviewChange?.(preset.id)}
+                    onPointerDown={() => onPreviewChange?.(preset.id)}
+                    onFocus={() => onPreviewChange?.(preset.id)}
+                    onBlur={() => onPreviewChange?.(null)}
                     aria-pressed={isActive}
                     className={`relative block w-[5.25rem] h-16 rounded-xl border-2 overflow-hidden font-bold text-[10px] transition-colors ${
                       isActive
@@ -119,25 +138,29 @@ export function MediaFilterPicker({
                     {hasVisualPreview ? (
                       previewMedia!.type === 'video' ? (
                         <video
-                          src={previewMedia!.url}
+                          src={resolvedPreviewUrl || undefined}
                           muted
+                          autoPlay
+                          loop
                           playsInline
-                          preload="metadata"
-                          className="absolute inset-0 h-full w-full object-cover pointer-events-none"
-                          style={{ filter: chipFilter }}
+                          controls
+                          preload="auto"
+                          className="absolute inset-0 h-full w-full object-cover"
+                          style={chipStyle}
+                          {...nativeVideoControlGuardProps()}
                         />
                       ) : (
                         <img
-                          src={previewMedia!.url}
+                          src={resolvedPreviewUrl || undefined}
                           alt=""
                           className="absolute inset-0 h-full w-full object-cover pointer-events-none"
-                          style={{ filter: chipFilter }}
+                          style={chipStyle}
                         />
                       )
                     ) : (
                       <div
                         className="absolute inset-0 bg-gradient-to-br from-zinc-700 to-zinc-900"
-                        style={{ filter: chipFilter }}
+                        style={chipStyle}
                       />
                     )}
                     <span className="absolute inset-x-0 bottom-2 z-10 px-1 text-center leading-tight text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">
@@ -172,12 +195,11 @@ export function MediaFilterPicker({
 
       {hasVisualPreview && (
         <p className="text-[10px] text-muted-foreground px-0.5">
-          Preview uses your current {previewMedia!.type === 'video' ? 'video' : 'photo'}.
-          Published posts use the same filter
+          Tap or hover a filter to preview live on your{' '}
+          {previewMedia!.type === 'video' ? 'video' : 'photo'}.
           {brightness !== 100 || contrast !== 100
-            ? ' plus brightness and contrast adjustments'
+            ? ' Brightness and contrast adjustments apply too.'
             : ''}
-          .
         </p>
       )}
     </div>

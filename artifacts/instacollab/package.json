@@ -10,7 +10,7 @@
     "dev:https": "DEV_HTTPS=true vite --config vite.config.ts --host 0.0.0.0",
     "dev:pwa": "VITE_PWA_DEV=true PWA_DEV=true vite --config vite.config.ts --host 0.0.0.0",
     "dev:pwa:https": "VITE_PWA_DEV=true DEV_HTTPS=true PWA_DEV=true vite --config vite.config.ts --host 0.0.0.0",
-    "build": "node scripts/write-public-supabase-config.mjs && node scripts/assert-vite-env.mjs && vite build --config vite.config.ts",
+    "build": "node scripts/write-public-supabase-config.mjs && node scripts/assert-vite-env.mjs && vite build --config vite.config.ts && node ../../scripts/write-live-version.mjs build",
     "serve": "vite preview --config vite.config.ts --host 0.0.0.0",
     "serve:https": "node scripts/free-port.mjs 4173 && DEV_HTTPS=true vite preview --config vite.config.ts --host 0.0.0.0",
     "mobile:preview": "pnpm run build && node scripts/free-port.mjs 4173 && DEV_HTTPS=true vite preview --config vite.config.ts --host 0.0.0.0",

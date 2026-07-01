@@ -14,6 +14,7 @@ import {
 import { BackgroundAudioPlayer } from '../common/BackgroundAudioPlayer';
 import { isPlayableAudioUrl } from '../../lib/audioMedia';
 import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import type { MediaFilterId } from '../../lib/mediaFilters';
 import { editorToolsForMode, type EditorToolTabId } from '../../lib/editorTools';
 import {
@@ -29,6 +30,7 @@ import {
 } from './storyDraft';
 import { StoryCaptionComposer } from './StoryCaptionComposer';
 import type { User } from '../../types';
+import { useResolvedMediaUrl } from '../../hooks/useResolvedMediaUrl';
 import {
   THEME_ADAPTIVE_TEXT_CLASS,
   resolveEditorTextColorClass,
@@ -55,14 +57,17 @@ type StoryDraftPreviewProps = {
   draft: StoryDraftMedia;
   frame?: 'fixed' | 'compact' | 'fluid' | 'fill';
   showCaptionPill?: boolean;
+  /** Live filter preview while browsing the filter strip (hover / touch). */
+  filterPreviewId?: MediaFilterId | null;
 };
 
 export function StoryDraftPreview({
   draft,
   frame = 'fluid',
   showCaptionPill = true,
+  filterPreviewId = null,
 }: StoryDraftPreviewProps) {
-  const filterStyle = storyDraftFilterStyle(draft);
+  const filterStyle = storyDraftFilterStyle(draft, filterPreviewId);
   const mediaAdjust = resolveDraftMediaAdjust(draft);
   const textExtras = resolveDraftTextExtras(draft);
   const soundtrackUrl =
@@ -70,6 +75,8 @@ export function StoryDraftPreview({
       ? draft.backgroundAudio.url
       : null;
   const overlay = (draft.textOverlay ?? '').trim();
+
+  const resolvedMediaUrl = useResolvedMediaUrl(!draft.isText ? draft.url : '');
 
   const isFillFrame = frame === 'fill';
   const isFixedFrame = frame === 'fixed' || frame === 'compact';
@@ -115,18 +122,20 @@ export function StoryDraftPreview({
         </div>
       ) : draft.isVideo ? (
         <video
-          src={draft.url}
+          src={resolvedMediaUrl || undefined}
           className={`${CREATE_EDITOR_PREVIEW_MEDIA} ${cropAspectClass(mediaAdjust.cropAspect)}`}
           style={filterStyle}
           autoPlay
           loop
           muted={!!soundtrackUrl}
           playsInline
+          controls
           preload="auto"
+          {...nativeVideoControlGuardProps()}
         />
       ) : (
         <img
-          src={draft.url}
+          src={resolvedMediaUrl || undefined}
           alt=""
           className={`${CREATE_EDITOR_PREVIEW_MEDIA} ${cropAspectClass(mediaAdjust.cropAspect)}`}
           style={filterStyle}
@@ -202,7 +211,12 @@ export function StoryCreatorEdit({
 }: StoryCreatorEditProps) {
   const isText = !!draft.isText;
   const [toolTab, setToolTab] = useState<EditorToolTabId>(isText ? 'font' : 'filters');
+  const [filterPreviewId, setFilterPreviewId] = useState<MediaFilterId | null>(null);
   const previewVideoRef = useRef<HTMLVideoElement>(null);
+
+  useEffect(() => {
+    setFilterPreviewId(null);
+  }, [draft.url, draft.filter, toolTab]);
 
   const patch = (partial: Partial<StoryDraftMedia>) => onChange({ ...draft, ...partial });
   const mediaAdjust = resolveDraftMediaAdjust(draft);
@@ -296,7 +310,11 @@ export function StoryCreatorEdit({
                 : null
             }
             filter={draft.filter ?? 'none'}
-            onFilterChange={(id: MediaFilterId) => patch({ filter: id })}
+            onFilterChange={(id: MediaFilterId) => {
+              setFilterPreviewId(null);
+              patch({ filter: id });
+            }}
+            onFilterPreview={setFilterPreviewId}
             mediaAdjust={mediaAdjust}
             onMediaAdjustChange={patchMediaAdjust}
             videoAdjust={videoAdjust}
@@ -353,6 +371,7 @@ export function StoryCreatorEdit({
             draft={draft}
             frame={previewFrame}
             showCaptionPill={false}
+            filterPreviewId={filterPreviewId}
           />
         </div>
         {editorTools}

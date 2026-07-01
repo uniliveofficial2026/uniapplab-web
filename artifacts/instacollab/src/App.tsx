@@ -10,6 +10,7 @@ import { appTabBackLabel } from './lib/karaokeReturnContext';
 import { Shell } from './components/layout/Shell';
 import type { SearchTab } from './components/search/SearchScreen';
 import { ScreenFallback } from './components/common/ScreenFallback';
+import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const ReelsScreen = lazy(() =>
   import('./components/reels/ReelsScreen').then((m) => ({ default: m.ReelsScreen }))
@@ -101,6 +102,14 @@ import {
   pauseAllPlayback,
 } from './lib/playbackAudio';
 import { pausePeerVideos } from './lib/playbackScope';
+import { openShareLink, parseShareLink } from './lib/shareLinks';
+import {
+  NAV_PERSIST_EVENT,
+  readInitialShellState,
+  readShellStateFromUrl,
+  writePersistedShellState,
+  type PersistedShellState,
+} from './lib/navigationRestore';
 
 function ToastListener() {
   const { showToast } = useToast();
@@ -120,15 +129,16 @@ function ToastListener() {
 }
 
 export default function App() {
-  const [currentTab, setCurrentTab] = useState<Tab>('home');
+  const initialShell = readInitialShellState();
+  const [currentTab, setCurrentTab] = useState<Tab>(initialShell.currentTab);
   const currentTabRef = useRef(currentTab);
   currentTabRef.current = currentTab;
-  const [initialChatId, setInitialChatId] = useState<string | null>(null);
+  const [initialChatId, setInitialChatId] = useState<string | null>(initialShell.initialChatId);
   const [initialSearchContext, setInitialSearchContext] = useState<{
     query?: string;
     tab?: SearchTab;
-  } | null>(null);
-  const [profileUserId, setProfileUserId] = useState<string | null>(null);
+  } | null>(initialShell.initialSearchContext);
+  const [profileUserId, setProfileUserId] = useState<string | null>(initialShell.profileUserId);
   const [globalPreviewUserId, setGlobalPreviewUserId] = useState<string | null>(null);
   const [globalStoryUserId, setGlobalStoryUserId] = useState<string | null>(null);
   const [history, setHistory] = useState<Array<{
@@ -137,8 +147,18 @@ export default function App() {
     initialChatId: string | null;
     initialSearchContext: { query?: string; tab?: SearchTab } | null;
   }>>([]);
-  const [roomsInitialPath, setRoomsInitialPath] = useState('/party');
+  const [roomsInitialPath, setRoomsInitialPath] = useState(initialShell.roomsInitialPath);
   const [roomsRouterKey, setRoomsRouterKey] = useState(0);
+  const deepLinkBootstrappedRef = useRef(false);
+  const applyingHistoryRef = useRef(false);
+  const shellSnapshotRef = useRef<PersistedShellState>(initialShell);
+  shellSnapshotRef.current = {
+    currentTab,
+    profileUserId,
+    initialChatId,
+    initialSearchContext,
+    roomsInitialPath,
+  };
   const db = useDB();
   const currentUser = useCurrentUser();
   const { configured: supabaseAuth, authReady } = useSupabaseAuth();
@@ -151,10 +171,68 @@ export default function App() {
   }, []);
 
   useEffect(() => {
+    if (applyingHistoryRef.current) return;
+    writePersistedShellState({
+      currentTab,
+      profileUserId,
+      initialChatId,
+      initialSearchContext,
+      roomsInitialPath,
+    });
+  }, [currentTab, profileUserId, initialChatId, initialSearchContext, roomsInitialPath]);
+
+  const applyShellState = (state: PersistedShellState) => {
+    applyingHistoryRef.current = true;
+    setCurrentTab(state.currentTab);
+    setProfileUserId(state.profileUserId);
+    setInitialChatId(state.initialChatId);
+    setInitialSearchContext(state.initialSearchContext);
+    setRoomsInitialPath(state.roomsInitialPath);
+    if (state.currentTab === 'rooms') {
+      setRoomsRouterKey((k) => k + 1);
+    }
+    applyingHistoryRef.current = false;
+  };
+
+  useEffect(() => {
+    const onPopState = () => {
+      const fromUrl = readShellStateFromUrl();
+      if (!fromUrl) return;
+      setHistory([]);
+      applyShellState(fromUrl);
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, []);
+
+  useEffect(() => {
+    const onPersist = () => {
+      writePersistedShellState(shellSnapshotRef.current);
+    };
+    window.addEventListener(NAV_PERSIST_EVENT, onPersist);
+    return () => window.removeEventListener(NAV_PERSIST_EVENT, onPersist);
+  }, []);
+
+  useEffect(() => {
     if (!import.meta.env.DEV || !shouldApplyDevSessionOverride(window.location.search)) return;
     if (supabaseAuth && !authReady) return;
     void applyDevSessionOverrideFromUrl();
   }, [authReady, supabaseAuth]);
+
+  /** Cold-start: ?tab=profile&profileTab=manage and other share URLs → K-Star / party / track. */
+  useEffect(() => {
+    if (deepLinkBootstrappedRef.current || launchRoute !== 'main') return;
+    const ref = parseShareLink(window.location.href);
+    if (!ref) return;
+    if (
+      ref.kind === 'karaoke-profile' ||
+      ref.kind === 'karaoke-track' ||
+      ref.kind === 'party'
+    ) {
+      deepLinkBootstrappedRef.current = true;
+      openShareLink(ref, db.users);
+    }
+  }, [launchRoute, db.users]);
 
   useEffect(() => {
     applyDocumentTheme(db.settings.theme === 'dark' ? 'dark' : 'light');
@@ -508,16 +586,20 @@ export default function App() {
     <ToastProvider>
       <ToastListener />
       <Shell currentTab={currentTab} setCurrentTab={handleTabChange} currentUser={currentUser}>
-        {renderContent()}
+        <ErrorBoundary key={`${currentTab}:${profileUserId ?? ''}:${initialChatId ?? ''}`}>
+          {renderContent()}
+        </ErrorBoundary>
       </Shell>
       <AnimatePresence>
         {globalPreviewUserId && (
-          <Suspense fallback={null}>
-            <UserProfilePreview
-              userId={globalPreviewUserId}
-              onClose={() => setGlobalPreviewUserId(null)}
-            />
-          </Suspense>
+          <ErrorBoundary>
+            <Suspense fallback={null}>
+              <UserProfilePreview
+                userId={globalPreviewUserId}
+                onClose={() => setGlobalPreviewUserId(null)}
+              />
+            </Suspense>
+          </ErrorBoundary>
         )}
       </AnimatePresence>
       {import.meta.env.DEV ? (
@@ -526,8 +608,9 @@ export default function App() {
         </Suspense>
       ) : null}
       {globalStoryUserId && (
-        <Suspense fallback={null}>
-          <StoryRing
+        <ErrorBoundary>
+          <Suspense fallback={null}>
+            <StoryRing
             story={{
               id: `story-${globalStoryUserId}`,
               user: findUserById(db.users, globalStoryUserId, db.currentUser),
@@ -538,8 +621,9 @@ export default function App() {
             hideRing={true}
             onClose={() => setGlobalStoryUserId(null)}
             isCurrentUser={globalStoryUserId === db.currentUser?.id}
-          />
-        </Suspense>
+            />
+          </Suspense>
+        </ErrorBoundary>
       )}
     </ToastProvider>
   );

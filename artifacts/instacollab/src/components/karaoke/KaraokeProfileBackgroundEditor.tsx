@@ -9,6 +9,7 @@ import {
   normalizeKaraokeProfileBackgroundFocus,
   panKaraokeProfileBackgroundByPixels,
 } from '../../lib/karaokeProfileBackground';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type KaraokeProfileBackgroundEditorProps = {
   draft: KaraokeProfileBackground;
@@ -215,8 +216,10 @@ export function KaraokeProfileBackgroundEditor({
                 muted
                 loop
                 playsInline
+                controls
                 preload="auto"
                 aria-label="Background video preview"
+                {...nativeVideoControlGuardProps()}
               />
             ) : (
               <img

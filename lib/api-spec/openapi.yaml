@@ -1,22 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
-  version: 0.1.0
-  description: API specification
+  version: 0.2.0
+  description: UniAppLab platform API
 servers:
   - url: /api
-    description: Base API path
-tags:
-  - name: health
-    description: Health operations
 paths:
   /healthz:
     get:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -24,13 +18,86 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /me:
+    get:
+      operationId: getMe
+      tags: [me]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Current user profile
+    patch:
+      operationId: patchMe
+      tags: [me]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Updated profile
+  /admin/users:
+    get:
+      operationId: adminListUsers
+      tags: [admin]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: User list
+  /wallet:
+    get:
+      operationId: getWallet
+      tags: [wallet]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Wallet balance
+  /wallet/transfer:
+    post:
+      operationId: transferWallet
+      tags: [wallet]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "200":
+          description: Transfer result
+  /chat/threads:
+    post:
+      operationId: createChatThread
+      tags: [chat]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201":
+          description: Thread created
+  /chat/messages:
+    post:
+      operationId: sendChatMessage
+      tags: [chat]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201":
+          description: Message sent
+  /stream/live:
+    get:
+      operationId: listLiveStreams
+      tags: [stream]
+      responses:
+        "200":
+          description: Live streams
+  /stream/start:
+    post:
+      operationId: startStream
+      tags: [stream]
+      security: [{ bearerAuth: [] }]
+      responses:
+        "201":
+          description: Stream started
 components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
   schemas:
     HealthStatus:
       type: object
       properties:
         status:
           type: string
-      required:
-        - status
-
+      required: [status]

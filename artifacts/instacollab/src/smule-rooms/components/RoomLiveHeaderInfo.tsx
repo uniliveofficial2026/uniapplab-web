@@ -32,7 +32,7 @@ export function RoomLiveHeaderInfo({
 
   return (
     <div
-      className={`flex min-w-0 max-w-[55%] items-center gap-1 rounded-full py-1 pl-1.5 pr-1.5 backdrop-blur-md sm:max-w-none ${className}`}
+      className={`party-glass-chip flex min-w-0 max-w-[55%] items-center gap-1 rounded-full py-1 pl-1.5 pr-1.5 sm:max-w-none ${className}`}
     >
       <div className="flex min-w-0 flex-1 items-center space-x-2 py-0.5 pr-1">
         <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md bg-blue-500 text-[10px] font-black italic text-white shadow-[0_0_8px_rgba(59,130,246,0.5)]">

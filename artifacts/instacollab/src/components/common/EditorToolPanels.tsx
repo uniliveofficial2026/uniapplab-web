@@ -42,6 +42,7 @@ export type EditorToolPanelsProps = {
   previewMedia?: { url: string; type: 'image' | 'video' } | null;
   filter: string;
   onFilterChange: (id: MediaFilterId) => void;
+  onFilterPreview?: (id: MediaFilterId | null) => void;
   mediaAdjust: MediaEditorAdjustments;
   onMediaAdjustChange: (patch: Partial<MediaEditorAdjustments>) => void;
   videoAdjust: VideoEditorAdjustments;
@@ -117,6 +118,7 @@ export function EditorToolPanels(props: EditorToolPanelsProps) {
     previewMedia,
     filter,
     onFilterChange,
+    onFilterPreview,
     mediaAdjust,
     onMediaAdjustChange,
     videoAdjust,
@@ -256,7 +258,14 @@ export function EditorToolPanels(props: EditorToolPanelsProps) {
 
       {activeTab === 'filters' && (
         <div className="w-full min-w-0 max-w-full">
-          <MediaFilterPicker value={filter as MediaFilterId} onChange={onFilterChange} previewMedia={previewMedia ?? null} brightness={mediaAdjust.brightness} contrast={mediaAdjust.contrast} />
+          <MediaFilterPicker
+            value={filter as MediaFilterId}
+            onChange={onFilterChange}
+            onPreviewChange={onFilterPreview}
+            previewMedia={previewMedia ?? null}
+            brightness={mediaAdjust.brightness}
+            contrast={mediaAdjust.contrast}
+          />
         </div>
       )}
 

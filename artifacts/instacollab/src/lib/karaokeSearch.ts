@@ -1,3 +1,4 @@
+import { getAppOrigin } from './domains/uniapplab';
 import type { KaraokeLibrarySong } from '../components/karaoke/karaokeTypes';
 import { metaToLibrarySong, type KaraokeUploadedSongMeta } from './karaokeUploads';
 import type { KaraokeCoverRecordingMeta } from './karaokeRecordings';
@@ -281,7 +282,7 @@ export function syncKaraokeUrl(patch: KaraokeUrlParams, mode: 'replace' | 'push'
 /** Build a shareable karaoke deep link without mutating browser history. */
 export function buildKaraokeShareUrl(
   patch: KaraokeUrlParams,
-  baseHref: string = typeof window !== 'undefined' ? window.location.href : 'https://instacollab.app/',
+  baseHref: string = typeof window !== 'undefined' ? window.location.href : `${getAppOrigin()}/karaoke`,
 ): string {
   const url = new URL(baseHref);
   const entries: [keyof KaraokeUrlParams, string | null | undefined][] = [

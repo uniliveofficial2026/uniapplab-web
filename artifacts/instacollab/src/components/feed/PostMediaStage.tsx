@@ -1,7 +1,8 @@
 import React from 'react';
-import { Heart, VolumeX, Volume2, Maximize2, ChevronLeft, ChevronRight, Music } from 'lucide-react';
+import { Heart, ChevronLeft, ChevronRight, Music } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Post as PostType } from '../../types';
+import { useResolvedMediaUrl } from '../../hooks/useResolvedMediaUrl';
 import {
   getFontClass,
   getAlignClass,
@@ -15,9 +16,9 @@ import { resolvePostDisplayMedia } from '../../lib/safe';
 import { resolveEditorSoundtrackUrl } from '../../lib/audioMedia';
 import { MediaWithSoundtrack } from '../common/MediaWithSoundtrack';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
-import { PLAYBACK_PRIORITY, setPlaybackIntent } from '../../lib/playbackAudio';
+import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
 import { buildMediaFilterStyle } from '../../lib/mediaFilters';
-import { postPlaybackId } from '../../lib/postPlayback';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type ResolvedPost = ReturnType<typeof import('../../lib/entityResolve').resolvePost>;
 
@@ -74,6 +75,16 @@ export function PostMediaStage({
   deferVideoTapToParent = false,
 }: PostMediaStageProps) {
   const playbackPostId = playbackPostIdProp ?? livePost.id;
+  const displayMedia = !isTextPost ? resolvePostDisplayMedia(post, currentMediaIdx) : null;
+  const resolvedMediaUrl = useResolvedMediaUrl(displayMedia?.url);
+  const resolvedPosterUrl = useResolvedMediaUrl(displayMedia?.posterUrl);
+  const isVideoSlide =
+    !!displayMedia &&
+    displayMedia.type === 'video' &&
+    !videoError &&
+    !displayMedia.showAsImage &&
+    !!(resolvedMediaUrl || displayMedia.url);
+
   const mediaFitClass =
     mediaObjectFit === 'contain' ? 'object-contain' : 'object-cover';
   const renderMediaContent = () => {
@@ -101,41 +112,46 @@ export function PostMediaStage({
       );
     }
 
+    const displayMediaResolved = displayMedia!;
     const style = buildMediaFilterStyle(post.filter, {
       brightness: post.brightness,
       contrast: post.contrast,
     });
 
-    const displayMedia = resolvePostDisplayMedia(post, currentMediaIdx);
+    const posterSrc = resolvedPosterUrl || displayMediaResolved.posterUrl || '';
     const imageSrc =
-      displayMedia.type === 'video' || videoError || displayMedia.showAsImage
-        ? displayMedia.posterUrl
-        : displayMedia.url;
-    const showVideo =
-      displayMedia.type === 'video' && !videoError && !displayMedia.showAsImage;
+      displayMediaResolved.type === 'video' || videoError || displayMediaResolved.showAsImage
+        ? posterSrc
+        : resolvedMediaUrl || displayMediaResolved.url;
+    const showVideo = isVideoSlide;
     const soundtrackUrl = resolveEditorSoundtrackUrl(
       livePost.audioUrl,
-      displayMedia.type
+      displayMediaResolved.type
     );
 
     if (showVideo) {
       return (
         <MediaWithSoundtrack
-          className="relative w-full h-full"
-          style={{
-            backgroundImage: `url(${displayMedia.posterUrl})`,
-            backgroundSize: 'cover',
-            backgroundPosition: 'center',
-          }}
+          className="relative w-full h-full bg-black"
+          style={
+            posterSrc
+              ? {
+                  backgroundImage: `url(${posterSrc})`,
+                  backgroundSize: 'cover',
+                  backgroundPosition: 'center',
+                }
+              : undefined
+          }
         >
           <video
             data-playback-scope={PLAYBACK_SCOPE.MANAGED}
             ref={videoRef}
-            src={displayMedia.url}
-            poster={displayMedia.posterUrl}
-            data-poster={displayMedia.posterUrl}
+            src={resolvedMediaUrl || displayMediaResolved.url || undefined}
+            poster={posterSrc || undefined}
+            data-poster={posterSrc || undefined}
             loop={loopCarouselItem}
             playsInline
+            controls
             muted={soundtrackUrl ? true : globalMuted}
             onEnded={loopCarouselItem ? undefined : onNextCarouselItem}
             onVolumeChange={(e) => {
@@ -151,72 +167,16 @@ export function PostMediaStage({
               e.stopPropagation();
               onOpenFullscreen();
             }}
-            onClick={(e) => {
-              const rect = e.currentTarget.getBoundingClientRect();
-              const clickY = e.clientY - rect.top;
-              if (clickY > rect.height - 60) {
-                e.stopPropagation();
-                return;
-              }
-              if (deferVideoTapToParent) {
-                return;
-              }
-              e.stopPropagation();
-              const v = videoRef.current;
-              if (!v) return;
-              const videoPlaybackId = postPlaybackId(playbackPostId, 'video');
-              if (v.paused) {
-                setPlaybackIntent(
-                  videoPlaybackId,
-                  postAudioIntentKey,
-                  postAudioPriority,
-                  true
-                );
-              } else {
-                setPlaybackIntent(
-                  videoPlaybackId,
-                  postAudioIntentKey,
-                  postAudioPriority,
-                  false
-                );
-                v.pause();
-              }
-            }}
-            controls
+            {...nativeVideoControlGuardProps()}
             preload="auto"
             style={style}
             className={`w-full h-full ${mediaFitClass} z-10 bg-black/30`}
           />
-          {!hideVideoControls && (
-            <div className="absolute bottom-4 right-4 z-20 flex gap-2">
-              <button
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onOpenFullscreen(e);
-                }}
-                className="p-2.5 bg-black/60 hover:bg-black/80 rounded-full text-white transition-all shadow-md active:scale-95"
-                title="Fullscreen"
-              >
-                <Maximize2 className="w-4 h-4" />
-              </button>
-              <button
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onSetGlobalMuted(!globalMuted);
-                }}
-                className="p-2.5 bg-black/60 hover:bg-black/80 rounded-full text-white transition-all shadow-md active:scale-95"
-                title={globalMuted ? 'Unmute' : 'Mute'}
-              >
-                {globalMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
-              </button>
-            </div>
-          )}
         </MediaWithSoundtrack>
       );
     }
 
-    if (displayMedia.type === 'audio') {
+    if (displayMediaResolved.type === 'audio') {
       const audioList = post.mediaList || [];
       const audioItem = audioList[currentMediaIdx];
       return (
@@ -230,10 +190,10 @@ export function PostMediaStage({
           </div>
           <p className="font-bold text-xs text-center mb-1 max-w-[240px] truncate">{audioItem?.name || 'Audio Track'}</p>
           <p className="text-[10px] text-muted-foreground mb-3 font-mono">Audio Track</p>
-          {displayMedia.url ? (
+          {resolvedMediaUrl || displayMediaResolved.url ? (
             <audio
               ref={carouselAudioRef}
-              src={displayMedia.url}
+              src={resolvedMediaUrl || undefined}
               controls
               loop={loopCarouselItem}
               onEnded={loopCarouselItem ? undefined : onNextCarouselItem}
@@ -249,7 +209,7 @@ export function PostMediaStage({
     return (
       <MediaWithSoundtrack className="relative w-full h-full">
         <img
-          src={imageSrc}
+          src={imageSrc || undefined}
           alt="Post content"
           style={style}
           className={`w-full h-full ${mediaFitClass} group-hover:scale-[1.02] transition-transform duration-500 z-10 pointer-events-none`}

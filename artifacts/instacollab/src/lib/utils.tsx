@@ -4,6 +4,20 @@ import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { User } from '../types';
 import { safeUserId } from './safe';
+import { isUserOwnedMediaUrl } from './appMediaStore';
+
+export {
+  detectMediaKind,
+  processUploadFile,
+  processUploadFileAsUrl,
+  resolveAppMediaUrlSync,
+  hydrateAppMediaUrl,
+  warmAppMediaCache,
+  initAppMediaStore,
+  scheduleWarmAppMediaCache,
+  isAppMediaRef,
+  isUserOwnedMediaUrl,
+} from './appMediaStore';
 
 export { formatContentDateTime, formatContentTimeAgo, parseContentTimestamp, contentTimestampIso, formatRepostedDateTime, formatPostedDateTime } from './contentTime';
 
@@ -131,8 +145,6 @@ export function handleAvatarError(e: React.SyntheticEvent<HTMLImageElement, Even
 
 const FALLBACK_POSTER =
   'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&fit=crop';
-const FALLBACK_VIDEO =
-  'https://storage.googleapis.com/gtv-videos-bucket/sample/ForBiggerJoyrides.mp4';
 
 function applyVideoPosterBackground(
   target: HTMLVideoElement,
@@ -159,66 +171,53 @@ export function handleMediaError(e: React.SyntheticEvent<HTMLImageElement | HTML
   if (isVideo) {
     const video = target as HTMLVideoElement;
     const src = video.currentSrc || video.src || '';
-    if (src.startsWith('data:') || src.startsWith('blob:')) {
-      video.onerror = null;
-      video.pause();
-      video.removeAttribute('src');
-      video.load();
-      video.style.display = 'none';
-      return;
-    }
+    video.onerror = null;
+
     const poster =
       video.getAttribute('data-poster') ||
       video.poster ||
-      FALLBACK_POSTER;
-    applyVideoPosterBackground(video, poster);
+      (isUserOwnedMediaUrl(src) ? '' : FALLBACK_POSTER);
 
-    const retry = video.getAttribute('data-media-fallback');
-    if (retry === 'done') {
-      video.onerror = null;
-      video.removeAttribute('src');
-      video.style.display = 'none';
+    if (poster) {
+      applyVideoPosterBackground(video, poster);
+    }
+
+    if (isUserOwnedMediaUrl(src)) {
+      video.pause();
       return;
     }
 
-    if (retry === '1') {
-      video.setAttribute('data-media-fallback', 'done');
-      video.onerror = null;
-      video.removeAttribute('src');
-      video.style.display = 'none';
-      return;
-    }
-
-    video.setAttribute('data-media-fallback', '1');
-    video.onerror = null;
-
-    if (video.src && !video.src.includes('ForBiggerJoyrides.mp4')) {
-      video.src = FALLBACK_VIDEO;
-      try {
-        video.muted = true;
-        video.defaultMuted = true;
+    if (video.getAttribute('data-media-fallback') === '1') {
+      video.pause();
+      if (poster) {
+        video.removeAttribute('src');
         video.load();
-        video.play().catch(() => {
-          video.style.display = 'none';
-        });
-      } catch {
-        video.style.display = 'none';
       }
       return;
     }
 
-    video.style.display = 'none';
+    video.setAttribute('data-media-fallback', '1');
+    if (poster) {
+      video.removeAttribute('src');
+      video.load();
+    }
     return;
   }
 
   const img = target as HTMLImageElement;
-  if (img.getAttribute('data-media-fallback') === '1') {
-    img.onerror = null;
+  const src = img.currentSrc || img.src || '';
+  img.onerror = null;
+
+  if (isUserOwnedMediaUrl(src)) {
     return;
   }
+
+  if (img.getAttribute('data-media-fallback') === '1') {
+    return;
+  }
+
   img.setAttribute('data-media-fallback', '1');
-  img.onerror = null;
-  img.src = FALLBACK_POSTER;
+  // Do not swap failed loads with stock placeholder images.
 }
 
 export function fileToBase64(file: File | Blob): Promise<string> {

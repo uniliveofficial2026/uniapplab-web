@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from 'motion/react';
 import type { User, ChatGroup, ChatMessage } from '../../types';
 import { handleAvatarError, handleMediaError } from '../../lib/utils';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { ChatInlineVideo } from './ChatInlineVideo';
 import type { FullscreenMediaState } from './messages/types';
 
@@ -415,12 +416,14 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                                 <video
                                   data-playback-scope={PLAYBACK_SCOPE.AMBIENT}
                                   src={item.value}
-                                  className="w-full h-full object-cover"
+                                  className="w-full h-full object-cover pointer-events-auto"
                                   muted
                                   loop
                                   autoPlay
                                   playsInline
+                                  controls
                                   preload="metadata"
+                                  {...nativeVideoControlGuardProps()}
                                 />
                               ) : (
                                 <img src={item.value} alt={item.label} className="w-full h-full object-cover" />

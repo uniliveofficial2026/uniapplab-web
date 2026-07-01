@@ -1,0 +1,11 @@
+# Upload source only — Vercel runs `pnpm install` + `pnpm build` remotely.
+# Root vercel.monorepo.json is for a future monorepo-at-root project (api + app).
+vercel.monorepo.json
+node_modules
+.git
+.tmp
+.vercel/output
+**/.DS_Store
+**/._*
+**/*.map
+**/dist

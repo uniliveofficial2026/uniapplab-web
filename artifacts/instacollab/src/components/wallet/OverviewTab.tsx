@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { useDB } from '../../lib/useDB';
+import { useDB, useDbRevision } from '../../lib/useDB';
+import { useCurrentUser } from '../../lib/useCurrentUser';
 import { 
   Coins, 
   DollarSign, 
@@ -23,7 +24,7 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
-import { loadWalletCoinsBalance } from '../../lib/walletKstarSync';
+import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 
 interface OverviewTabProps {
   cryptoPrices: { BTC: number; ETH: number; SOL: number };
@@ -32,6 +33,8 @@ interface OverviewTabProps {
 
 export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   const db = useDB();
+  useDbRevision();
+  const appUser = useCurrentUser();
   const chartTheme = useRechartsTheme();
   const [isLoading, setIsLoading] = React.useState(true);
   
@@ -41,8 +44,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
     return () => clearTimeout(timer);
   }, []);
   
-  // High fidelity default states
-  const coinsBalance = loadWalletCoinsBalance();
+  const coinsBalance = useLiveCoinsBalance(appUser.id);
   const cashBalance = db.load('cash_balance', 180.50);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
   const transactions = db.load('wallet_transactions', [

@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useState, useRef, useSyncExternalStore, type RefObject } from 'react';
+import React, { useCallback, useEffect, useLayoutEffect, useState, useRef, useSyncExternalStore, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'motion/react';
 import { Pencil } from 'lucide-react';
@@ -51,6 +51,21 @@ export function ThoughtBubbleShell({
   const [cycleKey, setCycleKey] = useState(0);
   const fontSizeClass = noteTypography(noteText.length);
 
+  useEffect(() => {
+    setIntroDone(instant);
+    setCycleKey((key) => key + 1);
+  }, [noteText, instant]);
+
+  useEffect(() => {
+    if (instant) {
+      setIntroDone(true);
+      return;
+    }
+    const ms = (BODY_DELAY_S + 0.4) * 1000;
+    const timer = window.setTimeout(() => setIntroDone(true), ms);
+    return () => window.clearTimeout(timer);
+  }, [cycleKey, instant]);
+
   const handleLoopRestart = useCallback(() => {
     if (instant) return;
     setCycleKey((key) => key + 1);
@@ -67,27 +82,28 @@ export function ThoughtBubbleShell({
 
   return (
     <div
-      role="button"
-      tabIndex={0}
-      aria-label={`View thought: ${noteText}`}
-      onPointerDown={(e) => e.stopPropagation()}
-      onClick={(e) => {
-        e.stopPropagation();
-        e.preventDefault();
-        onOpen();
-      }}
-      onKeyDown={(e) => {
-        if (e.key === 'Enter' || e.key === ' ') {
+      className={`${introDone ? 'thought-bubble-living' : ''} ${className}`}
+      style={style}
+    >
+      <div
+        role="button"
+        tabIndex={0}
+        aria-label={`View thought: ${noteText}`}
+        onPointerDown={(e) => e.stopPropagation()}
+        onClick={(e) => {
           e.stopPropagation();
           e.preventDefault();
           onOpen();
-        }
-      }}
-      className={`w-[64px] h-[42px] origin-bottom-left cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 ${
-        introDone ? 'thought-bubble-living' : ''
-      } ${className}`}
-      style={style}
-    >
+        }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter' || e.key === ' ') {
+            e.stopPropagation();
+            e.preventDefault();
+            onOpen();
+          }
+        }}
+        className="thought-bubble-interactive relative h-[42px] w-[64px] origin-bottom-left cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
+      >
       {/* Tail nearest avatar — emerges first */}
       <motion.div
         key={`thought-tail-2-${cycleKey}`}
@@ -129,13 +145,11 @@ export function ThoughtBubbleShell({
           startDelay={instant ? 0 : TYPING_START_DELAY_MS}
           pauseAfterTypeMs={3400}
           pauseBeforeRestartMs={650}
-          onComplete={() => {
-            if (!instant) setIntroDone(true);
-          }}
           onLoopRestart={handleLoopRestart}
           className={`relative z-10 px-1 whitespace-normal break-words drop-shadow-md dark:drop-shadow-none text-center w-full leading-[1.05] font-black ${fontSizeClass}`}
         />
       </motion.div>
+      </div>
     </div>
   );
 }

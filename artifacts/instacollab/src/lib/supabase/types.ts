@@ -1,3 +1,5 @@
+export type PlatformRole = 'user' | 'streamer' | 'admin';
+
 export type ProfileRow = {
   id: string;
   username: string;
@@ -8,6 +10,10 @@ export type ProfileRow = {
   /** User-chosen public ID (letters, numbers, underscores). */
   public_user_id?: string | null;
   public_user_id_changed_at?: string | null;
+  role?: PlatformRole;
+  banned_at?: string | null;
+  ban_reason?: string | null;
+  muted_until?: string | null;
   created_at?: string;
   updated_at?: string;
 };

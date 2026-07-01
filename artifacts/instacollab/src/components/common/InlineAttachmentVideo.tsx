@@ -2,6 +2,7 @@ import { useRef, type ReactEventHandler } from 'react';
 import { useDB } from '../../lib/useDB';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
 import { useInlineVideoVisibility } from '../../lib/useInlineVideoVisibility';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type InlineAttachmentVideoProps = {
   src: string;
@@ -48,6 +49,7 @@ export function InlineAttachmentVideo({
           db.setGlobalMuted(e.currentTarget.muted);
         }}
         onError={onError}
+        {...nativeVideoControlGuardProps()}
         className={videoClassName}
       />
     </div>

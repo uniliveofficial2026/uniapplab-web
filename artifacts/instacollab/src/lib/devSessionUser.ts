@@ -4,6 +4,7 @@ import { enableDevLocalAuthBypass } from './auth/devLocalAuth';
 import { logDevActivity } from './devActivity';
 import { db } from './db/localDb';
 import { findUserById } from './safe';
+import { isForceDemoSession, isUnifiedLiveMode } from './unifiedLive';
 
 const DEVICE_USER_STORAGE_KEY = 'instacollab_dev_device_user';
 
@@ -63,6 +64,7 @@ export function resolveDevSessionUserId(hostname: string, search: string, users:
 /** Apply dev account override only when skipping launch (?launch=main) or ?as= is set. */
 export function shouldApplyDevSessionOverride(search: string): boolean {
   if (!import.meta.env.DEV) return false;
+  if (isUnifiedLiveMode() && !isForceDemoSession(search)) return false;
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   if (params.get('as') || params.get('user') || params.get('login')) return true;
   return params.get('launch') === 'main';

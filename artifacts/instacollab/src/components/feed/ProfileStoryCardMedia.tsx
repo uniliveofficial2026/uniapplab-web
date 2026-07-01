@@ -2,6 +2,7 @@ import React from 'react';
 import type { StoryDraftMedia } from '../stories/storyDraft';
 import { handleAvatarError } from '../../lib/utils';
 import { getStorySegmentPreviewUrl, pickStoryCardPreviewSegment } from '../../lib/storyPreview';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type ProfileStoryCardMediaProps = {
   segments: StoryDraftMedia[];
@@ -57,9 +58,11 @@ export function ProfileStoryCardMedia({
           playsInline
           autoPlay
           loop
+          controls
           preload="metadata"
           className="profile-story-card-media-el"
           aria-label={alt}
+          {...nativeVideoControlGuardProps()}
         />
       </div>
     );

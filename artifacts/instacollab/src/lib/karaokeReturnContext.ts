@@ -49,7 +49,7 @@ export function appTabBackLabel(tab: Tab): string {
     case 'home':
       return 'Feed';
     case 'search':
-      return 'Search';
+      return 'Explore';
     case 'reels':
       return 'Reels';
     case 'messages':

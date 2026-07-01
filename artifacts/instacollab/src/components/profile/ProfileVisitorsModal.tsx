@@ -23,6 +23,7 @@ import {
 } from '../../lib/profileVisits';
 import type { ProfileVisitSurface } from '../../types';
 import { handleMediaError } from '../../lib/utils';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { LIVE_KIND_LABELS } from '../../lib/liveRing';
 
 export function formatVisitTime(ts: number, now = Date.now()): string {
@@ -461,8 +462,10 @@ export function ProfileVisitorsModal({
                               className="w-full h-full object-cover"
                               muted
                               playsInline
+                              controls
                               preload="metadata"
                               onError={handleMediaError}
+                              {...nativeVideoControlGuardProps()}
                             />
                           ) : (
                             <img

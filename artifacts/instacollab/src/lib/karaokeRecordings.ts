@@ -51,11 +51,19 @@ const MEDIA_STORE = 'media';
 
 const mediaUrlCache = new Map<string, string>();
 
-function assignMissingRecordingPerformers(
+function applyMissingRecordingPerformersInMemory(
   list: KaraokeCoverRecordingMeta[],
 ): KaraokeCoverRecordingMeta[] {
   const ownerId = getKaraokeUploadOwnerUserId();
   if (!ownerId) return list;
+  return list.map((row) =>
+    row.performerUserId ? row : { ...row, performerUserId: ownerId },
+  );
+}
+
+function persistMissingRecordingPerformers(list: KaraokeCoverRecordingMeta[]): void {
+  const ownerId = getKaraokeUploadOwnerUserId();
+  if (!ownerId) return;
   let changed = false;
   const next = list.map((row) => {
     if (row.performerUserId) return row;
@@ -63,11 +71,18 @@ function assignMissingRecordingPerformers(
     return { ...row, performerUserId: ownerId };
   });
   if (changed) db.save(DB_KEY, next);
-  return next;
 }
 
 function readMetaList(): KaraokeCoverRecordingMeta[] {
-  return assignMissingRecordingPerformers(db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []));
+  return applyMissingRecordingPerformersInMemory(
+    db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []),
+  );
+}
+
+/** One-time performer backfill — call from effects / session bootstrap only. */
+export function ensureKaraokeRecordingsHydrated(): void {
+  const fromDb = db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []);
+  persistMissingRecordingPerformers(fromDb);
 }
 
 function writeMetaList(

@@ -5,18 +5,14 @@ import { ShareIcon } from '../common/ShareIcon';
 import { User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
 import {
-  fileToBase64,
   THEME_ADAPTIVE_TEXT_CLASS,
   THEME_OVERLAY_COLOR,
   normalizeEditorTextColorForSave,
   normalizeOverlayColorForSave,
+  processUploadFile,
 } from '../../lib/utils';
 import { type CustomAudioSelection } from '../common/AudioTrackPicker';
-import {
-  captureVideoPosterFrame,
-  extractAudioCoverFromFile,
-  type MediaListItem,
-} from '../../lib/mediaCoverArt';
+import type { MediaListItem } from '../../lib/mediaCoverArt';
 import type { EditorToolTabId } from '../../lib/editorTools';
 import {
   DEFAULT_MEDIA_EDITOR_ADJUSTMENTS,
@@ -161,20 +157,13 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
     try {
       const newList = [...uploadedMediaList];
       for (const file of files) {
-        const base64 = await fileToBase64(file);
-        let type: 'image' | 'video' | 'audio' = 'image';
-        if (file.type.startsWith('video/') || /\.(mp4|mov|webm|ogg|m4v|avi|wmv)$/i.test(file.name)) {
-          type = 'video';
-        } else if (file.type.startsWith('audio/') || /\.(mp3|wav|ogg|aac|m4a|flac)$/i.test(file.name)) {
-          type = 'audio';
-        }
-        let coverUrl: string | undefined;
-        if (type === 'audio') {
-          coverUrl = await extractAudioCoverFromFile(file);
-        } else if (type === 'video') {
-          coverUrl = await captureVideoPosterFrame(base64);
-        }
-        newList.push({ url: base64, type, name: file.name, coverUrl });
+        const uploaded = await processUploadFile(file);
+        newList.push({
+          url: uploaded.url,
+          type: uploaded.type,
+          name: uploaded.name,
+          coverUrl: uploaded.coverUrl,
+        });
       }
       if (newList.length > 0) {
         setUploadedMediaList(newList);
@@ -287,6 +276,7 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
           'Original Audio - ' + currentUser.username,
         audioCoverUrl: publishedAudioCoverUrl,
         videoUrl: fallbackUrl,
+        imageUrl: fallbackItem?.coverUrl || publishedAudioCoverUrl || '',
         createdAt: new Date().toISOString(),
         filter,
         brightness,
@@ -306,7 +296,9 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
       db.addPost({
         id: newId,
         user: currentUser,
-        imageUrl: !fallbackIsVideo ? fallbackUrl : '',
+        imageUrl: !fallbackIsVideo
+          ? fallbackUrl
+          : fallbackItem?.coverUrl || publishedAudioCoverUrl || '',
         videoUrl: fallbackIsVideo ? fallbackUrl : '',
         audioUrl: resolvePublishedAudioUrl(fallbackIsAudio, fallbackUrl),
         audioCoverUrl: publishedAudioCoverUrl,

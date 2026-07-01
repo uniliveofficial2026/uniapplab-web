@@ -80,30 +80,47 @@ function migrateLegacyLocalStorageToDb(): void {
   db.save(DB_KEY, legacy);
 }
 
-function assignMissingUploadOwners(songs: KaraokeUploadedSongMeta[]): KaraokeUploadedSongMeta[] {
+/** In-memory owner backfill — safe during React render (never writes). */
+function applyMissingUploadOwnersInMemory(
+  songs: KaraokeUploadedSongMeta[],
+): KaraokeUploadedSongMeta[] {
   const ownerId = getKaraokeUploadOwnerUserId();
   if (!ownerId) return songs;
+  return songs.map((song) =>
+    song.ownerUserId ? song : { ...song, ownerUserId: ownerId },
+  );
+}
+
+function persistMissingUploadOwners(songs: KaraokeUploadedSongMeta[]): void {
+  const ownerId = getKaraokeUploadOwnerUserId();
+  if (!ownerId) return;
   let changed = false;
   const next = songs.map((song) => {
     if (song.ownerUserId) return song;
     changed = true;
     return { ...song, ownerUserId: ownerId };
   });
-  if (changed) {
-    db.save(DB_KEY, next);
-    try {
-      localStorage.setItem(META_KEY, JSON.stringify(next));
-    } catch {
-      /* quota */
-    }
+  if (!changed) return;
+  db.save(DB_KEY, next);
+  try {
+    localStorage.setItem(META_KEY, JSON.stringify(next));
+  } catch {
+    /* quota */
   }
-  return next;
 }
 
 function readMetaList(): KaraokeUploadedSongMeta[] {
+  const fromDb = db.load<KaraokeUploadedSongMeta[]>(DB_KEY, []);
+  return applyMissingUploadOwnersInMemory([...fromDb]).sort(
+    (a, b) => b.uploadedAt - a.uploadedAt,
+  );
+}
+
+/** One-time legacy migration + owner backfill — call from effects / session bootstrap only. */
+export function ensureKaraokeUploadsHydrated(): void {
   migrateLegacyLocalStorageToDb();
   const fromDb = db.load<KaraokeUploadedSongMeta[]>(DB_KEY, []);
-  return assignMissingUploadOwners([...fromDb]).sort((a, b) => b.uploadedAt - a.uploadedAt);
+  persistMissingUploadOwners(fromDb);
 }
 
 function writeMetaList(

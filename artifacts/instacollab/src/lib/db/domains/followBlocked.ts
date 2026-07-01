@@ -136,13 +136,21 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
     private syncIsFollowingFromGraph() {
       const meId = this.asLocalDB().currentUserId;
       const following = new Set(this.getFollowingIds(meId));
-      const updated = this.asLocalDB().users.map((u) => {
+      const users = this.asLocalDB().users;
+      let changed = false;
+      const updated = users.map((u) => {
         if (!u?.id || u.id === meId) {
+          if (!('isFollowing' in u)) return u;
+          changed = true;
           const { isFollowing: _removed, ...rest } = u;
           return rest;
         }
-        return { ...u, isFollowing: following.has(u.id) };
+        const shouldFollow = following.has(u.id);
+        if (u.isFollowing === shouldFollow) return u;
+        changed = true;
+        return { ...u, isFollowing: shouldFollow };
       });
+      if (!changed) return;
       this.save('users', updated);
     }
 

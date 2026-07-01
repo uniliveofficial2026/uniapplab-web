@@ -33,22 +33,10 @@ export function registerAppServiceWorker() {
       window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
     },
     onNeedRefresh() {
-      window.dispatchEvent(new CustomEvent('pwa-need-refresh'));
+      // Invisible: never reload or show update UI — new build applies on next visit.
     },
-    onRegistered(registration) {
-      if (!registration) return;
-      const interval = window.setInterval(() => {
-        void registration.update();
-      }, 60 * 60 * 1000);
-      registration.addEventListener('updatefound', () => {
-        const worker = registration.installing;
-        worker?.addEventListener('statechange', () => {
-          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
-            window.dispatchEvent(new CustomEvent('pwa-need-refresh'));
-          }
-        });
-      });
-      window.addEventListener('beforeunload', () => window.clearInterval(interval));
+    onRegistered() {
+      // No background update polling — avoids mid-session takeover / reload.
     },
   });
 }

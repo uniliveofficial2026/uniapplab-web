@@ -7,6 +7,7 @@ export type LaunchRoute =
   | 'auth'
   | 'profile_setup'
   | 'trending'
+  | 'banned'
   | 'main';
 
 /** Logged-in user who already finished profile and/or trending — skip marketing funnel. */
@@ -14,10 +15,17 @@ export function isReturningLaunchUser(progress: LaunchProgress, isLoggedIn: bool
   return isLoggedIn && (progress.profileSetupComplete || progress.hasSeenTrending);
 }
 
+export function isUserBanned(db: LocalDB): boolean {
+  const me = db.currentUser;
+  return Boolean(me?.bannedAt && me.bannedAt > 0);
+}
+
 export function resolveLaunchRoute(
   progress: LaunchProgress,
-  isLoggedIn: boolean
+  isLoggedIn: boolean,
+  db?: LocalDB,
 ): LaunchRoute {
+  if (db && isLoggedIn && isUserBanned(db)) return 'banned';
   if (isReturningLaunchUser(progress, isLoggedIn)) return 'main';
 
   if (!progress.hasSeenSplash) return 'splash';
@@ -38,5 +46,5 @@ export function healLaunchProgressForReturningUser(db: LocalDB): void {
 }
 
 export function readLaunchRoute(db: LocalDB): LaunchRoute {
-  return resolveLaunchRoute(db.getLaunchProgress(), db.isLoggedIn);
+  return resolveLaunchRoute(db.getLaunchProgress(), db.isLoggedIn, db);
 }

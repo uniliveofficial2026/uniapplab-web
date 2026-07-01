@@ -3,6 +3,7 @@ import { ImagePlus } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64 } from '../../lib/utils';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 const SIZE_CLASS = {
   sm: 'h-16 w-16 text-lg',
@@ -82,7 +83,9 @@ export function LaunchBrandMark({
         muted
         loop
         playsInline
+        controls
         aria-label="App logo"
+        {...nativeVideoControlGuardProps()}
       />
     ) : (
       <img src={logoUrl} alt="InstaCollab" className="h-full w-full object-contain p-1" />

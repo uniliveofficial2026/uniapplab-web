@@ -40,6 +40,7 @@ import { MediaWithSoundtrack } from '../common/MediaWithSoundtrack';
 import { PLAYBACK_PRIORITY, resetPlaybackMedia } from '../../lib/playbackAudio';
 import { reelPlaybackId, resetReelPlayback } from '../../lib/reelPlayback';
 import { buildMediaFilterStyle } from '../../lib/mediaFilters';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { useExclusivePlayback } from '../../lib/useExclusivePlayback';
 import {
   useFullscreenOpenGuard,
@@ -321,7 +322,6 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
     !isContentFullscreen &&
     !mediaOverlayLocked &&
     !soundtrackUrl &&
-    !db.globalMuted &&
     !db.isCreatorEditingActive &&
     !isCommentsOpen;
 
@@ -329,7 +329,6 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
     isContentFullscreen &&
     showVideoSlide &&
     !soundtrackUrl &&
-    !db.globalMuted &&
     !db.isCreatorEditingActive;
 
   useExclusivePlayback(
@@ -502,6 +501,7 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
           preload="auto"
           loop={loopCarouselItem}
           playsInline
+          controls
           muted={soundtrackUrl ? true : db.globalMuted}
           onEnded={loopCarouselItem ? undefined : goToNextCarouselItem}
           onVolumeChange={(e) => {
@@ -515,13 +515,7 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
           }}
           style={filterStyle}
           className="absolute inset-0 w-full h-full object-cover z-10"
-          onClick={(e) => {
-            const rect = e.currentTarget.getBoundingClientRect();
-            const clickY = e.clientY - rect.top;
-            if (clickY > rect.height - 60) {
-              e.stopPropagation();
-            }
-          }}
+          {...nativeVideoControlGuardProps()}
         />
       );
     }
@@ -581,23 +575,10 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
           >
             <div
               ref={mediaSwipeRef}
-              className={`absolute inset-0 w-full h-full ${showVideoSlide ? 'cursor-pointer' : ''} ${hasCarousel ? 'touch-pan-y' : ''}`}
+              className={`absolute inset-0 w-full h-full ${hasCarousel ? 'touch-pan-y' : ''}`}
               onClick={handleReelClick}
             >
               {renderInlineReelBody()}
-              {showVideoSlide && !isPlaying && !isFullscreenUi && (
-                <div
-                  className="absolute top-0 left-0 right-0 bottom-[60px] flex items-center justify-center bg-black/20 cursor-pointer z-20"
-                  onClick={(e) => {
-                    e.stopPropagation();
-                    handleReelClick(e);
-                  }}
-                >
-                  <div className="w-16 h-16 rounded-full bg-black/60 flex items-center justify-center shadow-lg transition-transform scale-100 animate-in zoom-in-75 duration-100">
-                    <Play className="w-8 h-8 text-white fill-white ml-1" />
-                  </div>
-                </div>
-              )}
             </div>
           </MediaWithSoundtrack>
         ) : (

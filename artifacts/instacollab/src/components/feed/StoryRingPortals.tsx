@@ -16,6 +16,7 @@ import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
 import { storyDraftFilterStyle, type StoryDraftMedia } from '../stories/storyDraft';
 import { isPlayableAudioUrl } from '../../lib/audioMedia';
 import { BackgroundAudioPlayer } from '../common/BackgroundAudioPlayer';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import type { User } from '../../types';
 import {
   formatProfileHandle,
@@ -374,27 +375,7 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                             video.duration * ((currentSegment.trimStart ?? 0) / 100);
                         }
                       }}
-                      onPointerDown={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const touchY = e.clientY - rect.top;
-                        if (touchY > rect.height - 60) {
-                          e.stopPropagation();
-                        }
-                      }}
-                      onPointerUp={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const touchY = e.clientY - rect.top;
-                        if (touchY > rect.height - 60) {
-                          e.stopPropagation();
-                        }
-                      }}
-                      onClick={(e) => {
-                        const rect = e.currentTarget.getBoundingClientRect();
-                        const clickY = e.clientY - rect.top;
-                        if (clickY > rect.height - 60) {
-                          e.stopPropagation();
-                        }
-                      }}
+                      {...nativeVideoControlGuardProps()}
                     />
                   ) : (
                     <img

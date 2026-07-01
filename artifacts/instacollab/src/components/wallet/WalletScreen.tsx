@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { 
   Wallet, 
   LayoutDashboard, 
@@ -15,12 +15,19 @@ import { CryptoTab } from './CryptoTab';
 import { GameCoinTab } from './GameCoinTab';
 import { ShopTab } from './ShopTab';
 import { useDB } from '../../lib/useDB';
+import { useCurrentUser } from '../../lib/useCurrentUser';
+import { syncLiveSessionData } from '../../lib/liveSessionSync';
 
 type WalletTab = 'overview' | 'buy_exchange' | 'withdraw' | 'crypto' | 'game' | 'shop';
 
 export function WalletScreen() {
   const db = useDB();
+  const appUser = useCurrentUser();
   const [activeTab, setActiveTab] = useState<WalletTab>('overview');
+
+  useEffect(() => {
+    void syncLiveSessionData(appUser.id);
+  }, [appUser.id]);
 
   // Unified global simulated crypto price state passed down to ensure coordination
   const [cryptoPrices, setCryptoPrices] = useState({

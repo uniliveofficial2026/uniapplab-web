@@ -3,6 +3,7 @@ export function isPlayableAudioUrl(value: unknown): boolean {
   if (typeof value !== 'string' || !value.trim()) return false;
   const url = value.trim();
   if (url.startsWith('data:audio/') || url.startsWith('blob:')) return true;
+  if (url.startsWith('app-media:')) return true;
   if (/^https?:\/\//i.test(url) && /\.(mp3|wav|ogg|aac|m4a|flac|webm)(\?|$)/i.test(url)) {
     return true;
   }

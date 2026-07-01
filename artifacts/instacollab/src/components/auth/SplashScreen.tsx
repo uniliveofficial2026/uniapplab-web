@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppLogo } from '../common/AppLogo';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { useDB } from '../../lib/useDB';
 
 export function SplashScreen({ onComplete, isLoading = false }: { onComplete?: () => void, isLoading?: boolean }) {
@@ -79,7 +80,9 @@ export function SplashScreen({ onComplete, isLoading = false }: { onComplete?: (
                       autoPlay 
                       muted 
                       loop 
-                      playsInline 
+                      playsInline
+                      controls
+                    {...nativeVideoControlGuardProps()}
                     />
                  ) : (
                     <img 

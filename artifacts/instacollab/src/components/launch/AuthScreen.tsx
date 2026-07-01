@@ -21,7 +21,7 @@ import { completeSupabaseOAuthReturnOnce } from '../../lib/auth/oauthReturnGuard
 import { isKnownLocalDemoEmail, tryLocalDemoLogin } from '../../lib/auth/localDemoAuth';
 import { signInDemoWithCloudSync } from '../../lib/auth/demoCloudAuth';
 import { isSupabaseOAuthReturnInUrl } from '../../lib/auth/supabaseOAuthReturn';
-import { reconcileWalletAndKstarCoins } from '../../lib/walletKstarSync';
+import { scheduleLiveSessionSync } from '../../lib/liveSessionSync';
 import {
   LaunchBrandMark,
   LaunchField,
@@ -127,7 +127,7 @@ export function AuthScreen() {
         showToast(result.reason);
         return;
       }
-      reconcileWalletAndKstarCoins(result.userId);
+      scheduleLiveSessionSync(result.userId);
       showToast('Welcome back!');
     } finally {
       setBusy(false);
@@ -184,7 +184,7 @@ export function AuthScreen() {
       }
       db.resetLaunchGatesForNewAccount(result.userId);
       db.login(result.userId);
-      reconcileWalletAndKstarCoins(result.userId);
+      scheduleLiveSessionSync(result.userId);
       db.advanceLaunchProgressAfterLogin(false);
       showToast('Account created — finish your profile');
     } finally {

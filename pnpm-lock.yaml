@@ -176,6 +176,9 @@ importers:
 
   artifacts/api-server:
     dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.106.2
+        version: 2.107.0
       '@workspace/api-zod':
         specifier: workspace:*
         version: link:../../lib/api-zod
@@ -225,6 +228,28 @@ importers:
       thread-stream:
         specifier: 3.1.0
         version: 3.1.0
+
+  artifacts/chat-ws:
+    dependencies:
+      '@supabase/supabase-js':
+        specifier: ^2.106.2
+        version: 2.107.0
+      ws:
+        specifier: ^8.19.0
+        version: 8.21.0
+    devDependencies:
+      '@types/node':
+        specifier: 'catalog:'
+        version: 25.6.2
+      '@types/ws':
+        specifier: ^8.18.1
+        version: 8.18.1
+      esbuild:
+        specifier: 0.27.3
+        version: 0.27.3
+      tsx:
+        specifier: 'catalog:'
+        version: 4.21.0
 
   artifacts/instacollab:
     dependencies:
@@ -292,6 +317,9 @@ importers:
       lucide-react:
         specifier: 'catalog:'
         version: 0.545.0(react@19.1.0)
+      playwright:
+        specifier: 1.49.1
+        version: 1.49.1
       react:
         specifier: 'catalog:'
         version: 19.1.0
@@ -2475,6 +2503,9 @@ packages:
   '@types/unist@3.0.3':
     resolution: {integrity: sha512-ko/gIFJRv177XgZsZcBwnqJN5x/Gien8qNOn0D5bQU/zAzVf9Zt3BlcUiLqhV9y4ARk0GbT3tnUiPNgnTXzc/Q==}
 
+  '@types/ws@8.18.1':
+    resolution: {integrity: sha512-ThVF6DCVhA8kUGy+aazFQ4kXQ7E1Ty7A3ypFOe0IcJV8O/M511G99AW24irKrW56Wt44yG9+ij8FaqoBGkuBXg==}
+
   '@vercel/speed-insights@2.0.0':
     resolution: {integrity: sha512-jwkNcrTeafWxjmWq4AHBaptSqZiJkYU5adLC9QBSqeim0GcqDMgN5Ievh8OG1rJ6W3A4l1oiP7qr9CWxGuzu3w==}
     peerDependencies:
@@ -3246,6 +3277,11 @@ packages:
     resolution: {integrity: sha512-hcg3ZmepS30/7BSFqRvoo3DOMQu7IjqxO5nCDt+zM9XWjb33Wg7ziNT+Qvqbuc3+gWpzO02JubVyk2G4Zvo1OQ==}
     engines: {node: '>=10'}
 
+  fsevents@2.3.2:
+    resolution: {integrity: sha512-xiqMQR4xAeHTuB9uWm+fFRcIOgKBMiOBP+eXiyT7jsgVCq1bkVygt00oASowB7EdtpOHaaPgKt812P9ab+DDKA==}
+    engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
+    os: [darwin]
+
   fsevents@2.3.3:
     resolution: {integrity: sha512-5xoDfX+fL7faATnagmWPpbFtwh/R77WmMMqqHGS65C3vvB0YHrgF+B1YmZ3441tMj5n63k0212XNoJwzlhffQw==}
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
@@ -3952,6 +3988,16 @@ packages:
 
   pino@9.14.0:
     resolution: {integrity: sha512-8OEwKp5juEvb/MjpIc4hjqfgCNysrS94RIOMXYvpYCdm/jglrKEiAYmiumbmGhCvs+IcInsphYDFwqrjr7398w==}
+    hasBin: true
+
+  playwright-core@1.49.1:
+    resolution: {integrity: sha512-BzmpVcs4kE2CH15rWfzpjzVGhWERJfmnXmniSyKeRZUs9Ws65m+RGIi7mjJK/euCegfn3i7jvqWeWyHe9y3Vgg==}
+    engines: {node: '>=18'}
+    hasBin: true
+
+  playwright@1.49.1:
+    resolution: {integrity: sha512-VYL8zLoNTBxVOrJBbDuRgDWa3i+mfQgDTrL8Ah9QXZ7ax4Dsj0MSq5bYgytRnDVVe+njoKnfsYkH3HzqVj5UZA==}
+    engines: {node: '>=18'}
     hasBin: true
 
   possible-typed-array-names@1.1.0:
@@ -7150,6 +7196,10 @@ snapshots:
 
   '@types/unist@3.0.3': {}
 
+  '@types/ws@8.18.1':
+    dependencies:
+      '@types/node': 25.6.2
+
   '@vercel/speed-insights@2.0.0(react@19.1.0)':
     optionalDependencies:
       react: 19.1.0
@@ -7901,6 +7951,9 @@ snapshots:
       jsonfile: 6.2.1
       universalify: 2.0.1
 
+  fsevents@2.3.2:
+    optional: true
+
   fsevents@2.3.3:
     optional: true
 
@@ -8613,6 +8666,14 @@ snapshots:
       safe-stable-stringify: 2.5.0
       sonic-boom: 4.2.1
       thread-stream: 3.1.0
+
+  playwright-core@1.49.1: {}
+
+  playwright@1.49.1:
+    dependencies:
+      playwright-core: 1.49.1
+    optionalDependencies:
+      fsevents: 2.3.2
 
   possible-typed-array-names@1.1.0: {}
 

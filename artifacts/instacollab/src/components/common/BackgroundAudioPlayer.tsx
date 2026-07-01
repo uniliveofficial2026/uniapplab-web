@@ -1,6 +1,7 @@
 import React, { useEffect, useLayoutEffect, useRef } from 'react';
 import { Music } from 'lucide-react';
 import { isPlayableAudioUrl } from '../../lib/audioMedia';
+import { useResolvedMediaUrl } from '../../hooks/useResolvedMediaUrl';
 import {
   clearPlaybackIntent,
   PLAYBACK_PRIORITY,
@@ -39,6 +40,7 @@ export function BackgroundAudioPlayer({
   onEnded,
 }: BackgroundAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
+  const resolvedAudioUrl = useResolvedMediaUrl(audioUrl);
   const playable = isPlayableAudioUrl(audioUrl);
   const wantsPlay = autoPlay && !muted && playable;
 
@@ -64,7 +66,7 @@ export function BackgroundAudioPlayer({
     return (
       <audio
         ref={audioRef}
-        src={audioUrl}
+        src={resolvedAudioUrl || audioUrl || undefined}
         loop={loop}
         playsInline
         preload="auto"
@@ -83,7 +85,7 @@ export function BackgroundAudioPlayer({
       <Music className="h-3.5 w-3.5 shrink-0 text-primary" />
       <audio
         ref={audioRef}
-        src={audioUrl}
+        src={resolvedAudioUrl || audioUrl || undefined}
         loop={loop}
         playsInline
         controls

@@ -8,6 +8,7 @@ import { handleAvatarError, handleMediaError } from '../../lib/utils';
 import { safeMediaUrl } from '../../lib/safe';
 import { formatProfileHandle, getProfileDisplayName } from '../../lib/profileDisplay';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
+import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { ChatInlineVideo } from './ChatInlineVideo';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 import { MusicDiscPlayer } from './MusicDiscPlayer';
@@ -113,11 +114,12 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
          <video
            data-playback-scope={PLAYBACK_SCOPE.AMBIENT}
            src={activeCustomWallpaper.value}
-           className="w-full h-full object-cover"
+           className="w-full h-full object-cover pointer-events-auto"
            autoPlay
            loop={videoWallpaperSequence.length <= 1}
            muted
            playsInline
+           controls
            preload="auto"
            onEnded={() => {
              if (videoWallpaperSequence.length > 1) {
@@ -129,6 +131,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                playNextVideoWallpaper();
              }
            }}
+           {...nativeVideoControlGuardProps()}
          />
        </div>
      )}

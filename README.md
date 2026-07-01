@@ -25,16 +25,36 @@ pnpm dev
 # → http://localhost:5173
 ```
 
+## Unified live (local + production, same data)
+
+```bash
+pnpm live
+```
+
+| URL | What you get |
+|-----|----------------|
+| `http://localhost:5173` | Instant HMR while you code |
+| `app.uniapplab.com` / `uniapplab.com` / `www.uniapplab.com` | **Instant deploy on save** (same Supabase data; ~1–2 min Vercel build) |
+
+- Local dev uses **production Supabase + API** (not isolated `?launch=main` demo).
+- Deploy runs on startup and **immediately** when you save (0ms debounce default).
+- Offline smoke tests: `?force_demo=1&launch=main`
+- `LIVE_SYNC_DEBOUNCE_MS=5000 pnpm live` — optional delay between deploys
+- `pnpm run deploy:vercel:fast` — one-shot deploy without watch
+
 ## Deploy React app → Vercel → app.uniapplab.com
 
 1. Push repo to GitHub
 2. [vercel.com/new](https://vercel.com/new) → Import repo
-3. **Root Directory:** `artifacts/instacollab`
-4. Add env vars from `artifacts/instacollab/.env.example`
+3. **Root Directory:** `.` (repo root — **not** `artifacts/instacollab`) so root `vercel.json` serves `/api/*` from `api-server`
+4. Add env vars from `artifacts/instacollab/.env.example` **and** `artifacts/api-server/.env.example` (Supabase service role for API)
 5. **Domains:** add `app.uniapplab.com`
 6. Connect Supabase (see below)
 
+**Error 111** (`upstream connect error … delayed connect error: 111`) means the browser is calling a dead API host (`api.uniapplab.com`). Fix: redeploy from repo root (above), or deploy `artifacts/api-server/render.yaml` on Render and point DNS `api` → that service.
+
 ```bash
+pnpm run deploy:vercel   # production deploy (uses scripts/vercel-deploy.sh)
 pnpm run domains:setup   # prints DNS + Supabase + Google OAuth checklist
 pnpm run oauth:setup     # Supabase auth URLs only
 pnpm run auth:check      # verify Supabase tables

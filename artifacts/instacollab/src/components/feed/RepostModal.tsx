@@ -13,7 +13,7 @@ import {
   postCarouselItemCount,
   shouldLoopCarouselItem,
 } from '../../lib/mediaPlayback';
-import { resolvePostDisplayMedia, touchClientX } from '../../lib/safe';
+import { resolvePostDisplayMedia, touchClientX, resolveUser } from '../../lib/safe';
 import { resolveEditorSoundtrackUrl, isPlayableAudioUrl } from '../../lib/audioMedia';
 import { useExclusivePlayback } from '../../lib/useExclusivePlayback';
 import {
@@ -200,7 +200,7 @@ export function RepostModal({ post, onClose }: RepostModalProps) {
     const targetId = resolveRepostTargetId(post, db.posts, db.users);
     const newPost: PostType = {
       id: newId,
-      user: db.currentUser,
+      user: resolveUser(db.users, db.currentUser),
       caption: caption,
       imageUrl: '',
       likes: 0,
