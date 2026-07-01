@@ -7,7 +7,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { findEnvFile, getAppRoot, getWorkspaceRoot, readEnvFile } from './resolveProjectEnv.mjs';
 
-const STALE_PROJECT_REFS = new Set(['otiqckextvdbudbxzmau']);
+const STALE_PROJECT_REFS = new Set(['kgiaflmukkguzjtmcuqd']);
 
 function loadBuildEnv() {
   const appRoot = getAppRoot(import.meta.dirname);
@@ -73,7 +73,7 @@ if (ref && STALE_PROJECT_REFS.has(ref)) {
     console.warn(`[supabase-config] Ignoring stale Vercel project ${ref}; keeping ${projectRef(url)} from public/supabase-config.json`);
   } else {
     console.error(`[supabase-config] Refusing to write stale Supabase project ${ref}.`);
-    console.error('  Set VITE_SUPABASE_URL=https://otiqckextvdbudbxzmau.supabase.co on Vercel, or commit public/supabase-config.json.');
+    console.error('  Update Vercel Production env to the active Supabase project, or commit public/supabase-config.json.');
     process.exit(1);
   }
 }
