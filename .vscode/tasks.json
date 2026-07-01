@@ -1,0 +1,22 @@
+{
+  "version": "tasks",
+  "tasks": [
+    {
+      "label": "Unified Live (pnpm live)",
+      "type": "shell",
+      "command": "pnpm ensure:live",
+      "options": {
+        "cwd": "${workspaceFolder}"
+      },
+      "runOptions": {
+        "runOn": "folderOpen"
+      },
+      "presentation": {
+        "reveal": "silent",
+        "panel": "dedicated",
+        "showReuseMessage": false
+      },
+      "problemMatcher": []
+    }
+  ]
+}
