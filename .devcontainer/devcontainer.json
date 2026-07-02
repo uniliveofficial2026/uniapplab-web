@@ -1,0 +1,25 @@
+{
+  "name": "InstaCollab (Universal-Fixer)",
+  "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
+  "features": {
+    "ghcr.io/devcontainers/features/github-cli:1": {}
+  },
+  "remoteUser": "node",
+  "postCreateCommand": "bash .devcontainer/post-create.sh",
+  "forwardPorts": [5173, 4173, 3000],
+  "portsAttributes": {
+    "5173": { "label": "InstaCollab (Vite)", "onAutoForward": "notify" },
+    "4173": { "label": "Vite preview", "onAutoForward": "silent" }
+  },
+  "customizations": {
+    "vscode": {
+      "extensions": ["dbaeumer.vscode-eslint", "esbenp.prettier-vscode"],
+      "settings": {
+        "terminal.integrated.defaultProfile.linux": "bash"
+      }
+    }
+  },
+  "remoteEnv": {
+    "NODE_ENV": "development"
+  }
+}
