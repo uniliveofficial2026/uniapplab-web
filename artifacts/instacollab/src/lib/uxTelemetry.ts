@@ -2,6 +2,7 @@
  * Silent UX telemetry — batches signals for background ML (no UI, no handoff flood).
  */
 import { handoffForIssue } from './handoff';
+import { isNoiseSignal } from './mlGuard';
 import { platformMetaForTelemetry } from './platformDetect';
 
 export type UxSignalType =
@@ -75,6 +76,7 @@ export function trackUx(
 ): void {
   if (typeof window === 'undefined') return;
   if (import.meta.env.VITE_UX_TELEMETRY === 'false') return;
+  if (detail && (type === 'error' || type === 'warning') && isNoiseSignal(detail)) return;
 
   const signal: UxSignal = {
     t: Date.now(),

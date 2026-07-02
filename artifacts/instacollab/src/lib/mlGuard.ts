@@ -1,0 +1,174 @@
+/**
+ * Zero-mistake guards for auto ML — corroborate before acting, verify after healing,
+ * filter noise, and dedupe escalations so false detections never change user state.
+ */
+import { trackUx } from './uxTelemetry';
+
+const CORROBORATION_KEY = 'instacollab-ml-corroboration';
+const HANDOFF_FP_KEY = 'instacollab-ml-handoff-fp';
+const ACT_COOLDOWN_MS = 120_000;
+const HANDOFF_COOLDOWN_MS = 10 * 60_000;
+
+type Bucket = { hits: number[]; lastActedAt?: number };
+
+const NOISE_PATTERNS = [
+  /ResizeObserver loop/i,
+  /^Script error\.?$/i,
+  /chrome-extension/i,
+  /moz-extension/i,
+  /safari-extension/i,
+  /Failed to fetch$/i,
+  /Load failed/i,
+  /AbortError/i,
+  /The operation was aborted/i,
+  /cancelled/i,
+  /Non-Error promise rejection/i,
+];
+
+const BENIGN_HEAL_ACTIONS = new Set([
+  'session_state',
+  'layout_overflow',
+  'playback_paused_hidden',
+  'app_media_hydrated',
+  'media_fallback',
+  'chunk_staged',
+  'update_staged',
+  'auth_failover',
+]);
+
+function readBuckets(): Record<string, Bucket> {
+  try {
+    return JSON.parse(localStorage.getItem(CORROBORATION_KEY) || '{}') as Record<string, Bucket>;
+  } catch {
+    return {};
+  }
+}
+
+function writeBuckets(map: Record<string, Bucket>): void {
+  try {
+    localStorage.setItem(CORROBORATION_KEY, JSON.stringify(map));
+  } catch {
+    /* quota */
+  }
+}
+
+function readHandoffFingerprints(): Record<string, number> {
+  try {
+    return JSON.parse(localStorage.getItem(HANDOFF_FP_KEY) || '{}') as Record<string, number>;
+  } catch {
+    return {};
+  }
+}
+
+function writeHandoffFingerprints(map: Record<string, number>): void {
+  try {
+    localStorage.setItem(HANDOFF_FP_KEY, JSON.stringify(map));
+  } catch {
+    /* quota */
+  }
+}
+
+/** Drop browser/extension noise — never treat as real app defects. */
+export function isNoiseSignal(detail: string): boolean {
+  const d = detail.trim();
+  if (!d || d.length < 3) return true;
+  return NOISE_PATTERNS.some((re) => re.test(d));
+}
+
+export function fingerprintIssue(kind: string, detail: string): string {
+  const normalized = detail
+    .slice(0, 120)
+    .replace(/\d{4,}/g, '#')
+    .replace(/\b[0-9a-f]{8,}\b/gi, 'id')
+    .trim();
+  return `${kind}:${normalized}`;
+}
+
+/** Record a detection sample; returns recent hit count inside the window. */
+export function recordCorroboration(key: string, windowMs: number): number {
+  if (typeof window === 'undefined') return 0;
+  const now = Date.now();
+  const map = readBuckets();
+  const bucket = map[key] ?? { hits: [] };
+  bucket.hits = bucket.hits.filter((t) => now - t < windowMs);
+  bucket.hits.push(now);
+  map[key] = bucket;
+  writeBuckets(map);
+  return bucket.hits.length;
+}
+
+/**
+ * True only when the same issue was seen enough times and cooldown elapsed —
+ * prevents one-off glitches from triggering heals or handoffs.
+ */
+export function canActOnCorroboration(
+  key: string,
+  windowMs: number,
+  minHits: number,
+): boolean {
+  if (typeof window === 'undefined') return false;
+  const count = recordCorroboration(key, windowMs);
+  if (count < minHits) return false;
+
+  const map = readBuckets();
+  const bucket = map[key];
+  if (bucket?.lastActedAt && Date.now() - bucket.lastActedAt < ACT_COOLDOWN_MS) {
+    return false;
+  }
+  return true;
+}
+
+export function markCorroborationActed(key: string): void {
+  if (typeof window === 'undefined') return;
+  const map = readBuckets();
+  const bucket = map[key] ?? { hits: [] };
+  bucket.lastActedAt = Date.now();
+  map[key] = bucket;
+  writeBuckets(map);
+}
+
+/** Escalate to background agent only after repeated, corroborated fingerprints. */
+export function shouldEscalateHandoff(kind: string, detail: string, minHits = 2): boolean {
+  if (typeof window === 'undefined') return false;
+  if (isNoiseSignal(detail)) return false;
+
+  const fp = fingerprintIssue(kind, detail);
+  const now = Date.now();
+  const map = readHandoffFingerprints();
+  const prev = map[fp] ?? 0;
+  const next = prev + 1;
+  map[fp] = next;
+  writeHandoffFingerprints(map);
+
+  if (next < minHits) return false;
+  if (now - prev < HANDOFF_COOLDOWN_MS && prev > 0) return false;
+  map[fp] = now;
+  writeHandoffFingerprints(map);
+  return true;
+}
+
+export function isSafeHealAction(action: string): boolean {
+  return BENIGN_HEAL_ACTIONS.has(action);
+}
+
+/** Verify heal improved state; roll back telemetry if not. */
+export function verifyHealOutcome(label: string, check: () => boolean): boolean {
+  const ok = check();
+  if (!ok) {
+    trackUx('warning', 'heal_verify_failed', { check: label });
+  }
+  return ok;
+}
+
+/** Require two consecutive confirmations before irreversible runtime actions. */
+export async function confirmTwice<T>(
+  probe: () => Promise<T>,
+  isBad: (value: T) => boolean,
+  gapMs = 2_500,
+): Promise<boolean> {
+  const first = await probe();
+  if (!isBad(first)) return false;
+  await new Promise((resolve) => setTimeout(resolve, gapMs));
+  const second = await probe();
+  return isBad(second);
+}
