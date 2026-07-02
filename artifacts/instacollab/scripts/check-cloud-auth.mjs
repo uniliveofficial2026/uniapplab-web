@@ -115,6 +115,15 @@ async function main() {
       const profilesProbe = await probeTable(supabaseUrl, supabaseKey, 'profiles');
       if (profilesProbe.ok) {
         ok.push('public.profiles table: exists');
+        const noteProbe = await probeTable(supabaseUrl, supabaseKey, 'profiles', 'note');
+        if (noteProbe.ok) {
+          ok.push('profiles.note column: exists (thought bubble cloud sync)');
+        } else if (noteProbe.missingTable) {
+          exitCode = 1;
+          issues.push(
+            'profiles.note column is MISSING — re-run pnpm run auth:bootstrap-db (bootstrap.sql includes thought sync)',
+          );
+        }
       } else if (profilesProbe.missingTable) {
         exitCode = 1;
         issues.push(
