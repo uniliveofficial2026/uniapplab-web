@@ -40,7 +40,9 @@
     "check:health": "node artifacts/instacollab/scripts/check-health.mjs",
     "ux:agent": "node scripts/background-ux-agent.mjs",
     "ux:learn": "node scripts/ux-learning-engine.mjs",
-    "ux:gemini": "node scripts/ux-gemini-fix.mjs"
+    "ux:gemini": "node scripts/ux-gemini-fix.mjs",
+    "handoff": "node scripts/app-handoff.mjs",
+    "handoff:cycle": "node scripts/app-handoff.mjs cycle"
   },
   "private": true,
   "devDependencies": {

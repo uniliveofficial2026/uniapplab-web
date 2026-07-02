@@ -1,7 +1,8 @@
 /**
- * Silent UX telemetry — learns from real usage to drive auto-fix and feature intent.
- * Batches signals locally and ships to the background agent (no UI).
+ * Silent UX telemetry — batches signals for background ML (no UI, no handoff flood).
  */
+import { handoffForIssue } from './handoff';
+
 export type UxSignalType =
   | 'screen_view'
   | 'tap'
@@ -23,8 +24,8 @@ export type UxSignal = {
 
 const BUFFER_KEY = 'instacollab-ux-buffer';
 const SESSION_KEY = 'instacollab-ux-session';
-const MAX_BUFFER = 200;
-const FLUSH_MS = 30_000;
+const MAX_BUFFER = 100;
+const FLUSH_MS = 120_000;
 
 let currentScreen = 'boot';
 let screenEnteredAt = Date.now();
@@ -81,14 +82,12 @@ export function trackUx(
   const buf = readBuffer();
   buf.push(signal);
   writeBuffer(buf);
-
-  void flushUxSignals(false);
 }
 
 export function trackScreen(screen: string): void {
   if (screen === currentScreen) return;
   const dwellMs = Date.now() - screenEnteredAt;
-  if (dwellMs > 1500) {
+  if (dwellMs > 3000) {
     trackUx('dwell', currentScreen, { ms: dwellMs }, currentScreen);
   }
   currentScreen = screen;
@@ -105,7 +104,7 @@ export async function flushUxSignals(force = false): Promise<void> {
   if (typeof window === 'undefined') return;
   const buf = readBuffer();
   if (!buf.length) return;
-  if (!force && buf.length < 5) return;
+  if (!force && buf.length < 15) return;
 
   try {
     const res = await fetch(ingestUrl(), {
@@ -116,33 +115,31 @@ export async function flushUxSignals(force = false): Promise<void> {
     });
     if (res.ok || res.status === 204) writeBuffer([]);
   } catch {
-    /* agent offline — keep buffer */
+    /* agent offline */
   }
 }
 
 function onClick(event: MouseEvent): void {
   const target = event.target as HTMLElement | null;
   if (!target) return;
-  const tag = target.tagName.toLowerCase();
   const label =
     target.getAttribute('aria-label') ||
     target.getAttribute('data-ux') ||
-    `${tag}${target.id ? `#${target.id}` : ''}`.slice(0, 80);
+    `${target.tagName.toLowerCase()}${target.id ? `#${target.id}` : ''}`.slice(0, 80);
 
   const now = Date.now();
   if (label === lastTapTarget) {
     lastTapTimes = lastTapTimes.filter((t) => now - t < 800);
     lastTapTimes.push(now);
-    if (lastTapTimes.length >= 3) {
+    if (lastTapTimes.length >= 4) {
       trackUx('rage_tap', label, { count: lastTapTimes.length });
+      handoffForIssue('rage_tap', label, currentScreen);
       lastTapTimes = [];
     }
   } else {
     lastTapTarget = label;
     lastTapTimes = [now];
   }
-
-  trackUx('tap', label);
 }
 
 function hookErrors(): void {
@@ -152,19 +149,19 @@ function hookErrors(): void {
       file: (event.filename || '').slice(-80),
       line: event.lineno ?? 0,
     });
+    if (/posts|cloud|supabase|relation.*posts/i.test(msg)) {
+      handoffForIssue('error', msg, currentScreen);
+    }
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason;
     const msg = reason instanceof Error ? reason.message : String(reason);
     trackUx('error', msg.slice(0, 300), { unhandled: true });
+    if (/posts|cloud|supabase/i.test(msg)) {
+      handoffForIssue('error', msg, currentScreen);
+    }
   });
-
-  const origWarn = console.warn.bind(console);
-  console.warn = (...args: unknown[]) => {
-    origWarn(...args);
-    trackUx('warning', args.map((a) => String(a)).join(' ').slice(0, 200));
-  };
 }
 
 export function installUxTelemetry(): void {
@@ -181,6 +178,4 @@ export function installUxTelemetry(): void {
   if (!flushTimer) {
     flushTimer = window.setInterval(() => void flushUxSignals(false), FLUSH_MS);
   }
-
-  trackUx('screen_view', 'boot');
 }

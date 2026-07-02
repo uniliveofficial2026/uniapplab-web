@@ -79,7 +79,7 @@ async function main() {
     cwd: ROOT,
     detached: true,
     stdio: ['ignore', out, out],
-    env: { ...process.env },
+    env: { ...process.env, LIVE_SYNC_SILENT: '1', UX_AGENT_SILENT: '1' },
   });
   child.unref();
   fs.writeFileSync(PID_FILE, String(child.pid));

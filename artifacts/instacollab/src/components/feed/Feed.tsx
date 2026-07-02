@@ -35,7 +35,6 @@ export function Feed() {
     const onRefresh = (event: Event) => {
       const scope = (event as CustomEvent<{ scope?: string }>).detail?.scope;
       if (scope === 'home' || scope === 'global') {
-        setFeedRefreshKey((key) => key + 1);
         void syncCloudFeed();
       }
     };

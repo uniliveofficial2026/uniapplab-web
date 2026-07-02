@@ -4,24 +4,18 @@ import { chunkLoadUserMessage, isChunkLoadError } from '../../lib/lazyWithRetry'
 interface ErrorBoundaryProps {
   children: React.ReactNode;
   fallback?: React.ReactNode;
-  /** Screen name for logging and isolated recovery */
   screen?: string;
 }
 
 interface ErrorBoundaryState {
   hasError: boolean;
   message: string;
-  retryCount: number;
 }
 
-const MAX_AUTO_RETRIES = 1;
-
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  private retryTimer: ReturnType<typeof setTimeout> | null = null;
+  state: ErrorBoundaryState = { hasError: false, message: '' };
 
-  state: ErrorBoundaryState = { hasError: false, message: '', retryCount: 0 };
-
-  static getDerivedStateFromError(error: unknown): Partial<ErrorBoundaryState> {
+  static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
     const raw = error instanceof Error ? error.message : 'Something went wrong';
     const message = isChunkLoadError(error) || isChunkLoadError(raw) ? chunkLoadUserMessage() : raw;
     return { hasError: true, message };
@@ -32,31 +26,12 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       window.location.reload();
       return;
     }
-    this.setState({ hasError: false, message: '', retryCount: 0 });
+    this.setState({ hasError: false, message: '' });
   };
 
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
     const label = this.props.screen ? `[${this.props.screen}]` : '';
     console.error(`UI error boundary${label}:`, error, info.componentStack);
-
-    if (
-      !isChunkLoadError(error) &&
-      this.state.retryCount < MAX_AUTO_RETRIES &&
-      !this.retryTimer
-    ) {
-      this.retryTimer = setTimeout(() => {
-        this.retryTimer = null;
-        this.setState((prev) => ({
-          hasError: false,
-          message: '',
-          retryCount: prev.retryCount + 1,
-        }));
-      }, 500);
-    }
-  }
-
-  componentWillUnmount() {
-    if (this.retryTimer) clearTimeout(this.retryTimer);
   }
 
   render() {

@@ -18,6 +18,7 @@ import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithR
 import { installRuntimeGuards } from './lib/runtimeGuards';
 import { installRuntimeSelfHeal } from './lib/selfHeal';
 import { installUxTelemetry } from './lib/uxTelemetry';
+import { initLiveAutoReload } from './lib/liveAutoReload';
 
 bootstrapDocumentTheme();
 installChunkLoadRecovery();
@@ -29,6 +30,7 @@ installPersistenceGuards();
 installRuntimeGuards();
 installRuntimeSelfHeal();
 installUxTelemetry();
+initLiveAutoReload();
 
 async function bootstrap() {
   await initSupabaseClient();

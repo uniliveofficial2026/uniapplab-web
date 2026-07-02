@@ -12,7 +12,6 @@ import { postUserId } from './safe';
 import {
   fetchCloudFeedPosts,
   fetchCloudUserPosts,
-  subscribeCloudPosts,
   uploadPostMediaBlob,
   upsertCloudPost,
 } from './supabase/cloudPosts';
@@ -201,20 +200,10 @@ export async function syncCloudUserPosts(userId: string): Promise<void> {
   return job;
 }
 
-let unsubscribeRealtime: (() => void) | null = null;
-
 export function startCloudPostRealtimeSync(): () => void {
-  if (!isSupabaseConfigured()) return () => {};
-  if (unsubscribeRealtime) return unsubscribeRealtime;
-
-  unsubscribeRealtime = subscribeCloudPosts(() => {
-    void syncCloudFeed();
-  });
-
-  return () => {
-    unsubscribeRealtime?.();
-    unsubscribeRealtime = null;
-  };
+  // Realtime merge disabled — avoids feed flash during background deploys.
+  // Feed/profile pull cloud posts on open and pull-to-refresh only.
+  return () => {};
 }
 
 export async function syncOwnPostsToCloud(): Promise<void> {
@@ -230,7 +219,10 @@ export async function syncOwnPostsToCloud(): Promise<void> {
 
 export async function bootstrapCloudPosts(): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  await syncCloudFeed();
-  void syncOwnPostsToCloud();
+  // Defer feed sync so first paint is stable (no flash from merge)
+  window.setTimeout(() => {
+    void syncCloudFeed();
+    void syncOwnPostsToCloud();
+  }, 4000);
   startCloudPostRealtimeSync();
 }

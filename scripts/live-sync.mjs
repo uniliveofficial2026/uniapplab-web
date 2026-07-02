@@ -9,7 +9,8 @@
  * Env:
  *   LIVE_SYNC_MODE=remote|prebuilt|git  — deploy strategy (default: remote = full Vercel build)
  *   LIVE_SYNC_DEBOUNCE_MS               — ms after last save (default 0; 3000 on /Volumes/)
- *   LIVE_SYNC_DEPLOY_ON_START=0         — skip deploy when live starts
+ *   LIVE_SYNC_SILENT=0               — log to terminal (default: silent → .local/live-sync.log)
+ *   LIVE_SYNC_DEPLOY_ON_START=1      — deploy on startup (default: off)
  *   LIVE_SYNC_AUTO_HEAL=0               — skip self-heal before deploy (default: on)
  *   LIVE_SYNC_VERIFY=0                  — skip post-deploy production checks (default: on)
  *   LIVE_SYNC_AUTO_PUSH=0               — skip git commit+push before deploy (default: on)
@@ -23,9 +24,11 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const USE_POLL_WATCH =
   process.env.LIVE_SYNC_POLLING === '1' || ROOT.startsWith('/Volumes/');
 const DEBOUNCE_MS = Number(
-  process.env.LIVE_SYNC_DEBOUNCE_MS ?? (USE_POLL_WATCH ? '3000' : '1500'),
+  process.env.LIVE_SYNC_DEBOUNCE_MS ?? (USE_POLL_WATCH ? '8000' : '5000'),
 );
-const DEPLOY_ON_START = process.env.LIVE_SYNC_DEPLOY_ON_START !== '0';
+const DEPLOY_ON_START = process.env.LIVE_SYNC_DEPLOY_ON_START === '1';
+const SILENT = process.env.LIVE_SYNC_SILENT !== '0';
+const LOG_FILE = path.join(ROOT, '.local/live-sync.log');
 const DEPLOY_MODE = (process.env.LIVE_SYNC_MODE || 'remote').toLowerCase();
 const POLL_WATCH_MS = Number(process.env.LIVE_SYNC_POLL_MS ?? '800');
 const AUTO_HEAL = process.env.LIVE_SYNC_AUTO_HEAL !== '0';
@@ -65,6 +68,16 @@ let viteChild = null;
 const fileSnapshots = new Map();
 
 function log(msg) {
+  if (SILENT) {
+    try {
+      fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
+      fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`);
+    } catch {
+      /* ignore */
+    }
+    if (process.env.LIVE_SYNC_VERBOSE === '1') console.log(`[live] ${msg}`);
+    return;
+  }
   console.log(`[live] ${msg}`);
 }
 
@@ -183,8 +196,8 @@ function scheduleDeploy(reason) {
   }, delay);
 
   if (delay === 0) {
-    log(`change (${reason}) → deploying`);
-  } else {
+    if (!SILENT) log(`change (${reason}) → deploying`);
+  } else if (!SILENT) {
     log(`change (${reason}) → deploy in ${Math.round(delay / 1000)}s if idle`);
   }
 }
@@ -283,16 +296,16 @@ function spawnDeploy(deployEnv) {
     }
 
     let output = '';
-    child.stdout?.on('data', (chunk) => {
-      const text = String(chunk);
-      output += text;
-      process.stdout.write(text);
-    });
-    child.stderr?.on('data', (chunk) => {
-      const text = String(chunk);
-      output += text;
-      process.stderr.write(text);
-    });
+  child.stdout?.on('data', (chunk) => {
+    const text = String(chunk);
+    output += text;
+    if (!SILENT) process.stdout.write(text);
+  });
+  child.stderr?.on('data', (chunk) => {
+    const text = String(chunk);
+    output += text;
+    if (!SILENT) process.stderr.write(text);
+  });
 
     child.on('close', (code) => {
       resolve({ code: code ?? 1, output });
@@ -387,7 +400,7 @@ function startBackgroundUxAgent() {
     env: { ...process.env, UX_AGENT_SILENT: '1' },
   });
   child.unref();
-  log('UX learning agent started silently → .local/ux-agent.log');
+  log('UX learning agent started (silent)');
 }
 
 function startVite() {
@@ -423,13 +436,12 @@ function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-log('Develop mode — local http://localhost:5173 + auto-deploy on save');
-log(`Deploy: ${DEPLOY_MODE} (${DEPLOY_MODE === 'remote' ? 'full Vercel build — all app assets' : DEPLOY_MODE})`);
-log(`Self-heal: ${AUTO_HEAL ? 'on' : 'off'} · Verify: ${VERIFY_PROD ? 'on' : 'off'} · Auto-push: ${AUTO_PUSH ? 'on' : 'off'}`);
-log(`UX ML agent: ${process.env.UX_AGENT === '0' ? 'off' : 'on (silent background)'}`);
-log('Production: app.uniapplab.com · uniapplab.com · www.uniapplab.com');
-log('Tip: LIVE_SYNC_MODE=git pnpm live — push to GitHub instead of CLI upload');
-log('Tip: LIVE_SYNC_AUTO_PUSH=0 pnpm develop — deploy without git commit/push');
+log('Develop mode — local http://localhost:5173 (silent background sync)');
+if (!SILENT) {
+  log(`Deploy: ${DEPLOY_MODE}`);
+  log(`Self-heal: ${AUTO_HEAL ? 'on' : 'off'} · Verify: ${VERIFY_PROD ? 'on' : 'off'} · Auto-push: ${AUTO_PUSH ? 'on' : 'off'}`);
+  log(`Handoff agent: ${process.env.UX_AGENT === '0' ? 'off' : 'on (silent)'}`);
+}
 
 for (const rel of WATCH_ROOTS) watchDir(path.join(ROOT, rel));
 watchFiles();

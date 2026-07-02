@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LEARNING = path.join(ROOT, '.local/ux-learning.json');
 const BACKLOG = path.join(ROOT, '.local/ux-feature-backlog.json');
+const HANDOFF_LOG = path.join(ROOT, '.local/handoff-queue.jsonl');
 const FIX_LOG = path.join(ROOT, '.local/ux-agent-fixes.jsonl');
 
 const SAFE_FIX_FILES = new Set([
@@ -79,10 +80,21 @@ export async function runUxGeminiFix() {
   if (!fs.existsSync(LEARNING)) return { applied: 0, features: 0 };
 
   const learning = JSON.parse(fs.readFileSync(LEARNING, 'utf8'));
-  const prompt = `You are a silent UX auto-fix agent for InstaCollab (React + Vite mobile web app).
+  const pendingHandoff = fs.existsSync(HANDOFF_LOG)
+    ? fs.readFileSync(HANDOFF_LOG, 'utf8').split('\n').filter(Boolean).slice(-20).map((l) => {
+        try { return JSON.parse(l); } catch { return null; }
+      }).filter(Boolean)
+    : [];
 
-UX learning report:
+  const prompt = `You are the silent handoff ML agent for InstaCollab (React + Vite social app).
+
+UX learning:
 ${JSON.stringify(learning, null, 2)}
+
+Pending handoff tasks from app (errors, media, cloud data, UI friction):
+${JSON.stringify(pendingHandoff, null, 2)}
+
+Your job: infer what users need, fix safe issues, and queue feature work.
 
 Return ONLY valid JSON:
 {
@@ -95,8 +107,9 @@ Return ONLY valid JSON:
 }
 
 Rules:
-- fixes ONLY for CSS overflow, safe fallbacks, aria labels, mobile layout — max 3 fixes
-- features infer what users want from rage taps, dwell time, errors (max 5)
+- fixes ONLY for CSS overflow, safe fallbacks, aria labels, mobile layout, cloud sync hooks — max 3 fixes
+- features infer user needs from rage taps, dwell time, errors, cross-user data issues (max 5)
+- if handoff tasks mention posts/cloud/supabase, prioritize data-flow fixes in features list
 - never include secrets or API keys
 - search/replace must be minimal and exact`;
 
