@@ -32,15 +32,21 @@ function mergeThoughtPatch(
   userId: string,
   patch: { note?: string; noteUpdatedAt?: number },
 ): void {
+  const existing = db.users.find((u) => u.id === userId);
+  const noteChanged = (existing?.note ?? '') !== (patch.note ?? '');
+  const tsChanged = (existing?.noteUpdatedAt ?? 0) !== (patch.noteUpdatedAt ?? 0);
+  if (!noteChanged && !tsChanged) return;
+
   withCloudAppStateRemoteApply(() => {
-    db.updateUser(userId, (u) => {
-      const merged = normalizeUserThoughtEpoch({
+    db.updateUser(userId, (u) =>
+      normalizeUserThoughtEpoch({
         ...u,
         note: patch.note,
-        noteUpdatedAt: patch.noteUpdatedAt ?? (patch.note ? Date.now() : undefined),
-      });
-      return merged;
-    });
+        noteUpdatedAt:
+          patch.noteUpdatedAt ??
+          (patch.note && noteChanged ? Date.now() : u.noteUpdatedAt),
+      }),
+    );
   });
   dispatchThoughtNoteReplay(userId);
 }
@@ -180,18 +186,5 @@ export async function refreshThoughtNotesFromCloud(): Promise<void> {
   for (const row of data as ProfileRow[]) {
     if (!row?.id) continue;
     applyProfileThoughtRow(row);
-  }
-
-  if (me?.id) {
-    const ownRow = (data as ProfileRow[]).find((r) => r.id === me.id);
-    if (ownRow) {
-      const fromProfile = profileRowToUser(ownRow);
-      if (fromProfile.note) {
-        mergeThoughtPatch(me.id, {
-          note: fromProfile.note,
-          noteUpdatedAt: fromProfile.noteUpdatedAt,
-        });
-      }
-    }
   }
 }

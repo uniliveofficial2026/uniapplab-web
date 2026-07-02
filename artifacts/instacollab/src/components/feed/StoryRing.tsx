@@ -21,7 +21,7 @@ import {
 import { getLiveRingClasses, LIVE_KIND_LABELS } from '../../lib/liveRing';
 import { getStoryRingVisualState } from '../../lib/storySegments';
 import { safeIndex, resolveUser } from '../../lib/safe';
-import { useDB, useDbRevision } from '../../lib/useDB';
+import { useDB, useDbRevision, useUserById } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { pauseAllPlayback, PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
 import { acquireMediaOverlayLock } from '../../lib/mediaOverlayLock';
@@ -30,6 +30,8 @@ import { isPlayableAudioUrl } from '../../lib/audioMedia';
 import { StoryRingPortals } from './StoryRingPortals';
 import { THOUGHT_NOTE_MAX_LENGTH, patchUserThoughtNote } from '../../lib/thoughtNote';
 import { subscribeThoughtNoteLive } from '../../lib/thoughtNoteLiveSync';
+import { thoughtAnimationKey } from '../../lib/thoughtNoteEpoch';
+import { useThoughtReplayNonce } from '../../hooks/useThoughtReplayNonce';
 import { ThoughtViewOverlay } from '../common/ThoughtViewOverlay';
 import { ThoughtBubbleShell, ThoughtComposerBubblePortal } from '../common/AvatarThoughtBubble';
 import { ProfileStoryCardMedia } from './ProfileStoryCardMedia';
@@ -118,16 +120,8 @@ export function StoryRing({
   const createdStory = persistentSegments.length > 0;
   const isMyStoryEmpty = isCurrentUser && !createdStory;
 
-  const userFromDb = storyUser;
-  const [showNoteModal, setShowNoteModal] = useState(false);
-  const [showPreviewModal, setShowPreviewModal] = useState(false);
-  const [noteEditVal, setNoteEditVal] = useState('');
-  const [showHeaderThoughtComposer, setShowHeaderThoughtComposer] = useState(false);
-  const headerSlotRef = React.useRef<HTMLDivElement>(null);
-  const ringShellRef = React.useRef<HTMLDivElement>(null);
-  const [, bumpThoughtLive] = useState(0);
-
-  useEffect(() => subscribeThoughtNoteLive(() => bumpThoughtLive((n) => n + 1)), []);
+  const userFromDb = useUserById(storyUser.id, storyUser);
+  const thoughtReplayNonce = useThoughtReplayNonce(userFromDb.id);
 
   const openThoughtComposer = React.useCallback(() => {
     if (presentation === 'header') {
@@ -470,6 +464,12 @@ export function StoryRing({
 
   const sharedThoughtText = (userFromDb.note ?? '').trim();
   const sharedThoughtEpoch = userFromDb.noteUpdatedAt ?? 0;
+  const thoughtBubbleKey = thoughtAnimationKey(
+    userFromDb.id,
+    sharedThoughtText,
+    sharedThoughtEpoch,
+    thoughtReplayNonce,
+  );
   const hasSharedThought = sharedThoughtText.length > 0;
   const hideThoughtOnProfileStoryCard =
     presentation === 'card' && storyScope === 'profile';
@@ -814,6 +814,7 @@ export function StoryRing({
       {/* Posted thought — always visible once shared (profile header + feed) */}
       {showPostedThoughtBubble ? (
         <ThoughtBubbleShell
+          key={thoughtBubbleKey}
           noteText={sharedThoughtText}
           animationEpoch={sharedThoughtEpoch}
           onOpen={() => setShowPreviewModal(true)}

@@ -6,6 +6,7 @@
  */
 import { db } from './db/localDb';
 import type { User } from '../types';
+import { thoughtNoteEpoch } from './thoughtNoteEpoch';
 
 const THOUGHT_NOTE_EVENT = 'thought-note-live';
 
@@ -47,7 +48,7 @@ export function normalizeUserThoughtEpoch(user: User): User {
     return { ...user, note: undefined, noteUpdatedAt: undefined };
   }
   if (user.noteUpdatedAt && user.noteUpdatedAt > 0) return { ...user, note };
-  return { ...user, note, noteUpdatedAt: Date.now() };
+  return { ...user, note, noteUpdatedAt: thoughtNoteEpoch(note, undefined) };
 }
 
 export function normalizeUsersThoughtEpochs(users: User[]): User[] {
