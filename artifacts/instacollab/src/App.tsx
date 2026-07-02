@@ -83,7 +83,9 @@ import {
   shouldApplyDevSessionOverride,
 } from './lib/devSessionUser';
 import { useLaunchRoute } from './hooks/useLaunchRoute';
+import { useIsOnline } from './hooks/useNetworkStatus';
 import { LaunchShell } from './components/launch/launchUi';
+import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
 import { useSupabaseAuth } from './contexts/SupabaseAuthContext';
 import { useAuth } from './lib/AuthContext';
 import { getFirebaseAuth } from './lib/firebase';
@@ -164,6 +166,7 @@ export default function App() {
   const currentUser = useCurrentUser();
   const { configured: supabaseAuth, authReady } = useSupabaseAuth();
   const launchRoute = useLaunchRoute();
+  const isOnline = useIsOnline();
   const { user: firebaseUser, profile: firebaseProfile, loading: firebaseLoading } = useAuth();
 
   useEffect(() => {
@@ -478,14 +481,20 @@ export default function App() {
     }
   };
 
-  if (supabaseAuth && !authReady) {
+  const hasLocalSession = db.isLoggedIn && Boolean(db.currentUserId);
+  const deferAuthSpinnerForOffline = !isOnline && hasLocalSession;
+
+  if (supabaseAuth && !authReady && !deferAuthSpinnerForOffline) {
     return (
       <ToastProvider>
         <ToastListener />
         <LaunchShell className="items-center justify-center gap-3 p-6">
           <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <p className="text-sm text-muted-foreground">Restoring your session…</p>
+          <p className="text-sm text-muted-foreground">
+            {isOnline ? 'Restoring your session…' : 'Loading your saved app…'}
+          </p>
         </LaunchShell>
+        <OfflineStatusBanner />
       </ToastProvider>
     );
   }
@@ -546,6 +555,7 @@ export default function App() {
   return (
     <ToastProvider>
       <ToastListener />
+      <OfflineStatusBanner insetBelowNav />
       <Shell currentTab={currentTab} setCurrentTab={handleTabChange} currentUser={currentUser}>
         {renderContent()}
       </Shell>
