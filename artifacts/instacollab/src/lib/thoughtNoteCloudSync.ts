@@ -9,6 +9,7 @@ import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
 import { profileRowToUser } from './supabase/profile';
 import type { ProfileRow } from './supabase/types';
+import { isNetworkOnline, subscribeNetworkStatus } from './networkStatus';
 
 let installed = false;
 let channelUnsub: (() => void) | null = null;
@@ -49,9 +50,26 @@ function applyProfileThoughtRow(row: ProfileRow): void {
 }
 
 export function initThoughtNoteCloudSync(): void {
-  if (installed || typeof window === 'undefined') return;
+  if (typeof window === 'undefined') return;
   if (!isSupabaseConfigured()) return;
-  installed = true;
+
+  if (!installed) {
+    installed = true;
+    subscribeNetworkStatus((next) => {
+      if (next === 'online') {
+        startThoughtNoteChannel();
+      } else {
+        stopThoughtNoteChannel();
+      }
+    });
+  }
+
+  if (!isNetworkOnline()) return;
+  startThoughtNoteChannel();
+}
+
+function startThoughtNoteChannel(): void {
+  if (channelUnsub || !isNetworkOnline()) return;
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
@@ -79,8 +97,12 @@ export function initThoughtNoteCloudSync(): void {
   };
 }
 
-export function teardownThoughtNoteCloudSync(): void {
+function stopThoughtNoteChannel(): void {
   channelUnsub?.();
   channelUnsub = null;
+}
+
+export function teardownThoughtNoteCloudSync(): void {
+  stopThoughtNoteChannel();
   installed = false;
 }

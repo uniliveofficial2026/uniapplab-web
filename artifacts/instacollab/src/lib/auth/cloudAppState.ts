@@ -21,6 +21,7 @@ import { consumePendingDemoMigration, resolveDemoSessionEmail } from './demoClou
 import { hasSupabaseSessionForUser } from './activeBackend';
 import { isDevLocalAuthBypass } from './devLocalAuth';
 import { scheduleLiveSessionSync } from '../liveSessionSync';
+import { isNetworkOnline } from '../networkStatus';
 
 let pushInFlight = false;
 let pushAgainAfterFlight = false;
