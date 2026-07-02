@@ -1,5 +1,6 @@
 {
   "version": 2,
+  "ignoreCommand": "node scripts/vercel-should-build.mjs",
   "installCommand": "pnpm install && pnpm --filter @workspace/api-server run build",
   "env": {
     "NODE_ENV": "sandbox"

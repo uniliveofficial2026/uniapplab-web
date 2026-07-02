@@ -3,12 +3,13 @@ import { createPortal } from 'react-dom';
 import { User } from '../../types';
 import { handleAvatarError, resolveAvatarSrc } from '../../lib/utils';
 import { resolveUser } from '../../lib/safe';
-import { useDB } from '../../lib/useDB';
+import { useDB, useUserById } from '../../lib/useDB';
 import { X } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import { useToast } from '../../lib/ToastContext';
-import { subscribeThoughtNoteLive } from '../../lib/thoughtNoteLiveSync';
 import { THOUGHT_NOTE_MAX_LENGTH, patchUserThoughtNote } from '../../lib/thoughtNote';
+import { thoughtAnimationKey } from '../../lib/thoughtNoteEpoch';
+import { useThoughtReplayNonce } from '../../hooks/useThoughtReplayNonce';
 import { ThoughtViewOverlay } from './ThoughtViewOverlay';
 import { AvatarThoughtBubble, InlineAvatarThoughtBubble } from './AvatarThoughtBubble';
 
@@ -43,16 +44,20 @@ export function Avatar({
     lg: 'w-16 h-16',
   };
 
-  const resolvedUser = resolveUser(db.users, user);
-  const hasRing = resolvedUser.status && resolvedUser.status !== 'none';
+  const resolvedUser = useUserById(user.id, resolveUser(db.users, user));
+  const thoughtReplayNonce = useThoughtReplayNonce(resolvedUser.id);
   const isLive = resolvedUser.status === 'live';
   const isStory = resolvedUser.status === 'story';
   const isCurrentUser = db.currentUser?.id === resolvedUser.id;
+  const hasRing = resolvedUser.status && resolvedUser.status !== 'none';
   const thoughtNote = resolvedUser.note?.trim() ?? '';
-  const [, bumpThoughtLive] = useState(0);
-
-  useEffect(() => subscribeThoughtNoteLive(() => bumpThoughtLive((n) => n + 1)), []);
-
+  const thoughtEpoch = resolvedUser.noteUpdatedAt ?? 0;
+  const thoughtBubbleKey = thoughtAnimationKey(
+    resolvedUser.id,
+    thoughtNote,
+    thoughtEpoch,
+    thoughtReplayNonce,
+  );
   const [showNoteModal, setShowNoteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [noteEditVal, setNoteEditVal] = useState('');
@@ -118,7 +123,9 @@ export function Avatar({
 
         {!hideNote && thoughtNote && size !== 'sm' && thoughtBubbleMode === 'inline' ? (
           <InlineAvatarThoughtBubble
+            key={thoughtBubbleKey}
             noteText={thoughtNote}
+            animationEpoch={thoughtEpoch}
             onOpen={() => setShowPreviewModal(true)}
           />
         ) : null}
@@ -126,8 +133,10 @@ export function Avatar({
 
       {!hideNote && thoughtNote && size !== 'sm' && thoughtBubbleMode === 'portal' ? (
         <AvatarThoughtBubble
+          key={thoughtBubbleKey}
           anchorRef={avatarRootRef}
           noteText={thoughtNote}
+          animationEpoch={thoughtEpoch}
           userId={resolvedUser.id}
           onOpen={() => setShowPreviewModal(true)}
         />

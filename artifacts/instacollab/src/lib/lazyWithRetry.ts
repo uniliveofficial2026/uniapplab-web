@@ -1,7 +1,9 @@
 import React from 'react';
-import { queueInvisibleReload } from './invisibleReload';
+import { stageAppUpdate } from './invisibleReload';
+import { checkForPwaUpdate } from './pwaAutoUpdate';
 
 const CHUNK_RELOAD_KEY = 'instacollab-chunk-reload';
+const RETRY_DELAYS_MS = [400, 800, 1200];
 
 export function isChunkLoadError(reason: unknown): boolean {
   const message =
@@ -20,7 +22,7 @@ export function isChunkLoadError(reason: unknown): boolean {
 }
 
 export function chunkLoadUserMessage(): string {
-  return 'A newer version is available. Reload when you are ready.';
+  return 'This screen is updating in the background. Try again in a moment.';
 }
 
 export function clearChunkReloadGuard(): void {
@@ -38,7 +40,8 @@ export function clearChunkReloadGuard(): void {
 }
 
 async function handleChunkLoadFailure(): Promise<never> {
-  queueInvisibleReload('lazy_chunk');
+  await checkForPwaUpdate();
+  stageAppUpdate('lazy_chunk');
   throw new Error(chunkLoadUserMessage());
 }
 
@@ -50,9 +53,9 @@ async function loadWithChunkRecovery<T extends React.ComponentType<unknown>>(
     return await factory();
   } catch (err) {
     if (!isChunkLoadError(err)) throw err;
-    if (attempt === 0) {
-      await new Promise((resolve) => setTimeout(resolve, 400));
-      return loadWithChunkRecovery(factory, 1);
+    if (attempt < RETRY_DELAYS_MS.length) {
+      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+      return loadWithChunkRecovery(factory, attempt + 1);
     }
     return handleChunkLoadFailure();
   }
@@ -71,6 +74,7 @@ export function installChunkLoadRecovery(): void {
   window.addEventListener('unhandledrejection', (event) => {
     if (!isChunkLoadError(event.reason)) return;
     event.preventDefault();
-    queueInvisibleReload('chunk_unhandled');
+    void checkForPwaUpdate();
+    stageAppUpdate('chunk_unhandled');
   });
 }

@@ -17,6 +17,67 @@ const STATE = path.join(ROOT, '.local/handoff-state.json');
 const AUTO_DEPLOY = process.env.HANDOFF_AUTO_DEPLOY === '1';
 const DEPLOY_EVERY_CYCLES = Number(process.env.HANDOFF_DEPLOY_CYCLES ?? '30');
 const CLOUD_CHECK_MS = Number(process.env.HANDOFF_CLOUD_CHECK_MS ?? '3600000');
+const SIGNAL_CORROBORATION = Number(process.env.HANDOFF_SIGNAL_CORROBORATION ?? '2');
+const SIGNAL_FP_PATH = path.join(ROOT, '.local/handoff-signal-fp.json');
+
+const NOISE_PATTERNS = [
+  /ResizeObserver loop/i,
+  /^Script error\.?$/i,
+  /chrome-extension/i,
+  /moz-extension/i,
+  /AbortError/i,
+  /cancelled/i,
+];
+
+function isNoiseDetail(detail) {
+  const d = String(detail || '').trim();
+  if (!d) return true;
+  return NOISE_PATTERNS.some((re) => re.test(d));
+}
+
+function readSignalFingerprints() {
+  try {
+    return JSON.parse(fs.readFileSync(SIGNAL_FP_PATH, 'utf8'));
+  } catch {
+    return {};
+  }
+}
+
+function writeSignalFingerprints(map) {
+  fs.mkdirSync(path.dirname(SIGNAL_FP_PATH), { recursive: true });
+  fs.writeFileSync(SIGNAL_FP_PATH, `${JSON.stringify(map, null, 2)}\n`);
+}
+
+function corroborateSignal(signal) {
+  const detail = String(signal.detail || '');
+  if (isNoiseDetail(detail)) return false;
+  if (signal.meta?.immediate) return true;
+  if (/posts|cloud|supabase|sync|relation.*posts/i.test(detail)) return true;
+  const fp = `${signal.type}:${detail.slice(0, 120).replace(/\d{4,}/g, '#')}`;
+  const map = readSignalFingerprints();
+  const entry = map[fp] ?? { count: 0, lastEscalatedAt: 0 };
+  entry.count += 1;
+  map[fp] = entry;
+  writeSignalFingerprints(map);
+  if (entry.count < SIGNAL_CORROBORATION) return false;
+  const now = Date.now();
+  if (entry.lastEscalatedAt && now - entry.lastEscalatedAt < 10 * 60_000) return false;
+  entry.lastEscalatedAt = now;
+  entry.count = 0;
+  map[fp] = entry;
+  writeSignalFingerprints(map);
+  return true;
+}
+
+function verifyRepoHealthy() {
+  const health = runQuiet('node', ['scripts/check-health.mjs'], {
+    cwd: path.join(ROOT, 'artifacts/instacollab'),
+  });
+  const tsc = runQuiet('pnpm', ['exec', 'tsc', '--noEmit'], {
+    cwd: path.join(ROOT, 'artifacts/instacollab'),
+  });
+  return health === 0 && tsc === 0;
+}
 
 let upstash = null;
 async function loadUpstash() {
@@ -190,14 +251,18 @@ async function runTask(task) {
   log(`run ${task.type} — ${task.reason || task.detail || task.id}`);
 
   switch (task.type) {
-    case 'heal':
-      return runQuiet('node', ['scripts/self-heal.mjs']) === 0;
-    case 'health':
-      return (
+    case 'heal': {
+      const ok = runQuiet('node', ['scripts/self-heal.mjs']) === 0;
+      if (!ok) return false;
+      return verifyRepoHealthy();
+    }
+    case 'health': {
+      const ok =
         runQuiet('node', ['scripts/check-health.mjs'], {
           cwd: path.join(ROOT, 'artifacts/instacollab'),
-        }) === 0
-      );
+        }) === 0;
+      return ok;
+    }
     case 'ux_learn':
       return runQuiet('node', ['scripts/ux-learning-engine.mjs']) === 0;
     case 'verify':
@@ -220,12 +285,17 @@ async function runTask(task) {
       try {
         const mod = await import('./ux-gemini-fix.mjs');
         const r = await mod.runUxGeminiFix();
-        return r.applied > 0 || r.features > 0;
+        if (r.applied <= 0) return r.features > 0;
+        return verifyRepoHealthy();
       } catch {
         return false;
       }
     }
     case 'deploy': {
+      if (!verifyRepoHealthy()) {
+        log('deploy blocked — health/tsc verify failed');
+        return false;
+      }
       runQuiet('node', ['scripts/self-heal.mjs']);
       const status = spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
       if ((status.stdout || '').trim()) {
@@ -246,17 +316,53 @@ async function runTask(task) {
   }
 }
 
-/** Map UX / runtime signals → handoff tasks (critical only — no flood) */
+/** Map UX / runtime signals → handoff tasks (critical only — corroborated, no noise) */
 export async function handoffFromSignal(signal) {
   const detail = String(signal.detail || '');
   const type = signal.type;
+  const screen = signal.screen;
+
+  if (!corroborateSignal(signal)) return null;
 
   if (type === 'error' && /posts|cloud|supabase|sync|relation.*posts/i.test(detail)) {
     return await enqueueHandoffTask({
       type: 'cloud_data',
       reason: 'runtime_error',
       detail,
-      screen: signal.screen,
+      screen,
+      source: 'ux',
+    });
+  }
+
+  if (type === 'error') {
+    return await enqueueHandoffTask({
+      type: 'heal',
+      reason: 'runtime_error',
+      detail,
+      screen,
+      source: 'ux',
+    });
+  }
+
+  if (type === 'media_fail' || type === 'heal') {
+    if (type === 'media_fail') {
+      return await enqueueHandoffTask({
+        type: 'heal',
+        reason: 'media_fail',
+        detail,
+        screen,
+        source: 'ux',
+      });
+    }
+    return null;
+  }
+
+  if (type === 'warning' && /long_task|slow_|lag/i.test(detail)) {
+    return await enqueueHandoffTask({
+      type: 'ux_learn',
+      reason: 'runtime_lag',
+      detail,
+      screen,
       source: 'ux',
     });
   }
@@ -266,7 +372,7 @@ export async function handoffFromSignal(signal) {
       type: 'custom',
       reason: 'ui_friction',
       detail: `Rage taps on ${detail}`,
-      screen: signal.screen,
+      screen,
       source: 'ux',
     });
   }
@@ -315,13 +421,16 @@ export async function runHandoffCycle(options = {}) {
   }
 
   const shouldDeploy =
-    forceDeploy ||
-    AUTO_DEPLOY ||
-    (cycle > 0 && cycle % DEPLOY_EVERY_CYCLES === 0 && anyFixed);
+    (forceDeploy ||
+      AUTO_DEPLOY ||
+      (cycle > 0 && cycle % DEPLOY_EVERY_CYCLES === 0 && anyFixed)) &&
+    verifyRepoHealthy();
 
   if (shouldDeploy) {
     await runTask({ type: 'deploy', id: 'auto', reason: 'handoff_cycle' });
     setTimeout(() => void runTask({ type: 'verify', id: 'auto', reason: 'post_deploy' }), 45_000);
+  } else if (anyFixed && (forceDeploy || AUTO_DEPLOY)) {
+    log('deploy skipped — verifyRepoHealthy failed (zero-mistake guard)');
   }
 
   writeState({ ...state, lastCycle: Date.now(), completed: (state.completed || 0) + completed.length });

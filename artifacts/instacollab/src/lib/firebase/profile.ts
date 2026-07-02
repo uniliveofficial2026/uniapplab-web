@@ -79,6 +79,10 @@ export async function isFirebaseUsernameAvailable(
 
 export function userFromFirebaseUser(firebaseUser: FirebaseUser, profile: ProfileRow | null): User {
   if (profile) {
+    const trimmedNote = (profile.note ?? '').trim();
+    const noteUpdatedAt = profile.note_updated_at
+      ? Date.parse(profile.note_updated_at)
+      : undefined;
     return {
       id: profile.id,
       publicUserId: profile.public_user_id || profile.username,
@@ -90,6 +94,12 @@ export function userFromFirebaseUser(firebaseUser: FirebaseUser, profile: Profil
       followers: 0,
       following: 0,
       status: 'none',
+      ...(trimmedNote
+        ? {
+            note: trimmedNote,
+            ...(Number.isFinite(noteUpdatedAt) ? { noteUpdatedAt } : {}),
+          }
+        : {}),
     };
   }
   const fallbackUsername =

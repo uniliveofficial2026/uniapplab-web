@@ -28,14 +28,17 @@ import {
 } from '../lib/auth/sessionManager';
 import { startCloudAppStateRealtime } from '../lib/auth/cloudAppState';
 import { isDevLocalAuthBypass } from '../lib/auth/devLocalAuth';
+import { isNetworkOnline } from '../lib/networkStatus';
 import { writeStoredAuthBackend } from '../lib/auth/providerState';
 import {
   applyDevSessionOverrideFromUrl,
   shouldApplyDevSessionOverride,
 } from '../lib/devSessionUser';
 import { clearActiveDeviceUid, syncDeviceAccountForAppUser } from '../lib/auth/deviceAccounts';
+import { bootstrapCloudSystemsAfterAuth } from '../lib/appCloudSystems';
 
 const STARTUP_TIMEOUT_MS = 8_000;
+const OFFLINE_STARTUP_TIMEOUT_MS = 400;
 const SESSION_MS = 12_000;
 const DB_READY_MS = 8_000;
 
@@ -109,10 +112,21 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     let unsubFirebase: (() => void) | undefined;
 
     const markReady = () => {
-      if (!cancelled) setAuthReady(true);
+      if (!cancelled) {
+        setAuthReady(true);
+        bootstrapCloudSystemsAfterAuth();
+      }
     };
 
-    const startupTimer = window.setTimeout(markReady, STARTUP_TIMEOUT_MS);
+    const offlineAtBoot = typeof navigator !== 'undefined' && !navigator.onLine;
+    const startupTimer = window.setTimeout(
+      markReady,
+      offlineAtBoot ? OFFLINE_STARTUP_TIMEOUT_MS : STARTUP_TIMEOUT_MS,
+    );
+
+    void db.whenStorageReady().then(() => {
+      if (!cancelled && db.isLoggedIn) markReady();
+    });
 
     const startSupabase = () => {
       setActiveBackend('supabase');
@@ -125,6 +139,12 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
 
       void (async () => {
         try {
+          if (!isNetworkOnline()) {
+            if (db.isLoggedIn) {
+              markReady();
+            }
+            return;
+          }
           const restored = await withTimeout(
             restoreSupabaseSession(),
             SESSION_MS,

@@ -26,6 +26,8 @@ const BODY_DELAY_S = 0.48;
 
 type ThoughtBubbleShellProps = {
   noteText: string;
+  /** Bumps when the thought was saved — replays pop/typing on cross-device sync. */
+  animationEpoch?: number;
   onOpen: () => void;
   className?: string;
   style?: React.CSSProperties;
@@ -41,12 +43,15 @@ function noteTypography(noteLength: number) {
 /** Shared thought bubble — pops from avatar, then types the thought letter by letter. */
 export function ThoughtBubbleShell({
   noteText,
+  animationEpoch = 0,
   onOpen,
   className = '',
   style,
 }: ThoughtBubbleShellProps) {
   const reduceMotion = useReducedMotion();
-  const instant = !!reduceMotion;
+  /** Pop + typing always run — core “thinking” UX (incl. cross-device cloud sync on phones). */
+  const instant = false;
+  const loopTyping = !reduceMotion;
   const [introDone, setIntroDone] = useState(instant);
   const [cycleKey, setCycleKey] = useState(0);
   const fontSizeClass = noteTypography(noteText.length);
@@ -54,7 +59,7 @@ export function ThoughtBubbleShell({
   useEffect(() => {
     setIntroDone(instant);
     setCycleKey((key) => key + 1);
-  }, [noteText, instant]);
+  }, [noteText, animationEpoch, instant]);
 
   useEffect(() => {
     if (instant) {
@@ -82,7 +87,7 @@ export function ThoughtBubbleShell({
 
   return (
     <div
-      className={`${introDone ? 'thought-bubble-living' : ''} ${className}`}
+      className={`${introDone && !reduceMotion ? 'thought-bubble-living' : ''} ${className}`}
       style={style}
     >
       <div
@@ -141,7 +146,7 @@ export function ThoughtBubbleShell({
           key={`thought-text-${cycleKey}`}
           text={noteText}
           instant={instant}
-          loop={!instant}
+          loop={loopTyping}
           startDelay={instant ? 0 : TYPING_START_DELAY_MS}
           pauseAfterTypeMs={3400}
           pauseBeforeRestartMs={650}
@@ -157,14 +162,17 @@ export function ThoughtBubbleShell({
 /** Inline bubble anchored to avatar — scrolls with carousel rows and feed post headers. */
 export function InlineAvatarThoughtBubble({
   noteText,
+  animationEpoch,
   onOpen,
 }: {
   noteText: string;
+  animationEpoch?: number;
   onOpen: () => void;
 }) {
   return (
     <ThoughtBubbleShell
       noteText={noteText}
+      animationEpoch={animationEpoch}
       onOpen={onOpen}
       className="absolute bottom-[85%] left-[70%] mb-[10px] z-30 pointer-events-auto"
     />
@@ -174,6 +182,7 @@ export function InlineAvatarThoughtBubble({
 type AvatarThoughtBubbleProps = {
   anchorRef: RefObject<HTMLElement | null>;
   noteText: string;
+  animationEpoch?: number;
   userId: string;
   onOpen: () => void;
 };
@@ -181,6 +190,7 @@ type AvatarThoughtBubbleProps = {
 export function AvatarThoughtBubble({
   anchorRef,
   noteText,
+  animationEpoch,
   userId,
   onOpen,
 }: AvatarThoughtBubbleProps) {
@@ -292,6 +302,7 @@ export function AvatarThoughtBubble({
     >
       <ThoughtBubbleShell
         noteText={noteText}
+        animationEpoch={animationEpoch}
         onOpen={onOpen}
         className="pointer-events-auto"
       />

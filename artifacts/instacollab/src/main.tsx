@@ -8,8 +8,7 @@ import { AuthProvider } from './lib/AuthContext';
 import { registerAppServiceWorker } from './lib/pwaRegister';
 import { initSupabaseClient } from './lib/supabase/client';
 import { initWalletKstarSyncListeners } from './lib/walletKstarSync';
-import { initLiveSessionSync } from './lib/liveSessionSync';
-import { initThoughtNoteLiveSync } from './lib/thoughtNoteLiveSync';
+import { initAppCloudSystems } from './lib/appCloudSystems';
 import { initAppMediaStore, scheduleWarmAppMediaCache } from './lib/appMediaStore';
 import { db } from './lib/db/localDb';
 import { installPersistenceGuards } from './lib/persistSession';
@@ -17,22 +16,21 @@ import { bootstrapDocumentTheme } from './lib/theme';
 import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithRetry';
 import { installRuntimeGuards } from './lib/runtimeGuards';
 import { installRuntimeSelfHeal } from './lib/selfHeal';
+import { initRuntimeAutoHeal } from './lib/runtimeAutoHeal';
 import { installUxTelemetry } from './lib/uxTelemetry';
 import { installPresenceHeartbeat } from './lib/presenceHeartbeat';
-import { initLiveAutoReload } from './lib/liveAutoReload';
 
 bootstrapDocumentTheme();
 installChunkLoadRecovery();
 registerAppServiceWorker();
 initWalletKstarSyncListeners();
-initLiveSessionSync();
-initThoughtNoteLiveSync();
+initAppCloudSystems();
 installPersistenceGuards();
 installRuntimeGuards();
 installRuntimeSelfHeal();
+initRuntimeAutoHeal();
 installUxTelemetry();
 installPresenceHeartbeat();
-initLiveAutoReload();
 
 async function bootstrap() {
   await initSupabaseClient();

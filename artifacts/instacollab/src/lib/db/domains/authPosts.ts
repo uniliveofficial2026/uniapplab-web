@@ -221,7 +221,9 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         existing.bannedAt !== merged.bannedAt ||
         existing.banReason !== merged.banReason ||
         existing.mutedUntil !== merged.mutedUntil ||
-        existing.publicUserId !== merged.publicUserId;
+        existing.publicUserId !== merged.publicUserId ||
+        existing.note !== merged.note ||
+        existing.noteUpdatedAt !== merged.noteUpdatedAt;
 
       if (userRowChanged) {
         this.save('users', [...users, merged]);
@@ -265,7 +267,9 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
           merged.displayName !== existing.displayName ||
           merged.avatarUrl !== existing.avatarUrl ||
           merged.bio !== existing.bio ||
-          merged.publicUserId !== existing.publicUserId
+          merged.publicUserId !== existing.publicUserId ||
+          merged.note !== existing.note ||
+          merged.noteUpdatedAt !== existing.noteUpdatedAt
         ) {
           byId.set(user.id, merged);
           changed = true;
@@ -379,7 +383,8 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         before.avatarUrl !== after.avatarUrl ||
         before.status !== after.status ||
         before.liveKind !== after.liveKind ||
-        before.isVerified !== after.isVerified
+        before.isVerified !== after.isVerified ||
+        before.note !== after.note
       );
     }
 

@@ -236,7 +236,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!previousUid) return;
 
-    if (supabaseSession?.user?.id === previousUid && supabaseSession.refresh_token) {
+    if (supabaseSession && supabaseSession.user?.id === previousUid && supabaseSession.refresh_token) {
       saveStoredAccountSession(previousUid, supabaseSession);
     }
 
