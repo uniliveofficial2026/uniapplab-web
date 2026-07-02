@@ -13,7 +13,6 @@ import { isChunkLoadError } from './lazyWithRetry';
 import { isNetworkOnline } from './networkStatus';
 import { getRuntimePlatform, platformMetaForTelemetry } from './platformDetect';
 import { pauseAllPlayback } from './playbackAudio';
-import { pausePeerVideos } from './playbackScope';
 import { stageAppUpdate } from './invisibleReload';
 import { checkForPwaUpdate } from './pwaAutoUpdate';
 import { flushUxSignals, getCurrentScreen, trackUx } from './uxTelemetry';
@@ -27,7 +26,7 @@ const LAG_BURST_WINDOW_MS = 30_000;
 let installed = false;
 let healInFlight = false;
 let healAgain = false;
-let healTimer: ReturnType<typeof setInterval> | null = null;
+let healTimer: number | null = null;
 let lagTimestamps: number[] = [];
 
 function reportHeal(action: string, detail?: string): void {
@@ -63,10 +62,20 @@ async function healCloudAuth(): Promise<void> {
   clearSupabaseUnhealthy();
 }
 
+function pauseMediaForRelief(): void {
+  pauseAllPlayback();
+  document.querySelectorAll('video').forEach((video) => {
+    try {
+      video.pause();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 function healPlaybackPressure(): void {
   if (document.visibilityState === 'hidden') {
-    pauseAllPlayback();
-    pausePeerVideos();
+    pauseMediaForRelief();
     reportHeal('playback_paused_hidden');
   }
 }
@@ -93,8 +102,7 @@ function onLagDetected(durationMs: number, source: string): void {
 
   if (lagTimestamps.length >= LAG_BURST_LIMIT) {
     lagTimestamps = [];
-    pauseAllPlayback();
-    pausePeerVideos();
+    pauseMediaForRelief();
     refreshCloudSystemsInPlace('lag_burst');
     reportHeal('lag_burst', source);
     submitHandoffTask({
@@ -132,7 +140,7 @@ function installPerformanceWatch(): void {
         }
       }
     });
-    eventTiming.observe({ type: 'event', buffered: true, durationThreshold: 300 });
+    eventTiming.observe({ type: 'event', buffered: true } as PerformanceObserverInit);
   } catch {
     /* unsupported */
   }
@@ -148,7 +156,7 @@ function installMemoryWatch(): void {
     const ratio = mem.usedJSHeapSize / mem.jsHeapSizeLimit;
     if (ratio < 0.9) return;
 
-    pauseAllPlayback();
+    pauseMediaForRelief();
     refreshCloudSystemsInPlace('memory_pressure');
     reportHeal('memory_pressure', String(Math.round(ratio * 100)));
     submitHandoffTask({
