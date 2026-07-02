@@ -3,17 +3,25 @@ import { createClient, type SupabaseClient, type User } from "@supabase/supabase
 let anonClient: SupabaseClient | null = null;
 let serviceClient: SupabaseClient | null = null;
 
-function requireEnv(name: string): string {
-  const value = process.env[name]?.trim();
+function requireEnv(name: string, fallback?: string): string {
+  const value = (process.env[name] || fallback || "").trim();
   if (!value) throw new Error(`Missing required env: ${name}`);
   return value;
+}
+
+function supabaseUrl(): string {
+  return requireEnv("SUPABASE_URL", process.env.VITE_SUPABASE_URL);
+}
+
+function supabaseAnonKey(): string {
+  return requireEnv("SUPABASE_ANON_KEY", process.env.VITE_SUPABASE_ANON_KEY);
 }
 
 export function getSupabaseAnon(): SupabaseClient {
   if (!anonClient) {
     anonClient = createClient(
-      requireEnv("SUPABASE_URL"),
-      requireEnv("SUPABASE_ANON_KEY"),
+      supabaseUrl(),
+      supabaseAnonKey(),
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
   }
@@ -23,7 +31,7 @@ export function getSupabaseAnon(): SupabaseClient {
 export function getSupabaseService(): SupabaseClient {
   if (!serviceClient) {
     serviceClient = createClient(
-      requireEnv("SUPABASE_URL"),
+      supabaseUrl(),
       requireEnv("SUPABASE_SERVICE_ROLE_KEY"),
       { auth: { persistSession: false, autoRefreshToken: false } },
     );
