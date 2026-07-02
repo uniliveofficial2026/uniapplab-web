@@ -10,6 +10,7 @@ const ACT_COOLDOWN_MS = 120_000;
 const HANDOFF_COOLDOWN_MS = 10 * 60_000;
 
 type Bucket = { hits: number[]; lastActedAt?: number };
+type HandoffFp = { count: number; lastEscalatedAt?: number };
 
 const NOISE_PATTERNS = [
   /ResizeObserver loop/i,
@@ -52,15 +53,15 @@ function writeBuckets(map: Record<string, Bucket>): void {
   }
 }
 
-function readHandoffFingerprints(): Record<string, number> {
+function readHandoffFingerprints(): Record<string, HandoffFp> {
   try {
-    return JSON.parse(localStorage.getItem(HANDOFF_FP_KEY) || '{}') as Record<string, number>;
+    return JSON.parse(localStorage.getItem(HANDOFF_FP_KEY) || '{}') as Record<string, HandoffFp>;
   } catch {
     return {};
   }
 }
 
-function writeHandoffFingerprints(map: Record<string, number>): void {
+function writeHandoffFingerprints(map: Record<string, HandoffFp>): void {
   try {
     localStorage.setItem(HANDOFF_FP_KEY, JSON.stringify(map));
   } catch {
@@ -135,14 +136,17 @@ export function shouldEscalateHandoff(kind: string, detail: string, minHits = 2)
   const fp = fingerprintIssue(kind, detail);
   const now = Date.now();
   const map = readHandoffFingerprints();
-  const prev = map[fp] ?? 0;
-  const next = prev + 1;
-  map[fp] = next;
+  const entry = map[fp] ?? { count: 0 };
+  entry.count += 1;
+  map[fp] = entry;
   writeHandoffFingerprints(map);
 
-  if (next < minHits) return false;
-  if (now - prev < HANDOFF_COOLDOWN_MS && prev > 0) return false;
-  map[fp] = now;
+  if (entry.count < minHits) return false;
+  if (entry.lastEscalatedAt && now - entry.lastEscalatedAt < HANDOFF_COOLDOWN_MS) return false;
+
+  entry.lastEscalatedAt = now;
+  entry.count = 0;
+  map[fp] = entry;
   writeHandoffFingerprints(map);
   return true;
 }
