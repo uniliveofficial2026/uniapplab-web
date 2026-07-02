@@ -85,7 +85,7 @@ for (const check of API_CHECKS) {
       failures.push(check.name);
       const hint =
         result.status === 404 || /page could not be found|NOT_FOUND/i.test(result.reason || '')
-          ? ' — run: pnpm run vercel:open-settings (Root Directory must be repo root)'
+          ? ' — merge latest main + redeploy, or pnpm run vercel:deploy-api'
           : '';
       console.error(
         `[verify] ✗ ${check.name} — ${result.reason || JSON.stringify(result.body)}${hint}`,
