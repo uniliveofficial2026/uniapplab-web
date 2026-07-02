@@ -1,7 +1,7 @@
 import { useEffect, useRef } from 'react';
 import { Room, RoomEvent, Track, ConnectionState } from 'livekit-client';
-import { isLiveKitConfigured } from '../livekit/livekitConfig';
-import { fetchPartyLiveKitToken } from '../platformApi';
+import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
+import { fetchPartyLiveKitToken } from '../../lib/platformApi';
 
 type PartyLiveKitOptions = {
   roomId: string;
