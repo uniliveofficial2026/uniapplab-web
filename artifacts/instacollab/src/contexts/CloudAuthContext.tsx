@@ -35,6 +35,7 @@ import {
   shouldApplyDevSessionOverride,
 } from '../lib/devSessionUser';
 import { clearActiveDeviceUid, syncDeviceAccountForAppUser } from '../lib/auth/deviceAccounts';
+import { bootstrapCloudSystemsAfterAuth } from '../lib/appCloudSystems';
 
 const STARTUP_TIMEOUT_MS = 8_000;
 const OFFLINE_STARTUP_TIMEOUT_MS = 400;
@@ -111,7 +112,10 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     let unsubFirebase: (() => void) | undefined;
 
     const markReady = () => {
-      if (!cancelled) setAuthReady(true);
+      if (!cancelled) {
+        setAuthReady(true);
+        bootstrapCloudSystemsAfterAuth();
+      }
     };
 
     const offlineAtBoot = typeof navigator !== 'undefined' && !navigator.onLine;

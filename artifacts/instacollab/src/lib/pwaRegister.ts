@@ -1,4 +1,6 @@
 import { registerSW } from 'virtual:pwa-register';
+import { queueInvisibleReload } from './invisibleReload';
+import { registerPwaRefreshHandler } from './pwaAutoUpdate';
 
 let updateSw: ((reloadPage?: boolean) => Promise<void>) | null = null;
 let pendingPwaRefresh: (() => Promise<void>) | null = null;
@@ -35,9 +37,15 @@ export function registerAppServiceWorker() {
     },
     onNeedRefresh() {
       pendingPwaRefresh = () => updateSw?.(true) ?? Promise.resolve();
+      registerPwaRefreshHandler(() => pendingPwaRefresh?.() ?? Promise.resolve());
+      queueInvisibleReload('pwa_update');
     },
-    onRegistered() {
-      // No background update polling — avoids mid-session takeover / reload.
+    onRegisteredSW(_swUrl, registration) {
+      if (registration) {
+        window.setInterval(() => {
+          void registration.update();
+        }, 60 * 60_000);
+      }
     },
   });
 }

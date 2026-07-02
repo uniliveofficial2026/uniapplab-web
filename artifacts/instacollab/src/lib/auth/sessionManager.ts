@@ -28,6 +28,7 @@ import {
 import { initThoughtNoteCloudSync, teardownThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
 import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
 import { syncLiveSessionData } from '../liveSessionSync';
+import { bootstrapCloudSystemsAfterAuth } from '../appCloudSystems';
 
 const DB_READY_MS = 8_000;
 const PROFILE_MS = 12_000;
@@ -144,6 +145,7 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
   await startCloudAppStateRealtime(appUser.id);
   void startCloudChatRealtime(appUser.id);
   await syncLiveSessionData(appUser.id);
+  bootstrapCloudSystemsAfterAuth();
 }
 
 /** Restore a previously saved per-account Supabase session (seamless account switch). */
