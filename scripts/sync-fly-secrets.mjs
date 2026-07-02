@@ -3,10 +3,10 @@
  * Push API env from .env to Fly.io secrets.
  * Usage: pnpm run fly:env-secrets
  */
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { flyInstallHint, flySpawn, resolveFlyBin } from './lib/fly-cli.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -69,18 +69,22 @@ if (required.length) {
   process.exit(1);
 }
 
-const pairs = SECRETS.filter(([, value]) => value).map(([name, value]) => `${name}=${value}`);
-const importBody = pairs.join('\n');
+if (!resolveFlyBin()) {
+  console.error('[fly] flyctl not found.\n');
+  console.error(flyInstallHint());
+  process.exit(1);
+}
 
-const fly = spawnSync('fly', ['secrets', 'import', '-a', flyApp], {
+const pairs = SECRETS.filter(([, value]) => value).map(([name, value]) => `${name}=${value}`);
+const fly = flySpawn(['secrets', 'import', '-a', flyApp], {
   cwd: ROOT,
-  input: importBody,
+  input: pairs.join('\n'),
   stdio: ['pipe', 'inherit', 'inherit'],
 });
 
 if (fly.status !== 0) {
   console.error('');
-  console.error('[fly] secrets import failed — install flyctl and run: fly auth login');
+  console.error('[fly] secrets import failed — run: flyctl auth login');
   process.exit(fly.status ?? 1);
 }
 

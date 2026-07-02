@@ -1,11 +1,12 @@
 #!/usr/bin/env node
 /**
  * Verify Fly.io API deployment health.
- * Usage: pnpm run fly:check [--prod]
+ * Usage: pnpm run fly:check
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { flyInstallHint, resolveFlyBin } from './lib/fly-cli.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -26,18 +27,13 @@ loadDotEnv();
 const flyApp = process.env.FLY_APP_NAME || 'uniapplab-api';
 const flyOrigin = (process.env.FLY_API_ORIGIN || `https://${flyApp}.fly.dev`).replace(/\/$/, '');
 
-const { probeProdApi } = await import('./probe-prod-api.mjs');
-
 let failed = 0;
+let skipped = false;
 
-for (const apiPath of ['/api/healthz', '/api/upstash/health', '/api/linear/health']) {
-  const result = await probeProdApi(flyOrigin, apiPath, { retries: 2 });
-  if (result.ok) {
-    console.log(`[fly] ✓ ${flyOrigin}${apiPath}`);
-  } else {
-    console.error(`[fly] ✗ ${flyOrigin}${apiPath} — ${result.reason || result.status}`);
-    failed += 1;
-  }
+if (!resolveFlyBin()) {
+  console.warn('[fly] ⚠ flyctl not installed (optional until you deploy to Fly)');
+  console.warn(flyInstallHint());
+  skipped = true;
 }
 
 if (!fs.existsSync(path.join(ROOT, 'fly.toml'))) {
@@ -47,9 +43,38 @@ if (!fs.existsSync(path.join(ROOT, 'fly.toml'))) {
   console.log('[fly] ✓ fly.toml present');
 }
 
+if (!skipped) {
+  const { probeProdApi } = await import('./probe-prod-api.mjs');
+
+  for (const apiPath of ['/api/healthz', '/api/upstash/health', '/api/linear/health']) {
+    try {
+      const result = await probeProdApi(flyOrigin, apiPath, { retries: 1 });
+      if (result.ok) {
+        console.log(`[fly] ✓ ${flyOrigin}${apiPath}`);
+      } else {
+        const reason = result.reason || String(result.status);
+        if (/ENOTFOUND|getaddrinfo|fetch failed/i.test(reason)) {
+          console.warn(`[fly] ⚠ ${flyOrigin}${apiPath} — app not deployed yet`);
+        } else {
+          console.error(`[fly] ✗ ${flyOrigin}${apiPath} — ${reason}`);
+          failed += 1;
+        }
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      if (/ENOTFOUND|getaddrinfo/i.test(msg)) {
+        console.warn(`[fly] ⚠ ${flyOrigin} — app not deployed yet (${msg})`);
+      } else {
+        console.error(`[fly] ✗ ${flyOrigin}${apiPath} — ${msg}`);
+        failed += 1;
+      }
+    }
+  }
+}
+
 if (failed) {
   console.error('');
-  console.error('[fly] Not deployed yet? Run: pnpm run fly:setup && pnpm run fly:deploy');
+  console.error('[fly] Fix: pnpm run fly:setup && flyctl apps create', flyApp, '&& pnpm run fly:deploy');
 }
 
 process.exit(failed > 0 ? 1 : 0);

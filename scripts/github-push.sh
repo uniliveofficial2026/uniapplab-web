@@ -40,7 +40,26 @@ if [[ "$push_status" -eq 0 ]]; then
   exit 0
 fi
 
-if rg -q 'GH013|Push cannot contain secrets|repository rule violations' "$push_log" 2>/dev/null; then
+if grep -qE 'GH006|Protected branch|pull request' "$push_log" 2>/dev/null; then
+  cat <<'EOF'
+
+GitHub blocked direct push to main (branch protection).
+
+Deploy via pull request:
+  git checkout -b chore/deploy-$(date +%Y%m%d)
+  git add -A && git commit -m "Deploy stack updates"
+  git push -u origin HEAD
+  gh pr create --fill
+  gh pr merge --squash --delete-branch
+
+Vercel will build after the PR merges to main.
+
+EOF
+  rm -f "$push_log"
+  exit 1
+fi
+
+if grep -q 'GH013\|Push cannot contain secrets\|repository rule violations' "$push_log" 2>/dev/null; then
   cat <<'EOF'
 
 GitHub blocked the push — secrets detected in git history (GH013).
@@ -58,7 +77,7 @@ EOF
   exit 1
 fi
 
-if rg -q 'Authentication failed|403|401|could not read Username' "$push_log" 2>/dev/null; then
+if grep -q 'Authentication failed\|403\|401\|could not read Username' "$push_log" 2>/dev/null; then
   cat <<'EOF'
 
 GitHub push failed — authentication required.
