@@ -6,47 +6,16 @@
  * Usage: pnpm run vercel:fix-root [-- --deploy | --git]
  */
 import fs from 'node:fs';
-import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { buildVercelConfig } from './sync-vercel-config.mjs';
+import { readVercelToken } from './lib/vercel-token.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const args = process.argv.slice(2);
+const args = process.argv.slice(2).filter((a) => a !== '--');
 const wantDeploy = args.includes('--deploy');
 const wantGit = args.includes('--git');
-
-if (process.env.VERCEL_TOKEN && /your_token|placeholder|xxxx|example/i.test(process.env.VERCEL_TOKEN)) {
-  console.warn('[vercel] Ignoring placeholder VERCEL_TOKEN');
-  delete process.env.VERCEL_TOKEN;
-}
-
-function readVercelToken() {
-  if (process.env.VERCEL_TOKEN?.trim()) return process.env.VERCEL_TOKEN.trim();
-  const authNames = ['auth.json', 'config.json'];
-  const dirs = [
-    process.env.VERCEL_CONFIG_DIR,
-    path.join(os.homedir(), '.local/share/com.vercel.cli'),
-    path.join(os.homedir(), '.config/com.vercel.cli'),
-    path.join(os.homedir(), 'Library', 'Application Support', 'com.vercel.cli'),
-    path.join(os.homedir(), '.vercel'),
-  ].filter(Boolean);
-  for (const dir of dirs) {
-    for (const name of authNames) {
-      const authPath = path.join(dir, name);
-      if (!fs.existsSync(authPath)) continue;
-      try {
-        const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-        const token = auth.token?.trim() || auth.credentials?.[0]?.token?.trim();
-        if (token) return token;
-      } catch {
-        /* next */
-      }
-    }
-  }
-  return null;
-}
 
 function readProjectMeta() {
   const projectFile = path.join(ROOT, '.vercel/project.json');
@@ -78,6 +47,8 @@ function deployViaCli() {
 }
 
 function redeployViaGit() {
+  const token = readVercelToken();
+  if (token) process.env.VERCEL_TOKEN = token;
   const r = spawnSync('node', ['scripts/vercel-redeploy-git.mjs'], {
     cwd: ROOT,
     stdio: 'inherit',

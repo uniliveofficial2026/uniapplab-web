@@ -14,6 +14,7 @@
  *   LIVE_SYNC_AUTO_HEAL=0               — skip self-heal before deploy (default: on)
  *   LIVE_SYNC_VERIFY=0                  — skip post-deploy production checks (default: on)
  *   LIVE_SYNC_AUTO_PUSH=0               — skip git commit+push before deploy (default: on)
+ *   LIVE_SYNC_DEPLOY=0                  — local dev only, no Vercel deploys (use when rate-limited)
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -34,6 +35,7 @@ const POLL_WATCH_MS = Number(process.env.LIVE_SYNC_POLL_MS ?? '800');
 const AUTO_HEAL = process.env.LIVE_SYNC_AUTO_HEAL !== '0';
 const VERIFY_PROD = process.env.LIVE_SYNC_VERIFY !== '0';
 const AUTO_PUSH = process.env.LIVE_SYNC_AUTO_PUSH !== '0';
+const DEPLOY_ENABLED = process.env.LIVE_SYNC_DEPLOY !== '0';
 const VERIFY_WAIT_MS = Number(process.env.LIVE_SYNC_VERIFY_WAIT_MS ?? '45000');
 const MAX_VERIFY_RETRIES = Number(process.env.LIVE_SYNC_VERIFY_RETRIES ?? '2');
 
@@ -313,7 +315,17 @@ function spawnDeploy(deployEnv) {
   });
 }
 
+let deployRateLimitedUntil = 0;
+
 async function runDeploy(reason, verifyAttempt = 0) {
+  if (!DEPLOY_ENABLED) {
+    log('deploy skipped (LIVE_SYNC_DEPLOY=0)');
+    return;
+  }
+  if (Date.now() < deployRateLimitedUntil) {
+    log('deploy skipped — Vercel daily limit (retry after rate limit resets)');
+    return;
+  }
   if (deployRunning) {
     deployQueued = true;
     pendingReason = reason;
@@ -359,6 +371,10 @@ async function runDeploy(reason, verifyAttempt = 0) {
     }
   } else {
     log(`deploy failed (exit ${code})`);
+    if (/api-deployments-free|Resource is limited|rate/i.test(output)) {
+      deployRateLimitedUntil = Date.now() + 24 * 60 * 60 * 1000;
+      log('Vercel deploy quota exhausted — pausing auto-deploy for 24h');
+    }
     const url = parseDeploymentUrl(output);
     if (url) void aliasDomains(url);
     runSelfHeal();
