@@ -65,3 +65,5 @@ artifacts/instacollab/public/deepar-resources/
 artifacts/instacollab/public/effects/
 artifacts/instacollab/public/.deepar-assets-installed.json
 artifacts/instacollab/vendor/archives/
+artifacts/instacollab/api/_bundle/
+artifacts/instacollab/api/index.js

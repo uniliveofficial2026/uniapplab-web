@@ -21,6 +21,7 @@ router.use(healthRouter);
 router.use(upstashRouter);
 router.use(livekitRouter);
 router.use(qstashRouter);
+router.use(linearRouter);
 router.use(upstashRateLimit);
 router.use(linearRouter);
 router.use(feedRouter);

@@ -33,7 +33,6 @@
     "fly:check": "node scripts/check-fly.mjs",
     "fly:env-secrets": "node scripts/sync-fly-secrets.mjs",
     "fly:deploy": "bash scripts/fly-deploy.sh",
-    "vercel:fix-root": "node scripts/fix-vercel-project-root.mjs",
     "linear:setup": "node scripts/print-linear-setup.mjs",
     "linear:check": "node scripts/check-linear.mjs",
     "linear:env-vercel": "node scripts/sync-linear-vercel-env.mjs",
@@ -61,7 +60,10 @@
     "upstash:schedule": "node scripts/setup-qstash-schedule.mjs",
     "livekit:setup": "pnpm --filter @workspace/instacollab run livekit:setup",
     "livekit:check": "pnpm --filter @workspace/instacollab run livekit:check",
-    "livekit:env-vercel": "pnpm --filter @workspace/instacollab run livekit:env-vercel"
+    "livekit:env-vercel": "pnpm --filter @workspace/instacollab run livekit:env-vercel",
+    "vercel:fix-root": "node scripts/fix-vercel-project-root.mjs",
+    "vercel:deploy-api": "bash scripts/vercel-deploy-api.sh",
+    "vercel:open-settings": "bash scripts/open-vercel-api-settings.sh"
   },
   "private": true,
   "devDependencies": {

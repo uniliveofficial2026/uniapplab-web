@@ -28,6 +28,7 @@ const STAGING_PACKAGES = [
   'lib/db',
   'lib/upstash',
   'lib/livekit',
+  'lib/linear',
 ];
 
 function shouldSkip(name, relPath = '') {
