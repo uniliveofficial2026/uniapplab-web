@@ -1,11 +1,13 @@
 /**
- * Vercel env sync helpers (CLI v54+ — no --git-branch flag).
+ * Vercel env sync helpers (CLI v54+ — fully non-interactive).
  */
 import { spawnSync } from 'node:child_process';
 
-export function vercelEnv(cwd) {
+export function vercelEnv() {
   return {
     ...process.env,
+    CI: '1',
+    VERCEL_NON_INTERACTIVE: '1',
     NPM_CONFIG_USERCONFIG: undefined,
     NPM_CONFIG_GLOBALCONFIG: undefined,
   };
@@ -21,14 +23,28 @@ export function vercelEnvSet(cwd, name, value, target) {
 
   const add = spawnSync(
     'pnpm',
-    ['dlx', 'vercel@latest', 'env', 'add', name, target, '--yes', '--force'],
+    [
+      'dlx',
+      'vercel@latest',
+      'env',
+      'add',
+      name,
+      target,
+      '--yes',
+      '--force',
+      '--value',
+      value,
+    ],
     {
       cwd,
-      input: value,
-      stdio: ['pipe', 'inherit', 'inherit'],
+      stdio: ['ignore', 'pipe', 'pipe'],
       env: vercelEnv(),
     },
   );
+  if (add.status !== 0 && add.stderr) {
+    const err = add.stderr.toString().trim();
+    if (err) console.error(err);
+  }
   return add.status ?? 1;
 }
 

@@ -60,7 +60,8 @@
     "upstash:schedule": "node scripts/setup-qstash-schedule.mjs",
     "livekit:setup": "pnpm --filter @workspace/instacollab run livekit:setup",
     "livekit:check": "pnpm --filter @workspace/instacollab run livekit:check",
-    "livekit:env-vercel": "pnpm --filter @workspace/instacollab run livekit:env-vercel"
+    "livekit:env-vercel": "pnpm --filter @workspace/instacollab run livekit:env-vercel",
+    "vercel:fix-root": "node scripts/fix-vercel-project-root.mjs"
   },
   "private": true,
   "devDependencies": {
