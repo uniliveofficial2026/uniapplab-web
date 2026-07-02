@@ -102,7 +102,7 @@ router.post("/stop", auth, requireNotBanned, async (req, res, next) => {
 
 router.get("/:id/viewers", async (req, res, next) => {
   try {
-    const streamId = req.params.id;
+    const streamId = String(req.params.id);
     if (!isUpstashConfigured()) {
       res.json({ streamId, viewers: 0, configured: false });
       return;
@@ -116,7 +116,7 @@ router.get("/:id/viewers", async (req, res, next) => {
 
 router.post("/:id/viewers", auth, requireNotBanned, async (req, res, next) => {
   try {
-    const streamId = req.params.id;
+    const streamId = String(req.params.id);
     const action = (req.body as { action?: string })?.action;
     if (action !== "join" && action !== "leave") {
       res.status(400).json({ error: "action must be join or leave" });

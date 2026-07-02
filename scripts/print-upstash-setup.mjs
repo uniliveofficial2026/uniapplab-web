@@ -58,8 +58,13 @@ console.log('');
 console.log('Endpoints after deploy:');
 console.log(`  GET  ${origin}/api/upstash/health`);
 console.log(`  GET  ${origin}/api/feed/posts`);
+console.log(`  GET  ${origin}/api/presence/online`);
+console.log(`  POST ${origin}/api/presence/online`);
+console.log(`  GET  ${origin}/api/stream/:id/viewers`);
+console.log(`  POST ${origin}/api/chat/typing`);
 console.log(`  POST ${origin}/api/qstash/handoff-cycle  (QStash only)`);
 console.log('');
+console.log('Redis keys (ephemeral): ic:online:*, ic:stream:viewers:*, ic:typing:*, ic:session:*');
 if (env.UPSTASH_REDIS_REST_URL) {
   console.log(`✓ UPSTASH_REDIS_REST_URL present in ${envPath}`);
 } else {
