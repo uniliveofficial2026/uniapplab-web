@@ -7,6 +7,8 @@ import { hydrateAppMediaUrl, isAppMediaRef } from './appMediaStore';
 import { safeAvatarUrl, safeMediaUrl } from './safe';
 import { stageAppUpdate } from './invisibleReload';
 import { checkForPwaUpdate } from './pwaAutoUpdate';
+import { handoffForIssue } from './handoff';
+import { trackUx } from './uxTelemetry';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&fit=crop';
@@ -18,9 +20,11 @@ function healBrokenMedia(el: HTMLImageElement | HTMLVideoElement | HTMLAudioElem
   if (!src) return;
 
   if (isAppMediaRef(src) || src.startsWith('app-media:')) {
+    trackUx('media_fail', src.slice(0, 120), { tag: el.tagName, kind: 'app_media' });
     void hydrateAppMediaUrl(src).then((resolved) => {
       if (resolved && resolved !== src && !isAppMediaRef(resolved)) {
         el.src = resolved;
+        trackUx('heal', 'app_media_hydrated', { tag: el.tagName });
       }
     });
     return;
@@ -40,6 +44,8 @@ function healBrokenMedia(el: HTMLImageElement | HTMLVideoElement | HTMLAudioElem
     if (fallback && el.src !== fallback) {
       el.src = fallback;
       el.dataset.selfHealFallback = '1';
+      trackUx('heal', 'media_fallback', { tag: el.tagName });
+      handoffForIssue('media_fail', src.slice(0, 200));
     }
   }
 }
@@ -87,6 +93,7 @@ function installLayoutHealing(): void {
     if (root.scrollWidth > window.innerWidth + 8) {
       root.style.overflowX = 'clip';
       document.body.style.overflowX = 'clip';
+      trackUx('heal', 'layout_overflow');
     }
   };
 

@@ -250,13 +250,47 @@ async function runTask(task) {
 export async function handoffFromSignal(signal) {
   const detail = String(signal.detail || '');
   const type = signal.type;
+  const screen = signal.screen;
 
   if (type === 'error' && /posts|cloud|supabase|sync|relation.*posts/i.test(detail)) {
     return await enqueueHandoffTask({
       type: 'cloud_data',
       reason: 'runtime_error',
       detail,
-      screen: signal.screen,
+      screen,
+      source: 'ux',
+    });
+  }
+
+  if (type === 'error') {
+    return await enqueueHandoffTask({
+      type: 'heal',
+      reason: 'runtime_error',
+      detail,
+      screen,
+      source: 'ux',
+    });
+  }
+
+  if (type === 'media_fail' || type === 'heal') {
+    if (type === 'media_fail') {
+      return await enqueueHandoffTask({
+        type: 'heal',
+        reason: 'media_fail',
+        detail,
+        screen,
+        source: 'ux',
+      });
+    }
+    return null;
+  }
+
+  if (type === 'warning' && /long_task|slow_|lag/i.test(detail)) {
+    return await enqueueHandoffTask({
+      type: 'ux_learn',
+      reason: 'runtime_lag',
+      detail,
+      screen,
       source: 'ux',
     });
   }
@@ -266,7 +300,7 @@ export async function handoffFromSignal(signal) {
       type: 'custom',
       reason: 'ui_friction',
       detail: `Rage taps on ${detail}`,
-      screen: signal.screen,
+      screen,
       source: 'ux',
     });
   }

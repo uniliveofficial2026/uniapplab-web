@@ -16,6 +16,7 @@ import { bootstrapDocumentTheme } from './lib/theme';
 import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithRetry';
 import { installRuntimeGuards } from './lib/runtimeGuards';
 import { installRuntimeSelfHeal } from './lib/selfHeal';
+import { initRuntimeAutoHeal } from './lib/runtimeAutoHeal';
 import { installUxTelemetry } from './lib/uxTelemetry';
 import { installPresenceHeartbeat } from './lib/presenceHeartbeat';
 
@@ -27,6 +28,7 @@ initAppCloudSystems();
 installPersistenceGuards();
 installRuntimeGuards();
 installRuntimeSelfHeal();
+initRuntimeAutoHeal();
 installUxTelemetry();
 installPresenceHeartbeat();
 
