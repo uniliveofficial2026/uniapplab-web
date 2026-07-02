@@ -13,6 +13,7 @@ import { ProfileNameLines } from '../common/ProfileNameLines';
 import { resolveUser } from '../../lib/safe';
 import { isPostActive } from '../../lib/entityResolve';
 import { TAP_REFRESH_EVENT } from '../../lib/appRefresh';
+import { syncCloudFeed } from '../../lib/cloudPostSync';
 
 export function Feed() {
   const db = useDB();
@@ -27,10 +28,15 @@ export function Feed() {
   const [feedRefreshKey, setFeedRefreshKey] = useState(0);
 
   useEffect(() => {
+    void syncCloudFeed();
+  }, []);
+
+  useEffect(() => {
     const onRefresh = (event: Event) => {
       const scope = (event as CustomEvent<{ scope?: string }>).detail?.scope;
       if (scope === 'home' || scope === 'global') {
         setFeedRefreshKey((key) => key + 1);
+        void syncCloudFeed();
       }
     };
     window.addEventListener(TAP_REFRESH_EVENT, onRefresh);

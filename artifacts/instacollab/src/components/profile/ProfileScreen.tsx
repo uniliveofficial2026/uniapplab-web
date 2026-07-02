@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import { Grid, PlaySquare, Bookmark, UserSquare, Heart, MessageCircle, ArrowLeft, UserX, X, CheckCircle, Users, Mic2, UserPen, Archive, UserPlus, UserCheck, UserMinus, Clock } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
@@ -46,6 +46,7 @@ import {
 } from '../../lib/optionsMenu';
 import { navTapButtonClass } from '../../lib/navTap';
 import { openKaraokeProfileSurface } from '../../lib/profileSurface';
+import { syncCloudUserPosts } from '../../lib/cloudPostSync';
 
 export function ProfileScreen({
   userId,

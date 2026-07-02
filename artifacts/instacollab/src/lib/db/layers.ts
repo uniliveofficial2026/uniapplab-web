@@ -76,6 +76,7 @@ export interface AuthPostsLayer {
   /** Merge cloud search hits into local users (no session switch). */
   cacheDiscoveredUsers(users: User[]): void;
   addPost(post: Partial<Post> & { user?: User }): void;
+  mergeInboundPosts(inbound: Post[]): void;
   updatePost(id: string, updateFn: (post: Post) => Post): void;
   deletePost(id: string): void;
   togglePostArchive(postId: string): boolean;

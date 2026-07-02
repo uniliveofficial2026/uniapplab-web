@@ -288,6 +288,41 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         id: post.id || `p_${Date.now()}_${Math.random().toString(36).substring(2, 9)}`,
       };
       this.save('posts', this.cappedList([newPost, ...this.posts], 'posts'));
+      void import('../../cloudPostSync').then((m) => m.scheduleCloudPostPublish(newPost as Post));
+    }
+
+    /** Merge posts fetched from shared cloud feed / profiles into local store. */
+    mergeInboundPosts(inbound: Post[]) {
+      if (!Array.isArray(inbound) || inbound.length === 0) return;
+
+      const byId = new Map(this.posts.map((p) => [p.id, p]));
+      let changed = false;
+
+      for (const incoming of inbound) {
+        if (!incoming?.id || !incoming.user?.id) continue;
+        const existing = byId.get(incoming.id);
+        const merged = existing
+          ? {
+              ...existing,
+              ...incoming,
+              user: incoming.user,
+              isLiked: existing.isLiked,
+              isSaved: existing.isSaved,
+            }
+          : incoming;
+        if (!existing || JSON.stringify(existing) !== JSON.stringify(merged)) {
+          byId.set(incoming.id, merged);
+          changed = true;
+        }
+      }
+
+      if (!changed) return;
+
+      const mergedList = Array.from(byId.values()).sort(
+        (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      );
+      this.save('posts', this.cappedList(mergedList, 'posts'));
+      this.cacheDiscoveredUsers(inbound.map((p) => p.user).filter(Boolean));
     }
 
     updatePost(id: string, updateFn: (post: Post) => Post) {
