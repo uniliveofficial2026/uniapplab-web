@@ -42,6 +42,8 @@ function topCounts(items, key, limit = 8) {
 function analyze(signals) {
   const errors = signals.filter((s) => s.type === 'error');
   const media = signals.filter((s) => s.type === 'media_fail' || s.detail?.includes('media'));
+  const heals = signals.filter((s) => s.type === 'heal');
+  const warnings = signals.filter((s) => s.type === 'warning');
   const rage = signals.filter((s) => s.type === 'rage_tap');
   const screens = signals.filter((s) => s.type === 'screen_view');
   const dwell = signals.filter((s) => s.type === 'dwell');
@@ -86,6 +88,26 @@ function analyze(signals) {
       priority: 'high',
     });
   }
+  if (heals.length >= 5) {
+    intents.push({
+      kind: 'auto_heal',
+      message: `${heals.length} in-session heals — runtime recovery is active; review hotspots for permanent fixes.`,
+      priority: 'medium',
+    });
+  }
+  if (warnings.length >= 3) {
+    intents.push({
+      kind: 'performance',
+      message: `${warnings.length} lag/long-task warnings — optimize hot paths on ${topErrorScreen?.name ?? 'busy screens'}.`,
+      priority: 'high',
+    });
+  }
+
+  const platformCounts = topCounts(
+    signals.filter((s) => s.meta?.platform),
+    (s) => String(s.meta.platform),
+    5,
+  );
 
   const frictionScore = Math.min(
     100,
