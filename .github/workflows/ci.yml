@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Sync vercel.json
+        run: node scripts/sync-vercel-config.mjs
+
       - name: Build workspace libs
         run: pnpm run typecheck:libs
 
