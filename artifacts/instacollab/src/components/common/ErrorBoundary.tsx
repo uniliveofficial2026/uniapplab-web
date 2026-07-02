@@ -1,6 +1,6 @@
 import React from 'react';
 import { chunkLoadUserMessage, isChunkLoadError } from '../../lib/lazyWithRetry';
-import { handoffForIssue } from '../../lib/handoff';
+import { reactToMlIssue } from '../../lib/mlReact';
 import { stageAppUpdate } from '../../lib/invisibleReload';
 import { checkForPwaUpdate } from '../../lib/pwaAutoUpdate';
 import { trackUx } from '../../lib/uxTelemetry';
@@ -39,7 +39,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
     const msg = error instanceof Error ? error.message : String(error);
     trackUx('error', msg.slice(0, 300), { boundary: true, stack: info.componentStack?.slice(0, 120) ?? '' });
-    handoffForIssue('boundary_error', msg, this.props.screen);
+    reactToMlIssue('boundary_error', msg, this.props.screen);
 
     if (isChunkLoadError(error)) {
       void checkForPwaUpdate();

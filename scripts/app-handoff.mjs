@@ -51,6 +51,8 @@ function writeSignalFingerprints(map) {
 function corroborateSignal(signal) {
   const detail = String(signal.detail || '');
   if (isNoiseDetail(detail)) return false;
+  if (signal.meta?.immediate) return true;
+  if (/posts|cloud|supabase|sync|relation.*posts/i.test(detail)) return true;
   const fp = `${signal.type}:${detail.slice(0, 120).replace(/\d{4,}/g, '#')}`;
   const map = readSignalFingerprints();
   const entry = map[fp] ?? { count: 0, lastEscalatedAt: 0 };

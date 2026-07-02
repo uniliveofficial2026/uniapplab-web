@@ -6,8 +6,9 @@ import { trackUx } from './uxTelemetry';
 
 const CORROBORATION_KEY = 'instacollab-ml-corroboration';
 const HANDOFF_FP_KEY = 'instacollab-ml-handoff-fp';
-const ACT_COOLDOWN_MS = 120_000;
-const HANDOFF_COOLDOWN_MS = 10 * 60_000;
+const ACT_COOLDOWN_MS = 30_000;
+const SAFE_ACT_COOLDOWN_MS = 8_000;
+const HANDOFF_COOLDOWN_MS = 5 * 60_000;
 
 type Bucket = { hits: number[]; lastActedAt?: number };
 type HandoffFp = { count: number; lastEscalatedAt?: number };
@@ -69,6 +70,18 @@ function writeHandoffFingerprints(map: Record<string, HandoffFp>): void {
   }
 }
 
+/** Confirmed cloud/data defects — pattern match is sufficient corroboration for immediate agent fix. */
+export function isCriticalCloudIssue(detail: string): boolean {
+  return /posts|cloud|supabase|sync|cross.?device|other user|relation.*posts|auth\/v1|network|fetch failed/i.test(
+    detail,
+  );
+}
+
+/** Safe in-session heals — act on first detection (still verify-after-heal). */
+export function isSafeImmediateAction(key: string): boolean {
+  return /^(layout_|media_|session_|playback_|chunk_|lag_|memory_)/.test(key);
+}
+
 /** Drop browser/extension noise — never treat as real app defects. */
 export function isNoiseSignal(detail: string): boolean {
   const d = detail.trim();
@@ -108,12 +121,14 @@ export function canActOnCorroboration(
   minHits: number,
 ): boolean {
   if (typeof window === 'undefined') return false;
+  const effectiveMin = isSafeImmediateAction(key) ? 1 : minHits;
   const count = recordCorroboration(key, windowMs);
-  if (count < minHits) return false;
+  if (count < effectiveMin) return false;
 
   const map = readBuckets();
   const bucket = map[key];
-  if (bucket?.lastActedAt && Date.now() - bucket.lastActedAt < ACT_COOLDOWN_MS) {
+  const cooldown = isSafeImmediateAction(key) ? SAFE_ACT_COOLDOWN_MS : ACT_COOLDOWN_MS;
+  if (bucket?.lastActedAt && Date.now() - bucket.lastActedAt < cooldown) {
     return false;
   }
   return true;
@@ -128,10 +143,14 @@ export function markCorroborationActed(key: string): void {
   writeBuckets(map);
 }
 
-/** Escalate to background agent only after repeated, corroborated fingerprints. */
+/** Escalate to background agent — critical cloud issues escalate immediately; others need 2 hits. */
 export function shouldEscalateHandoff(kind: string, detail: string, minHits = 2): boolean {
   if (typeof window === 'undefined') return false;
   if (isNoiseSignal(detail)) return false;
+
+  if (isCriticalCloudIssue(detail) || kind === 'boundary_error') {
+    minHits = 1;
+  }
 
   const fp = fingerprintIssue(kind, detail);
   const now = Date.now();
@@ -168,7 +187,7 @@ export function verifyHealOutcome(label: string, check: () => boolean): boolean 
 export async function confirmTwice<T>(
   probe: () => Promise<T>,
   isBad: (value: T) => boolean,
-  gapMs = 2_500,
+  gapMs = 800,
 ): Promise<boolean> {
   const first = await probe();
   if (!isBad(first)) return false;
