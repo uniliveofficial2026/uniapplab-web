@@ -6,8 +6,10 @@ import {
   listTeams,
   verifyLinearWebhook,
 } from "../lib/linear";
+import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
+router.use(upstashRateLimit);
 
 router.get("/linear/health", async (_req, res) => {
   if (!isLinearConfigured()) {
