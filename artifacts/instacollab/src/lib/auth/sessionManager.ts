@@ -25,6 +25,8 @@ import {
   saveStoredAccountSession,
 } from './storedAccountSessions';
 import { initThoughtNoteCloudSync, teardownThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
+import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
+import { syncLiveSessionData } from '../liveSessionSync';
 
 const DB_READY_MS = 8_000;
 const PROFILE_MS = 12_000;
