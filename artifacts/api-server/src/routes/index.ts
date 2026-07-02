@@ -23,6 +23,7 @@ router.use(livekitRouter);
 router.use(qstashRouter);
 router.use(linearRouter);
 router.use(upstashRateLimit);
+router.use(linearRouter);
 router.use(feedRouter);
 router.use("/me", meRouter);
 router.use("/admin", adminRouter);

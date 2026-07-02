@@ -33,6 +33,10 @@
     "fly:check": "node scripts/check-fly.mjs",
     "fly:env-secrets": "node scripts/sync-fly-secrets.mjs",
     "fly:deploy": "bash scripts/fly-deploy.sh",
+<<<<<<< HEAD
+=======
+    "vercel:fix-root": "node scripts/fix-vercel-project-root.mjs",
+>>>>>>> origin/main
     "linear:setup": "node scripts/print-linear-setup.mjs",
     "linear:check": "node scripts/check-linear.mjs",
     "linear:env-vercel": "node scripts/sync-linear-vercel-env.mjs",
