@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { readMergedEnv, getWorkspaceRoot, getAppRoot } from './resolveProjectEnv.mjs';
+import { vercelEnvSyncAll } from '../../../scripts/lib/vercel-env.mjs';
 
 const fromDir = import.meta.dirname;
 const merged = readMergedEnv(fromDir);

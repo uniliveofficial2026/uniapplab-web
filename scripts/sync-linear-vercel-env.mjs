@@ -3,10 +3,10 @@
  * Push Linear env to Vercel (Production + Preview + Development).
  * Usage: pnpm run linear:env-vercel
  */
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { vercelEnvSyncAll } from './lib/vercel-env.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -42,33 +42,7 @@ if (!env.LINEAR_API_KEY) {
   process.exit(1);
 }
 
-function vercelEnvSet(name, value, target) {
-  spawnSync('pnpm', ['dlx', 'vercel@latest', 'env', 'rm', name, target, '--yes'], {
-    cwd: ROOT,
-    stdio: 'ignore',
-  });
-  const addArgs = ['dlx', 'vercel@latest', 'env', 'add', name, target, '--yes', '--force'];
-  if (target === 'preview') addArgs.push('--git-branch', '*');
-  const add = spawnSync('pnpm', addArgs, {
-    cwd: ROOT,
-    input: value,
-    stdio: ['pipe', 'inherit', 'inherit'],
-    env: {
-      ...process.env,
-      NPM_CONFIG_USERCONFIG: undefined,
-      NPM_CONFIG_GLOBALCONFIG: undefined,
-    },
-  });
-  return add.status ?? 1;
-}
-
-for (const [name, value] of VARS) {
-  if (!value) continue;
-  for (const target of ['production', 'preview', 'development']) {
-    const code = vercelEnvSet(name, value, target);
-    if (code !== 0) process.exit(code);
-    console.log(`[linear] ✓ ${name} → ${target}`);
-  }
-}
+const code = vercelEnvSyncAll(ROOT, VARS, { label: 'linear' });
+if (code !== 0) process.exit(code);
 
 console.log('[linear] Vercel env sync complete');

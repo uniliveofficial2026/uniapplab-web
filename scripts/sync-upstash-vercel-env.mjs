@@ -3,10 +3,10 @@
  * Push Upstash / QStash / API Supabase env to Vercel (Production + Preview + Development).
  * Usage: pnpm run upstash:env-vercel
  */
-import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { vercelEnvSyncAll } from './lib/vercel-env.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
@@ -57,41 +57,10 @@ if (missing.length) {
   process.exit(1);
 }
 
-function vercelEnvSet(name, value, target) {
-  spawnSync('pnpm', ['dlx', 'vercel@latest', 'env', 'rm', name, target, '--yes'], {
-    cwd: ROOT,
-    stdio: 'ignore',
-  });
-  const addArgs = ['dlx', 'vercel@latest', 'env', 'add', name, target, '--yes', '--force'];
-  if (target === 'preview') {
-    addArgs.push('--git-branch', '*');
-  }
-  const add = spawnSync('pnpm', addArgs, {
-    cwd: ROOT,
-    input: value,
-    stdio: ['pipe', 'inherit', 'inherit'],
-    env: {
-      ...process.env,
-      NPM_CONFIG_USERCONFIG: undefined,
-      NPM_CONFIG_GLOBALCONFIG: undefined,
-    },
-  });
-  return add.status ?? 1;
-}
-
 console.log('[upstash] Syncing server env to Vercel…');
 
-for (const target of ['production', 'preview', 'development']) {
-  for (const [name, value] of VARS) {
-    if (!value) continue;
-    const code = vercelEnvSet(name, value, target);
-    if (code !== 0) {
-      console.error(`[upstash] Failed ${name} (${target})`);
-      process.exit(code);
-    }
-    console.log(`[upstash] ✓ ${name} → ${target}`);
-  }
-}
+const code = vercelEnvSyncAll(ROOT, VARS, { label: 'upstash' });
+if (code !== 0) process.exit(code);
 
 console.log('');
-console.log('[upstash] Done. Redeploy: pnpm run deploy:vercel');
+console.log('[upstash] Done. Redeploy: pnpm run deploy:vercel:git');
