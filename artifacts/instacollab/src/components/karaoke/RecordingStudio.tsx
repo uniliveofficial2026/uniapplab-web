@@ -86,6 +86,9 @@ import {
 import { saveKaraokeCoverRecording, type KaraokeCoverRecordingMeta } from '../../lib/karaokeRecordings';
 import { VirtualBackgroundLayer } from './VirtualBackgroundLayer';
 import { BackgroundPickerImage } from './BackgroundPickerImage';
+import { DeepAREffectPicker } from '../deepar/DeepAREffectPicker';
+import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
+import { useDeepAR } from '../../lib/deepar/useDeepAR';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useDB } from '../../lib/useDB';
 import { safeAvatarUrl } from '../../lib/safe';
@@ -168,6 +171,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
   const compositorScratchRef = useRef<ReturnType<typeof createCompositorScratch> | null>(null);
   const videoBgImageRef = useRef<CompositorBackgroundSource | null>(null);
   const compositorRecorderStartedRef = useRef(false);
+  const deeparRecorderStartedRef = useRef(false);
   const filterPreviewCanvasRefs = useRef<Record<string, HTMLCanvasElement | null>>({});
   const noneBgPreviewCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const backgroundImagesCacheRef = useRef<Record<string, CompositorBackgroundSource>>({});
@@ -202,6 +206,9 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
   const [selectedStudioFilter, setSelectedStudioFilter] = useState<string>('Studio Room');
   const [activeVoicePreset, setActiveVoicePreset] = useState<VoicePresetName>('Studio');
   const [videoBeautyFilter, setVideoBeautyFilter] = useState<string>('None');
+  const [deeparEffectId, setDeeparEffectId] = useState('none');
+  const deeparPreviewRef = useRef<HTMLDivElement>(null);
+  const deeparActiveRef = useRef(false);
   const [videoBackground, setVideoBackground] = useState<string | null>(null);
   const [customBackgroundUrl, setCustomBackgroundUrl] = useState<string | null>(null);
   const [customBackgroundLabel, setCustomBackgroundLabel] = useState('My Photo');
@@ -285,6 +292,23 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
   useEffect(() => {
     videoBgReadyRef.current = videoBgReady;
   }, [videoBgReady]);
+
+  const deeparActive = deeparEffectId !== 'none' && isDeepARConfigured();
+  useEffect(() => {
+    deeparActiveRef.current = deeparActive;
+  }, [deeparActive]);
+
+  const deepar = useDeepAR({
+    previewRef: deeparPreviewRef,
+    videoElementRef: videoRef,
+    enabled: cameraEnabled && deeparActive,
+    initialEffectId: deeparEffectId,
+  });
+
+  useEffect(() => {
+    if (!deepar.ready || !deeparActive) return;
+    void deepar.switchEffect(deeparEffectId);
+  }, [deepar.ready, deeparActive, deeparEffectId, deepar]);
 
   useEffect(() => {
     cameraEnabledRef.current = cameraEnabled;
@@ -1240,6 +1264,50 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     }
   }, []);
 
+  useEffect(() => {
+    if (!cameraEnabled || !deeparActive || !deepar.ready) {
+      if (!deeparActive) deeparRecorderStartedRef.current = false;
+      return;
+    }
+    if (deeparRecorderStartedRef.current) return;
+
+    const videoStream = deepar.getCanvasStream(30);
+    if (!videoStream) return;
+
+    const tracks = [...videoStream.getVideoTracks()];
+    const audioTracks = cameraStreamRef.current?.getAudioTracks() ?? [];
+    tracks.push(...audioTracks);
+
+    const recorder = videoRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      try {
+        recorder.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+    videoRecorderRef.current = null;
+    compositorRecorderStartedRef.current = true;
+    deeparRecorderStartedRef.current = true;
+    startCompositorVideoRecorder(new MediaStream(tracks));
+  }, [cameraEnabled, deeparActive, deepar.ready, deepar, startCompositorVideoRecorder]);
+
+  useEffect(() => {
+    if (deeparActive) return;
+    if (!deeparRecorderStartedRef.current) return;
+    deeparRecorderStartedRef.current = false;
+    compositorRecorderStartedRef.current = false;
+    const recorder = videoRecorderRef.current;
+    if (recorder && recorder.state !== 'inactive') {
+      try {
+        recorder.stop();
+      } catch {
+        /* ignore */
+      }
+    }
+    videoRecorderRef.current = null;
+  }, [deeparActive]);
+
   // Camera stream acquisition
   useEffect(() => {
     if (!cameraEnabled) {
@@ -1332,6 +1400,13 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     let previewTick = 0;
 
     const runCompositorLoop = () => {
+      if (deeparActiveRef.current) {
+        const video = videoRef.current;
+        if (video) {
+          compositorHandle = scheduleVideoCompositorFrame(video, runCompositorLoop);
+        }
+        return;
+      }
       const canvas = compositorCanvasRef.current;
       const recorderCanvas = recorderCanvasRef.current;
       const video = videoRef.current;
@@ -1408,6 +1483,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
 
       if (
         !compositorRecorderStartedRef.current &&
+        !deeparActiveRef.current &&
         cameraStreamRef.current &&
         targetW > 64 &&
         targetH > 64 &&
@@ -2902,9 +2978,19 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
               <canvas
                 ref={compositorCanvasRef}
                 className={`absolute inset-0 z-[1] ${
+                  deeparActive ? 'opacity-0 pointer-events-none' : ''
+                } ${
                   (duetMode || groupMode) ? 'w-1/2 h-full border-r border-white/20' : 'w-full h-full'
                 }`}
               />
+              {deeparActive && (
+                <div
+                  ref={deeparPreviewRef}
+                  className={`absolute inset-0 z-[2] ${
+                    (duetMode || groupMode) ? 'w-1/2 h-full' : 'w-full h-full'
+                  }`}
+                />
+              )}
               {(duetMode || groupMode) && (
                  <div className="w-1/2 h-full bg-zinc-900 flex items-center justify-center relative overflow-hidden">
                    <img src="https://images.unsplash.com/photo-1516280440502-6c9ab45187fb?w=800&auto=format&fit=crop&q=60" className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" />
@@ -3894,6 +3980,49 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                       ))}
                     </div>
                   </div>
+                  {isDeepARConfigured() ? (
+                    <div>
+                      <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                        <Sparkles className="w-4 h-4" /> DeepAR Face Effects
+                      </h3>
+                      <DeepAREffectPicker
+                        activeEffectId={deeparEffectId}
+                        onSelect={(id) => {
+                          setDeeparEffectId(id);
+                          if (id !== 'none') {
+                            window.dispatchEvent(
+                              new CustomEvent('app-toast', {
+                                detail: `${id.replace(/_/g, ' ')} AR effect applied`,
+                              }),
+                            );
+                          }
+                        }}
+                        disabled={!cameraEnabled || (deeparActive && !deepar.ready)}
+                      />
+                      {deeparActive && !deepar.ready && !deepar.error && (
+                        <p className="text-xs text-muted-foreground mt-2 flex items-center gap-2">
+                          <Loader2 className="w-3 h-3 animate-spin" /> Loading AR…
+                        </p>
+                      )}
+                      {deepar.error && (
+                        <p className="text-xs text-destructive mt-2">{deepar.error}</p>
+                      )}
+                    </div>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Add <code className="text-foreground">VITE_DEEPAR_LICENSE_KEY</code> to{' '}
+                      <code>.env</code> for DeepAR face effects (
+                      <a
+                        href="https://developer.deepar.ai"
+                        target="_blank"
+                        rel="noreferrer"
+                        className="text-primary underline"
+                      >
+                        developer.deepar.ai
+                      </a>
+                      ).
+                    </p>
+                  )}
                   <div>
                     <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"><Layers className="w-4 h-4"/> Green Screen Backgrounds</h3>
                     <p className="text-xs text-muted-foreground mb-3">Choose <span className="font-semibold text-foreground">None</span> to keep your real room (no virtual background). Pick a preset or upload for green-screen replacement.</p>

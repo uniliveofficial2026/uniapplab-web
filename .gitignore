@@ -59,3 +59,9 @@ Thumbs.db
 .local/
 .vercel
 .env*
+
+# DeepAR generated assets (run pnpm --filter @workspace/instacollab run deepar:install)
+artifacts/instacollab/public/deepar-resources/
+artifacts/instacollab/public/effects/
+artifacts/instacollab/public/.deepar-assets-installed.json
+artifacts/instacollab/vendor/archives/

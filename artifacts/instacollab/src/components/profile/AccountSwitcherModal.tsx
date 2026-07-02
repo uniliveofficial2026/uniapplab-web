@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Mail, Trash2, UserPlus, X } from 'lucide-react';
 import type { StoredDeviceAccount } from '../../lib/auth/deviceAccounts';
+import { hasStoredAccountSession } from '../../lib/auth/storedAccountSessions';
 import { handleAvatarError } from '../../lib/utils';
 import { EmailOtpPanel } from '../auth/EmailOtpPanel';
 
@@ -47,6 +48,22 @@ export function AccountSwitcherModal({
   const [showEmailForm, setShowEmailForm] = useState(false);
   const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null);
+  const [switchingUid, setSwitchingUid] = useState<string | null>(null);
+
+  const requestAccountSwitch = (acc: StoredDeviceAccount) => {
+    if (acc.uid === activeUid) return;
+    if (cloudAuthEnabled && !hasStoredAccountSession(acc.uid)) {
+      setPendingSwitch({ uid: acc.uid, email: acc.email ?? '' });
+      return;
+    }
+    setSwitchingUid(acc.uid);
+    void Promise.resolve(onSelectAccount(acc.uid))
+      .catch((error) => {
+        const message = error instanceof Error ? error.message : 'Failed to switch account.';
+        window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
+      })
+      .finally(() => setSwitchingUid(null));
+  };
 
   useEffect(() => {
     if (!open) {
@@ -161,34 +178,26 @@ export function AccountSwitcherModal({
               ) : (
                 sortedAccounts.map((acc, idx) => {
                   const isActive = acc.uid === activeUid;
+                  const isSwitching = switchingUid === acc.uid;
                   return (
                     <div
                       key={`${acc.uid || idx}-${idx}`}
                       role="button"
                       tabIndex={isActive ? -1 : 0}
-                      onClick={() => {
-                        if (isActive) return;
-                        if (cloudAuthEnabled) {
-                          setPendingSwitch({ uid: acc.uid, email: acc.email ?? '' });
-                          return;
-                        }
-                        void onSelectAccount(acc.uid);
-                      }}
+                      onClick={() => requestAccountSwitch(acc)}
                       onKeyDown={(e) => {
                         if (isActive) return;
                         if (e.key === 'Enter' || e.key === ' ') {
                           e.preventDefault();
-                          if (cloudAuthEnabled) {
-                            setPendingSwitch({ uid: acc.uid, email: acc.email ?? '' });
-                          } else {
-                            void onSelectAccount(acc.uid);
-                          }
+                          requestAccountSwitch(acc);
                         }
                       }}
                       className={`w-full p-3 rounded-2xl border flex items-center justify-between gap-3 transition-all cursor-pointer group ${
                         isActive
                           ? 'bg-primary/5 border-primary/35'
-                          : 'bg-secondary/20 border-border hover:bg-secondary/50'
+                          : isSwitching
+                            ? 'bg-secondary/30 border-primary/25 opacity-80'
+                            : 'bg-secondary/20 border-border hover:bg-secondary/50'
                       }`}
                       id={`account-item-${acc.uid}`}
                     >
@@ -205,6 +214,11 @@ export function AccountSwitcherModal({
                             {isActive && (
                               <span className="bg-primary/10 text-primary text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
                                 Active
+                              </span>
+                            )}
+                            {isSwitching && (
+                              <span className="bg-secondary text-muted-foreground text-[10px] font-black px-2 py-0.5 rounded-full uppercase tracking-wider shrink-0">
+                                Switching…
                               </span>
                             )}
                           </div>

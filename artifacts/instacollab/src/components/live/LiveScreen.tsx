@@ -10,6 +10,8 @@ import { openProfilePreview } from '../../lib/utils';
 import { resolveUser } from '../../lib/safe';
 import { usePlatformStream } from '../../lib/live/platformStream';
 import { isPlatformApiAvailable } from '../../lib/platformApi';
+import { DeepARLivePreview } from '../deepar/DeepARLivePreview';
+import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
 
 const LIVE_KIND_OPTIONS: LiveKind[] = [
   'solo',
@@ -26,7 +28,9 @@ export function LiveScreen() {
   const me = resolveUser(db.users, db.currentUser);
   const platformStream = usePlatformStream();
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
+  const getDeepARStreamRef = useRef<(() => Promise<MediaStream | null>) | null>(null);
   const [platformBusy, setPlatformBusy] = useState(false);
+  const [arPreview, setArPreview] = useState(isDeepARConfigured());
   const liveUsers = db.users.filter(
     (u: User) => u.status === 'live' && u.id !== me.id
   );
@@ -37,7 +41,17 @@ export function LiveScreen() {
     db.setUserLiveStatus(me.id, true, kind);
     if (isPlatformApiAvailable() && (me.role === 'streamer' || me.role === 'admin')) {
       setPlatformBusy(true);
-      void platformStream.goLive(LIVE_KIND_LABELS[kind]).finally(() => setPlatformBusy(false));
+      void (async () => {
+        try {
+          let mediaStream: MediaStream | undefined;
+          if (arPreview && getDeepARStreamRef.current) {
+            mediaStream = (await getDeepARStreamRef.current()) ?? undefined;
+          }
+          await platformStream.goLive(LIVE_KIND_LABELS[kind], { mediaStream });
+        } finally {
+          setPlatformBusy(false);
+        }
+      })();
     }
   };
 
@@ -110,13 +124,34 @@ export function LiveScreen() {
             <p className="text-sm text-muted-foreground">
               Pick a format and start broadcasting.
             </p>
+            {isDeepARConfigured() && (
+              <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
+                <input
+                  type="checkbox"
+                  checked={arPreview}
+                  onChange={(e) => setArPreview(e.target.checked)}
+                  className="rounded border-border"
+                />
+                Use DeepAR face effects when going live
+              </label>
+            )}
+            {!isLive && arPreview && isDeepARConfigured() && (
+              <DeepARLivePreview
+                enabled={!isLive}
+                className="w-full"
+                onReady={(getStream) => {
+                  getDeepARStreamRef.current = getStream;
+                }}
+              />
+            )}
             <div className="flex flex-wrap gap-2">
               {LIVE_KIND_OPTIONS.map((kind) => (
                 <button
                   key={kind}
                   type="button"
                   onClick={() => startLive(kind)}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-semibold hover:border-primary/40 hover:bg-primary/10 transition-colors"
+                  disabled={platformBusy}
+                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-semibold hover:border-primary/40 hover:bg-primary/10 transition-colors disabled:opacity-50"
                 >
                   <Radio className="w-3.5 h-3.5 text-red-500" />
                   {LIVE_KIND_LABELS[kind]}

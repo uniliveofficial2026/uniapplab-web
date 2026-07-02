@@ -1,6 +1,7 @@
 import { registerSW } from 'virtual:pwa-register';
 
 let updateSw: ((reloadPage?: boolean) => Promise<void>) | null = null;
+let pendingPwaRefresh: (() => Promise<void>) | null = null;
 
 export function isPrivateDevHost(hostname: string): boolean {
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') return true;
@@ -33,7 +34,7 @@ export function registerAppServiceWorker() {
       window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
     },
     onNeedRefresh() {
-      // Invisible: never reload or show update UI — new build applies on next visit.
+      pendingPwaRefresh = () => updateSw?.(true) ?? Promise.resolve();
     },
     onRegistered() {
       // No background update polling — avoids mid-session takeover / reload.
@@ -43,6 +44,30 @@ export function registerAppServiceWorker() {
 
 export function applyPwaUpdate() {
   void updateSw?.(true);
+}
+
+/** Recover when lazy chunks 404 after a deploy (stale SW or cached index.html). */
+export async function recoverStaleBuild(): Promise<void> {
+  if (typeof window === 'undefined') return;
+
+  if (pendingPwaRefresh) {
+    await pendingPwaRefresh();
+    return;
+  }
+
+  if ('serviceWorker' in navigator) {
+    const regs = await navigator.serviceWorker.getRegistrations();
+    await Promise.all(regs.map((reg) => reg.unregister()));
+  }
+
+  if ('caches' in window) {
+    const keys = await caches.keys();
+    await Promise.all(keys.map((key) => caches.delete(key)));
+  }
+
+  const url = new URL(window.location.href);
+  url.searchParams.set('_chunk_recovery', String(Date.now()));
+  window.location.replace(url.toString());
 }
 
 export function isStandaloneDisplayMode(): boolean {

@@ -69,7 +69,7 @@ else
   echo "[deploy] Preparing staged source for remote Vercel build…"
   node scripts/prepare-vercel-source.mjs
 
-  echo "[deploy] Uploading staged source (archive) → remote build on $PROJECT…"
+  echo "[deploy] Uploading staged source (archive) → remote build on ${PROJECT}..."
   set +e
   vercel_env pnpm dlx vercel@latest deploy --yes --archive=tgz "${PROJECT_ARGS[@]}" .vercel/source-staging "${ARGS[@]}" 2>&1 | tee "$deploy_log"
   deploy_status=${PIPESTATUS[0]}

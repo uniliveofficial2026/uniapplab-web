@@ -234,18 +234,29 @@ export async function processUploadFile(file: File): Promise<MediaListItem & { p
   const previewUrl = URL.createObjectURL(file);
   registerAppMediaBlobUrl(id, previewUrl);
 
-  const persist = saveBlob(id, file, file.name).catch((err) => {
-    console.error('[appMedia] persist failed:', err);
-  });
+  try {
+    await saveBlob(id, file, file.name);
+  } catch (err) {
+    try {
+      URL.revokeObjectURL(previewUrl);
+    } catch {
+      /* ignore */
+    }
+    if (err instanceof DOMException && err.name === 'QuotaExceededError') {
+      throw new Error('File is too large for on-device storage. Try a shorter video or free space.');
+    }
+    throw new Error('Could not save media on this device.');
+  }
 
   let coverUrl: string | undefined;
   if (type === 'audio') {
     coverUrl = await extractAudioCoverFromFile(file);
   } else if (type === 'video') {
-    coverUrl = await captureVideoPosterFrame(previewUrl);
+    coverUrl = await Promise.race([
+      captureVideoPosterFrame(previewUrl),
+      new Promise<undefined>((resolve) => setTimeout(() => resolve(undefined), 8000)),
+    ]);
   }
-
-  await persist;
 
   return {
     url: `${APP_MEDIA_PREFIX}${id}`,

@@ -66,8 +66,32 @@ function main() {
 
   const scriptsDest = path.join(STAGING, 'scripts');
   fs.mkdirSync(scriptsDest, { recursive: true });
-  for (const script of ['write-live-version.mjs', 'ensure-live.mjs']) {
+  for (const script of [
+    'write-live-version.mjs',
+    'ensure-live.mjs',
+    'vercel-project-name.mjs',
+    'prepare-vercel-source.mjs',
+  ]) {
     copyTree(path.join(ROOT, 'scripts', script), path.join(scriptsDest, script));
+  }
+
+  // DeepAR zips (gitignored locally but required for full production AR on Vercel build).
+  const vendorArchives = path.join(ROOT, 'artifacts', 'instacollab', 'vendor', 'archives');
+  if (fs.existsSync(vendorArchives)) {
+    copyTree(
+      vendorArchives,
+      path.join(STAGING, 'artifacts', 'instacollab', 'vendor', 'archives'),
+    );
+  }
+
+  // If DeepAR assets already installed locally, ship them (faster remote build).
+  const deeparPublic = path.join(ROOT, 'artifacts', 'instacollab', 'public', 'deepar-resources');
+  const effectsPublic = path.join(ROOT, 'artifacts', 'instacollab', 'public', 'effects');
+  if (fs.existsSync(path.join(deeparPublic, 'wasm', 'deepar.wasm'))) {
+    copyTree(deeparPublic, path.join(STAGING, 'artifacts', 'instacollab', 'public', 'deepar-resources'));
+  }
+  if (fs.existsSync(effectsPublic)) {
+    copyTree(effectsPublic, path.join(STAGING, 'artifacts', 'instacollab', 'public', 'effects'));
   }
 
   copyTree(

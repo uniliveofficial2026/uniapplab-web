@@ -19,7 +19,11 @@ import { startCloudAppStateRealtime, stopCloudAppStateRealtime } from './cloudAp
 import { isCloudAuthUserId } from './cloudProfile';
 import { clearSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
 import { syncDeviceAccountForAppUser } from './deviceAccounts';
-import { syncLiveSessionData } from '../liveSessionSync';
+import {
+  clearStoredAccountSession,
+  loadStoredAccountSession,
+  saveStoredAccountSession,
+} from './storedAccountSessions';
 import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
 
 const DB_READY_MS = 8_000;
@@ -106,6 +110,7 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
     ...appUser,
     email: session.user.email ?? undefined,
   });
+  saveStoredAccountSession(session.user.id, session);
   db.advanceLaunchProgressAfterLogin(Boolean(profile?.profile_setup_complete));
   writeStoredAuthBackend('supabase');
   clearSupabaseUnhealthy();
@@ -114,6 +119,42 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
   await startCloudAppStateRealtime(appUser.id);
   void startCloudChatRealtime(appUser.id);
   await syncLiveSessionData(appUser.id);
+}
+
+/** Restore a previously saved per-account Supabase session (seamless account switch). */
+export async function restoreStoredAccountSession(
+  uid: string,
+): Promise<{ ok: true } | { ok: false; reason: string }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) {
+    return { ok: false, reason: 'Supabase is not configured.' };
+  }
+
+  const stored = loadStoredAccountSession(uid);
+  if (!stored) {
+    return { ok: false, reason: 'No saved session for this account on this device.' };
+  }
+
+  const { data, error } = await supabase.auth.setSession({
+    access_token: stored.access_token,
+    refresh_token: stored.refresh_token,
+  });
+
+  if (error || !data.session?.user) {
+    clearStoredAccountSession(uid);
+    return {
+      ok: false,
+      reason: error?.message ?? 'Saved session expired. Sign in again for this account.',
+    };
+  }
+
+  if (data.session.user.id !== uid) {
+    return { ok: false, reason: 'Saved session does not match this account.' };
+  }
+
+  saveStoredAccountSession(uid, data.session);
+  await applySupabaseSessionToLocalDb(data.session);
+  return { ok: true };
 }
 
 export async function restoreSupabaseSession(): Promise<Session | null> {

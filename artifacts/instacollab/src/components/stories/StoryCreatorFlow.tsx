@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from '../../types';
-import { Camera, X, Type } from 'lucide-react';
+import { Camera, Sparkles, X, Type } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
 import { detectMediaKind, processUploadFileAsUrl, handleAvatarError } from '../../lib/utils';
 import { fileFromInput } from '../../lib/safe';
@@ -18,6 +18,8 @@ import {
   normalizeOverlayColorForSave,
 } from '../../lib/themeText';
 import { StoryCreatorEdit, StoryDraftPreview } from './StoryCreatorEdit';
+import { DeepARCameraCapture } from '../deepar/DeepARCameraCapture';
+import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
 
 export type { StoryCreatorStep, StoryDraftMedia } from './storyDraft';
 
@@ -52,6 +54,7 @@ export function StoryCreatorFlow({
   const { showToast } = useToast();
   const [step, setStep] = useState<StoryCreatorStep>('select');
   const [draftMedia, setDraftMedia] = useState<StoryDraftMedia | null>(null);
+  const [showARCamera, setShowARCamera] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -268,6 +271,18 @@ export function StoryCreatorFlow({
               </div>
               <span className="text-foreground text-sm font-semibold">Text</span>
             </button>
+            {isDeepARConfigured() && (
+              <button
+                type="button"
+                onClick={() => setShowARCamera(true)}
+                className="flex flex-col items-center gap-3"
+              >
+                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-violet-600 flex items-center justify-center text-white hover:opacity-90 transition-opacity shadow-md">
+                  <Sparkles className="w-6 h-6" />
+                </div>
+                <span className="text-foreground text-sm font-semibold">AR</span>
+              </button>
+            )}
             </div>
           </div>
         </div>
@@ -308,6 +323,16 @@ export function StoryCreatorFlow({
           </div>
         </div>
       )}
+
+      <DeepARCameraCapture
+        open={showARCamera}
+        onClose={() => setShowARCamera(false)}
+        title="Story AR Camera"
+        onCaptured={({ kind, url }) => {
+          setDraftMedia(DEFAULT_MEDIA_STORY_DRAFT(url, kind === 'video'));
+          setStepAndNotify('edit');
+        }}
+      />
     </div>
   );
 }

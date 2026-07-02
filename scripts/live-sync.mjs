@@ -1,14 +1,15 @@
 #!/usr/bin/env node
 /**
- * Unified live dev: instant HMR on localhost + immediate auto-deploy to production
- * (app.uniapplab.com, uniapplab.com, www.uniapplab.com) using the same Supabase data.
+ * Unified live dev: instant HMR on localhost + auto-deploy to production on every save.
  *
- * Usage: pnpm live
+ * Usage:
+ *   pnpm develop   (alias)
+ *   pnpm live
  *
  * Env:
- *   LIVE_SYNC_DEBOUNCE_MS     — ms after last save before deploy (default 0 = instant)
- *   LIVE_SYNC_DEPLOY_ON_START — set to 0 to skip deploy when live starts (default: deploy on start)
- *   LIVE_SYNC_FULL_REPO=1     — full repo upload (default: fast prebuilt bundle)
+ *   LIVE_SYNC_MODE=remote|prebuilt|git  — deploy strategy (default: remote = full Vercel build)
+ *   LIVE_SYNC_DEBOUNCE_MS               — ms after last save (default 0; 3000 on /Volumes/)
+ *   LIVE_SYNC_DEPLOY_ON_START=0         — skip deploy when live starts
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -19,17 +20,31 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const USE_POLL_WATCH =
   process.env.LIVE_SYNC_POLLING === '1' || ROOT.startsWith('/Volumes/');
 const DEBOUNCE_MS = Number(
-  process.env.LIVE_SYNC_DEBOUNCE_MS ?? (USE_POLL_WATCH ? '3000' : '0'),
+  process.env.LIVE_SYNC_DEBOUNCE_MS ?? (USE_POLL_WATCH ? '3000' : '1500'),
 );
 const DEPLOY_ON_START = process.env.LIVE_SYNC_DEPLOY_ON_START !== '0';
-const FULL_REPO = process.env.LIVE_SYNC_FULL_REPO === '1';
+const DEPLOY_MODE = (process.env.LIVE_SYNC_MODE || 'remote').toLowerCase();
 const POLL_WATCH_MS = Number(process.env.LIVE_SYNC_POLL_MS ?? '800');
 
 const WATCH_ROOTS = [
   'artifacts/instacollab/src',
   'artifacts/instacollab/public',
+  'artifacts/instacollab/scripts',
+  'artifacts/instacollab/vendor',
   'artifacts/api-server/src',
   'lib',
+  'scripts',
+  'config',
+];
+
+const WATCH_FILES = [
+  'package.json',
+  'pnpm-lock.yaml',
+  'pnpm-workspace.yaml',
+  'artifacts/instacollab/package.json',
+  'artifacts/instacollab/vite.config.ts',
+  'artifacts/instacollab/vercel.json',
+  'artifacts/instacollab/index.html',
 ];
 
 const IGNORE = new Set(['.DS_Store', 'node_modules', '.git', 'dist', '.vercel']);
@@ -39,6 +54,7 @@ let deployRunning = false;
 let deployQueued = false;
 let pendingReason = 'change';
 let viteChild = null;
+const fileSnapshots = new Map();
 
 function log(msg) {
   console.log(`[live] ${msg}`);
@@ -49,6 +65,7 @@ function shouldIgnore(filePath) {
   if (normalized.includes('live-version.json')) return true;
   if (normalized.includes('/dist/')) return true;
   if (normalized.includes('/.vercel/')) return true;
+  if (normalized.includes('/vendor/archives/') && normalized.endsWith('.zip')) return false;
   const parts = normalized.split('/');
   return parts.some((p) => IGNORE.has(p) || p.startsWith('._'));
 }
@@ -57,7 +74,7 @@ function watchDir(absDir) {
   if (!fs.existsSync(absDir)) return;
   if (USE_POLL_WATCH) {
     startPollWatch(absDir);
-    log(`polling ${path.relative(ROOT, absDir)} every ${POLL_WATCH_MS}ms (external volume)`);
+    log(`polling ${path.relative(ROOT, absDir)} every ${POLL_WATCH_MS}ms`);
     return;
   }
   try {
@@ -73,8 +90,6 @@ function watchDir(absDir) {
 }
 
 function startPollWatch(absDir) {
-  const snapshots = new Map();
-
   function walk(dir) {
     let entries;
     try {
@@ -96,11 +111,11 @@ function startPollWatch(absDir) {
       } catch {
         continue;
       }
-      const prev = snapshots.get(full);
+      const prev = fileSnapshots.get(full);
       if (prev === undefined) {
-        snapshots.set(full, mtime);
+        fileSnapshots.set(full, mtime);
       } else if (mtime !== prev) {
-        snapshots.set(full, mtime);
+        fileSnapshots.set(full, mtime);
         scheduleDeploy(path.relative(ROOT, full));
       }
     }
@@ -108,6 +123,38 @@ function startPollWatch(absDir) {
 
   setInterval(() => walk(absDir), POLL_WATCH_MS);
   walk(absDir);
+}
+
+function watchFiles() {
+  for (const rel of WATCH_FILES) {
+    const abs = path.join(ROOT, rel);
+    if (!fs.existsSync(abs)) continue;
+    if (USE_POLL_WATCH) {
+      fileSnapshots.set(abs, fs.statSync(abs).mtimeMs);
+      continue;
+    }
+    try {
+      fs.watch(abs, () => scheduleDeploy(rel));
+      log(`watching ${rel}`);
+    } catch {
+      /* single-file watch unsupported — polling roots cover it */
+    }
+  }
+  if (USE_POLL_WATCH) {
+    setInterval(() => {
+      for (const rel of WATCH_FILES) {
+        const abs = path.join(ROOT, rel);
+        if (!fs.existsSync(abs)) continue;
+        const mtime = fs.statSync(abs).mtimeMs;
+        const prev = fileSnapshots.get(abs);
+        if (prev === undefined) fileSnapshots.set(abs, mtime);
+        else if (mtime !== prev) {
+          fileSnapshots.set(abs, mtime);
+          scheduleDeploy(rel);
+        }
+      }
+    }, POLL_WATCH_MS);
+  }
 }
 
 function writePidFile() {
@@ -128,9 +175,9 @@ function scheduleDeploy(reason) {
   }, delay);
 
   if (delay === 0) {
-    log(`change detected (${reason}) — deploying now`);
+    log(`change (${reason}) → deploying`);
   } else {
-    log(`change detected (${reason}) — deploy in ${Math.round(delay / 1000)}s if idle`);
+    log(`change (${reason}) → deploy in ${Math.round(delay / 1000)}s if idle`);
   }
 }
 
@@ -141,8 +188,7 @@ function parseDeploymentUrl(output) {
 
 async function aliasDomains(deploymentUrl) {
   if (!deploymentUrl) return;
-  const hosts = ['app.uniapplab.com', 'uniapplab.com', 'www.uniapplab.com'];
-  for (const host of hosts) {
+  for (const host of ['app.uniapplab.com', 'uniapplab.com', 'www.uniapplab.com']) {
     const r = spawnSync(
       'pnpm',
       ['dlx', 'vercel@latest', 'alias', 'set', deploymentUrl, host, '--yes'],
@@ -158,9 +204,7 @@ async function aliasDomains(deploymentUrl) {
         stdio: 'inherit',
       },
     );
-    if (r.status !== 0) {
-      log(`alias ${host} failed (exit ${r.status})`);
-    }
+    if (r.status !== 0) log(`alias ${host} failed (exit ${r.status})`);
   }
 }
 
@@ -171,7 +215,7 @@ function runDeploy(reason) {
     return;
   }
   deployRunning = true;
-  log(`deploying → production (${reason})…`);
+  log(`deploying → production (${reason}, mode=${DEPLOY_MODE})…`);
 
   const deployEnv = {
     ...process.env,
@@ -179,14 +223,25 @@ function runDeploy(reason) {
     NPM_CONFIG_GLOBALCONFIG: undefined,
     npm_config_userconfig: undefined,
     npm_config_globalconfig: undefined,
-    LIVE_SYNC_PREBUILT: FULL_REPO ? undefined : '1',
   };
 
-  const child = spawn('bash', ['scripts/vercel-deploy.sh', '--prod'], {
-    cwd: ROOT,
-    env: deployEnv,
-    stdio: ['ignore', 'pipe', 'pipe'],
-  });
+  let child;
+  if (DEPLOY_MODE === 'git') {
+    child = spawn('bash', ['scripts/vercel-deploy-git.sh'], {
+      cwd: ROOT,
+      env: deployEnv,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } else {
+    if (DEPLOY_MODE === 'prebuilt') {
+      deployEnv.LIVE_SYNC_PREBUILT = '1';
+    }
+    child = spawn('bash', ['scripts/vercel-deploy.sh', '--prod'], {
+      cwd: ROOT,
+      env: deployEnv,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  }
 
   let output = '';
   child.stdout?.on('data', (chunk) => {
@@ -203,7 +258,7 @@ function runDeploy(reason) {
   child.on('close', (code) => {
     deployRunning = false;
     if (code === 0) {
-      log('deploy OK — live on app.uniapplab.com, uniapplab.com, www.uniapplab.com');
+      log('deploy OK — https://app.uniapplab.com');
     } else {
       log(`deploy failed (exit ${code})`);
       const url = parseDeploymentUrl(output);
@@ -218,25 +273,15 @@ function runDeploy(reason) {
 
 function startVite() {
   writePidFile();
-  viteChild = spawn(
-    'pnpm',
-    ['--filter', '@workspace/instacollab', 'run', 'dev'],
-    {
-      cwd: ROOT,
-      env: {
-        ...process.env,
-        VITE_UNIFIED_LIVE: 'true',
-      },
-      stdio: 'inherit',
-    },
-  );
+  viteChild = spawn('pnpm', ['--filter', '@workspace/instacollab', 'run', 'dev'], {
+    cwd: ROOT,
+    env: { ...process.env, VITE_UNIFIED_LIVE: 'true' },
+    stdio: 'inherit',
+  });
 
   viteChild.on('exit', (code, signal) => {
-    if (signal) {
-      log(`vite stopped (${signal})`);
-    } else if (code !== 0) {
-      log(`vite exited ${code}`);
-    }
+    if (signal) log(`vite stopped (${signal})`);
+    else if (code !== 0) log(`vite exited ${code}`);
     process.exit(code ?? 0);
   });
 }
@@ -251,20 +296,14 @@ function shutdown() {
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-log('Unified live — local http://localhost:5173 uses production Supabase + API');
-log(
-  DEBOUNCE_MS > 0
-    ? `Production deploy debounce: ${DEBOUNCE_MS}ms (${FULL_REPO ? 'full repo' : 'prebuilt'})`
-    : `Production deploy: instant on save (${FULL_REPO ? 'full repo' : 'prebuilt'})`,
-);
-log('Domains: app.uniapplab.com · uniapplab.com · www.uniapplab.com');
+log('Develop mode — local http://localhost:5173 + auto-deploy on save');
+log(`Deploy: ${DEPLOY_MODE} (${DEPLOY_MODE === 'remote' ? 'full Vercel build — all app assets' : DEPLOY_MODE})`);
+log('Production: app.uniapplab.com · uniapplab.com · www.uniapplab.com');
+log('Tip: LIVE_SYNC_MODE=git pnpm live — push to GitHub instead of CLI upload');
 
-for (const rel of WATCH_ROOTS) {
-  watchDir(path.join(ROOT, rel));
-}
+for (const rel of WATCH_ROOTS) watchDir(path.join(ROOT, rel));
+watchFiles();
 
 startVite();
 
-if (DEPLOY_ON_START) {
-  scheduleDeploy('startup');
-}
+if (DEPLOY_ON_START) scheduleDeploy('startup');

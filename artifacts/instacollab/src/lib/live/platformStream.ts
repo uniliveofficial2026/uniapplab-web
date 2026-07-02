@@ -21,11 +21,13 @@ export function usePlatformStream() {
     };
   }, [localStream]);
 
-  const goLive = async (title?: string) => {
+  const goLive = async (title?: string, options?: { mediaStream?: MediaStream }) => {
     const created = await startStream(title);
     setStreamId(created.id);
 
-    const media = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+    const media =
+      options?.mediaStream ??
+      (await navigator.mediaDevices.getUserMedia({ video: true, audio: true }));
     setLocalStream(media);
 
     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });

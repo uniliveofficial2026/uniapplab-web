@@ -17,32 +17,32 @@ Monorepo for [uniapplab.com](https://uniapplab.com) — social app, API, and ser
 | `cdn.uniapplab.com` | CDN assets |
 | `admin.uniapplab.com` | Admin dashboard |
 
-## Local dev
+## Local dev + auto-deploy (recommended while building)
 
 ```bash
-pnpm install
-pnpm dev
+pnpm develop
+# same as: pnpm live
+```
+
+| What | How |
+|------|-----|
+| Local preview | http://localhost:5173 (instant HMR) |
+| Production | **Auto-deploy on every save** → app.uniapplab.com |
+| Full build | Default `remote` mode — entire app built on Vercel (all components, DeepAR, assets) |
+
+```bash
+LIVE_SYNC_MODE=remote pnpm develop   # full remote build (default)
+LIVE_SYNC_MODE=prebuilt pnpm develop  # faster, local build upload only
+LIVE_SYNC_MODE=git pnpm develop       # commit + push → GitHub → Vercel
+LIVE_SYNC_DEBOUNCE_MS=5000 pnpm develop  # wait 5s after last save
+```
+
+## Local dev only (no auto-deploy)
+
+```bash
+pnpm --filter @workspace/instacollab dev
 # → http://localhost:5173
 ```
-
-## Unified live (local + production, same data)
-
-```bash
-pnpm live
-```
-
-| URL | What you get |
-|-----|----------------|
-| `http://localhost:5173` | Instant HMR while you code |
-| `app.uniapplab.com` / `uniapplab.com` / `www.uniapplab.com` | **Instant deploy on save** (same Supabase data; ~1–2 min Vercel build) |
-
-- Local dev uses **production Supabase + API** (not isolated `?launch=main` demo).
-- Deploy runs on startup and **immediately** when you save (0ms debounce default).
-- Offline smoke tests: `?force_demo=1&launch=main`
-- `LIVE_SYNC_DEBOUNCE_MS=5000 pnpm live` — optional delay between deploys
-- `pnpm run deploy:vercel` — remote Vercel build (CLI archive, auto-falls back to Git on rate limit)
-- `pnpm run deploy:vercel:git` — push to GitHub → Vercel remote build (bypasses CLI upload limit)
-- `pnpm run deploy:vercel:fast` — local build + prebuilt upload
 
 ## Deploy React app → Vercel → app.uniapplab.com
 

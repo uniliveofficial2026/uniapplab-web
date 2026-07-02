@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
-import { Wand2, ArrowLeft, CheckCircle2, X, Circle } from 'lucide-react';
+import { Wand2, ArrowLeft, CheckCircle2, X, Circle, Sparkles } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
 import { User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
@@ -27,6 +27,8 @@ import { dispatchOpenStoryCreate } from '../../lib/storyCreateEvents';
 import { useDB } from '../../lib/useDB';
 import { ShellCreatePostEditor } from './ShellCreatePostEditor';
 import { ShellCreateCrossPostModal } from './ShellCreateCrossPostModal';
+import { DeepARCameraCapture } from '../deepar/DeepARCameraCapture';
+import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
 
 export type CreateLaunch = {
   type: 'post' | 'reel' | 'text' | 'story';
@@ -86,6 +88,7 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
 
   const suggestedHashtags = ['#fyp', '#viral', '#trending', '#explore', '#photography', '#art', '#daily'];
   const [filter, setFilter] = useState('none');
+  const [showARCamera, setShowARCamera] = useState(false);
   const [mediaAdjust, setMediaAdjust] = useState<MediaEditorAdjustments>(DEFAULT_MEDIA_EDITOR_ADJUSTMENTS);
   const [videoAdjust, setVideoAdjust] = useState<VideoEditorAdjustments>(DEFAULT_VIDEO_EDITOR_ADJUSTMENTS);
   const [textExtras, setTextExtras] = useState<TextEditorExtras>(DEFAULT_TEXT_EDITOR_EXTRAS);
@@ -175,8 +178,10 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
         setActiveMediaIndex(uploadedMediaList.length);
         setCreateStep('edit');
       }
-    } catch {
-      showToast('Error reading files');
+    } catch (err) {
+      const message =
+        err instanceof Error ? err.message : 'Error reading files';
+      showToast(message);
     }
   };
 
@@ -465,7 +470,7 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
             type="file" 
             ref={fileInputRef} 
             onChange={handleFileChange} 
-            accept="image/*,video/*,audio/*" 
+            accept="image/*,video/*,audio/*,.mp4,.mov,.webm,.m4v,.3gp,.heic,.heif" 
             multiple
             className="hidden" 
           />
@@ -511,6 +516,16 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
               <button onClick={triggerFileUpload} className="px-5 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors active:scale-95">
                 Select from computer
               </button>
+              {isDeepARConfigured() && (
+                <button
+                  type="button"
+                  onClick={() => setShowARCamera(true)}
+                  className="mt-3 px-5 py-2 bg-gradient-to-r from-pink-500 to-violet-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity active:scale-95 inline-flex items-center gap-2"
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Record with AR camera
+                </button>
+              )}
 
                <div className="flex items-center gap-6 mt-10 pt-10 border-t border-border w-full text-sm font-semibold text-muted-foreground justify-center">
                 <span onClick={() => { 
@@ -611,6 +626,27 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
       </div>
     )}
     </AnimatePresence>
+      <DeepARCameraCapture
+        open={showARCamera}
+        onClose={() => setShowARCamera(false)}
+        title="Create with AR"
+        onCaptured={({ kind, url }) => {
+          const isVideo = kind === 'video';
+          setUploadedImage(url);
+          setUploadedIsVideo(isVideo);
+          setUploadedMediaList([
+            {
+              url,
+              type: isVideo ? 'video' : 'image',
+              name: isVideo ? 'ar-video.webm' : 'ar-photo.png',
+            },
+          ]);
+          setActiveMediaIndex(0);
+          setCreateStep('edit');
+          setShowARCamera(false);
+          showToast(isVideo ? 'AR video ready to edit' : 'AR photo ready to edit');
+        }}
+      />
       <ShellCreateCrossPostModal
         open={isCrossPostModalOpen}
         onOpenChange={setIsCrossPostModalOpen}

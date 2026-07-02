@@ -20,7 +20,7 @@ import { authSignInWithEmail, authSignInWithGoogle, authSignOut, authSignUp, aut
 import { syncCloudSessionNow } from './auth/syncSession';
 import { flushCloudAppStateSync, stopCloudAppStateRealtimeAsync } from './auth/cloudAppState';
 import { flushCloudProfileSync, isCloudAuthUserId } from './auth/cloudProfile';
-import { teardownCloudSession, applySupabaseSessionToLocalDb } from './auth/sessionManager';
+import { teardownCloudSession, applySupabaseSessionToLocalDb, restoreStoredAccountSession } from './auth/sessionManager';
 import { getSupabaseClient } from './supabase/client';
 import { scheduleLiveSessionSync, syncLiveSessionData } from './liveSessionSync';
 import { isKnownLocalDemoEmail } from './auth/localDemoAuth';
@@ -44,6 +44,10 @@ import {
   writeDeviceAccounts,
   type StoredDeviceAccount,
 } from './auth/deviceAccounts';
+import {
+  clearStoredAccountSession,
+  saveStoredAccountSession,
+} from './auth/storedAccountSessions';
 
 interface AuthContextType {
   user: User | null;
@@ -109,6 +113,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const session = supabase ? (await supabase.auth.getSession()).data.session : null;
       if (session?.user) {
         next = upsertDeviceAccount(accountFromSupabaseUser(session.user), next);
+        if (session.refresh_token) {
+          saveStoredAccountSession(session.user.id, session);
+        }
       }
     } else {
       const firebaseUser = getFirebaseAuth()?.currentUser;
@@ -229,6 +236,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (!previousUid) return;
 
+    if (supabaseSession?.user?.id === previousUid && supabaseSession.refresh_token) {
+      saveStoredAccountSession(previousUid, supabaseSession);
+    }
+
     const existing = readDeviceAccounts().find((a) => a.uid === previousUid);
     if (existing) {
       upsertDeviceAccount(existing);
@@ -290,6 +301,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
       await persistCurrentAccountBeforeSwitch();
       teardownCloudSession();
+
+      const restored = await restoreStoredAccountSession(uid);
+      if (restored.ok) {
+        writeActiveDeviceUid(uid);
+        const account = readDeviceAccounts().find((a) => a.uid === uid);
+        if (account) {
+          setUser({
+            uid: account.uid,
+            displayName: account.displayName,
+            email: account.email,
+            photoURL: account.photoURL,
+          } as User);
+        }
+        await ensureDeviceAccountsSynced();
+        await syncLiveSessionData(uid);
+        return;
+      }
+
       await authSignOut();
 
       const result = await authSignInWithGoogle({
@@ -307,6 +336,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const removeAccount = (uid: string) => {
     db.deleteAccountSnapshot(uid);
+    clearStoredAccountSession(uid);
     const next = removeStoredDeviceAccount(uid);
     setUserAccounts(filterEligibleDeviceAccounts(next));
 
@@ -763,6 +793,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await flushCloudProfileSync();
     if (isSupabaseConfigured()) {
       try {
+        const supabase = getSupabaseClient();
+        const uid = (await supabase?.auth.getSession())?.data.session?.user?.id;
+        if (uid) clearStoredAccountSession(uid);
         await authSignOut();
       } catch (err) {
         console.warn('[auth] signOut failed:', err);

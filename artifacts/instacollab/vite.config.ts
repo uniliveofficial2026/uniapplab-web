@@ -141,7 +141,7 @@ export default defineConfig(({ mode }) => {
         clientsClaim: false,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: `${normalizedBase}index.html`,
-        navigateFallbackDenylist: [/^\/api\//, /\/__local_game__\//],
+        navigateFallbackDenylist: [/^\/api\//, /\/__local_game__\//, /^\/assets\//],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}"],
       },
       manifest: {
@@ -193,6 +193,10 @@ export default defineConfig(({ mode }) => {
     },
     dedupe: ["react", "react-dom"],
   },
+  optimizeDeps: {
+    exclude: ["deepar"],
+  },
+  assetsInclude: ['**/*.wasm', '**/*.bin', '**/*.deepar'],
   root: appRoot,
   build: {
     outDir: path.resolve(appRoot, "dist/public"),
@@ -202,6 +206,7 @@ export default defineConfig(({ mode }) => {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
+          if (id.includes('deepar')) return 'vendor-deepar';
           if (id.includes('motion')) return 'vendor-motion';
           if (id.includes('recharts')) return 'vendor-charts';
           if (id.includes('firebase')) return 'vendor-firebase';

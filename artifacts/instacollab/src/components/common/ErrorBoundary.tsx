@@ -1,4 +1,5 @@
 import React from 'react';
+import { chunkLoadUserMessage, isChunkLoadError } from '../../lib/lazyWithRetry';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -14,12 +15,13 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   state: ErrorBoundaryState = { hasError: false, message: '' };
 
   static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
-    const message = error instanceof Error ? error.message : 'Something went wrong';
+    const raw = error instanceof Error ? error.message : 'Something went wrong';
+    const message = isChunkLoadError(error) || isChunkLoadError(raw) ? chunkLoadUserMessage() : raw;
     return { hasError: true, message };
   }
 
   private handleRetry = () => {
-    if (/out of date after a deploy/i.test(this.state.message)) {
+    if (isChunkLoadError(this.state.message)) {
       window.location.reload();
       return;
     }
@@ -42,7 +44,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
             onClick={this.handleRetry}
           >
-            {/out of date after a deploy/i.test(this.state.message) ? 'Reload app' : 'Try again'}
+            {isChunkLoadError(this.state.message) ? 'Reload app' : 'Try again'}
           </button>
         </div>
       );
