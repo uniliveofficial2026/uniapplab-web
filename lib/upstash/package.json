@@ -1,0 +1,14 @@
+{
+  "name": "@workspace/upstash",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "dependencies": {
+    "@upstash/qstash": "^2.8.4",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.36.2"
+  }
+}
