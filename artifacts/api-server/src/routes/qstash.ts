@@ -1,21 +1,8 @@
 import { Router, type IRouter } from "express";
 import { Receiver } from "@upstash/qstash";
-import { spawn } from "node:child_process";
-import path from "node:path";
+import { isUpstashConfigured, pushHandoffTask } from "../lib/upstash";
 
 const router: IRouter = Router();
-
-function runHandoffCycle(): Promise<number> {
-  const root = path.resolve(import.meta.dirname, "../../../..");
-  return new Promise((resolve) => {
-    const child = spawn("node", ["scripts/app-handoff.mjs", "cycle"], {
-      cwd: root,
-      stdio: "ignore",
-      env: { ...process.env, UX_AGENT_SILENT: "1", HANDOFF_VERBOSE: "0" },
-    });
-    child.on("close", (code) => resolve(code ?? 1));
-  });
-}
 
 router.post("/qstash/handoff-cycle", async (req, res) => {
   const currentKey = process.env.QSTASH_CURRENT_SIGNING_KEY?.trim();
@@ -56,8 +43,23 @@ router.post("/qstash/handoff-cycle", async (req, res) => {
     return;
   }
 
-  const code = await runHandoffCycle();
-  res.status(code === 0 ? 200 : 500).json({ ok: code === 0 });
+  if (!isUpstashConfigured()) {
+    res.status(503).json({ error: "upstash_not_configured" });
+    return;
+  }
+
+  const queued = [];
+  for (const type of ["cloud_data", "health", "verify"] as const) {
+    const id = await pushHandoffTask({
+      type,
+      reason: "qstash_cron",
+      source: "qstash",
+      priority: type === "cloud_data" ? 1 : 5,
+    });
+    if (id) queued.push({ type, id });
+  }
+
+  res.json({ ok: true, queued });
 });
 
 export default router;
