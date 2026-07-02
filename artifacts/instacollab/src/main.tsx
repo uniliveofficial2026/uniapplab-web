@@ -12,6 +12,7 @@ import { initLiveSessionSync } from './lib/liveSessionSync';
 import { initThoughtNoteLiveSync } from './lib/thoughtNoteLiveSync';
 import { initThoughtNoteCloudSync } from './lib/thoughtNoteCloudSync';
 import { initCloudAppStateNetworkResume } from './lib/auth/cloudAppState';
+import { initNetworkStatus } from './lib/networkStatus';
 import { initAppMediaStore, scheduleWarmAppMediaCache } from './lib/appMediaStore';
 import { db } from './lib/db/localDb';
 import { installPersistenceGuards } from './lib/persistSession';
