@@ -5,11 +5,14 @@
 import { db } from './db/localDb';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { withCloudAppStateRemoteApply } from './auth/cloudAppStateFlags';
+import { fetchProfile } from './supabase/profile';
 import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
 import { profileRowToUser } from './supabase/profile';
 import type { ProfileRow } from './supabase/types';
 import { isNetworkOnline, subscribeNetworkStatus } from './networkStatus';
+import { dispatchThoughtNoteReplay, normalizeUserThoughtEpoch } from './thoughtNoteLiveSync';
+import { isCloudAuthConfigured } from './auth/config';
 
 let installed = false;
 let channelUnsub: (() => void) | null = null;
@@ -18,10 +21,28 @@ function thoughtPatchFromRow(row: ProfileRow): { note?: string; noteUpdatedAt?: 
   const trimmed = (row.note ?? '').trim();
   if (!trimmed) return { note: undefined, noteUpdatedAt: undefined };
   const updatedAt = row.note_updated_at ? Date.parse(row.note_updated_at) : undefined;
-  return {
-    note: trimmed,
-    ...(Number.isFinite(updatedAt) ? { noteUpdatedAt: updatedAt } : {}),
-  };
+  const patch: { note: string; noteUpdatedAt?: number } = { note: trimmed };
+  if (Number.isFinite(updatedAt) && (updatedAt as number) > 0) {
+    patch.noteUpdatedAt = updatedAt as number;
+  }
+  return patch;
+}
+
+function mergeThoughtPatch(
+  userId: string,
+  patch: { note?: string; noteUpdatedAt?: number },
+): void {
+  withCloudAppStateRemoteApply(() => {
+    db.updateUser(userId, (u) => {
+      const merged = normalizeUserThoughtEpoch({
+        ...u,
+        note: patch.note,
+        noteUpdatedAt: patch.noteUpdatedAt ?? (patch.note ? Date.now() : undefined),
+      });
+      return merged;
+    });
+  });
+  dispatchThoughtNoteReplay(userId);
 }
 
 function applyProfileThoughtRow(row: ProfileRow): void {
@@ -40,13 +61,7 @@ function applyProfileThoughtRow(row: ProfileRow): void {
   const sameTs = (existing.noteUpdatedAt ?? 0) === (next.noteUpdatedAt ?? 0);
   if (sameNote && sameTs) return;
 
-  withCloudAppStateRemoteApply(() => {
-    db.updateUser(row.id, (u) => ({
-      ...u,
-      note: next.note,
-      noteUpdatedAt: next.noteUpdatedAt,
-    }));
-  });
+  mergeThoughtPatch(row.id, next);
 }
 
 export function initThoughtNoteCloudSync(): void {
@@ -66,6 +81,8 @@ export function initThoughtNoteCloudSync(): void {
 
   if (!isNetworkOnline()) return;
   startThoughtNoteChannel();
+  startThoughtProfileRefresh();
+  void refreshThoughtNotesFromCloud();
 }
 
 function startThoughtNoteChannel(): void {
@@ -104,5 +121,77 @@ function stopThoughtNoteChannel(): void {
 
 export function teardownThoughtNoteCloudSync(): void {
   stopThoughtNoteChannel();
+  stopThoughtProfileRefresh();
   installed = false;
+}
+
+let profileRefreshInstalled = false;
+
+/** Pull own + followed users' thought notes when app returns to foreground (mobile catch-up). */
+function startThoughtProfileRefresh(): void {
+  if (profileRefreshInstalled || typeof document === 'undefined') return;
+  profileRefreshInstalled = true;
+
+  const refresh = () => {
+    if (!isNetworkOnline() || !isSupabaseConfigured()) return;
+    void refreshThoughtNotesFromCloud();
+  };
+
+  document.addEventListener('visibilitychange', () => {
+    if (document.visibilityState === 'visible') refresh();
+  });
+  subscribeNetworkStatus((status) => {
+    if (status === 'online') refresh();
+  });
+}
+
+function stopThoughtProfileRefresh(): void {
+  profileRefreshInstalled = false;
+}
+
+export async function refreshThoughtNotesFromCloud(): Promise<void> {
+  if (!isNetworkOnline() || !isSupabaseConfigured()) return;
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const me = db.currentUser;
+  const ids = new Set<string>();
+  if (me?.id && isCloudAuthConfigured()) ids.add(me.id);
+
+  for (const user of db.users) {
+    if (user?.id && user.note?.trim()) ids.add(user.id);
+  }
+
+  const queryIds = [...ids].slice(0, 40);
+  if (!queryIds.length) return;
+
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, note, note_updated_at')
+    .in('id', queryIds);
+
+  if (error || !data?.length) {
+    if (error && import.meta.env.DEV) {
+      console.warn('[thought] profile refresh failed:', error.message);
+    }
+    return;
+  }
+
+  for (const row of data as ProfileRow[]) {
+    if (!row?.id) continue;
+    applyProfileThoughtRow(row);
+  }
+
+  if (me?.id) {
+    const ownRow = (data as ProfileRow[]).find((r) => r.id === me.id);
+    if (ownRow) {
+      const fromProfile = profileRowToUser(ownRow);
+      if (fromProfile.note) {
+        mergeThoughtPatch(me.id, {
+          note: fromProfile.note,
+          noteUpdatedAt: fromProfile.noteUpdatedAt,
+        });
+      }
+    }
+  }
 }
