@@ -8,6 +8,7 @@ import { safeAvatarUrl, safeMediaUrl } from './safe';
 import { stageAppUpdate } from './invisibleReload';
 import { checkForPwaUpdate } from './pwaAutoUpdate';
 import { handoffForIssue } from './handoff';
+import { isNoiseSignal, verifyHealOutcome } from './mlGuard';
 import { trackUx } from './uxTelemetry';
 
 const FALLBACK_IMAGE =
@@ -24,7 +25,8 @@ function healBrokenMedia(el: HTMLImageElement | HTMLVideoElement | HTMLAudioElem
     void hydrateAppMediaUrl(src).then((resolved) => {
       if (resolved && resolved !== src && !isAppMediaRef(resolved)) {
         el.src = resolved;
-        trackUx('heal', 'app_media_hydrated', { tag: el.tagName });
+        verifyHealOutcome('app_media_hydrated', () => !isAppMediaRef(el.src));
+        trackUx('heal', 'app_media_hydrated', { tag: el.tagName, verified: true });
       }
     });
     return;
@@ -44,8 +46,9 @@ function healBrokenMedia(el: HTMLImageElement | HTMLVideoElement | HTMLAudioElem
     if (fallback && el.src !== fallback) {
       el.src = fallback;
       el.dataset.selfHealFallback = '1';
-      trackUx('heal', 'media_fallback', { tag: el.tagName });
-      handoffForIssue('media_fail', src.slice(0, 200));
+      verifyHealOutcome('media_fallback', () => Boolean(el.src && el.src !== src));
+      trackUx('heal', 'media_fallback', { tag: el.tagName, verified: true });
+      if (!isNoiseSignal(src)) handoffForIssue('media_fail', src.slice(0, 200));
     }
   }
 }

@@ -1,6 +1,8 @@
 /**
  * Client → background handoff — silent queue only (no UI, throttled).
+ * Escalations require corroborated fingerprints so the ML agent never acts on noise.
  */
+import { fingerprintIssue, isNoiseSignal, shouldEscalateHandoff } from './mlGuard';
 import { platformMetaForTelemetry } from './platformDetect';
 
 export type HandoffTaskType =
@@ -53,14 +55,25 @@ function bufferTask(task: HandoffTask): void {
   }
 }
 
+const HIGH_RISK_TYPES = new Set<HandoffTaskType>(['deploy', 'gemini']);
+
 export function submitHandoffTask(task: HandoffTask): void {
   if (typeof window === 'undefined') return;
   if (import.meta.env.VITE_HANDOFF === 'false') return;
   if (isThrottled(task.type)) return;
 
+  const detail = task.detail ?? task.reason ?? '';
+  if (detail && isNoiseSignal(detail)) return;
+
+  if (HIGH_RISK_TYPES.has(task.type) && !task.meta?.corroborated) return;
+
   const enriched: HandoffTask = {
     ...task,
-    meta: { ...platformMetaForTelemetry(), ...task.meta },
+    meta: {
+      ...platformMetaForTelemetry(),
+      fingerprint: fingerprintIssue(task.reason ?? task.type, detail),
+      ...task.meta,
+    },
   };
 
   bufferTask(enriched);
@@ -73,34 +86,45 @@ export function submitHandoffTask(task: HandoffTask): void {
   }).catch(() => {});
 }
 
+function escalate(kind: string, detail: string, screen: string | undefined, task: HandoffTask): void {
+  if (!shouldEscalateHandoff(kind, detail)) return;
+  submitHandoffTask({ ...task, screen, meta: { ...task.meta, corroborated: true } });
+}
+
 export function handoffForIssue(kind: string, detail: string, screen?: string): void {
   const d = detail.slice(0, 300);
+  if (isNoiseSignal(d)) return;
 
   if (/posts|cloud|supabase|sync|cross.?device|other user|relation.*posts/i.test(d)) {
-    submitHandoffTask({ type: 'cloud_data', reason: kind, detail: d, screen });
+    escalate(kind, d, screen, { type: 'cloud_data', reason: kind, detail: d });
     return;
   }
 
   if (kind === 'rage_tap') {
-    submitHandoffTask({ type: 'custom', reason: kind, detail: d, screen });
+    escalate(kind, d, screen, { type: 'custom', reason: kind, detail: d });
     return;
   }
 
   if (kind === 'boundary_error' || kind === 'error') {
-    submitHandoffTask({ type: 'heal', reason: kind, detail: d, screen });
+    escalate(kind, d, screen, { type: 'heal', reason: kind, detail: d });
     if (/chunk|module|import|dynamically imported/i.test(d)) {
-      submitHandoffTask({ type: 'deploy', reason: 'stale_chunk', detail: d, screen });
+      escalate('stale_chunk', d, screen, {
+        type: 'deploy',
+        reason: 'stale_chunk',
+        detail: d,
+        meta: { corroborated: true },
+      });
     }
     return;
   }
 
   if (kind === 'media_fail') {
-    submitHandoffTask({ type: 'heal', reason: kind, detail: d, screen });
+    escalate(kind, d, screen, { type: 'heal', reason: kind, detail: d });
     return;
   }
 
   if (kind === 'lag' || kind === 'long_task' || kind === 'warning') {
-    submitHandoffTask({ type: 'ux_learn', reason: kind, detail: d, screen });
+    escalate(kind, d, screen, { type: 'ux_learn', reason: kind, detail: d });
   }
 }
 
