@@ -1,9 +1,8 @@
 /**
- * Polls deployed build version — when a new deploy lands, schedules a silent
- * PWA refresh (background) so users never need to reinstall the app.
+ * Polls deployed build version — when a new deploy lands, prefetches the service
+ * worker so the next cold start picks up the build (no mid-session reload).
  */
-import { queueInvisibleReload } from './invisibleReload';
-import { checkForPwaUpdate } from './pwaAutoUpdate';
+import { stageAppUpdate } from './invisibleReload';
 import { isNetworkOnline } from './networkStatus';
 
 const VERSION_URL = '/live-version.json';
@@ -30,8 +29,7 @@ async function pollDeployVersion(): Promise<void> {
 
     if (buildId !== lastBuildId) {
       lastBuildId = buildId;
-      void checkForPwaUpdate();
-      queueInvisibleReload('deploy_version');
+      stageAppUpdate('deploy_version');
     }
   } catch {
     /* offline */

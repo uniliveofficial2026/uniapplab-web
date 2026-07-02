@@ -1,17 +1,12 @@
 /**
- * Silent PWA / service-worker updates — new builds apply when the app backgrounds,
- * without reinstalling or flashing a reload mid-interaction.
+ * Silent PWA / service-worker updates — new builds stage in the background and
+ * apply on the next cold start, without reinstalling or reloading mid-session.
  */
-import { recoverStaleBuild, shouldRegisterPwa } from './pwaRegister';
+import { shouldRegisterPwa } from './pwaRegister';
 
 const UPDATE_POLL_MS = 3 * 60_000;
 let installed = false;
-let pendingRefresh: (() => Promise<void>) | null = null;
 let pollTimer: number | null = null;
-
-export function registerPwaRefreshHandler(handler: () => Promise<void>): void {
-  pendingRefresh = handler;
-}
 
 export async function checkForPwaUpdate(): Promise<void> {
   if (typeof navigator === 'undefined' || !('serviceWorker' in navigator)) return;
@@ -24,24 +19,11 @@ export async function checkForPwaUpdate(): Promise<void> {
   }
 }
 
-export async function applySilentAppUpdate(reason = 'update'): Promise<boolean> {
+/** Stage an update in the background; never reloads the current page. */
+export async function applySilentAppUpdate(_reason = 'update'): Promise<boolean> {
   if (typeof window === 'undefined') return false;
-
-  if (pendingRefresh) {
-    try {
-      await pendingRefresh();
-      return true;
-    } catch {
-      /* fall through */
-    }
-  }
-
-  if (/chunk|stale|deploy/i.test(reason)) {
-    await recoverStaleBuild();
-    return true;
-  }
-
-  return false;
+  await checkForPwaUpdate();
+  return true;
 }
 
 export function initPwaAutoUpdate(): void {

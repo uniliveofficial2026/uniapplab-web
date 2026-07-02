@@ -98,3 +98,8 @@ export function initAppCloudSystems(): void {
 export function bootstrapCloudSystemsAfterAuth(): void {
   void tickCloudSystems('auth_ready');
 }
+
+/** Refresh live cloud data in-place (no page reload). */
+export function refreshCloudSystemsInPlace(reason = 'refresh'): void {
+  void tickCloudSystems(reason);
+}

@@ -5,7 +5,8 @@
 import { isChunkLoadError } from './lazyWithRetry';
 import { hydrateAppMediaUrl, isAppMediaRef } from './appMediaStore';
 import { safeAvatarUrl, safeMediaUrl } from './safe';
-import { queueInvisibleReload } from './invisibleReload';
+import { stageAppUpdate } from './invisibleReload';
+import { checkForPwaUpdate } from './pwaAutoUpdate';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&fit=crop';
@@ -66,7 +67,8 @@ function installChunkErrorHealing(): void {
   if (typeof window === 'undefined') return;
 
   const onChunkIssue = () => {
-    queueInvisibleReload('chunk_stale');
+    void checkForPwaUpdate();
+    stageAppUpdate('chunk_stale');
   };
 
   window.addEventListener('unhandledrejection', (event) => {

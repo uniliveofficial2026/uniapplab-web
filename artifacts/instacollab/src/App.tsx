@@ -482,9 +482,9 @@ export default function App() {
   };
 
   const hasLocalSession = db.isLoggedIn && Boolean(db.currentUserId);
-  const deferAuthSpinnerForOffline = !isOnline && hasLocalSession;
+  const deferAuthSpinnerForLocalSession = hasLocalSession;
 
-  if (supabaseAuth && !authReady && !deferAuthSpinnerForOffline) {
+  if (supabaseAuth && !authReady && !deferAuthSpinnerForLocalSession) {
     return (
       <ToastProvider>
         <ToastListener />

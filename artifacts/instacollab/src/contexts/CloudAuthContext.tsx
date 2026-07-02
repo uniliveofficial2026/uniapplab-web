@@ -124,11 +124,9 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
       offlineAtBoot ? OFFLINE_STARTUP_TIMEOUT_MS : STARTUP_TIMEOUT_MS,
     );
 
-    if (offlineAtBoot) {
-      void db.whenStorageReady().then(() => {
-        if (!cancelled) markReady();
-      });
-    }
+    void db.whenStorageReady().then(() => {
+      if (!cancelled && db.isLoggedIn) markReady();
+    });
 
     const startSupabase = () => {
       setActiveBackend('supabase');
