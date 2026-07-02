@@ -1,12 +1,15 @@
 /**
- * Read Vercel API token from env, CLI auth files, or macOS keychain.
+ * Read Vercel API token from .env, env, CLI auth files, or macOS keychain.
  */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
+import { loadDotEnv } from './load-dotenv.mjs';
 
 export function readVercelToken() {
+  loadDotEnv();
+
   if (process.env.VERCEL_TOKEN?.trim()) {
     const token = process.env.VERCEL_TOKEN.trim();
     if (/your_token|placeholder|xxxx|example/i.test(token)) return null;
@@ -52,8 +55,10 @@ export function readVercelToken() {
 export function requireVercelToken() {
   const token = readVercelToken();
   if (!token) {
-    console.error('[vercel] Set VERCEL_TOKEN — https://vercel.com/account/tokens');
-    console.error('[vercel]   export VERCEL_TOKEN=… && pnpm run <command>');
+    console.error('[vercel] VERCEL_TOKEN not found');
+    console.error('[vercel]   Add to .env:  VERCEL_TOKEN=…');
+    console.error('[vercel]   Or: pnpm dlx vercel@latest login');
+    console.error('[vercel]   Create token: https://vercel.com/account/tokens');
     process.exit(1);
   }
   return token;

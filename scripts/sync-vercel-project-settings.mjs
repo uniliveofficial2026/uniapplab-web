@@ -27,7 +27,7 @@ function readSubfolderVercel() {
 
 const token = readVercelToken();
 if (!token) {
-  console.error('[vercel] Set VERCEL_TOKEN — https://vercel.com/account/tokens');
+  console.error('[vercel] VERCEL_TOKEN not found — add to .env (see scripts/lib/vercel-token.mjs)');
   process.exit(1);
 }
 
