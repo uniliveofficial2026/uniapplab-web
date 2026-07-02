@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd ../.. && pnpm install && pnpm --filter @workspace/api-server run build && node artifacts/instacollab/scripts/stage-api-for-vercel.mjs",
+  "installCommand": "cd ../.. && pnpm install --no-frozen-lockfile && pnpm --filter @workspace/api-server run build && node artifacts/instacollab/scripts/stage-api-for-vercel.mjs",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist/public",
   "rewrites": [
