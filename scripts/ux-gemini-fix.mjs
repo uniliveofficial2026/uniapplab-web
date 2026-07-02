@@ -133,7 +133,7 @@ Rules:
 - if handoff tasks mention posts/cloud/supabase, prioritize data-flow fixes in features list
 - never include secrets or API keys
 - search/replace must be minimal, exact, and appear exactly once in the file
-- if unsure, return empty fixes array — never guess
+- if unsure, return empty fixes array — never guess`;
 
   const raw = await callGemini(prompt);
   if (!raw) return { applied: 0, features: 0 };
