@@ -1,7 +1,8 @@
 import { registerSW } from 'virtual:pwa-register';
+import { APP_UPDATE_STAGED_EVENT, stageAppUpdate } from './invisibleReload';
+import { checkForPwaUpdate } from './pwaAutoUpdate';
 
 let updateSw: ((reloadPage?: boolean) => Promise<void>) | null = null;
-let pendingPwaRefresh: (() => Promise<void>) | null = null;
 
 export function isPrivateDevHost(hostname: string): boolean {
   if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '[::1]') return true;
@@ -34,40 +35,43 @@ export function registerAppServiceWorker() {
       window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
     },
     onNeedRefresh() {
-      pendingPwaRefresh = () => updateSw?.(true) ?? Promise.resolve();
+      void (async () => {
+        try {
+          await updateSw?.(false);
+        } catch {
+          await checkForPwaUpdate();
+        }
+        stageAppUpdate('pwa_update');
+        window.dispatchEvent(
+          new CustomEvent(APP_UPDATE_STAGED_EVENT, { detail: { reason: 'pwa_update' } }),
+        );
+      })();
     },
-    onRegistered() {
-      // No background update polling — avoids mid-session takeover / reload.
+    onRegisteredSW(_swUrl, registration) {
+      if (registration) {
+        window.setInterval(() => {
+          void registration.update();
+        }, 60 * 60_000);
+      }
     },
   });
 }
 
+/** Optional manual refresh — only when the user explicitly asks to reload. */
 export function applyPwaUpdate() {
   void updateSw?.(true);
 }
 
-/** Recover when lazy chunks 404 after a deploy (stale SW or cached index.html). */
+/** Stage a new build after lazy-chunk failure — never forces a full page reload. */
 export async function recoverStaleBuild(): Promise<void> {
   if (typeof window === 'undefined') return;
-
-  if (pendingPwaRefresh) {
-    await pendingPwaRefresh();
-    return;
+  try {
+    await updateSw?.(false);
+  } catch {
+    /* fall through */
   }
-
-  if ('serviceWorker' in navigator) {
-    const regs = await navigator.serviceWorker.getRegistrations();
-    await Promise.all(regs.map((reg) => reg.unregister()));
-  }
-
-  if ('caches' in window) {
-    const keys = await caches.keys();
-    await Promise.all(keys.map((key) => caches.delete(key)));
-  }
-
-  const url = new URL(window.location.href);
-  url.searchParams.set('_chunk_recovery', String(Date.now()));
-  window.location.replace(url.toString());
+  await checkForPwaUpdate();
+  stageAppUpdate('chunk_recovery');
 }
 
 export function isStandaloneDisplayMode(): boolean {

@@ -27,6 +27,7 @@ import type { Listener } from './types';
 import { isCloudSyncCollectionKey } from '../cloudSync/collectionKeys';
 import type { CloudSyncCollectionKey } from '../cloudSync/collectionKeys';
 import { scheduleCloudAppStateSync } from '../auth/cloudAppState';
+import { normalizeUsersThoughtEpochs } from '../thoughtNoteLiveSync';
 
 /**
  * Ephemeral keys only — safe to drop without losing posts, stories, messages, etc.
@@ -220,6 +221,11 @@ export class DbCore {
         case 'coins_balance':
           window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
           break;
+        case 'users':
+          window.dispatchEvent(
+            new CustomEvent('thought-note-live', { detail: { changedUserIds: [] } }),
+          );
+          break;
         default:
           break;
       }
@@ -234,17 +240,21 @@ export class DbCore {
       try {
         for (const [key, value] of Object.entries(collections)) {
           if (!isCloudSyncCollectionKey(key) || value === undefined) continue;
-          this.cache[key] = value;
-          if (import.meta.env.DEV) recordCollectionSave(key, value);
+          let nextValue = value;
+          if (key === 'users' && Array.isArray(value)) {
+            nextValue = normalizeUsersThoughtEpochs(value as import('../../types').User[]);
+          }
+          this.cache[key] = nextValue;
+          if (import.meta.env.DEV) recordCollectionSave(key, nextValue);
           if (LOCAL_STORAGE_MIRROR_KEYS.has(key)) {
             try {
-              localStorage.setItem(key, JSON.stringify(value));
+              localStorage.setItem(key, JSON.stringify(nextValue));
             } catch {
               /* quota */
             }
           }
           if (this.db) {
-            idbWrites.push(this.persistToIDBWithoutNotify(key, value));
+            idbWrites.push(this.persistToIDBWithoutNotify(key, nextValue));
           }
           this.dispatchCollectionLiveEvent(key);
         }

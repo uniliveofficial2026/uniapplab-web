@@ -15,6 +15,7 @@ import {
 import type { ProfileRow } from '../supabase/types';
 import { withTimeout } from '../supabase/withTimeout';
 import { isDevLocalAuthBypass } from './devLocalAuth';
+import { isNetworkOnline } from '../networkStatus';
 import { startCloudAppStateRealtime, stopCloudAppStateRealtime } from './cloudAppState';
 import { isCloudAuthUserId } from './cloudProfile';
 import { clearSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
@@ -24,7 +25,10 @@ import {
   loadStoredAccountSession,
   saveStoredAccountSession,
 } from './storedAccountSessions';
+import { initThoughtNoteCloudSync, teardownThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
 import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
+import { syncLiveSessionData } from '../liveSessionSync';
+import { bootstrapCloudSystemsAfterAuth } from '../appCloudSystems';
 
 const DB_READY_MS = 8_000;
 const PROFILE_MS = 12_000;
@@ -61,6 +65,8 @@ function startProfileRealtime(userId: string): void {
       bannedAt: merged.bannedAt,
       banReason: merged.banReason,
       mutedUntil: merged.mutedUntil,
+      note: merged.note,
+      noteUpdatedAt: merged.noteUpdatedAt,
     });
     if (row.profile_setup_complete && !db.getLaunchProgress().profileSetupComplete) {
       db.advanceLaunchProgressAfterLogin(true);
@@ -80,13 +86,33 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
     if (isDevLocalAuthBypass() && db.isLoggedIn) return;
     // Ignore stale SIGNED_OUT during account switch — a newer session may already exist.
     const supabase = getSupabaseClient();
-    if (supabase) {
+    if (supabase && isNetworkOnline()) {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) return;
     }
     stopProfileRealtime();
     stopCloudAppStateRealtime();
     db.logout();
+    return;
+  }
+
+  if (!isNetworkOnline()) {
+    const userId = session.user.id;
+    const existing = db.users.find((u) => u.id === userId);
+    if (existing) {
+      db.syncAuthUser(existing);
+    } else {
+      db.syncAuthUser(userFromSession(session, null));
+    }
+    syncDeviceAccountForAppUser({
+      ...(db.users.find((u) => u.id === userId) ?? userFromSession(session, null)),
+      email: session.user.email ?? undefined,
+    });
+    startProfileRealtime(userId);
+    initThoughtNoteCloudSync();
+    await startCloudAppStateRealtime(userId);
+    void startCloudChatRealtime(userId);
+    bootstrapCloudSystemsAfterAuth();
     return;
   }
 
@@ -116,9 +142,11 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
   clearSupabaseUnhealthy();
 
   startProfileRealtime(appUser.id);
+  initThoughtNoteCloudSync();
   await startCloudAppStateRealtime(appUser.id);
   void startCloudChatRealtime(appUser.id);
   await syncLiveSessionData(appUser.id);
+  bootstrapCloudSystemsAfterAuth();
 }
 
 /** Restore a previously saved per-account Supabase session (seamless account switch). */
@@ -196,4 +224,5 @@ export function teardownCloudSession(): void {
   stopProfileRealtime();
   stopCloudAppStateRealtime();
   stopCloudChatRealtime();
+  teardownThoughtNoteCloudSync();
 }

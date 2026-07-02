@@ -21,6 +21,7 @@ import { consumePendingDemoMigration, resolveDemoSessionEmail } from './demoClou
 import { hasSupabaseSessionForUser } from './activeBackend';
 import { isDevLocalAuthBypass } from './devLocalAuth';
 import { scheduleLiveSessionSync } from '../liveSessionSync';
+import { isNetworkOnline, subscribeNetworkStatus } from '../networkStatus';
 
 let pushInFlight = false;
 let pushAgainAfterFlight = false;
@@ -109,6 +110,7 @@ function applyPayloadIfNewer(payload: CloudAppStatePayload, source: 'remote' | '
 }
 
 async function pushNow(userId: string): Promise<void> {
+  if (!isNetworkOnline()) return;
   if (!cloudSyncReady || cloudSyncHydratedUserId !== userId) return;
   if (pushInFlight) {
     pushAgainAfterFlight = true;
@@ -180,6 +182,7 @@ function queueCloudPush(userId: string, urgent = false): void {
 /** Push after local db.save — microtask batching (no debounce delay). */
 export function scheduleCloudAppStateSync(store: LocalDB = db, changedKey?: string): void {
   if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || isCloudAppStateRemoteApply()) return;
+  if (!isNetworkOnline()) return;
   const userId = store.currentUserId;
   if (!isCloudAuthUserId(userId)) return;
 
@@ -205,6 +208,12 @@ async function hydrateCloudAppStateForUser(
   userId: string,
   generation: number,
 ): Promise<HydrateOutcome> {
+  if (!isNetworkOnline()) {
+    seedLocalRevisionIfNeeded(userId);
+    lastPushedAt = readPersistedLocalRevision(userId);
+    return { result: 'ok', pushLocal: false };
+  }
+
   if (isSupabaseConfigured() && (await hasSupabaseSessionForUser(userId))) {
     let existing: CloudAppStatePayload | null;
     let pushLocal = false;
@@ -412,4 +421,28 @@ export async function stopCloudAppStateRealtimeAsync(): Promise<void> {
 
 export function getCloudAppStateSubscribedUserId(): string | null {
   return subscribedUserId;
+}
+
+let networkResumeInstalled = false;
+
+/** Re-hydrate and flush pending local changes when connectivity returns. */
+export function initCloudAppStateNetworkResume(): void {
+  if (networkResumeInstalled || typeof window === 'undefined') return;
+  networkResumeInstalled = true;
+
+  subscribeNetworkStatus((next) => {
+    if (next !== 'online') return;
+    const userId = subscribedUserId;
+    if (!userId || !isCloudAuthUserId(userId)) return;
+    void (async () => {
+      const outcome = await hydrateCloudAppStateForUser(userId, ++hydrateGeneration);
+      if (outcome.result !== 'error') {
+        cloudSyncReady = true;
+        if (outcome.pushLocal) {
+          queueMicrotask(() => void pushNow(userId));
+        }
+      }
+      scheduleLiveSessionSync(userId);
+    })();
+  });
 }
