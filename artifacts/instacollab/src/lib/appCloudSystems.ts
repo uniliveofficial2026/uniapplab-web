@@ -9,6 +9,7 @@ import { isCloudAuthConfigured } from './auth/config';
 import { db } from './db/localDb';
 import { initLiveAutoReload } from './liveAutoReload';
 import { scheduleLiveSessionSync } from './liveSessionSync';
+import { initLiveSessionSync } from './liveSessionSync';
 import { initNetworkStatus, isNetworkOnline, subscribeNetworkStatus } from './networkStatus';
 import { checkForPwaUpdate, initPwaAutoUpdate } from './pwaAutoUpdate';
 import {
@@ -71,6 +72,7 @@ export function initAppCloudSystems(): void {
   initCloudAppStateNetworkResume();
   initPwaAutoUpdate();
   initLiveAutoReload();
+  initLiveSessionSync();
 
   void db.whenStorageReady().then(() => {
     initThoughtNoteCloudSync();

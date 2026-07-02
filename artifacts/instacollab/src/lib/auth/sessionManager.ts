@@ -112,6 +112,7 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
     initThoughtNoteCloudSync();
     await startCloudAppStateRealtime(userId);
     void startCloudChatRealtime(userId);
+    bootstrapCloudSystemsAfterAuth();
     return;
   }
 
