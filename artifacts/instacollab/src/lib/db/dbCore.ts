@@ -221,6 +221,11 @@ export class DbCore {
         case 'coins_balance':
           window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
           break;
+        case 'users':
+          window.dispatchEvent(
+            new CustomEvent('thought-note-live', { detail: { changedUserIds: [] } }),
+          );
+          break;
         default:
           break;
       }

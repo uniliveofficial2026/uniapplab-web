@@ -50,6 +50,15 @@ export function Avatar({
   const isStory = resolvedUser.status === 'story';
   const isCurrentUser = db.currentUser?.id === resolvedUser.id;
   const hasRing = resolvedUser.status && resolvedUser.status !== 'none';
+  const thoughtNote = resolvedUser.note?.trim() ?? '';
+  const thoughtEpoch = resolvedUser.noteUpdatedAt ?? 0;
+  const thoughtBubbleKey = thoughtAnimationKey(
+    resolvedUser.id,
+    thoughtNote,
+    thoughtEpoch,
+    thoughtReplayNonce,
+  );
+  const [showNoteModal, setShowNoteModal] = useState(false);
   const [showPreviewModal, setShowPreviewModal] = useState(false);
   const [noteEditVal, setNoteEditVal] = useState('');
 
