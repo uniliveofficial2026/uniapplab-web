@@ -28,6 +28,7 @@ import { isInfrastructureAuthFailure } from './failover';
 import { clearSupabaseUnhealthy, markSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
 import { isCloudAuthConfigured } from './config';
 import { isCloudAppStateRemoteApply } from './cloudAppStateFlags';
+import { isNetworkOnline } from '../networkStatus';
 
 export function isCloudAuthUserId(userId: string): boolean {
   if (/^u\d+$/i.test(userId)) return false;
@@ -166,6 +167,7 @@ export function scheduleCloudProfileSync(
   options?: { profileSetupComplete?: boolean }
 ) {
   if (isCloudAppStateRemoteApply()) return;
+  if (!isNetworkOnline()) return;
   if (!isCloudAuthConfigured() || !isCloudAuthUserId(user.id)) return;
   pendingUser = user;
   if (options?.profileSetupComplete !== undefined) {

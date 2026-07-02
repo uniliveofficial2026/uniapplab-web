@@ -21,7 +21,7 @@ import { consumePendingDemoMigration, resolveDemoSessionEmail } from './demoClou
 import { hasSupabaseSessionForUser } from './activeBackend';
 import { isDevLocalAuthBypass } from './devLocalAuth';
 import { scheduleLiveSessionSync } from '../liveSessionSync';
-import { isNetworkOnline } from '../networkStatus';
+import { isNetworkOnline, subscribeNetworkStatus } from '../networkStatus';
 
 let pushInFlight = false;
 let pushAgainAfterFlight = false;
@@ -110,6 +110,7 @@ function applyPayloadIfNewer(payload: CloudAppStatePayload, source: 'remote' | '
 }
 
 async function pushNow(userId: string): Promise<void> {
+  if (!isNetworkOnline()) return;
   if (!cloudSyncReady || cloudSyncHydratedUserId !== userId) return;
   if (pushInFlight) {
     pushAgainAfterFlight = true;
@@ -181,6 +182,7 @@ function queueCloudPush(userId: string, urgent = false): void {
 /** Push after local db.save — microtask batching (no debounce delay). */
 export function scheduleCloudAppStateSync(store: LocalDB = db, changedKey?: string): void {
   if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || isCloudAppStateRemoteApply()) return;
+  if (!isNetworkOnline()) return;
   const userId = store.currentUserId;
   if (!isCloudAuthUserId(userId)) return;
 
