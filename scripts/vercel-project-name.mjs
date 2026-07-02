@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const projectFile = path.join(root, '.vercel', 'project.json');
+const configFile = path.join(root, 'config', 'vercel-project.json');
 
 function fallbackName() {
   return (
@@ -15,14 +16,18 @@ function fallbackName() {
   );
 }
 
-if (!fs.existsSync(projectFile)) {
-  process.stdout.write(fallbackName());
-  process.exit(0);
+function readProjectName() {
+  for (const file of [projectFile, configFile]) {
+    if (!fs.existsSync(file)) continue;
+    try {
+      const data = JSON.parse(fs.readFileSync(file, 'utf8'));
+      const name = data.projectName || data.projectId;
+      if (name) return name;
+    } catch {
+      /* try next */
+    }
+  }
+  return fallbackName();
 }
-const { projectName, projectId } = JSON.parse(fs.readFileSync(projectFile, 'utf8'));
-const name = projectName || projectId;
-if (!name) {
-  console.error('Invalid .vercel/project.json — missing projectName/projectId.');
-  process.exit(1);
-}
-process.stdout.write(name);
+
+process.stdout.write(readProjectName());
