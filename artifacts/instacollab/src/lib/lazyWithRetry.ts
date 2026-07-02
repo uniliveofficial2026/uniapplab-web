@@ -1,4 +1,4 @@
-import { lazy, type ComponentType, type LazyExoticComponent } from 'react';
+import React from 'react';
 import { recoverStaleBuild } from './pwaRegister';
 
 const CHUNK_RELOAD_KEY = 'instacollab-chunk-reload';
@@ -37,6 +37,8 @@ export function clearChunkReloadGuard(): void {
   }
 }
 
+export { recoverStaleBuild };
+
 async function handleChunkLoadFailure(): Promise<never> {
   if (typeof window === 'undefined') {
     throw new Error(chunkLoadUserMessage());
@@ -52,7 +54,7 @@ async function handleChunkLoadFailure(): Promise<never> {
   throw new Error(chunkLoadUserMessage());
 }
 
-async function loadWithChunkRecovery<T extends ComponentType<unknown>>(
+async function loadWithChunkRecovery<T extends React.ComponentType<unknown>>(
   factory: () => Promise<{ default: T }>,
   attempt = 0,
 ): Promise<{ default: T }> {
@@ -68,12 +70,11 @@ async function loadWithChunkRecovery<T extends ComponentType<unknown>>(
   }
 }
 
-/** Lazy import with one retry and a single automatic reload when chunks are stale after deploy. */
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
-export function lazyWithRetry<T extends ComponentType<any>>(
+export function lazyWithRetry<T extends React.ComponentType<any>>(
   factory: () => Promise<{ default: T }>,
-): LazyExoticComponent<T> {
-  return lazy(() => loadWithChunkRecovery(factory));
+): React.LazyExoticComponent<T> {
+  return React.lazy(() => loadWithChunkRecovery(factory));
 }
 
 export function installChunkLoadRecovery(): void {

@@ -26,7 +26,10 @@ console.log(`  Cached archives (vendor/archives): ${hasArchives ? 'yes' : 'no'}`
 console.log('');
 console.log('  1. License: https://developer.deepar.ai → Web app → VITE_DEEPAR_LICENSE_KEY');
 console.log('  2. Add allowed origins: http://localhost:5173, https://app.uniapplab.com');
-console.log('  3. Install SDK + filters from your zip files:');
+console.log('  3. Push license to Vercel (required for production AR):');
+console.log('       pnpm --filter @workspace/instacollab run deepar:env-vercel');
+console.log('');
+console.log('  4. Install SDK + filters from your zip files:');
 console.log('');
 console.log('       pnpm --filter @workspace/instacollab run deepar:install');
 console.log('');

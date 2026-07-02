@@ -85,6 +85,28 @@ async function main() {
   fs.writeFileSync(PID_FILE, String(child.pid));
 
   log(`started pnpm live (pid ${child.pid}) — log: ${path.relative(ROOT, LOG_FILE)}`);
+
+  const uxPidFile = path.join(ROOT, '.local/ux-agent.pid');
+  let uxRunning = false;
+  try {
+    const uxPid = Number(fs.readFileSync(uxPidFile, 'utf8').trim());
+    process.kill(uxPid, 0);
+    uxRunning = true;
+  } catch {
+    /* not running */
+  }
+  if (!uxRunning && process.env.UX_AGENT !== '0') {
+    const uxLog = path.join(ROOT, '.local/ux-agent.log');
+    const uxOut = fs.openSync(uxLog, 'a');
+    const uxChild = spawn('node', ['scripts/background-ux-agent.mjs'], {
+      cwd: ROOT,
+      detached: true,
+      stdio: ['ignore', uxOut, uxOut],
+      env: { ...process.env, UX_AGENT_SILENT: '1' },
+    });
+    uxChild.unref();
+    log(`started UX learning agent (pid ${uxChild.pid})`);
+  }
 }
 
 main().catch((err) => {

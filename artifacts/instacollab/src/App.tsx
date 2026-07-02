@@ -9,7 +9,7 @@ import { consumePendingAppProfileUserId } from './lib/profileIdentity';
 import { appTabBackLabel } from './lib/karaokeReturnContext';
 import { Shell } from './components/layout/Shell';
 import type { SearchTab } from './components/search/SearchScreen';
-import { ScreenFallback } from './components/common/ScreenFallback';
+import { ScreenGuard } from './components/common/ScreenGuard';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const ReelsScreen = lazy(() =>
@@ -103,6 +103,7 @@ import {
 } from './lib/playbackAudio';
 import { pausePeerVideos } from './lib/playbackScope';
 import { openShareLink, parseShareLink } from './lib/shareLinks';
+import { trackScreen } from './lib/uxTelemetry';
 import {
   NAV_PERSIST_EVENT,
   readInitialShellState,
@@ -169,6 +170,10 @@ export default function App() {
     registerAppTabGetter(() => currentTabRef.current);
     return () => registerAppTabGetter(null);
   }, []);
+
+  useEffect(() => {
+    trackScreen(currentTab);
+  }, [currentTab]);
 
   useEffect(() => {
     if (applyingHistoryRef.current) return;
@@ -410,110 +415,66 @@ export default function App() {
     return appTabBackLabel(previous.tab);
   }, [profileUserId, history]);
 
+  const screen = (name: string, node: React.ReactNode) => (
+    <ScreenGuard screen={name}>{node}</ScreenGuard>
+  );
+
   const renderContent = () => {
     switch (currentTab) {
       case 'home':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <Feed />
-          </Suspense>
-        );
+        return screen('home', <Feed />);
       case 'search':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <SearchScreen
-              initialContext={initialSearchContext}
-              onClearContext={() => setInitialSearchContext(null)}
-            />
-          </Suspense>
+        return screen(
+          'search',
+          <SearchScreen
+            initialContext={initialSearchContext}
+            onClearContext={() => setInitialSearchContext(null)}
+          />,
         );
       case 'reels':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <ReelsScreen />
-          </Suspense>
-        );
+        return screen('reels', <ReelsScreen />);
       case 'messages':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <MessagesScreen
-              onBack={goBack}
-              initialChatId={initialChatId}
-              onClearInitialChatId={() => setInitialChatId(null)}
-            />
-          </Suspense>
+        return screen(
+          'messages',
+          <MessagesScreen
+            onBack={goBack}
+            initialChatId={initialChatId}
+            onClearInitialChatId={() => setInitialChatId(null)}
+          />,
         );
       case 'workspace':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <WorkspaceScreen />
-          </Suspense>
-        );
+        return screen('workspace', <WorkspaceScreen />);
       case 'profile':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <ProfileScreen
-              key={profileUserId || db.currentUser?.id || 'me'}
-              userId={profileUserId || undefined}
-              onBack={profileUserId ? goBack : undefined}
-              backLabel={profileBackLabel}
-            />
-          </Suspense>
+        return screen(
+          'profile',
+          <ProfileScreen
+            key={profileUserId || db.currentUser?.id || 'me'}
+            userId={profileUserId || undefined}
+            onBack={profileUserId ? goBack : undefined}
+            backLabel={profileBackLabel}
+          />,
         );
       case 'notifications':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <NotificationsScreen />
-          </Suspense>
-        );
+        return screen('notifications', <NotificationsScreen />);
       case 'dating':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <DatingScreen />
-          </Suspense>
-        );
+        return screen('dating', <DatingScreen />);
       case 'live':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <LiveScreen />
-          </Suspense>
-        );
+        return screen('live', <LiveScreen />);
       case 'karaoke':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <KaraokeScreen />
-          </Suspense>
-        );
+        return screen('karaoke', <KaraokeScreen />);
       case 'rooms':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <RoomsHost initialPath={roomsInitialPath} routerKey={roomsRouterKey} />
-          </Suspense>
+        return screen(
+          'rooms',
+          <RoomsHost initialPath={roomsInitialPath} routerKey={roomsRouterKey} />,
         );
       case 'local-games':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <LocalGamesScreen />
-          </Suspense>
-        );
+        return screen('local-games', <LocalGamesScreen />);
       case 'third-party-games':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <ThirdPartyGamesScreen />
-          </Suspense>
-        );
+        return screen('third-party-games', <ThirdPartyGamesScreen />);
       case 'wallet':
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <WalletScreen />
-          </Suspense>
-        );
+        return screen('wallet', <WalletScreen />);
       default:
-        return (
-          <Suspense fallback={<ScreenFallback />}>
-            <Feed />
-          </Suspense>
-        );
+        return screen('home', <Feed />);
     }
   };
 
@@ -586,9 +547,7 @@ export default function App() {
     <ToastProvider>
       <ToastListener />
       <Shell currentTab={currentTab} setCurrentTab={handleTabChange} currentUser={currentUser}>
-        <ErrorBoundary key={`${currentTab}:${profileUserId ?? ''}:${initialChatId ?? ''}`}>
-          {renderContent()}
-        </ErrorBoundary>
+        {renderContent()}
       </Shell>
       <AnimatePresence>
         {globalPreviewUserId && (

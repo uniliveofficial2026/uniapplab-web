@@ -33,7 +33,14 @@
     "deploy:vercel:git": "bash scripts/vercel-deploy-git.sh",
     "deploy:vercel:cli": "bash scripts/vercel-deploy.sh --prod",
     "deploy:vercel:fast": "VERCEL_PREBUILT=1 bash scripts/vercel-deploy.sh --prod",
-    "deploy:vercel:full": "LIVE_SYNC_FULL_REPO=1 bash scripts/vercel-deploy.sh --prod"
+    "deploy:vercel:full": "LIVE_SYNC_FULL_REPO=1 bash scripts/vercel-deploy.sh --prod",
+    "heal": "node scripts/self-heal.mjs",
+    "fix": "node scripts/auto-fix.mjs",
+    "verify:prod": "node scripts/verify-production.mjs",
+    "check:health": "node artifacts/instacollab/scripts/check-health.mjs",
+    "ux:agent": "node scripts/background-ux-agent.mjs",
+    "ux:learn": "node scripts/ux-learning-engine.mjs",
+    "ux:gemini": "node scripts/ux-gemini-fix.mjs"
   },
   "private": true,
   "devDependencies": {

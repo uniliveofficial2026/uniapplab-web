@@ -35,14 +35,19 @@ function loadEnvForBuild() {
 const env = loadEnvForBuild();
 const url = (env.VITE_SUPABASE_URL || '').trim();
 const key = (env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
+const deeparKey = (env.VITE_DEEPAR_LICENSE_KEY || '').trim();
 const onVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
 
 const issues = [];
+const deeparIssues = [];
 if (!url || /your[_-]?project/i.test(url)) {
   issues.push('VITE_SUPABASE_URL is missing or still a placeholder');
 }
 if (!key || /your[_-]?(publishable|anon|supabase)/i.test(key)) {
   issues.push('VITE_SUPABASE_ANON_KEY (or VITE_SUPABASE_PUBLISHABLE_KEY) is missing or placeholder');
+}
+if (!deeparKey || /your|xxxx|placeholder/i.test(deeparKey)) {
+  deeparIssues.push('VITE_DEEPAR_LICENSE_KEY is missing — AR filters will be disabled in production');
 }
 
 let expectedRef = null;
@@ -74,6 +79,16 @@ if (onVercel && issues.length) {
   console.error('  Local reference: artifacts/instacollab/.env');
   console.error('');
   process.exit(1);
+}
+
+if (onVercel && deeparIssues.length) {
+  console.error('');
+  console.error('[build] DeepAR license missing on Vercel — SDK/effects deploy but AR UI stays off:');
+  for (const line of deeparIssues) console.error(`  ✗ ${line}`);
+  console.error('');
+  console.error('  Fix: pnpm --filter @workspace/instacollab run deepar:env-vercel');
+  console.error('  Or: Vercel Dashboard → Environment Variables → VITE_DEEPAR_LICENSE_KEY → Redeploy');
+  console.error('');
 }
 
 if (issues.length) {

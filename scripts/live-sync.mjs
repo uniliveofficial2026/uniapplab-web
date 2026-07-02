@@ -10,6 +10,9 @@
  *   LIVE_SYNC_MODE=remote|prebuilt|git  — deploy strategy (default: remote = full Vercel build)
  *   LIVE_SYNC_DEBOUNCE_MS               — ms after last save (default 0; 3000 on /Volumes/)
  *   LIVE_SYNC_DEPLOY_ON_START=0         — skip deploy when live starts
+ *   LIVE_SYNC_AUTO_HEAL=0               — skip self-heal before deploy (default: on)
+ *   LIVE_SYNC_VERIFY=0                  — skip post-deploy production checks (default: on)
+ *   LIVE_SYNC_AUTO_PUSH=0               — skip git commit+push before deploy (default: on)
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -25,13 +28,15 @@ const DEBOUNCE_MS = Number(
 const DEPLOY_ON_START = process.env.LIVE_SYNC_DEPLOY_ON_START !== '0';
 const DEPLOY_MODE = (process.env.LIVE_SYNC_MODE || 'remote').toLowerCase();
 const POLL_WATCH_MS = Number(process.env.LIVE_SYNC_POLL_MS ?? '800');
+const AUTO_HEAL = process.env.LIVE_SYNC_AUTO_HEAL !== '0';
+const VERIFY_PROD = process.env.LIVE_SYNC_VERIFY !== '0';
+const AUTO_PUSH = process.env.LIVE_SYNC_AUTO_PUSH !== '0';
+const VERIFY_WAIT_MS = Number(process.env.LIVE_SYNC_VERIFY_WAIT_MS ?? '45000');
+const MAX_VERIFY_RETRIES = Number(process.env.LIVE_SYNC_VERIFY_RETRIES ?? '2');
 
 const WATCH_ROOTS = [
-  'artifacts/instacollab/src',
-  'artifacts/instacollab/public',
-  'artifacts/instacollab/scripts',
-  'artifacts/instacollab/vendor',
-  'artifacts/api-server/src',
+  'artifacts/instacollab',
+  'artifacts/api-server',
   'lib',
   'scripts',
   'config',
@@ -41,10 +46,13 @@ const WATCH_FILES = [
   'package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
+  '.env',
+  'artifacts/instacollab/.env',
   'artifacts/instacollab/package.json',
   'artifacts/instacollab/vite.config.ts',
   'artifacts/instacollab/vercel.json',
   'artifacts/instacollab/index.html',
+  'artifacts/instacollab/src/index.css',
 ];
 
 const IGNORE = new Set(['.DS_Store', 'node_modules', '.git', 'dist', '.vercel']);
@@ -208,7 +216,91 @@ async function aliasDomains(deploymentUrl) {
   }
 }
 
-function runDeploy(reason) {
+function runSelfHeal() {
+  if (!AUTO_HEAL) return 0;
+  log('self-heal + auto-fix…');
+  const r = spawnSync('node', ['scripts/auto-fix.mjs'], { cwd: ROOT, stdio: 'inherit' });
+  return r.status ?? 1;
+}
+
+function runAutoPush() {
+  if (!AUTO_PUSH) return 0;
+
+  const status = spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
+  const dirty = (status.stdout || '').trim();
+  if (!dirty) return 0;
+
+  log('auto-commit + push…');
+  spawnSync('git', ['add', '-A'], { cwd: ROOT, stdio: 'inherit' });
+  const stamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
+  const commit = spawnSync('git', ['commit', '-m', `auto: live sync ${stamp}`], {
+    cwd: ROOT,
+    stdio: 'inherit',
+  });
+  if (commit.status !== 0) {
+    log('auto-commit skipped (nothing to commit or hook rejected)');
+    return 0;
+  }
+
+  const push = spawnSync('bash', ['scripts/github-push.sh'], { cwd: ROOT, stdio: 'inherit' });
+  return push.status ?? 1;
+}
+
+function sleep(ms) {
+  return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+async function verifyProduction(attempt = 1) {
+  if (!VERIFY_PROD) return true;
+  if (attempt > 1) log(`verify production (retry ${attempt})…`);
+  else log(`verify production (waiting ${Math.round(VERIFY_WAIT_MS / 1000)}s for CDN)…`);
+
+  await sleep(VERIFY_WAIT_MS);
+  const r = spawnSync('node', ['scripts/verify-production.mjs'], { cwd: ROOT, stdio: 'inherit' });
+  if (r.status === 0) return true;
+  if (attempt < MAX_VERIFY_RETRIES) return verifyProduction(attempt + 1);
+  return false;
+}
+
+function spawnDeploy(deployEnv) {
+  return new Promise((resolve) => {
+    let child;
+    if (DEPLOY_MODE === 'git') {
+      child = spawn('bash', ['scripts/vercel-deploy-git.sh'], {
+        cwd: ROOT,
+        env: deployEnv,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    } else {
+      if (DEPLOY_MODE === 'prebuilt') {
+        deployEnv.LIVE_SYNC_PREBUILT = '1';
+      }
+      child = spawn('bash', ['scripts/vercel-deploy.sh', '--prod'], {
+        cwd: ROOT,
+        env: deployEnv,
+        stdio: ['ignore', 'pipe', 'pipe'],
+      });
+    }
+
+    let output = '';
+    child.stdout?.on('data', (chunk) => {
+      const text = String(chunk);
+      output += text;
+      process.stdout.write(text);
+    });
+    child.stderr?.on('data', (chunk) => {
+      const text = String(chunk);
+      output += text;
+      process.stderr.write(text);
+    });
+
+    child.on('close', (code) => {
+      resolve({ code: code ?? 1, output });
+    });
+  });
+}
+
+async function runDeploy(reason, verifyAttempt = 0) {
   if (deployRunning) {
     deployQueued = true;
     pendingReason = reason;
@@ -216,6 +308,10 @@ function runDeploy(reason) {
   }
   deployRunning = true;
   log(`deploying → production (${reason}, mode=${DEPLOY_MODE})…`);
+
+  runSelfHeal();
+  const pushCode = runAutoPush();
+  if (pushCode !== 0) log('auto-push failed — continuing with deploy');
 
   const deployEnv = {
     ...process.env,
@@ -225,50 +321,73 @@ function runDeploy(reason) {
     npm_config_globalconfig: undefined,
   };
 
-  let child;
-  if (DEPLOY_MODE === 'git') {
-    child = spawn('bash', ['scripts/vercel-deploy-git.sh'], {
-      cwd: ROOT,
-      env: deployEnv,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-  } else {
-    if (DEPLOY_MODE === 'prebuilt') {
-      deployEnv.LIVE_SYNC_PREBUILT = '1';
-    }
-    child = spawn('bash', ['scripts/vercel-deploy.sh', '--prod'], {
-      cwd: ROOT,
-      env: deployEnv,
-      stdio: ['ignore', 'pipe', 'pipe'],
-    });
-  }
+  const { code, output } = await spawnDeploy(deployEnv);
+  deployRunning = false;
 
-  let output = '';
-  child.stdout?.on('data', (chunk) => {
-    const text = String(chunk);
-    output += text;
-    process.stdout.write(text);
-  });
-  child.stderr?.on('data', (chunk) => {
-    const text = String(chunk);
-    output += text;
-    process.stderr.write(text);
-  });
-
-  child.on('close', (code) => {
-    deployRunning = false;
-    if (code === 0) {
+  if (code === 0) {
+    const verified = await verifyProduction(verifyAttempt + 1);
+    if (verified) {
       log('deploy OK — https://app.uniapplab.com');
     } else {
-      log(`deploy failed (exit ${code})`);
-      const url = parseDeploymentUrl(output);
-      if (url) void aliasDomains(url);
+      log('deploy finished but production verify failed — re-healing and redeploying once');
+      runSelfHeal();
+      if (!deployQueued) {
+        deployRunning = true;
+        const retry = await spawnDeploy(deployEnv);
+        deployRunning = false;
+        if (retry.code === 0) {
+          const retryOk = await verifyProduction(1);
+          if (retryOk) log('deploy OK after retry — https://app.uniapplab.com');
+          else log('deploy retry still failing verify — check scripts/verify-production.mjs');
+        } else {
+          log(`deploy retry failed (exit ${retry.code})`);
+        }
+      }
     }
-    if (deployQueued) {
-      deployQueued = false;
-      void runDeploy(pendingReason);
+  } else {
+    log(`deploy failed (exit ${code})`);
+    const url = parseDeploymentUrl(output);
+    if (url) void aliasDomains(url);
+    runSelfHeal();
+  }
+
+  if (deployQueued) {
+    deployQueued = false;
+    void runDeploy(pendingReason);
+  }
+}
+
+function readUxAgentPid() {
+  try {
+    const pid = Number(fs.readFileSync(path.join(ROOT, '.local/ux-agent.pid'), 'utf8').trim());
+    if (Number.isFinite(pid) && pid > 0) {
+      process.kill(pid, 0);
+      return pid;
     }
+  } catch {
+    /* not running */
+  }
+  return null;
+}
+
+function startBackgroundUxAgent() {
+  if (process.env.UX_AGENT === '0') return;
+  if (readUxAgentPid()) {
+    log('UX learning agent already running');
+    return;
+  }
+
+  const logPath = path.join(ROOT, '.local/ux-agent.log');
+  fs.mkdirSync(path.dirname(logPath), { recursive: true });
+  const out = fs.openSync(logPath, 'a');
+  const child = spawn('node', ['scripts/background-ux-agent.mjs'], {
+    cwd: ROOT,
+    detached: true,
+    stdio: ['ignore', out, out],
+    env: { ...process.env, UX_AGENT_SILENT: '1' },
   });
+  child.unref();
+  log('UX learning agent started silently → .local/ux-agent.log');
 }
 
 function startVite() {
@@ -290,6 +409,14 @@ function shutdown() {
   log('shutting down…');
   if (debounceTimer) clearTimeout(debounceTimer);
   if (viteChild && !viteChild.killed) viteChild.kill('SIGTERM');
+  const uxPid = readUxAgentPid();
+  if (uxPid) {
+    try {
+      process.kill(uxPid, 'SIGTERM');
+    } catch {
+      /* ignore */
+    }
+  }
   process.exit(0);
 }
 
@@ -298,12 +425,16 @@ process.on('SIGTERM', shutdown);
 
 log('Develop mode — local http://localhost:5173 + auto-deploy on save');
 log(`Deploy: ${DEPLOY_MODE} (${DEPLOY_MODE === 'remote' ? 'full Vercel build — all app assets' : DEPLOY_MODE})`);
+log(`Self-heal: ${AUTO_HEAL ? 'on' : 'off'} · Verify: ${VERIFY_PROD ? 'on' : 'off'} · Auto-push: ${AUTO_PUSH ? 'on' : 'off'}`);
+log(`UX ML agent: ${process.env.UX_AGENT === '0' ? 'off' : 'on (silent background)'}`);
 log('Production: app.uniapplab.com · uniapplab.com · www.uniapplab.com');
 log('Tip: LIVE_SYNC_MODE=git pnpm live — push to GitHub instead of CLI upload');
+log('Tip: LIVE_SYNC_AUTO_PUSH=0 pnpm develop — deploy without git commit/push');
 
 for (const rel of WATCH_ROOTS) watchDir(path.join(ROOT, rel));
 watchFiles();
 
 startVite();
+startBackgroundUxAgent();
 
 if (DEPLOY_ON_START) scheduleDeploy('startup');

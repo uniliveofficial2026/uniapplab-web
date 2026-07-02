@@ -16,6 +16,8 @@ import { installPersistenceGuards } from './lib/persistSession';
 import { bootstrapDocumentTheme } from './lib/theme';
 import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithRetry';
 import { installRuntimeGuards } from './lib/runtimeGuards';
+import { installRuntimeSelfHeal } from './lib/selfHeal';
+import { installUxTelemetry } from './lib/uxTelemetry';
 
 bootstrapDocumentTheme();
 installChunkLoadRecovery();
@@ -25,6 +27,8 @@ initLiveSessionSync();
 initThoughtNoteLiveSync();
 installPersistenceGuards();
 installRuntimeGuards();
+installRuntimeSelfHeal();
+installUxTelemetry();
 
 async function bootstrap() {
   await initSupabaseClient();

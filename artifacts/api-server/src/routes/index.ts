@@ -5,6 +5,7 @@ import adminRouter from "./admin";
 import walletRouter from "./wallet";
 import chatRouter from "./chat";
 import streamRouter from "./stream";
+import uxRouter from "./ux";
 
 const router: IRouter = Router();
 
@@ -14,5 +15,6 @@ router.use("/admin", adminRouter);
 router.use("/wallet", walletRouter);
 router.use("/chat", chatRouter);
 router.use("/stream", streamRouter);
+router.use(uxRouter);
 
 export default router;

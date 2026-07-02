@@ -20,21 +20,25 @@ const SKIP_NAMES = new Set([
   '.DS_Store',
 ]);
 
-function shouldSkip(name) {
+function shouldSkip(name, relPath = '') {
   if (SKIP_NAMES.has(name)) return true;
   if (name.startsWith('._')) return true;
   if (name.endsWith('.map')) return true;
+  // Built on Vercel from vendor/archives — keeps deploy archive small.
+  if (relPath.includes('public/deepar-resources')) return true;
+  if (relPath.includes('public/effects/')) return true;
   return false;
 }
 
-function copyTree(src, dest) {
+function copyTree(src, dest, relBase = '') {
   if (!fs.existsSync(src)) return;
   const stat = fs.statSync(src);
   if (stat.isDirectory()) {
     fs.mkdirSync(dest, { recursive: true });
     for (const entry of fs.readdirSync(src)) {
-      if (shouldSkip(entry)) continue;
-      copyTree(path.join(src, entry), path.join(dest, entry));
+      const rel = relBase ? `${relBase}/${entry}` : entry;
+      if (shouldSkip(entry, rel)) continue;
+      copyTree(path.join(src, entry), path.join(dest, entry), rel);
     }
     return;
   }
@@ -75,28 +79,18 @@ function main() {
     copyTree(path.join(ROOT, 'scripts', script), path.join(scriptsDest, script));
   }
 
-  // DeepAR zips (gitignored locally but required for full production AR on Vercel build).
+  // DeepAR zips must ship with staging (gitignored) — Vercel build runs install-deepar-assets.
   const vendorArchives = path.join(ROOT, 'artifacts', 'instacollab', 'vendor', 'archives');
-  if (fs.existsSync(vendorArchives)) {
-    copyTree(
-      vendorArchives,
-      path.join(STAGING, 'artifacts', 'instacollab', 'vendor', 'archives'),
+  if (!fs.existsSync(path.join(vendorArchives, 'DeepAR-Web-v5.6.22.zip'))) {
+    console.warn(
+      '[deploy] Warning: vendor/archives/DeepAR-Web-v5.6.22.zip missing — run pnpm --filter @workspace/instacollab run deepar:install',
     );
-  }
-
-  // If DeepAR assets already installed locally, ship them (faster remote build).
-  const deeparPublic = path.join(ROOT, 'artifacts', 'instacollab', 'public', 'deepar-resources');
-  const effectsPublic = path.join(ROOT, 'artifacts', 'instacollab', 'public', 'effects');
-  if (fs.existsSync(path.join(deeparPublic, 'wasm', 'deepar.wasm'))) {
-    copyTree(deeparPublic, path.join(STAGING, 'artifacts', 'instacollab', 'public', 'deepar-resources'));
-  }
-  if (fs.existsSync(effectsPublic)) {
-    copyTree(effectsPublic, path.join(STAGING, 'artifacts', 'instacollab', 'public', 'effects'));
   }
 
   copyTree(
     path.join(ROOT, 'artifacts', 'instacollab'),
     path.join(STAGING, 'artifacts', 'instacollab'),
+    'artifacts/instacollab',
   );
 
   // Never upload local secrets — Vercel uses dashboard env vars.

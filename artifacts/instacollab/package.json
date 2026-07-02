@@ -28,8 +28,10 @@
     "email:setup": "node scripts/setup-resend-email.mjs",
     "deepar:setup": "node scripts/print-deepar-setup.mjs",
     "deepar:install": "node scripts/install-deepar-assets.mjs",
+    "deepar:env-vercel": "node scripts/sync-deepar-vercel-env.mjs",
     "deepar:sync": "node scripts/sync-deepar-assets.mjs",
-    "smoke:manage-tab": "node scripts/smoke-manage-tab.mjs"
+    "smoke:manage-tab": "node scripts/smoke-manage-tab.mjs",
+    "check:health": "node scripts/check-health.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",
