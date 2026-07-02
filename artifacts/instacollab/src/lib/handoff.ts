@@ -1,6 +1,8 @@
 /**
  * Client → background handoff — silent queue only (no UI, throttled).
  */
+import { platformMetaForTelemetry } from './platformDetect';
+
 export type HandoffTaskType =
   | 'heal'
   | 'deploy'
@@ -56,12 +58,17 @@ export function submitHandoffTask(task: HandoffTask): void {
   if (import.meta.env.VITE_HANDOFF === 'false') return;
   if (isThrottled(task.type)) return;
 
-  bufferTask(task);
+  const enriched: HandoffTask = {
+    ...task,
+    meta: { ...platformMetaForTelemetry(), ...task.meta },
+  };
+
+  bufferTask(enriched);
 
   void fetch(handoffUrl(), {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(task),
+    body: JSON.stringify(enriched),
     keepalive: true,
   }).catch(() => {});
 }
@@ -69,18 +76,31 @@ export function submitHandoffTask(task: HandoffTask): void {
 export function handoffForIssue(kind: string, detail: string, screen?: string): void {
   const d = detail.slice(0, 300);
 
-  if (/posts|cloud|supabase|sync|cross.?device|other user/i.test(d)) {
-    submitHandoffTask({ type: 'cloud_data', reason: kind, detail: d, screen });
-    return;
-  }
-
-  if (kind === 'error' && /posts|cloud|supabase|sync/i.test(d)) {
+  if (/posts|cloud|supabase|sync|cross.?device|other user|relation.*posts/i.test(d)) {
     submitHandoffTask({ type: 'cloud_data', reason: kind, detail: d, screen });
     return;
   }
 
   if (kind === 'rage_tap') {
     submitHandoffTask({ type: 'custom', reason: kind, detail: d, screen });
+    return;
+  }
+
+  if (kind === 'boundary_error' || kind === 'error') {
+    submitHandoffTask({ type: 'heal', reason: kind, detail: d, screen });
+    if (/chunk|module|import|dynamically imported/i.test(d)) {
+      submitHandoffTask({ type: 'deploy', reason: 'stale_chunk', detail: d, screen });
+    }
+    return;
+  }
+
+  if (kind === 'media_fail') {
+    submitHandoffTask({ type: 'heal', reason: kind, detail: d, screen });
+    return;
+  }
+
+  if (kind === 'lag' || kind === 'long_task' || kind === 'warning') {
+    submitHandoffTask({ type: 'ux_learn', reason: kind, detail: d, screen });
   }
 }
 

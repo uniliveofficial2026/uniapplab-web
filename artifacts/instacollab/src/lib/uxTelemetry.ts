@@ -2,6 +2,7 @@
  * Silent UX telemetry — batches signals for background ML (no UI, no handoff flood).
  */
 import { handoffForIssue } from './handoff';
+import { platformMetaForTelemetry } from './platformDetect';
 
 export type UxSignalType =
   | 'screen_view'
@@ -62,6 +63,10 @@ function writeBuffer(signals: UxSignal[]): void {
   }
 }
 
+export function getCurrentScreen(): string {
+  return currentScreen;
+}
+
 export function trackUx(
   type: UxSignalType,
   detail?: string,
@@ -76,7 +81,7 @@ export function trackUx(
     type,
     screen,
     detail,
-    meta: { session: sessionId(), ...meta },
+    meta: { session: sessionId(), ...platformMetaForTelemetry(), ...meta },
   };
 
   const buf = readBuffer();
@@ -149,18 +154,14 @@ function hookErrors(): void {
       file: (event.filename || '').slice(-80),
       line: event.lineno ?? 0,
     });
-    if (/posts|cloud|supabase|relation.*posts/i.test(msg)) {
-      handoffForIssue('error', msg, currentScreen);
-    }
+    handoffForIssue('error', msg, currentScreen);
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason;
     const msg = reason instanceof Error ? reason.message : String(reason);
     trackUx('error', msg.slice(0, 300), { unhandled: true });
-    if (/posts|cloud|supabase/i.test(msg)) {
-      handoffForIssue('error', msg, currentScreen);
-    }
+    handoffForIssue('error', msg, currentScreen);
   });
 }
 
