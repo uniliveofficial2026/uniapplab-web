@@ -58,7 +58,7 @@ if (clientUrl && /^wss:\/\//i.test(clientUrl)) {
 const origin = (process.env.PUBLIC_APP_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');
 if (process.argv.includes('--prod')) {
   try {
-    const result = await probeProdApi(origin, '/api/livekit/health');
+    const result = await probeProdApi(origin, '/api/livekit/health', { retries: 2 });
     if (result.ok && result.body?.ok) {
       console.log(`[livekit] ✓ Production health ${origin}`);
     } else if (result.body && result.body.configured === false) {

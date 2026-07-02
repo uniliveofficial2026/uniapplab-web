@@ -5,6 +5,8 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+node scripts/sync-vercel-config.mjs
+
 PROJECT="$(node scripts/vercel-project-name.mjs)"
 GIT_URL="${VERCEL_GIT_URL:-https://github.com/uniliveofficial2026/uniapplab-web.git}"
 BRANCH="${VERCEL_GIT_BRANCH:-$(git branch --show-current)}"

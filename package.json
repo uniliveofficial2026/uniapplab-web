@@ -28,6 +28,7 @@
     "email:setup": "pnpm --filter @workspace/instacollab run email:setup",
     "domains:setup": "node scripts/print-domains-setup.mjs",
     "stack:setup": "node scripts/print-stack-setup.mjs",
+    "stack:verify": "node scripts/verify-production.mjs && node scripts/check-upstash.mjs -- --prod && pnpm --filter @workspace/instacollab run livekit:check -- --prod",
     "git:push": "bash scripts/github-push.sh",
     "git:clean-history": "bash scripts/reset-clean-main.sh --yes",
     "deploy:vercel": "bash scripts/vercel-deploy.sh --prod",

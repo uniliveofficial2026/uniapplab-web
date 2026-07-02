@@ -1,21 +1,31 @@
 #!/usr/bin/env bash
 # Deploy instacollab to Vercel (uniapplab-web-instacollab).
 # Default → staged source + remote Vite build on Vercel (--archive=tgz).
-# VERCEL_PREBUILT=1 → local build + small prebuilt upload (--archive=tgz).
+# VERCEL_PREBUILT=1 → local build + small prebuilt upload (SPA only — no /api/*).
 # LIVE_SYNC_FULL_REPO=1 → legacy full monorepo upload (not recommended).
-# On api-upload-free → falls back to Git deploy (remote build, no CLI upload).
+# On CLI limits → falls back to Git deploy (remote build, no CLI upload).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
-ARGS=("$@")
-if [[ ${#ARGS[@]} -eq 0 ]]; then
-  ARGS=(--prod)
+RAW_ARGS=("$@")
+if [[ ${#RAW_ARGS[@]} -eq 0 ]]; then
+  RAW_ARGS=(--prod)
+fi
+
+VERCEL_ARGS=()
+for arg in "${RAW_ARGS[@]}"; do
+  case "$arg" in
+    --prod|--prebuilt|--yes|-y) VERCEL_ARGS+=("$arg") ;;
+  esac
+done
+if [[ ${#VERCEL_ARGS[@]} -eq 0 ]]; then
+  VERCEL_ARGS=(--prod)
 fi
 
 is_prod=false
-for arg in "${ARGS[@]}"; do
+for arg in "${VERCEL_ARGS[@]}"; do
   if [[ "$arg" == "--prod" ]]; then
     is_prod=true
     break
@@ -58,30 +68,34 @@ EOF
 
   echo "[deploy] Uploading prebuilt bundle (archive)…"
   set +e
-  vercel_env pnpm dlx vercel@latest deploy --prebuilt --yes --archive=tgz "${PROJECT_ARGS[@]}" "${ARGS[@]}" 2>&1 | tee "$deploy_log"
+  vercel_env pnpm dlx vercel@latest deploy --prebuilt --yes --archive=tgz "${PROJECT_ARGS[@]}" "${VERCEL_ARGS[@]}" 2>&1 | tee "$deploy_log"
   deploy_status=${PIPESTATUS[0]}
   set -e
 elif [[ "${LIVE_SYNC_FULL_REPO:-}" == "1" ]]; then
+  node scripts/sync-vercel-config.mjs
   echo "[deploy] Uploading full repo (legacy — may hit api-upload-free)…"
   set +e
-  vercel_env pnpm dlx vercel@latest deploy --yes --archive=tgz "${PROJECT_ARGS[@]}" "${ARGS[@]}" 2>&1 | tee "$deploy_log"
+  vercel_env pnpm dlx vercel@latest deploy --yes --archive=tgz "${PROJECT_ARGS[@]}" "${VERCEL_ARGS[@]}" 2>&1 | tee "$deploy_log"
   deploy_status=${PIPESTATUS[0]}
   set -e
 else
-  echo "[deploy] Preparing staged source for remote Vercel build…"
+  node scripts/sync-vercel-config.mjs
   node scripts/prepare-vercel-source.mjs
 
   echo "[deploy] Uploading staged source (archive) → remote build on ${PROJECT}..."
   set +e
-  vercel_env pnpm dlx vercel@latest deploy --yes --archive=tgz "${PROJECT_ARGS[@]}" .vercel/source-staging "${ARGS[@]}" 2>&1 | tee "$deploy_log"
+  (
+    cd .vercel/source-staging
+    vercel_env pnpm dlx vercel@latest deploy --yes --archive=tgz "${PROJECT_ARGS[@]}" "${VERCEL_ARGS[@]}"
+  ) 2>&1 | tee "$deploy_log"
   deploy_status=${PIPESTATUS[0]}
   set -e
 fi
 
 if [[ "$deploy_status" -ne 0 ]]; then
-  if grep -qE 'api-upload-free|api-deployments-free|Too many requests|Resource is limited' "$deploy_log"; then
+  if grep -qE 'api-upload-free|api-deployments-free|Too many requests|Resource is limited|Can.t deploy more than one path' "$deploy_log"; then
     echo ""
-    echo "[deploy] CLI deploy limit hit (Hobby: uploads and/or deployments per 24h)."
+    echo "[deploy] CLI deploy failed or limit hit."
     echo "[deploy] Falling back to Git → Vercel remote build…"
     echo ""
     rm -f "$deploy_log"

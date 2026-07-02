@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { writeVercelConfig } from './sync-vercel-config.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const STAGING = path.join(ROOT, '.vercel', 'source-staging');
@@ -66,21 +67,8 @@ ${catalog}`;
   fs.writeFileSync(path.join(STAGING, 'pnpm-workspace.yaml'), trimmed);
 }
 
-function writeVercelConfig() {
-  const monorepo = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.monorepo.json'), 'utf8'));
-  const instacollab = JSON.parse(
-    fs.readFileSync(path.join(ROOT, 'artifacts/instacollab/vercel.json'), 'utf8'),
-  );
-  const headerKeys = new Set((monorepo.headers ?? []).map((h) => h.source));
-  const mergedHeaders = [...(monorepo.headers ?? [])];
-  for (const h of instacollab.headers ?? []) {
-    if (!headerKeys.has(h.source)) mergedHeaders.push(h);
-  }
-  const config = {
-    ...monorepo,
-    headers: mergedHeaders,
-  };
-  fs.writeFileSync(path.join(STAGING, 'vercel.json'), `${JSON.stringify(config, null, 2)}\n`);
+function writeStagingVercelConfig() {
+  writeVercelConfig(STAGING);
 }
 
 function main() {
@@ -92,7 +80,7 @@ function main() {
   }
 
   writeTrimmedWorkspace();
-  writeVercelConfig();
+  writeStagingVercelConfig();
   copyTree(path.join(ROOT, 'config'), path.join(STAGING, 'config'));
 
   const scriptsDest = path.join(STAGING, 'scripts');

@@ -57,7 +57,7 @@ if (!isUpstashConfigured()) {
 const origin = (process.env.PUBLIC_APP_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');
 if (process.argv.includes('--prod')) {
   try {
-    const result = await probeProdApi(origin, '/api/upstash/health');
+    const result = await probeProdApi(origin, '/api/upstash/health', { retries: 2 });
     if (result.ok && result.body?.ok) {
       console.log(`[upstash] ✓ Production health ${origin}`);
     } else if (result.body && !result.body.ok && result.body.configured === false) {

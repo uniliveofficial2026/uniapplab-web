@@ -74,6 +74,10 @@ if (deeparKey && !/your|xxxx|placeholder/i.test(deeparKey)) {
   warnings.push('VITE_DEEPAR_LICENSE_KEY missing locally — AR disabled in builds');
 }
 
+// --- Repo-root vercel.json (API + SPA routes for Git deploy) ---
+log('Syncing vercel.json…');
+run('node', ['scripts/sync-vercel-config.mjs'], { silent: true });
+
 // --- Sync app env from workspace root ---
 log('Syncing app env…');
 run('node', ['scripts/sync-app-env.mjs'], { silent: true });

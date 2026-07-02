@@ -33,8 +33,11 @@ for (const [store, note] of DATA) {
 }
 console.log('');
 console.log('Deploy (API + SPA):');
-console.log('  pnpm run deploy:vercel          # staged source → remote build');
-console.log('  pnpm run deploy:vercel:git      # git push when CLI rate-limited');
+console.log('  node scripts/sync-vercel-config.mjs   # writes repo-root vercel.json');
+console.log('  pnpm run deploy:vercel:git            # recommended — git push → Vercel build');
+console.log('  pnpm run deploy:vercel                # CLI staged upload (falls back to git on limits)');
+console.log('');
+console.log('Vercel dashboard: Root Directory must be "." (repo root), NOT artifacts/instacollab.');
 console.log('');
 console.log('Verify after deploy:');
 console.log('  pnpm run verify:prod');
