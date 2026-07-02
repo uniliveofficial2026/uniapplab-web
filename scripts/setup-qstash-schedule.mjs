@@ -5,10 +5,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { Client } from '@upstash/qstash';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const require = createRequire(path.join(ROOT, 'lib/upstash/package.json'));
+const { Client } = require('@upstash/qstash');
 
 function loadDotEnv() {
   for (const file of [path.join(ROOT, '.env'), path.join(ROOT, '.env.local')]) {
