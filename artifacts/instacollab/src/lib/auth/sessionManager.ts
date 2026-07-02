@@ -15,6 +15,7 @@ import {
 import type { ProfileRow } from '../supabase/types';
 import { withTimeout } from '../supabase/withTimeout';
 import { isDevLocalAuthBypass } from './devLocalAuth';
+import { isNetworkOnline } from '../networkStatus';
 import { startCloudAppStateRealtime, stopCloudAppStateRealtime } from './cloudAppState';
 import { isCloudAuthUserId } from './cloudProfile';
 import { clearSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
@@ -84,7 +85,7 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
     if (isDevLocalAuthBypass() && db.isLoggedIn) return;
     // Ignore stale SIGNED_OUT during account switch — a newer session may already exist.
     const supabase = getSupabaseClient();
-    if (supabase) {
+    if (supabase && isNetworkOnline()) {
       const { data } = await supabase.auth.getSession();
       if (data.session?.user) return;
     }
@@ -92,6 +93,17 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
     stopCloudAppStateRealtime();
     db.logout();
     return;
+  }
+
+  if (!isNetworkOnline()) {
+    const localId = db.currentUserId;
+    if (localId && localId === session.user.id && db.isLoggedIn) {
+      startProfileRealtime(appUser.id);
+      initThoughtNoteCloudSync();
+      await startCloudAppStateRealtime(appUser.id);
+      void startCloudChatRealtime(appUser.id);
+      return;
+    }
   }
 
   let profile = await withTimeout(
