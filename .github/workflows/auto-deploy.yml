@@ -10,31 +10,44 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  heal-verify-deploy:
+  verify:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - uses: pnpm/action-setup@v4
-
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
           cache: pnpm
-
       - run: pnpm install --frozen-lockfile
-
       - name: Auto-fix and health scan
         run: pnpm run fix
         continue-on-error: true
+      - name: Health scan
+        run: node artifacts/instacollab/scripts/check-health.mjs
+      - name: Typecheck api-server
+        run: pnpm --filter @workspace/api-server run typecheck
+      - name: Build api-server
+        run: pnpm --filter @workspace/api-server run build
 
+  deploy:
+    needs: verify
+    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '')
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
       - name: Deploy to Vercel production
         env:
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
           VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
           VERCEL_TOKEN: ${{ secrets.VERCEL_TOKEN }}
         run: bash scripts/vercel-deploy.sh --prod
-
       - name: Verify production
         run: |
           sleep 60

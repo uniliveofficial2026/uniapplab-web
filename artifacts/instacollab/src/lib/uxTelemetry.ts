@@ -31,7 +31,7 @@ const FLUSH_MS = 120_000;
 
 let currentScreen = 'boot';
 let screenEnteredAt = Date.now();
-let flushTimer: ReturnType<typeof setInterval> | null = null;
+let flushTimer: number | null = null;
 let lastTapTarget = '';
 let lastTapTimes: number[] = [];
 

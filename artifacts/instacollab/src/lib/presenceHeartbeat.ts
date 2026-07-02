@@ -7,7 +7,7 @@ import { getSupabaseClient } from './supabase/client';
 
 const HEARTBEAT_MS = 60_000;
 
-let timer: ReturnType<typeof window.setInterval> | null = null;
+let timer: number | null = null;
 let authUnsub: (() => void) | null = null;
 
 async function sendHeartbeat(): Promise<void> {

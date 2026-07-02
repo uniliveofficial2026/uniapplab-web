@@ -6,9 +6,18 @@ import { fileURLToPath } from 'node:url';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const projectFile = path.join(root, '.vercel', 'project.json');
+
+function fallbackName() {
+  return (
+    process.env.VERCEL_PROJECT_ID ||
+    process.env.VERCEL_PROJECT_NAME ||
+    'uniapplab-web-instacollab'
+  );
+}
+
 if (!fs.existsSync(projectFile)) {
-  console.error('Missing .vercel/project.json — run vercel link in repo root.');
-  process.exit(1);
+  process.stdout.write(fallbackName());
+  process.exit(0);
 }
 const { projectName, projectId } = JSON.parse(fs.readFileSync(projectFile, 'utf8'));
 const name = projectName || projectId;

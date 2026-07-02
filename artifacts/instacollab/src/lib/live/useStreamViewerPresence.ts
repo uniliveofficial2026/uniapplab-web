@@ -15,7 +15,7 @@ export function useStreamViewerPresence(streamId: string | null, watching: boole
     }
 
     let cancelled = false;
-    let pollTimer: ReturnType<typeof window.setInterval> | null = null;
+    let pollTimer: number | null = null;
 
     const refresh = async () => {
       try {
