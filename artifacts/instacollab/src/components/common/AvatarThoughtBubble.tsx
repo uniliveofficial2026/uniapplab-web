@@ -49,7 +49,9 @@ export function ThoughtBubbleShell({
   style,
 }: ThoughtBubbleShellProps) {
   const reduceMotion = useReducedMotion();
-  const instant = !!reduceMotion;
+  /** Pop + typing always run — core “thinking” UX (incl. cross-device cloud sync on phones). */
+  const instant = false;
+  const loopTyping = !reduceMotion;
   const [introDone, setIntroDone] = useState(instant);
   const [cycleKey, setCycleKey] = useState(0);
   const fontSizeClass = noteTypography(noteText.length);
@@ -85,7 +87,7 @@ export function ThoughtBubbleShell({
 
   return (
     <div
-      className={`${introDone ? 'thought-bubble-living' : ''} ${className}`}
+      className={`${introDone && !reduceMotion ? 'thought-bubble-living' : ''} ${className}`}
       style={style}
     >
       <div
@@ -144,7 +146,7 @@ export function ThoughtBubbleShell({
           key={`thought-text-${cycleKey}`}
           text={noteText}
           instant={instant}
-          loop={!instant}
+          loop={loopTyping}
           startDelay={instant ? 0 : TYPING_START_DELAY_MS}
           pauseAfterTypeMs={3400}
           pauseBeforeRestartMs={650}
