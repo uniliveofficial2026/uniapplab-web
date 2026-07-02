@@ -7,7 +7,7 @@ import { recoverStaleBuild, shouldRegisterPwa } from './pwaRegister';
 const UPDATE_POLL_MS = 3 * 60_000;
 let installed = false;
 let pendingRefresh: (() => Promise<void>) | null = null;
-let pollTimer: ReturnType<typeof window.setInterval> | null = null;
+let pollTimer: number | null = null;
 
 export function registerPwaRefreshHandler(handler: () => Promise<void>): void {
   pendingRefresh = handler;
