@@ -3,6 +3,9 @@ name: Fix Vercel root directory
 on:
   workflow_dispatch:
 
+permissions:
+  contents: read
+
 jobs:
   fix-root:
     runs-on: ubuntu-latest
