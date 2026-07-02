@@ -13,7 +13,7 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LOG = path.join(ROOT, '.local/ux-agent.log');
 const PID_FILE = path.join(ROOT, '.local/ux-agent.pid');
-const CYCLE_MS = Number(process.env.UX_AGENT_CYCLE_MS ?? '600000');
+const CYCLE_MS = Number(process.env.UX_AGENT_CYCLE_MS ?? '120000');
 const SILENT = process.env.UX_AGENT_SILENT !== '0';
 const VERBOSE = process.env.UX_AGENT_VERBOSE === '1';
 

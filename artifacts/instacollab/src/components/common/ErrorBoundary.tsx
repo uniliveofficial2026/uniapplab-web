@@ -1,5 +1,9 @@
 import React from 'react';
 import { chunkLoadUserMessage, isChunkLoadError } from '../../lib/lazyWithRetry';
+import { reactToMlIssue } from '../../lib/mlReact';
+import { stageAppUpdate } from '../../lib/invisibleReload';
+import { checkForPwaUpdate } from '../../lib/pwaAutoUpdate';
+import { trackUx } from '../../lib/uxTelemetry';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -23,8 +27,8 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   private handleRetry = () => {
     if (isChunkLoadError(this.state.message)) {
-      window.location.reload();
-      return;
+      void checkForPwaUpdate();
+      stageAppUpdate('boundary_chunk');
     }
     this.setState({ hasError: false, message: '' });
   };
@@ -32,6 +36,15 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
     const label = this.props.screen ? `[${this.props.screen}]` : '';
     console.error(`UI error boundary${label}:`, error, info.componentStack);
+
+    const msg = error instanceof Error ? error.message : String(error);
+    trackUx('error', msg.slice(0, 300), { boundary: true, stack: info.componentStack?.slice(0, 120) ?? '' });
+    reactToMlIssue('boundary_error', msg, this.props.screen);
+
+    if (isChunkLoadError(error)) {
+      void checkForPwaUpdate();
+      stageAppUpdate('boundary_chunk');
+    }
   }
 
   render() {
@@ -49,7 +62,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
             onClick={this.handleRetry}
           >
-            {isChunkLoadError(this.state.message) ? 'Reload app' : 'Try again'}
+            Try again
           </button>
         </div>
       );

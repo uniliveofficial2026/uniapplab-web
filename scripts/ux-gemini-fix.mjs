@@ -4,6 +4,7 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
@@ -67,12 +68,32 @@ function applyFix(fix) {
   if (!rel || !SAFE_FIX_FILES.has(rel)) return false;
   const abs = path.join(ROOT, rel);
   if (!fs.existsSync(abs)) return false;
+
+  const search = fix.search ?? '';
+  const replace = fix.replace ?? '';
+  if (!search || search.length < 8) return false;
+  if (search.length > 800 || replace.length > 1200) return false;
+  if (/\b(API_KEY|SECRET|PASSWORD|TOKEN)\b/i.test(replace)) return false;
+  if (/package\.json|pnpm-lock|\.env/i.test(rel)) return false;
+
   const content = fs.readFileSync(abs, 'utf8');
-  if (!fix.search || !content.includes(fix.search)) return false;
-  const next = content.replace(fix.search, fix.replace ?? '');
+  const occurrences = content.split(search).length - 1;
+  if (occurrences !== 1) return false;
+
+  const next = content.replace(search, replace);
   if (next === content) return false;
+
+  const backup = content;
   fs.writeFileSync(abs, next);
-  fs.appendFileSync(FIX_LOG, `${JSON.stringify({ t: Date.now(), file: rel, reason: fix.reason })}\n`);
+
+  const healthScript = path.join(ROOT, 'artifacts/instacollab/scripts/check-health.mjs');
+  const healthOk = spawnSync('node', [healthScript], { cwd: ROOT, stdio: 'ignore' }).status === 0;
+  if (!healthOk) {
+    fs.writeFileSync(abs, backup);
+    return false;
+  }
+
+  fs.appendFileSync(FIX_LOG, `${JSON.stringify({ t: Date.now(), file: rel, reason: fix.reason, verified: true })}\n`);
   return true;
 }
 
@@ -111,7 +132,8 @@ Rules:
 - features infer user needs from rage taps, dwell time, errors, cross-user data issues (max 5)
 - if handoff tasks mention posts/cloud/supabase, prioritize data-flow fixes in features list
 - never include secrets or API keys
-- search/replace must be minimal and exact`;
+- search/replace must be minimal, exact, and appear exactly once in the file
+- if unsure, return empty fixes array — never guess`;
 
   const raw = await callGemini(prompt);
   if (!raw) return { applied: 0, features: 0 };

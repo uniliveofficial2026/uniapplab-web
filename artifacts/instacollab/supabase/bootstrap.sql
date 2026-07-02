@@ -58,7 +58,9 @@ create table if not exists public.profiles (
 
 alter table public.profiles
   add column if not exists public_user_id text,
-  add column if not exists public_user_id_changed_at timestamptz;
+  add column if not exists public_user_id_changed_at timestamptz,
+  add column if not exists note text default '' not null,
+  add column if not exists note_updated_at timestamptz;
 
 update public.profiles
 set public_user_id = username
