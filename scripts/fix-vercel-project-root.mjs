@@ -1,9 +1,9 @@
 #!/usr/bin/env node
 /**
  * Fix production /api/* 404:
- * 1) Try Vercel API to clear Root Directory (needs team-scoped VERCEL_TOKEN)
- * 2) Fall back to CLI monorepo deploy (uses `vercel login` session)
- * Usage: pnpm run vercel:fix-root
+ * 1) Set Vercel Root Directory to repo root (VERCEL_TOKEN)
+ * 2) Optionally deploy (--deploy) or git-redeploy (--git)
+ * Usage: pnpm run vercel:fix-root [-- --deploy | --git]
  */
 import fs from 'node:fs';
 import os from 'node:os';
@@ -13,25 +13,25 @@ import { fileURLToPath } from 'node:url';
 import { buildVercelConfig } from './sync-vercel-config.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const args = process.argv.slice(2);
+const wantDeploy = args.includes('--deploy');
+const wantGit = args.includes('--git');
 
 if (process.env.VERCEL_TOKEN && /your_token|placeholder|xxxx|example/i.test(process.env.VERCEL_TOKEN)) {
-  console.warn('[vercel] Ignoring placeholder VERCEL_TOKEN — use a real token or `vercel login`');
+  console.warn('[vercel] Ignoring placeholder VERCEL_TOKEN');
   delete process.env.VERCEL_TOKEN;
 }
 
 function readVercelToken() {
   if (process.env.VERCEL_TOKEN?.trim()) return process.env.VERCEL_TOKEN.trim();
-
   const authNames = ['auth.json', 'config.json'];
   const dirs = [
     process.env.VERCEL_CONFIG_DIR,
     path.join(os.homedir(), '.local/share/com.vercel.cli'),
     path.join(os.homedir(), '.config/com.vercel.cli'),
     path.join(os.homedir(), 'Library', 'Application Support', 'com.vercel.cli'),
-    path.join(os.homedir(), 'Library', 'Preferences', 'com.vercel.cli'),
     path.join(os.homedir(), '.vercel'),
   ].filter(Boolean);
-
   for (const dir of dirs) {
     for (const name of authNames) {
       const authPath = path.join(dir, name);
@@ -41,21 +41,9 @@ function readVercelToken() {
         const token = auth.token?.trim() || auth.credentials?.[0]?.token?.trim();
         if (token) return token;
       } catch {
-        /* try next */
+        /* next */
       }
     }
-  }
-  return null;
-}
-
-function readMacKeychainToken() {
-  if (process.platform !== 'darwin') return null;
-  for (const service of ['Vercel CLI', 'vercel', 'com.vercel.cli']) {
-    const result = spawnSync('security', ['find-generic-password', '-s', service, '-w'], {
-      encoding: 'utf8',
-    });
-    const token = result.stdout?.trim();
-    if (result.status === 0 && token) return token;
   }
   return null;
 }
@@ -70,24 +58,32 @@ function readProjectMeta() {
   }
 }
 
+function syncLocalProjectJson(patch) {
+  const projectFile = path.join(ROOT, '.vercel/project.json');
+  const meta = readProjectMeta();
+  if (!meta) return;
+  meta.settings = { ...meta.settings, ...patch };
+  fs.writeFileSync(projectFile, `${JSON.stringify(meta, null, 2)}\n`);
+}
+
 function writeVercelConfigLocal() {
   const monorepo = buildVercelConfig();
   fs.writeFileSync(path.join(ROOT, 'vercel.json'), `${JSON.stringify(monorepo, null, 2)}\n`);
 }
 
 function deployViaCli() {
-  console.log('[vercel] Deploying monorepo via CLI (vercel login session)…');
-  const r = spawnSync('bash', ['scripts/vercel-deploy-api.sh'], {
-    cwd: ROOT,
-    stdio: 'inherit',
-  });
+  console.log('[vercel] Deploying monorepo via CLI…');
+  const r = spawnSync('bash', ['scripts/vercel-deploy-api.sh'], { cwd: ROOT, stdio: 'inherit' });
   return r.status ?? 1;
 }
 
-function printDashboardFix() {
-  console.log('');
-  console.log('Git deploy fix is in artifacts/instacollab/vercel.json — merge to main and redeploy.');
-  console.log('Optional monorepo root: pnpm run vercel:open-settings');
+function redeployViaGit() {
+  const r = spawnSync('node', ['scripts/vercel-redeploy-git.mjs'], {
+    cwd: ROOT,
+    stdio: 'inherit',
+    env: process.env,
+  });
+  return r.status ?? 1;
 }
 
 const project = readProjectMeta();
@@ -98,7 +94,7 @@ if (!project?.projectId) {
 
 writeVercelConfigLocal();
 
-const token = readVercelToken() || readMacKeychainToken();
+const token = readVercelToken();
 const monorepo = buildVercelConfig();
 const body = {
   rootDirectory: null,
@@ -110,31 +106,49 @@ const body = {
 
 let apiOk = false;
 if (token) {
-  const teamId = project.orgId;
-  const url = `https://api.vercel.com/v9/projects/${project.projectId}?teamId=${teamId}`;
+  const url = `https://api.vercel.com/v9/projects/${project.projectId}?teamId=${project.orgId}`;
   const res = await fetch(url, {
     method: 'PATCH',
-    headers: {
-      Authorization: `Bearer ${token}`,
-      'Content-Type': 'application/json',
-    },
+    headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' },
     body: JSON.stringify(body),
   });
   const json = await res.json().catch(() => ({}));
   if (res.ok) {
     apiOk = true;
-    console.log('[vercel] ✓ Root Directory set to repo root via API');
+    syncLocalProjectJson({
+      rootDirectory: null,
+      installCommand: body.installCommand,
+      buildCommand: body.buildCommand,
+      outputDirectory: null,
+      framework: null,
+    });
+    console.log('[vercel] ✓ Root Directory set to repo root');
     console.log(`[vercel]   project: ${project.projectName || json.name}`);
   } else if (res.status === 403) {
-    console.warn('[vercel] ⚠ API 403 — token lacks team access for', project.projectName);
-    console.warn('[vercel]   Create token at https://vercel.com/account/tokens');
-    console.warn('[vercel]   Scope: Full Account (or team uniliveofficial2026s-projects)');
-    console.warn('[vercel]   export VERCEL_TOKEN=… && pnpm run vercel:fix-root');
+    console.warn('[vercel] ⚠ API 403 — token lacks team access');
   } else {
     console.warn('[vercel] ⚠ API PATCH failed:', res.status, json.error?.message || '');
   }
 } else {
-  console.log('[vercel] No API token — using CLI deploy (run: pnpm dlx vercel@latest login)');
+  console.log('[vercel] No VERCEL_TOKEN — skipping project settings PATCH');
+}
+
+if (!wantDeploy && !wantGit) {
+  if (apiOk) {
+    console.log('');
+    console.log('[vercel] Settings updated. Deploy when rate limit clears:');
+    console.log('  pnpm run vercel:fix-root -- --git     # git remote build (recommended)');
+    console.log('  pnpm run vercel:fix-root -- --deploy  # CLI upload (908MB, often rate-limited)');
+    console.log('  Or: Vercel dashboard → Deployments → Redeploy Production');
+    process.exit(0);
+  }
+  console.error('[vercel] Settings not updated — set VERCEL_TOKEN and retry');
+  process.exit(1);
+}
+
+if (wantGit) {
+  const status = redeployViaGit();
+  process.exit(status === 0 ? 0 : status);
 }
 
 const deployStatus = deployViaCli();
@@ -144,9 +158,10 @@ if (deployStatus === 0) {
 }
 
 if (deployStatus === 2) {
-  printDashboardFix();
+  console.log('');
+  console.log('[vercel] CLI rate-limited. Try git deploy instead:');
+  console.log('  pnpm run vercel:fix-root -- --git');
   process.exit(2);
 }
 
-if (!apiOk) printDashboardFix();
 process.exit(deployStatus || 1);
