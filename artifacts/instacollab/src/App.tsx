@@ -540,6 +540,7 @@ export default function App() {
     return (
       <ToastProvider>
         <ToastListener />
+        <OfflineStatusBanner />
         <Suspense fallback={<LaunchShell className="items-center justify-center gap-3 p-6"><div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></LaunchShell>}>
           <LaunchFlowHost route={launchRoute} />
         </Suspense>

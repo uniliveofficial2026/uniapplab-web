@@ -422,3 +422,27 @@ export async function stopCloudAppStateRealtimeAsync(): Promise<void> {
 export function getCloudAppStateSubscribedUserId(): string | null {
   return subscribedUserId;
 }
+
+let networkResumeInstalled = false;
+
+/** Re-hydrate and flush pending local changes when connectivity returns. */
+export function initCloudAppStateNetworkResume(): void {
+  if (networkResumeInstalled || typeof window === 'undefined') return;
+  networkResumeInstalled = true;
+
+  subscribeNetworkStatus((next) => {
+    if (next !== 'online') return;
+    const userId = subscribedUserId;
+    if (!userId || !isCloudAuthUserId(userId)) return;
+    void (async () => {
+      const outcome = await hydrateCloudAppStateForUser(userId, ++hydrateGeneration);
+      if (outcome.result !== 'error') {
+        cloudSyncReady = true;
+        if (outcome.pushLocal) {
+          queueMicrotask(() => void pushNow(userId));
+        }
+      }
+      scheduleLiveSessionSync(userId);
+    })();
+  });
+}
