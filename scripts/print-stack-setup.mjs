@@ -5,8 +5,10 @@
  */
 const STACK = [
   ['Supabase', 'Auth, PostgreSQL, Realtime, Storage (users, profiles, posts, wallets, streams, notifications)'],
-  ['Cloudflare', 'DNS, CDN, WAF, caching — passthrough /api/* to Vercel (no SPA rewrite on API)'],
+  ['Cloudflare', 'DNS, CDN, WAF, caching — passthrough /api/* to Vercel or Fly'],
   ['Vercel', 'Frontend hosting + Node API at /api/* (monorepo: instacollab + api-server)'],
+  ['Fly.io', 'Always-on Node API (optional) — api.uniapplab.com or failover origin'],
+  ['Linear', 'Issue tracking — handoff failures auto-create issues; GitHub PR sync'],
   ['LiveKit', 'Audio/video — live screen (ic-stream-*) + party rooms (ic-party-*)'],
   ['Upstash Redis', 'Rate limits, feed cache, handoff queue, online presence, viewer counts, typing, session cache'],
 ];
@@ -47,4 +49,12 @@ console.log('');
 console.log('Env sync:');
 console.log('  pnpm run upstash:env-vercel');
 console.log('  pnpm run livekit:env-vercel');
+console.log('  pnpm run linear:env-vercel');
+console.log('  pnpm run fly:env-secrets');
+console.log('');
+console.log('Fly.io + Linear:');
+console.log('  pnpm run fly:setup && pnpm run linear:setup');
+console.log('  pnpm run fly:deploy');
+console.log('  pnpm run fly:check');
+console.log('  pnpm run linear:check');
 console.log('');

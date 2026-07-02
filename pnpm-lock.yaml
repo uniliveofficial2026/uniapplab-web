@@ -194,6 +194,9 @@ importers:
       '@workspace/db':
         specifier: workspace:*
         version: link:../../lib/db
+      '@workspace/linear':
+        specifier: workspace:*
+        version: link:../../lib/linear
       '@workspace/livekit':
         specifier: workspace:*
         version: link:../../lib/livekit
@@ -594,6 +597,8 @@ importers:
       drizzle-kit:
         specifier: ^0.31.10
         version: 0.31.10
+
+  lib/linear: {}
 
   lib/livekit:
     dependencies:
