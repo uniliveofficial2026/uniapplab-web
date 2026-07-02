@@ -29,7 +29,6 @@ import { useExclusivePlayback } from '../../lib/useExclusivePlayback';
 import { isPlayableAudioUrl } from '../../lib/audioMedia';
 import { StoryRingPortals } from './StoryRingPortals';
 import { THOUGHT_NOTE_MAX_LENGTH, patchUserThoughtNote } from '../../lib/thoughtNote';
-import { subscribeThoughtNoteLive } from '../../lib/thoughtNoteLiveSync';
 import { thoughtAnimationKey } from '../../lib/thoughtNoteEpoch';
 import { useThoughtReplayNonce } from '../../hooks/useThoughtReplayNonce';
 import { ThoughtViewOverlay } from '../common/ThoughtViewOverlay';
@@ -119,6 +118,13 @@ export function StoryRing({
   }, [segmentsOverride, storyScope, storyUser.id, db, dbRevision]);
   const createdStory = persistentSegments.length > 0;
   const isMyStoryEmpty = isCurrentUser && !createdStory;
+
+  const [showNoteModal, setShowNoteModal] = useState(false);
+  const [showPreviewModal, setShowPreviewModal] = useState(false);
+  const [noteEditVal, setNoteEditVal] = useState('');
+  const [showHeaderThoughtComposer, setShowHeaderThoughtComposer] = useState(false);
+  const headerSlotRef = React.useRef<HTMLDivElement>(null);
+  const ringShellRef = React.useRef<HTMLDivElement>(null);
 
   const userFromDb = useUserById(storyUser.id, storyUser);
   const thoughtReplayNonce = useThoughtReplayNonce(userFromDb.id);

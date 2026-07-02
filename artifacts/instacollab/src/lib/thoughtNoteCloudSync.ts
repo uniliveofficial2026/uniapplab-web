@@ -5,7 +5,6 @@
 import { db } from './db/localDb';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { withCloudAppStateRemoteApply } from './auth/cloudAppStateFlags';
-import { fetchProfile } from './supabase/profile';
 import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
 import { profileRowToUser } from './supabase/profile';
