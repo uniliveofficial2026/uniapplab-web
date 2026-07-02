@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Mail, Trash2, UserPlus, X } from 'lucide-react';
 import type { StoredDeviceAccount } from '../../lib/auth/deviceAccounts';
 import { handleAvatarError } from '../../lib/utils';
+import { EmailOtpPanel } from '../auth/EmailOtpPanel';
 
 export type AccountSwitcherModalProps = {
   open: boolean;
@@ -13,7 +14,12 @@ export type AccountSwitcherModalProps = {
   onSelectAccount: (uid: string, password?: string) => void | Promise<void>;
   onRemoveAccount: (uid: string) => void;
   onLinkGoogle: () => void | Promise<void>;
-  onSignInWithEmail: (email: string, password: string) => Promise<{ ok: boolean; reason?: string }>;
+  onSendEmailOtp?: (
+    email: string,
+    mode: 'signin' | 'signup',
+    profile?: { displayName?: string; username?: string },
+  ) => Promise<{ ok: boolean; reason?: string }>;
+  onVerifyEmailOtp?: (email: string, code: string) => Promise<{ ok: boolean; reason?: string }>;
 };
 
 type PendingSwitch = {
@@ -35,21 +41,18 @@ export function AccountSwitcherModal({
   onSelectAccount,
   onRemoveAccount,
   onLinkGoogle,
-  onSignInWithEmail,
+  onSendEmailOtp,
+  onVerifyEmailOtp,
 }: AccountSwitcherModalProps) {
   const [showEmailForm, setShowEmailForm] = useState(false);
+  const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [emailBusy, setEmailBusy] = useState(false);
 
   useEffect(() => {
     if (!open) {
       setShowEmailForm(false);
+      setEmailMode('signin');
       setPendingSwitch(null);
-      setEmail('');
-      setPassword('');
-      setEmailBusy(false);
     }
   }, [open]);
 
@@ -65,34 +68,6 @@ export function AccountSwitcherModal({
 
   const inputClass =
     'w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30';
-
-  const submitEmailSignIn = async (targetEmail: string, targetPassword: string) => {
-    if (!targetEmail.trim() || !targetPassword) return;
-    setEmailBusy(true);
-    try {
-      const result = await onSignInWithEmail(targetEmail.trim(), targetPassword);
-      if (result.ok) {
-        onClose();
-        return;
-      }
-      if (result.reason) {
-        window.dispatchEvent(new CustomEvent('app-toast', { detail: result.reason }));
-      }
-    } finally {
-      setEmailBusy(false);
-    }
-  };
-
-  const submitSwitch = async () => {
-    if (!pendingSwitch) return;
-    setEmailBusy(true);
-    try {
-      await onSelectAccount(pendingSwitch.uid, password);
-      onClose();
-    } finally {
-      setEmailBusy(false);
-    }
-  };
 
   return (
     <div className="fixed inset-0 z-[2900] flex items-center justify-center p-4" data-app-overlay-root>
@@ -113,70 +88,67 @@ export function AccountSwitcherModal({
           </button>
         </div>
 
-        {pendingSwitch ? (
+        {pendingSwitch && cloudAuthEnabled && onSendEmailOtp && onVerifyEmailOtp ? (
           <div className="space-y-3 shrink-0">
             <p className="text-sm text-muted-foreground font-semibold">
-              Sign in to switch to{' '}
+              Enter the code sent to{' '}
               <span className="text-foreground">{pendingSwitch.email || 'this account'}</span>
             </p>
-            <input
-              type="email"
-              value={pendingSwitch.email}
-              readOnly
-              className={`${inputClass} opacity-80`}
-              id="account-switch-email"
-            />
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="Password"
-              autoComplete="current-password"
-              className={inputClass}
-              id="account-switch-password"
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') void submitSwitch();
+            <EmailOtpPanel
+              mode="signin"
+              initialEmail={pendingSwitch.email}
+              busy={linking}
+              showModeToggle={false}
+              showSignupFields={false}
+              inputClass={inputClass}
+              onSendOtp={async (email, mode) =>
+                onSendEmailOtp(email, mode, undefined)
+              }
+              onVerifyOtp={onVerifyEmailOtp}
+              onVerified={() => {
+                window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Switched account!' }));
+                onClose();
               }}
             />
-            <div className="flex gap-2">
-              <button
-                type="button"
-                onClick={() => {
-                  setPendingSwitch(null);
-                  setPassword('');
-                }}
-                className="flex-1 py-3 rounded-xl border border-border font-bold text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
-              >
-                Back
-              </button>
-              <button
-                type="button"
-                disabled={emailBusy || !password}
-                onClick={() => void submitSwitch()}
-                className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-black text-sm hover:opacity-95 disabled:opacity-60"
-                id="btn-switch-account-email"
-              >
-                {emailBusy ? 'Signing in…' : 'Sign in & switch'}
-              </button>
-            </div>
             <button
               type="button"
-              disabled={linking || emailBusy}
+              onClick={() => setPendingSwitch(null)}
+              className="w-full text-xs font-bold text-muted-foreground hover:underline"
+            >
+              Back to account list
+            </button>
+            <button
+              type="button"
+              disabled={linking}
               onClick={async () => {
-                setEmailBusy(true);
                 try {
                   await onSelectAccount(pendingSwitch.uid);
                   onClose();
                 } catch (error) {
                   const message = error instanceof Error ? error.message : 'Google sign-in failed.';
                   window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
-                } finally {
-                  setEmailBusy(false);
                 }
               }}
               className="w-full text-xs font-bold text-primary hover:underline disabled:opacity-60"
             >
               Use Google account picker instead
+            </button>
+          </div>
+        ) : pendingSwitch ? (
+          <div className="space-y-3 shrink-0">
+            <p className="text-sm text-muted-foreground font-semibold">
+              Password sign-in for{' '}
+              <span className="text-foreground">{pendingSwitch.email || 'this account'}</span>
+            </p>
+            <p className="text-xs text-muted-foreground">
+              Cloud accounts use email codes. Go back and use &quot;Sign in with Email code&quot;.
+            </p>
+            <button
+              type="button"
+              onClick={() => setPendingSwitch(null)}
+              className="w-full py-3 rounded-xl border border-border font-bold text-sm text-muted-foreground hover:bg-secondary/50"
+            >
+              Back
             </button>
           </div>
         ) : (
@@ -198,7 +170,6 @@ export function AccountSwitcherModal({
                         if (isActive) return;
                         if (cloudAuthEnabled) {
                           setPendingSwitch({ uid: acc.uid, email: acc.email ?? '' });
-                          setPassword('');
                           return;
                         }
                         void onSelectAccount(acc.uid);
@@ -209,7 +180,6 @@ export function AccountSwitcherModal({
                           e.preventDefault();
                           if (cloudAuthEnabled) {
                             setPendingSwitch({ uid: acc.uid, email: acc.email ?? '' });
-                            setPassword('');
                           } else {
                             void onSelectAccount(acc.uid);
                           }
@@ -265,57 +235,38 @@ export function AccountSwitcherModal({
             </div>
 
             <div className="pt-4 border-t border-border mt-4 shrink-0 space-y-3">
-              {showEmailForm ? (
+              {showEmailForm && onSendEmailOtp && onVerifyEmailOtp ? (
                 <div className="space-y-3">
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="Email"
-                    autoComplete="email"
-                    className={inputClass}
-                    id="account-link-email"
-                  />
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="Password"
-                    autoComplete="current-password"
-                    className={inputClass}
-                    id="account-link-password"
-                    onKeyDown={(e) => {
-                      if (e.key === 'Enter') void submitEmailSignIn(email, password);
+                  <EmailOtpPanel
+                    mode={emailMode}
+                    onModeChange={setEmailMode}
+                    busy={linking}
+                    showSignupFields={emailMode === 'signup'}
+                    inputClass={inputClass}
+                    onSendOtp={onSendEmailOtp}
+                    onVerifyOtp={onVerifyEmailOtp}
+                    onVerified={() => {
+                      window.dispatchEvent(
+                        new CustomEvent('app-toast', {
+                          detail: emailMode === 'signup' ? 'Account created!' : 'Signed in!',
+                        }),
+                      );
+                      onClose();
                     }}
                   />
-                  <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        setShowEmailForm(false);
-                        setEmail('');
-                        setPassword('');
-                      }}
-                      className="flex-1 py-3 rounded-xl border border-border font-bold text-sm text-muted-foreground hover:bg-secondary/50 transition-colors"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="button"
-                      disabled={emailBusy || linking || !email.trim() || !password}
-                      onClick={() => void submitEmailSignIn(email, password)}
-                      className="flex-1 py-3 rounded-xl bg-primary text-primary-foreground font-black text-sm hover:opacity-95 disabled:opacity-60"
-                      id="btn-link-email-account"
-                    >
-                      {emailBusy ? 'Signing in…' : 'Sign in with Email'}
-                    </button>
-                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setShowEmailForm(false)}
+                    className="w-full py-2.5 rounded-xl border border-border text-xs font-bold text-muted-foreground hover:bg-secondary/50"
+                  >
+                    Cancel
+                  </button>
                 </div>
               ) : (
                 <>
                   <button
                     type="button"
-                    disabled={linking || emailBusy}
+                    disabled={linking}
                     onClick={() => void onLinkGoogle()}
                     className="w-full flex items-center justify-center gap-2 py-3 bg-primary text-primary-foreground font-black rounded-xl hover:opacity-95 active:scale-[0.99] transition-all text-sm shadow-md shadow-primary/15 disabled:opacity-60 disabled:pointer-events-none"
                     id="btn-link-google-account"
@@ -323,20 +274,19 @@ export function AccountSwitcherModal({
                     <UserPlus className="w-4 h-4" />
                     {linking ? 'Opening Google…' : 'Add / Link Google Account'}
                   </button>
-                  {cloudAuthEnabled && (
+                  {cloudAuthEnabled && onSendEmailOtp && onVerifyEmailOtp && (
                     <button
                       type="button"
-                      disabled={linking || emailBusy}
+                      disabled={linking}
                       onClick={() => {
                         setShowEmailForm(true);
-                        setEmail('');
-                        setPassword('');
+                        setEmailMode('signin');
                       }}
                       className="w-full flex items-center justify-center gap-2 py-3 bg-secondary/50 text-foreground font-black rounded-xl hover:bg-secondary transition-all text-sm border border-border disabled:opacity-60"
                       id="btn-show-email-account-form"
                     >
                       <Mail className="w-4 h-4" />
-                      Sign in with Email
+                      Sign in with Email code
                     </button>
                   )}
                 </>

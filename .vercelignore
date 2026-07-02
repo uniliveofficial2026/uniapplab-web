@@ -1,11 +1,21 @@
 # Upload source only — Vercel runs `pnpm install` + `pnpm build` remotely.
-# Root vercel.monorepo.json is for a future monorepo-at-root project (api + app).
+# Prefer `scripts/prepare-vercel-source.mjs` (staged deploy) over raw repo upload.
 vercel.monorepo.json
 node_modules
 .git
 .tmp
 .vercel/output
+.vercel/source-staging
+attached_assets
+.agents
+artifacts/api-server
+artifacts/chat-ws
+artifacts/mockup-sandbox
+lib
+docs
 **/.DS_Store
 **/._*
 **/*.map
 **/dist
+**/.env
+**/.env.*

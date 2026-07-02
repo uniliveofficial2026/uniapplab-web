@@ -16,7 +16,7 @@ import { getFirebaseAuth, getFirestoreDB } from './firebase';
 import { db } from './db/localDb';
 import { safeLocalStorage } from './utils';
 import { isSupabaseConfigured, isPrimarySupabaseCloud } from './auth/config';
-import { authSignInWithEmail, authSignInWithGoogle, authSignOut, authSignUp, authRequestPasswordReset } from './auth/authService';
+import { authSignInWithEmail, authSignInWithGoogle, authSignOut, authSignUp, authRequestPasswordReset, authResendSignupConfirmation, authSendEmailOtp, authVerifyEmailOtp } from './auth/authService';
 import { syncCloudSessionNow } from './auth/syncSession';
 import { flushCloudAppStateSync, stopCloudAppStateRealtimeAsync } from './auth/cloudAppState';
 import { flushCloudProfileSync, isCloudAuthUserId } from './auth/cloudProfile';
@@ -60,7 +60,22 @@ interface AuthContextType {
   logout: () => Promise<void>;
   switchAccount: () => Promise<{ ok: boolean; reason?: string; redirecting?: boolean }>;
   linkGoogleAccount: () => Promise<{ ok: boolean; reason?: string; redirecting?: boolean }>;
-  linkEmailAccount: (email: string, password: string) => Promise<{ ok: boolean; reason?: string }>;
+  linkEmailAccount: (email: string, password: string) => Promise<{ ok: boolean; reason?: string; needsEmailConfirmation?: boolean }>;
+  linkEmailSignUp: (
+    email: string,
+    password: string,
+    displayName?: string,
+  ) => Promise<{ ok: boolean; reason?: string; needsEmailConfirmation?: boolean }>;
+  resendEmailConfirmation: (email: string) => Promise<{ ok: boolean; reason?: string }>;
+  sendEmailAuthOtp: (
+    email: string,
+    options?: { createAccount?: boolean; displayName?: string; username?: string },
+  ) => Promise<{ ok: boolean; reason?: string }>;
+  verifyEmailAuthOtp: (
+    email: string,
+    code: string,
+    options?: { switchAccount?: boolean },
+  ) => Promise<{ ok: boolean; reason?: string }>;
   deleteAccount: () => Promise<void>;
   selectAccount: (uid: string, password?: string) => Promise<void>;
   removeAccount: (uid: string) => void;
@@ -355,7 +370,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const linkEmailAccount = async (
     email: string,
     password: string,
-  ): Promise<{ ok: boolean; reason?: string }> => {
+  ): Promise<{ ok: boolean; reason?: string; needsEmailConfirmation?: boolean }> => {
     const trimmedEmail = email.trim();
     if (!trimmedEmail || !password) {
       return { ok: false, reason: 'Enter email and password.' };
@@ -399,6 +414,134 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       const message = error instanceof Error ? error.message : 'Email sign-in failed.';
       return { ok: false, reason: message };
     }
+  };
+
+  const linkEmailSignUp = async (
+    email: string,
+    password: string,
+    displayName?: string,
+  ): Promise<{ ok: boolean; reason?: string; needsEmailConfirmation?: boolean }> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail || !password) {
+      return { ok: false, reason: 'Enter email and password.' };
+    }
+
+    await persistCurrentAccountBeforeSwitch();
+
+    if (isPrimarySupabaseCloud()) {
+      teardownCloudSession();
+      await authSignOut();
+
+      const username =
+        (displayName?.trim() || trimmedEmail.split('@')[0] || 'user')
+          .toLowerCase()
+          .replace(/[^a-z0-9_]/g, '_')
+          .slice(0, 24) || 'user';
+      const result = await authSignUp({
+        email: trimmedEmail,
+        password,
+        username: username.length >= 3 ? username : `user_${username}`,
+        displayName: displayName?.trim() || username,
+      });
+      if (!result.ok) {
+        return { ok: false, reason: result.reason };
+      }
+      if (result.needsEmailConfirmation) {
+        return {
+          ok: true,
+          needsEmailConfirmation: true,
+          reason:
+            'Check your inbox for a confirmation link (not a numeric code). Open spam/promotions if needed, then sign in.',
+        };
+      }
+
+      const sync = await syncCloudSessionNow();
+      if (!sync.ok) {
+        return { ok: false, reason: sync.reason };
+      }
+
+      await ensureDeviceAccountsSynced();
+      if (db.currentUser?.id) await syncLiveSessionData(db.currentUser.id);
+      return { ok: true };
+    }
+
+    const auth = getFirebaseAuth();
+    if (!auth) {
+      return { ok: false, reason: 'Cloud auth is not configured.' };
+    }
+
+    if (auth.currentUser) {
+      await signOut(auth);
+    }
+
+    try {
+      const cred = await createUserWithEmailAndPassword(auth, trimmedEmail, password);
+      if (displayName?.trim()) {
+        await updateProfile(cred.user, { displayName: displayName.trim() });
+      }
+      await ensureDeviceAccountsSynced();
+      return { ok: true };
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Email sign-up failed.';
+      return { ok: false, reason: message };
+    }
+  };
+
+  const resendEmailConfirmation = async (
+    email: string,
+  ): Promise<{ ok: boolean; reason?: string }> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) {
+      return { ok: false, reason: 'Enter your email address.' };
+    }
+    const result = await authResendSignupConfirmation(trimmedEmail);
+    if (!result.ok) {
+      return { ok: false, reason: result.reason };
+    }
+    return {
+      ok: true,
+      reason: 'Confirmation email sent. Check inbox and spam — the message contains a link, not a code.',
+    };
+  };
+
+  const sendEmailAuthOtp = async (
+    email: string,
+    options?: { createAccount?: boolean; displayName?: string; username?: string },
+  ): Promise<{ ok: boolean; reason?: string }> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return { ok: false, reason: 'Enter your email address.' };
+    const result = await authSendEmailOtp(trimmedEmail, {
+      shouldCreateUser: options?.createAccount ?? true,
+      displayName: options?.displayName,
+      username: options?.username,
+    });
+    if (!result.ok) return { ok: false, reason: result.reason };
+    return { ok: true };
+  };
+
+  const verifyEmailAuthOtp = async (
+    email: string,
+    code: string,
+    options?: { switchAccount?: boolean },
+  ): Promise<{ ok: boolean; reason?: string }> => {
+    const trimmedEmail = email.trim();
+    if (!trimmedEmail) return { ok: false, reason: 'Enter your email address.' };
+
+    if (options?.switchAccount) {
+      await persistCurrentAccountBeforeSwitch();
+      teardownCloudSession();
+      await authSignOut();
+    }
+
+    const result = await authVerifyEmailOtp(trimmedEmail, code);
+    if (!result.ok) return { ok: false, reason: result.reason };
+
+    const sync = await syncCloudSessionNow();
+    if (!sync.ok) return { ok: false, reason: sync.reason };
+
+    await ensureDeviceAccountsSynced();
+    if (db.currentUser?.id) await syncLiveSessionData(db.currentUser.id);
+    return { ok: true };
   };
 
   const linkGoogleAccount = async (): Promise<{
@@ -583,10 +726,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         displayName: name.trim() || username,
       });
       if (!result.ok) throw new Error(result.reason ?? 'Sign-up failed.');
+      if (result.needsEmailConfirmation) {
+        throw new Error(
+          'Check your email for a confirmation link (not a code), then sign in. Check spam/promotions if needed.',
+        );
+      }
       const sync = await syncCloudSessionNow();
       if (!sync.ok) throw new Error(sync.reason);
       await ensureDeviceAccountsSynced();
-      if (db.currentUser?.id) scheduleLiveSessionSync(db.currentUser.id);
+      if (db.currentUser?.id) await syncLiveSessionData(db.currentUser.id);
       return;
     }
     const auth = getFirebaseAuth();
@@ -677,6 +825,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         switchAccount,
         linkGoogleAccount,
         linkEmailAccount,
+        linkEmailSignUp,
+        resendEmailConfirmation,
+        sendEmailAuthOtp,
+        verifyEmailAuthOtp,
         deleteAccount,
         selectAccount,
         removeAccount,

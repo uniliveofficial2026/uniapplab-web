@@ -4,12 +4,15 @@
  */
 import {
   supabaseRequestPasswordReset,
+  supabaseResendSignupConfirmation,
+  supabaseSendEmailOtp,
   supabaseSignIn,
   supabaseSignInWithApple,
   supabaseSignInWithGoogle,
   supabaseSignOut,
   supabaseSignUp,
   supabaseUpdatePassword,
+  supabaseVerifyEmailOtp,
 } from '../supabase/authApi';
 import { isSupabaseConfigured } from '../supabase/config';
 import {
@@ -68,6 +71,39 @@ export async function authSignUp(payload: {
     return firebaseSignUp(payload);
   }
   return noCloud();
+}
+
+export async function authResendSignupConfirmation(email: string): Promise<AuthResult> {
+  if (isSupabaseConfigured()) {
+    return supabaseResendSignupConfirmation(email);
+  }
+  return { ok: false, reason: 'Email confirmation resend is only available with Supabase auth.' };
+}
+
+export async function authSendEmailOtp(
+  email: string,
+  options?: {
+    shouldCreateUser?: boolean;
+    username?: string;
+    displayName?: string;
+  },
+): Promise<AuthResult> {
+  if (isSupabaseConfigured()) {
+    return supabaseSendEmailOtp(email, options);
+  }
+  return { ok: false, reason: 'Email OTP requires Supabase auth (VITE_SUPABASE_URL + anon key).' };
+}
+
+export async function authVerifyEmailOtp(
+  email: string,
+  code: string,
+): Promise<AuthResult & { sessionApplied?: boolean }> {
+  if (!isSupabaseConfigured()) {
+    return { ok: false, reason: 'Email OTP requires Supabase auth.' };
+  }
+  const result = await supabaseVerifyEmailOtp(email, code);
+  if (!result.ok) return result;
+  return { ok: true, sessionApplied: Boolean(result.session) };
 }
 
 export async function authRequestPasswordReset(email: string): Promise<AuthResult> {

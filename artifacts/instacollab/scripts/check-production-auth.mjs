@@ -39,14 +39,19 @@ async function extractSupabaseRef(bundleUrl) {
   return match?.[1] ?? null;
 }
 
-async function probeGoogleEnabled(url, key) {
+async function probeAuthSettings(url, key) {
   const base = url.replace(/\/$/, '');
   const res = await fetch(`${base}/auth/v1/settings`, {
     headers: { apikey: key, Authorization: `Bearer ${key}` },
   });
   if (!res.ok) return { ok: false, status: res.status };
   const data = await res.json();
-  return { ok: true, google: Boolean(data?.external?.google) };
+  return {
+    ok: true,
+    google: Boolean(data?.external?.google),
+    email: Boolean(data?.external?.email),
+    mailerAutoconfirm: Boolean(data?.mailer_autoconfirm),
+  };
 }
 
 /** Detect Supabase Auth OAuth upstream down (Envoy 503 + connect error 111). */
@@ -125,15 +130,28 @@ async function main() {
   }
 
   if (localUrl && localKey && localRef) {
-    const probe = await probeGoogleEnabled(localUrl, localKey);
+    const probe = await probeAuthSettings(localUrl, localKey);
     if (probe.ok && !probe.google) {
       exitCode = 1;
       console.log('  ✗ Google provider is OFF on this Supabase project');
       console.log('      → Supabase Dashboard → Authentication → Providers → Google → enable');
-      console.log('      → Add callback https://otiqckextvdbudbxzmau.supabase.co/auth/v1/callback in Google Cloud');
+      console.log(`      → Add callback https://${localRef}.supabase.co/auth/v1/callback in Google Cloud`);
       console.log('      → Run: pnpm run oauth:setup');
     } else if (probe.ok && probe.google) {
       console.log('  ✓ Google provider enabled on Supabase');
+    }
+
+    if (probe.ok && !probe.email) {
+      exitCode = 1;
+      console.log('  ✗ Email provider is OFF — OTP cannot be sent');
+      console.log('      → Supabase Dashboard → Authentication → Providers → Email → enable');
+    } else if (probe.ok && probe.email) {
+      console.log('  ✓ Email provider enabled on Supabase');
+      console.log('  ⚠ Email OTP delivery to Gmail requires:');
+      console.log('      1. Magic Link template must include {{ .Token }} (not only a link)');
+      console.log('      2. Custom SMTP (Resend/SendGrid) — default Supabase mail is often blocked');
+      console.log('      → Run: pnpm run email-otp:setup');
+      console.log('      → Or: SUPABASE_ACCESS_TOKEN=sbp_... pnpm run email-otp:apply-template');
     }
   }
 
@@ -144,7 +162,8 @@ async function main() {
     console.log('    2. Vercel Production env → VITE_SUPABASE_ANON_KEY (from Supabase → Settings → API)');
     console.log('    3. Deploy latest main (includes public/supabase-config.json)');
     console.log('    4. Enable Google provider on the new Supabase project (pnpm run oauth:setup)');
-    console.log('    5. Re-run: pnpm run auth:check:prod');
+    console.log('    5. Email OTP: Magic Link template + custom SMTP (pnpm run email-otp:setup)');
+    console.log('    6. Re-run: pnpm run auth:check:prod');
   }
   console.log('');
   process.exit(exitCode);

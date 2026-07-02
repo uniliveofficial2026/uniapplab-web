@@ -40,7 +40,9 @@ pnpm live
 - Deploy runs on startup and **immediately** when you save (0ms debounce default).
 - Offline smoke tests: `?force_demo=1&launch=main`
 - `LIVE_SYNC_DEBOUNCE_MS=5000 pnpm live` — optional delay between deploys
-- `pnpm run deploy:vercel:fast` — one-shot deploy without watch
+- `pnpm run deploy:vercel` — remote Vercel build (CLI archive, auto-falls back to Git on rate limit)
+- `pnpm run deploy:vercel:git` — push to GitHub → Vercel remote build (bypasses CLI upload limit)
+- `pnpm run deploy:vercel:fast` — local build + prebuilt upload
 
 ## Deploy React app → Vercel → app.uniapplab.com
 
@@ -54,7 +56,7 @@ pnpm live
 **Error 111** (`upstream connect error … delayed connect error: 111`) means the browser is calling a dead API host (`api.uniapplab.com`). Fix: redeploy from repo root (above), or deploy `artifacts/api-server/render.yaml` on Render and point DNS `api` → that service.
 
 ```bash
-pnpm run deploy:vercel   # production deploy (uses scripts/vercel-deploy.sh)
+pnpm run deploy:vercel   # remote Vercel build (staged source, archive upload)
 pnpm run domains:setup   # prints DNS + Supabase + Google OAuth checklist
 pnpm run oauth:setup     # Supabase auth URLs only
 pnpm run auth:check      # verify Supabase tables

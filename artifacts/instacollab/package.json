@@ -22,6 +22,10 @@
     "auth:check": "node scripts/check-cloud-auth.mjs",
     "auth:check:prod": "node scripts/check-production-auth.mjs",
     "oauth:setup": "node scripts/print-oauth-setup.mjs",
+    "email-otp:setup": "node scripts/print-email-otp-setup.mjs",
+    "email-otp:apply-template": "node scripts/apply-email-otp-template.mjs",
+    "resend:test": "node scripts/send-test-email.mjs",
+    "email:setup": "node scripts/setup-resend-email.mjs",
     "smoke:manage-tab": "node scripts/smoke-manage-tab.mjs"
   },
   "dependencies": {
@@ -32,6 +36,7 @@
     "motion": "^12.23.24",
     "react-router-dom": "^7.17.0",
     "react-webcam": "^7.2.0",
+    "resend": "^6.16.0",
     "workbox-window": "^7.3.0"
   },
   "devDependencies": {

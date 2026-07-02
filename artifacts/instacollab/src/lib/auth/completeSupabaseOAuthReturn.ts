@@ -39,6 +39,23 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
   }
 
   try {
+    const tokenHash = params.get('token_hash');
+    const otpType = params.get('type');
+    if (tokenHash && otpType) {
+      const { data, error } = await supabase.auth.verifyOtp({
+        token_hash: tokenHash,
+        type: otpType as 'signup' | 'email' | 'recovery' | 'invite' | 'magiclink' | 'email_change',
+      });
+      if (error) {
+        return { handled: true, ok: false, reason: error.message };
+      }
+      if (data.session?.user) {
+        writeStoredAuthBackend('supabase');
+        stripSupabaseOAuthParamsFromUrl();
+        return { handled: true, ok: true };
+      }
+    }
+
     const code = params.get('code');
     if (code) {
       const { data, error } = await supabase.auth.exchangeCodeForSession(code);

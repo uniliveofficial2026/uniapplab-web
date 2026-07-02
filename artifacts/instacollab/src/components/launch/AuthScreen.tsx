@@ -11,6 +11,8 @@ import {
   cloudSignUp,
   cloudUpdatePassword,
 } from '../../lib/auth/cloudAuthApi';
+import { authSendEmailOtp, authVerifyEmailOtp } from '../../lib/auth/authService';
+import { EmailOtpPanel } from '../auth/EmailOtpPanel';
 import { AppleAuthButton } from './AppleAuthButton';
 import { GoogleAuthButton } from './GoogleAuthButton';
 import { isCloudUsernameAvailable } from '../../lib/auth/cloudProfile';
@@ -45,6 +47,12 @@ export function AuthScreen() {
   const [username, setUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
+  const [emailAuthMode, setEmailAuthMode] = useState<'signin' | 'signup'>('signin');
+
+  useEffect(() => {
+    if (mode === 'login') setEmailAuthMode('signin');
+    if (mode === 'signup') setEmailAuthMode('signup');
+  }, [mode]);
 
   useEffect(() => {
     if (recoveryMode) {
@@ -76,6 +84,24 @@ export function AuthScreen() {
       cancelled = true;
     };
   }, [useCloudAuth, showToast]);
+
+  const onEmailOtpVerified = async () => {
+    const sync = await syncCloudSessionNow();
+    if (!sync.ok) {
+      showToast(sync.reason);
+      return;
+    }
+    if (emailAuthMode === 'signup') {
+      const newUserId = db.currentUserId;
+      if (newUserId) {
+        db.resetLaunchGatesForNewAccount(newUserId);
+        db.advanceLaunchProgressAfterLogin(false);
+      }
+      showToast('Account created — finish your profile');
+      return;
+    }
+    showToast('Welcome back!');
+  };
 
   const onLogin = async () => {
     setBusy(true);
@@ -160,7 +186,9 @@ export function AuthScreen() {
           return;
         }
         if (result.needsEmailConfirmation) {
-          showToast('Check your email to confirm your account, then log in.');
+          showToast(
+            'Check your email for a confirmation link (not a code). Open spam/promotions if needed, then log in.',
+          );
           setMode('login');
           return;
         }
@@ -336,6 +364,36 @@ export function AuthScreen() {
               </div>
             )}
 
+            {useCloudAuth && (mode === 'login' || mode === 'signup') ? (
+              <EmailOtpPanel
+                mode={emailAuthMode}
+                onModeChange={setEmailAuthMode}
+                busy={busy}
+                showSignupFields={emailAuthMode === 'signup'}
+                inputClass={launchInputClass}
+                onSendOtp={async (targetEmail, otpMode, profile) => {
+                  if (otpMode === 'signup' && profile?.username) {
+                    const available = await isCloudUsernameAvailable(profile.username);
+                    if (!available) return { ok: false, reason: 'Username is taken' };
+                  }
+                  clearSupabaseUnhealthy();
+                  return authSendEmailOtp(targetEmail, {
+                    shouldCreateUser: otpMode === 'signup',
+                    displayName: profile?.displayName,
+                    username: profile?.username,
+                  });
+                }}
+                onVerifyOtp={async (targetEmail, code) => {
+                  setBusy(true);
+                  try {
+                    return await authVerifyEmailOtp(targetEmail, code);
+                  } finally {
+                    setBusy(false);
+                  }
+                }}
+                onVerified={() => void onEmailOtpVerified()}
+              />
+            ) : (
             <form
               className="flex flex-col gap-4 w-full"
               onSubmit={(e) => {
@@ -424,6 +482,7 @@ export function AuthScreen() {
                     : 'Update password'}
             </LaunchPrimaryButton>
             </form>
+            )}
 
             <footer className="flex flex-col items-center gap-2.5 text-sm text-center pt-1">
               {mode === 'login' && (

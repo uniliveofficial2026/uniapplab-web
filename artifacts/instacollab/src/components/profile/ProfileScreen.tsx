@@ -58,7 +58,7 @@ export function ProfileScreen({
 }) {
   const db = useDB();
   const dbRevision = useDbRevision();
-  const { logout: firebaseLogout, switchAccount, deleteAccount, profile: authProfile, setProfile, userAccounts, selectAccount, removeAccount, ensureDeviceAccountsSynced, linkEmailAccount } = useAuth();
+  const { logout: firebaseLogout, switchAccount, deleteAccount, profile: authProfile, setProfile, userAccounts, selectAccount, removeAccount, ensureDeviceAccountsSynced, sendEmailAuthOtp, verifyEmailAuthOtp } = useAuth();
   const { signOut: cloudSignOut, session: cloudSession } = useCloudAuth();
   const currentUser = useCurrentUser();
   const { showToast } = useToast();
@@ -982,19 +982,32 @@ export function ProfileScreen({
           }
         }}
         onRemoveAccount={removeAccount}
-        onSignInWithEmail={async (email, password) => {
+        onSendEmailOtp={async (email, mode, profile) => {
           try {
             setAccountLinking(true);
             await ensureDeviceAccountsSynced();
-            const result = await linkEmailAccount(email, password);
+            return await sendEmailAuthOtp(email, {
+              createAccount: mode === 'signup',
+              displayName: profile?.displayName,
+              username: profile?.username,
+            });
+          } catch {
+            return { ok: false, reason: 'Failed to send email code.' };
+          } finally {
+            setAccountLinking(false);
+          }
+        }}
+        onVerifyEmailOtp={async (email, code) => {
+          try {
+            setAccountLinking(true);
+            const result = await verifyEmailAuthOtp(email, code, { switchAccount: true });
             if (result.ok) {
-              showToast('Signed in!');
               setShowAccountSwitcher(false);
               setShowEditProfile(false);
             }
             return result;
           } catch {
-            return { ok: false, reason: 'Failed to sign in with email.' };
+            return { ok: false, reason: 'Failed to verify email code.' };
           } finally {
             setAccountLinking(false);
           }

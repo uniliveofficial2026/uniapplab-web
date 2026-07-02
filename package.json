@@ -21,11 +21,18 @@
     "auth:check": "pnpm --filter @workspace/instacollab run auth:check",
     "auth:check:prod": "pnpm --filter @workspace/instacollab run auth:check:prod",
     "oauth:setup": "pnpm --filter @workspace/instacollab run oauth:setup",
+    "email-otp:setup": "pnpm --filter @workspace/instacollab run email-otp:setup",
+    "email-otp:apply-template": "pnpm --filter @workspace/instacollab run email-otp:apply-template",
+    "resend:test": "pnpm --filter @workspace/instacollab run resend:test",
+    "email:setup": "pnpm --filter @workspace/instacollab run email:setup",
     "domains:setup": "node scripts/print-domains-setup.mjs",
     "git:push": "bash scripts/github-push.sh",
     "git:clean-history": "bash scripts/reset-clean-main.sh --yes",
     "deploy:vercel": "bash scripts/vercel-deploy.sh --prod",
-    "deploy:vercel:fast": "LIVE_SYNC_PREBUILT=1 bash scripts/vercel-deploy.sh --prod"
+    "deploy:vercel:git": "bash scripts/vercel-deploy-git.sh",
+    "deploy:vercel:cli": "bash scripts/vercel-deploy.sh --prod",
+    "deploy:vercel:fast": "VERCEL_PREBUILT=1 bash scripts/vercel-deploy.sh --prod",
+    "deploy:vercel:full": "LIVE_SYNC_FULL_REPO=1 bash scripts/vercel-deploy.sh --prod"
   },
   "private": true,
   "devDependencies": {

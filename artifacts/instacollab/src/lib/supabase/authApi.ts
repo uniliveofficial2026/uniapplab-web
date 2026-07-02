@@ -14,6 +14,15 @@ function mapAuthError(message: string, code?: string): string {
   if (upstream) return upstream;
   const code11 = mapGoogleSignInConfigurationError(message, code);
   if (code11) return code11;
+  if (/over_email_send_rate_limit|rate limit.*email|too many requests/i.test(message)) {
+    return 'Wait 60 seconds before requesting another code.';
+  }
+  if (/otp.*expired|token.*expired|invalid.*otp|invalid.*token/i.test(message)) {
+    return 'That code is invalid or expired. Tap Resend code and try again.';
+  }
+  if (/signups not allowed|user not found/i.test(message) && code === 'otp_disabled') {
+    return 'Email OTP sign-in is disabled in Supabase. Enable Email provider and OTP template.';
+  }
   if (/invalid login credentials/i.test(message)) return 'Incorrect email or password.';
   if (/email not confirmed/i.test(message)) {
     return 'Confirm your email first (check your inbox), then log in.';
@@ -68,6 +77,7 @@ export async function supabaseSignUp(payload: {
     email: payload.email.trim(),
     password: payload.password,
     options: {
+      emailRedirectTo: getAuthRedirectUrl(),
       data: {
         username,
         display_name: payload.displayName.trim() || username,
@@ -92,10 +102,95 @@ export async function supabaseSignUp(payload: {
 export async function supabaseRequestPasswordReset(email: string): Promise<AuthResult> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, reason: 'Supabase is not configured.' };
-  const redirectTo = typeof window !== 'undefined' ? window.location.origin : undefined;
+  const redirectTo = getAuthRedirectUrl();
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), { redirectTo });
   if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
   return { ok: true };
+}
+
+/** Resend signup confirmation email (link, not OTP — check spam/promotions). */
+export async function supabaseResendSignupConfirmation(email: string): Promise<AuthResult> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, reason: 'Supabase is not configured.' };
+  const { error } = await supabase.auth.resend({
+    type: 'signup',
+    email: email.trim(),
+    options: { emailRedirectTo: getAuthRedirectUrl() },
+  });
+  if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
+  return { ok: true };
+}
+
+/** Send a 6-digit email OTP (requires Supabase Magic Link template to use {{ .Token }}). */
+export async function supabaseSendEmailOtp(
+  email: string,
+  options?: {
+    shouldCreateUser?: boolean;
+    username?: string;
+    displayName?: string;
+  },
+): Promise<AuthResult> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, reason: 'Supabase is not configured.' };
+  const trimmed = email.trim();
+  const username = options?.username?.trim().toLowerCase().replace(/[^a-z0-9_]/g, '_');
+  const displayName = options?.displayName?.trim();
+  const metadata: Record<string, string> = {};
+  if (username) metadata.username = username;
+  if (displayName) metadata.display_name = displayName;
+
+  const { error } = await supabase.auth.signInWithOtp({
+    email: trimmed,
+    options: {
+      shouldCreateUser: options?.shouldCreateUser ?? true,
+      ...(Object.keys(metadata).length > 0 ? { data: metadata } : {}),
+    },
+  });
+  if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
+  return { ok: true };
+}
+
+/** Verify email OTP and return session when successful. */
+export async function supabaseVerifyEmailOtp(
+  email: string,
+  token: string,
+): Promise<AuthResult & { session?: Session | null }> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, reason: 'Supabase is not configured.' };
+  const code = token.replace(/\D/g, '').trim();
+  if (code.length < 6) {
+    return { ok: false, reason: 'Enter the 6-digit code from your email.' };
+  }
+
+  const { data, error } = await supabase.auth.verifyOtp({
+    email: email.trim(),
+    token: code,
+    type: 'email',
+  });
+  if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
+  if (!data.session?.user) {
+    return { ok: false, reason: 'That code is invalid or expired. Request a new code.' };
+  }
+
+  const meta = (data.session.user.user_metadata || {}) as Record<string, unknown>;
+  const uname =
+    (typeof meta.username === 'string' && meta.username) ||
+    email.trim().split('@')[0]?.toLowerCase().replace(/[^a-z0-9_]/g, '_') ||
+    'user';
+  const dname =
+    (typeof meta.display_name === 'string' && meta.display_name) ||
+    (typeof meta.full_name === 'string' && meta.full_name) ||
+    uname;
+
+  await ensureProfileFromSession(data.session, {
+    username: uname,
+    displayName: dname,
+    publicUserId: uname,
+  }).catch((profileErr) => {
+    console.warn('[auth] profiles ensure after email OTP failed:', profileErr);
+  });
+
+  return { ok: true, session: data.session };
 }
 
 export async function supabaseUpdatePassword(newPassword: string): Promise<AuthResult> {

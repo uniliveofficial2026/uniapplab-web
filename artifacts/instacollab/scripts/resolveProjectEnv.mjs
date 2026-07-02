@@ -38,8 +38,23 @@ export function readEnvFile(envPath = findEnvFile()) {
   return env;
 }
 
+/** Merge workspace + app `.env` files (app values override workspace). */
+export function readMergedEnv(fromDir = import.meta.dirname) {
+  const appRoot = getAppRoot(fromDir);
+  const workspaceRoot = getWorkspaceRoot(appRoot);
+  const legacyRoot = path.resolve(
+    workspaceRoot,
+    'attached_assets/extracted/remix_-instacollab',
+  );
+  const merged = {};
+  for (const dir of [legacyRoot, workspaceRoot, appRoot]) {
+    Object.assign(merged, readEnvFile(path.join(dir, '.env')));
+  }
+  return merged;
+}
+
 export function supabaseProjectRefFromEnv(envPath = findEnvFile()) {
-  const env = readEnvFile(envPath);
+  const env = readMergedEnv();
   const url = env.VITE_SUPABASE_URL || '';
   if (!url) return null;
   try {
