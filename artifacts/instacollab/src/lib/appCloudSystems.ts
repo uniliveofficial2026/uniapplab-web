@@ -12,7 +12,6 @@ import { scheduleLiveSessionSync } from './liveSessionSync';
 import { initLiveSessionSync } from './liveSessionSync';
 import { initNetworkStatus, isNetworkOnline, subscribeNetworkStatus } from './networkStatus';
 import { checkForPwaUpdate, initPwaAutoUpdate } from './pwaAutoUpdate';
-import { tickRuntimeAutoHeal } from './runtimeAutoHeal';
 import {
   initThoughtNoteCloudSync,
   refreshThoughtNotesFromCloud,
@@ -33,7 +32,6 @@ async function tickCloudSystems(reason: string): Promise<void> {
   tickInFlight = true;
   try {
     await checkForPwaUpdate();
-    tickRuntimeAutoHeal(reason);
 
     if (!isNetworkOnline()) return;
 

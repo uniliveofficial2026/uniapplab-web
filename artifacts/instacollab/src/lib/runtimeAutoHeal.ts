@@ -3,8 +3,6 @@
  * and fixes in-session immediately; escalates patterns to the background ML agent.
  */
 import { refreshCloudSystemsInPlace } from './appCloudSystems';
-import { flushCloudAppStateSync } from './auth/cloudAppState';
-import { flushCloudProfileSync } from './auth/cloudProfile';
 import { isCloudAuthConfigured } from './auth/config';
 import { probeSupabaseHealth } from './auth/health';
 import { clearSupabaseUnhealthy, markSupabaseUnhealthy } from './auth/providerState';
@@ -63,16 +61,6 @@ async function healCloudAuth(): Promise<void> {
   }
 
   clearSupabaseUnhealthy();
-}
-
-async function healCloudWrites(): Promise<void> {
-  if (!db.isLoggedIn || !isNetworkOnline() || !isCloudAuthConfigured()) return;
-
-  await Promise.all([
-    flushCloudAppStateSync().catch(() => undefined),
-    flushCloudProfileSync().catch(() => undefined),
-  ]);
-  reportHeal('cloud_flush');
 }
 
 function healPlaybackPressure(): void {
@@ -199,7 +187,6 @@ async function runHealPass(reason: string): Promise<void> {
     healLayoutJank();
     await healSessionState();
     await healCloudAuth();
-    await healCloudWrites();
     await flushUxSignals(true);
     await flushBufferedHandoffTasks();
 
