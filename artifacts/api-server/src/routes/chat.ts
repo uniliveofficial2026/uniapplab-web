@@ -3,6 +3,7 @@ import { auth } from "../middlewares/auth";
 import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { isBad } from "../lib/moderation";
 import { getSupabaseService } from "../lib/supabase";
+import { getTypingUserIds, isUpstashConfigured, setTypingIndicator } from "../lib/upstash";
 
 const router: IRouter = Router();
 
@@ -89,6 +90,37 @@ router.post("/messages", auth, requireNotBanned, async (req, res, next) => {
       .eq("id", threadId);
 
     res.status(201).json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/typing", auth, requireNotBanned, async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const { threadId, typing = true } = req.body as { threadId?: string; typing?: boolean };
+    if (!threadId) {
+      res.status(400).json({ error: "threadId required" });
+      return;
+    }
+
+    const isMember = await assertThreadMember(threadId, userId);
+    if (!isMember) {
+      res.status(403).json({ error: "Not a member of this thread" });
+      return;
+    }
+
+    if (!isUpstashConfigured()) {
+      res.json({ ok: false, configured: false });
+      return;
+    }
+
+    if (typing) {
+      await setTypingIndicator(threadId, userId);
+    }
+
+    const userIds = await getTypingUserIds(threadId);
+    res.json({ ok: true, threadId, userIds, configured: true });
   } catch (err) {
     next(err);
   }

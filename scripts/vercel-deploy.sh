@@ -37,6 +37,8 @@ deploy_log="$(mktemp)"
 deploy_status=0
 
 if [[ "${VERCEL_PREBUILT:-}" == "1" || "${LIVE_SYNC_PREBUILT:-}" == "1" ]]; then
+  echo "[deploy] Note: VERCEL_PREBUILT=1 uploads static SPA only — /api/* routes are NOT included."
+  echo "[deploy]       Use default deploy (staged source) or deploy:vercel:git for API + frontend."
   echo "[deploy] Building @workspace/instacollab…"
   pnpm --filter @workspace/instacollab run build
 

@@ -42,26 +42,26 @@ function vercelEnvSet(name, value, target) {
     cwd: repoRoot,
     stdio: 'ignore',
   });
-  const add = spawnSync(
-    'pnpm',
-    ['dlx', 'vercel@latest', 'env', 'add', name, target, '--yes', '--force'],
-    {
-      cwd: repoRoot,
-      input: value,
-      stdio: ['pipe', 'inherit', 'inherit'],
-      env: {
-        ...process.env,
-        NPM_CONFIG_USERCONFIG: undefined,
-        NPM_CONFIG_GLOBALCONFIG: undefined,
-      },
+  const addArgs = ['dlx', 'vercel@latest', 'env', 'add', name, target, '--yes', '--force'];
+  if (target === 'preview') {
+    addArgs.push('--git-branch', '*');
+  }
+  const add = spawnSync('pnpm', addArgs, {
+    cwd: repoRoot,
+    input: value,
+    stdio: ['pipe', 'inherit', 'inherit'],
+    env: {
+      ...process.env,
+      NPM_CONFIG_USERCONFIG: undefined,
+      NPM_CONFIG_GLOBALCONFIG: undefined,
     },
-  );
+  });
   return add.status ?? 1;
 }
 
 console.log('[livekit] Syncing LiveKit env to Vercel…');
 
-for (const target of ['production', 'development']) {
+for (const target of ['production', 'preview', 'development']) {
   for (const [name, value] of VARS) {
     if (!value) continue;
     const code = vercelEnvSet(name, value, target);

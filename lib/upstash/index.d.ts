@@ -4,7 +4,16 @@ declare module "@workspace/upstash" {
     uxSignals: string;
     feedPosts: string;
     handoffState: string;
+    onlinePrefix: string;
+    streamViewersPrefix: string;
+    typingPrefix: string;
+    sessionPrefix: string;
   };
+
+  export function onlineKey(userId: string): string;
+  export function streamViewersKey(streamId: string): string;
+  export function typingKey(threadId: string): string;
+  export function sessionKey(tokenHash: string): string;
 
   export function isUpstashConfigured(): boolean;
   export function getRedis(): import("@upstash/redis").Redis | null;
@@ -22,4 +31,24 @@ declare module "@workspace/upstash" {
   export function rewriteHandoffQueue(
     tasks: Record<string, unknown>[],
   ): Promise<boolean>;
+
+  export function setUserOnline(userId: string, ttlSeconds?: number): Promise<boolean>;
+  export function isUserOnline(userId: string): Promise<boolean>;
+  export function filterOnlineUserIds(userIds: string[]): Promise<string[]>;
+  export function incrStreamViewers(streamId: string): Promise<number | null>;
+  export function decrStreamViewers(streamId: string): Promise<number | null>;
+  export function getStreamViewers(streamId: string): Promise<number>;
+  export function setTypingIndicator(
+    threadId: string,
+    userId: string,
+    ttlSeconds?: number,
+  ): Promise<boolean>;
+  export function getTypingUserIds(threadId: string): Promise<string[]>;
+  export function cacheSession(
+    tokenHash: string,
+    payload: unknown,
+    ttlSeconds?: number,
+  ): Promise<boolean>;
+  export function getCachedSession(tokenHash: string): Promise<unknown>;
+  export function clearCachedSession(tokenHash: string): Promise<boolean>;
 }

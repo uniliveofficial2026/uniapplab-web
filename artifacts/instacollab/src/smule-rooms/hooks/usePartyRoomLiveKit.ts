@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { Room, RoomEvent, Track, ConnectionState } from 'livekit-client';
 import { isLiveKitConfigured } from '../livekit/livekitConfig';
 import { fetchPartyLiveKitToken } from '../platformApi';
 
@@ -53,7 +53,7 @@ export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKi
 
   useEffect(() => {
     const room = roomRef.current;
-    if (!room || !enabled || room.state !== 'connected') return undefined;
+    if (!room || !enabled || room.state !== ConnectionState.Connected) return undefined;
 
     let cancelled = false;
 

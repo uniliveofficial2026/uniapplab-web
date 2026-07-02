@@ -5,6 +5,7 @@ import adminRouter from "./admin";
 import walletRouter from "./wallet";
 import chatRouter from "./chat";
 import streamRouter from "./stream";
+import presenceRouter from "./presence";
 import livekitRouter from "./livekit";
 import uxRouter from "./ux";
 import handoffRouter from "./handoff";
@@ -26,6 +27,7 @@ router.use("/admin", adminRouter);
 router.use("/wallet", walletRouter);
 router.use("/chat", chatRouter);
 router.use("/stream", streamRouter);
+router.use(presenceRouter);
 router.use(uxRouter);
 router.use(handoffRouter);
 

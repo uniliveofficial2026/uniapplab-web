@@ -9,6 +9,7 @@ import type { LiveKind, User } from '../../types';
 import { openProfilePreview } from '../../lib/utils';
 import { resolveUser } from '../../lib/safe';
 import { usePlatformStream } from '../../lib/live/platformStream';
+import { useHostStreamViewerCount } from '../../lib/live/useStreamViewerPresence';
 import { isPlatformApiAvailable } from '../../lib/platformApi';
 import { DeepARLivePreview } from '../deepar/DeepARLivePreview';
 import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
@@ -27,6 +28,7 @@ export function LiveScreen() {
   useDbRevision();
   const me = resolveUser(db.users, db.currentUser);
   const platformStream = usePlatformStream();
+  const hostViewerCount = useHostStreamViewerCount(platformStream.streamId);
   const previewVideoRef = useRef<HTMLVideoElement | null>(null);
   const getDeepARStreamRef = useRef<(() => Promise<MediaStream | null>) | null>(null);
   const [platformBusy, setPlatformBusy] = useState(false);
@@ -100,6 +102,9 @@ export function LiveScreen() {
                     : platformStream.streamId
                       ? 'Platform stream active (WebRTC fallback).'
                       : 'Followers were notified. End live when you are done.'}
+                  {platformStream.streamId && hostViewerCount > 0
+                    ? ` · ${hostViewerCount} watching`
+                    : ''}
                 </p>
               </div>
             </div>

@@ -64,6 +64,9 @@ if (process.argv.includes('--prod')) {
     } else if (result.body && result.body.configured === false) {
       console.error('[livekit] ✗ Production: LiveKit env not set on Vercel');
       failed += 1;
+    } else if (result.reason) {
+      console.error(`[livekit] ✗ Production health: ${result.reason}`);
+      failed += 1;
     } else {
       console.error(`[livekit] ✗ Production health: ${result.reason || JSON.stringify(result.body)}`);
       failed += 1;

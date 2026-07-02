@@ -18,6 +18,7 @@ import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithR
 import { installRuntimeGuards } from './lib/runtimeGuards';
 import { installRuntimeSelfHeal } from './lib/selfHeal';
 import { installUxTelemetry } from './lib/uxTelemetry';
+import { installPresenceHeartbeat } from './lib/presenceHeartbeat';
 import { initLiveAutoReload } from './lib/liveAutoReload';
 
 bootstrapDocumentTheme();
@@ -30,6 +31,7 @@ installPersistenceGuards();
 installRuntimeGuards();
 installRuntimeSelfHeal();
 installUxTelemetry();
+installPresenceHeartbeat();
 initLiveAutoReload();
 
 async function bootstrap() {

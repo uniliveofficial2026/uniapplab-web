@@ -207,3 +207,53 @@ export async function fetchPartyLiveKitToken(
     body: JSON.stringify({ roomId, publish }),
   });
 }
+
+export async function postPresenceHeartbeat(friendIds?: string[]): Promise<{
+  ok: boolean;
+  online?: boolean;
+  userIds?: string[];
+  configured?: boolean;
+}> {
+  return apiFetch('/api/presence/online', {
+    method: 'POST',
+    body: JSON.stringify({ friendIds }),
+  });
+}
+
+export async function fetchOnlinePresence(ids?: string[]): Promise<{
+  online?: boolean;
+  userId?: string;
+  userIds?: string[];
+  configured?: boolean;
+}> {
+  const query = ids?.length ? `?ids=${encodeURIComponent(ids.join(','))}` : '';
+  return apiFetch(`/api/presence/online${query}`);
+}
+
+export async function fetchStreamViewers(streamId: string): Promise<{
+  streamId: string;
+  viewers: number;
+  configured?: boolean;
+}> {
+  return apiFetch(`/api/stream/${encodeURIComponent(streamId)}/viewers`);
+}
+
+export async function postStreamViewer(
+  streamId: string,
+  action: 'join' | 'leave',
+): Promise<{ streamId: string; viewers: number; action: string; configured?: boolean }> {
+  return apiFetch(`/api/stream/${encodeURIComponent(streamId)}/viewers`, {
+    method: 'POST',
+    body: JSON.stringify({ action }),
+  });
+}
+
+export async function postChatTyping(
+  threadId: string,
+  typing = true,
+): Promise<{ ok: boolean; threadId: string; userIds: string[]; configured?: boolean }> {
+  return apiFetch('/api/chat/typing', {
+    method: 'POST',
+    body: JSON.stringify({ threadId, typing }),
+  });
+}

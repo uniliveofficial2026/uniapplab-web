@@ -3,7 +3,14 @@ import { auth } from "../middlewares/auth";
 import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { getSupabaseService } from "../lib/supabase";
 import { deleteLiveKitRoom, isLiveKitConfigured, streamRoomName } from "../lib/livekit";
+import {
+  decrStreamViewers,
+  getStreamViewers,
+  incrStreamViewers,
+  isUpstashConfigured,
+} from "../lib/upstash";
 
+/** Stream metadata lives in PostgreSQL (Supabase); viewer counts are ephemeral in Redis. */
 function canGoLive(role: string | undefined): boolean {
   return role === "streamer" || role === "admin";
 }
@@ -88,6 +95,53 @@ router.post("/stop", auth, requireNotBanned, async (req, res, next) => {
       await deleteLiveKitRoom(streamRoomName(streamId));
     }
     res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.get("/:id/viewers", async (req, res, next) => {
+  try {
+    const streamId = req.params.id;
+    if (!isUpstashConfigured()) {
+      res.json({ streamId, viewers: 0, configured: false });
+      return;
+    }
+    const viewers = await getStreamViewers(streamId);
+    res.json({ streamId, viewers, configured: true });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/:id/viewers", auth, requireNotBanned, async (req, res, next) => {
+  try {
+    const streamId = req.params.id;
+    const action = (req.body as { action?: string })?.action;
+    if (action !== "join" && action !== "leave") {
+      res.status(400).json({ error: "action must be join or leave" });
+      return;
+    }
+    if (!isUpstashConfigured()) {
+      res.json({ streamId, viewers: 0, configured: false });
+      return;
+    }
+
+    const { data: stream } = await getSupabaseService()
+      .from("streams")
+      .select("id, status")
+      .eq("id", streamId)
+      .maybeSingle();
+    if (!stream || stream.status !== "live") {
+      res.status(404).json({ error: "stream_not_live" });
+      return;
+    }
+
+    const viewers =
+      action === "join"
+        ? await incrStreamViewers(streamId)
+        : await decrStreamViewers(streamId);
+    res.json({ streamId, viewers: viewers ?? 0, action, configured: true });
   } catch (err) {
     next(err);
   }
