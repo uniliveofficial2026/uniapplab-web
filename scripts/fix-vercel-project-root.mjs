@@ -1,27 +1,19 @@
 #!/usr/bin/env node
 /**
-<<<<<<< HEAD
  * Fix production /api/* 404:
  * 1) Try Vercel API to clear Root Directory (needs team-scoped VERCEL_TOKEN)
  * 2) Fall back to CLI monorepo deploy (uses `vercel login` session)
-=======
- * Set Vercel project Root Directory to repo root so monorepo vercel.json routes /api/* work.
->>>>>>> origin/main
  * Usage: pnpm run vercel:fix-root
  */
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
-<<<<<<< HEAD
 import { spawnSync } from 'node:child_process';
-=======
->>>>>>> origin/main
 import { fileURLToPath } from 'node:url';
 import { buildVercelConfig } from './sync-vercel-config.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
-<<<<<<< HEAD
 if (process.env.VERCEL_TOKEN && /your_token|placeholder|xxxx|example/i.test(process.env.VERCEL_TOKEN)) {
   console.warn('[vercel] Ignoring placeholder VERCEL_TOKEN — use a real token or `vercel login`');
   delete process.env.VERCEL_TOKEN;
@@ -51,27 +43,11 @@ function readVercelToken() {
       } catch {
         /* try next */
       }
-=======
-function readVercelToken() {
-  if (process.env.VERCEL_TOKEN?.trim()) return process.env.VERCEL_TOKEN.trim();
-  const candidates = [
-    path.join(os.homedir(), '.local/share/com.vercel.cli/auth.json'),
-    path.join(os.homedir(), '.config/com.vercel.cli/auth.json'),
-  ];
-  for (const authPath of candidates) {
-    if (!fs.existsSync(authPath)) continue;
-    try {
-      const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-      if (auth.token?.trim()) return auth.token.trim();
-    } catch {
-      /* try next */
->>>>>>> origin/main
     }
   }
   return null;
 }
 
-<<<<<<< HEAD
 function readMacKeychainToken() {
   if (process.platform !== 'darwin') return null;
   for (const service of ['Vercel CLI', 'vercel', 'com.vercel.cli']) {
@@ -84,8 +60,6 @@ function readMacKeychainToken() {
   return null;
 }
 
-=======
->>>>>>> origin/main
 function readProjectMeta() {
   const projectFile = path.join(ROOT, '.vercel/project.json');
   if (!fs.existsSync(projectFile)) return null;
@@ -96,7 +70,6 @@ function readProjectMeta() {
   }
 }
 
-<<<<<<< HEAD
 function writeVercelConfigLocal() {
   const monorepo = buildVercelConfig();
   fs.writeFileSync(path.join(ROOT, 'vercel.json'), `${JSON.stringify(monorepo, null, 2)}\n`);
@@ -113,37 +86,20 @@ function deployViaCli() {
 
 function printDashboardFix() {
   console.log('');
-  console.log('Dashboard fix (for Git deploys):');
-  console.log('  pnpm run vercel:open-settings');
-  console.log('  Root Directory → EMPTY');
-  console.log('  Install: pnpm install && pnpm --filter @workspace/api-server run build');
-  console.log('  Build:   pnpm --filter @workspace/instacollab run build');
-  console.log('  Save → Redeploy Production');
+  console.log('Git deploy fix is in artifacts/instacollab/vercel.json — merge to main and redeploy.');
+  console.log('Optional monorepo root: pnpm run vercel:open-settings');
 }
 
 const project = readProjectMeta();
-=======
-const token = readVercelToken();
-const project = readProjectMeta();
-if (!token) {
-  console.error('[vercel] Not logged in — run: pnpm dlx vercel@latest login');
-  process.exit(1);
-}
->>>>>>> origin/main
 if (!project?.projectId) {
   console.error('[vercel] No .vercel/project.json — run: pnpm dlx vercel@latest link');
   process.exit(1);
 }
 
-<<<<<<< HEAD
 writeVercelConfigLocal();
 
 const token = readVercelToken() || readMacKeychainToken();
 const monorepo = buildVercelConfig();
-=======
-const monorepo = buildVercelConfig();
-
->>>>>>> origin/main
 const body = {
   rootDirectory: null,
   installCommand: monorepo.installCommand || 'pnpm install && pnpm --filter @workspace/api-server run build',
@@ -152,7 +108,6 @@ const body = {
   framework: null,
 };
 
-<<<<<<< HEAD
 let apiOk = false;
 if (token) {
   const teamId = project.orgId;
@@ -195,33 +150,3 @@ if (deployStatus === 2) {
 
 if (!apiOk) printDashboardFix();
 process.exit(deployStatus || 1);
-=======
-const teamId = project.orgId;
-const url = `https://api.vercel.com/v9/projects/${project.projectId}?teamId=${teamId}`;
-
-const res = await fetch(url, {
-  method: 'PATCH',
-  headers: {
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json',
-  },
-  body: JSON.stringify(body),
-});
-
-const json = await res.json().catch(() => ({}));
-if (!res.ok) {
-  console.error('[vercel] PATCH project failed:', res.status, json.error?.message || JSON.stringify(json).slice(0, 300));
-  process.exit(1);
-}
-
-writeVercelConfigLocal();
-console.log('[vercel] ✓ Root Directory set to repo root (monorepo)');
-console.log(`[vercel]   project: ${project.projectName || json.name}`);
-console.log(`[vercel]   install: ${body.installCommand}`);
-console.log('[vercel] Redeploy: merge PR to main or run pnpm run deploy:vercel:git from a PR branch');
-
-function writeVercelConfigLocal() {
-  const out = path.join(ROOT, 'vercel.json');
-  fs.writeFileSync(out, `${JSON.stringify(monorepo, null, 2)}\n`);
-}
->>>>>>> origin/main
