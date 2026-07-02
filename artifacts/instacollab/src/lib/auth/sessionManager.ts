@@ -96,14 +96,22 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
   }
 
   if (!isNetworkOnline()) {
-    const localId = db.currentUserId;
-    if (localId && localId === session.user.id && db.isLoggedIn) {
-      startProfileRealtime(appUser.id);
-      initThoughtNoteCloudSync();
-      await startCloudAppStateRealtime(appUser.id);
-      void startCloudChatRealtime(appUser.id);
-      return;
+    const userId = session.user.id;
+    const existing = db.users.find((u) => u.id === userId);
+    if (existing) {
+      db.syncAuthUser(existing);
+    } else {
+      db.syncAuthUser(userFromSession(session, null));
     }
+    syncDeviceAccountForAppUser({
+      ...(db.users.find((u) => u.id === userId) ?? userFromSession(session, null)),
+      email: session.user.email ?? undefined,
+    });
+    startProfileRealtime(userId);
+    initThoughtNoteCloudSync();
+    await startCloudAppStateRealtime(userId);
+    void startCloudChatRealtime(userId);
+    return;
   }
 
   let profile = await withTimeout(

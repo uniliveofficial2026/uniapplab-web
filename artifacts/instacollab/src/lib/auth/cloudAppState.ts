@@ -205,6 +205,12 @@ async function hydrateCloudAppStateForUser(
   userId: string,
   generation: number,
 ): Promise<HydrateOutcome> {
+  if (!isNetworkOnline()) {
+    seedLocalRevisionIfNeeded(userId);
+    lastPushedAt = readPersistedLocalRevision(userId);
+    return { result: 'ok', pushLocal: false };
+  }
+
   if (isSupabaseConfigured() && (await hasSupabaseSessionForUser(userId))) {
     let existing: CloudAppStatePayload | null;
     let pushLocal = false;
