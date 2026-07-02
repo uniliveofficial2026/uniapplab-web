@@ -28,7 +28,6 @@ import {
 } from '../lib/auth/sessionManager';
 import { startCloudAppStateRealtime } from '../lib/auth/cloudAppState';
 import { isDevLocalAuthBypass } from '../lib/auth/devLocalAuth';
-import { db } from '../lib/db/localDb';
 import { isNetworkOnline } from '../lib/networkStatus';
 import { writeStoredAuthBackend } from '../lib/auth/providerState';
 import {
