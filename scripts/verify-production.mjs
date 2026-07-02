@@ -83,8 +83,12 @@ for (const check of API_CHECKS) {
       console.log(`[verify] ✓ ${check.name}`);
     } else {
       failures.push(check.name);
+      const hint =
+        result.status === 404 || /page could not be found|NOT_FOUND/i.test(result.reason || '')
+          ? ' — run: pnpm run vercel:open-settings (Root Directory must be repo root)'
+          : '';
       console.error(
-        `[verify] ✗ ${check.name} — ${result.reason || JSON.stringify(result.body)}`,
+        `[verify] ✗ ${check.name} — ${result.reason || JSON.stringify(result.body)}${hint}`,
       );
     }
   } catch (err) {

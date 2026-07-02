@@ -61,7 +61,8 @@
     "livekit:setup": "pnpm --filter @workspace/instacollab run livekit:setup",
     "livekit:check": "pnpm --filter @workspace/instacollab run livekit:check",
     "livekit:env-vercel": "pnpm --filter @workspace/instacollab run livekit:env-vercel",
-    "vercel:fix-root": "node scripts/fix-vercel-project-root.mjs"
+    "vercel:fix-root": "node scripts/fix-vercel-project-root.mjs",
+    "vercel:open-settings": "bash scripts/open-vercel-api-settings.sh",
   },
   "private": true,
   "devDependencies": {
