@@ -20,6 +20,8 @@ jobs:
           node-version: '22'
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - name: Build workspace libs
+        run: pnpm run typecheck:libs
       - name: Auto-fix and health scan
         run: pnpm run fix
         continue-on-error: true

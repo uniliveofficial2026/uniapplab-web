@@ -25,6 +25,9 @@ jobs:
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
+      - name: Build workspace libs
+        run: pnpm run typecheck:libs
+
       - name: Health scan
         run: node artifacts/instacollab/scripts/check-health.mjs
 
