@@ -34,6 +34,7 @@ app.use(
 app.use(cors({ origin: parseCorsOrigins(), credentials: true }));
 app.use("/api/qstash", express.raw({ type: "application/json" }));
 app.use("/api/livekit/webhook", express.raw({ type: "application/webhook+json" }));
+app.use("/api/linear/webhook", express.raw({ type: "application/json" }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

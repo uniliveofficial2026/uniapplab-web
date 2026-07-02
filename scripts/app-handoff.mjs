@@ -90,6 +90,39 @@ async function loadUpstash() {
   }
 }
 
+let linear = null;
+async function loadLinear() {
+  if (linear) return linear;
+  try {
+    linear = await import('../lib/linear/index.mjs');
+    return linear;
+  } catch {
+    return null;
+  }
+}
+
+async function notifyLinearFailure(task) {
+  const lib = await loadLinear();
+  if (!lib?.isLinearConfigured?.()) return;
+  const title = `[handoff] ${task.type} failed`;
+  const description = [
+    `**Task:** ${task.type}`,
+    task.reason ? `**Reason:** ${task.reason}` : '',
+    task.detail ? `**Detail:** ${task.detail}` : '',
+    task.id ? `**Id:** ${task.id}` : '',
+    `**Repo:** uniliveofficial2026/uniapplab-web`,
+    `**At:** ${new Date().toISOString()}`,
+  ]
+    .filter(Boolean)
+    .join('\n\n');
+  try {
+    const issue = await lib.createIssue({ title, description, priority: 2 });
+    if (issue) log(`linear issue ${issue.identifier} — ${issue.url}`);
+  } catch (err) {
+    log(`linear notify failed: ${err instanceof Error ? err.message : String(err)}`);
+  }
+}
+
 const TASK_PRIORITY = {
   cloud_data: 1,
   heal: 2,
@@ -407,6 +440,7 @@ export async function runHandoffCycle(options = {}) {
     task.finishedAt = Date.now();
     completed.push(task);
     if (ok) anyFixed = true;
+    else await notifyLinearFailure(task);
 
     const all = (await readQueueAsync()).map((t) => (t.id === task.id ? task : t));
     await writeQueueAsync(all.filter((t) => t.status === 'pending'));

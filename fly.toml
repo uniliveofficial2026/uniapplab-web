@@ -1,0 +1,36 @@
+# Fly.io — InstaCollab API + background handoff worker
+# Docs: pnpm run fly:setup
+
+app = 'uniapplab-api'
+primary_region = 'iad'
+
+[build]
+  dockerfile = 'Dockerfile.fly'
+
+[env]
+  NODE_ENV = 'production'
+  HOST = '0.0.0.0'
+  CORS_ORIGINS = 'https://app.uniapplab.com,https://uniapplab.com,https://www.uniapplab.com,http://localhost:5173'
+
+[processes]
+  app = 'node artifacts/api-server/dist/index.mjs'
+
+[http_service]
+  processes = ['app']
+  internal_port = 8080
+  force_https = true
+  auto_stop_machines = 'off'
+  auto_start_machines = true
+  min_machines_running = 1
+
+  [[http_service.checks]]
+    grace_period = '30s'
+    interval = '30s'
+    method = 'GET'
+    path = '/api/healthz'
+    timeout = '5s'
+
+[[vm]]
+  memory = '512mb'
+  cpu_kind = 'shared'
+  cpus = 1
