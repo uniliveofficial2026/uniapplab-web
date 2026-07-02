@@ -28,6 +28,7 @@
     "email:setup": "pnpm --filter @workspace/instacollab run email:setup",
     "domains:setup": "node scripts/print-domains-setup.mjs",
     "stack:setup": "node scripts/print-stack-setup.mjs",
+    "codespace:setup": "node scripts/print-codespace-setup.mjs",
     "stack:verify": "node scripts/verify-production.mjs && node scripts/check-upstash.mjs -- --prod && pnpm --filter @workspace/instacollab run livekit:check -- --prod",
     "github:protect-main": "bash scripts/protect-github-main.sh",
     "git:push": "bash scripts/github-push.sh",
