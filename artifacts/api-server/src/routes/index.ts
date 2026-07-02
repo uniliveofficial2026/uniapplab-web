@@ -7,10 +7,18 @@ import chatRouter from "./chat";
 import streamRouter from "./stream";
 import uxRouter from "./ux";
 import handoffRouter from "./handoff";
+import feedRouter from "./feed";
+import upstashRouter from "./upstash";
+import qstashRouter from "./qstash";
+import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
 
 router.use(healthRouter);
+router.use(upstashRouter);
+router.use(qstashRouter);
+router.use(upstashRateLimit);
+router.use(feedRouter);
 router.use("/me", meRouter);
 router.use("/admin", adminRouter);
 router.use("/wallet", walletRouter);

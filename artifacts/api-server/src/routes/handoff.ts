@@ -14,19 +14,18 @@ router.post("/handoff/task", async (req, res) => {
     return;
   }
 
-  const entry = {
-    id: `h_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
-    t: Date.now(),
-    status: "pending",
-    priority: 3,
-    source: "api",
-    ...task,
-  };
-
   try {
     if (isUpstashConfigured()) {
-      await pushHandoffTask(entry);
+      await pushHandoffTask({ ...task, source: task.source || "api" });
     } else {
+      const entry = {
+        id: `h_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        t: Date.now(),
+        status: "pending",
+        priority: 3,
+        source: "api",
+        ...task,
+      };
       fs.mkdirSync(path.dirname(handoffPath), { recursive: true });
       fs.appendFileSync(handoffPath, `${JSON.stringify(entry)}\n`);
     }

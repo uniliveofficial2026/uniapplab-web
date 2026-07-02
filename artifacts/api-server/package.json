@@ -11,8 +11,12 @@
   },
   "dependencies": {
     "@supabase/supabase-js": "^2.106.2",
+    "@upstash/qstash": "^2.8.4",
+    "@upstash/ratelimit": "^2.0.7",
+    "@upstash/redis": "^1.36.2",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
+    "@workspace/upstash": "workspace:*",
     "cookie-parser": "^1.4.7",
     "cors": "^2.8.6",
     "drizzle-orm": "catalog:",

@@ -7,6 +7,8 @@ export {
   popHandoffTasks,
   trimHandoffQueue,
   pushUxSignals,
+  popUxSignals,
   getCachedFeedPosts,
   setCachedFeedPosts,
+  rewriteHandoffQueue,
 } from "@workspace/upstash";

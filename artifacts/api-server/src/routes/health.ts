@@ -1,11 +1,13 @@
 import { Router, type IRouter } from "express";
 import { HealthCheckResponse } from "@workspace/api-zod";
+import { isUpstashConfigured, pingRedis } from "../lib/upstash";
 
 const router: IRouter = Router();
 
-router.get("/healthz", (_req, res) => {
+router.get("/healthz", async (_req, res) => {
   const data = HealthCheckResponse.parse({ status: "ok" });
-  res.json(data);
+  const upstash = isUpstashConfigured() ? await pingRedis() : { configured: false };
+  res.json({ ...data, upstash });
 });
 
 export default router;

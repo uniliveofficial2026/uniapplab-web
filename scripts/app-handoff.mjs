@@ -18,6 +18,17 @@ const AUTO_DEPLOY = process.env.HANDOFF_AUTO_DEPLOY === '1';
 const DEPLOY_EVERY_CYCLES = Number(process.env.HANDOFF_DEPLOY_CYCLES ?? '30');
 const CLOUD_CHECK_MS = Number(process.env.HANDOFF_CLOUD_CHECK_MS ?? '3600000');
 
+let upstash = null;
+async function loadUpstash() {
+  if (upstash) return upstash;
+  try {
+    upstash = await import('../lib/upstash/index.mjs');
+    return upstash;
+  } catch {
+    return null;
+  }
+}
+
 const TASK_PRIORITY = {
   cloud_data: 1,
   heal: 2,
@@ -36,7 +47,7 @@ function log(msg) {
   if (process.env.HANDOFF_VERBOSE === '1') console.log(`[handoff] ${msg}`);
 }
 
-export function enqueueHandoffTask(task) {
+export async function enqueueHandoffTask(task) {
   const entry = {
     id: `h_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     t: Date.now(),
@@ -44,12 +55,25 @@ export function enqueueHandoffTask(task) {
     priority: TASK_PRIORITY[task.type] ?? 9,
     ...task,
   };
+  const redis = await loadUpstash();
+  if (redis?.isUpstashConfigured?.()) {
+    await redis.pushHandoffTask(entry);
+    return entry.id;
+  }
   fs.mkdirSync(path.dirname(QUEUE), { recursive: true });
   fs.appendFileSync(QUEUE, `${JSON.stringify(entry)}\n`);
   return entry.id;
 }
 
-function readQueue() {
+async function readQueueAsync() {
+  const redis = await loadUpstash();
+  if (redis?.isUpstashConfigured?.()) {
+    return redis.popHandoffTasks(200);
+  }
+  return readQueueSync();
+}
+
+function readQueueSync() {
   if (!fs.existsSync(QUEUE)) return [];
   return fs
     .readFileSync(QUEUE, 'utf8')
@@ -65,9 +89,26 @@ function readQueue() {
     .filter(Boolean);
 }
 
-function writeQueue(tasks) {
+async function writeQueueAsync(tasks) {
+  const redis = await loadUpstash();
+  if (redis?.isUpstashConfigured?.()) {
+    await redis.rewriteHandoffQueue(tasks);
+    return;
+  }
+  writeQueueSync(tasks);
+}
+
+function writeQueueSync(tasks) {
   fs.mkdirSync(path.dirname(QUEUE), { recursive: true });
   fs.writeFileSync(QUEUE, tasks.length ? `${tasks.map((t) => JSON.stringify(t)).join('\n')}\n` : '');
+}
+
+function readQueue() {
+  return readQueueSync();
+}
+
+function writeQueue(tasks) {
+  writeQueueSync(tasks);
 }
 
 function readState() {
@@ -168,7 +209,7 @@ async function runTask(task) {
       runQuiet('node', ['scripts/posts-bootstrap-db.mjs'], {
         cwd: path.join(ROOT, 'artifacts/instacollab'),
       });
-      enqueueHandoffTask({
+      await enqueueHandoffTask({
         type: 'heal',
         reason: `after_${check.issue}`,
         source: 'handoff',
@@ -197,7 +238,7 @@ async function runTask(task) {
     }
     case 'custom':
       log(`custom task: ${task.detail || task.reason || 'unspecified'}`);
-      enqueueHandoffTask({ type: 'gemini', reason: task.detail || task.reason, source: 'custom' });
+      await enqueueHandoffTask({ type: 'gemini', reason: task.detail || task.reason, source: 'custom' });
       return true;
     default:
       log(`unknown task type: ${task.type}`);
@@ -206,12 +247,12 @@ async function runTask(task) {
 }
 
 /** Map UX / runtime signals → handoff tasks (critical only — no flood) */
-export function handoffFromSignal(signal) {
+export async function handoffFromSignal(signal) {
   const detail = String(signal.detail || '');
   const type = signal.type;
 
   if (type === 'error' && /posts|cloud|supabase|sync|relation.*posts/i.test(detail)) {
-    return enqueueHandoffTask({
+    return await enqueueHandoffTask({
       type: 'cloud_data',
       reason: 'runtime_error',
       detail,
@@ -221,7 +262,7 @@ export function handoffFromSignal(signal) {
   }
 
   if (type === 'rage_tap') {
-    return enqueueHandoffTask({
+    return await enqueueHandoffTask({
       type: 'custom',
       reason: 'ui_friction',
       detail: `Rage taps on ${detail}`,
@@ -236,14 +277,14 @@ export function handoffFromSignal(signal) {
 export async function runHandoffCycle(options = {}) {
   const { forceDeploy = false, cycle = 0 } = options;
   const state = readState();
-  let tasks = readQueue().filter((t) => t.status === 'pending');
+  let tasks = (await readQueueAsync()).filter((t) => t.status === 'pending');
 
   const now = Date.now();
   if (!tasks.some((t) => t.type === 'cloud_data') && now - (state.lastCloudCheck ?? 0) > CLOUD_CHECK_MS) {
-    enqueueHandoffTask({ type: 'cloud_data', reason: 'periodic_check', source: 'agent' });
+    await enqueueHandoffTask({ type: 'cloud_data', reason: 'periodic_check', source: 'agent' });
     writeState({ ...state, lastCloudCheck: now });
   }
-  tasks = readQueue().filter((t) => t.status === 'pending');
+  tasks = (await readQueueAsync()).filter((t) => t.status === 'pending');
 
   tasks.sort((a, b) => (a.priority ?? 9) - (b.priority ?? 9) || a.t - b.t);
 
@@ -252,7 +293,8 @@ export async function runHandoffCycle(options = {}) {
 
   for (const task of tasks.slice(0, 12)) {
     task.status = 'running';
-    writeQueue(readQueue().map((t) => (t.id === task.id ? task : t)));
+    const running = (await readQueueAsync()).map((t) => (t.id === task.id ? task : t));
+    await writeQueueAsync(running);
 
     const ok = await runTask(task);
     task.status = ok ? 'done' : 'failed';
@@ -260,8 +302,8 @@ export async function runHandoffCycle(options = {}) {
     completed.push(task);
     if (ok) anyFixed = true;
 
-    const all = readQueue().map((t) => (t.id === task.id ? task : t));
-    writeQueue(all.filter((t) => t.status === 'pending'));
+    const all = (await readQueueAsync()).map((t) => (t.id === task.id ? task : t));
+    await writeQueueAsync(all.filter((t) => t.status === 'pending'));
   }
 
   if (tasks.length > 0 && !tasks.some((t) => t.type === 'ux_learn')) {
@@ -288,20 +330,42 @@ export async function runHandoffCycle(options = {}) {
 }
 
 function drainUxSignals() {
-  const signalsPath = path.join(ROOT, '.local/ux-signals.jsonl');
-  if (!fs.existsSync(signalsPath)) return 0;
-  const lines = fs.readFileSync(signalsPath, 'utf8').split('\n').filter(Boolean);
-  let n = 0;
-  for (const line of lines) {
-    try {
-      const signal = JSON.parse(line);
-      if (handoffFromSignal(signal)) n += 1;
-    } catch {
-      /* skip */
+  return drainUxSignalsAsync();
+}
+
+async function drainUxSignalsAsync() {
+  const redis = await loadUpstash();
+  let lines = [];
+  if (redis?.isUpstashConfigured?.()) {
+    lines = await redis.popUxSignals(500);
+  } else {
+    const signalsPath = path.join(ROOT, '.local/ux-signals.jsonl');
+    if (!fs.existsSync(signalsPath)) return 0;
+    lines = fs
+      .readFileSync(signalsPath, 'utf8')
+      .split('\n')
+      .filter(Boolean)
+      .map((line) => {
+        try {
+          return JSON.parse(line);
+        } catch {
+          return null;
+        }
+      })
+      .filter(Boolean);
+    if (lines.length > 500) {
+      fs.writeFileSync(
+        signalsPath,
+        `${lines
+          .slice(-200)
+          .map((s) => JSON.stringify(s))
+          .join('\n')}\n`,
+      );
     }
   }
-  if (lines.length > 500) {
-    fs.writeFileSync(signalsPath, `${lines.slice(-200).join('\n')}\n`);
+  let n = 0;
+  for (const signal of lines) {
+    if (await handoffFromSignal(signal)) n += 1;
   }
   return n;
 }
