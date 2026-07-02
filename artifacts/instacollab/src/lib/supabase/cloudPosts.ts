@@ -73,7 +73,7 @@ export async function uploadPostMediaBlob(
 
 export async function upsertCloudPost(post: Post): Promise<boolean> {
   const authorId = postUserId(post);
-  if (!(await canUseCloudPosts(authorId))) return false;
+  if (!authorId || !(await canUseCloudPosts(authorId))) return false;
   const supabase = getSupabaseClient();
   if (!supabase) return false;
 

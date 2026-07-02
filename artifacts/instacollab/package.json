@@ -31,7 +31,8 @@
     "deepar:env-vercel": "node scripts/sync-deepar-vercel-env.mjs",
     "deepar:sync": "node scripts/sync-deepar-assets.mjs",
     "smoke:manage-tab": "node scripts/smoke-manage-tab.mjs",
-    "check:health": "node scripts/check-health.mjs"
+    "check:health": "node scripts/check-health.mjs",
+    "posts:bootstrap-db": "node scripts/posts-bootstrap-db.mjs"
   },
   "dependencies": {
     "@google/genai": "^1.29.0",

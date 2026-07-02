@@ -89,6 +89,10 @@ export function ProfileScreen({
   const profileUserId = profileUser.id;
   const profileDisplayName = getProfileDisplayName(profileUser);
   const profileLabel = getProfileMentionLabel(profileUser);
+
+  useEffect(() => {
+    void syncCloudUserPosts(profileUserId);
+  }, [profileUserId]);
   
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged' | 'rooms'>('posts');
   const [showEditProfile, setShowEditProfile] = useState(false);

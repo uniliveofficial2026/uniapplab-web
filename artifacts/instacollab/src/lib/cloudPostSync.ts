@@ -98,6 +98,7 @@ async function cloudifyUrl(
 
 async function resolvePostMediaForCloud(post: Post): Promise<Post> {
   const userId = postUserId(post);
+  if (!userId) return post;
   const postId = post.id;
   const imageUrl = (await cloudifyUrl(userId, postId, post.imageUrl, 'image')) ?? post.imageUrl;
   const videoUrl = post.videoUrl
@@ -129,7 +130,7 @@ async function resolvePostMediaForCloud(post: Post): Promise<Post> {
 export async function publishPostToCloud(post: Post): Promise<void> {
   if (!isSupabaseConfigured()) return;
   const authorId = postUserId(post);
-  if (!isCloudAuthUserId(authorId)) return;
+  if (!authorId || !isCloudAuthUserId(authorId)) return;
 
   const existing = publishInflight.get(post.id);
   if (existing) return existing;
@@ -138,10 +139,7 @@ export async function publishPostToCloud(post: Post): Promise<void> {
     try {
       const resolved = await resolvePostMediaForCloud(post);
       const ok = await upsertCloudPost(resolved);
-      if (ok) {
-        db.mergeInboundPosts([resolved]);
-        db.updatePost(resolved.id, () => resolved);
-      }
+      if (ok) db.mergeInboundPosts([resolved]);
     } catch (err) {
       console.warn('[posts] publish failed:', err instanceof Error ? err.message : err);
     } finally {
@@ -156,7 +154,8 @@ export async function publishPostToCloud(post: Post): Promise<void> {
 const publishQueue = new Map<string, ReturnType<typeof setTimeout>>();
 
 export function scheduleCloudPostPublish(post: Post): void {
-  if (!isSupabaseConfigured() || !isCloudAuthUserId(postUserId(post))) return;
+  const authorId = postUserId(post);
+  if (!isSupabaseConfigured() || !authorId || !isCloudAuthUserId(authorId)) return;
   const prev = publishQueue.get(post.id);
   if (prev) clearTimeout(prev);
   publishQueue.set(
@@ -218,8 +217,20 @@ export function startCloudPostRealtimeSync(): () => void {
   };
 }
 
+export async function syncOwnPostsToCloud(): Promise<void> {
+  const meId = db.currentUser?.id;
+  if (!meId || !isCloudAuthUserId(meId)) return;
+  for (const post of db.posts) {
+    const authorId = postUserId(post);
+    if (authorId === meId && !post.isArchived) {
+      scheduleCloudPostPublish(post);
+    }
+  }
+}
+
 export async function bootstrapCloudPosts(): Promise<void> {
   if (!isSupabaseConfigured()) return;
   await syncCloudFeed();
+  void syncOwnPostsToCloud();
   startCloudPostRealtimeSync();
 }

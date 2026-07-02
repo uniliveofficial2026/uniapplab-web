@@ -6,6 +6,7 @@ import os from "node:os";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
+import { defineConfig, loadEnv } from "vite";
 import { uxSignalIngestPlugin } from "./vite-plugins/uxSignalIngest";
 
 const appRoot = path.resolve(import.meta.dirname);

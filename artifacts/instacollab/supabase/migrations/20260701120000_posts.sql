@@ -84,5 +84,11 @@ create policy "post_media_auth_delete"
   on storage.objects for delete
   using (bucket_id = 'post-media' and auth.uid()::text = (storage.foldername(name))[1]);
 
--- Realtime (optional — feed can poll)
-alter publication supabase_realtime add table public.posts;
+-- Realtime (optional)
+do $$
+begin
+  alter publication supabase_realtime add table public.posts;
+exception
+  when duplicate_object then null;
+  when undefined_object then null;
+end $$;

@@ -35,6 +35,8 @@ async function bootstrap() {
   await initAppMediaStore();
   clearChunkReloadGuard();
 
+  void import('./lib/cloudPostSync').then((m) => m.bootstrapCloudPosts());
+
   db.subscribe(() => {
     scheduleWarmAppMediaCache();
   });
