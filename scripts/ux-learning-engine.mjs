@@ -103,15 +103,21 @@ function analyze(signals) {
     });
   }
 
-  const platformCounts = topCounts(
-    signals.filter((s) => s.meta?.platform),
-    (s) => String(s.meta.platform),
-    5,
-  );
+  const platformMap = new Map();
+  for (const s of signals) {
+    const p = s.meta?.platform;
+    if (!p) continue;
+    const key = String(p);
+    platformMap.set(key, (platformMap.get(key) || 0) + 1);
+  }
+  const platformBreakdown = [...platformMap.entries()]
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 5)
+    .map(([name, count]) => ({ name, count }));
 
   const frictionScore = Math.min(
     100,
-    errors.length * 3 + rage.length * 5 + media.length * 4,
+    errors.length * 3 + rage.length * 5 + media.length * 4 + warnings.length * 2,
   );
 
   return {
@@ -122,6 +128,9 @@ function analyze(signals) {
     errorHotspots: topCounts(errors, 'screen'),
     rageTargets: topCounts(rage, 'detail'),
     mediaFailures: media.length,
+    autoHealCount: heals.length,
+    lagWarnings: warnings.length,
+    platformBreakdown,
     screenDwellMs: [...screenTime.entries()]
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10)
