@@ -6,6 +6,7 @@
 import fs from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
+import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 import { buildVercelConfig } from './sync-vercel-config.mjs';
 
@@ -41,6 +42,22 @@ function readVercelToken() {
   return null;
 }
 
+function readMacKeychainToken() {
+  if (process.platform !== 'darwin') return null;
+  for (const service of ['Vercel CLI', 'vercel', 'com.vercel.cli']) {
+    const result = spawnSync('security', ['find-generic-password', '-s', service, '-w'], {
+      encoding: 'utf8',
+    });
+    const token = result.stdout?.trim();
+    if (result.status === 0 && token) return token;
+  }
+  return null;
+}
+
+function readVercelTokenAll() {
+  return readVercelToken() || readMacKeychainToken();
+}
+
 function readProjectMeta() {
   const projectFile = path.join(ROOT, '.vercel/project.json');
   if (!fs.existsSync(projectFile)) return null;
@@ -51,7 +68,7 @@ function readProjectMeta() {
   }
 }
 
-const token = readVercelToken();
+const token = readVercelTokenAll();
 const project = readProjectMeta();
 if (!token) {
   console.error('[vercel] Not logged in — run: pnpm dlx vercel@latest login');
