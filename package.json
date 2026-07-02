@@ -46,7 +46,10 @@
     "upstash:setup": "node scripts/print-upstash-setup.mjs",
     "upstash:check": "node scripts/check-upstash.mjs",
     "upstash:env-vercel": "node scripts/sync-upstash-vercel-env.mjs",
-    "upstash:schedule": "node scripts/setup-qstash-schedule.mjs"
+    "upstash:schedule": "node scripts/setup-qstash-schedule.mjs",
+    "livekit:setup": "pnpm --filter @workspace/instacollab run livekit:setup",
+    "livekit:check": "pnpm --filter @workspace/instacollab run livekit:check",
+    "livekit:env-vercel": "pnpm --filter @workspace/instacollab run livekit:env-vercel"
   },
   "private": true,
   "devDependencies": {

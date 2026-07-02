@@ -5,6 +5,7 @@ import adminRouter from "./admin";
 import walletRouter from "./wallet";
 import chatRouter from "./chat";
 import streamRouter from "./stream";
+import livekitRouter from "./livekit";
 import uxRouter from "./ux";
 import handoffRouter from "./handoff";
 import feedRouter from "./feed";
@@ -16,6 +17,7 @@ const router: IRouter = Router();
 
 router.use(healthRouter);
 router.use(upstashRouter);
+router.use(livekitRouter);
 router.use(qstashRouter);
 router.use(upstashRateLimit);
 router.use(feedRouter);

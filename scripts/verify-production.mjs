@@ -18,6 +18,7 @@ const CHECKS = [
   { name: 'DeepAR WASM', url: `${ORIGIN}/deepar-resources/wasm/deepar.wasm`, expect: (r, t, h) => r.ok && (h.get('content-type') || '').includes('wasm') },
   { name: 'DeepAR effect', url: `${ORIGIN}/effects/MakeupLook.deepar`, expect: (r) => r.ok },
   { name: 'API health', url: `${ORIGIN}/api/healthz`, expect: (r) => r.ok },
+  { name: 'LiveKit health', url: `${ORIGIN}/api/livekit/health`, expect: (r, t) => r.ok || /not_configured/.test(t) },
   { name: 'Main JS bundle', url: `${ORIGIN}/index.html`, expect: (r, t) => r.ok && /\/assets\/index-[^"]+\.js/.test(t) },
 ];
 

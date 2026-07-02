@@ -2,6 +2,7 @@ import { Router, type IRouter } from "express";
 import { auth } from "../middlewares/auth";
 import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { getSupabaseService } from "../lib/supabase";
+import { deleteLiveKitRoom, isLiveKitConfigured, streamRoomName } from "../lib/livekit";
 
 function canGoLive(role: string | undefined): boolean {
   return role === "streamer" || role === "admin";
@@ -82,6 +83,9 @@ router.post("/stop", auth, requireNotBanned, async (req, res, next) => {
     if (error) {
       res.status(400).json({ error: error.message });
       return;
+    }
+    if (isLiveKitConfigured()) {
+      await deleteLiveKitRoom(streamRoomName(streamId));
     }
     res.json(data);
   } catch (err) {

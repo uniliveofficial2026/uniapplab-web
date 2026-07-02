@@ -30,6 +30,9 @@
     "deepar:install": "node scripts/install-deepar-assets.mjs",
     "deepar:env-vercel": "node scripts/sync-deepar-vercel-env.mjs",
     "deepar:sync": "node scripts/sync-deepar-assets.mjs",
+    "livekit:setup": "node scripts/print-livekit-setup.mjs",
+    "livekit:check": "node scripts/check-livekit.mjs",
+    "livekit:env-vercel": "node scripts/sync-livekit-vercel-env.mjs",
     "smoke:manage-tab": "node scripts/smoke-manage-tab.mjs",
     "check:health": "node scripts/check-health.mjs",
     "posts:bootstrap-db": "node scripts/posts-bootstrap-db.mjs"
@@ -40,6 +43,7 @@
     "@vercel/speed-insights": "^2.0.0",
     "deepar": "^5.6.22",
     "firebase": "^11.10.0",
+    "livekit-client": "^2.17.2",
     "motion": "^12.23.24",
     "react-router-dom": "^7.17.0",
     "react-webcam": "^7.2.0",

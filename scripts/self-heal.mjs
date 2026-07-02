@@ -87,6 +87,18 @@ if (upstashUrl && process.env.HEAL_SKIP_VERCEL_ENV !== '1') {
   else warnings.push('Could not sync Upstash env (run upstash:env-vercel manually)');
 }
 
+// --- LiveKit on Vercel (if API key exists) ---
+const livekitKey = readEnvKey('LIVEKIT_API_KEY');
+if (livekitKey && !/your|xxxx|placeholder/i.test(livekitKey) && process.env.HEAL_SKIP_VERCEL_ENV !== '1') {
+  log('Ensuring LiveKit env on Vercel…');
+  const livekitSync = run('node', ['scripts/sync-livekit-vercel-env.mjs'], {
+    cwd: APP,
+    silent: true,
+  });
+  if (livekitSync === 0) fixes.push('Synced LiveKit env to Vercel');
+  else warnings.push('Could not sync LiveKit env (run livekit:env-vercel manually)');
+}
+
 // --- Strip macOS AppleDouble from src + public ---
 run('node', ['scripts/strip-appledouble.mjs', path.join(APP, 'src')], { silent: true });
 const stripPublic = spawnSync('node', ['scripts/strip-appledouble.mjs', path.join(APP, 'public')], {

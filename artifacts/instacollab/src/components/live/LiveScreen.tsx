@@ -95,7 +95,11 @@ export function LiveScreen() {
                     : ''}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {platformStream.streamId ? 'Platform stream active (WebRTC MVP).' : 'Followers were notified. End live when you are done.'}
+                  {platformStream.mode === 'livekit'
+                    ? `LiveKit room ${platformStream.roomName ?? ''}`.trim()
+                    : platformStream.streamId
+                      ? 'Platform stream active (WebRTC fallback).'
+                      : 'Followers were notified. End live when you are done.'}
                 </p>
               </div>
             </div>

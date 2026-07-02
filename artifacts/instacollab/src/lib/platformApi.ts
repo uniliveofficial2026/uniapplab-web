@@ -171,3 +171,21 @@ export async function postStreamSignal(
 export async function fetchLiveStreams(): Promise<{ streams: unknown[] }> {
   return apiFetch('/api/stream/live');
 }
+
+export type LiveKitTokenResponse = {
+  token: string;
+  url: string;
+  roomName: string;
+  streamId: string;
+  role: 'host' | 'viewer';
+};
+
+export async function fetchLiveKitToken(
+  streamId: string,
+  role: 'host' | 'viewer' = 'viewer',
+): Promise<LiveKitTokenResponse> {
+  return apiFetch('/api/livekit/token', {
+    method: 'POST',
+    body: JSON.stringify({ streamId, role }),
+  });
+}
