@@ -24,7 +24,7 @@ import {
   loadStoredAccountSession,
   saveStoredAccountSession,
 } from './storedAccountSessions';
-import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
+import { initThoughtNoteCloudSync, teardownThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
 
 const DB_READY_MS = 8_000;
 const PROFILE_MS = 12_000;
@@ -61,6 +61,8 @@ function startProfileRealtime(userId: string): void {
       bannedAt: merged.bannedAt,
       banReason: merged.banReason,
       mutedUntil: merged.mutedUntil,
+      note: merged.note,
+      noteUpdatedAt: merged.noteUpdatedAt,
     });
     if (row.profile_setup_complete && !db.getLaunchProgress().profileSetupComplete) {
       db.advanceLaunchProgressAfterLogin(true);
@@ -116,6 +118,7 @@ export async function applySupabaseSessionToLocalDb(session: Session | null): Pr
   clearSupabaseUnhealthy();
 
   startProfileRealtime(appUser.id);
+  initThoughtNoteCloudSync();
   await startCloudAppStateRealtime(appUser.id);
   void startCloudChatRealtime(appUser.id);
   await syncLiveSessionData(appUser.id);
@@ -196,4 +199,5 @@ export function teardownCloudSession(): void {
   stopProfileRealtime();
   stopCloudAppStateRealtime();
   stopCloudChatRealtime();
+  teardownThoughtNoteCloudSync();
 }

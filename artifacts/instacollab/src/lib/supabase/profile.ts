@@ -11,6 +11,16 @@ import type { ProfileRow } from './types';
 const DEFAULT_AVATAR =
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop';
 
+function profileRowThoughtNote(row: ProfileRow): Pick<User, 'note' | 'noteUpdatedAt'> {
+  const trimmed = (row.note ?? '').trim();
+  if (!trimmed) return {};
+  const updatedAt = row.note_updated_at ? Date.parse(row.note_updated_at) : undefined;
+  return {
+    note: trimmed,
+    ...(Number.isFinite(updatedAt) ? { noteUpdatedAt: updatedAt } : {}),
+  };
+}
+
 export function profileRowToUser(row: ProfileRow, _email?: string | null): User {
   return {
     id: row.id,
@@ -27,6 +37,7 @@ export function profileRowToUser(row: ProfileRow, _email?: string | null): User 
     bannedAt: row.banned_at ? Date.parse(row.banned_at) : undefined,
     banReason: row.ban_reason ?? undefined,
     mutedUntil: row.muted_until ? Date.parse(row.muted_until) : undefined,
+    ...profileRowThoughtNote(row),
   };
 }
 
@@ -180,6 +191,7 @@ export async function upsertProfile(row: ProfileRow): Promise<ProfileRow> {
   const supabase = getSupabaseClient();
   if (!supabase) throw new Error('Supabase is not configured');
 
+  const thought = (row.note ?? '').trim();
   const payload = {
     username: row.username,
     display_name: row.display_name,
@@ -188,6 +200,8 @@ export async function upsertProfile(row: ProfileRow): Promise<ProfileRow> {
     profile_setup_complete: row.profile_setup_complete,
     public_user_id: row.public_user_id ?? null,
     public_user_id_changed_at: row.public_user_id_changed_at ?? null,
+    note: thought,
+    note_updated_at: thought ? row.note_updated_at ?? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
   };
 

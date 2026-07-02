@@ -27,6 +27,7 @@ import { mapProfileSaveError } from './profileErrors';
 import { isInfrastructureAuthFailure } from './failover';
 import { clearSupabaseUnhealthy, markSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
 import { isCloudAuthConfigured } from './config';
+import { isCloudAppStateRemoteApply } from './cloudAppStateFlags';
 
 export function isCloudAuthUserId(userId: string): boolean {
   if (/^u\d+$/i.test(userId)) return false;
@@ -164,6 +165,7 @@ export function scheduleCloudProfileSync(
   user: User,
   options?: { profileSetupComplete?: boolean }
 ) {
+  if (isCloudAppStateRemoteApply()) return;
   if (!isCloudAuthConfigured() || !isCloudAuthUserId(user.id)) return;
   pendingUser = user;
   if (options?.profileSetupComplete !== undefined) {
@@ -220,6 +222,7 @@ export async function pushCloudProfile(
       'Profile photo is too large to sync. Use a smaller image or paste an https:// image URL.'
     );
   }
+  const thought = (user.note ?? '').trim();
   const row: ProfileRow = {
     id: user.id,
     username,
@@ -229,6 +232,10 @@ export async function pushCloudProfile(
     profile_setup_complete: profileSetupComplete,
     public_user_id: publicUserId,
     public_user_id_changed_at: new Date(changedAtMs).toISOString(),
+    note: thought,
+    note_updated_at: thought
+      ? new Date(user.noteUpdatedAt ?? Date.now()).toISOString()
+      : null,
   };
 
   try {

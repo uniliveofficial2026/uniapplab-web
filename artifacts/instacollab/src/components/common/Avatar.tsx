@@ -49,6 +49,7 @@ export function Avatar({
   const isStory = resolvedUser.status === 'story';
   const isCurrentUser = db.currentUser?.id === resolvedUser.id;
   const thoughtNote = resolvedUser.note?.trim() ?? '';
+  const thoughtEpoch = resolvedUser.noteUpdatedAt ?? 0;
   const [, bumpThoughtLive] = useState(0);
 
   useEffect(() => subscribeThoughtNoteLive(() => bumpThoughtLive((n) => n + 1)), []);
@@ -119,6 +120,7 @@ export function Avatar({
         {!hideNote && thoughtNote && size !== 'sm' && thoughtBubbleMode === 'inline' ? (
           <InlineAvatarThoughtBubble
             noteText={thoughtNote}
+            animationEpoch={thoughtEpoch}
             onOpen={() => setShowPreviewModal(true)}
           />
         ) : null}
@@ -128,6 +130,7 @@ export function Avatar({
         <AvatarThoughtBubble
           anchorRef={avatarRootRef}
           noteText={thoughtNote}
+          animationEpoch={thoughtEpoch}
           userId={resolvedUser.id}
           onOpen={() => setShowPreviewModal(true)}
         />

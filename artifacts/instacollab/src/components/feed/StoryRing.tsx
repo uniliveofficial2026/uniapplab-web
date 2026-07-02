@@ -29,6 +29,7 @@ import { useExclusivePlayback } from '../../lib/useExclusivePlayback';
 import { isPlayableAudioUrl } from '../../lib/audioMedia';
 import { StoryRingPortals } from './StoryRingPortals';
 import { THOUGHT_NOTE_MAX_LENGTH, patchUserThoughtNote } from '../../lib/thoughtNote';
+import { subscribeThoughtNoteLive } from '../../lib/thoughtNoteLiveSync';
 import { ThoughtViewOverlay } from '../common/ThoughtViewOverlay';
 import { ThoughtBubbleShell, ThoughtComposerBubblePortal } from '../common/AvatarThoughtBubble';
 import { ProfileStoryCardMedia } from './ProfileStoryCardMedia';
@@ -124,6 +125,9 @@ export function StoryRing({
   const [showHeaderThoughtComposer, setShowHeaderThoughtComposer] = useState(false);
   const headerSlotRef = React.useRef<HTMLDivElement>(null);
   const ringShellRef = React.useRef<HTMLDivElement>(null);
+  const [, bumpThoughtLive] = useState(0);
+
+  useEffect(() => subscribeThoughtNoteLive(() => bumpThoughtLive((n) => n + 1)), []);
 
   const openThoughtComposer = React.useCallback(() => {
     if (presentation === 'header') {
@@ -465,6 +469,7 @@ export function StoryRing({
       : 'absolute bottom-[85%] left-[70%] mb-[10px] z-30 pointer-events-auto';
 
   const sharedThoughtText = (userFromDb.note ?? '').trim();
+  const sharedThoughtEpoch = userFromDb.noteUpdatedAt ?? 0;
   const hasSharedThought = sharedThoughtText.length > 0;
   const hideThoughtOnProfileStoryCard =
     presentation === 'card' && storyScope === 'profile';
@@ -810,6 +815,7 @@ export function StoryRing({
       {showPostedThoughtBubble ? (
         <ThoughtBubbleShell
           noteText={sharedThoughtText}
+          animationEpoch={sharedThoughtEpoch}
           onOpen={() => setShowPreviewModal(true)}
           className={thoughtBubbleClass}
         />
