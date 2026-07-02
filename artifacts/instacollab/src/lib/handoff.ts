@@ -25,7 +25,8 @@ export type HandoffTask = {
 
 const LOCAL_QUEUE_KEY = 'instacollab-handoff-buffer';
 const THROTTLE_KEY = 'instacollab-handoff-throttle';
-const THROTTLE_MS = 5 * 60_000;
+const THROTTLE_MS = 60_000;
+const THROTTLE_MS_DEPLOY = 5 * 60_000;
 
 function handoffUrl(): string {
   if (import.meta.env.DEV) return '/__handoff/task';
@@ -36,7 +37,8 @@ function isThrottled(type: string): boolean {
   try {
     const map = JSON.parse(localStorage.getItem(THROTTLE_KEY) || '{}') as Record<string, number>;
     const last = map[type] ?? 0;
-    if (Date.now() - last < THROTTLE_MS) return true;
+    const windowMs = type === 'deploy' || type === 'gemini' ? THROTTLE_MS_DEPLOY : THROTTLE_MS;
+    if (Date.now() - last < windowMs) return true;
     map[type] = Date.now();
     localStorage.setItem(THROTTLE_KEY, JSON.stringify(map));
     return false;
@@ -96,7 +98,13 @@ export function handoffForIssue(kind: string, detail: string, screen?: string): 
   if (isNoiseSignal(d)) return;
 
   if (/posts|cloud|supabase|sync|cross.?device|other user|relation.*posts/i.test(d)) {
-    escalate(kind, d, screen, { type: 'cloud_data', reason: kind, detail: d });
+    submitHandoffTask({
+      type: 'cloud_data',
+      reason: kind,
+      detail: d,
+      screen,
+      meta: { corroborated: true, immediate: true },
+    });
     return;
   }
 

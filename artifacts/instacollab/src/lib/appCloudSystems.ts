@@ -33,6 +33,8 @@ async function tickCloudSystems(reason: string): Promise<void> {
   try {
     await checkForPwaUpdate();
 
+    void import('./runtimeAutoHeal').then((m) => m.reactImmediately(`cloud:${reason}`));
+
     if (!isNetworkOnline()) return;
 
     await db.whenStorageReady();

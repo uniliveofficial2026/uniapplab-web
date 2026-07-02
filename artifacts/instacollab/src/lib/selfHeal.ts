@@ -7,8 +7,8 @@ import { hydrateAppMediaUrl, isAppMediaRef } from './appMediaStore';
 import { safeAvatarUrl, safeMediaUrl } from './safe';
 import { stageAppUpdate } from './invisibleReload';
 import { checkForPwaUpdate } from './pwaAutoUpdate';
-import { handoffForIssue } from './handoff';
 import { isNoiseSignal, verifyHealOutcome } from './mlGuard';
+import { reactToMlIssue } from './mlReact';
 import { trackUx } from './uxTelemetry';
 
 const FALLBACK_IMAGE =
@@ -48,7 +48,7 @@ function healBrokenMedia(el: HTMLImageElement | HTMLVideoElement | HTMLAudioElem
       el.dataset.selfHealFallback = '1';
       verifyHealOutcome('media_fallback', () => Boolean(el.src && el.src !== src));
       trackUx('heal', 'media_fallback', { tag: el.tagName, verified: true });
-      if (!isNoiseSignal(src)) handoffForIssue('media_fail', src.slice(0, 200));
+      if (!isNoiseSignal(src)) reactToMlIssue('media_fail', src.slice(0, 200));
     }
   }
 }

@@ -27,12 +27,13 @@ import { checkForPwaUpdate } from './pwaAutoUpdate';
 import { flushUxSignals, getCurrentScreen, trackUx } from './uxTelemetry';
 import { reconcileWalletAndKstarCoins } from './walletKstarSync';
 
-const HEAL_TICK_MS = 90_000;
-const LONG_TASK_MS = 250;
-const LAG_BURST_LIMIT = 5;
-const LAG_BURST_WINDOW_MS = 45_000;
-const MEMORY_RATIO_THRESHOLD = 0.92;
-const MEMORY_CONFIRMATIONS = 2;
+const HEAL_TICK_MS = 20_000;
+const MEMORY_CHECK_MS = 25_000;
+const LONG_TASK_MS = 200;
+const LAG_BURST_LIMIT = 3;
+const LAG_BURST_WINDOW_MS = 20_000;
+const MEMORY_RATIO_THRESHOLD = 0.9;
+const MEMORY_CONFIRMATIONS = 1;
 
 let installed = false;
 let healInFlight = false;
@@ -223,7 +224,7 @@ function installMemoryWatch(): void {
     }
   };
 
-  window.setInterval(check, HEAL_TICK_MS);
+  window.setInterval(check, MEMORY_CHECK_MS);
 }
 
 function installErrorEscalation(): void {
@@ -236,7 +237,7 @@ function installErrorEscalation(): void {
 
     event.preventDefault();
     const key = 'chunk_error';
-    if (!canActOnCorroboration(key, 60_000, 2)) return;
+    if (!canActOnCorroboration(key, 30_000, 1)) return;
 
     markCorroborationActed(key);
     void checkForPwaUpdate();
@@ -272,9 +273,14 @@ async function runHealPass(reason: string): Promise<void> {
   }
 }
 
+/** Immediate reaction — runs full heal pass without waiting for the interval timer. */
+export function reactImmediately(reason = 'immediate'): void {
+  void runHealPass(reason);
+}
+
 /** Background heal tick — safe to call from cloud systems / foreground hooks. */
 export function tickRuntimeAutoHeal(reason = 'tick'): void {
-  void runHealPass(reason);
+  reactImmediately(reason);
 }
 
 export function initRuntimeAutoHeal(): void {
