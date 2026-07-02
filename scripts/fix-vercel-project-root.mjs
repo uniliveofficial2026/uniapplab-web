@@ -13,19 +13,31 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 
 function readVercelToken() {
   if (process.env.VERCEL_TOKEN?.trim()) return process.env.VERCEL_TOKEN.trim();
-  const candidates = [
-    path.join(os.homedir(), '.local/share/com.vercel.cli/auth.json'),
-    path.join(os.homedir(), '.config/com.vercel.cli/auth.json'),
-  ];
-  for (const authPath of candidates) {
-    if (!fs.existsSync(authPath)) continue;
-    try {
-      const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
-      if (auth.token?.trim()) return auth.token.trim();
-    } catch {
-      /* try next */
+
+  const authNames = ['auth.json', 'config.json'];
+  const dirs = [
+    process.env.VERCEL_CONFIG_DIR,
+    path.join(os.homedir(), '.local/share/com.vercel.cli'),
+    path.join(os.homedir(), '.config/com.vercel.cli'),
+    path.join(os.homedir(), 'Library', 'Application Support', 'com.vercel.cli'),
+    path.join(os.homedir(), 'Library', 'Preferences', 'com.vercel.cli'),
+    path.join(os.homedir(), '.vercel'),
+  ].filter(Boolean);
+
+  for (const dir of dirs) {
+    for (const name of authNames) {
+      const authPath = path.join(dir, name);
+      if (!fs.existsSync(authPath)) continue;
+      try {
+        const auth = JSON.parse(fs.readFileSync(authPath, 'utf8'));
+        const token = auth.token?.trim() || auth.credentials?.[0]?.token?.trim();
+        if (token) return token;
+      } catch {
+        /* try next */
+      }
     }
   }
+
   return null;
 }
 
@@ -43,6 +55,8 @@ const token = readVercelToken();
 const project = readProjectMeta();
 if (!token) {
   console.error('[vercel] Not logged in — run: pnpm dlx vercel@latest login');
+  console.error('[vercel] Or create a token at https://vercel.com/account/tokens then:');
+  console.error('[vercel]   export VERCEL_TOKEN=your_token && pnpm run vercel:fix-root');
   process.exit(1);
 }
 if (!project?.projectId) {
@@ -82,7 +96,38 @@ writeVercelConfigLocal();
 console.log('[vercel] ✓ Root Directory set to repo root (monorepo)');
 console.log(`[vercel]   project: ${project.projectName || json.name}`);
 console.log(`[vercel]   install: ${body.installCommand}`);
-console.log('[vercel] Redeploy: merge PR to main or run pnpm run deploy:vercel:git from a PR branch');
+console.log('[vercel] Triggering production redeploy…');
+
+const deployUrl = `https://api.vercel.com/v13/deployments?teamId=${teamId}`;
+const deployRes = await fetch(deployUrl, {
+  method: 'POST',
+  headers: {
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({
+    name: project.projectName || json.name,
+    project: project.projectId,
+    target: 'production',
+    gitSource: {
+      type: 'github',
+      repo: 'uniapplab-web',
+      ref: 'main',
+      org: 'uniliveofficial2026',
+    },
+  }),
+});
+
+const deployJson = await deployRes.json().catch(() => ({}));
+if (deployRes.ok) {
+  console.log(`[vercel] ✓ Deploy queued: ${deployJson.url || deployJson.id || 'production'}`);
+} else if (/rate|limit/i.test(deployJson.error?.message || '')) {
+  console.warn('[vercel] ⚠ Deploy rate-limited — redeploy from Vercel dashboard after root fix');
+  console.warn('[vercel]   https://vercel.com/uniliveofficial2026s-projects/uniapplab-web-instacollab');
+} else {
+  console.warn('[vercel] ⚠ Redeploy manually:', deployJson.error?.message || deployRes.status);
+}
+console.log('[vercel] Verify: curl -s https://app.uniapplab.com/api/healthz');
 
 function writeVercelConfigLocal() {
   const out = path.join(ROOT, 'vercel.json');
