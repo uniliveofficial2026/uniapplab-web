@@ -27,7 +27,7 @@ function loadDotEnv() {
 
 loadDotEnv();
 
-const { isUpstashConfigured, pingRedis, getRedis, KEYS } = await import('@workspace/upstash');
+const { isUpstashConfigured, pingRedis, getRedis, KEYS } = await import('../lib/upstash/index.mjs');
 
 let failed = 0;
 

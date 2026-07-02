@@ -78,6 +78,15 @@ if (deeparKey && !/your|xxxx|placeholder/i.test(deeparKey)) {
 log('Syncing app env…');
 run('node', ['scripts/sync-app-env.mjs'], { silent: true });
 
+// --- Upstash on Vercel (if Redis URL exists) ---
+const upstashUrl = readEnvKey('UPSTASH_REDIS_REST_URL');
+if (upstashUrl && process.env.HEAL_SKIP_VERCEL_ENV !== '1') {
+  log('Ensuring Upstash env on Vercel…');
+  const upstashSync = run('node', ['scripts/sync-upstash-vercel-env.mjs'], { silent: true });
+  if (upstashSync === 0) fixes.push('Synced Upstash/QStash env to Vercel');
+  else warnings.push('Could not sync Upstash env (run upstash:env-vercel manually)');
+}
+
 // --- Strip macOS AppleDouble from src + public ---
 run('node', ['scripts/strip-appledouble.mjs', path.join(APP, 'src')], { silent: true });
 const stripPublic = spawnSync('node', ['scripts/strip-appledouble.mjs', path.join(APP, 'public')], {

@@ -381,15 +381,17 @@ if (isMainModule()) {
   if (cmd === 'enqueue' && process.argv[3]) {
     const type = process.argv[3];
     const detail = process.argv.slice(4).join(' ') || undefined;
-    const id = enqueueHandoffTask({ type, detail, reason: detail, source: 'cli' });
-    console.log(id);
+    void enqueueHandoffTask({ type, detail, reason: detail, source: 'cli' }).then((id) => {
+      console.log(id);
+    });
   } else if (cmd === 'cycle') {
     const cycleNum = Number(process.argv[3] ?? '0');
     void runHandoffCycle({ forceDeploy: process.argv.includes('--deploy'), cycle: cycleNum }).then((r) => {
       if (process.env.HANDOFF_VERBOSE === '1') console.log(JSON.stringify(r));
     });
   } else {
-    drainUxSignals();
-    void runHandoffCycle().then((r) => console.log(JSON.stringify(r)));
+    void drainUxSignalsAsync().then(() =>
+      runHandoffCycle().then((r) => console.log(JSON.stringify(r))),
+    );
   }
 }

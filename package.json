@@ -42,7 +42,11 @@
     "ux:learn": "node scripts/ux-learning-engine.mjs",
     "ux:gemini": "node scripts/ux-gemini-fix.mjs",
     "handoff": "node scripts/app-handoff.mjs",
-    "handoff:cycle": "node scripts/app-handoff.mjs cycle"
+    "handoff:cycle": "node scripts/app-handoff.mjs cycle",
+    "upstash:setup": "node scripts/print-upstash-setup.mjs",
+    "upstash:check": "node scripts/check-upstash.mjs",
+    "upstash:env-vercel": "node scripts/sync-upstash-vercel-env.mjs",
+    "upstash:schedule": "node scripts/setup-qstash-schedule.mjs"
   },
   "private": true,
   "devDependencies": {

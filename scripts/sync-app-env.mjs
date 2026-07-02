@@ -10,7 +10,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const APP_ENV = path.join(ROOT, 'artifacts/instacollab/.env');
 const SOURCES = [path.join(ROOT, '.env'), path.join(ROOT, '.env.local')];
 
-const SYNC_PREFIXES = ['VITE_', 'SUPABASE_', 'RESEND_', 'DEEPAR_'];
+const SYNC_PREFIXES = ['VITE_', 'SUPABASE_', 'RESEND_', 'DEEPAR_', 'UPSTASH_', 'QSTASH_', 'PUBLIC_APP_'];
 
 function parseEnvFile(file) {
   const out = new Map();
