@@ -11,14 +11,26 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const ORIGIN = (process.env.PROD_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');
 const TIMEOUT_MS = Number(process.env.VERIFY_TIMEOUT_MS ?? '15000');
 
+const { probeProdApi } = await import('./probe-prod-api.mjs');
+
 const CHECKS = [
   { name: 'App shell', url: `${ORIGIN}/`, expect: (r, t) => r.ok && t.includes('InstaCollab') },
   { name: 'Live version', url: `${ORIGIN}/live-version.json`, expect: (r) => r.ok },
   { name: 'Supabase config', url: `${ORIGIN}/supabase-config.json`, expect: (r, t) => r.ok && /supabaseUrl/.test(t) },
   { name: 'DeepAR WASM', url: `${ORIGIN}/deepar-resources/wasm/deepar.wasm`, expect: (r, t, h) => r.ok && (h.get('content-type') || '').includes('wasm') },
   { name: 'DeepAR effect', url: `${ORIGIN}/effects/MakeupLook.deepar`, expect: (r) => r.ok },
-  { name: 'API health', url: `${ORIGIN}/api/healthz`, expect: (r) => r.ok },
-  { name: 'LiveKit health', url: `${ORIGIN}/api/livekit/health`, expect: (r, t) => r.ok || /not_configured/.test(t) },
+  { name: 'API health', url: `${ORIGIN}/api/healthz`, expect: async () => {
+    const r = await probeProdApi(ORIGIN, '/api/healthz');
+    return r.ok && r.body?.status === 'ok';
+  }},
+  { name: 'Upstash health', url: `${ORIGIN}/api/upstash/health`, expect: async () => {
+    const r = await probeProdApi(ORIGIN, '/api/upstash/health');
+    return r.ok && r.body?.ok;
+  }},
+  { name: 'LiveKit health', url: `${ORIGIN}/api/livekit/health`, expect: async () => {
+    const r = await probeProdApi(ORIGIN, '/api/livekit/health');
+    return r.ok && r.body?.ok;
+  }},
   { name: 'Main JS bundle', url: `${ORIGIN}/index.html`, expect: (r, t) => r.ok && /\/assets\/index-[^"]+\.js/.test(t) },
 ];
 
@@ -39,13 +51,19 @@ const passes = [];
 
 for (const check of CHECKS) {
   try {
-    const { res, text } = await fetchText(check.url);
-    if (check.expect(res, text, res.headers)) {
+    let ok = false;
+    if (check.expect.length >= 1 && check.expect.constructor.name === 'AsyncFunction') {
+      ok = await check.expect();
+    } else {
+      const { res, text } = await fetchText(check.url);
+      ok = check.expect(res, text, res.headers);
+    }
+    if (ok) {
       passes.push(check.name);
       console.log(`[verify] ✓ ${check.name}`);
     } else {
-      failures.push(`${check.name} (${res.status})`);
-      console.error(`[verify] ✗ ${check.name} — HTTP ${res.status}`);
+      failures.push(check.name);
+      console.error(`[verify] ✗ ${check.name}`);
     }
   } catch (err) {
     failures.push(`${check.name} (${err instanceof Error ? err.message : 'error'})`);

@@ -27,6 +27,7 @@ function loadDotEnv() {
 
 loadDotEnv();
 
+const { probeProdApi } = await import('../../../scripts/probe-prod-api.mjs');
 const { isLiveKitConfigured, pingLiveKit, getLiveKitUrl } = await import(
   '../../../lib/livekit/index.mjs'
 );
@@ -57,11 +58,14 @@ if (clientUrl && /^wss:\/\//i.test(clientUrl)) {
 const origin = (process.env.PUBLIC_APP_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');
 if (process.argv.includes('--prod')) {
   try {
-    const res = await fetch(`${origin}/api/livekit/health`, { signal: AbortSignal.timeout(15000) });
-    const body = await res.json();
-    if (res.ok && body.ok) console.log(`[livekit] ✓ Production health ${origin}`);
-    else {
-      console.error(`[livekit] ✗ Production health: ${JSON.stringify(body)}`);
+    const result = await probeProdApi(origin, '/api/livekit/health');
+    if (result.ok && result.body?.ok) {
+      console.log(`[livekit] ✓ Production health ${origin}`);
+    } else if (result.body && result.body.configured === false) {
+      console.error('[livekit] ✗ Production: LiveKit env not set on Vercel');
+      failed += 1;
+    } else {
+      console.error(`[livekit] ✗ Production health: ${result.reason || JSON.stringify(result.body)}`);
       failed += 1;
     }
   } catch (err) {

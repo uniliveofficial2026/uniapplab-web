@@ -7,4 +7,5 @@ export {
   ensureLiveKitRoom,
   deleteLiveKitRoom,
   pingLiveKit,
+  partyRoomName,
 } from "@workspace/livekit";

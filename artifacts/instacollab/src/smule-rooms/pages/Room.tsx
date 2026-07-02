@@ -150,6 +150,7 @@ import {
 } from "../utils/roomSeats";
 import { SeatSpeakingLevelBars, SeatVoiceGlowEffect } from "../components/SeatVoiceVisuals";
 import { useMicVoiceActivity } from "../hooks/useMicVoiceActivity";
+import { usePartyRoomLiveKit } from "../hooks/usePartyRoomLiveKit";
 import { useSongPerformanceTimer } from "../hooks/useSongPerformanceTimer";
 import { useSingingSession } from "../hooks/useSingingSession";
 import { usePerformanceBackingTrack } from "../hooks/usePerformanceBackingTrack";
@@ -936,6 +937,12 @@ export function Room() {
   const { isVoiceActive: userVoiceActive, audioLevel: userMicLevel } = useMicVoiceActivity(
     Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
   );
+
+  usePartyRoomLiveKit({
+    roomId: roomDisplayId,
+    enabled: Boolean(userSeatKey),
+    publishMic: Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
+  });
 
   const performanceKey = isSingingMode && currentlySinging ? currentlySinging.id : null;
   const isUploadPerformance = Boolean(performanceKey && isKaraokeUploadSongId(performanceKey));

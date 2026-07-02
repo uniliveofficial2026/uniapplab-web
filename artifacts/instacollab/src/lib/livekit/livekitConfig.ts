@@ -12,3 +12,7 @@ export function isLiveKitConfigured(): boolean {
 export function streamRoomName(streamId: string): string {
   return `ic-stream-${streamId}`;
 }
+
+export function partyRoomName(roomId: string): string {
+  return `ic-party-${roomId}`;
+}

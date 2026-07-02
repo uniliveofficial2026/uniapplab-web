@@ -38,7 +38,7 @@ connect_log="$(mktemp)"
 vercel_env pnpm dlx vercel@latest git connect "$GIT_URL" --project "$PROJECT" --yes 2>&1 | tee "$connect_log"
 connect_status=${PIPESTATUS[0]}
 set -e
-if [[ "$connect_status" -ne 0 ]] && ! rg -qi 'already connected|already linked|connected to' "$connect_log"; then
+if [[ "$connect_status" -ne 0 ]] && ! grep -qiE 'already connected|already linked|connected to' "$connect_log"; then
   echo "[deploy] Warning: git connect returned $connect_status (may already be linked)." >&2
 fi
 rm -f "$connect_log"

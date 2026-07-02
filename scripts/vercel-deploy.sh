@@ -77,9 +77,9 @@ else
 fi
 
 if [[ "$deploy_status" -ne 0 ]]; then
-  if rg -q 'api-upload-free|Too many requests' "$deploy_log"; then
+  if grep -qE 'api-upload-free|api-deployments-free|Too many requests|Resource is limited' "$deploy_log"; then
     echo ""
-    echo "[deploy] CLI upload quota exhausted (Vercel Hobby: 5000 uploads / 24h)."
+    echo "[deploy] CLI deploy limit hit (Hobby: uploads and/or deployments per 24h)."
     echo "[deploy] Falling back to Git → Vercel remote build…"
     echo ""
     rm -f "$deploy_log"

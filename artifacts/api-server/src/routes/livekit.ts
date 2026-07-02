@@ -11,6 +11,7 @@ import {
   isLiveKitConfigured,
   pingLiveKit,
   streamRoomName,
+  partyRoomName,
 } from "../lib/livekit";
 
 const router: IRouter = Router();
@@ -91,6 +92,45 @@ router.post("/livekit/token", auth, requireNotBanned, async (req, res, next) => 
       roomName,
       streamId,
       role: isHost ? "host" : "viewer",
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, next) => {
+  try {
+    if (!isLiveKitConfigured()) {
+      res.status(503).json({ error: "livekit_not_configured" });
+      return;
+    }
+
+    const { roomId, publish = true } = req.body as {
+      roomId?: string;
+      publish?: boolean;
+    };
+    if (!roomId?.trim()) {
+      res.status(400).json({ error: "roomId required" });
+      return;
+    }
+
+    const userId = req.authUser!.id;
+    const roomName = partyRoomName(roomId.trim());
+    await ensureLiveKitRoom(roomName);
+
+    const token = await createLiveKitToken({
+      identity: userId,
+      name: req.profile?.display_name || req.profile?.username || userId,
+      room: roomName,
+      canPublish: Boolean(publish),
+    });
+
+    res.json({
+      token,
+      url: getLiveKitUrl(),
+      roomName,
+      roomId: roomId.trim(),
+      publish: Boolean(publish),
     });
   } catch (err) {
     next(err);

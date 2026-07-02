@@ -189,3 +189,21 @@ export async function fetchLiveKitToken(
     body: JSON.stringify({ streamId, role }),
   });
 }
+
+export type PartyLiveKitTokenResponse = {
+  token: string;
+  url: string;
+  roomName: string;
+  roomId: string;
+  publish: boolean;
+};
+
+export async function fetchPartyLiveKitToken(
+  roomId: string,
+  publish = true,
+): Promise<PartyLiveKitTokenResponse> {
+  return apiFetch('/api/livekit/party/token', {
+    method: 'POST',
+    body: JSON.stringify({ roomId, publish }),
+  });
+}

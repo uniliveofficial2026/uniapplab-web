@@ -61,7 +61,7 @@ function vercelEnvSet(name, value, target) {
 
 console.log('[livekit] Syncing LiveKit env to Vercel…');
 
-for (const target of ['production', 'preview', 'development']) {
+for (const target of ['production', 'development']) {
   for (const [name, value] of VARS) {
     if (!value) continue;
     const code = vercelEnvSet(name, value, target);

@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
  * Stage a minimal monorepo tree for Vercel remote builds.
- * Strips macOS AppleDouble (._*) files that inflate upload file counts.
+ * Includes api-server + shared lib packages so /api/* routes work in production.
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -20,11 +20,19 @@ const SKIP_NAMES = new Set([
   '.DS_Store',
 ]);
 
+const STAGING_PACKAGES = [
+  'artifacts/instacollab',
+  'artifacts/api-server',
+  'lib/api-zod',
+  'lib/db',
+  'lib/upstash',
+  'lib/livekit',
+];
+
 function shouldSkip(name, relPath = '') {
   if (SKIP_NAMES.has(name)) return true;
   if (name.startsWith('._')) return true;
   if (name.endsWith('.map')) return true;
-  // Built on Vercel from vendor/archives — keeps deploy archive small.
   if (relPath.includes('public/deepar-resources')) return true;
   if (relPath.includes('public/effects/')) return true;
   return false;
@@ -50,11 +58,29 @@ function writeTrimmedWorkspace() {
   const raw = fs.readFileSync(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8');
   const catalogStart = raw.indexOf('catalog:');
   const catalog = catalogStart >= 0 ? raw.slice(catalogStart) : '';
+  const pkgLines = STAGING_PACKAGES.map((p) => `  - ${p}`).join('\n');
   const trimmed = `packages:
-  - artifacts/instacollab
+${pkgLines}
 
 ${catalog}`;
   fs.writeFileSync(path.join(STAGING, 'pnpm-workspace.yaml'), trimmed);
+}
+
+function writeVercelConfig() {
+  const monorepo = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.monorepo.json'), 'utf8'));
+  const instacollab = JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'artifacts/instacollab/vercel.json'), 'utf8'),
+  );
+  const headerKeys = new Set((monorepo.headers ?? []).map((h) => h.source));
+  const mergedHeaders = [...(monorepo.headers ?? [])];
+  for (const h of instacollab.headers ?? []) {
+    if (!headerKeys.has(h.source)) mergedHeaders.push(h);
+  }
+  const config = {
+    ...monorepo,
+    headers: mergedHeaders,
+  };
+  fs.writeFileSync(path.join(STAGING, 'vercel.json'), `${JSON.stringify(config, null, 2)}\n`);
 }
 
 function main() {
@@ -66,6 +92,7 @@ function main() {
   }
 
   writeTrimmedWorkspace();
+  writeVercelConfig();
   copyTree(path.join(ROOT, 'config'), path.join(STAGING, 'config'));
 
   const scriptsDest = path.join(STAGING, 'scripts');
@@ -79,7 +106,6 @@ function main() {
     copyTree(path.join(ROOT, 'scripts', script), path.join(scriptsDest, script));
   }
 
-  // DeepAR zips must ship with staging (gitignored) — Vercel build runs install-deepar-assets.
   const vendorArchives = path.join(ROOT, 'artifacts', 'instacollab', 'vendor', 'archives');
   if (!fs.existsSync(path.join(vendorArchives, 'DeepAR-Web-v5.6.22.zip'))) {
     console.warn(
@@ -87,16 +113,13 @@ function main() {
     );
   }
 
-  copyTree(
-    path.join(ROOT, 'artifacts', 'instacollab'),
-    path.join(STAGING, 'artifacts', 'instacollab'),
-    'artifacts/instacollab',
-  );
+  for (const pkg of STAGING_PACKAGES) {
+    copyTree(path.join(ROOT, pkg), path.join(STAGING, pkg), pkg);
+  }
 
-  // Never upload local secrets — Vercel uses dashboard env vars.
   for (const envName of ['.env', '.env.local', '.env.production', '.env.production.local']) {
-    const envPath = path.join(STAGING, 'artifacts', 'instacollab', envName);
-    fs.rmSync(envPath, { force: true });
+    fs.rmSync(path.join(STAGING, 'artifacts', 'instacollab', envName), { force: true });
+    fs.rmSync(path.join(STAGING, 'artifacts', 'api-server', envName), { force: true });
   }
 
   const projectJson = path.join(ROOT, '.vercel', 'project.json');
@@ -107,6 +130,7 @@ function main() {
   }
 
   console.log(`[deploy] Staged remote build source → ${path.relative(ROOT, STAGING)}`);
+  console.log(`[deploy] Packages: ${STAGING_PACKAGES.join(', ')}`);
 }
 
 main();

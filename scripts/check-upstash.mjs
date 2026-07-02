@@ -27,6 +27,7 @@ function loadDotEnv() {
 
 loadDotEnv();
 
+const { probeProdApi } = await import('./probe-prod-api.mjs');
 const { isUpstashConfigured, pingRedis, getRedis, KEYS } = await import('../lib/upstash/index.mjs');
 
 let failed = 0;
@@ -56,11 +57,14 @@ if (!isUpstashConfigured()) {
 const origin = (process.env.PUBLIC_APP_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');
 if (process.argv.includes('--prod')) {
   try {
-    const res = await fetch(`${origin}/api/upstash/health`, { signal: AbortSignal.timeout(15000) });
-    const body = await res.json();
-    if (res.ok && body.ok) console.log(`[upstash] ✓ Production health ${origin}`);
-    else {
-      console.error(`[upstash] ✗ Production health: ${JSON.stringify(body)}`);
+    const result = await probeProdApi(origin, '/api/upstash/health');
+    if (result.ok && result.body?.ok) {
+      console.log(`[upstash] ✓ Production health ${origin}`);
+    } else if (result.body && !result.body.ok && result.body.configured === false) {
+      console.error('[upstash] ✗ Production: Upstash env not set on Vercel');
+      failed += 1;
+    } else {
+      console.error(`[upstash] ✗ Production health: ${result.reason || JSON.stringify(result.body)}`);
       failed += 1;
     }
   } catch (err) {
