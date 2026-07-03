@@ -39,6 +39,9 @@ exception
 end;
 $$;
 
+revoke all on function public.bootstrap_sync_rls_policy(regclass, text, text, text, text) from public;
+grant execute on function public.bootstrap_sync_rls_policy(regclass, text, text, text, text) to service_role;
+
 -- ─── profiles ───────────────────────────────────────────────────────────────
 
 create table if not exists public.profiles (
