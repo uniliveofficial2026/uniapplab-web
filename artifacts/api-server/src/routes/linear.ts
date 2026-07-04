@@ -1,4 +1,5 @@
-import { Router, type IRouter } from "express";
+import crypto from "node:crypto";
+import { Router, type IRouter, type Request, type Response } from "express";
 import {
   createIssue,
   getViewer,
@@ -10,6 +11,33 @@ import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
 router.use(upstashRateLimit);
+
+function timingSafeEqualString(a: string, b: string): boolean {
+  const left = Buffer.from(a);
+  const right = Buffer.from(b);
+  return left.length === right.length && crypto.timingSafeEqual(left, right);
+}
+
+function requireIssueCreateSecret(req: Request, res: Response): boolean {
+  const secret = process.env.LINEAR_ISSUE_CREATE_SECRET?.trim();
+  if (!secret) {
+    res.status(503).json({ error: "linear_issue_secret_not_configured" });
+    return false;
+  }
+
+  const header = req.headers.authorization;
+  const token =
+    typeof header === "string" && header.startsWith("Bearer ")
+      ? header.slice("Bearer ".length).trim()
+      : "";
+
+  if (!token || !timingSafeEqualString(token, secret)) {
+    res.status(401).json({ error: "invalid_linear_issue_secret" });
+    return false;
+  }
+
+  return true;
+}
 
 router.get("/linear/health", async (_req, res) => {
   if (!isLinearConfigured()) {
@@ -36,12 +64,16 @@ router.get("/linear/health", async (_req, res) => {
 });
 
 router.post("/linear/issues", async (req, res) => {
+  if (!requireIssueCreateSecret(req, res)) {
+    return;
+  }
+
   if (!isLinearConfigured()) {
     res.status(503).json({ error: "Linear not configured" });
     return;
   }
 
-  const { title, description, teamId, priority } = req.body ?? {};
+  const { title, description, priority } = req.body ?? {};
   if (!title || typeof title !== "string") {
     res.status(400).json({ error: "title required" });
     return;
@@ -51,7 +83,7 @@ router.post("/linear/issues", async (req, res) => {
     const issue = await createIssue({
       title,
       description: typeof description === "string" ? description : undefined,
-      teamId: typeof teamId === "string" ? teamId : undefined,
+      // Use LINEAR_TEAM_ID from server config; never trust an HTTP caller's team id.
       priority: typeof priority === "number" ? priority : undefined,
     });
     if (!issue) {
