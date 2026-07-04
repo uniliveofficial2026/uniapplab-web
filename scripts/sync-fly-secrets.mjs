@@ -47,6 +47,7 @@ const SECRETS = [
   ['LINEAR_API_KEY', env.LINEAR_API_KEY],
   ['LINEAR_TEAM_ID', env.LINEAR_TEAM_ID],
   ['LINEAR_WEBHOOK_SECRET', env.LINEAR_WEBHOOK_SECRET],
+  ['LINEAR_ISSUE_CREATE_SECRET', env.LINEAR_ISSUE_CREATE_SECRET],
   ['PUBLIC_APP_ORIGIN', env.PUBLIC_APP_ORIGIN || 'https://app.uniapplab.com'],
   [
     'CORS_ORIGINS',
@@ -56,8 +57,11 @@ const SECRETS = [
 ];
 
 const required = SECRETS.filter(([name, value]) => {
-  if (name === 'SUPABASE_SERVICE_ROLE_KEY') return false;
-  if (name === 'LINEAR_TEAM_ID' || name === 'LINEAR_WEBHOOK_SECRET') return false;
+  if (
+    name === 'LINEAR_TEAM_ID' ||
+    name === 'LINEAR_WEBHOOK_SECRET' ||
+    name === 'LINEAR_ISSUE_CREATE_SECRET'
+  ) return false;
   if (name.startsWith('QSTASH_') && name !== 'QSTASH_TOKEN') return false;
   return !value;
 });
