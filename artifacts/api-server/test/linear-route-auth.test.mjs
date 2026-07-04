@@ -57,7 +57,10 @@ test("POST /api/linear/issues is unavailable without a route secret", async () =
     });
 
     assert.equal(res.status, 503);
-    assert.equal((await res.json()).error, "linear_issue_secret_not_configured");
+    assert.equal(
+      (await res.json()).error,
+      "linear_issue_secret_not_configured",
+    );
   } finally {
     await close(server);
     restore();

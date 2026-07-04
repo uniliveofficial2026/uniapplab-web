@@ -106,7 +106,12 @@ router.post("/linear/webhook", (req, res) => {
     return;
   }
 
-  if (!verifyLinearWebhook(raw, typeof signature === "string" ? signature : undefined)) {
+  if (
+    !verifyLinearWebhook(
+      raw,
+      typeof signature === "string" ? signature : undefined,
+    )
+  ) {
     res.status(401).json({ error: "invalid signature" });
     return;
   }
@@ -119,7 +124,9 @@ router.post("/linear/webhook", (req, res) => {
     return;
   }
 
-  res.status(200).json({ ok: true, action: payload.action, type: payload.type });
+  res
+    .status(200)
+    .json({ ok: true, action: payload.action, type: payload.type });
 });
 
 export default router;
