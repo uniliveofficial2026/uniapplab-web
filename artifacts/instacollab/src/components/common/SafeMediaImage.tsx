@@ -39,7 +39,7 @@ export function SafeMediaImage({
   useEffect(() => {
     const initial = instantMediaSrc(src, fallback);
     setDisplay(initial);
-    warmMediaUrl(src);
+    if (priority) warmMediaUrl(src);
 
     if (!src) return;
 

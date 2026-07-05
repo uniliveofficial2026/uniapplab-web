@@ -18,7 +18,7 @@ import {
   openLiveUserRoom,
   preloadKaraokeScreen,
 } from '../../lib/live/openLiveRoom';
-import { preloadHeavyAppSurfaces } from '../../lib/preloadAppSurfaces';
+import { preloadLiveTabSurfaces } from '../../lib/preloadAppSurfaces';
 import { isSupabaseConfigured } from '../../lib/supabase/config';
 import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
 import { LiveDiscoveryVideoPreview } from './LiveDiscoveryVideoPreview';
@@ -75,7 +75,7 @@ export function LiveScreen() {
   const dbRevision = useDbRevision();
 
   useEffect(() => {
-    preloadHeavyAppSurfaces();
+    preloadLiveTabSurfaces();
     void preloadKaraokeScreen();
   }, []);
 

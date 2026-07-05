@@ -222,7 +222,7 @@ export function getDeepARBeautyPresetUrl(effectId: string): string | null {
 }
 
 /** Bump when carousel preview PNGs change so clients don't keep stale thumbs. */
-const PREVIEW_ASSET_VERSION = '11';
+const PREVIEW_ASSET_VERSION = '12';
 
 /** Fallback thumbs when a look-specific preview is missing. */
 const PREVIEW_FALLBACKS: Record<string, string[]> = {
@@ -247,15 +247,17 @@ const PREVIEW_FALLBACKS: Record<string, string[]> = {
   'beauty-glowing': ['beauty-glow', 'none'],
   'beauty-light-blush': ['beauty-soft', 'none'],
   'beauty-gelid': ['beauty-smooth', 'none'],
-  'shape-natural': ['beauty-natural', 'none'],
+  'beauty-natural': ['beauty-soft', 'none'],
+  'beauty-clear': ['beauty-smooth', 'none'],
+  'shape-natural': ['beauty-soft', 'none'],
   'shape-slim-face': ['beauty-smooth', 'makeup'],
   'shape-full-face': ['beauty-soft', 'none'],
-  'shape-vline': ['beauty-clear', 'beauty-smooth'],
+  'shape-vline': ['beauty-smooth', 'beauty-soft'],
   'shape-big-eyes': ['beauty-glow', 'makeup'],
-  'shape-model-waist': ['beauty-smooth', 'beauty-clear'],
+  'shape-model-waist': ['beauty-smooth', 'beauty-soft'],
   'shape-curvy': ['beauty-soft', 'beauty-glow'],
-  'shape-long-legs': ['beauty-natural', 'beauty-clear'],
-  'shape-athletic': ['beauty-clear', 'beauty-natural'],
+  'shape-long-legs': ['beauty-soft', 'beauty-smooth'],
+  'shape-athletic': ['beauty-smooth', 'beauty-soft'],
   'shape-glam': ['beauty-glow', 'makeup-split'],
 };
 

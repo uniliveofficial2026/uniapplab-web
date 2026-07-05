@@ -22,7 +22,7 @@ export type TencentWebARInitOptions = {
   module?: {
     beautify?: boolean;
     segmentation?: boolean;
-    segmentationLevel?: string;
+    segmentationLevel?: 0 | 1 | 2 | 'auto';
   };
   auth: {
     authFunc: () => TencentWebARAuthResult | Promise<TencentWebARAuthResult>;
@@ -31,9 +31,10 @@ export type TencentWebARInitOptions = {
   };
   input?: MediaStream | HTMLVideoElement | HTMLCanvasElement;
   camera?: {
-    width?: number;
-    height?: number;
-    mirror?: boolean;
+    width: number;
+    height: number;
+    mirror: boolean;
+    frameRate: number;
   };
   beautify?: TencentBeautifyParams;
   language?: string;
@@ -41,6 +42,8 @@ export type TencentWebARInitOptions = {
     enable?: boolean;
     lineWidth?: number;
   };
+  mirror?: boolean;
+  fps?: number;
 };
 
 /** Built-in preset from getEffectList / getCommonFilter (quick-start shape). */
@@ -65,8 +68,27 @@ export type TencentWebARInstance = {
   on: (event: string, handler: (payload?: unknown) => void) => void;
   off?: (event: string, handler?: (payload?: unknown) => void) => void;
   setBeautify: (params: TencentBeautifyParams) => void;
-  getOutput: () => Promise<MediaStream>;
-  getEffectList?: (opts: { Type: string }) => Promise<
+  getOutput: (fps?: number) => Promise<MediaStream>;
+  updateInputStream?: (
+    src: MediaStream,
+    stopOldTracks?: boolean,
+    updateOutputDestination?: boolean,
+  ) => Promise<void>;
+  setDetectModuleConfig?: (data: {
+    beautify?: boolean;
+    segmentation?: boolean;
+    segmentationLevel?: 0 | 1 | 2 | 'auto';
+  }) => void;
+  setSegmentationLevel?: (level: 0 | 1 | 2 | 'auto') => Promise<void>;
+  disable?: () => void;
+  enable?: () => void;
+  camera?: unknown;
+  getEffectList?: (opts: {
+    Type?: string;
+    Label?: string | string[];
+    PageNumber?: number;
+    PageSize?: number;
+  }) => Promise<
     Array<{
       Name?: string;
       EffectId?: string;
@@ -90,6 +112,13 @@ export type TencentWebARInstance = {
     effects:
       | Array<string | { id: string; intensity?: number; filterIntensity?: number }>
       | null,
+    callback?: (...args: unknown[]) => void,
+    errCallback?: (...args: unknown[]) => void,
+  ) => void;
+  preloadEffectByIds?: (
+    ids: string | string[],
+    callback?: (...args: unknown[]) => void,
+    errCallback?: (...args: unknown[]) => void,
   ) => void;
   setFilter?: (id: string | null, intensity?: number) => void;
   setBackground?: (opts: { type: string; src: string } | null) => void;

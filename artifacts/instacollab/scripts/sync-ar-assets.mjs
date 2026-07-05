@@ -26,4 +26,6 @@ if (trtc !== 0) {
   process.exit(trtc);
 }
 
+run('ensure-effect-previews.mjs');
+
 console.log('[ar] Asset sync complete');

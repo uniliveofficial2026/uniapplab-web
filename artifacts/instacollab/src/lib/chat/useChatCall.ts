@@ -13,6 +13,12 @@ import {
 } from 'livekit-client';
 import { isLiveKitConfigured } from '../livekit/livekitConfig';
 import { canAttemptLiveKit, connectWithTokenFetcher } from '../livekit/liveKitInstant';
+import {
+  PROCESSED_VIDEO_LIVEKIT_PUBLISH,
+  prepareProcessedVideoTrackForLiveKit,
+  updateLiveKitLocalVideoTrack,
+} from '../livekit/liveKitVideoPublish';
+import { WEBAR_CAMERA_FRAME_RATE, WEBAR_CAMERA_IDEAL } from '../webar/webarCameraConfig';
 import { isNetworkOnline } from '../networkStatus';
 import { fetchChatLiveKitToken } from '../platformApi';
 import { queueCloudCallInvite, resolveChatThreadId } from './cloudChatSync';
@@ -52,23 +58,19 @@ export function useChatCall(currentUserId: string | null | undefined) {
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
   }, []);
 
-  /** Swap published camera track (e.g. TRTC beauty output) without restarting the call. */
+  /** Swap published camera track (Tencent WebAR output) — LiveKit updateLocalVideo equivalent. */
   const replacePublishedVideoTrack = useCallback(async (track: MediaStreamTrack | null) => {
     const room = roomRef.current;
     if (!room || callKindRef.current !== 'video') return;
     try {
-      for (const pub of room.localParticipant.videoTrackPublications.values()) {
-        if (pub.track) {
-          await room.localParticipant.unpublishTrack(pub.track);
-        }
-      }
-      if (track) {
-        await room.localParticipant.publishTrack(track, { source: Track.Source.Camera });
-        if (localVideoRef.current) {
-          const stream = new MediaStream([track]);
-          localVideoRef.current.srcObject = stream;
-          void localVideoRef.current.play().catch(() => undefined);
-        }
+      await updateLiveKitLocalVideoTrack(
+        room.localParticipant,
+        track ? prepareProcessedVideoTrackForLiveKit(track) : null,
+      );
+      if (track && localVideoRef.current) {
+        const stream = new MediaStream([track]);
+        localVideoRef.current.srcObject = stream;
+        void localVideoRef.current.play().catch(() => undefined);
       }
     } catch {
       /* keep prior track */
@@ -107,7 +109,14 @@ export function useChatCall(currentUserId: string | null | undefined) {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({
         audio: true,
-        video: kind === 'video',
+        video:
+          kind === 'video'
+            ? {
+                width: { ideal: WEBAR_CAMERA_IDEAL.width },
+                height: { ideal: WEBAR_CAMERA_IDEAL.height },
+                frameRate: WEBAR_CAMERA_FRAME_RATE,
+              }
+            : false,
       });
       localStreamRef.current = stream;
       if (kind === 'video' && localVideoRef.current) {
@@ -194,7 +203,14 @@ export function useChatCall(currentUserId: string | null | undefined) {
       if (localStream) {
         for (const track of localStream.getTracks()) {
           try {
-            await room.localParticipant.publishTrack(track);
+            if (track.kind === 'video') {
+              await room.localParticipant.publishTrack(
+                prepareProcessedVideoTrackForLiveKit(track),
+                PROCESSED_VIDEO_LIVEKIT_PUBLISH,
+              );
+            } else {
+              await room.localParticipant.publishTrack(track, { source: Track.Source.Microphone });
+            }
           } catch {
             /* ignore */
           }

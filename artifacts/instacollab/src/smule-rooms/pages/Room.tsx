@@ -637,6 +637,12 @@ export function Room() {
   }, []);
 
   useEffect(() => {
+    if (roomMode === 'SoloLive' || roomMode === 'MultiGuest') {
+      void import('../../lib/preloadAppSurfaces').then((m) => m.preloadHeavyAppSurfaces());
+    }
+  }, [roomMode]);
+
+  useEffect(() => {
     localStorage.setItem('activeRoomId', roomDisplayId);
     const settings = ensureRoomRoleUserIds(roomDisplayId);
     setLiveSettings(settings);
@@ -1393,9 +1399,8 @@ export function Room() {
   ]);
 
   useEffect(() => {
-    if (!usesLivePartyFeed || !isCloudAuthUserId(self.id)) return;
-    const ownerId = liveSettings.ownerUserId ?? self.id;
-    syncPartyRoomToCloud(roomDisplayId, ownerId, liveSettings);
+    if (!usesLivePartyFeed) return;
+    syncPartyRoomToCloud(roomDisplayId, liveSettings.ownerUserId ?? self.id, liveSettings);
   }, [usesLivePartyFeed, roomDisplayId, liveSettings, self.id]);
 
   useEffect(() => {
@@ -2700,6 +2705,15 @@ export function Room() {
       showToast('That seat is not available in Solo Live.');
       return;
     }
+    if (
+      roomMode === 'SoloLive' &&
+      isSoloLiveGuestSeat(seatKey) &&
+      isSelfSoloHost &&
+      !activeSeats[seatKey as keyof PartySeatMap]
+    ) {
+      showToast('Guest seats are for co-hosts — you stay on the main stage.');
+      return;
+    }
     if (roomMode === 'MultiGuest' && !isMultiGuestSeatActive(seatKey, multiGuestSeatCount)) {
       showToast('That seat is not available in this room layout.');
       return;
@@ -3652,6 +3666,8 @@ export function Room() {
           beautyId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
           bodyShape={liveBodyShape}
+          beautyPanelOpen={isLiveBeautyOpen}
+          effectsPanelOpen={isMultiGuestEffectsOpen}
         >
           {(media) => (
         <SoloLiveView
@@ -3754,6 +3770,8 @@ export function Room() {
           beautyId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
           bodyShape={liveBodyShape}
+          beautyPanelOpen={isLiveBeautyOpen}
+          effectsPanelOpen={isMultiGuestEffectsOpen}
         >
           {(media) => (
         <MultiGuestView

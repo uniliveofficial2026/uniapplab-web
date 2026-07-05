@@ -1,6 +1,7 @@
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { db } from '../db/localDb';
 import { isCloudAuthUserId } from '../auth/cloudProfile';
+import { resolveSupabaseSessionUserId } from '../auth/resolveSupabaseSessionUserId';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
 import { fetchProfile, profileRowToUser } from '../supabase/profile';
@@ -717,21 +718,25 @@ export function queueCloudMessageDelete(peerId: string, message: ChatMessage): v
 
 export async function syncCloudChatInbox(): Promise<void> {
   const meId = db.currentUserId;
-  if (!meId || !isCloudAuthUserId(meId) || !isSupabaseConfigured()) return;
+  if (!meId || !isSupabaseConfigured()) return;
 
-  await hydrateThreadMapFromCloud(meId);
+  const authUserId = await resolveSupabaseSessionUserId(meId, { attemptMigrate: true });
+  if (!authUserId || !isCloudAuthUserId(authUserId)) return;
+
+  await hydrateThreadMapFromCloud(authUserId);
   const peers = Object.keys(loadThreadMap());
   await Promise.all(peers.map((peerId) => syncCloudChatHistory(peerId)));
 }
 
 export async function startCloudChatRealtime(userId: string): Promise<void> {
   stopCloudChatRealtime();
-  if (!isSupabaseConfigured() || !isCloudAuthUserId(userId)) return;
+  const authUserId = await resolveSupabaseSessionUserId(userId, { attemptMigrate: true });
+  if (!authUserId || !isCloudAuthUserId(authUserId) || !isSupabaseConfigured()) return;
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
-  await hydrateThreadMapFromCloud(userId);
+  await hydrateThreadMapFromCloud(authUserId);
 
   const onMessageRow = (payload: { new: Record<string, unknown> }) => {
     const row = payload.new as {
@@ -751,7 +756,7 @@ export async function startCloudChatRealtime(userId: string): Promise<void> {
   };
 
   realtimeChannel = supabase
-    .channel(`chat-messages:${userId}`)
+    .channel(`chat-messages:${authUserId}`)
     .on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'chat_messages' },

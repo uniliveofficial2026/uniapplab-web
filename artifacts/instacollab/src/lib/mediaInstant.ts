@@ -24,14 +24,15 @@ const warming = new Set<string>();
  * Prefer clear resolution for CDN thumbs (upgrade tiny w= params).
  * Keeps images sharp when shown from network or when caching.
  */
-export function preferClearMediaUrl(url: string): string {
+export function preferClearMediaUrl(url: string, highRes = false): string {
   if (!url.startsWith('http')) return url;
+  const targetWidth = highRes ? 1080 : 640;
   try {
     const u = new URL(url);
     const host = u.hostname;
     if (host.includes('unsplash.com') || host.includes('images.unsplash')) {
       const w = Number(u.searchParams.get('w') || 0);
-      if (!w || w < 1080) u.searchParams.set('w', '1080');
+      if (!w || w < targetWidth) u.searchParams.set('w', String(targetWidth));
       if (!u.searchParams.get('q')) u.searchParams.set('q', '85');
       u.searchParams.set('fit', 'crop');
       u.searchParams.set('auto', 'format');
@@ -41,8 +42,8 @@ export function preferClearMediaUrl(url: string): string {
     // Generic: bump common width query params used by CDNs.
     for (const key of ['w', 'width', 'w_', 'sz']) {
       const v = Number(u.searchParams.get(key) || 0);
-      if (v > 0 && v < 720) {
-        u.searchParams.set(key, '1080');
+      if (v > 0 && v < targetWidth) {
+        u.searchParams.set(key, String(targetWidth));
       }
     }
     return u.toString();
@@ -133,13 +134,13 @@ export function warmMediaFromLocalStorageMirrors(): void {
 
   let appN = 0;
   for (const ref of refs) {
-    if (appN++ > 48) break;
+    if (appN++ > 16) break;
     void hydrateAppMediaUrl(ref).catch(() => undefined);
   }
 
   let httpN = 0;
   for (const http of httpUrls) {
-    if (httpN++ > 32) break;
+    if (httpN++ > 10) break;
     warmMediaUrl(http);
   }
 }

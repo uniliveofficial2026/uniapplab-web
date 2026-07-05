@@ -10,6 +10,8 @@ import {
 import { isBodyShapeActive, type BodyShapeParams } from './bodyShape';
 import { isTencentWebARConfigured } from '../webar/webarConfig';
 import { useTencentWebAR } from '../webar/useTencentWebAR';
+import { tencentWebAROutputTrack } from '../livekit/tencentBeautyLiveKit';
+import { WEBAR_OUTPUT_FPS } from '../webar/webarCameraConfig';
 import type { TencentEffectSelection } from '../webar/webarTypes';
 import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../webar/webarTypes';
 
@@ -63,11 +65,13 @@ export function useStreamBeauty({
     activeId !== 'none' || effectsActive || isBodyShapeActive(mergedShape);
 
   const webar = useTencentWebAR({
-    enabled,
+    enabled: enabled && configured && beautyOn,
     inputStream,
     mirror,
     beautify,
     effects,
+    loadCatalogs: beautyOn,
+    outputFps: WEBAR_OUTPUT_FPS,
   });
 
   const [outputStream, setOutputStream] = useState<MediaStream | null>(null);
@@ -87,7 +91,9 @@ export function useStreamBeauty({
     error: webar.error,
     active: webar.ready && beautyOn,
     outputVideoRef: webar.outputVideoRef,
+    /** Processed track for LiveKit publish — same as ar.getOutput().getVideoTracks()[0]. */
     outputStream,
+    publishVideoTrack: tencentWebAROutputTrack(outputStream),
     catalogs: webar.catalogs,
   };
 }

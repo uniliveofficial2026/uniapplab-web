@@ -35,6 +35,7 @@ import { isDevLocalAuthBypass } from '../lib/auth/devLocalAuth';
 import { isNetworkOnline } from '../lib/networkStatus';
 import { applyFirebaseOAuthSessionToLocalDb } from '../lib/auth/applyFirebaseBackupSession';
 import {
+  isFirebaseOAuthPrimaryMode,
   isSupabaseOAuthDegraded,
   readStoredAuthBackend,
   writeStoredAuthBackend,
@@ -233,6 +234,7 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
         if (cancelled) return;
 
         const shouldApplyFirebaseUser = (uid: string) =>
+          isFirebaseOAuthPrimaryMode() ||
           isSupabaseOAuthDegraded() ||
           readStoredAuthBackend() === 'firebase' ||
           Boolean(readFirebaseBackupLink()?.firebaseUid === uid);

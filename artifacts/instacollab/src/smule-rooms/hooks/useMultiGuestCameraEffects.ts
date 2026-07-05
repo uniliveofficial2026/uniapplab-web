@@ -19,7 +19,8 @@ import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
 import { useTencentWebAR } from '../../lib/webar/useTencentWebAR';
 import type { TencentEffectItem, TencentEffectSelection } from '../../lib/webar/webarTypes';
 import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../../lib/webar/webarTypes';
-import { LIVE_VIDEO_HEIGHT, LIVE_VIDEO_WIDTH } from './liveVideoConstants';
+import { LIVE_VIDEO_HEIGHT, LIVE_VIDEO_WIDTH, WEBAR_CAMERA_FRAME_RATE, WEBAR_CAMERA_IDEAL } from './liveVideoConstants';
+import { prepareProcessedVideoTrackForLiveKit } from '../../lib/livekit/liveKitVideoPublish';
 
 /** LiveKit publish rate — 30fps keeps CPU lower than capture-every-paint (0). */
 const LIVE_CANVAS_FPS = 30;
@@ -31,6 +32,8 @@ type UseMultiGuestCameraEffectsOptions = {
   beautyId?: BeautyPresetId;
   beautyEffects?: TencentEffectSelection;
   bodyShape?: BodyShapeParams;
+  beautyPanelOpen?: boolean;
+  effectsPanelOpen?: boolean;
 };
 
 export type MultiGuestCameraEffectsState = {
@@ -75,6 +78,8 @@ export function useMultiGuestCameraEffects({
   beautyId = 'none',
   beautyEffects = EMPTY_TENCENT_EFFECT_SELECTION,
   bodyShape = EMPTY_BODY_SHAPE,
+  beautyPanelOpen = false,
+  effectsPanelOpen = false,
 }: UseMultiGuestCameraEffectsOptions): MultiGuestCameraEffectsState {
   const configured = isDeepARConfigured();
   const beautyConfigured = isTencentWebARConfigured();
@@ -88,6 +93,10 @@ export function useMultiGuestCameraEffects({
   );
   const shapeActive = isBodyShapeActive(bodyShape);
   const beautySelected = beautyId !== 'none' || beautyEffectsActive || shapeActive;
+  const webarWarm = beautySelected || beautyPanelOpen;
+  const deeparWarm = effectSelected || effectsPanelOpen;
+  /** DeepAR effects use native capture resolution — avoid 720p bump (prevents zoom mismatch). */
+  const useBeautyCapture = webarWarm && !deeparWarm;
 
   const previewRef = useRef<HTMLDivElement>(null);
   const publishTrackRef = useRef<MediaStreamTrack | null>(null);
@@ -106,8 +115,8 @@ export function useMultiGuestCameraEffects({
     enabled,
     audio: false,
     facingMode,
-    videoIdeal: { width: LIVE_VIDEO_WIDTH, height: LIVE_VIDEO_HEIGHT },
-    frameRate: { ideal: 30, max: 30 },
+    videoIdeal: useBeautyCapture ? WEBAR_CAMERA_IDEAL : { width: LIVE_VIDEO_WIDTH, height: LIVE_VIDEO_HEIGHT },
+    frameRate: WEBAR_CAMERA_FRAME_RATE,
   });
 
   const cameraReady = camera.ready;
@@ -125,20 +134,19 @@ export function useMultiGuestCameraEffects({
     [beautyId, JSON.stringify(bodyShape)],
   );
   const webar = useTencentWebAR({
-    /** Keep TRTC warm whenever the camera is on — apply presets without re-init. */
-    enabled: enabled && cameraReady && beautyConfigured,
+    /** Raw camera stays native until beauty is selected or panel opens. */
+    enabled: enabled && cameraReady && beautyConfigured && webarWarm,
     inputStream,
     mirror: mirrorSelf,
     beautify: beautifyParams,
     effects: beautyEffects,
+    loadCatalogs: beautyPanelOpen || beautySelected,
   });
 
   const deepar = useDeepAR({
     previewRef,
     videoElementRef: camera.videoRef,
-    /** Keep engine warm while camera is on — avoids stopVideo/init churn when toggling effects. */
-    enabled: enabled && cameraReady && configured,
-    /** Stay warm when idle; pause only (no full reset) for faster effect apply. */
+    enabled: enabled && cameraReady && configured && deeparWarm,
     processingActive: effectSelected,
     effectSelection: selection,
     initialEffectId: effectId,
@@ -170,6 +178,7 @@ export function useMultiGuestCameraEffects({
   }, [cameraReady, deepar.ready, deepar.reconnectExternalVideo, facingMode]);
 
   const publishRaw = (rawTrack: MediaStreamTrack | null) => {
+    if (!rawTrack) return;
     if (publishSourceRef.current === 'raw' && publishTrackRef.current === rawTrack) return;
     publishSourceRef.current = 'raw';
     publishTrackRef.current = rawTrack;
@@ -178,20 +187,20 @@ export function useMultiGuestCameraEffects({
 
   const publishCanvas = (canvasTrack: MediaStreamTrack | null) => {
     if (!canvasTrack) return;
-    canvasTrack.contentHint = 'motion';
-    if (publishSourceRef.current === 'canvas' && publishTrackRef.current === canvasTrack) return;
+    const prepared = prepareProcessedVideoTrackForLiveKit(canvasTrack);
+    if (publishSourceRef.current === 'canvas' && publishTrackRef.current === prepared) return;
     publishSourceRef.current = 'canvas';
-    publishTrackRef.current = canvasTrack;
-    setVideoTrack(canvasTrack);
+    publishTrackRef.current = prepared;
+    setVideoTrack(prepared);
   };
 
   const publishBeauty = (beautyTrack: MediaStreamTrack | null) => {
     if (!beautyTrack) return;
-    beautyTrack.contentHint = 'motion';
-    if (publishSourceRef.current === 'beauty' && publishTrackRef.current === beautyTrack) return;
+    const prepared = prepareProcessedVideoTrackForLiveKit(beautyTrack);
+    if (publishSourceRef.current === 'beauty' && publishTrackRef.current === prepared) return;
     publishSourceRef.current = 'beauty';
-    publishTrackRef.current = beautyTrack;
-    setVideoTrack(beautyTrack);
+    publishTrackRef.current = prepared;
+    setVideoTrack(prepared);
   };
 
   useEffect(() => {

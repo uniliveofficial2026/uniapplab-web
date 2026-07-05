@@ -4,27 +4,48 @@
 import { preloadInstant } from './instantTask';
 
 let coreWarmed = false;
+let liveWarmed = false;
 let heavyWarmed = false;
 
-/** Feed, messages, profile — small enough to warm after first paint. */
+function scheduleIdle(fn: () => void): void {
+  if (typeof window === 'undefined') return;
+  const ric = window.requestIdleCallback;
+  if (ric) {
+    ric(fn, { timeout: 4000 });
+    return;
+  }
+  window.setTimeout(fn, 1500);
+}
+
+/** Feed, messages, profile — deferred until browser idle (never blocks boot). */
 export function preloadCoreAppSurfaces(): void {
   if (coreWarmed || typeof window === 'undefined') return;
   coreWarmed = true;
 
-  const factories: Array<() => Promise<unknown>> = [
-    () => import('../components/feed/Feed'),
-    () => import('../components/messages/MessagesScreen'),
-    () => import('../components/profile/ProfileScreen'),
-    () => import('../components/notifications/NotificationsScreen'),
-    () => import('../components/search/SearchScreen'),
-  ];
+  scheduleIdle(() => {
+    const factories: Array<() => Promise<unknown>> = [
+      () => import('../components/messages/MessagesScreen'),
+      () => import('../components/profile/ProfileScreen'),
+      () => import('../components/notifications/NotificationsScreen'),
+      () => import('../components/search/SearchScreen'),
+    ];
 
-  for (const factory of factories) {
-    preloadInstant(factory);
-  }
+    for (const factory of factories) {
+      preloadInstant(factory);
+    }
+  });
 }
 
-/** Karaoke, live, rooms, DeepAR — only when user opens those features. */
+/** Live tab — warm TRTC module + live screen only (no DeepAR zips). */
+export function preloadLiveTabSurfaces(): void {
+  if (liveWarmed || typeof window === 'undefined') return;
+  liveWarmed = true;
+
+  void import('tencentcloud-webar').catch(() => undefined);
+  preloadInstant(() => import('../components/live/LiveScreen'));
+}
+
+/** Karaoke, rooms, full AR stack — when user opens those features. */
 export function preloadHeavyAppSurfaces(): void {
   if (heavyWarmed || typeof window === 'undefined') return;
   heavyWarmed = true;
@@ -32,7 +53,6 @@ export function preloadHeavyAppSurfaces(): void {
   void import('./ar/ensureArStack').then((m) => m.ensureArStackLoaded());
 
   const factories: Array<() => Promise<unknown>> = [
-    () => import('../components/live/LiveScreen'),
     () => import('../components/karaoke/KaraokeScreen'),
     () => import('../smule-rooms/RoomsHost'),
     () => import('../components/wallet/WalletScreen'),

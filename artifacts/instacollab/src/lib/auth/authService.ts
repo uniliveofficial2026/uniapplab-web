@@ -26,7 +26,7 @@ import {
 } from '../firebase/authApi';
 import { isFirebaseConfigured } from '../firebase/config';
 import { withSupabaseFirebaseFailover } from './failover';
-import { resolveLiveOAuthBackend, SUPABASE_OAUTH_DOWN_MESSAGE, SUPABASE_OAUTH_ONLY_DOWN_MESSAGE, isSupabaseOAuthRedirectAllowed } from './oauthLane';
+import { resolveLiveOAuthBackendSync, SUPABASE_OAUTH_DOWN_MESSAGE, SUPABASE_OAUTH_ONLY_DOWN_MESSAGE, isSupabaseOAuthRedirectAllowed } from './oauthLane';
 import { writeStoredAuthBackend } from './providerState';
 import { clearDevLocalAuthBypass } from './devLocalAuth';
 import { clearFirebaseBackupLink } from './firebaseBackupLink';
@@ -160,7 +160,7 @@ export async function authSignInWithGoogle(options?: {
   clearDevLocalAuthBypass();
 
   if (isSupabaseConfigured() && isFirebaseConfigured()) {
-    const lane = await resolveLiveOAuthBackend();
+    const lane = resolveLiveOAuthBackendSync();
     if (lane === 'firebase') {
       writeStoredAuthBackend('firebase');
       const result = await firebaseSignInWithGoogle();
@@ -194,7 +194,7 @@ export async function authSignInWithApple(): Promise<AuthResult & { usedBackup?:
   clearDevLocalAuthBypass();
 
   if (isSupabaseConfigured() && isFirebaseConfigured()) {
-    const lane = await resolveLiveOAuthBackend();
+    const lane = resolveLiveOAuthBackendSync();
     if (lane === 'firebase') {
       writeStoredAuthBackend('firebase');
       const result = await firebaseSignInWithApple();

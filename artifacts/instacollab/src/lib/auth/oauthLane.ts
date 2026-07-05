@@ -4,46 +4,53 @@ import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
 import {
   clearSupabaseOAuthDegraded,
+  clearSupabaseOAuthHealthyLane,
   isSupabaseOAuthDegraded,
   markSupabaseOAuthDegraded,
+  markSupabaseOAuthHealthyLane,
+  resolveOAuthSignInBackend,
 } from './providerState';
 
 const OAUTH_PROBE_MS = 6_000;
 
+/** Instant OAuth lane — no network probe on sign-in click. */
+export function resolveLiveOAuthBackendSync(): AuthBackend {
+  return resolveOAuthSignInBackend();
+}
+
 /**
- * Pick OAuth lane before any browser redirect.
- * When Firebase is configured, default to Firebase unless Supabase /authorize is healthy now.
+ * Pick OAuth lane before any browser redirect (async probe for recovery checks only).
  */
 export async function resolveLiveOAuthBackend(): Promise<AuthBackend> {
-  if (!isSupabaseConfigured()) {
-    return isFirebaseConfigured() ? 'firebase' : 'supabase';
-  }
-
-  if (isSupabaseOAuthDegraded() && isFirebaseConfigured()) {
-    return 'firebase';
+  const syncLane = resolveLiveOAuthBackendSync();
+  if (syncLane === 'firebase' || !isSupabaseConfigured()) {
+    return syncLane;
   }
 
   invalidateSupabaseHealthCache();
   const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
   if (oauthOk) {
-    clearSupabaseOAuthDegraded();
+    markSupabaseOAuthHealthyLane();
     return 'supabase';
   }
 
   markSupabaseOAuthDegraded();
+  clearSupabaseOAuthHealthyLane();
   return isFirebaseConfigured() ? 'firebase' : 'supabase';
 }
 
 export async function isSupabaseOAuthRedirectAllowed(): Promise<boolean> {
   if (!isSupabaseConfigured()) return false;
+  if (resolveLiveOAuthBackendSync() === 'firebase') return false;
   if (isSupabaseOAuthDegraded()) return false;
   invalidateSupabaseHealthCache();
   const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
   if (!oauthOk) {
     markSupabaseOAuthDegraded();
+    clearSupabaseOAuthHealthyLane();
     return false;
   }
-  clearSupabaseOAuthDegraded();
+  markSupabaseOAuthHealthyLane();
   return true;
 }
 

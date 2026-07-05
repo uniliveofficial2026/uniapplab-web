@@ -1,7 +1,8 @@
 import {
-  clearSupabaseOAuthDegraded,
+  clearSupabaseOAuthHealthyLane,
   isSupabaseOAuthDegraded,
   markSupabaseOAuthDegraded,
+  markSupabaseOAuthHealthyLane,
 } from './providerState';
 import { performSilentSupabaseRecovery } from './silentSupabaseRecovery';
 import {
@@ -42,11 +43,12 @@ async function evaluateSupabaseCloudLane(options?: { coldStart?: boolean }): Pro
 
   if (!healthOk || !dataOk) {
     markSupabaseOAuthDegraded();
+    clearSupabaseOAuthHealthyLane();
     return;
   }
   const wasDegraded = isSupabaseOAuthDegraded();
   if (oauthOk) {
-    clearSupabaseOAuthDegraded();
+    markSupabaseOAuthHealthyLane();
     if (wasDegraded) {
       void performSilentSupabaseRecovery();
     }
@@ -54,6 +56,7 @@ async function evaluateSupabaseCloudLane(options?: { coldStart?: boolean }): Pro
   }
 
   markSupabaseOAuthDegraded();
+  clearSupabaseOAuthHealthyLane();
 }
 
 async function tryRecoverSupabaseOAuth(options?: { coldStart?: boolean }): Promise<void> {

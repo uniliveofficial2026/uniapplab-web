@@ -27,11 +27,17 @@ type RoomLiveMediaSessionProps = {
   beautyId?: BeautyPresetId;
   beautyEffects?: TencentEffectSelection;
   bodyShape?: TencentBodyShapeParams;
+  beautyPanelOpen?: boolean;
+  effectsPanelOpen?: boolean;
   children: (media: RoomLiveMediaBundle) => ReactNode;
 };
 
 /**
  * Solo Live + Multi-Guest camera/AR/LiveKit session.
+ *
+ * Pipeline (Tencent WebAR → LiveKit; TRTC equivalent uses updateLocalVideo):
+ *   getUserMedia → ar.getOutput() → updateLiveKitLocalVideoTrack()
+ *
  * Local camera paints instantly; LiveKit is a timed background upgrade for
  * remote tiles (viewers subscribe immediately, publishers when seated).
  * Remounting (key={sessionMode}) tears down the previous session cleanly.
@@ -48,6 +54,8 @@ export function RoomLiveMediaSession({
   beautyId = 'none',
   beautyEffects = EMPTY_TENCENT_EFFECT_SELECTION,
   bodyShape = EMPTY_BODY_SHAPE,
+  beautyPanelOpen = false,
+  effectsPanelOpen = false,
   children,
 }: RoomLiveMediaSessionProps) {
   const liveCameraEnabled = Boolean(userSeatKey) && userCameraOn;
@@ -59,6 +67,8 @@ export function RoomLiveMediaSession({
     beautyId,
     beautyEffects,
     bodyShape,
+    beautyPanelOpen,
+    effectsPanelOpen,
   });
 
   const liveKit = useMultiGuestLiveKit({

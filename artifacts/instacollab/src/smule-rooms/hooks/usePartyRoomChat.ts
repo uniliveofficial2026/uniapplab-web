@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
+import { resolveSupabaseSessionUserId } from '../../lib/auth/resolveSupabaseSessionUserId';
 import {
   fetchPartyRoomMessages,
   insertPartyRoomMessage,
@@ -32,11 +32,28 @@ export function usePartyRoomChat({
   senderId,
   senderName,
 }: UsePartyRoomChatOptions) {
-  const cloudActive =
-    enabled && isPartyRoomChatCloudAvailable() && isCloudAuthUserId(senderId);
+  const [authUserId, setAuthUserId] = useState<string | null>(null);
+  const cloudAvailable = isPartyRoomChatCloudAvailable();
+  const cloudActive = enabled && cloudAvailable && Boolean(authUserId);
   const [messages, setMessages] = useState<PartyRoomLiveChatMessage[]>([]);
   const channelRef = useRef<ReturnType<typeof subscribePartyRoomMessages>>(null);
   const seenIdsRef = useRef<Set<string>>(new Set());
+
+  useEffect(() => {
+    if (!enabled || !cloudAvailable) {
+      setAuthUserId(null);
+      return undefined;
+    }
+
+    let cancelled = false;
+    void resolveSupabaseSessionUserId(senderId, { attemptMigrate: true }).then((id) => {
+      if (!cancelled) setAuthUserId(id);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [cloudAvailable, enabled, senderId]);
 
   const remember = useCallback((message: PartyRoomLiveChatMessage) => {
     seenIdsRef.current.add(messageKey(message));
@@ -54,7 +71,7 @@ export function usePartyRoomChat({
     setMessages([]);
     if (!enabled) return undefined;
 
-    if (!cloudActive) return undefined;
+    if (!cloudActive || !authUserId) return undefined;
 
     let cancelled = false;
 
@@ -75,7 +92,7 @@ export function usePartyRoomChat({
       });
 
     channelRef.current = subscribePartyRoomMessages(roomId, (incoming) => {
-      if (incoming.userId === senderId) return;
+      if (incoming.userId === authUserId) return;
       mergeMessage(incoming);
     });
 
@@ -84,19 +101,20 @@ export function usePartyRoomChat({
       unsubscribePartyRoomChannel(channelRef.current);
       channelRef.current = null;
     };
-  }, [cloudActive, enabled, mergeMessage, roomId, senderId]);
+  }, [authUserId, cloudActive, enabled, mergeMessage, roomId]);
 
   const appendMessage = useCallback(
     (message: PartyRoomLiveChatMessage) => {
       const withId: PartyRoomLiveChatMessage = {
         ...message,
         id: message.id ?? `local_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+        userId: authUserId ?? message.userId ?? senderId,
       };
       mergeMessage(withId);
 
-      if (!cloudActive || isLocalOnlyMessage(withId)) return;
+      if (!cloudActive || !authUserId || isLocalOnlyMessage(withId)) return;
 
-      void insertPartyRoomMessage(roomId, senderId, senderName, withId)
+      void insertPartyRoomMessage(roomId, authUserId, senderName, withId)
         .then((row) => {
           if (!row) return;
           const cloudId = row.id;
@@ -112,7 +130,7 @@ export function usePartyRoomChat({
           console.warn('[party-room-chat] send failed:', err);
         });
     },
-    [cloudActive, mergeMessage, roomId, senderId, senderName],
+    [authUserId, cloudActive, mergeMessage, roomId, senderId, senderName],
   );
 
   const sendTextMessage = useCallback(
@@ -122,12 +140,12 @@ export function usePartyRoomChat({
       appendMessage({
         id: `local_${Date.now()}`,
         user: senderName,
-        userId: senderId,
+        userId: authUserId ?? senderId,
         text: trimmed,
         isBurmese: false,
       });
     },
-    [appendMessage, senderId, senderName],
+    [appendMessage, authUserId, senderId, senderName],
   );
 
   return {

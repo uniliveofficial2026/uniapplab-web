@@ -359,7 +359,9 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
       observer.disconnect();
       window.removeEventListener('resize', syncFooterHeight);
     };
-  }, []);
+  }, [beautyPanelOpen, effectsPanelOpen]);
+
+  const panelAnchorBottom = Math.max(footerHeight, 104) + 6;
 
   const videoLayout = useMemo(
     () => getMultiGuestVideoLayout(multiGuestSeatCount),
@@ -918,7 +920,8 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
           bodyShape={beautyBodyShape}
           onBodyShapeChange={onBeautyBodyShapeChange}
           catalogs={beautyCatalogs}
-          anchorBottom={footerHeight}
+          anchorBottom={panelAnchorBottom}
+          anchorMode="container"
           webarConfigured={beautyConfigured}
           webarLoading={beautyLoading}
           webarError={beautyError}
@@ -937,7 +940,8 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
           onBodyShapeChange={onBeautyBodyShapeChange}
           loading={effectsLoading}
           cameraReady={effectsCameraReady}
-          anchorBottom={footerHeight}
+          anchorBottom={panelAnchorBottom}
+          anchorMode="container"
         />
       ) : null}
     </div>

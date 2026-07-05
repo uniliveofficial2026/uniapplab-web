@@ -617,6 +617,7 @@
 
 /* ── Unified room responsive shell (Party, Chorus, Watch Together) ── */
 .room-shell {
+  --room-guest-tile-size: min(1.5in, calc((100dvh - 12rem) / 3 - 0.5rem));
   height: 100%;
   min-height: 0;
   max-height: 100%;
@@ -1116,7 +1117,11 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 .multi-guest-video-grid {
   --mg-cols: 5;
   --mg-rows: 3;
-  --mg-cell: min(calc(100cqw / var(--mg-cols)), calc(100cqh / var(--mg-rows)));
+  --mg-cell: min(
+    var(--room-guest-tile-size),
+    calc(100cqw / var(--mg-cols)),
+    calc(100cqh / var(--mg-rows))
+  );
   position: relative;
   z-index: 2;
   display: grid;
@@ -1248,9 +1253,9 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 
 .multi-guest-deepar-process {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform-origin: center center;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   contain: layout style paint;
 }
@@ -1793,9 +1798,9 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 
 .solo-live-deepar-process {
   position: absolute;
-  left: 50%;
-  top: 50%;
-  transform-origin: center center;
+  inset: 0;
+  width: 100%;
+  height: 100%;
   opacity: 0;
   pointer-events: none;
   contain: layout style paint;
@@ -1809,6 +1814,7 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   width: 100% !important;
   height: 100% !important;
   display: block;
+  object-fit: cover;
   transform: translateZ(0);
 }
 
@@ -1934,7 +1940,7 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 }
 
 .solo-live-guest-grid {
-  --solo-live-guest-size: min(2in, calc((100dvh - 11rem) / 3 - 0.45rem));
+  --solo-live-guest-size: var(--room-guest-tile-size);
   display: flex;
   flex-direction: column;
   align-items: stretch;
@@ -2068,6 +2074,15 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   letter-spacing: 0.06em;
   text-transform: uppercase;
   color: rgba(255, 255, 255, 0.7);
+}
+
+.solo-live-guest-tile--host-locked {
+  cursor: default;
+  opacity: 0.72;
+}
+
+.solo-live-guest-tile--host-locked .solo-live-guest-tile-empty {
+  opacity: 0.85;
 }
 
 @media (min-width: 640px) {

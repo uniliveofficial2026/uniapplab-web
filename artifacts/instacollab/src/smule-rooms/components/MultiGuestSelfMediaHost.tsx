@@ -1,5 +1,4 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
-import { LIVE_VIDEO_HEIGHT, LIVE_VIDEO_WIDTH } from '../hooks/liveVideoConstants';
 
 type SelfMediaBounds = {
   left: number;
@@ -27,11 +26,6 @@ type MultiGuestSelfMediaHostProps = {
   /** CSS fallback when WebAR credentials are missing. */
   beautyFilter?: string | null;
 };
-
-function coverScale(containerWidth: number, containerHeight: number): number {
-  if (containerWidth < 1 || containerHeight < 1) return 1;
-  return Math.max(containerWidth / LIVE_VIDEO_WIDTH, containerHeight / LIVE_VIDEO_HEIGHT);
-}
 
 function assignRef<T>(ref: RefObject<T | null>, value: T | null) {
   ref.current = value;
@@ -122,29 +116,6 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
   }, [mounted, anchorRef, seatKey, stageRef]);
 
   useLayoutEffect(() => {
-    if (!mounted) return undefined;
-    const tile = tileRef.current;
-    const process = processRef.current;
-    if (!tile || !process) return undefined;
-
-    const syncScale = () => {
-      const { width, height } = tile.getBoundingClientRect();
-      const scale = coverScale(width, height);
-      process.style.transform = `translate(-50%, -50%) scale(${scale})`;
-    };
-
-    syncScale();
-    const observer = new ResizeObserver(syncScale);
-    observer.observe(tile);
-    window.addEventListener('resize', syncScale);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', syncScale);
-    };
-  }, [mounted, bounds?.width, bounds?.height]);
-
-  useLayoutEffect(() => {
     if (!mounted || !visible) return undefined;
     const video = rawVideoRef.current;
     if (!video) return undefined;
@@ -222,10 +193,6 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
           <div
             ref={mergeProcessRef}
             className={`multi-guest-deepar-process${showDeeparPreview ? ' multi-guest-deepar-process--live' : ''}`}
-            style={{
-              width: LIVE_VIDEO_WIDTH,
-              height: LIVE_VIDEO_HEIGHT,
-            }}
           />
         </div>
       </div>

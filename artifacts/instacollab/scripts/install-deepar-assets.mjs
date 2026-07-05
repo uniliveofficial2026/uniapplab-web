@@ -369,6 +369,11 @@ if (assetsAlreadyInstalled()) {
     console.log('[deepar] Repairing missing beauty pre-look previews…');
     extractBeautyPreviews(beautyDir);
   }
+  try {
+    execSync('node scripts/ensure-effect-previews.mjs', { cwd: appRoot, stdio: 'inherit' });
+  } catch {
+    /* optional */
+  }
   console.log('[deepar] Assets already installed — skip (set DEEPAR_FORCE_INSTALL=1 to reinstall)');
   process.exit(0);
 }
@@ -418,3 +423,8 @@ fs.writeFileSync(
 );
 
 console.log('[deepar] Install complete');
+try {
+  execSync('node scripts/ensure-effect-previews.mjs', { cwd: appRoot, stdio: 'inherit' });
+} catch {
+  /* optional */
+}

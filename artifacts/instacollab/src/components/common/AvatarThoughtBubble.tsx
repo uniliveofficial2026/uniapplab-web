@@ -275,6 +275,9 @@ export function AvatarThoughtBubble({
     intersectionObserver.observe(anchor);
 
     window.addEventListener('resize', updatePosition);
+    const vv = window.visualViewport;
+    vv?.addEventListener('scroll', updatePosition, { passive: true });
+    vv?.addEventListener('resize', updatePosition, { passive: true });
 
     return () => {
       resizeObserver.disconnect();
@@ -284,6 +287,8 @@ export function AvatarThoughtBubble({
         parent.removeEventListener('scroll', updatePosition);
       }
       window.removeEventListener('resize', updatePosition);
+      vv?.removeEventListener('scroll', updatePosition);
+      vv?.removeEventListener('resize', updatePosition);
     };
   }, [anchorRef, noteText, userId]);
 
@@ -392,6 +397,9 @@ export function ThoughtComposerBubblePortal({
     }
 
     window.addEventListener('resize', updatePosition);
+    const vv = window.visualViewport;
+    vv?.addEventListener('scroll', updatePosition, { passive: true });
+    vv?.addEventListener('resize', updatePosition, { passive: true });
 
     return () => {
       resizeObserver.disconnect();
@@ -399,6 +407,8 @@ export function ThoughtComposerBubblePortal({
         parent.removeEventListener('scroll', updatePosition);
       }
       window.removeEventListener('resize', updatePosition);
+      vv?.removeEventListener('scroll', updatePosition);
+      vv?.removeEventListener('resize', updatePosition);
     };
   }, [anchorRef, showBubble, mode, variant]);
 

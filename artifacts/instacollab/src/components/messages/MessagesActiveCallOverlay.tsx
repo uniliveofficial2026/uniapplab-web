@@ -83,7 +83,12 @@ export function MessagesActiveCallOverlay({
   }, [videoCall, inCall, localStreamRef, phase]);
 
   const beauty = useStreamBeauty({
-    enabled: videoCall && inCall && phase !== 'incoming' && !deeparActive,
+    enabled:
+      videoCall &&
+      inCall &&
+      phase !== 'incoming' &&
+      !deeparActive &&
+      (beautyActive || beautyPanelOpen),
     inputStream,
     beautyId,
     effects: beautyEffects,

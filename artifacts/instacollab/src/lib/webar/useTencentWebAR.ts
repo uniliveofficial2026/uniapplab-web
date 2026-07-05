@@ -6,6 +6,11 @@ import {
   getTencentWebARToken,
   isTencentWebARConfigured,
 } from './webarConfig';
+import {
+  WEBAR_BUILTIN_CAMERA,
+  WEBAR_CAMERA_FPS,
+  WEBAR_OUTPUT_FPS,
+} from './webarCameraConfig';
 import type {
   TencentBeautifyParams,
   TencentEffectItem,
@@ -19,12 +24,19 @@ import {
 import { BEAUTY_OFF_PARAMS } from '../ar/beautyFilters';
 
 type UseTencentWebAROptions = {
-  /** Keep SDK warm while camera stream is live (init once per track). */
+  /** Init SDK when true — keep off for raw camera-only paths. */
   enabled: boolean;
-  inputStream: MediaStream | null;
+  /** Custom MediaStream from getUserMedia (Tencent custom-stream mode). */
+  inputStream?: MediaStream | null;
+  /** When true, SDK opens its own 1280×720 camera (Tencent built-in camera mode). */
+  useBuiltinCamera?: boolean;
   mirror?: boolean;
   beautify: TencentBeautifyParams;
   effects?: TencentEffectSelection;
+  /** Fetch effect catalogs (defer until beauty panel opens). */
+  loadCatalogs?: boolean;
+  /** Output frame rate for getOutput(fps) — default 30 per Tencent live docs. */
+  outputFps?: number;
 };
 
 async function buildSignature() {
@@ -47,6 +59,26 @@ function hasEffectSelection(effects?: TencentEffectSelection): boolean {
 }
 
 function applyEffects(instance: TencentWebARInstance, effects: TencentEffectSelection) {
+  void applyEffectsAsync(instance, effects);
+}
+
+async function preloadEffectIds(instance: TencentWebARInstance, ids: string[]) {
+  if (ids.length === 0 || !instance.preloadEffectByIds) return;
+  await new Promise<void>((resolve) => {
+    instance.preloadEffectByIds?.(
+      ids,
+      () => resolve(),
+      () => resolve(),
+    );
+  });
+}
+
+async function applyEffectsAsync(instance: TencentWebARInstance, effects: TencentEffectSelection) {
+  const preloadIds: string[] = [];
+  if (effects.makeupId) preloadIds.push(effects.makeupId);
+  if (effects.stickerId) preloadIds.push(effects.stickerId);
+  await preloadEffectIds(instance, preloadIds);
+
   const stack: Array<string | { id: string; intensity?: number; filterIntensity?: number }> = [];
   if (effects.makeupId) {
     stack.push({ id: effects.makeupId, intensity: 1, filterIntensity: 0 });
@@ -67,12 +99,37 @@ function applyEffects(instance: TencentWebARInstance, effects: TencentEffectSele
   }
   try {
     if (effects.backgroundUrl) {
-      instance.setBackground?.({ type: 'image', src: effects.backgroundUrl });
+      await instance.setBackground?.({ type: 'image', src: effects.backgroundUrl });
     } else {
-      instance.setBackground?.(null);
+      await instance.setBackground?.(null);
     }
   } catch {
     /* ignore */
+  }
+}
+
+function labelMatches(item: TencentEffectItem, label: string): boolean {
+  const needle = label.toLowerCase();
+  const haystack = [item.label, item.type, item.name].filter(Boolean).join(' ').toLowerCase();
+  return haystack.includes(needle);
+}
+
+async function fetchEffectCatalog(
+  instance: TencentWebARInstance,
+  label: string,
+): Promise<TencentEffectItem[]> {
+  try {
+    const labeled = await instance.getEffectList?.({ Type: 'Preset', Label: label });
+    if (labeled?.length) return mapEffectRows(labeled);
+  } catch {
+    /* try fallback */
+  }
+  try {
+    const all = await instance.getEffectList?.({ Type: 'Preset', PageSize: 200 });
+    if (!all?.length) return [];
+    return mapEffectRows(all).filter((item) => labelMatches(item, label));
+  } catch {
+    return [];
   }
 }
 
@@ -99,21 +156,31 @@ function mapEffectRows(
 }
 
 /**
- * Tencent WebAR beauty — init once per camera track, apply presets without teardown.
+ * Tencent Beauty AR Web SDK hook.
+ *
+ * Supports both official integration modes:
+ * - Custom stream: pass `inputStream` from getUserMedia at 1280×720
+ * - Built-in camera: set `useBuiltinCamera` — SDK owns the device camera
+ *
+ * @see https://www.tencentcloud.com/document/product/1143/50102
  */
 export function useTencentWebAR({
   enabled,
-  inputStream,
+  inputStream = null,
+  useBuiltinCamera = false,
   mirror = true,
   beautify,
   effects = EMPTY_TENCENT_EFFECT_SELECTION,
+  loadCatalogs = false,
+  outputFps = WEBAR_OUTPUT_FPS,
 }: UseTencentWebAROptions) {
   const configured = isTencentWebARConfigured();
   const instanceRef = useRef<TencentWebARInstance | null>(null);
   const outputVideoRef = useRef<HTMLVideoElement | null>(null);
   const outputStreamRef = useRef<MediaStream | null>(null);
   const catalogsLoadedRef = useRef(false);
-  const beautifyApplyTimerRef = useRef(0);
+  const inputTrackIdRef = useRef('');
+  const segmentationOnRef = useRef(false);
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -123,14 +190,65 @@ export function useTencentWebAR({
   const [backgrounds] = useState<string[]>([...TRTC_DEFAULT_BACKGROUNDS]);
 
   const beautyOn = isBeautifyActive(beautify) || hasEffectSelection(effects);
+  const needsSegmentation = Boolean(effects.backgroundUrl);
   const inputVideoTrackId = inputStream?.getVideoTracks()[0]?.id ?? '';
-  const keepWarm = enabled && configured && Boolean(inputStream);
+  const streamMode = !useBuiltinCamera;
+  const keepWarm =
+    enabled &&
+    configured &&
+    (useBuiltinCamera || Boolean(inputStream));
 
+  const loadCatalogsAsync = async (
+    instance: TencentWebARInstance,
+    cancelled: () => boolean,
+  ) => {
+    if (catalogsLoadedRef.current || cancelled()) return;
+    try {
+      const [makeupRows, stickerRows] = await Promise.all([
+        fetchEffectCatalog(instance, 'Makeup'),
+        fetchEffectCatalog(instance, 'Sticker'),
+      ]);
+      if (!cancelled()) {
+        setMakeups(makeupRows);
+        setStickers(stickerRows);
+      }
+    } catch {
+      /* catalogs optional offline */
+    }
+    try {
+      const list = await instance.getCommonFilter?.();
+      if (list && !cancelled()) setFilters(mapEffectRows(list));
+    } catch {
+      /* optional */
+    }
+    catalogsLoadedRef.current = true;
+  };
+
+  const attachOutput = async (instance: TencentWebARInstance) => {
+    const output = (await instance.getOutput(outputFps)) as MediaStream;
+    outputStreamRef.current = output;
+    const outputVideo = outputVideoRef.current;
+    if (outputVideo) {
+      outputVideo.srcObject = output;
+      outputVideo.muted = true;
+      outputVideo.playsInline = true;
+      void outputVideo.play().catch(() => {});
+    }
+    return output;
+  };
+
+  // Init SDK once — custom stream or built-in camera per Tencent docs.
   useEffect(() => {
-    if (!keepWarm || !inputStream) {
+    if (!keepWarm) {
       setReady(false);
       setLoading(false);
       catalogsLoadedRef.current = false;
+      inputTrackIdRef.current = '';
+      segmentationOnRef.current = false;
+      return undefined;
+    }
+
+    if (streamMode && !inputStream) {
       return undefined;
     }
 
@@ -148,22 +266,30 @@ export function useTencentWebAR({
         instance = new WebArSdk({
           module: {
             beautify: true,
-            segmentation: true,
-            segmentationLevel: '1' as never,
+            segmentation: needsSegmentation,
+            ...(needsSegmentation ? { segmentationLevel: 1 as const } : {}),
           },
           auth: {
             authFunc: buildSignature,
             appId: getTencentWebARAppId(),
             licenseKey: getTencentWebARLicenseKey(),
           },
-          input: inputStream,
           mirror,
           beautify: BEAUTY_OFF_PARAMS,
           language: 'en',
           loading: { enable: false },
+          fps: WEBAR_CAMERA_FPS,
+          ...(useBuiltinCamera
+            ? { camera: { ...WEBAR_BUILTIN_CAMERA, mirror } }
+            : inputStream
+              ? { input: inputStream }
+              : {}),
         }) as TencentWebARInstance;
-
         instanceRef.current = instance;
+        segmentationOnRef.current = needsSegmentation;
+        if (streamMode && inputStream) {
+          inputTrackIdRef.current = inputVideoTrackId;
+        }
 
         await new Promise<void>((resolve, reject) => {
           const onReady = () => {
@@ -191,46 +317,21 @@ export function useTencentWebAR({
           return;
         }
 
-        if (!catalogsLoadedRef.current) {
-          try {
-            const list = await instance.getEffectList?.({ Type: 'Preset' });
-            if (list && !cancelled) {
-              const mapped = mapEffectRows(list);
-              setMakeups(mapped.filter((item) => (item.label || '').includes('Makeup')));
-              setStickers(mapped.filter((item) => (item.label || '').includes('Sticker')));
-            }
-          } catch {
-            /* catalogs optional offline */
-          }
-          try {
-            const list = await instance.getCommonFilter?.();
-            if (list && !cancelled) setFilters(mapEffectRows(list));
-          } catch {
-            /* optional */
-          }
-          catalogsLoadedRef.current = true;
-        }
-
         instance.setBeautify(beautify);
-        applyEffects(instance, effects);
+        await applyEffectsAsync(instance, effects);
+        await attachOutput(instance);
 
-        const output = (await instance.getOutput()) as MediaStream;
         if (cancelled) {
           instance.destroy?.({ stopInputStream: false });
           return;
         }
 
-        outputStreamRef.current = output;
-        const outputVideo = outputVideoRef.current;
-        if (outputVideo) {
-          outputVideo.srcObject = output;
-          outputVideo.muted = true;
-          outputVideo.playsInline = true;
-          void outputVideo.play().catch(() => {});
-        }
-
         setReady(true);
         setError(null);
+
+        if (loadCatalogs) {
+          void loadCatalogsAsync(instance, () => cancelled);
+        }
       } catch (err) {
         if (!cancelled) {
           setReady(false);
@@ -246,6 +347,8 @@ export function useTencentWebAR({
       setReady(false);
       setLoading(false);
       outputStreamRef.current = null;
+      inputTrackIdRef.current = '';
+      segmentationOnRef.current = false;
       if (outputVideoRef.current) {
         outputVideoRef.current.srcObject = null;
       }
@@ -259,22 +362,71 @@ export function useTencentWebAR({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keepWarm, inputVideoTrackId, mirror]);
+  }, [keepWarm, useBuiltinCamera, mirror]);
+
+  // Custom stream: swap camera via updateInputStream (no SDK re-init) — Tencent Step 5.
+  useEffect(() => {
+    if (!streamMode || !ready || !inputStream) return undefined;
+    if (inputVideoTrackId === inputTrackIdRef.current) return undefined;
+
+    const instance = instanceRef.current;
+    if (!instance?.updateInputStream) {
+      inputTrackIdRef.current = inputVideoTrackId;
+      return undefined;
+    }
+
+    inputTrackIdRef.current = inputVideoTrackId;
+    void instance
+      .updateInputStream(inputStream, false, false)
+      .catch(() => {
+        /* instance may be tearing down */
+      });
+    return undefined;
+  }, [streamMode, ready, inputStream, inputVideoTrackId]);
+
+  // Enable segmentation module dynamically when virtual background is selected.
+  useEffect(() => {
+    const instance = instanceRef.current;
+    if (!instance || !ready) return undefined;
+    if (needsSegmentation === segmentationOnRef.current) return undefined;
+
+    segmentationOnRef.current = needsSegmentation;
+    try {
+      instance.setDetectModuleConfig?.({
+        segmentation: needsSegmentation,
+        ...(needsSegmentation ? { segmentationLevel: 1 as const } : {}),
+      });
+      if (needsSegmentation) {
+        void instance.setSegmentationLevel?.(1);
+      }
+    } catch {
+      /* ignore */
+    }
+    applyEffects(instance, effects);
+    return undefined;
+  }, [needsSegmentation, ready, effects]);
+
+  useEffect(() => {
+    const instance = instanceRef.current;
+    if (!instance || !ready || !loadCatalogs || catalogsLoadedRef.current) return undefined;
+    void loadCatalogsAsync(instance, () => false);
+    return undefined;
+  }, [loadCatalogs, ready]);
 
   useEffect(() => {
     const instance = instanceRef.current;
     if (!instance || !ready) return undefined;
-    window.clearTimeout(beautifyApplyTimerRef.current);
-    beautifyApplyTimerRef.current = window.setTimeout(() => {
-      try {
-        instance.setBeautify(beautify);
-        applyEffects(instance, effects);
-      } catch {
-        /* ignore stale instance */
-      }
-    }, 80);
-    return () => window.clearTimeout(beautifyApplyTimerRef.current);
-  }, [beautify, effects, ready]);
+    try {
+      instance.setBeautify(beautify);
+      void applyEffectsAsync(instance, effects).then(() => {
+        if (beautyOn) instance.enable?.();
+        else instance.disable?.();
+      });
+    } catch {
+      /* ignore stale instance */
+    }
+    return undefined;
+  }, [beautify, effects, ready, beautyOn]);
 
   useEffect(() => {
     if (!ready) return undefined;

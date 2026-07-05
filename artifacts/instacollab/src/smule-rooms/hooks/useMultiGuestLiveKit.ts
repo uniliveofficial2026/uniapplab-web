@@ -1,15 +1,15 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ConnectionState,
-  LocalVideoTrack,
+  createLocalAudioTrack,
   RemoteTrack,
   Room,
   RoomEvent,
   Track,
-  createLocalAudioTrack,
 } from 'livekit-client';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
 import { canAttemptLiveKit, connectWithTokenFetcher } from '../../lib/livekit/liveKitInstant';
+import { updateLiveKitLocalVideoTrack } from '../../lib/livekit/liveKitVideoPublish';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
 import { resolveRoomMemberIdentity } from '../utils/roomMemberProfile';
 
@@ -33,27 +33,11 @@ export type MultiGuestLiveKitState = {
 };
 
 async function publishOrReplaceCameraTrack(room: Room, track: MediaStreamTrack): Promise<void> {
-  const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
-  const localTrack = publication?.track;
-
-  if (localTrack instanceof LocalVideoTrack) {
-    if (localTrack.mediaStreamTrack?.id !== track.id) {
-      await localTrack.replaceTrack(track);
-    }
-    return;
-  }
-
-  await room.localParticipant.publishTrack(track, {
-    source: Track.Source.Camera,
-    simulcast: false,
-  });
+  await updateLiveKitLocalVideoTrack(room.localParticipant, track);
 }
 
 async function unpublishCameraTrack(room: Room): Promise<void> {
-  const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
-  if (publication?.track) {
-    await room.localParticipant.unpublishTrack(publication.track);
-  }
+  await updateLiveKitLocalVideoTrack(room.localParticipant, null);
 }
 
 /**

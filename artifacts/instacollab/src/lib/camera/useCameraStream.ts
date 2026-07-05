@@ -7,7 +7,7 @@ export type UseCameraStreamOptions = {
   enabled: boolean;
   audio?: boolean;
   facingMode?: CameraFacingMode;
-  /** Lower resolution for live AR pipelines (defaults 1280×720). */
+  /** Ideal capture size — Tencent WebAR expects 1280×720 for custom-stream beauty. */
   videoIdeal?: { width?: number; height?: number };
   /** Cap capture frame rate for live publishing (defaults uncapped). */
   frameRate?: { ideal?: number; max?: number };

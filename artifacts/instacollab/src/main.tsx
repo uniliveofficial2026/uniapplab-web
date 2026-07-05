@@ -81,7 +81,13 @@ clearChunkReloadGuard();
 void import('./lib/cacheFirstSync').then((m) => m.startCacheFirstCloudSync());
 
 void initSupabaseClient().then(() => {
-  void import('./lib/preloadAppSurfaces').then((m) => m.preloadCoreAppSurfaces());
+  void import('./lib/preloadAppSurfaces').then((m) => {
+    if (typeof window.requestIdleCallback === 'function') {
+      window.requestIdleCallback(() => m.preloadCoreAppSurfaces(), { timeout: 5000 });
+    } else {
+      window.setTimeout(() => m.preloadCoreAppSurfaces(), 2000);
+    }
+  });
 });
 
 void import('./lib/firebase/app').then((m) => {

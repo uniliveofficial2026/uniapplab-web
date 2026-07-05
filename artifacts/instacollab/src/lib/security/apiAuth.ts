@@ -10,6 +10,8 @@ export async function getCloudAuthHeaders(): Promise<Record<string, string>> {
   };
 
   const supabase = getSupabaseClient();
+  let token: string | null = null;
+
   if (supabase) {
     try {
       const { data } = await withTimeout(
@@ -17,23 +19,31 @@ export async function getCloudAuthHeaders(): Promise<Record<string, string>> {
         NET_AUTH_MS,
         'auth.getSession',
       );
-      const token = data.session?.access_token;
-      if (token) {
-        headers.authorization = `Bearer ${token}`;
-        return headers;
+      token = data.session?.access_token ?? null;
+      if (!token) {
+        const refreshed = await withTimeout(
+          supabase.auth.refreshSession(),
+          NET_AUTH_MS,
+          'auth.refreshSession',
+        );
+        token = refreshed.data.session?.access_token ?? null;
       }
     } catch {
       /* try Firebase backup lane */
     }
   }
 
-  try {
-    const fbUser = getFirebaseCurrentUser();
-    const idToken = await fbUser?.getIdToken();
-    if (idToken) headers.authorization = `Bearer ${idToken}`;
-  } catch {
-    /* unsigned request — server may reject */
+  if (!token) {
+    try {
+      const fbUser = getFirebaseCurrentUser();
+      if (fbUser) {
+        token = await withTimeout(fbUser.getIdToken(), NET_AUTH_MS, 'firebase.getIdToken');
+      }
+    } catch {
+      /* unsigned request — server may reject */
+    }
   }
 
+  if (token) headers.authorization = `Bearer ${token}`;
   return headers;
 }

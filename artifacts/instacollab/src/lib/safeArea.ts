@@ -66,15 +66,19 @@ export function updateAppSafeArea(): void {
   const vv = visualViewportInsets();
   const androidTop = androidTopFallback(env.top, vv.top);
 
+  // Shell chrome uses env() only — visualViewport bottom shifts when keyboard opens
+  // and must not move fixed nav bars.
   const top = Math.max(env.top, vv.top, androidTop);
-  const bottom = Math.max(env.bottom, vv.bottom);
+  const bottom = env.bottom;
   const left = Math.max(env.left, vv.left);
   const right = Math.max(env.right, vv.right);
+  const keyboardBottom = Math.max(0, vv.bottom);
 
   root.style.setProperty('--app-safe-top', `${top}px`);
   root.style.setProperty('--app-safe-bottom', `${bottom}px`);
   root.style.setProperty('--app-safe-left', `${left}px`);
   root.style.setProperty('--app-safe-right', `${right}px`);
+  root.style.setProperty('--app-keyboard-bottom', `${keyboardBottom}px`);
 
   const ua = navigator.userAgent;
   if (/iPhone|iPad|iPod/i.test(ua)) {

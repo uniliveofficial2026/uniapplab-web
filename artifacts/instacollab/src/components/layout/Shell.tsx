@@ -535,11 +535,11 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
       )}
 
       {/* Main Content Area */}
-      <div className="flex-1 flex flex-col h-full min-w-0 relative z-10 overflow-x-hidden overflow-y-hidden min-h-0">
+      <div className={`flex-1 flex flex-col h-full min-w-0 relative z-10 overflow-x-hidden overflow-y-hidden min-h-0 ${!hideShellMobileTopNav ? 'max-md:pt-[var(--app-shell-top-offset)]' : ''}`}>
         
         {/* Mobile Top Header */}
         {!hideShellMobileTopNav && (
-        <div className={`mobile-top-nav md:hidden sticky top-0 left-0 w-full pt-safe z-[100] border-b flex flex-col shrink-0 ${currentTab === 'reels' ? 'bg-black text-white border-zinc-800' : 'bg-background text-foreground border-border shadow-sm'}`}>
+        <div className={`mobile-top-nav md:hidden fixed top-0 left-0 w-full pt-safe z-[100] border-b flex flex-col shrink-0 ${currentTab === 'reels' ? 'bg-black text-white border-zinc-800' : 'bg-background text-foreground border-border shadow-sm'}`}>
              <div className="h-[60px] flex items-center justify-between px-4 w-full">
                <button
                  type="button"

@@ -8,6 +8,8 @@ export type CameraBeautyBottomShellProps = {
   titleIcon?: React.ReactNode;
   accent?: 'rose' | 'fuchsia';
   anchorBottom?: number;
+  /** `container` anchors to the nearest positioned ancestor (live room layout). */
+  anchorMode?: 'fixed' | 'container';
   loading?: boolean;
   loadingLabel?: string;
   children: React.ReactNode;
@@ -23,6 +25,7 @@ export function CameraBeautyBottomShell({
   titleIcon,
   accent = 'rose',
   anchorBottom = 0,
+  anchorMode = 'fixed',
   loading = false,
   loadingLabel = 'Loading…',
   children,
@@ -34,9 +37,11 @@ export function CameraBeautyBottomShell({
       ? 'text-fuchsia-100'
       : 'text-rose-100';
 
+  const positionClass = anchorMode === 'container' ? 'absolute' : 'fixed';
+
   return (
     <div
-      className="pointer-events-none fixed inset-x-0 z-[250] px-2 sm:px-3"
+      className={`pointer-events-none ${positionClass} inset-x-0 z-[250] px-2 sm:px-3`}
       style={{ bottom: anchorBottom }}
     >
       <div className="pointer-events-auto mx-auto w-full max-w-full pb-[max(0.35rem,env(safe-area-inset-bottom))]">

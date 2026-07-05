@@ -2,6 +2,8 @@ import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 're
 import { Track } from 'livekit-client';
 import {
   LayoutGrid,
+  Check,
+  Copy,
   Lock,
   LogOut,
   Mic,
@@ -433,7 +435,9 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       observer.disconnect();
       window.removeEventListener('resize', syncFooterHeight);
     };
-  }, []);
+  }, [beautyPanelOpen, effectsPanelOpen]);
+
+  const panelAnchorBottom = Math.max(footerHeight, 104) + 6;
 
   const renderGuestSeat = (seatKey: RoomSeatKey) => {
     const rawGuest = activeSeats[seatKey];
@@ -456,13 +460,27 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       : Boolean(guestUserId && multiGuestLiveKit.remoteVideoByUserId.has(guestUserId));
     const label = `NO.${formatGuestSeatNumber(seatKey)}`;
 
+    const hostCannotTakeGuestSeat = isSelfHost && !guest;
+
     return (
       <button
         key={seatKey}
         type="button"
-        onClick={() => handleSeatClick(seatKey)}
-        className="solo-live-guest-tile group text-left"
-        aria-label={guest ? `${guest.name} guest seat` : `Join ${label}`}
+        onClick={() => {
+          if (hostCannotTakeGuestSeat) return;
+          handleSeatClick(seatKey);
+        }}
+        disabled={hostCannotTakeGuestSeat}
+        className={`solo-live-guest-tile group text-left${
+          hostCannotTakeGuestSeat ? ' solo-live-guest-tile--host-locked' : ''
+        }`}
+        aria-label={
+          hostCannotTakeGuestSeat
+            ? `${label} — guest co-host seat`
+            : guest
+              ? `${guest.name} guest seat`
+              : `Join ${label}`
+        }
       >
         {guest ? (
           <>
@@ -607,6 +625,26 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                     <Pencil size={12} />
                   </button>
                 ) : null}
+              </div>
+              <div className="flex min-w-0 items-center gap-1 pl-0.5">
+                <span
+                  className="truncate font-mono text-[10px] font-semibold tracking-wide text-white/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                  title={`Live room ID ${roomDisplayId}`}
+                >
+                  ID:{roomDisplayId}
+                </span>
+                <button
+                  type="button"
+                  onClick={onCopyRoomId}
+                  className="shrink-0 rounded-md p-0.5 text-white/60 transition hover:bg-white/10 hover:text-white/90"
+                  aria-label={roomIdCopied ? 'Live ID copied' : 'Copy live ID'}
+                >
+                  {roomIdCopied ? (
+                    <Check size={12} className="text-emerald-400" />
+                  ) : (
+                    <Copy size={12} />
+                  )}
+                </button>
               </div>
             </div>
             <div className="flex shrink-0 items-center space-x-1.5 sm:space-x-2">
@@ -820,7 +858,8 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           bodyShape={beautyBodyShape}
           onBodyShapeChange={onBeautyBodyShapeChange}
           catalogs={beautyCatalogs}
-          anchorBottom={footerHeight}
+          anchorBottom={panelAnchorBottom}
+          anchorMode="container"
           webarConfigured={beautyConfigured}
           webarLoading={beautyLoading}
           webarError={beautyError}
@@ -839,7 +878,8 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           onBodyShapeChange={onBeautyBodyShapeChange}
           loading={effectsLoading}
           cameraReady={effectsCameraReady}
-          anchorBottom={footerHeight}
+          anchorBottom={panelAnchorBottom}
+          anchorMode="container"
         />
       ) : null}
     </div>

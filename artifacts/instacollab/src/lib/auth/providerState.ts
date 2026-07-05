@@ -7,6 +7,8 @@ const PROVIDER_AT_KEY = 'instacollab_auth_backend_at';
 /** OAuth + data lane — Firebase when Supabase auth/rest/oauth is down. */
 const OAUTH_DEGRADED_KEY = 'instacollab_supabase_oauth_degraded';
 const OAUTH_DEGRADED_LS_KEY = 'instacollab_supabase_oauth_degraded_until';
+/** Set by background probe when /authorize responds — enables instant Supabase OAuth again. */
+const OAUTH_HEALTHY_KEY = 'instacollab_supabase_oauth_healthy';
 const LEGACY_UNHEALTHY_LS_KEY = 'instacollab_supabase_unhealthy';
 
 const OAUTH_DEGRADED_TTL_MS = 6 * 60 * 60 * 1000;
@@ -103,6 +105,29 @@ export function isSupabaseOAuthDegraded(): boolean {
   return oauthDegradedUntilMs > Date.now();
 }
 
+/** Background probe confirmed Supabase /authorize is reachable — use Supabase OAuth again. */
+export function isSupabaseOAuthHealthyLane(): boolean {
+  return session()?.getItem(OAUTH_HEALTHY_KEY) === '1';
+}
+
+export function markSupabaseOAuthHealthyLane(): void {
+  session()?.setItem(OAUTH_HEALTHY_KEY, '1');
+  clearSupabaseOAuthDegraded();
+}
+
+export function clearSupabaseOAuthHealthyLane(): void {
+  session()?.removeItem(OAUTH_HEALTHY_KEY);
+}
+
+/** Firebase OAuth is default when both backends exist and Supabase OAuth is not confirmed healthy. */
+export function isFirebaseOAuthPrimaryMode(): boolean {
+  return (
+    isFirebaseConfigured() &&
+    isSupabaseConfigured() &&
+    !isSupabaseOAuthHealthyLane()
+  );
+}
+
 /** Back-compat aliases — unhealthy now means OAuth redirect lane only. */
 export function markSupabaseUnhealthy(): void {
   markSupabaseOAuthDegraded();
@@ -123,8 +148,9 @@ export function resolveInitialAuthBackend(): AuthBackend {
   return 'supabase';
 }
 
-/** Google/Apple redirect lane — Firebase when Supabase OAuth /authorize is down. */
+/** Google/Apple redirect lane — sync, zero probe delay. */
 export function resolveOAuthSignInBackend(): AuthBackend {
+  if (isFirebaseOAuthPrimaryMode()) return 'firebase';
   if (isSupabaseOAuthDegraded() && isFirebaseConfigured()) return 'firebase';
   if (isSupabaseConfigured()) return 'supabase';
   if (isFirebaseConfigured()) return 'firebase';
@@ -132,7 +158,7 @@ export function resolveOAuthSignInBackend(): AuthBackend {
 }
 
 export function shouldPreferFirebaseOnStartup(): boolean {
-  return false;
+  return isFirebaseOAuthPrimaryMode();
 }
 
 export function shouldPreferFirebaseForOAuth(): boolean {

@@ -23,8 +23,9 @@ type MultiGuestEffectsSheetProps = {
   onBodyShapeChange?: (shape: BodyShapeParams) => void;
   loading?: boolean;
   cameraReady?: boolean;
-  /** Pixels from viewport bottom — matches footer height so panel sits above footer. */
+  /** Pixels from bottom edge — matches footer height so panel sits above footer. */
   anchorBottom?: number;
+  anchorMode?: 'fixed' | 'container';
 };
 
 const AR_TABS: Array<{ id: ArTab; label: string }> = [
@@ -44,6 +45,7 @@ export function MultiGuestEffectsSheet({
   loading = false,
   cameraReady = false,
   anchorBottom = 0,
+  anchorMode = 'fixed',
 }: MultiGuestEffectsSheetProps) {
   const multiSelect = Boolean(onSelectionChange);
   const [tab, setTab] = useState<ArTab>('effects');
@@ -56,6 +58,7 @@ export function MultiGuestEffectsSheet({
       titleIcon={<Sparkles size={12} aria-hidden />}
       accent="fuchsia"
       anchorBottom={anchorBottom}
+      anchorMode={anchorMode}
       loading={loading}
       loadingLabel="Loading AR…"
     >

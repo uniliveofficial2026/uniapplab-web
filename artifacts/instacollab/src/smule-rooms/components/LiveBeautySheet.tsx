@@ -23,8 +23,8 @@ const TRTC_BEAUTY_PREVIEW_IDS: Record<string, string> = {
   'beauty-smooth': 'beauty-smooth',
   'beauty-soft': 'beauty-soft',
   'beauty-glow': 'beauty-glow',
-  'beauty-natural': 'beauty-natural',
-  'beauty-clear': 'beauty-clear',
+  'beauty-natural': 'beauty-soft',
+  'beauty-clear': 'beauty-smooth',
 };
 
 type BeautyTab = 'beauty' | 'shape' | 'makeup' | 'sticker' | 'filter' | 'background';
@@ -44,8 +44,9 @@ type LiveBeautySheetProps = {
     filters: TencentEffectItem[];
     backgrounds: string[];
   };
-  /** Pixels from viewport bottom (footer / transport clearance). */
+  /** Pixels from bottom edge (footer / transport clearance). */
   anchorBottom?: number;
+  anchorMode?: 'fixed' | 'container';
   webarConfigured?: boolean;
   webarLoading?: boolean;
   webarError?: string | null;
@@ -73,6 +74,7 @@ export function LiveBeautySheet({
   onBodyShapeChange,
   catalogs,
   anchorBottom = 0,
+  anchorMode = 'fixed',
   webarConfigured = false,
   webarLoading = false,
   webarError = null,
@@ -250,6 +252,7 @@ export function LiveBeautySheet({
       titleIcon={<ScanFace size={12} aria-hidden />}
       accent="rose"
       anchorBottom={anchorBottom}
+      anchorMode={anchorMode}
       loading={webarLoading}
       loadingLabel="Loading Beauty…"
     >

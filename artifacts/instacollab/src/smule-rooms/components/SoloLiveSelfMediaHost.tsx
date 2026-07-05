@@ -1,6 +1,5 @@
 import React, { useLayoutEffect, useRef } from 'react';
 import type { RefObject } from 'react';
-import { LIVE_VIDEO_HEIGHT, LIVE_VIDEO_WIDTH } from '../hooks/liveVideoConstants';
 
 type SoloLiveSelfMediaHostProps = {
   /** Keep camera + DeepAR DOM mounted while user is the solo host (survives chat re-renders). */
@@ -17,11 +16,6 @@ type SoloLiveSelfMediaHostProps = {
   /** CSS fallback when WebAR credentials are missing. */
   beautyFilter?: string | null;
 };
-
-function coverScale(containerWidth: number, containerHeight: number): number {
-  if (containerWidth < 1 || containerHeight < 1) return 1;
-  return Math.max(containerWidth / LIVE_VIDEO_WIDTH, containerHeight / LIVE_VIDEO_HEIGHT);
-}
 
 function assignRef<T>(ref: RefObject<T | null>, value: T | null) {
   ref.current = value;
@@ -42,36 +36,12 @@ export const SoloLiveSelfMediaHost = React.memo(function SoloLiveSelfMediaHost({
   showBeautyPreview = false,
   beautyFilter = null,
 }: SoloLiveSelfMediaHostProps) {
-  const stageRef = useRef<HTMLDivElement>(null);
   const processRef = useRef<HTMLDivElement>(null);
 
   const mergeProcessRef = (node: HTMLDivElement | null) => {
     processRef.current = node;
     assignRef(deeparPreviewRef, node);
   };
-
-  useLayoutEffect(() => {
-    if (!mounted) return undefined;
-    const stage = stageRef.current;
-    const process = processRef.current;
-    if (!stage || !process) return undefined;
-
-    const syncScale = () => {
-      const { width, height } = stage.getBoundingClientRect();
-      const scale = coverScale(width, height);
-      process.style.transform = `translate(-50%, -50%) scale(${scale})`;
-    };
-
-    syncScale();
-    const observer = new ResizeObserver(syncScale);
-    observer.observe(stage);
-    window.addEventListener('resize', syncScale);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', syncScale);
-    };
-  }, [mounted]);
 
   /** Browsers may pause off-screen or covered video — keep the DeepAR source playing. */
   useLayoutEffect(() => {
@@ -98,7 +68,6 @@ export const SoloLiveSelfMediaHost = React.memo(function SoloLiveSelfMediaHost({
 
   return (
     <div
-      ref={stageRef}
       className="solo-live-self-media-host"
       style={{ visibility: visible ? 'visible' : 'hidden' }}
       aria-hidden
@@ -136,10 +105,6 @@ export const SoloLiveSelfMediaHost = React.memo(function SoloLiveSelfMediaHost({
         <div
           ref={mergeProcessRef}
           className={`solo-live-deepar-process${showDeeparPreview ? ' solo-live-deepar-process--live' : ''}`}
-          style={{
-            width: LIVE_VIDEO_WIDTH,
-            height: LIVE_VIDEO_HEIGHT,
-          }}
         />
       </div>
     </div>

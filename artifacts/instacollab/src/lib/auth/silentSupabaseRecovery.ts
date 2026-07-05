@@ -14,7 +14,7 @@ import {
 } from './sessionManager';
 import { isSupabaseAuthUserId } from './activeBackend';
 import { restartCloudAppStateSync } from './cloudAppState';
-import { writeStoredAuthBackend } from './providerState';
+import { writeStoredAuthBackend, markSupabaseOAuthHealthyLane } from './providerState';
 import { readFirebaseBackupLink } from './firebaseBackupLink';
 import { loadStoredAccountSession } from './storedAccountSessions';
 import { withTimeout } from '../supabase/withTimeout';
@@ -96,6 +96,7 @@ export async function performSilentSupabaseRecovery(): Promise<boolean> {
     const silent = db.isLoggedIn && db.currentUserId === session.user.id;
     await applySupabaseSessionToLocalDb(session, { silent });
     writeStoredAuthBackend('supabase');
+    markSupabaseOAuthHealthyLane();
 
     await mergeFirebaseAppStateIntoSupabase(session.user.id);
     await restartCloudAppStateSync(session.user.id);
