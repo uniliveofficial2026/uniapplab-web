@@ -26,9 +26,8 @@ import {
 } from '../firebase/authApi';
 import { isFirebaseConfigured } from '../firebase/config';
 import { withSupabaseFirebaseFailover } from './failover';
-import {
-  isSupabaseOAuthDegraded,
-} from './providerState';
+import { resolveLiveOAuthBackend, SUPABASE_OAUTH_DOWN_MESSAGE } from './oauthLane';
+import { writeStoredAuthBackend } from './providerState';
 import { clearDevLocalAuthBypass } from './devLocalAuth';
 import { clearFirebaseBackupLink } from './firebaseBackupLink';
 import type { AuthResult } from './types';
@@ -157,12 +156,17 @@ export async function authUpdatePassword(newPassword: string): Promise<AuthResul
 export async function authSignInWithGoogle(options?: {
   selectAccount?: boolean;
   loginHint?: string;
-}): Promise<AuthResult> {
+}): Promise<AuthResult & { usedBackup?: boolean; backupNotice?: string }> {
   clearDevLocalAuthBypass();
 
   if (isSupabaseConfigured() && isFirebaseConfigured()) {
-    if (isSupabaseOAuthDegraded()) {
-      return firebaseSignInWithGoogle();
+    const lane = await resolveLiveOAuthBackend();
+    if (lane === 'firebase') {
+      writeStoredAuthBackend('firebase');
+      const result = await firebaseSignInWithGoogle();
+      return result.ok
+        ? { ...result, usedBackup: true, backupNotice: SUPABASE_OAUTH_DOWN_MESSAGE }
+        : result;
     }
     return withSupabaseFirebaseFailover(
       async () => {
@@ -183,12 +187,17 @@ export async function authSignInWithGoogle(options?: {
   return noCloud();
 }
 
-export async function authSignInWithApple(): Promise<AuthResult> {
+export async function authSignInWithApple(): Promise<AuthResult & { usedBackup?: boolean; backupNotice?: string }> {
   clearDevLocalAuthBypass();
 
   if (isSupabaseConfigured() && isFirebaseConfigured()) {
-    if (isSupabaseOAuthDegraded()) {
-      return firebaseSignInWithApple();
+    const lane = await resolveLiveOAuthBackend();
+    if (lane === 'firebase') {
+      writeStoredAuthBackend('firebase');
+      const result = await firebaseSignInWithApple();
+      return result.ok
+        ? { ...result, usedBackup: true, backupNotice: SUPABASE_OAUTH_DOWN_MESSAGE }
+        : result;
     }
     return withSupabaseFirebaseFailover(
       async () => {

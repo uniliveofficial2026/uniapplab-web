@@ -305,6 +305,9 @@ export function AuthScreen() {
         showToast(result.reason);
         return;
       }
+      if ('backupNotice' in result && result.backupNotice) {
+        showToast(result.backupNotice);
+      }
       if (result.redirecting) return;
 
       const sync = await syncCloudSessionNow();

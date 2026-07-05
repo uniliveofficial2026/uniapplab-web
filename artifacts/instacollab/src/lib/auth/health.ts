@@ -2,7 +2,7 @@ import { getSupabaseUrl, isSupabaseConfigured, getSupabaseAnonKey } from '../sup
 import { fetchWithTimeout } from '../networkPolicy';
 
 const HEALTH_CACHE_MS = 30_000;
-const OAUTH_PROBE_CACHE_MS = 60_000;
+const OAUTH_PROBE_CACHE_MS = 15_000;
 const DATA_PROBE_CACHE_MS = 30_000;
 
 let lastProbeAt = 0;
@@ -22,9 +22,11 @@ export function isSupabaseReachableStatus(status: number): boolean {
 export function isSupabaseOAuthReadyStatus(status: number): boolean {
   // Successful OAuth handoff redirects (302/303) or provider HTML (200).
   if (status >= 200 && status < 400) return true;
-  if (status === 401) return true;
-  if (status === 522 || status === 524) return false;
-  return status > 0 && status < 500;
+  if (status === 522 || status === 524 || status === 503 || status === 502 || status === 504) {
+    return false;
+  }
+  // Strict: /authorize must redirect or render — not generic 4xx/5xx.
+  return false;
 }
 
 /** Fast Supabase Auth health check. Cached 30s when healthy. */
