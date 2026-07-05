@@ -3,31 +3,52 @@ import { invalidateSupabaseHealthCache, probeSupabaseOAuthReady } from './health
 import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
 import {
+  clearSupabaseOAuthDegraded,
   isSupabaseOAuthDegraded,
   markSupabaseOAuthDegraded,
 } from './providerState';
 
-const OAUTH_PROBE_MS = 8_000;
+const OAUTH_PROBE_MS = 6_000;
 
 /**
- * Pick OAuth redirect lane before sending the browser anywhere.
- * When Supabase /authorize is down (522), use Firebase popup/redirect instead.
+ * Pick OAuth lane before any browser redirect.
+ * When Firebase is configured, default to Firebase unless Supabase /authorize is healthy now.
  */
 export async function resolveLiveOAuthBackend(): Promise<AuthBackend> {
   if (!isSupabaseConfigured()) {
     return isFirebaseConfigured() ? 'firebase' : 'supabase';
   }
-  if (!isFirebaseConfigured()) return 'supabase';
-  if (isSupabaseOAuthDegraded()) return 'firebase';
 
+  if (isSupabaseOAuthDegraded() && isFirebaseConfigured()) {
+    return 'firebase';
+  }
+
+  invalidateSupabaseHealthCache();
+  const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
+  if (oauthOk) {
+    clearSupabaseOAuthDegraded();
+    return 'supabase';
+  }
+
+  markSupabaseOAuthDegraded();
+  return isFirebaseConfigured() ? 'firebase' : 'supabase';
+}
+
+export async function isSupabaseOAuthRedirectAllowed(): Promise<boolean> {
+  if (!isSupabaseConfigured()) return false;
+  if (isSupabaseOAuthDegraded()) return false;
   invalidateSupabaseHealthCache();
   const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
   if (!oauthOk) {
     markSupabaseOAuthDegraded();
-    return 'firebase';
+    return false;
   }
-  return 'supabase';
+  clearSupabaseOAuthDegraded();
+  return true;
 }
 
 export const SUPABASE_OAUTH_DOWN_MESSAGE =
   'Supabase sign-in is temporarily down. Using Google backup sign-in — your account will sync when Supabase recovers.';
+
+export const SUPABASE_OAUTH_ONLY_DOWN_MESSAGE =
+  'Google sign-in through Supabase is temporarily unavailable (server timeout). Try email login or wait a few minutes.';

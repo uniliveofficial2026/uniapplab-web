@@ -46,8 +46,7 @@ installNativeKeyboardPolicy();
 // Instant media: hydrate app-media blobs from localStorage mirrors (feed/chat/k-star).
 void import('./lib/mediaInstant').then((m) => m.warmMediaFromLocalStorageMirrors());
 
-// First-install DeepAR + TRTC assets → local cache; later launches skip full install.
-void import('./lib/ar/arAssetBootstrap').then((m) => m.bootstrapArAssets());
+// AR / DeepAR packages load when camera surfaces open — not on every boot.
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
@@ -82,7 +81,7 @@ clearChunkReloadGuard();
 void import('./lib/cacheFirstSync').then((m) => m.startCacheFirstCloudSync());
 
 void initSupabaseClient().then(() => {
-  void import('./lib/preloadAppSurfaces').then((m) => m.preloadAllAppSurfaces());
+  void import('./lib/preloadAppSurfaces').then((m) => m.preloadCoreAppSurfaces());
 });
 
 void import('./lib/firebase/app').then((m) => {

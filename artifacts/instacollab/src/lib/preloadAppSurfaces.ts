@@ -1,38 +1,53 @@
 /**
- * Eagerly warm every major screen chunk so tab switches have 0 load delay.
+ * Warm screen chunks — core tabs first; heavy AR/live bundles on demand.
  */
 import { preloadInstant } from './instantTask';
 
-let warmed = false;
+let coreWarmed = false;
+let heavyWarmed = false;
 
-export function preloadAllAppSurfaces(): void {
-  if (warmed || typeof window === 'undefined') return;
-  warmed = true;
+/** Feed, messages, profile — small enough to warm after first paint. */
+export function preloadCoreAppSurfaces(): void {
+  if (coreWarmed || typeof window === 'undefined') return;
+  coreWarmed = true;
 
   const factories: Array<() => Promise<unknown>> = [
     () => import('../components/feed/Feed'),
-    () => import('../components/feed/StoryRing'),
-    () => import('../components/reels/ReelsScreen'),
     () => import('../components/messages/MessagesScreen'),
+    () => import('../components/profile/ProfileScreen'),
     () => import('../components/notifications/NotificationsScreen'),
     () => import('../components/search/SearchScreen'),
-    () => import('../components/profile/ProfileScreen'),
-    () => import('../components/profile/UserProfilePreview'),
+  ];
+
+  for (const factory of factories) {
+    preloadInstant(factory);
+  }
+}
+
+/** Karaoke, live, rooms, DeepAR — only when user opens those features. */
+export function preloadHeavyAppSurfaces(): void {
+  if (heavyWarmed || typeof window === 'undefined') return;
+  heavyWarmed = true;
+
+  void import('./ar/ensureArStack').then((m) => m.ensureArStackLoaded());
+
+  const factories: Array<() => Promise<unknown>> = [
     () => import('../components/live/LiveScreen'),
     () => import('../components/karaoke/KaraokeScreen'),
     () => import('../smule-rooms/RoomsHost'),
     () => import('../components/wallet/WalletScreen'),
     () => import('../components/workspace/WorkspaceGate'),
     () => import('../components/dating/DatingScreen'),
-    () => import('../components/games/LocalGamesScreen'),
-    () => import('../components/games/ThirdPartyGamesScreen'),
     () => import('../pages/YouTube'),
-    () => import('../lib/cloudSocial/cloudSocialContent'),
-    () => import('../lib/chat/cloudChatSync'),
-    () => import('../lib/cloudNotificationSync'),
   ];
 
   for (const factory of factories) {
     preloadInstant(factory);
   }
+}
+
+/** @deprecated use preloadCoreAppSurfaces + preloadHeavyAppSurfaces */
+export function preloadAllAppSurfaces(): void {
+  preloadCoreAppSurfaces();
+  preloadHeavyAppSurfaces();
 }

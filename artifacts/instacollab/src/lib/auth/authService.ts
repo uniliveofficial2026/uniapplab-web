@@ -26,7 +26,7 @@ import {
 } from '../firebase/authApi';
 import { isFirebaseConfigured } from '../firebase/config';
 import { withSupabaseFirebaseFailover } from './failover';
-import { resolveLiveOAuthBackend, SUPABASE_OAUTH_DOWN_MESSAGE } from './oauthLane';
+import { resolveLiveOAuthBackend, SUPABASE_OAUTH_DOWN_MESSAGE, SUPABASE_OAUTH_ONLY_DOWN_MESSAGE, isSupabaseOAuthRedirectAllowed } from './oauthLane';
 import { writeStoredAuthBackend } from './providerState';
 import { clearDevLocalAuthBypass } from './devLocalAuth';
 import { clearFirebaseBackupLink } from './firebaseBackupLink';
@@ -178,6 +178,9 @@ export async function authSignInWithGoogle(options?: {
     );
   }
   if (isSupabaseConfigured()) {
+    if (!(await isSupabaseOAuthRedirectAllowed())) {
+      return { ok: false, reason: SUPABASE_OAUTH_ONLY_DOWN_MESSAGE };
+    }
     const result = await supabaseSignInWithGoogle(options);
     return result.ok ? { ok: true, redirecting: true } : result;
   }
@@ -209,6 +212,9 @@ export async function authSignInWithApple(): Promise<AuthResult & { usedBackup?:
     );
   }
   if (isSupabaseConfigured()) {
+    if (!(await isSupabaseOAuthRedirectAllowed())) {
+      return { ok: false, reason: SUPABASE_OAUTH_ONLY_DOWN_MESSAGE };
+    }
     const result = await supabaseSignInWithApple();
     return result.ok ? { ok: true, redirecting: true } : result;
   }

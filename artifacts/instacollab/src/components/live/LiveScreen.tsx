@@ -18,6 +18,7 @@ import {
   openLiveUserRoom,
   preloadKaraokeScreen,
 } from '../../lib/live/openLiveRoom';
+import { preloadHeavyAppSurfaces } from '../../lib/preloadAppSurfaces';
 import { isSupabaseConfigured } from '../../lib/supabase/config';
 import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
 import { LiveDiscoveryVideoPreview } from './LiveDiscoveryVideoPreview';
@@ -74,7 +75,7 @@ export function LiveScreen() {
   const dbRevision = useDbRevision();
 
   useEffect(() => {
-    // Instant karaoke warm — Go Live has 0 chunk wait.
+    preloadHeavyAppSurfaces();
     void preloadKaraokeScreen();
   }, []);
 

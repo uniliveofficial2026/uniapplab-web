@@ -42,6 +42,7 @@ export async function probeSupabaseHealth(timeoutMs = 2000): Promise<boolean> {
   try {
     const res = await fetch(`${base}/auth/v1/health`, {
       method: 'GET',
+      cache: 'no-store',
       signal: AbortSignal.timeout(timeoutMs),
     });
     lastProbeOk = isSupabaseReachableStatus(res.status);
@@ -71,7 +72,12 @@ export async function probeSupabaseOAuthReady(timeoutMs = 5000): Promise<boolean
   try {
     const res = await fetchWithTimeout(
       `${base}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`,
-      { method: 'GET', redirect: 'manual', headers: { accept: 'text/html' } },
+      {
+        method: 'GET',
+        redirect: 'manual',
+        cache: 'no-store',
+        headers: { accept: 'text/html' },
+      },
       timeoutMs,
       'supabase.auth.authorize',
     );

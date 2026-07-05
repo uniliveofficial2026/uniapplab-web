@@ -36,10 +36,14 @@ const env = loadEnvForBuild();
 const url = (env.VITE_SUPABASE_URL || '').trim();
 const key = (env.VITE_SUPABASE_ANON_KEY || env.VITE_SUPABASE_PUBLISHABLE_KEY || '').trim();
 const deeparKey = (env.VITE_DEEPAR_LICENSE_KEY || '').trim();
+const tencentAppId = (env.VITE_TENCENT_WEBAR_APP_ID || '').trim();
+const tencentLicense = (env.VITE_TENCENT_WEBAR_LICENSE_KEY || '').trim();
+const tencentToken = (env.VITE_TENCENT_WEBAR_TOKEN || '').trim();
 const onVercel = process.env.VERCEL === '1' || Boolean(process.env.VERCEL_ENV);
 
 const issues = [];
 const deeparIssues = [];
+const tencentIssues = [];
 if (!url || /your[_-]?project/i.test(url)) {
   issues.push('VITE_SUPABASE_URL is missing or still a placeholder');
 }
@@ -48,6 +52,11 @@ if (!key || /your[_-]?(publishable|anon|supabase)/i.test(key)) {
 }
 if (!deeparKey || /your|xxxx|placeholder/i.test(deeparKey)) {
   deeparIssues.push('VITE_DEEPAR_LICENSE_KEY is missing — AR filters will be disabled in production');
+}
+if (!tencentAppId || !tencentLicense || !tencentToken) {
+  tencentIssues.push(
+    'VITE_TENCENT_WEBAR_APP_ID / LICENSE_KEY / TOKEN missing — TRTC beauty will not work in production',
+  );
 }
 
 let expectedRef = null;
@@ -79,6 +88,16 @@ if (onVercel && issues.length) {
   console.error('  Local reference: artifacts/instacollab/.env');
   console.error('');
   process.exit(1);
+}
+
+if (onVercel && tencentIssues.length) {
+  console.error('');
+  console.error('[build] Tencent WebAR env missing on Vercel — live/karaoke beauty filters stay off:');
+  for (const line of tencentIssues) console.error(`  ✗ ${line}`);
+  console.error('');
+  console.error('  Fix: pnpm --filter @workspace/instacollab run tencent:env-vercel');
+  console.error('  Or set VITE_TENCENT_WEBAR_* in Vercel → Environment Variables → Redeploy');
+  console.error('');
 }
 
 if (onVercel && deeparIssues.length) {

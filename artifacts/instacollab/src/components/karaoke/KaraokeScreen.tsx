@@ -635,6 +635,10 @@ export function KaraokeScreen() {
   const cloudParty = useCloudPartyRooms(isSupabaseConfigured());
   const cloudLive = useCloudLiveDiscovery(isSupabaseConfigured());
 
+  useEffect(() => {
+    void import('../../lib/preloadAppSurfaces').then((m) => m.preloadHeavyAppSurfaces());
+  }, []);
+
   const userCoins = useMemo(
     () => getLiveCoinsBalance(appUser.id),
     [appUser.id, dbRevision],

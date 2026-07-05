@@ -1,6 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DeepAR } from 'deepar';
-import * as Beauty from '@deepar/beauty';
 import {
   getDeepARRootPath,
   getDeepARBeautyRootPath,
@@ -23,7 +22,9 @@ import {
   type BodyShapeParams,
 } from '../ar/bodyShape';
 
-type DeepARBeautyApi = Awaited<ReturnType<typeof Beauty.initializeBeauty>>;
+type DeepARBeautyApi = Awaited<
+  ReturnType<(typeof import('@deepar/beauty'))['initializeBeauty']>
+>;
 
 async function waitForVideoElement(
   videoElementRef: React.RefObject<HTMLVideoElement | null>,
@@ -246,6 +247,7 @@ export function useDeepAR({
 
         beautyInitPromiseRef.current = (async () => {
           try {
+            const Beauty = await import('@deepar/beauty');
             const beauty = await Beauty.initializeBeauty(deepAR, getDeepARBeautyRootPath());
             if (cancelled) {
               try {

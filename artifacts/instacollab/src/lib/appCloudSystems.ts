@@ -116,7 +116,7 @@ export function initAppCloudSystems(): void {
 export function bootstrapCloudSystemsAfterAuth(): void {
   if (!isNetworkOnline()) return;
   void tickCloudSystems('auth_ready');
-  void import('./preloadAppSurfaces').then((m) => m.preloadAllAppSurfaces());
+  void import('./preloadAppSurfaces').then((m) => m.preloadCoreAppSurfaces());
 }
 
 /** Refresh live cloud data in-place (no page reload). */

@@ -34,6 +34,7 @@
     "deepar:install": "node scripts/install-deepar-assets.mjs",
     "deepar:previews": "node scripts/render-deepar-sdk-previews.mjs && node scripts/extract-deepar-previews.mjs",
     "deepar:env-vercel": "node scripts/sync-deepar-vercel-env.mjs",
+    "tencent:env-vercel": "node scripts/sync-tencent-vercel-env.mjs",
     "deepar:sync": "node scripts/sync-deepar-assets.mjs",
     "ar:sync": "node scripts/sync-ar-assets.mjs",
     "trtc:install": "node scripts/install-trtc-webar-assets.mjs",

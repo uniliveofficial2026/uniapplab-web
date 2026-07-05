@@ -116,9 +116,11 @@ export function bootstrapArAssets(): void {
 
   const run = async () => {
     const backgrounds = await collectTrtcBackgrounds();
-    await putInCache([...CORE_URLS, ...BEAUTY_PRESET_URLS, ...backgrounds]);
+    await putInCache(CORE_URLS);
     await warmPackages();
     markReady();
+    // Beauty preset zips are large — warm in background after core SDK is cached.
+    void putInCache([...BEAUTY_PRESET_URLS, ...backgrounds]);
   };
 
   const schedule =
