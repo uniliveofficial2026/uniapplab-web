@@ -7,35 +7,39 @@
  */
 import { flushCloudAppStateSync } from './auth/cloudAppState';
 import { initCloudAppStateNetworkResume } from './auth/cloudAppState';
-import { flushCloudProfileSync } from './auth/cloudProfile';
 import { isCloudAuthConfigured } from './auth/config';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { db } from './db/localDb';
 import { initLiveAutoReload } from './liveAutoReload';
 import { scheduleLiveSessionSync } from './liveSessionSync';
 import { initLiveSessionSync } from './liveSessionSync';
-import { startLiveCloudSurfaces } from './liveCloudSurfaces';
+import { startLiveCloudSurfaces, refreshLiveCloudSurface } from './liveCloudSurfaces';
 import { initNetworkStatus, isNetworkOnline, subscribeNetworkStatus } from './networkStatus';
 import { checkForPwaUpdate, initPwaAutoUpdate } from './pwaAutoUpdate';
-import {
-  initThoughtNoteCloudSync,
-  refreshThoughtNotesFromCloud,
-} from './thoughtNoteCloudSync';
+import { initThoughtNoteCloudSync } from './thoughtNoteCloudSync';
 import {
   initThoughtNoteLiveSync,
 } from './thoughtNoteLiveSync';
 import { runSilentCloudSync } from './cacheFirstSync';
+import { cloudTickCooldownMs } from './liveCloudSyncMode';
 
 let installed = false;
 let tickInFlight = false;
 let tickAgain = false;
+let lastTickAt = 0;
 
-async function tickCloudSystems(reason: string): Promise<void> {
+async function tickCloudSystems(reason: string, force = false): Promise<void> {
   if (tickInFlight) {
     tickAgain = true;
     return;
   }
+
+  const now = Date.now();
+  const isUrgent = reason === 'auth_ready' || reason === 'storage_ready';
+  if (!force && !isUrgent && now - lastTickAt < cloudTickCooldownMs()) return;
+
   tickInFlight = true;
+  lastTickAt = now;
   try {
     // Offline: stay on local cache only — do not touch UI.
     if (!isNetworkOnline()) return;
@@ -45,24 +49,24 @@ async function tickCloudSystems(reason: string): Promise<void> {
     const userId = db.currentUserId;
     if (!userId || !db.isLoggedIn) return;
 
-    // PWA / heal in background — never awaited for UI.
+    // PWA update check — low priority, never blocks UI.
     void checkForPwaUpdate().catch(() => undefined);
-    void import('./runtimeAutoHeal').then((m) => m.reactImmediately(`cloud:${reason}`));
 
     initThoughtNoteCloudSync();
 
     if (isCloudAuthConfigured()) {
-      // Silent live surfaces + feed (cache-first merge, no loaders).
-      void runSilentCloudSync(reason);
-
-      if (isCloudAuthUserId(userId)) {
-        startLiveCloudSurfaces(userId);
+      if (isUrgent) {
+        // Full live pipeline once per boot / login.
+        void runSilentCloudSync(reason);
+        if (isCloudAuthUserId(userId)) {
+          startLiveCloudSurfaces(userId);
+        }
+      } else {
+        // Foreground: refresh current cloud lane without restarting all channels.
+        scheduleLiveSessionSync(userId);
+        void flushCloudAppStateSync().catch(() => undefined);
+        refreshLiveCloudSurface('all');
       }
-      scheduleLiveSessionSync(userId);
-      // Fire-and-forget flushes — do not block the tick on network.
-      void refreshThoughtNotesFromCloud().catch(() => undefined);
-      void flushCloudAppStateSync().catch(() => undefined);
-      void flushCloudProfileSync().catch(() => undefined);
     }
 
     if (import.meta.env.DEV) {
@@ -105,10 +109,6 @@ export function initAppCloudSystems(): void {
     if (document.visibilityState === 'visible' && isNetworkOnline()) {
       void tickCloudSystems('foreground');
     }
-  });
-
-  window.addEventListener('focus', () => {
-    if (isNetworkOnline()) void tickCloudSystems('focus');
   });
 }
 

@@ -12,9 +12,11 @@ import {
 } from './networkStatus';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { runInstant } from './instantTask';
+import { cloudKickCooldownMs } from './liveCloudSyncMode';
 
 let installed = false;
 let syncGeneration = 0;
+let lastKickAt = 0;
 
 function canSync(): boolean {
   if (!isNetworkOnline()) return false;
@@ -66,6 +68,10 @@ export function startCacheFirstCloudSync(): void {
   initNetworkStatus();
 
   const kick = (reason: string) => {
+    const isUrgent = reason === 'storage_ready';
+    const now = Date.now();
+    if (!isUrgent && now - lastKickAt < cloudKickCooldownMs()) return;
+    lastKickAt = now;
     runInstant(() => {
       void paintThen(() => runSilentCloudSync(reason));
     });
@@ -73,14 +79,8 @@ export function startCacheFirstCloudSync(): void {
 
   void db.whenStorageReady().then(() => kick('storage_ready'));
 
-  // Reconnect: start live cloud instantly in background, no UI disruption.
+  // Reconnect after offline: one full live sync.
   subscribeNetworkStatus((status) => {
     if (status === 'online') kick('online');
-  });
-
-  document.addEventListener('visibilitychange', () => {
-    if (document.visibilityState === 'visible' && isNetworkOnline()) {
-      kick('foreground');
-    }
   });
 }

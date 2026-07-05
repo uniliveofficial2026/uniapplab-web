@@ -54,7 +54,8 @@ import {
   useOptionsMenuHover,
   type OptionsMenuTone,
 } from '../../lib/optionsMenu';
-import { refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
+import { refreshLiveCloudSurface, subscribeLiveCloudSurfaceRefresh } from '../../lib/liveCloudSurfaces';
+import { syncCloudSocialFeed } from '../../lib/cloudSocial/cloudSocialContent';
 
 export function ReelsScreen() {
   const db = useDB();
@@ -68,7 +69,15 @@ export function ReelsScreen() {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    refreshLiveCloudSurface('reels');
+    const sync = () => {
+      void syncCloudSocialFeed();
+    };
+    refreshLiveCloudSurface('reels', { force: true });
+    const unsub = subscribeLiveCloudSurfaceRefresh(
+      ['reels', 'home', 'feed', 'stories', 'all'],
+      sync,
+    );
+    return unsub;
   }, []);
   
   useEffect(() => {
@@ -503,7 +512,7 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
           ref={videoRef}
           src={displayMedia.url}
           poster={displayMedia.posterUrl}
-          preload="auto"
+          preload="metadata"
           loop={loopCarouselItem}
           playsInline
           controls

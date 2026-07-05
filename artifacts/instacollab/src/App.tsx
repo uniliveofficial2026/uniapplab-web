@@ -10,6 +10,7 @@ import { appTabBackLabel } from './lib/karaokeReturnContext';
 import { Shell } from './components/layout/Shell';
 import type { SearchTab } from './components/search/SearchScreen';
 import { ScreenGuard } from './components/common/ScreenGuard';
+import { KeepAliveTab } from './components/common/KeepAliveTab';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 const ReelsScreen = lazy(() =>
@@ -168,6 +169,7 @@ export default function App() {
   }>>([]);
   const [roomsInitialPath, setRoomsInitialPath] = useState(initialShell.roomsInitialPath);
   const [roomsRouterKey, setRoomsRouterKey] = useState(0);
+  const [visitedTabs, setVisitedTabs] = useState<Tab[]>(() => [initialShell.currentTab]);
   const deepLinkBootstrappedRef = useRef(false);
   const applyingHistoryRef = useRef(false);
   const shellSnapshotRef = useRef<PersistedShellState>(initialShell);
@@ -292,6 +294,10 @@ export default function App() {
       openShareLink(ref, db.users);
     }
   }, [effectiveLaunchRoute, db.users]);
+
+  useEffect(() => {
+    setVisitedTabs((prev) => (prev.includes(currentTab) ? prev : [...prev, currentTab]));
+  }, [currentTab]);
 
   useEffect(() => {
     applyDocumentTheme(db.settings.theme === 'dark' ? 'dark' : 'light');
@@ -473,8 +479,8 @@ export default function App() {
     <ScreenGuard screen={name}>{node}</ScreenGuard>
   );
 
-  const renderContent = () => {
-    switch (currentTab) {
+  const renderTabPanel = (tab: Tab) => {
+    switch (tab) {
       case 'home':
         return screen('home', <Feed />);
       case 'search':
@@ -533,6 +539,22 @@ export default function App() {
         return screen('home', <Feed />);
     }
   };
+
+  const keepAliveKeyForTab = (tab: Tab): string => {
+    if (tab === 'profile') return `profile-${profileUserId ?? 'me'}`;
+    if (tab === 'rooms') return `rooms-${roomsRouterKey}`;
+    return tab;
+  };
+
+  const renderContent = () => (
+    <>
+      {visitedTabs.map((tab) => (
+        <KeepAliveTab key={keepAliveKeyForTab(tab)} active={currentTab === tab}>
+          {renderTabPanel(tab)}
+        </KeepAliveTab>
+      ))}
+    </>
+  );
 
   // Never full-screen block on auth/network — mount real routes from local state
   // immediately. Session restore runs in CloudAuthProvider in the background.

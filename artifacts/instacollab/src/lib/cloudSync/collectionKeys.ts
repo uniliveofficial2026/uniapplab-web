@@ -24,6 +24,7 @@ export const CLOUD_SYNC_COLLECTION_KEYS = [
   'chat_read_state',
   'chat_peer_read_state',
   'chat_wallpapers',
+  'chat_groups',
   'app_settings',
   'globalMuted',
   'globalMutedDefaultV2',

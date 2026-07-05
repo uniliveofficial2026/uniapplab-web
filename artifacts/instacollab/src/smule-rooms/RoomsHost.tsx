@@ -3,7 +3,7 @@
  * Page/component files under smule-rooms/ are verbatim from the zip.
  */
 
-import React, { useEffect } from 'react';
+import React from 'react';
 import { MemoryRouter, Routes, Route, useLocation, Navigate } from 'react-router-dom';
 import { Party } from './pages/Party';
 import { Room } from './pages/Room';
@@ -13,12 +13,32 @@ import CreateRoom from './pages/CreateRoom';
 import { RoomSelfProvider } from './context/RoomSelfContext';
 import './smule-rooms.css';
 
-function ProtectedRoute({ children }: { children: React.ReactNode }) {
-  const token = localStorage.getItem('auth_token');
-  if (!token) {
+import { db } from '../lib/db/localDb';
+
+function RequireAuth({ children }: { children: React.ReactNode }) {
+  const [ready, setReady] = React.useState(false);
+  const [loggedIn, setLoggedIn] = React.useState(() => db.isLoggedIn);
+
+  React.useEffect(() => {
+    let cancelled = false;
+    void db.whenStorageReady().then(() => {
+      if (!cancelled) {
+        setLoggedIn(db.isLoggedIn);
+        setReady(true);
+      }
+    });
+    const unsub = db.subscribe(() => setLoggedIn(db.isLoggedIn));
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }, []);
+
+  if (!ready) return null;
+  if (!loggedIn) {
     return <Navigate to="/party" replace />;
   }
-  return children;
+  return <>{children}</>;
 }
 
 function OpenMainAppTab({ tab }: { tab: string }) {
@@ -43,11 +63,11 @@ function AppContent() {
           className={`w-full h-full relative flex flex-col overflow-hidden bg-gray-950 ${isFullscreen ? '' : 'sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl md:border-x border-gray-900 shadow-[0_0_40px_rgba(168,85,247,0.1)]'}`}
         >
           <Routes>
-            <Route path="/party" element={<ProtectedRoute><Party /></ProtectedRoute>} />
-            <Route path="/room/:id" element={<ProtectedRoute><Room /></ProtectedRoute>} />
-            <Route path="/room/edit/:id" element={<ProtectedRoute><EditRoom /></ProtectedRoute>} />
-            <Route path="/room/details/:id" element={<ProtectedRoute><RoomDetails /></ProtectedRoute>} />
-            <Route path="/room/create" element={<ProtectedRoute><CreateRoom /></ProtectedRoute>} />
+            <Route path="/party" element={<Party />} />
+            <Route path="/room/:id" element={<RequireAuth><Room /></RequireAuth>} />
+            <Route path="/room/edit/:id" element={<RequireAuth><EditRoom /></RequireAuth>} />
+            <Route path="/room/details/:id" element={<RequireAuth><RoomDetails /></RequireAuth>} />
+            <Route path="/room/create" element={<RequireAuth><CreateRoom /></RequireAuth>} />
             <Route path="/" element={<Navigate to="/party" replace />} />
             <Route path="/live" element={<Navigate to="/party" replace />} />
             <Route path="/sing" element={<Navigate to="/party" replace />} />
@@ -64,12 +84,6 @@ function AppContent() {
 }
 
 export function RoomsHost({ initialPath = '/party', routerKey = 0 }: { initialPath?: string; routerKey?: number }) {
-  useEffect(() => {
-    if (import.meta.env.DEV && !localStorage.getItem('auth_token')) {
-      localStorage.setItem('auth_token', 'demo');
-    }
-  }, []);
-
   return (
     <MemoryRouter key={routerKey} initialEntries={[initialPath]}>
       <div className="font-sans selection:bg-purple-500/30 h-full w-full">

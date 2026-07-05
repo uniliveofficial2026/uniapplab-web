@@ -910,7 +910,7 @@ export function KaraokeScreen() {
         contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         window.dispatchEvent(new CustomEvent('app-toast', { detail: 'K-Star refreshed' }));
       }
-      refreshLiveCloudSurface(liveSurfaceFromTab(tab));
+      refreshLiveCloudSurface(liveSurfaceFromTab(tab), { force: true });
       return;
     }
     if (tab === 'messages') {
@@ -928,7 +928,7 @@ export function KaraokeScreen() {
       setProfileReturnContext(null);
     }
     setActiveTab(tab);
-    refreshLiveCloudSurface(liveSurfaceFromTab(tab));
+    refreshLiveCloudSurface(liveSurfaceFromTab(tab), { force: true });
     commitKaraokeNavigation({
       tab,
       profileTab: tab === 'profile' ? profileActiveTab : null,

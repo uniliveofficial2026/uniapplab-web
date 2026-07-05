@@ -43,6 +43,8 @@ let installed = false;
 let healInFlight = false;
 let healAgain = false;
 let healTimer: number | null = null;
+let lastForegroundHealAt = 0;
+const FOREGROUND_HEAL_COOLDOWN_MS = 30_000;
 let lagTimestamps: number[] = [];
 let memoryConfirmations = 0;
 
@@ -266,6 +268,10 @@ async function runHealPass(reason: string): Promise<void> {
 
 /** Immediate reaction — runs full heal pass without waiting for the interval timer. */
 export function reactImmediately(reason = 'immediate'): void {
+  const now = Date.now();
+  const isUrgent = reason === 'boot' || reason === 'interval' || reason === 'coalesced';
+  if (!isUrgent && now - lastForegroundHealAt < FOREGROUND_HEAL_COOLDOWN_MS) return;
+  if (!isUrgent) lastForegroundHealAt = now;
   void runHealPass(reason);
 }
 
@@ -291,14 +297,14 @@ export function initRuntimeAutoHeal(): void {
 
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') {
-      void runHealPass('foreground');
+      reactImmediately('foreground');
     } else {
       healPlaybackPressure();
     }
   });
 
   window.addEventListener('online', () => {
-    void runHealPass('online');
+    reactImmediately('online');
   });
 
   window.addEventListener('app-update-staged', () => {

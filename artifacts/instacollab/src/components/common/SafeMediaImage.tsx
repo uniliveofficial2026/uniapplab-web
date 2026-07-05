@@ -50,21 +50,29 @@ export function SafeMediaImage({
         return;
       }
       let cancelled = false;
-      const unsub = subscribeAppMediaCache(() => {
-        const next = resolveAppMediaUrlSync(src);
-        if (next && !isAppMediaRef(next) && !cancelled) setDisplay(next);
-      });
-      void hydrateAppMediaUrl(src).then((next) => {
-        if (!cancelled && next && !isAppMediaRef(next)) setDisplay(next);
-      });
-      return () => {
-        cancelled = true;
-        unsub();
-      };
-    }
+    const unsub = subscribeAppMediaCache(() => {
+      const next = resolveAppMediaUrlSync(src);
+      if (next && !isAppMediaRef(next) && !cancelled) setDisplay(next);
+    });
+    void hydrateAppMediaUrl(src).then((next) => {
+      if (!cancelled && next && !isAppMediaRef(next)) setDisplay(next);
+    });
+    return () => {
+      cancelled = true;
+      unsub();
+    };
+  }
 
-    setDisplay(src);
-    return undefined;
+  if (src.startsWith('http')) {
+    if (priority) warmMediaUrl(src);
+    const unsub = subscribeAppMediaCache(() => {
+      setDisplay(instantMediaSrc(src, fallback));
+    });
+    return unsub;
+  }
+
+  setDisplay(instantMediaSrc(src, fallback));
+  return undefined;
   }, [src, fallback]);
 
   return (

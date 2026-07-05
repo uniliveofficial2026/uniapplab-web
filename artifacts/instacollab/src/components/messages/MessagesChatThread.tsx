@@ -121,7 +121,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
            muted
            playsInline
            controls
-           preload="auto"
+           preload="metadata"
            onEnded={() => {
              if (videoWallpaperSequence.length > 1) {
                playNextVideoWallpaper();

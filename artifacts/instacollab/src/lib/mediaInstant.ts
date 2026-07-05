@@ -26,7 +26,7 @@ const warming = new Set<string>();
  */
 export function preferClearMediaUrl(url: string, highRes = false): string {
   if (!url.startsWith('http')) return url;
-  const targetWidth = highRes ? 1080 : 640;
+  const targetWidth = highRes ? 1080 : 400;
   try {
     const u = new URL(url);
     const host = u.hostname;

@@ -30,6 +30,8 @@ import { clearSupabaseUnhealthy, markSupabaseUnhealthy, writeStoredAuthBackend }
 import { isCloudAuthConfigured } from './config';
 import { isCloudAppStateRemoteApply } from './cloudAppStateFlags';
 import { isNetworkOnline } from '../networkStatus';
+import { migrateFirebaseNewcomerToSupabase } from './migrateFirebaseNewcomer';
+import { readFirebaseBackupLink } from './firebaseBackupLink';
 
 export function isCloudAuthUserId(userId: string): boolean {
   if (/^u\d+$/i.test(userId)) return false;
@@ -244,6 +246,24 @@ export async function pushCloudProfile(
   try {
     await upsertProfileOnBackend(backend, row);
     writeStoredAuthBackend(backend);
+
+    // Firebase-only profiles are invisible in Supabase search until linked.
+    if (
+      backend === 'firebase' &&
+      profileSetupComplete &&
+      isSupabaseConfigured() &&
+      !isSupabaseAuthUserId(user.id)
+    ) {
+      const migrated = await migrateFirebaseNewcomerToSupabase(user.id).catch(() => false);
+      if (migrated) {
+        const link = readFirebaseBackupLink();
+        const supabaseId = link?.supabaseUserId;
+        if (supabaseId) {
+          await upsertProfile({ ...row, id: supabaseId }).catch(() => undefined);
+          writeStoredAuthBackend('supabase');
+        }
+      }
+    }
   } catch (err) {
     const mapped = mapProfileSaveError(err);
     const message = mapped.message;

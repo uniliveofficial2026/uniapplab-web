@@ -13,6 +13,7 @@ import { saveFirebaseBackupLink } from './firebaseBackupLink';
 import { writeStoredAuthBackend } from './providerState';
 import { restartCloudAppStateSync } from './cloudAppState';
 import { withTimeout } from '../supabase/withTimeout';
+import { startLiveCloudSurfaces } from '../liveCloudSurfaces';
 
 const MIGRATE_MS = 12_000;
 
@@ -98,6 +99,7 @@ export async function migrateFirebaseNewcomerToSupabase(firebaseUid: string): Pr
   await applySupabaseSessionToLocalDb(sessionData.session, { silent });
   writeStoredAuthBackend('supabase');
   await restartCloudAppStateSync(body.supabaseUserId);
+  startLiveCloudSurfaces(body.supabaseUserId);
 
   if (import.meta.env.DEV) {
     console.info('[auth] silent newcomer migration complete', body.supabaseUserId.slice(0, 8));

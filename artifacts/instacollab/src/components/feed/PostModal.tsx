@@ -854,7 +854,7 @@ export function PostModal({
                     playsInline
                     muted={postSoundtrackUrl ? true : db.globalMuted}
                     controls
-                    preload="auto"
+                    preload="metadata"
                     onEnded={loopCarouselItem ? undefined : goToNextCarouselItem}
                     onVolumeChange={(e) => {
                       if (!postSoundtrackUrl) {
@@ -1083,7 +1083,7 @@ export function PostModal({
                         playsInline
                         muted={postSoundtrackUrl ? true : db.globalMuted}
                         controls
-                        preload="auto"
+                        preload="metadata"
                         onEnded={loopCarouselItem ? undefined : goToNextCarouselItem}
                         onVolumeChange={(e) => {
                           if (!postSoundtrackUrl) {

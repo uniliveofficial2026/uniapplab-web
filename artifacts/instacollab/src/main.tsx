@@ -9,8 +9,7 @@ import { registerAppServiceWorker } from './lib/pwaRegister';
 import { initSupabaseClient } from './lib/supabase/client';
 import { initWalletKstarSyncListeners } from './lib/walletKstarSync';
 import { initAppCloudSystems } from './lib/appCloudSystems';
-import { initAppMediaStore, scheduleWarmAppMediaCache } from './lib/appMediaStore';
-import { db } from './lib/db/localDb';
+import { initAppMediaStore } from './lib/appMediaStore';
 import { installPersistenceGuards } from './lib/persistSession';
 import { bootstrapDocumentTheme } from './lib/theme';
 import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithRetry';
@@ -24,13 +23,14 @@ import { installPresenceHeartbeat } from './lib/presenceHeartbeat';
 import { installNativeKeyboardPolicy } from './lib/nativeKeyboardPolicy';
 import { installAppSafeArea } from './lib/safeArea';
 import { bootstrapSupabaseAuthState } from './lib/auth/providerState';
-import { blockLivePresenceCloudQueries } from './lib/supabase/livePresenceGuard';
+import { unblockLivePresenceCloudQueries } from './lib/supabase/livePresenceGuard';
 import { ensureBundledFirebaseConfig } from './lib/firebase/runtimeAuthConfig';
 
 // Sync-only setup (no network / IDB waits).
 bootstrapSupabaseAuthState();
 ensureBundledFirebaseConfig();
-blockLivePresenceCloudQueries();
+// Clear stale circuit-breaker from older builds; liveDiscovery blocks only on real schema errors.
+unblockLivePresenceCloudQueries();
 bootstrapDocumentTheme();
 installAppSafeArea();
 installChunkLoadRecovery();
@@ -44,7 +44,14 @@ installUxTelemetry();
 installNativeKeyboardPolicy();
 
 // Instant media: hydrate app-media blobs from localStorage mirrors (feed/chat/k-star).
-void import('./lib/mediaInstant').then((m) => m.warmMediaFromLocalStorageMirrors());
+const scheduleBootMediaWarm = () => {
+  void import('./lib/mediaInstant').then((m) => m.warmMediaFromLocalStorageMirrors());
+};
+if (typeof requestIdleCallback === 'function') {
+  requestIdleCallback(() => scheduleBootMediaWarm(), { timeout: 4_000 });
+} else {
+  window.setTimeout(scheduleBootMediaWarm, 1_500);
+}
 
 // AR / DeepAR packages load when camera surfaces open — not on every boot.
 
@@ -94,9 +101,5 @@ void import('./lib/firebase/app').then((m) => {
   m.getFirebaseApp();
 });
 
-// Media cache warm is best-effort and never blocks UI.
+// Media cache warm runs once at boot (initAppMediaStore) — not on every db.save.
 void initAppMediaStore({ timeoutMs: 0 });
-
-db.subscribe(() => {
-  scheduleWarmAppMediaCache();
-});

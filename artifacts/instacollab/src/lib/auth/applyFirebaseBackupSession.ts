@@ -22,6 +22,7 @@ import {
 } from './firebaseBackupLink';
 import { loadStoredAccountSession } from './storedAccountSessions';
 import { initThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
+import { migrateFirebaseNewcomerToSupabase } from './migrateFirebaseNewcomer';
 import { startLiveCloudSurfaces } from '../liveCloudSurfaces';
 
 export type ApplyFirebaseSessionOptions = {
@@ -186,6 +187,11 @@ export async function applyFirebaseOAuthSessionToLocalDb(
   void startCloudAppStateRealtime(appUser.id);
   startLiveCloudSurfaces(appUser.id);
   bootstrapCloudSystemsAfterAuth();
+
+  // Link Firebase-only accounts to Supabase so chat/party/DMs sync across devices.
+  if (isSupabaseConfigured()) {
+    void migrateFirebaseNewcomerToSupabase(firebaseUser.uid).catch(() => false);
+  }
 }
 
 export function isFirebaseOAuthBackupForUser(userId: string): boolean {

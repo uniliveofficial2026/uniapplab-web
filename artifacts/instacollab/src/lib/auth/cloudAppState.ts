@@ -174,6 +174,7 @@ const INSTANT_CLOUD_SYNC_KEYS = new Set([
   'chat_read_state',
   'chat_peer_read_state',
   'chat_presence',
+  'chat_groups',
   'unreadMessagesCount',
   'hasUnreadNotifications',
 ]);

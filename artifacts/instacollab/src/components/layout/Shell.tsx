@@ -28,7 +28,7 @@ import { AppLogo } from '../common/AppLogo';
 import { pauseAllPlayback } from '../../lib/playbackAudio';
 import { resetMediaOverlayLocks } from '../../lib/mediaOverlayLock';
 import { applyDocumentTheme, nextTheme } from '../../lib/theme';
-import { useDB, useDbRevision } from '../../lib/useDB';
+import { useDB } from '../../lib/useDB';
 import { resolveUser } from '../../lib/safe';
 import { dispatchTapRefresh, scrollAppMainToTop } from '../../lib/appRefresh';
 import { requestKaraokeStudioOpen } from '../../lib/karaokeSearch';
@@ -54,7 +54,6 @@ interface ShellProps {
 
 export function Shell({ currentTab, setCurrentTab, currentUser, children }: ShellProps) {
   const db = useDB();
-  useDbRevision();
   const {
     logout: firebaseLogout,
     switchAccount,
@@ -144,7 +143,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
       requestKaraokeStudioOpen();
     }
     setCurrentTab(tab);
-    refreshLiveCloudSurface(liveSurfaceFromTab(tab));
+    refreshLiveCloudSurface(liveSurfaceFromTab(tab), { force: true });
   };
 
   const handleHomeTap = () => {

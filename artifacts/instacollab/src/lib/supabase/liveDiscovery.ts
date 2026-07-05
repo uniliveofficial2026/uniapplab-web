@@ -4,6 +4,7 @@ import {
   blockLivePresenceCloudQueries,
   isLivePresenceCloudBlocked,
   isMissingLiveColumnError,
+  unblockLivePresenceCloudQueries,
 } from './livePresenceGuard';
 import type { LiveKind } from '../../types';
 
@@ -88,6 +89,7 @@ export async function fetchCloudLiveStreams(limit = 30): Promise<CloudLiveStream
   } else {
     profileRows = (withLiveKind.data ?? []) as Record<string, unknown>[];
     profileError = withLiveKind.error;
+    if (!profileError) unblockLivePresenceCloudQueries();
   }
 
   if (profileError) throw profileError;
@@ -145,6 +147,8 @@ export async function fetchCloudLiveProfiles(limit = 30): Promise<CloudLiveProfi
   }
 
   if (error) throw error;
+
+  unblockLivePresenceCloudQueries();
 
   return (data ?? []).map((row) => ({
     id: String(row.id),

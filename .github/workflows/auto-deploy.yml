@@ -1,9 +1,13 @@
 name: Auto deploy
 
-# Paused by default (config/auto-deploy.json → githubActionsDeploy: false).
-# Run manually from GitHub Actions when you want a production deploy.
+# Push to main or fix/vercel-api-root-now triggers production deploy when secrets are set.
+# config/auto-deploy.json → githubActionsDeploy should be true while testing.
 on:
   workflow_dispatch:
+  push:
+    branches:
+      - main
+      - fix/vercel-api-root-now
 
 concurrency:
   group: production-deploy

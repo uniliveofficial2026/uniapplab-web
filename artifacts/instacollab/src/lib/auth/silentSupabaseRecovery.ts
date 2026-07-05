@@ -20,6 +20,8 @@ import { loadStoredAccountSession } from './storedAccountSessions';
 import { withTimeout } from '../supabase/withTimeout';
 import { migrateFirebaseNewcomerToSupabase } from './migrateFirebaseNewcomer';
 import { getFirebaseAuth } from '../firebase/app';
+import { startLiveCloudSurfaces } from '../liveCloudSurfaces';
+import { syncCloudChatInbox } from '../chat/cloudChatSync';
 
 const RECOVERY_MS = 8_000;
 let recoveryInFlight = false;
@@ -100,6 +102,8 @@ export async function performSilentSupabaseRecovery(): Promise<boolean> {
 
     await mergeFirebaseAppStateIntoSupabase(session.user.id);
     await restartCloudAppStateSync(session.user.id);
+    startLiveCloudSurfaces(session.user.id);
+    void syncCloudChatInbox();
 
     if (import.meta.env.DEV) {
       console.info('[auth] silent Supabase recovery complete', session.user.id.slice(0, 8));

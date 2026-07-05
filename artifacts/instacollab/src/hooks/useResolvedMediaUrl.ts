@@ -19,17 +19,13 @@ export function useResolvedMediaUrl(
   const [resolved, setResolved] = useState(() => instantMediaSrc(url, fallback));
 
   useEffect(() => {
-    warmMediaUrl(url);
-    return subscribeAppMediaCache(() => setResolved(instantMediaSrc(url, fallback)));
-  }, [url, fallback]);
-
-  useEffect(() => {
     if (!url) {
       setResolved(fallback);
       return;
     }
 
-    setResolved(instantMediaSrc(url, fallback));
+    const cached = instantMediaSrc(url, fallback);
+    setResolved(cached);
 
     if (isAppMediaRef(url)) {
       let cancelled = false;
@@ -37,21 +33,21 @@ export function useResolvedMediaUrl(
         if (cancelled) return;
         if (next && !isAppMediaRef(next)) setResolved(next);
       });
+      const unsub = subscribeAppMediaCache(() => {
+        if (!cancelled) setResolved(instantMediaSrc(url, fallback));
+      });
       return () => {
         cancelled = true;
+        unsub();
       };
     }
 
     if (url.startsWith('http')) {
       const clear = preferClearMediaUrl(url);
-      const cached =
+      const hasBlob =
         resolveRemoteMediaUrlSync(clear) || resolveRemoteMediaUrlSync(url);
-      if (cached) {
-        setResolved(cached);
-        return;
-      }
-      // Network URL paints immediately; warmMediaUrl upgrades to blob when ready.
-      setResolved(clear);
+      if (hasBlob) return undefined;
+
       warmMediaUrl(url);
       const unsub = subscribeAppMediaCache(() => {
         const next =

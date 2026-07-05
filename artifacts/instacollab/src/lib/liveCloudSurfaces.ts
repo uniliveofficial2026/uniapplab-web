@@ -76,6 +76,14 @@ let stopSocialRealtime: (() => void) | null = null;
 let stopBlocksRealtime: (() => void) | null = null;
 let stopVisitsRealtime: (() => void) | null = null;
 
+const surfaceRefreshAt = new Map<string, number>();
+import { surfaceRefreshCooldownMs } from './liveCloudSyncMode';
+
+export type RefreshLiveCloudSurfaceOptions = {
+  /** User opened a tab — bypass cooldown and pull fresh cloud data. */
+  force?: boolean;
+};
+
 function canRunCloud(userId?: string | null): userId is string {
   return (
     !!userId &&
@@ -144,7 +152,7 @@ export function startLiveCloudSurfaces(userId: string): void {
   if (!isCloudAuthConfigured() || !isCloudAuthUserId(userId)) return;
 
   if (activeUserId === userId && stopPostsRealtime) {
-    void refreshLiveCloudSurface('all');
+    // Channels already live — avoid re-pulling every surface on foreground ticks.
     return;
   }
 
@@ -204,16 +212,20 @@ export function stopLiveCloudSurfaces(): void {
  * Pull latest internet data for one surface (or all).
  * Always deferred past the current tap paint so navigation/buttons stay instant.
  */
-export function refreshLiveCloudSurface(surface: LiveCloudSurface | string): void {
+export function refreshLiveCloudSurface(
+  surface: LiveCloudSurface | string,
+  options?: RefreshLiveCloudSurfaceOptions,
+): void {
+  const force = options?.force === true;
   // UI-first: never run network work on the same turn as a tap/setState.
   queueMicrotask(() => {
     requestAnimationFrame(() => {
-      refreshLiveCloudSurfaceNow(surface);
+      refreshLiveCloudSurfaceNow(surface, force);
     });
   });
 }
 
-function refreshLiveCloudSurfaceNow(surface: LiveCloudSurface | string): void {
+function refreshLiveCloudSurfaceNow(surface: LiveCloudSurface | string, force = false): void {
   const meId = db.currentUserId;
   if (!canRunCloud(meId)) {
     dispatchSurfaceRefresh(liveSurfaceFromTab(surface));
@@ -225,6 +237,16 @@ function refreshLiveCloudSurfaceNow(surface: LiveCloudSurface | string): void {
       ? surface
       : liveSurfaceFromTab(surface)
   ) as LiveCloudSurface;
+
+  const cooldownKey = target === 'all' ? '__all__' : target;
+  const cooldownMs = surfaceRefreshCooldownMs(target === 'all');
+  const now = Date.now();
+  const last = surfaceRefreshAt.get(cooldownKey) ?? 0;
+  if (!force && now - last < cooldownMs) {
+    dispatchSurfaceRefresh(target);
+    return;
+  }
+  surfaceRefreshAt.set(cooldownKey, now);
 
   const tasks: Array<Promise<unknown>> = [];
 

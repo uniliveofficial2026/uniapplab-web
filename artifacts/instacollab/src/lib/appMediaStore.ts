@@ -193,7 +193,7 @@ export async function cacheRemoteMediaUrl(url: string, blob: Blob): Promise<stri
 /** Hydrate all known remote media ids into memory (call on boot). */
 export async function hydrateRemoteMediaMap(): Promise<void> {
   loadRemoteUrlMap();
-  const ids = [...new Set(remoteUrlToId.values())].slice(0, 80);
+  const ids = [...new Set(remoteUrlToId.values())].slice(0, 32);
   await Promise.all(
     ids.map(async (id) => {
       if (blobUrlCache.has(id)) return;
@@ -246,19 +246,27 @@ function collectRefsFromValue(value: unknown, out: Set<string>): void {
 }
 
 /** Warm blob URL cache for persisted uploads after refresh. */
-export async function warmAppMediaCache(): Promise<void> {
+export async function warmAppMediaCache(maxRefs = 24): Promise<void> {
   const refs = new Set<string>();
   try {
     await db.whenStorageReady();
     const snapshot = (db as unknown as { cache?: Record<string, unknown> }).cache;
     if (snapshot) {
-      collectRefsFromValue(snapshot, refs);
+      // Prefer recently mirrored collections — avoid scanning the entire IDB cache.
+      for (const key of ['messages', 'posts', 'reels', 'stories', 'users', 'chat_groups']) {
+        if (refs.size >= maxRefs) break;
+        collectRefsFromValue(snapshot[key], refs);
+      }
+      if (refs.size < maxRefs) {
+        collectRefsFromValue(snapshot, refs);
+      }
     }
   } catch {
     /* db not ready */
   }
   if (refs.size === 0) return;
-  await Promise.all([...refs].map((ref) => hydrateAppMediaUrl(ref)));
+  const batch = [...refs].slice(0, maxRefs);
+  await Promise.all(batch.map((ref) => hydrateAppMediaUrl(ref)));
   notifyCacheListeners();
 }
 
@@ -301,8 +309,8 @@ export function scheduleWarmAppMediaCache(): void {
   }
   warmDebounceTimer = window.setTimeout(() => {
     warmDebounceTimer = null;
-    void warmAppMediaCache();
-  }, 120);
+    void warmAppMediaCache(16);
+  }, 2_000);
 }
 
 /**

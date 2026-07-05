@@ -329,7 +329,7 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                       onPlay={() => setIsPaused(false)}
                       onPause={() => setIsPaused(true)}
                       controls
-                      preload="auto"
+                      preload="metadata"
                       onTimeUpdate={(e) => {
                         const video = e.currentTarget;
                         if (!video.duration) return;

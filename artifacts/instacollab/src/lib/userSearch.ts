@@ -68,11 +68,19 @@ export async function searchCloudProfiles(
   const term = normalizeSearchTerm(query);
   if (!term) return [];
 
+  const tasks: Promise<User[]>[] = [];
   if (isSupabaseConfigured()) {
-    return searchSupabaseProfiles(term, limit);
+    tasks.push(searchSupabaseProfiles(term, limit).catch(() => []));
   }
   if (isFirebaseConfigured()) {
-    return searchFirebaseProfiles(term, limit);
+    tasks.push(searchFirebaseProfiles(term, limit).catch(() => []));
   }
-  return [];
+  if (tasks.length === 0) return [];
+
+  const batches = await Promise.all(tasks);
+  let merged: User[] = [];
+  for (const batch of batches) {
+    merged = mergeUserSearchResults(merged, batch);
+  }
+  return merged.slice(0, limit);
 }
