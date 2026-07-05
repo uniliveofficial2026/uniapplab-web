@@ -1,17 +1,23 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Mail, Trash2, UserPlus, X } from 'lucide-react';
 import type { StoredDeviceAccount } from '../../lib/auth/deviceAccounts';
+import { enrichDeviceAccountsForDisplay } from '../../lib/auth/deviceAccounts';
 import { hasStoredAccountSession } from '../../lib/auth/storedAccountSessions';
 import { handleAvatarError } from '../../lib/utils';
 import { EmailOtpPanel } from '../auth/EmailOtpPanel';
+import type { User } from '../../types';
 
 export type AccountSwitcherModalProps = {
   open: boolean;
   accounts: StoredDeviceAccount[];
+  /** Live app users — used to show current names/avatars in real time. */
+  liveUsers?: User[];
   activeUid?: string | null;
   linking?: boolean;
   cloudAuthEnabled?: boolean;
   onClose: () => void;
+  /** Refresh device accounts / sessions when the modal opens. */
+  onRefreshAccounts?: () => void | Promise<void>;
   onSelectAccount: (uid: string, password?: string) => void | Promise<void>;
   onRemoveAccount: (uid: string) => void;
   onLinkGoogle: () => void | Promise<void>;
@@ -35,10 +41,12 @@ type PendingSwitch = {
 export function AccountSwitcherModal({
   open,
   accounts,
+  liveUsers = [],
   activeUid,
   linking = false,
   cloudAuthEnabled = false,
   onClose,
+  onRefreshAccounts,
   onSelectAccount,
   onRemoveAccount,
   onLinkGoogle,
@@ -49,15 +57,21 @@ export function AccountSwitcherModal({
   const [emailMode, setEmailMode] = useState<'signin' | 'signup'>('signin');
   const [pendingSwitch, setPendingSwitch] = useState<PendingSwitch | null>(null);
   const [switchingUid, setSwitchingUid] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const requestAccountSwitch = (acc: StoredDeviceAccount) => {
-    if (acc.uid === activeUid) return;
+    if (acc.uid === activeUid || switchingUid) return;
     if (cloudAuthEnabled && !hasStoredAccountSession(acc.uid)) {
       setPendingSwitch({ uid: acc.uid, email: acc.email ?? '' });
       return;
     }
     setSwitchingUid(acc.uid);
     void Promise.resolve(onSelectAccount(acc.uid))
+      .then(() => {
+        window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Switched account!' }));
+        void onRefreshAccounts?.();
+        onClose();
+      })
       .catch((error) => {
         const message = error instanceof Error ? error.message : 'Failed to switch account.';
         window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
@@ -70,16 +84,37 @@ export function AccountSwitcherModal({
       setShowEmailForm(false);
       setEmailMode('signin');
       setPendingSwitch(null);
+      setSwitchingUid(null);
+      setRefreshing(false);
+      return;
     }
-  }, [open]);
+    if (!onRefreshAccounts) return;
+    let cancelled = false;
+    setRefreshing(true);
+    void Promise.resolve(onRefreshAccounts())
+      .catch(() => {
+        /* keep cached list */
+      })
+      .finally(() => {
+        if (!cancelled) setRefreshing(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [open, onRefreshAccounts]);
+
+  const displayAccounts = useMemo(
+    () => enrichDeviceAccountsForDisplay(accounts, liveUsers),
+    [accounts, liveUsers],
+  );
 
   const sortedAccounts = useMemo(() => {
-    return [...accounts].sort((a, b) => {
+    return [...displayAccounts].sort((a, b) => {
       if (a.uid === activeUid) return -1;
       if (b.uid === activeUid) return 1;
       return String(b.linkedAt ?? '').localeCompare(String(a.linkedAt ?? ''));
     });
-  }, [accounts, activeUid]);
+  }, [displayAccounts, activeUid]);
 
   if (!open) return null;
 
@@ -173,7 +208,7 @@ export function AccountSwitcherModal({
             <div className="flex-1 overflow-y-auto no-scrollbar space-y-3 pr-1">
               {sortedAccounts.length === 0 ? (
                 <div className="text-center py-6 text-sm text-muted-foreground font-semibold">
-                  No accounts saved on this device yet.
+                  {refreshing ? 'Loading accounts…' : 'No accounts saved on this device yet.'}
                 </div>
               ) : (
                 sortedAccounts.map((acc, idx) => {

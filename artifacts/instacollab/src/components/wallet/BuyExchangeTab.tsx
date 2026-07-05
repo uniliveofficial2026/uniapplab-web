@@ -4,7 +4,6 @@ import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 import { addWalletCoins, saveWalletCoinsBalance, spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
-  Coins, 
   DollarSign, 
   ArrowRightLeft, 
   Check, 
@@ -14,6 +13,7 @@ import {
   Loader2,
   Sparkles
 } from 'lucide-react';
+import { CoinIcon } from '../common/CoinIcon';
 
 export function BuyExchangeTab() {
   const db = useDB();
@@ -171,7 +171,7 @@ export function BuyExchangeTab() {
                 <p className="text-xs font-bold text-muted-foreground">{bundle.label}</p>
                 <div className="flex items-center gap-1.5 pt-1.5">
                   <div className="p-1 px-1.5 bg-amber-500/10 text-amber-500 rounded-lg text-xs font-black flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5" />
+                    <CoinIcon className="w-3.5 h-3.5 shrink-0" />
                   </div>
                   <h4 className="text-xl font-black text-foreground">{bundle.coins.toLocaleString()} Coins</h4>
                 </div>
@@ -218,7 +218,7 @@ export function BuyExchangeTab() {
                   : 'text-muted-foreground hover:bg-secondary/60'
               }`}
             >
-              <Coins className="w-3.5 h-3.5" /> Coins → Cash
+              <CoinIcon className="w-3.5 h-3.5 shrink-0" /> Coins → Cash
             </button>
           </div>
 

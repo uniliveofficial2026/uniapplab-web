@@ -32,7 +32,12 @@ export const VOICE_PRESET_DEFINITIONS: Record<VoicePresetName, VoicePresetDefini
 
 export const VIDEO_BEAUTY_FILTERS: Record<string, string> = {
   None: 'none',
+  /** TRTC WebAR when configured; CSS fallback otherwise */
   Smooth: 'blur(0.35px) contrast(1.04) brightness(1.08) saturate(1.05)',
+  Soft: 'blur(0.2px) brightness(1.05) saturate(1.02) contrast(1.02)',
+  Glow: 'brightness(1.1) contrast(0.98) saturate(1.08)',
+  Natural: 'brightness(1.04) contrast(1.03) saturate(1.04)',
+  Clear: 'contrast(1.08) brightness(1.06) saturate(1.02)',
   Vintage: 'sepia(0.4) contrast(1.12) brightness(0.95)',
   Anime: 'saturate(1.45) contrast(1.15) brightness(1.06)',
   Cyberpunk: 'hue-rotate(18deg) saturate(1.6) contrast(1.2) brightness(1.05)',

@@ -9,6 +9,7 @@ import {
 } from '../utils/storage';
 import { getAppUserId } from '../../lib/appUserId';
 import { formatRoomModeLabel, getManagedRoomById, getManagedRooms, syncManagedRoomFromActiveSession, upsertManagedRoom } from '../utils/managedRooms';
+import { syncPartyRoomToCloud } from '../utils/syncPartyRoomCloud';
 import { useRoomSettingsNavigateBack } from '../context/RoomFlowContext';
 import type { RoomSettingsNavState } from '../context/roomFlowContextCore';
 import { normalizeRoomRole } from '../utils/roles';
@@ -519,6 +520,8 @@ const EditRoom = ({
               ),
             };
             saveRoomSettings(roomId, patch);
+            const updated = getRoomSettings(roomId);
+            syncPartyRoomToCloud(roomId, updated.ownerUserId, updated);
             setSettings((prev) => {
               const next = { ...prev, ...patch };
               const managed = getManagedRoomById(roomId);

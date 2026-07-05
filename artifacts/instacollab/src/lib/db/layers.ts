@@ -77,6 +77,10 @@ export interface AuthPostsLayer {
   cacheDiscoveredUsers(users: User[]): void;
   addPost(post: Partial<Post> & { user?: User }): void;
   mergeInboundPosts(inbound: Post[]): void;
+  applyInboundPostEngagement(
+    postId: string,
+    engagement: { likes: number; isLiked: boolean; isSaved: boolean },
+  ): void;
   updatePost(id: string, updateFn: (post: Post) => Post): void;
   deletePost(id: string): void;
   togglePostArchive(postId: string): boolean;
@@ -121,10 +125,13 @@ export interface FollowBlockedLayer {
   rejectFollowRequest(requesterId: string): boolean;
   filterPostsByPrivateAuthors<T extends { user?: { id?: string } }>(items: T[]): T[];
   getBlockedUserIds(): string[];
+  getBlockedByUserIds(): string[];
   isUserBlocked(targetUserId: string): boolean;
   blockUser(targetUserId: string): boolean;
   getBlockedUsers(): User[];
   unblockUser(targetUserId: string): boolean;
+  replaceCloudBlocks(blockedByMe: string[], blockedMe?: string[]): void;
+  mergeInboundBlock(targetUserId: string, blocked: boolean): void;
   filterItemsByBlockedAuthors<T extends { user?: { id?: string } }>(items: T[]): T[];
 }
 
@@ -149,6 +156,7 @@ export interface ProfileLayer {
     tierId?: ProfilePremiumTierId;
   };
   recordProfileVisit(profileUserId: string, context?: ProfileVisitContext): boolean;
+  mergeInboundProfileVisit(entry: import('../../types').ProfileVisitEntry): void;
   getProfileVisitorStats(profileUserId: string): ProfileVisitorStats;
   getProfileVisitorCount(profileUserId: string): number;
   getProfileVisitors(profileUserId: string): ProfileVisitorRow[];
@@ -181,6 +189,11 @@ export interface WorkspaceTasksLayer {
 export interface ReelsLayer {
   readonly reels: Reel[];
   addReel(reel: Partial<Reel> & { user?: User }): void;
+  mergeInboundReels(inbound: Reel[]): void;
+  applyInboundReelEngagement(
+    reelId: string,
+    engagement: { likes: number; isLiked: boolean; isSaved: boolean },
+  ): void;
   updateReel(id: string, updateFn: (reel: Reel) => Reel): void;
   deleteReel(id: string): void;
 }
@@ -193,6 +206,14 @@ export interface NotificationsLayer {
     ownerUserId: string,
     payload: Omit<AppNotification, 'id' | 'createdAt' | 'read' | 'user'> & {
       type: AppNotificationType;
+    }
+  ): AppNotification | null;
+  mergeInboundCloudNotification(
+    ownerUserId: string,
+    payload: Partial<AppNotification> & {
+      id: string;
+      type: AppNotificationType;
+      createdAt: number;
     }
   ): AppNotification | null;
   addNotification(
@@ -230,6 +251,11 @@ export interface WorkspaceFilesLayer {
 
 export interface MessagesLayer {
   readonly messages: import('../dbTypes').MessagesByChatStore;
+  readonly chatGroups: import('../../types').ChatGroup[];
+  getChatGroup(groupId: string): import('../../types').ChatGroup | null;
+  saveChatGroups(groups: import('../../types').ChatGroup[]): void;
+  upsertChatGroup(group: import('../../types').ChatGroup): void;
+  mergeInboundChatGroup(group: import('../../types').ChatGroup): void;
   readonly chatPresence: ChatPresenceStore;
   readonly chatReadState: ChatTimestampStore;
   readonly chatPeerReadState: ChatTimestampStore;
@@ -255,7 +281,11 @@ export interface MessagesLayer {
   setUserOnline(userId: string, online: boolean, at?: number): void;
   touchUserActive(userId: string, at?: number): void;
   getChatReadAt(chatId: string): number;
-  setChatReadAt(chatId: string, timestamp: number, options?: { allowDecrease?: boolean }): void;
+  setChatReadAt(
+    chatId: string,
+    timestamp: number,
+    options?: { allowDecrease?: boolean; skipCloud?: boolean },
+  ): void;
   getChatPeerReadAt(chatId: string): number;
   setChatPeerReadAt(chatId: string, timestamp: number): void;
   readonly chatWallpapers: Record<string, { selectedId?: string; customWallpapers?: unknown[] }>;
@@ -265,6 +295,18 @@ export interface MessagesLayer {
     payload: { selectedId: string; customWallpapers: ChatWallpaperItem[] }
   ): void;
   addMessage(chatId: string, message: ChatMessage): void;
+  mergeInboundMessage(
+    chatId: string,
+    message: ChatMessage,
+    options?: { bumpUnread?: boolean },
+  ): void;
+  attachCloudMessageId(chatId: string, localId: string, cloudId: string): void;
+  markCloudMessageDeleted(chatId: string, cloudId: string): void;
+  applyInboundMessageReaction(
+    chatId: string,
+    localOrCloudId: string,
+    state: { counts: Record<string, number>; selected: string | null },
+  ): void;
   toggleMessageReaction(chatId: string, messageIndex: number, emoji: string): void;
   updateMessage(
     chatId: string,
@@ -293,6 +335,7 @@ export interface StoriesLayer {
     liveKinds: string[];
   }>;
   addStorySegment(userId: string, segment: StoryDraftMedia): void;
+  mergeInboundStorySegment(userId: string, segment: StoryDraftMedia): void;
   getFeedStorySegments(userId: string): StoryDraftMedia[];
   getProfileStorySegments(userId: string): StoryDraftMedia[];
   getFeedStoriesStore(): StoriesByUserStore;
@@ -356,11 +399,13 @@ export interface CommentsLayer {
   addReelCommentReply(reelId: string, commentId: string, reply: CommentLike): void;
   likeReelComment(reelId: string, commentId: string, userId: string): void;
   toggleReelCommentLike(reelId: string, commentId: string, userId: string): void;
+  mergeInboundReelComments(reelId: string, inbound: CommentLike[]): void;
   readonly postComments: CommentThreadStore;
   addPostComment(postId: string, comment: CommentLike): void;
   likePostComment(postId: string, commentId: string, userId: string): void;
   togglePostCommentLike(postId: string, commentId: string, userId: string): void;
   addPostCommentReply(postId: string, commentId: string, reply: CommentLike): void;
+  mergeInboundPostComments(postId: string, inbound: CommentLike[]): void;
   getUserStorySegments(userId: string, scope?: StoryViewScope): StoryDraftMedia[];
 }
 

@@ -1,11 +1,9 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import {
   Users,
-  Star,
   Mic,
   MicOff,
   Send,
-  Menu,
   ChevronRight,
   Video,
   LayoutGrid,
@@ -17,8 +15,12 @@ import {
   Info,
   Settings2,
   Pencil,
+  Link2,
+  Youtube,
 } from 'lucide-react';
-import { WatchTogetherMediaSourceSheet } from './WatchTogetherMediaSourceSheet';
+import { CoinIcon } from '../../components/common/CoinIcon';
+import { WatchTogetherMediaSourceSheet, type WatchTogetherMediaPanel } from './WatchTogetherMediaSourceSheet';
+import { WatchTogetherYoutubePlayer } from './WatchTogetherYoutubePlayer';
 import type { RoomExpProgress } from '../utils/roomExp';
 import type { RoomGiftSummary } from '../utils/roomGifts';
 import type { PartySeatMap, RoomGuest, RoomSeatKey } from '../utils/roomSeats';
@@ -28,6 +30,8 @@ import type { RoomSettings } from '../utils/storage';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
 import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { safeAvatarUrl, safeMediaUrl, safeVideoUrl } from '../../lib/safe';
+import { SafeMediaImage } from '../../components/common/SafeMediaImage';
+import { warmMediaUrl } from '../../lib/mediaInstant';
 import {
   type WatchTogetherMedia,
   type WatchTogetherMediaUpdateDetail,
@@ -37,7 +41,9 @@ import { RoomArenaColumn } from './RoomArenaLeaderboard';
 import type { ArenaLeaderboardParticipant } from './RoomArenaLeaderboard';
 import { RoomBackgroundLayer } from './RoomBackgroundLayer';
 import { RoomLiveHeaderInfo } from './RoomLiveHeaderInfo';
-import { RoomHeaderActionsMenu, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
+import { RoomFooterTrayActions } from './RoomFooterTrayActions';
+import { RoomHeaderActionsMenu, createRoomBackgroundHeaderMenuItem, createSingHeaderMenuItem, createYoutubeMiniHeaderMenuItem, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
+import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
 import { ShareIcon } from '../../components/common/ShareIcon';
 import {
   SeatHeartbeatRowOverlay,
@@ -65,6 +71,10 @@ type LiveChatMsg = ChatAuthorMsg & {
   giftName?: string;
   receiver?: string;
   giftAmount?: number;
+  isAnnouncementWelcome?: boolean;
+  targetViewerId?: string;
+  targetViewerName?: string;
+  targetViewerAvatar?: string;
 };
 
 type ChatViewerPayload = {
@@ -117,12 +127,15 @@ interface WatchTogetherViewProps {
   renderJoinChatEvent: (message: LiveChatMsg & { id: string | number }) => React.ReactNode;
   renderSingChatEvent: (message: LiveChatMsg & { id: string | number }) => React.ReactNode;
   renderGiftChatEvent: (message: LiveChatMsg & { id: string | number }) => React.ReactNode;
+  renderAnnouncementWelcome: (message: LiveChatMsg & { id: string | number }) => React.ReactNode;
   renderStandardChatMessage: (
     message: LiveChatMsg & { id: string | number },
     options?: { bubbleClassName?: string; layout?: 'stacked' | 'inline' },
   ) => React.ReactNode;
   mentionSearch: string | null;
   onToggleUserMic: () => void;
+  onToggleSeatParticipation: () => void;
+  guestManagementOpen?: boolean;
   userSeatKey: string | null;
   userMicOn: boolean;
   userVoiceActive: boolean;
@@ -141,6 +154,12 @@ interface WatchTogetherViewProps {
   onEditAnnouncement?: () => void;
   canChangeRoomMode?: boolean;
   onOpenRoomModePicker?: () => void;
+  onOpenSing?: () => void;
+  hasActiveSong?: boolean;
+  songQueueLength?: number;
+  hideSingMenu?: boolean;
+  onPkClick?: () => void;
+  onGameClick?: () => void;
 }
 
 function truncateName(name: string, max = 12): string {
@@ -222,9 +241,12 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   renderJoinChatEvent,
   renderSingChatEvent,
   renderGiftChatEvent,
+  renderAnnouncementWelcome,
   renderStandardChatMessage,
   mentionSearch,
   onToggleUserMic,
+  onToggleSeatParticipation,
+  guestManagementOpen = false,
   userSeatKey,
   userMicOn,
   userVoiceActive,
@@ -243,16 +265,32 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   onEditAnnouncement,
   canChangeRoomMode = false,
   onOpenRoomModePicker,
+  onOpenSing,
+  hasActiveSong = false,
+  songQueueLength = 0,
+  hideSingMenu = false,
+  onPkClick,
+  onGameClick,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
   const playbackLoadTokenRef = useRef(0);
   const [isMediaSourceOpen, setIsMediaSourceOpen] = useState(false);
+  const [mediaSourcePanel, setMediaSourcePanel] = useState<WatchTogetherMediaPanel>('url');
+  const [mediaSourceAutoPick, setMediaSourceAutoPick] = useState(false);
   const [playbackMedia, setPlaybackMedia] = useState(media);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [isMediaLoading, setIsMediaLoading] = useState(false);
 
   const canPlayMedia = Boolean(playbackMedia.streamUrl) && !playbackMedia.isHydrating;
+  const isYoutubePlayback =
+    playbackMedia.kind === 'youtube' && Boolean(playbackMedia.youtubeVideoId);
+
+  const openMediaSource = (panel: WatchTogetherMediaPanel) => {
+    setMediaSourcePanel(panel);
+    setMediaSourceAutoPick(panel === 'upload');
+    setIsMediaSourceOpen(true);
+  };
 
   const headerMenuItems = useMemo<RoomHeaderMenuItem[]>(
     () => [
@@ -270,10 +308,40 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
         hidden: !onOpenRoomEdit,
       },
       {
-        id: 'media',
-        label: 'Change room media',
+        id: 'mode',
+        label: 'Change room mode',
+        icon: <LayoutGrid size={15} aria-hidden />,
+        onClick: () => onOpenRoomModePicker?.(),
+        hidden: !canChangeRoomMode || !onOpenRoomModePicker,
+      },
+      ...(onOpenSing
+        ? [
+            createSingHeaderMenuItem(onOpenSing, {
+              hasActiveSong,
+              hidden: hideSingMenu,
+              queueLength: songQueueLength,
+            }),
+          ]
+        : []),
+      {
+        id: 'media-url',
+        label: 'Media URL',
+        icon: <Link2 size={15} aria-hidden />,
+        onClick: () => openMediaSource('url'),
+        hidden: !canManageMedia,
+      },
+      {
+        id: 'media-youtube',
+        label: 'YouTube',
+        icon: <Youtube size={15} aria-hidden />,
+        onClick: () => openMediaSource('youtube'),
+        hidden: !canManageMedia,
+      },
+      {
+        id: 'media-upload',
+        label: 'Upload video or audio',
         icon: <Upload size={15} aria-hidden />,
-        onClick: () => setIsMediaSourceOpen(true),
+        onClick: () => openMediaSource('upload'),
         hidden: !canManageMedia,
       },
       {
@@ -289,14 +357,26 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
         onClick: () => onEditAnnouncement?.(),
         hidden: !canEditAnnouncement || !onEditAnnouncement,
       },
+      createRoomBackgroundHeaderMenuItem(() => setIsRoomBackgroundMenuOpen(true), {
+        hidden: !canChangeRoomBackground,
+      }),
+      createYoutubeMiniHeaderMenuItem(),
     ],
     [
       onOpenRoomDetails,
       onOpenRoomEdit,
+      onOpenRoomModePicker,
+      canChangeRoomMode,
       canManageMedia,
+      hasActiveSong,
+      hideSingMenu,
+      onOpenSing,
       onShareRoom,
       canEditAnnouncement,
       onEditAnnouncement,
+      canChangeRoomBackground,
+      setIsRoomBackgroundMenuOpen,
+      songQueueLength,
     ],
   );
 
@@ -305,8 +385,9 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   }, [media]);
 
   useEffect(() => {
+    warmMediaUrl(playbackMedia.posterUrl);
     void hydrateWatchTogetherMedia(roomDisplayId);
-  }, [roomDisplayId]);
+  }, [roomDisplayId, playbackMedia.posterUrl]);
 
   useEffect(() => {
     const onMediaUpdated = (event: Event) => {
@@ -320,9 +401,11 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   }, [roomDisplayId]);
 
   useEffect(() => {
-    if (!canPlayMedia) {
+    if (!canPlayMedia || isYoutubePlayback) {
       setIsMediaLoading(Boolean(playbackMedia.isHydrating));
-      setPlaybackError(null);
+      if (!playbackMedia.isHydrating && isYoutubePlayback) {
+        setPlaybackError(null);
+      }
       return;
     }
 
@@ -345,7 +428,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
         playbackLoadTokenRef.current += 1;
       }
     };
-  }, [canPlayMedia, playbackMedia.streamUrl, playbackMedia.kind, playbackMedia.isHydrating]);
+  }, [canPlayMedia, isYoutubePlayback, playbackMedia.streamUrl, playbackMedia.kind, playbackMedia.isHydrating]);
 
   const handlePlaybackError = () => {
     if (!canPlayMedia) return;
@@ -448,7 +531,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                   : 'bg-black/75 border-white/10'
               }`}
             >
-              <Star size={8} className="fill-yellow-400 text-yellow-400" />
+              <CoinIcon className="h-2 w-2 shrink-0" />
               <span className="text-[9px] font-black text-yellow-300 font-mono leading-none">
                 {occupant.stars.toLocaleString()}
               </span>
@@ -539,6 +622,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                 <span className="party-viewers-count font-black text-gray-100">{viewers.length}</span>
               </div>
             </button>
+            <RoomHeaderYoutubeMiniButton />
             <RoomHeaderActionsMenu items={headerMenuItems} />
             <button
               type="button"
@@ -570,7 +654,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
             className="flex shrink-0 items-center rounded-full border border-pink-500/20 bg-[#240c1e]/80 px-2 py-0.5 text-[8.5px] font-bold text-pink-400 backdrop-blur transition hover:bg-pink-950/20 active:scale-95"
             title={`${roomGiftSummary.giftCount.toLocaleString()} gifts received in this room`}
           >
-            <Star size={8} className="mr-0.5 fill-pink-400 text-pink-400" />
+            <CoinIcon className="mr-0.5 h-2 w-2 shrink-0" />
             <span>{roomGiftSummary.totalStars.toLocaleString()}</span>
             <ChevronRight size={8} className="ml-0.5 text-pink-400" />
           </button>
@@ -581,8 +665,9 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
         <div className="watch-together-player-frame w-full overflow-hidden bg-black relative">
           {playbackMedia.kind === 'audio' ? (
             <>
-              <img
-                src={safeMediaUrl(playbackMedia.posterUrl)}
+              <SafeMediaImage
+                src={playbackMedia.posterUrl}
+                priority
                 alt=""
                 className="absolute inset-0 h-full w-full object-cover opacity-45 pointer-events-none"
               />
@@ -596,11 +681,6 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                 {playbackError ? (
                   <p className="mb-3 px-3 text-center text-[11px] font-bold text-red-300">{playbackError}</p>
                 ) : null}
-                {isMediaLoading && !playbackError ? (
-                  <p className="mb-3 text-[10px] font-bold uppercase tracking-wider text-white/50">
-                    {playbackMedia.isHydrating ? 'Preparing upload…' : 'Loading audio…'}
-                  </p>
-                ) : null}
                 {canPlayMedia ? (
                   <audio
                     ref={audioRef}
@@ -608,7 +688,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                     src={safeVideoUrl(playbackMedia.streamUrl)}
                     controls
                     controlsList="nodownload"
-                    preload="auto"
+                    preload="metadata"
                     onLoadedData={handlePlaybackReady}
                     onCanPlay={handlePlaybackReady}
                     onError={handlePlaybackError}
@@ -617,50 +697,75 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                 ) : null}
               </div>
             </>
-          ) : (
+          ) : isYoutubePlayback && playbackMedia.youtubeVideoId ? (
             <>
-              {canPlayMedia ? (
-                <video
-                  ref={videoRef}
-                  key={playbackMedia.streamUrl}
-                  src={safeVideoUrl(playbackMedia.streamUrl)}
-                  poster={playbackMedia.posterUrl}
-                  controls
-                  controlsList="nodownload"
-                  playsInline
-                  preload="auto"
-                  onLoadedData={handlePlaybackReady}
-                  onCanPlay={handlePlaybackReady}
-                  onError={handlePlaybackError}
-                  className="watch-together-native-media h-full w-full bg-black object-contain"
-                  {...nativeVideoControlGuardProps()}
-                />
-              ) : (
-                <img
-                  src={safeMediaUrl(playbackMedia.posterUrl)}
-                  alt=""
-                  className="h-full w-full bg-black object-contain opacity-60"
-                />
-              )}
+              <WatchTogetherYoutubePlayer
+                videoId={playbackMedia.youtubeVideoId}
+                title={playbackMedia.fileName}
+                onReady={handlePlaybackReady}
+                onError={handlePlaybackError}
+                className="h-full w-full"
+              />
               <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2">
-                <span className="rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-200 border border-white/10">
-                  Watch Together
+                <span className="rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-red-200 border border-white/10">
+                  YouTube
                 </span>
               </div>
-              {isMediaLoading && !playbackError ? (
-                <div className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center bg-black/35">
-                  <span className="rounded-full bg-black/60 px-3 py-1 text-[10px] font-black uppercase tracking-wider text-white/80">
-                    {playbackMedia.isHydrating ? 'Preparing upload…' : 'Loading…'}
-                  </span>
-                </div>
-              ) : null}
               {playbackError ? (
                 <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/75 px-4 text-center">
                   <p className="text-xs font-bold text-red-300">{playbackError}</p>
                   {canManageMedia ? (
                     <button
                       type="button"
-                      onClick={() => setIsMediaSourceOpen(true)}
+                      onClick={() => openMediaSource('url')}
+                      className="rounded-full border border-pink-500/40 bg-pink-600/20 px-3 py-1 text-[10px] font-black text-pink-200 hover:bg-pink-600/30"
+                    >
+                      Change media source
+                    </button>
+                  ) : null}
+                </div>
+              ) : null}
+            </>
+          ) : (
+            <>
+              {/* Poster always instant; hide only after video can paint */}
+              <SafeMediaImage
+                src={playbackMedia.posterUrl}
+                priority
+                alt=""
+                className={`absolute inset-0 z-0 h-full w-full bg-black object-contain ${
+                  canPlayMedia && !isMediaLoading ? 'opacity-0' : 'opacity-100'
+                }`}
+              />
+              {canPlayMedia ? (
+                <video
+                  ref={videoRef}
+                  key={playbackMedia.streamUrl}
+                  src={safeVideoUrl(playbackMedia.streamUrl)}
+                  poster={safeMediaUrl(playbackMedia.posterUrl)}
+                  controls
+                  controlsList="nodownload"
+                  playsInline
+                  preload="metadata"
+                  onLoadedData={handlePlaybackReady}
+                  onCanPlay={handlePlaybackReady}
+                  onError={handlePlaybackError}
+                  className="watch-together-native-media relative z-[1] h-full w-full bg-black object-contain"
+                  {...nativeVideoControlGuardProps()}
+                />
+              ) : null}
+              <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2">
+                <span className="rounded-full bg-black/55 px-2 py-0.5 text-[9px] font-black uppercase tracking-wider text-pink-200 border border-white/10">
+                  Watch Together
+                </span>
+              </div>
+              {playbackError ? (
+                <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/75 px-4 text-center">
+                  <p className="text-xs font-bold text-red-300">{playbackError}</p>
+                  {canManageMedia ? (
+                    <button
+                      type="button"
+                      onClick={() => openMediaSource('url')}
                       className="rounded-full border border-pink-500/40 bg-pink-600/20 px-3 py-1 text-[10px] font-black text-pink-200 hover:bg-pink-600/30"
                     >
                       Change media source
@@ -732,6 +837,10 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                   {node}
                 </div>
               );
+
+              if (msg.isAnnouncementWelcome) {
+                return wrapFeedItem(renderAnnouncementWelcome({ ...msg, id: messageId }));
+              }
 
               if (msg.isSystem) {
                 return wrapFeedItem(
@@ -819,74 +928,35 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
             )}
           </form>
 
-          <div className="watch-together-footer-actions flex w-full min-w-0 shrink-0 items-center justify-between gap-1 overflow-x-auto scrollbar-hide sm:w-auto sm:justify-end sm:gap-1.5">
-            <button
-              type="button"
-              onClick={onToggleUserMic}
-              className={`flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border transition active:scale-90 ${
-                userSeatKey && userMicOn
-                  ? userVoiceActive
-                    ? 'border-cyan-400/60 bg-cyan-500/25 text-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.45)] animate-pulse'
-                    : 'border-cyan-400/40 bg-cyan-500/20 text-cyan-200'
-                  : 'border-white/10 bg-white/10 text-white/70'
-              }`}
-              aria-label={userMicOn ? 'Mute microphone' : 'Unmute microphone'}
-            >
-              {userMicOn ? <Mic size={16} /> : <MicOff size={16} />}
-            </button>
-            <button
-              type="button"
-              onClick={() => setIsGuestManagementOpen(true)}
-              title="Join a seat and guest management"
-              aria-label="Join a seat and guest management"
-              className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition hover:bg-white/15 active:scale-90"
-            >
-              <Users size={16} />
-            </button>
-            {canChangeRoomMode && onOpenRoomModePicker ? (
-              <button
-                type="button"
-                onClick={onOpenRoomModePicker}
-                title="Change room mode"
-                aria-label="Change room mode"
-                className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition hover:bg-white/15 active:scale-90"
-              >
-                <LayoutGrid size={16} />
-              </button>
-            ) : null}
-            {canChangeRoomBackground && (
-              <button
-                type="button"
-                onClick={() => setIsRoomBackgroundMenuOpen(true)}
-                title="Change room background"
-                aria-label="Change room background"
-                className="flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white/80 transition hover:bg-white/15 active:scale-90"
-              >
-                <Menu size={16} />
-              </button>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsGiftPickerOpen(true)}
-              className="relative flex h-8 w-8 sm:h-9 sm:w-9 shrink-0 items-center justify-center rounded-[10px] bg-gradient-to-tr from-pink-500 to-yellow-400 p-px transition active:scale-90"
-              aria-label="Send gift"
-            >
-              <div className="flex h-full w-full items-center justify-center rounded-[9px] bg-[#0d011c]">
-                <Gift size={16} className="text-yellow-400" />
-              </div>
-            </button>
-          </div>
+          <RoomFooterTrayActions
+            userSeatKey={userSeatKey}
+            userMicOn={userMicOn}
+            userVoiceActive={userVoiceActive}
+            onToggleUserMic={onToggleUserMic}
+            onToggleSeatParticipation={onToggleSeatParticipation}
+            onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
+            guestManagementOpen={guestManagementOpen}
+            onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
+            onPkClick={onPkClick}
+            onGameClick={onGameClick}
+            micAccent="cyan"
+          />
         </div>
       </div>
       </div>
 
       <WatchTogetherMediaSourceSheet
         isOpen={isMediaSourceOpen}
-        onClose={() => setIsMediaSourceOpen(false)}
+        onClose={() => {
+          setIsMediaSourceOpen(false);
+          setMediaSourceAutoPick(false);
+        }}
         roomDisplayId={roomDisplayId}
         media={playbackMedia}
         showToast={showToast}
         onMediaUpdated={handleMediaUpdated}
+        initialPanel={mediaSourcePanel}
+        autoPickFileOnOpen={mediaSourceAutoPick}
       />
       </div>
     </div>

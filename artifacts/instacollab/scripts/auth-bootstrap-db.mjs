@@ -14,25 +14,32 @@ import {
 } from './resolveProjectEnv.mjs';
 
 const appRoot = getAppRoot(import.meta.dirname);
-const bootstrapPath = path.join(appRoot, 'supabase', 'bootstrap.sql');
+const bootstrapPath = path.join(appRoot, 'supabase', 'bootstrap-full.sql');
+const bootstrapFallback = path.join(appRoot, 'supabase', 'bootstrap.sql');
 const repairPoliciesPath = path.join(appRoot, 'supabase', 'repair-policies.sql');
 const profilesOnlyPath = path.join(appRoot, 'supabase', 'bootstrap-profiles-only.sql');
 const envPath = findEnvFile(import.meta.dirname);
 
 if (!fs.existsSync(bootstrapPath)) {
-  console.error('');
-  console.error('Missing supabase/bootstrap.sql at:', bootstrapPath);
-  console.error('Expected under artifacts/instacollab/supabase/');
-  console.error('');
-  process.exit(1);
+  if (fs.existsSync(bootstrapFallback)) {
+    console.warn('bootstrap-full.sql missing — run: node scripts/build-bootstrap-full.mjs');
+  } else {
+    console.error('');
+    console.error('Missing supabase/bootstrap-full.sql at:', bootstrapPath);
+    console.error('Run: node scripts/build-bootstrap-full.mjs');
+    console.error('');
+    process.exit(1);
+  }
 }
+
+const sqlSourcePath = fs.existsSync(bootstrapPath) ? bootstrapPath : bootstrapFallback;
 
 const ref = supabaseProjectRefFromEnv(envPath) || 'YOUR_PROJECT_REF';
 const sqlUrl = `https://supabase.com/dashboard/project/${ref}/sql/new`;
-const bootstrapSql = fs.readFileSync(bootstrapPath, 'utf8');
+const bootstrapSql = fs.readFileSync(sqlSourcePath, 'utf8');
 
 console.log('');
-console.log('InstaCollab — cloud database bootstrap');
+console.log('InstaCollab — full cloud database bootstrap');
 console.log('──────────────────────────────────────');
 console.log('');
 console.log('  ⚠  Do NOT paste "pnpm run auth:bootstrap-db" into Supabase SQL Editor.');
@@ -52,7 +59,7 @@ console.log('  Step D — verify (Terminal):');
 console.log('     pnpm run auth:check');
 console.log('');
 console.log(`  .env used: ${fs.existsSync(envPath) ? envPath : '(not found — set VITE_SUPABASE_URL in .env)'}`);
-console.log(`  SQL file:  ${bootstrapPath}`);
+console.log(`  SQL file:  ${sqlSourcePath}`);
 if (fs.existsSync(repairPoliciesPath)) {
   console.log(`  Policy repair (if 42710 already exists): ${repairPoliciesPath}`);
 }

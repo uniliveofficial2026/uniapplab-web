@@ -84,7 +84,7 @@ export function MessagesSidebar({
   };
   return (
     <div
-      className={`w-full md:w-[250px] lg:w-[350px] border-r border-border flex flex-col bg-card shrink-0 ${chatOpen ? 'hidden md:flex' : 'flex'}`}
+      className={`h-full min-h-0 w-full md:w-[250px] lg:w-[350px] border-r border-border flex flex-col bg-card shrink-0 ${chatOpen ? 'hidden md:flex' : 'flex'}`}
     >
       <div className="h-[75px] border-b border-border flex items-center justify-between px-4 sm:px-6 shrink-0 z-[60]">
         <div className="flex items-center gap-3 min-w-0">

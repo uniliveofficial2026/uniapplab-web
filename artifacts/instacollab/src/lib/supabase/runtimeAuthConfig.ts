@@ -6,10 +6,22 @@ export type RuntimeSupabaseConfig = {
   supabaseAnonKey: string;
 };
 
-const STALE_PROJECT_REFS = new Set(['otiqckextvdbudbxzmau']);
+/** Retired Supabase project refs — never use for auth (Vercel env may still point here). */
+export const STALE_SUPABASE_PROJECT_REFS = new Set(['kgiaflmukkguzjtmcuqd']);
+
+const STALE_PROJECT_REFS = STALE_SUPABASE_PROJECT_REFS;
+
+export function isStaleSupabaseProjectRef(ref: string | null | undefined): boolean {
+  if (!ref) return false;
+  return STALE_PROJECT_REFS.has(ref.trim().toLowerCase());
+}
+
+export function supabaseUrlProjectRef(url: string): string | null {
+  return url.match(/https:\/\/([a-z0-9]+)\.supabase\.co/i)?.[1]?.toLowerCase() ?? null;
+}
 
 let runtime: RuntimeSupabaseConfig | null = null;
-let loadPromise: Promise<void> | null = null;
+let networkRefreshStarted = false;
 
 function isUsableConfig(value: unknown): value is RuntimeSupabaseConfig {
   if (!value || typeof value !== 'object') return false;
@@ -23,37 +35,56 @@ function isUsableConfig(value: unknown): value is RuntimeSupabaseConfig {
   return true;
 }
 
-/** Load /supabase-config.json — overrides wrong VITE_* values baked at build time. */
-export async function loadRuntimeAuthConfig(): Promise<void> {
-  if (runtime) return;
-  if (loadPromise) return loadPromise;
+function applyConfig(data: RuntimeSupabaseConfig): void {
+  runtime = {
+    supabaseUrl: data.supabaseUrl.trim().replace(/\/$/, ''),
+    supabaseAnonKey: data.supabaseAnonKey.trim(),
+  };
+}
 
-  loadPromise = (async () => {
+/** Instant — uses bundled config so UI never waits on network. */
+export function ensureBundledAuthConfig(): void {
+  if (runtime) return;
+  if (isUsableConfig(bundledSupabaseConfig)) {
+    applyConfig(bundledSupabaseConfig);
+  }
+}
+
+/**
+ * Load auth config without blocking first paint.
+ * 1) Apply bundled config synchronously
+ * 2) Optionally refresh from /supabase-config.json in the background
+ */
+export async function loadRuntimeAuthConfig(): Promise<void> {
+  ensureBundledAuthConfig();
+
+  if (networkRefreshStarted || typeof window === 'undefined') return;
+  networkRefreshStarted = true;
+
+  void (async () => {
     try {
       const res = await fetch('/supabase-config.json', { cache: 'no-store' });
-      if (res.ok) {
-        const data: unknown = await res.json();
-        if (isUsableConfig(data)) {
-          runtime = {
-            supabaseUrl: data.supabaseUrl.trim().replace(/\/$/, ''),
-            supabaseAnonKey: data.supabaseAnonKey.trim(),
-          };
-          return;
-        }
+      if (!res.ok) return;
+      const data: unknown = await res.json();
+      if (!isUsableConfig(data)) return;
+      const nextUrl = data.supabaseUrl.trim().replace(/\/$/, '');
+      const nextKey = data.supabaseAnonKey.trim();
+      if (
+        runtime &&
+        runtime.supabaseUrl === nextUrl &&
+        runtime.supabaseAnonKey === nextKey
+      ) {
+        return;
       }
+      applyConfig(data);
+      // Recreate client if URL/key changed after first paint.
+      const { resetSupabaseClient, initSupabaseClient } = await import('./client');
+      resetSupabaseClient();
+      void initSupabaseClient();
     } catch {
-      /* try bundled fallback */
-    }
-
-    if (isUsableConfig(bundledSupabaseConfig)) {
-      runtime = {
-        supabaseUrl: bundledSupabaseConfig.supabaseUrl.trim().replace(/\/$/, ''),
-        supabaseAnonKey: bundledSupabaseConfig.supabaseAnonKey.trim(),
-      };
+      /* keep bundled / env config */
     }
   })();
-
-  return loadPromise;
 }
 
 export function getRuntimeSupabaseConfig(): RuntimeSupabaseConfig | null {
@@ -62,5 +93,5 @@ export function getRuntimeSupabaseConfig(): RuntimeSupabaseConfig | null {
 
 export function clearRuntimeSupabaseConfigForTests(): void {
   runtime = null;
-  loadPromise = null;
+  networkRefreshStarted = false;
 }

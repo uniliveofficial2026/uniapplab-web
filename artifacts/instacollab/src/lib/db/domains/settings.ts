@@ -19,7 +19,7 @@ export function WithSettings<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         hiddenProfileViews: false,
         hideProfileViews: false,
         language: 'English',
-        offlineSync: false,
+        offlineSync: true,
         cloudSyncEnabled: false,
         cloudProvider: 'None',
         cloudAutoSync: false,

@@ -19,6 +19,7 @@ import {
 } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { useSupabaseAuth } from '../../contexts/SupabaseAuthContext';
 import {
   formatPremiumExpiryDate,
@@ -32,6 +33,7 @@ import {
   isCloudPublicUserIdAvailable,
   scheduleCloudProfileSync,
 } from '../../lib/auth/cloudProfile';
+import { syncDeviceAccountForAppUser } from '../../lib/auth/deviceAccounts';
 import {
   canChangePublicUserId,
   isLocalPublicUserIdAvailable,
@@ -43,6 +45,8 @@ import { PublicUserIdField } from '../launch/PublicUserIdField';
 import type { User } from '../../types';
 import type { AppSettings } from '../../lib/dbTypes';
 import { ProfileCloudSystemsModal } from './ProfileCloudSystemsModal';
+import { AvatarQuickPresets } from '../common/AvatarQuickPresets';
+import { avatarPresetSeedFromUrl, avatarPresetUrl } from '../../lib/avatarPresets';
 
 
 export type ProfileEditSettingsModalProps = {
@@ -86,6 +90,11 @@ export function ProfileEditSettingsModal({
   const [storageStats, setStorageStats] = useState(db.getStorageStats());
   const [settings, setSettings] = useState(db.settings);
   const [publicUserIdDraft, setPublicUserIdDraft] = useState(() => resolvePublicUserId(localUser));
+  const [avatarDraft, setAvatarDraft] = useState(
+    () =>
+      avatarPresetSeedFromUrl(localUser.avatarUrl) ??
+      (localUser.avatarUrl?.startsWith('http') ? localUser.avatarUrl : ''),
+  );
   const canEditPublicUserId =
     canChangePublicUserId(localUser.publicUserIdChangedAt) || !localUser.publicUserId;
   const publicUserIdHint = canEditPublicUserId
@@ -148,6 +157,13 @@ export function ProfileEditSettingsModal({
     setPublicUserIdDraft(resolvePublicUserId(localUser));
   }, [localUser.publicUserId, localUser.username]);
 
+  useEffect(() => {
+    setAvatarDraft(
+      avatarPresetSeedFromUrl(localUser.avatarUrl) ??
+        (localUser.avatarUrl?.startsWith('http') ? localUser.avatarUrl || '' : ''),
+    );
+  }, [localUser.avatarUrl]);
+
   const commitPublicUserId = async () => {
     if (!canEditPublicUserId) return;
 
@@ -191,6 +207,36 @@ export function ProfileEditSettingsModal({
     showToast('Preferences Saved');
   };
 
+  const commitProfilePatch = (patch: Partial<User>, toastMessage?: string) => {
+    const next: User = { ...localUser, ...patch };
+    setLocalUser(next);
+    db.updateUser(localUser.id, () => next);
+    syncDeviceAccountForAppUser(next);
+    if (isCloudAuthConfigured()) scheduleCloudProfileSync(next);
+    if (toastMessage) showToast(toastMessage);
+  };
+
+  const applyAvatarUrl = (avatarUrl: string) => {
+    if (!avatarUrl || avatarUrl === localUser.avatarUrl) return;
+    commitProfilePatch({ avatarUrl }, 'Profile photo updated');
+  };
+
+  const commitAvatarDraft = () => {
+    const val = avatarDraft.trim();
+    if (!val) {
+      setAvatarDraft(
+        avatarPresetSeedFromUrl(localUser.avatarUrl) ??
+          (localUser.avatarUrl?.startsWith('http') ? localUser.avatarUrl || '' : ''),
+      );
+      return;
+    }
+    applyAvatarUrl(
+      val.startsWith('http://') || val.startsWith('https://')
+        ? val
+        : avatarPresetUrl(val),
+    );
+  };
+
   const { signOut } = useSupabaseAuth();
 
   const handleLogout = () => {
@@ -198,7 +244,7 @@ export function ProfileEditSettingsModal({
       void Promise.resolve(onLogout()).then(() => onClose());
       return;
     }
-    if (!window.confirm('Log out of InstaCollab on this device?')) return;
+    if (!window.confirm(`Log out of ${APP_DISPLAY_NAME} on this device?`)) return;
     void signOut().then(() => {
       onClose();
       showToast('Logged out');
@@ -227,10 +273,52 @@ export function ProfileEditSettingsModal({
     </div>
 
     <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-6">
-      <div className="flex items-center gap-4">
-        <img src={localUser.avatarUrl || undefined} className="w-16 h-16 rounded-full object-cover border border-border" alt="avatar" onError={handleAvatarError} />
-        <button onClick={() => fileInputRef.current?.click()} className="text-primary font-bold text-sm hover:underline">Change Profile Photo</button>
-        <input type="file" ref={fileInputRef} onChange={handleAvatarChange} accept="image/*" className="hidden" />
+      <div className="space-y-3">
+        <div className="flex items-center gap-4 bg-secondary/40 p-3 rounded-2xl border border-border">
+          <img
+            src={localUser.avatarUrl || undefined}
+            className="w-16 h-16 rounded-full object-cover border border-border shrink-0"
+            alt="avatar"
+            onError={handleAvatarError}
+          />
+          <div className="flex-1 min-w-0 space-y-2">
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              className="text-primary font-bold text-sm hover:underline"
+            >
+              Change Profile Photo
+            </button>
+            <input
+              type="text"
+              value={avatarDraft}
+              onChange={(e) => setAvatarDraft(e.target.value)}
+              onBlur={commitAvatarDraft}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  commitAvatarDraft();
+                }
+              }}
+              placeholder="Custom seed or image URL"
+              className="w-full bg-background border border-border rounded-xl px-3 py-2 text-xs font-medium focus:ring-1 focus:ring-primary focus:outline-none"
+            />
+            <span className="text-[10px] text-muted-foreground block">
+              Upload a photo, pick a preset, or type a seed / image URL
+            </span>
+          </div>
+          <input
+            type="file"
+            ref={fileInputRef}
+            onChange={handleAvatarChange}
+            accept="image/*,image/svg+xml,.svg,.webp"
+            className="hidden"
+          />
+        </div>
+        <AvatarQuickPresets
+          selectedUrl={localUser.avatarUrl}
+          onSelect={applyAvatarUrl}
+        />
       </div>
       
       <div className="space-y-4">
@@ -249,17 +337,26 @@ export function ProfileEditSettingsModal({
         />
         <div className="space-y-1">
           <label className="text-sm font-bold text-muted-foreground">Name</label>
-          <input type="text" value={localUser.displayName} onChange={e => {
-              setLocalUser({...localUser, displayName: e.target.value});
-              db.updateUser(localUser.id, u => ({...u, displayName: e.target.value}));
-          }} className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary" />
+          <input
+            type="text"
+            value={localUser.displayName || ''}
+            onChange={(e) => {
+              const displayName = e.target.value;
+              commitProfilePatch({ displayName });
+            }}
+            className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary"
+          />
         </div>
         <div className="space-y-1">
           <label className="text-sm font-bold text-muted-foreground">Bio</label>
-          <textarea value={localUser.bio} onChange={e => {
-              setLocalUser({...localUser, bio: e.target.value});
-              db.updateUser(localUser.id, u => ({...u, bio: e.target.value}));
-          }} className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-20 resize-none" />
+          <textarea
+            value={localUser.bio || ''}
+            onChange={(e) => {
+              const bio = e.target.value;
+              commitProfilePatch({ bio });
+            }}
+            className="w-full bg-secondary/50 border border-border rounded-xl px-4 py-2 text-foreground focus:outline-none focus:ring-1 focus:ring-primary h-20 resize-none"
+          />
         </div>
       </div>
 

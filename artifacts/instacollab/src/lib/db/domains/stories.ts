@@ -238,6 +238,9 @@ export function WithStories<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
     addStorySegment(userId: string, segment: StoryDraftMedia) {
       const stamped: StoryDraftMedia = {
         ...segment,
+        id:
+          (segment as StoryDraftMedia & { id?: string }).id ||
+          `story_${userId}_${segment.createdAt ?? Date.now()}`,
         createdAt: segment.createdAt ?? Date.now(),
       };
 
@@ -255,6 +258,43 @@ export function WithStories<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
         ...allProfile,
         [userId]: this.cappedList([stamped, ...profileSegs], 'profile_stories'),
       });
+
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudStoryPublish(userId, stamped),
+      );
+    }
+
+    mergeInboundStorySegment(userId: string, segment: StoryDraftMedia) {
+      if (!userId || !segment) return;
+      const stamped: StoryDraftMedia = {
+        ...segment,
+        id:
+          (segment as StoryDraftMedia & { id?: string }).id ||
+          `story_${userId}_${segment.createdAt ?? Date.now()}`,
+        createdAt: segment.createdAt ?? Date.now(),
+      };
+      const segId = (stamped as StoryDraftMedia & { id?: string }).id;
+
+      const mergeInto = (storeKey: 'stories' | 'profile_stories') => {
+        const all = this.load<StoriesByUserStore>(storeKey, {}) || {};
+        const list = all[userId] || [];
+        if (
+          segId &&
+          list.some(
+            (s) => (s as StoryDraftMedia & { id?: string }).id === segId,
+          )
+        ) {
+          return;
+        }
+        this.save(storeKey, {
+          ...all,
+          [userId]: this.cappedList([stamped, ...list], storeKey),
+        });
+      };
+
+      mergeInto('stories');
+      this.ensureProfileStoriesMigrated();
+      mergeInto('profile_stories');
     }
 
     get storyViews() {

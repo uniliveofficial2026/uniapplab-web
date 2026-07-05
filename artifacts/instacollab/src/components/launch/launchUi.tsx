@@ -83,15 +83,18 @@ export function LaunchPrimaryButton({
 export function LaunchTextButton({
   children,
   onClick,
+  disabled,
 }: {
   children: React.ReactNode;
   onClick?: () => void;
+  disabled?: boolean;
 }) {
   return (
     <button
       type="button"
+      disabled={disabled}
       onClick={onClick}
-      className="text-sm font-semibold text-primary hover:underline"
+      className="text-sm font-semibold text-primary hover:underline disabled:opacity-50 disabled:no-underline"
     >
       {children}
     </button>

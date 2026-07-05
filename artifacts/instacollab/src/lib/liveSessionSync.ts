@@ -11,6 +11,10 @@ import { ensureKaraokeUploadsHydrated } from './karaokeUploads';
 import { ensureKstarUserStateMigrated } from './kstarUserState';
 import { onUserSessionActive } from './walletKstarSync';
 import { hydratePlatformSession, syncServerWalletBalance } from './walletServerSync';
+import {
+  clearCloudFollowCache,
+  hydrateCloudFollowsForUser,
+} from './cloudSocial/followsSync';
 
 let listenersInstalled = false;
 let syncChain: Promise<void> = Promise.resolve();
@@ -27,6 +31,8 @@ export async function syncLiveSessionData(userId: string): Promise<void> {
     ensureKaraokeRecordingsHydrated();
 
     if (isCloudAuthUserId(id)) {
+      clearCloudFollowCache();
+      await hydrateCloudFollowsForUser(id);
       await hydratePlatformSession(id);
       await syncServerWalletBalance(id);
     }

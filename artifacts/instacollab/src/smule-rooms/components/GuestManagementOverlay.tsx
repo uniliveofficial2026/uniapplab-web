@@ -1,14 +1,22 @@
 import React, { useMemo, useState } from "react";
-import { isRoomAdminOrOwner, type RoomMemberRole } from '../utils/roles';
+import { isRoomAdminOrOwner, isRoomCoOwner, isRoomOwner, type RoomMemberRole } from '../utils/roles';
 import { sortGuestRequestsByPriority } from '../utils/roomJoinPolicy';
 import { useRoomSelf } from '../context/RoomSelfContext';
 import { isRoomSelfName } from '../utils/selfIdentity';
 import {
-  formatGuestSeatNumber,
+  canRoleLockSeat,
+  canRoleManageSeatLocks,
+  formatMultiGuestSeatLabel,
+  formatSeatDisplayLabel,
   formatStaffSeatLabel,
   getGuestSeatKeysForRoomMode,
+  getLockableSeatKeysForRoomMode,
   guestSeatGridClass,
+  isSeatLockableByPolicy,
+  MULTI_GUEST_SEAT_COUNT_OPTIONS,
+  type MultiGuestSeatCount,
   type PartySeatMap,
+  type RoomLayoutMode,
   type RoomSeatKey,
 } from '../utils/roomSeats';
 import { X, Users, Mic, MicOff, Crown, Shield, UserMinus, Check, AlertCircle, Settings, Lock, Unlock, Sofa, Sparkles } from "lucide-react";
@@ -55,6 +63,9 @@ interface GuestManagementOverlayProps {
   roomPriority?: string;
   joinPolicySummary?: string;
   guestSeatKeys?: RoomSeatKey[];
+  roomLayoutMode?: RoomLayoutMode;
+  multiGuestSeatCount?: MultiGuestSeatCount;
+  onMultiGuestSeatCountChange?: (count: MultiGuestSeatCount) => void;
 }
 
 export function GuestManagementOverlay({ 
@@ -66,19 +77,51 @@ export function GuestManagementOverlay({
   whoCanJoin = 'Anyone', whoCanBeSeated = 'Anyone', roomPriority = 'NO',
   joinPolicySummary,
   guestSeatKeys: guestSeatKeysProp,
+  roomLayoutMode = 'Party',
+  multiGuestSeatCount = 15,
+  onMultiGuestSeatCountChange,
 }: GuestManagementOverlayProps) {
   const self = useRoomSelf();
   const [activeTab, setActiveTab] = useState<"seated" | "requests" | "settings">("seated");
-  const guestSeatKeys = guestSeatKeysProp ?? getGuestSeatKeysForRoomMode('Party');
-  const joinSeatGridClass = guestSeatGridClass(guestSeatKeys.length);
+  const guestSeatKeys = guestSeatKeysProp ?? getGuestSeatKeysForRoomMode(roomLayoutMode);
+  const lockableSeatKeys = getLockableSeatKeysForRoomMode(roomLayoutMode, multiGuestSeatCount);
+  const isMultiGuestLayout = roomLayoutMode === 'MultiGuest';
+  const isSoloLiveLayout = roomLayoutMode === 'SoloLive';
+  const joinSeatKeys = isMultiGuestLayout
+    ? lockableSeatKeys
+    : isSoloLiveLayout
+      ? (['host', ...guestSeatKeys] as RoomSeatKey[])
+      : guestSeatKeys;
+  const joinSeatGridClass = guestSeatGridClass(joinSeatKeys.length);
+  const lockSeatGridClass = guestSeatGridClass(lockableSeatKeys.length);
+  const labelForSeat = (seatKey: string) =>
+    isMultiGuestLayout
+      ? formatMultiGuestSeatLabel(seatKey, multiGuestSeatCount)
+      : formatSeatDisplayLabel(seatKey);
+
+  const canUserJoinSeat = (seatKey: RoomSeatKey): boolean => {
+    if (seatKey === 'host') {
+      if (isSoloLiveLayout) return isRoomAdminOrOwner(currentUserRole);
+      return isRoomOwner(currentUserRole);
+    }
+    if (seatKey === 'coowner') return isRoomCoOwner(currentUserRole) || isRoomOwner(currentUserRole);
+    if (seatKey === 'admin') return isRoomAdminOrOwner(currentUserRole);
+    return true;
+  };
   const seatedGuests = useMemo(
     () =>
       Object.entries(activeSeats).filter(([seatKey, guest]) => {
         if (!guest) return false;
+        if (isSoloLiveLayout) {
+          return seatKey === 'host' || guestSeatKeys.includes(seatKey as RoomSeatKey);
+        }
+        if (isMultiGuestLayout) {
+          return lockableSeatKeys.includes(seatKey as RoomSeatKey);
+        }
         if (seatKey === 'host' || seatKey === 'coowner' || seatKey === 'admin') return true;
         return guestSeatKeys.includes(seatKey as RoomSeatKey);
       }),
-    [activeSeats, guestSeatKeys],
+    [activeSeats, guestSeatKeys, isMultiGuestLayout, isSoloLiveLayout, lockableSeatKeys],
   );
   const sortedGuestRequests = useMemo(
     () => sortGuestRequestsByPriority(guestRequests, roomPriority),
@@ -88,10 +131,11 @@ export function GuestManagementOverlay({
   if (!isOpen) return null;
 
   const isAdminOrHost = isRoomAdminOrOwner(currentUserRole);
+  const canManageSeatLocks = canRoleManageSeatLocks(currentUserRole);
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex flex-col justify-end pointer-events-auto">
-      <div className="bg-[#1a0f2e] w-full max-h-[70vh] rounded-t-3xl border-t border-purple-500/30 flex flex-col overflow-hidden shadow-[0_-10px_40px_rgba(168,85,247,0.15)] animate-fade-in-up">
+    <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[120] flex flex-col justify-end">
+      <div className="pointer-events-auto flex max-h-[70vh] w-full flex-col overflow-hidden rounded-t-3xl border-t border-purple-500/30 bg-[#1a0f2e] shadow-[0_-10px_40px_rgba(168,85,247,0.15)] animate-fade-in-up">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 border-b border-white/5">
           <div className="flex items-center space-x-2">
@@ -120,7 +164,7 @@ export function GuestManagementOverlay({
               <span className="bg-red-500 text-white text-[9px] px-1.5 rounded-full">{guestRequests.length}</span>
             )}
           </button>
-          {isAdminOrHost && (
+          {canManageSeatLocks && (
             <button 
               className={`flex-1 py-3 text-xs font-bold transition flex justify-center items-center space-x-1.5 ${activeTab === 'settings' ? 'text-purple-400 border-b-2 border-purple-400' : 'text-gray-500'}`}
               onClick={() => setActiveTab('settings')}
@@ -150,15 +194,18 @@ export function GuestManagementOverlay({
                     <>
                       <p className="text-[10px] text-gray-500 mb-2.5">
                         {joinWithoutRequest || isAdminOrHost
-                          ? "Tap an open guest seat to sit down."
+                          ? isMultiGuestLayout
+                            ? "Tap an open seat on the video grid to sit down."
+                            : "Tap an open guest seat to sit down."
                           : "Tap a seat to send a join request."}
                       </p>
                       <div className={`grid ${joinSeatGridClass} gap-1.5`}>
-                        {guestSeatKeys.map((seatKey) => {
-                          const seatNumber = formatGuestSeatNumber(seatKey);
+                        {joinSeatKeys.map((seatKey) => {
+                          const seatLabel = labelForSeat(seatKey);
                           const isOccupied = activeSeats[seatKey] !== null;
                           const isLocked = lockedSeats[seatKey] || false;
-                          const isDisabled = isOccupied || isLocked;
+                          const isRoleBlocked = !canUserJoinSeat(seatKey);
+                          const isDisabled = isOccupied || isLocked || isRoleBlocked;
 
                           return (
                             <button
@@ -172,14 +219,16 @@ export function GuestManagementOverlay({
                                   : "bg-emerald-500/10 border-emerald-500/30 text-emerald-300 hover:bg-emerald-500/20"
                               }`}
                               title={
-                                isLocked
-                                  ? `Seat ${seatNumber} is locked`
-                                  : isOccupied
-                                    ? `Seat ${seatNumber} is taken`
-                                    : `Join seat ${seatNumber}`
+                                isRoleBlocked
+                                  ? `You cannot join ${seatLabel}`
+                                  : isLocked
+                                    ? `${seatLabel} is locked`
+                                    : isOccupied
+                                      ? `${seatLabel} is taken`
+                                      : `Join ${seatLabel}`
                               }
                             >
-                              {isLocked ? <Lock size={11} /> : <span>{seatNumber}</span>}
+                              {isLocked ? <Lock size={11} /> : <span>{seatLabel}</span>}
                             </button>
                           );
                         })}
@@ -249,7 +298,7 @@ export function GuestManagementOverlay({
                       <div>
                         <h3 className="text-xs font-bold text-gray-100 max-w-[120px] truncate">{guest.name}</h3>
                         <p className="text-[10px] text-gray-500">
-                          {isHost ? "Host Room" : isCoOwner ? "Co-owner" : isAdminSeat ? (formatStaffSeatLabel('admin') ?? 'Boss') : `Seat ${formatGuestSeatNumber(seatKey)}`}
+                          {isHost ? "Host Room" : isCoOwner ? "Co-owner" : isAdminSeat ? (formatStaffSeatLabel('admin') ?? 'Boss') : labelForSeat(seatKey)}
                           {guest.isAdminMuted && (
                             <span className="text-red-400 font-medium ml-1.5 inline-flex items-center">
                               <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full mr-1 animate-pulse" />
@@ -363,51 +412,89 @@ export function GuestManagementOverlay({
             </>
           )}
 
-          {activeTab === 'settings' && isAdminOrHost && (
+          {activeTab === 'settings' && canManageSeatLocks && (
             <div className="space-y-4 py-1 animate-fade-in">
-              <div className="rounded-2xl border border-purple-500/20 bg-purple-950/20 p-4">
-                <h3 className="text-xs font-bold text-purple-200">Saved room rules</h3>
-                <p className="mt-1 text-[10px] leading-relaxed text-gray-400">
-                  {joinPolicySummary ?? `Join: ${whoCanJoin} · Seats: ${whoCanBeSeated}`}
-                </p>
-                <p className="mt-2 text-[10px] text-gray-500">
-                  Edit Room settings sync here. Quick toggle below updates who can be seated.
-                </p>
-              </div>
-
-              {/* Join mode configuration box */}
-              <div className="bg-black/30 border border-white/5 rounded-2xl p-4 space-y-3">
-                <div className="flex justify-between items-center">
-                  <div>
-                    <h3 className="text-xs font-bold text-gray-100">Guest Seats Entry Policy</h3>
-                    <p className="text-[10px] text-gray-500 mt-0.5">Control how audience members join empty seats</p>
+              {isAdminOrHost && (
+                <>
+                  <div className="rounded-2xl border border-purple-500/20 bg-purple-950/20 p-4">
+                    <h3 className="text-xs font-bold text-purple-200">Saved room rules</h3>
+                    <p className="mt-1 text-[10px] leading-relaxed text-gray-400">
+                      {joinPolicySummary ?? `Join: ${whoCanJoin} · Seats: ${whoCanBeSeated}`}
+                    </p>
+                    <p className="mt-2 text-[10px] text-gray-500">
+                      Edit Room settings sync here. Quick toggle below updates who can be seated.
+                    </p>
                   </div>
-                  <button 
-                    onClick={onToggleJoinMode}
-                    className={`text-xs font-black px-4 py-2 rounded-full border transition active:scale-95 duration-150 cursor-pointer ${
-                      joinWithoutRequest 
-                        ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
-                        : "bg-purple-500/10 border-purple-500/30 text-purple-400"
-                    }`}
-                  >
-                    {joinWithoutRequest ? "Freely Join (No Request)" : "Require Request Approval"}
-                  </button>
+
+                  <div className="bg-black/30 border border-white/5 rounded-2xl p-4 space-y-3">
+                    <div className="flex justify-between items-center">
+                      <div>
+                        <h3 className="text-xs font-bold text-gray-100">Guest Seats Entry Policy</h3>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Control how audience members join empty seats</p>
+                      </div>
+                      <button 
+                        onClick={onToggleJoinMode}
+                        className={`text-xs font-black px-4 py-2 rounded-full border transition active:scale-95 duration-150 cursor-pointer ${
+                          joinWithoutRequest 
+                            ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-400" 
+                            : "bg-purple-500/10 border-purple-500/30 text-purple-400"
+                        }`}
+                      >
+                        {joinWithoutRequest ? "Freely Join (No Request)" : "Require Request Approval"}
+                      </button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              {isMultiGuestLayout && isAdminOrHost && onMultiGuestSeatCountChange ? (
+                <div className="bg-[#10091d]/85 border border-purple-950/20 rounded-2xl p-4 space-y-3">
+                  <div className="flex items-center space-x-2">
+                    <Users size={14} className="text-purple-400" />
+                    <h3 className="text-xs font-black text-gray-100 uppercase tracking-widest">Video Seat Count</h3>
+                  </div>
+                  <p className="text-[10px] text-gray-500">
+                    2 seats: host and co-owner side by side. 7 seats: host mega-tile with co-owner, boss, and NO.1–NO.4.
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    {MULTI_GUEST_SEAT_COUNT_OPTIONS.map((count) => (
+                      <button
+                        key={count}
+                        type="button"
+                        onClick={() => onMultiGuestSeatCountChange(count)}
+                        className={`text-[11px] font-black px-4 py-2 rounded-full border transition active:scale-95 ${
+                          multiGuestSeatCount === count
+                            ? 'bg-purple-500/15 border-purple-400/40 text-purple-200'
+                            : 'bg-white/5 border-white/10 text-gray-400 hover:bg-white/10'
+                        }`}
+                      >
+                        {count} seats
+                      </button>
+                    ))}
+                  </div>
                 </div>
-              </div>
+              ) : null}
 
               {/* Seats Locking List */}
               <div className="bg-[#10091d]/85 border border-purple-950/20 rounded-2xl p-4 space-y-3">
                 <div className="flex items-center space-x-2">
                   <Lock size={14} className="text-purple-400" />
-                  <h3 className="text-xs font-black text-gray-100 uppercase tracking-widest">Lock Guest Seats</h3>
+                  <h3 className="text-xs font-black text-gray-100 uppercase tracking-widest">
+                    {isMultiGuestLayout ? 'Lock Video Seats' : 'Lock Guest Seats'}
+                  </h3>
                 </div>
-                <p className="text-[10px] text-gray-500">Lock individual seats to prevent any users from sitting on them.</p>
+                <p className="text-[10px] text-gray-500">
+                  {isMultiGuestLayout
+                    ? 'Host cannot be locked. Owners and co-owners can lock any other seat; bosses can lock guest seats only.'
+                    : 'Lock individual seats to prevent any users from sitting on them.'}
+                </p>
 
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  {guestSeatKeys.map((seatKey) => {
-                    const sNum = formatGuestSeatNumber(seatKey);
+                <div className={`grid ${lockSeatGridClass} gap-2 mt-2`}>
+                  {lockableSeatKeys.map((seatKey) => {
+                    const seatLabel = labelForSeat(seatKey);
                     const isLocked = lockedSeats[seatKey] || false;
-                    const isSeated = activeSeats[seatKey] !== null;
+                    const isPolicyLocked = !isSeatLockableByPolicy(seatKey);
+                    const canToggleLock = canRoleLockSeat(seatKey, currentUserRole);
 
                     return (
                       <div 
@@ -418,31 +505,43 @@ export function GuestManagementOverlay({
                             : "bg-black/20 border-white/5 text-gray-300"
                         }`}
                       >
-                        <div className="flex items-center space-x-2">
-                          {isLocked ? <Lock size={11} className="text-red-400" /> : <Unlock size={11} className="text-gray-500" />}
-                          <span className="text-[11px] font-bold">Seat {sNum}</span>
+                        <div className="flex items-center space-x-2 min-w-0">
+                          {isLocked ? <Lock size={11} className="text-red-400 shrink-0" /> : <Unlock size={11} className="text-gray-500 shrink-0" />}
+                          <span className="text-[11px] font-bold truncate">{seatLabel}</span>
                         </div>
                         
-                        <button
-                          onClick={() => onToggleSeatLock(seatKey)}
-                          className={`text-[10px] font-black px-2.5 py-1 rounded-lg border transition active:scale-95 cursor-pointer flex items-center space-x-1 ${
-                            isLocked 
-                              ? "bg-red-600/20 border-red-500/30 text-red-400 hover:bg-red-600/30" 
-                              : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
-                          }`}
-                        >
-                          {isLocked ? (
-                            <>
-                              <Unlock size={10} />
-                              <span>Unlock</span>
-                            </>
-                          ) : (
-                            <>
-                              <Lock size={10} />
-                              <span>Lock</span>
-                            </>
-                          )}
-                        </button>
+                        {isPolicyLocked ? (
+                          <span className="text-[9px] font-bold text-gray-600 uppercase tracking-wide shrink-0">N/A</span>
+                        ) : canToggleLock ? (
+                          <button
+                            type="button"
+                            onClick={() => onToggleSeatLock(seatKey)}
+                            className={`text-[10px] font-black px-2.5 py-1 rounded-lg border transition active:scale-95 cursor-pointer flex items-center space-x-1 ${
+                              isLocked 
+                                ? "bg-red-600/20 border-red-500/30 text-red-400 hover:bg-red-600/30" 
+                                : "bg-white/5 border-white/10 text-gray-400 hover:bg-white/10"
+                            }`}
+                          >
+                            {isLocked ? (
+                              <>
+                                <Unlock size={10} />
+                                <span>Unlock</span>
+                              </>
+                            ) : (
+                              <>
+                                <Lock size={10} />
+                                <span>Lock</span>
+                              </>
+                            )}
+                          </button>
+                        ) : (
+                          <span
+                            className="text-[9px] font-bold text-gray-600 uppercase tracking-wide shrink-0"
+                            title="You cannot lock this seat"
+                          >
+                            —
+                          </span>
+                        )}
                       </div>
                     );
                   })}

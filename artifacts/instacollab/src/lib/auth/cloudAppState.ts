@@ -12,13 +12,13 @@ import {
   teardownSupabaseUserAppState,
 } from '../supabase/userAppState';
 import { isSupabaseConfigured } from '../supabase/config';
-import { upsertFirebaseUserAppState, subscribeFirebaseUserAppState } from '../firebase/userAppState';
+import { upsertFirebaseUserAppState, subscribeFirebaseUserAppState, fetchFirebaseUserAppState } from '../firebase/userAppState';
 import { isFirebaseConfigured } from '../firebase/config';
 import { isCloudAuthConfigured } from './config';
+import { resolveCloudDataBackend, markSupabaseCloudDegradedFromError } from './cloudDataBackend';
 import { isCloudAppStateRemoteApply, withCloudAppStateRemoteApply } from './cloudAppStateFlags';
 import { isCloudAuthUserId } from './cloudProfile';
 import { consumePendingDemoMigration, resolveDemoSessionEmail } from './demoCloudMigration';
-import { hasSupabaseSessionForUser } from './activeBackend';
 import { isDevLocalAuthBypass } from './devLocalAuth';
 import { scheduleLiveSessionSync } from '../liveSessionSync';
 import { isNetworkOnline, subscribeNetworkStatus } from '../networkStatus';
@@ -121,7 +121,8 @@ async function pushNow(userId: string): Promise<void> {
     const payload = collectPayload(db);
     if (payload.updatedAt <= lastAppliedRemoteAt) return;
 
-    if (isSupabaseConfigured() && (await hasSupabaseSessionForUser(userId))) {
+    const backend = await resolveCloudDataBackend(userId);
+    if (backend === 'supabase') {
       await upsertSupabaseUserAppState(userId, payload);
     } else if (isFirebaseConfigured()) {
       await upsertFirebaseUserAppState(userId, payload);
@@ -139,8 +140,20 @@ async function pushNow(userId: string): Promise<void> {
       });
     }
   } catch (err) {
+    markSupabaseCloudDegradedFromError(err);
     const message = err instanceof Error ? err.message : String(err);
     console.warn('[sync] cloud app state push failed:', message, err);
+    if (isFirebaseConfigured()) {
+      try {
+        const payload = collectPayload(db);
+        await upsertFirebaseUserAppState(userId, payload);
+        lastPushedAt = payload.updatedAt;
+        lastAppliedRemoteAt = payload.updatedAt;
+        persistLocalRevision(userId, payload.updatedAt);
+      } catch (retryErr) {
+        console.warn('[sync] firebase app state push retry failed:', retryErr);
+      }
+    }
   } finally {
     pushInFlight = false;
     if (pushAgainAfterFlight) {
@@ -214,13 +227,20 @@ async function hydrateCloudAppStateForUser(
     return { result: 'ok', pushLocal: false };
   }
 
-  if (isSupabaseConfigured() && (await hasSupabaseSessionForUser(userId))) {
+  const backend = await resolveCloudDataBackend(userId);
+  if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
+
+  if (backend === 'supabase') {
     let existing: CloudAppStatePayload | null;
     let pushLocal = false;
     try {
       existing = await fetchSupabaseUserAppState(userId);
     } catch (err) {
-      console.warn('[sync] fetch user_app_state failed — keeping local data:', err);
+      markSupabaseCloudDegradedFromError(err);
+      console.warn('[sync] fetch user_app_state failed — trying Firebase:', err);
+      if (isFirebaseConfigured()) {
+        return hydrateFirebaseAppState(userId, generation);
+      }
       return { result: 'error', pushLocal: false };
     }
 
@@ -274,20 +294,56 @@ async function hydrateCloudAppStateForUser(
   }
 
   if (isFirebaseConfigured()) {
-    if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
-
-    if (realtimeUnsub) {
-      realtimeUnsub();
-      realtimeUnsub = null;
-    }
-
-    realtimeUnsub = subscribeFirebaseUserAppState(userId, (payload) => {
-      applyPayloadIfNewer(payload, 'remote');
-    });
-    return { result: 'ok', pushLocal: false };
+    return hydrateFirebaseAppState(userId, generation);
   }
 
   return { result: 'error', pushLocal: false };
+}
+
+async function hydrateFirebaseAppState(
+  userId: string,
+  generation: number,
+): Promise<HydrateOutcome> {
+  if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
+
+  let existing: CloudAppStatePayload | null = null;
+  let pushLocal = false;
+  try {
+    existing = await fetchFirebaseUserAppState(userId);
+  } catch (err) {
+    console.warn('[sync] fetch Firestore user_app_state failed:', err);
+    return { result: 'error', pushLocal: false };
+  }
+
+  if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
+
+  if (existing) {
+    const localRev = readPersistedLocalRevision(userId);
+    lastPushedAt = Math.max(lastPushedAt, localRev);
+    if (existing.updatedAt > localRev) {
+      applyPayloadIfNewer(existing, 'bootstrap');
+    } else if (localRev > existing.updatedAt) {
+      lastAppliedRemoteAt = existing.updatedAt;
+      pushLocal = true;
+    } else {
+      applyPayloadIfNewer(existing, 'bootstrap');
+    }
+  } else {
+    seedLocalRevisionIfNeeded(userId);
+    pushLocal = readPersistedLocalRevision(userId) > 0;
+  }
+
+  if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
+
+  if (realtimeUnsub) {
+    realtimeUnsub();
+    realtimeUnsub = null;
+  }
+
+  realtimeUnsub = subscribeFirebaseUserAppState(userId, (payload) => {
+    applyPayloadIfNewer(payload, 'remote');
+  });
+  return { result: existing ? 'ok' : 'empty', pushLocal };
 }
 
 async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
@@ -327,7 +383,8 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
     queueMicrotask(() => void pushNow(userId));
   }
   if (hydrateResult === 'error') {
-    window.setTimeout(() => {
+    // Immediate retry — no 500ms / 3s artificial wait.
+    queueMicrotask(() => {
       void (async () => {
         if (subscribedUserId !== userId || generation !== hydrateGeneration) return;
         const retry = await hydrateCloudAppStateForUser(userId, generation);
@@ -340,14 +397,11 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
           queueMicrotask(() => {
             scheduleLiveSessionSync(userId);
           });
+        } else if (subscribedUserId === userId) {
+          cloudSyncReady = true;
         }
       })();
-    }, 500);
-    window.setTimeout(() => {
-      if (subscribedUserId === userId && !cloudSyncReady) {
-        cloudSyncReady = true;
-      }
-    }, 3000);
+    });
   }
   if (hydrateResult !== 'error' && generation === hydrateGeneration) {
     queueMicrotask(() => {
@@ -417,6 +471,15 @@ export async function stopCloudAppStateRealtimeAsync(): Promise<void> {
   });
 
   await stopCloudAppStateTask;
+}
+
+/** Force re-hydrate from Supabase after silent outage recovery. */
+export async function restartCloudAppStateSync(userId: string): Promise<void> {
+  subscribedUserId = null;
+  cloudSyncHydratedUserId = null;
+  cloudSyncReady = false;
+  await stopCloudAppStateRealtimeAsync();
+  await startCloudAppStateRealtime(userId);
 }
 
 export function getCloudAppStateSubscribedUserId(): string | null {

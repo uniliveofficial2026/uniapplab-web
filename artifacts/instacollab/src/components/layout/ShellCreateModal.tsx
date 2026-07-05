@@ -28,7 +28,11 @@ import { useDB } from '../../lib/useDB';
 import { ShellCreatePostEditor } from './ShellCreatePostEditor';
 import { ShellCreateCrossPostModal } from './ShellCreateCrossPostModal';
 import { DeepARCameraCapture } from '../deepar/DeepARCameraCapture';
+import { ALL_MEDIA_ACCEPT, PHOTO_VIDEO_ACCEPT } from '../../lib/mediaAccept';
 import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
+import { ARCameraCapture } from '../ar/ARCameraCapture';
+import { isFaceARAvailable } from '../../lib/ar/arConfig';
+import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
 
 export type CreateLaunch = {
   type: 'post' | 'reel' | 'text' | 'story';
@@ -89,6 +93,8 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
   const suggestedHashtags = ['#fyp', '#viral', '#trending', '#explore', '#photography', '#art', '#daily'];
   const [filter, setFilter] = useState('none');
   const [showARCamera, setShowARCamera] = useState(false);
+  const advancedCamera = isDeepARConfigured() || isTencentWebARConfigured();
+  const hasARCamera = advancedCamera || isFaceARAvailable();
   const [mediaAdjust, setMediaAdjust] = useState<MediaEditorAdjustments>(DEFAULT_MEDIA_EDITOR_ADJUSTMENTS);
   const [videoAdjust, setVideoAdjust] = useState<VideoEditorAdjustments>(DEFAULT_VIDEO_EDITOR_ADJUSTMENTS);
   const [textExtras, setTextExtras] = useState<TextEditorExtras>(DEFAULT_TEXT_EDITOR_EXTRAS);
@@ -340,18 +346,18 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
     {open && (
       <div 
         id="create-modal" 
-        className="fixed inset-y-0 right-0 left-0 md:left-[72px] lg:left-[244px] z-50 flex items-center justify-center bg-background"
+        className="fixed inset-0 z-50 flex flex-col overflow-hidden bg-background pt-[var(--app-safe-top)] pb-[var(--app-safe-bottom)] md:left-[72px] lg:left-[244px]"
         onClick={resetCreatePost}
       >
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           exit={{ opacity: 0, scale: 0.95 }}
-          className={`bg-background w-full max-h-[90vh] overflow-y-auto rounded-3xl border border-border shadow-2xl flex flex-col transition-all duration-300 ${
+          className={`bg-background w-full min-h-0 flex-1 overflow-y-auto overscroll-contain flex flex-col transition-all duration-300 sm:flex-none sm:my-auto sm:max-h-[90vh] sm:rounded-3xl sm:border border-border shadow-2xl mx-auto ${
             createType === 'story'
               ? storyCreatorStep !== 'select'
-                ? 'max-w-4xl max-h-[92vh]'
-                : 'max-w-lg'
+                ? 'max-w-4xl sm:max-h-[92vh]'
+                : 'max-w-lg h-auto'
               : createStep === 'edit'
                 ? 'max-w-4xl'
                 : 'max-w-lg'
@@ -470,7 +476,7 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
             type="file" 
             ref={fileInputRef} 
             onChange={handleFileChange} 
-            accept="image/*,video/*,audio/*,.mp4,.mov,.webm,.m4v,.3gp,.heic,.heif" 
+            accept={ALL_MEDIA_ACCEPT}
             multiple
             className="hidden" 
           />
@@ -499,7 +505,7 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
 
           {createType !== 'story' && createStep === 'upload' && (
             <div 
-              className="p-8 flex flex-col items-center justify-center min-h-[500px]"
+              className="p-6 sm:p-8 flex flex-col items-center justify-center flex-1 min-h-[min(320px,42dvh)] sm:min-h-[400px]"
               onDrop={handleDrop}
               onDragOver={(e) => e.preventDefault()}
             >
@@ -516,7 +522,7 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
               <button onClick={triggerFileUpload} className="px-5 py-2 bg-primary text-primary-foreground font-bold rounded-xl hover:bg-primary/90 transition-colors active:scale-95">
                 Select from computer
               </button>
-              {isDeepARConfigured() && (
+              {hasARCamera && (
                 <button
                   type="button"
                   onClick={() => setShowARCamera(true)}
@@ -626,8 +632,29 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
       </div>
     )}
     </AnimatePresence>
+      <ARCameraCapture
+        open={showARCamera && !advancedCamera && isFaceARAvailable()}
+        onClose={() => setShowARCamera(false)}
+        title="Create with AR"
+        onCaptured={({ kind, url }) => {
+          const isVideo = kind === 'video';
+          setUploadedImage(url);
+          setUploadedIsVideo(isVideo);
+          setUploadedMediaList([
+            {
+              url,
+              type: isVideo ? 'video' : 'image',
+              name: isVideo ? 'ar-video.webm' : 'ar-photo.png',
+            },
+          ]);
+          setActiveMediaIndex(0);
+          setCreateStep('edit');
+          setShowARCamera(false);
+          showToast(isVideo ? 'AR video ready to edit' : 'AR photo ready to edit');
+        }}
+      />
       <DeepARCameraCapture
-        open={showARCamera}
+        open={showARCamera && advancedCamera}
         onClose={() => setShowARCamera(false)}
         title="Create with AR"
         onCaptured={({ kind, url }) => {

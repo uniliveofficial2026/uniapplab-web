@@ -1,6 +1,7 @@
 import { uniapplabOrigin, isLocalDevHost, isUniapplabHost } from './domains/uniapplab';
 import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
+import { fetchWithTimeout, NET_API_MS, NET_AUTH_MS, withTimeout } from './networkPolicy';
 
 function apiBaseUrl(): string {
   if (typeof window !== 'undefined') {
@@ -33,9 +34,18 @@ async function authHeaders(): Promise<HeadersInit> {
   };
   const supabase = getSupabaseClient();
   if (supabase) {
-    const { data } = await supabase.auth.getSession();
-    const token = data.session?.access_token;
-    if (token) headers.authorization = `Bearer ${token}`;
+    try {
+      // Never hang UI/API on a slow auth refresh.
+      const { data } = await withTimeout(
+        supabase.auth.getSession(),
+        NET_AUTH_MS,
+        'auth.getSession',
+      );
+      const token = data.session?.access_token;
+      if (token) headers.authorization = `Bearer ${token}`;
+    } catch {
+      /* proceed without bearer — local cache still works */
+    }
   }
   return headers;
 }
@@ -43,13 +53,18 @@ async function authHeaders(): Promise<HeadersInit> {
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   const base = apiBaseUrl();
   const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
-  const res = await fetch(url, {
-    ...init,
-    headers: {
-      ...(await authHeaders()),
-      ...(init?.headers as Record<string, string> | undefined),
+  const res = await fetchWithTimeout(
+    url,
+    {
+      ...init,
+      headers: {
+        ...(await authHeaders()),
+        ...(init?.headers as Record<string, string> | undefined),
+      },
     },
-  });
+    NET_API_MS,
+    path,
+  );
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(`API ${res.status}: ${body || res.statusText}`);
@@ -208,6 +223,25 @@ export async function fetchPartyLiveKitToken(
   });
 }
 
+export type ChatLiveKitTokenResponse = {
+  token: string;
+  url: string;
+  roomName: string;
+  threadId: string;
+  callKind: 'audio' | 'video';
+  publish: boolean;
+};
+
+export async function fetchChatLiveKitToken(
+  threadId: string,
+  callKind: 'audio' | 'video' = 'audio',
+): Promise<ChatLiveKitTokenResponse> {
+  return apiFetch('/api/livekit/chat/token', {
+    method: 'POST',
+    body: JSON.stringify({ threadId, callKind }),
+  });
+}
+
 export async function postPresenceHeartbeat(friendIds?: string[]): Promise<{
   ok: boolean;
   online?: boolean;
@@ -255,5 +289,25 @@ export async function postChatTyping(
   return apiFetch('/api/chat/typing', {
     method: 'POST',
     body: JSON.stringify({ threadId, typing }),
+  });
+}
+
+export type AutomationConfig = {
+  enabled: boolean;
+  autoPush: boolean;
+  githubActionsDeploy: boolean;
+  autoMachineLearning: boolean;
+};
+
+export async function fetchAutomationConfig(): Promise<AutomationConfig> {
+  return apiFetch<AutomationConfig>('/api/automation');
+}
+
+export async function patchAutomationConfig(
+  update: Partial<AutomationConfig>,
+): Promise<AutomationConfig> {
+  return apiFetch<AutomationConfig>('/api/automation', {
+    method: 'PATCH',
+    body: JSON.stringify(update),
   });
 }

@@ -37,6 +37,7 @@ export function profileRowToUser(row: ProfileRow, _email?: string | null): User 
     bannedAt: row.banned_at ? Date.parse(row.banned_at) : undefined,
     banReason: row.ban_reason ?? undefined,
     mutedUntil: row.muted_until ? Date.parse(row.muted_until) : undefined,
+    isPrivate: !!row.is_private,
     ...profileRowThoughtNote(row),
   };
 }
@@ -53,6 +54,9 @@ export function userToProfilePatch(user: Partial<User>): Partial<ProfileRow> {
   }
   if (user.publicUserIdChangedAt !== undefined) {
     patch.public_user_id_changed_at = new Date(user.publicUserIdChangedAt).toISOString();
+  }
+  if (user.isPrivate !== undefined) {
+    patch.is_private = !!user.isPrivate;
   }
   return patch;
 }

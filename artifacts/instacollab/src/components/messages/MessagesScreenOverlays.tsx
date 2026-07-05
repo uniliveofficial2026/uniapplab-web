@@ -916,7 +916,7 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                 {filteredGalleryItems.length === 0 ? (
                   <div className="text-sm text-muted-foreground">No shared media yet.</div>
                 ) : (
-                  <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 sm:gap-4">
                     {filteredGalleryItems.map((item, galleryIndex) => (
                       <button
                         key={`gallery-screen-${galleryIndex}`}
@@ -924,7 +924,7 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                         onClick={() =>
                           tryOpenMediaFullscreen(filteredGalleryItems, galleryIndex, `gallery-${galleryIndex}`)
                         }
-                        className="relative aspect-square rounded-xl overflow-hidden border border-border/70"
+                        className="relative aspect-[4/5] rounded-2xl overflow-hidden border border-border/70 shadow-sm bg-secondary/40"
                       >
                         {item.isAudio ? (
                           <div className="w-full h-full bg-secondary flex items-center justify-center">

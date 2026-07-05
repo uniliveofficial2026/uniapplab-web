@@ -2,6 +2,7 @@ import { getFirebaseAuth } from '../firebase/app';
 import { isFirebaseConfigured } from '../firebase/config';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
+import { shouldUseFirebaseForCloudData } from './cloudDataBackend';
 
 const SUPABASE_USER_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
@@ -33,6 +34,10 @@ async function refreshSupabaseSessionIfNeeded(userId: string): Promise<boolean> 
 export async function resolveActiveProfileBackend(
   userId: string
 ): Promise<'supabase' | 'firebase'> {
+  if (shouldUseFirebaseForCloudData(userId) && isFirebaseConfigured()) {
+    return 'firebase';
+  }
+
   if (await hasSupabaseSessionForUser(userId)) return 'supabase';
 
   const fbAuth = getFirebaseAuth();
@@ -41,6 +46,9 @@ export async function resolveActiveProfileBackend(
   if (SUPABASE_USER_ID.test(userId)) {
     if (isSupabaseConfigured()) {
       if (await refreshSupabaseSessionIfNeeded(userId)) return 'supabase';
+      if (shouldUseFirebaseForCloudData(userId) && isFirebaseConfigured()) {
+        return 'firebase';
+      }
       throw new Error('Your session expired. Log out and sign in again, then retry profile setup.');
     }
     throw new Error('Supabase is not configured for this account.');

@@ -3,6 +3,17 @@ import { resolveUser } from '../../safe';
 import type { User } from '../../../types';
 import type { FollowBlockedLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
+import { isCloudAuthUserId } from '../../auth/cloudProfile';
+import {
+  cloudApproveFollowRequest,
+  cloudFollowRequestToggle,
+  cloudFollowToggle,
+  cloudRejectFollowRequest,
+  getCachedFollowerIds,
+  getCachedFollowingIds,
+  getCachedPendingRequesterIds,
+  isCloudFollowsEnabled,
+} from '../../cloudSocial/followsSync';
 
 type FollowRequestsStore = {
   /** profileOwnerId → requester user ids */
@@ -83,6 +94,10 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
     getFollowingIds(userId: string): string[] {
       const id = String(userId || '').trim();
       if (!id) return [];
+      if (isCloudFollowsEnabled() && isCloudAuthUserId(id)) {
+        const cached = getCachedFollowingIds(id);
+        if (cached) return [...cached];
+      }
       const list = this.getFollowGraph().following[id];
       return Array.isArray(list) ? [...new Set(list.filter(Boolean))] : [];
     }
@@ -90,6 +105,10 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
     getFollowerIds(userId: string): string[] {
       const id = String(userId || '').trim();
       if (!id) return [];
+      if (isCloudFollowsEnabled() && isCloudAuthUserId(id)) {
+        const cached = getCachedFollowerIds(id);
+        if (cached) return [...cached];
+      }
       const graph = this.getFollowGraph();
       const followers: string[] = [];
       Object.entries(graph.following).forEach(([followerId, list]) => {
@@ -229,6 +248,10 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
       const meId = this.asLocalDB().currentUserId;
       const ownerId = String(targetUserId || '').trim();
       if (!meId || !ownerId) return false;
+      if (isCloudFollowsEnabled() && isCloudAuthUserId(meId)) {
+        const cached = getCachedPendingRequesterIds(ownerId);
+        if (cached) return cached.includes(meId);
+      }
       const list = this.getFollowRequestsStore().pending[ownerId] ?? [];
       return list.includes(meId);
     }
@@ -245,6 +268,10 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
     getPendingFollowRequesterIds(profileUserId?: string): string[] {
       const ownerId = String(profileUserId || this.asLocalDB().currentUserId || '').trim();
       if (!ownerId) return [];
+      if (isCloudFollowsEnabled() && isCloudAuthUserId(ownerId)) {
+        const cached = getCachedPendingRequesterIds(ownerId);
+        if (cached) return [...cached];
+      }
       return [...new Set((this.getFollowRequestsStore().pending[ownerId] ?? []).filter(Boolean))];
     }
 
@@ -295,11 +322,15 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
           following: Math.max(0, (Number(u.following) || 0) + 1),
           isFollowing: true,
         }));
-        this.asLocalDB().pushNotificationForUser(fromId, {
-          type: 'follow',
-          actorUserId: meId,
-          text: 'accepted your follow request.',
-        });
+        if (isCloudFollowsEnabled() && isCloudAuthUserId(meId)) {
+          void cloudApproveFollowRequest(meId, fromId);
+        } else {
+          this.asLocalDB().pushNotificationForUser(fromId, {
+            type: 'follow',
+            actorUserId: meId,
+            text: 'accepted your follow request.',
+          });
+        }
       }
       return true;
     }
@@ -314,6 +345,9 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
         type: 'follow_request',
         actorUserId: fromId,
       });
+      if (isCloudFollowsEnabled() && isCloudAuthUserId(meId)) {
+        void cloudRejectFollowRequest(meId, fromId);
+      }
       return true;
     }
 
@@ -336,7 +370,9 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
         following: Math.max(0, (Number(u.following) || 0) + delta),
       }));
 
-      if (nextFollowing) {
+      if (isCloudFollowsEnabled() && isCloudAuthUserId(meId)) {
+        void cloudFollowToggle(meId, targetUserId, nextFollowing);
+      } else if (nextFollowing) {
         this.asLocalDB().pushNotificationForUser(targetUserId, {
           type: 'follow',
           actorUserId: meId,
@@ -388,13 +424,20 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
             type: 'follow_request',
             actorUserId: meId,
           });
+          if (isCloudFollowsEnabled() && isCloudAuthUserId(meId)) {
+            void cloudFollowRequestToggle(meId, targetUserId, false);
+          }
           return false;
         }
         this.addFollowRequest(targetUserId, meId);
-        this.asLocalDB().pushNotificationForUser(targetUserId, {
-          type: 'follow_request',
-          actorUserId: meId,
-        });
+        if (isCloudFollowsEnabled() && isCloudAuthUserId(meId)) {
+          void cloudFollowRequestToggle(meId, targetUserId, true);
+        } else {
+          this.asLocalDB().pushNotificationForUser(targetUserId, {
+            type: 'follow_request',
+            actorUserId: meId,
+          });
+        }
         return false;
       }
 
@@ -432,11 +475,16 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
     isUserBlocked(targetUserId: string): boolean {
       const id = String(targetUserId || '').trim();
       if (!id) return false;
-      return this.getBlockedUserIds().includes(id);
+      return (
+        this.getBlockedUserIds().includes(id) || this.getBlockedByUserIds().includes(id)
+      );
     }
 
     filterItemsByBlockedAuthors<T extends { user?: { id?: string } }>(items: T[]): T[] {
-      const blocked = new Set(this.getBlockedUserIds());
+      const blocked = new Set([
+        ...this.getBlockedUserIds(),
+        ...this.getBlockedByUserIds(),
+      ]);
       if (blocked.size === 0) return items;
       return items.filter((item) => {
         const authorId = item?.user?.id;
@@ -463,7 +511,43 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
         this.toggleFollow(id);
       }
 
+      void import('../../cloudSocial/cloudBlocks').then((m) => m.queueCloudBlock(id, true));
+
       return true;
+    }
+
+    replaceCloudBlocks(blockedByMe: string[], blockedMe: string[] = []) {
+      const meId = this.asLocalDB().currentUserId;
+      if (!meId) return;
+      const store = this.getBlockedUsersStore();
+      const existing = this.getBlockedUserIds();
+      const localOnly = existing.filter((id) => !/^[0-9a-f-]{36}$/i.test(id));
+      const next = [...new Set([...blockedByMe, ...localOnly])];
+      this.saveBlockedUsersStore({ ...store, [meId]: next });
+      this.save('blocked_by_users', [...new Set(blockedMe)]);
+    }
+
+    getBlockedByUserIds(): string[] {
+      const raw = this.load<string[]>('blocked_by_users', []);
+      return Array.isArray(raw) ? raw.filter(Boolean) : [];
+    }
+
+    mergeInboundBlock(targetUserId: string, blocked: boolean) {
+      const meId = this.asLocalDB().currentUserId;
+      const id = String(targetUserId || '').trim();
+      if (!meId || !id) return;
+      const store = this.getBlockedUsersStore();
+      const list = this.getBlockedUserIds();
+      if (blocked) {
+        if (list.includes(id)) return;
+        this.saveBlockedUsersStore({ ...store, [meId]: [...list, id] });
+        return;
+      }
+      if (!list.includes(id)) return;
+      this.saveBlockedUsersStore({
+        ...store,
+        [meId]: list.filter((blockedId) => blockedId !== id),
+      });
     }
 
     /** Resolved user rows for accounts the logged-in viewer has blocked. */
@@ -487,6 +571,7 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
         ...store,
         [meId]: list.filter((blockedId) => blockedId !== id),
       });
+      void import('../../cloudSocial/cloudBlocks').then((m) => m.queueCloudBlock(id, false));
       return true;
     }
 

@@ -13,17 +13,20 @@ import feedRouter from "./feed";
 import upstashRouter from "./upstash";
 import qstashRouter from "./qstash";
 import linearRouter from "./linear";
+import youtubeRouter from "./youtube";
+import automationRouter from "./automation";
+import authMigrateRouter from "./authMigrate";
 import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
 
+router.use(upstashRateLimit);
 router.use(healthRouter);
 router.use(upstashRouter);
-router.use(livekitRouter);
 router.use(qstashRouter);
 router.use(linearRouter);
-router.use(upstashRateLimit);
-router.use(linearRouter);
+router.use(livekitRouter);
+router.use(youtubeRouter);
 router.use(feedRouter);
 router.use("/me", meRouter);
 router.use("/admin", adminRouter);
@@ -33,5 +36,7 @@ router.use("/stream", streamRouter);
 router.use(presenceRouter);
 router.use(uxRouter);
 router.use(handoffRouter);
+router.use(authMigrateRouter);
+router.use(automationRouter);
 
 export default router;

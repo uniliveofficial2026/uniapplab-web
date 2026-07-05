@@ -12,6 +12,7 @@ import {
 import { AnimatePresence } from 'motion/react';
 import { useToast } from '../../lib/ToastContext';
 import { detectMediaKind, fileToBase64, processUploadFile, processUploadFileAsUrl } from '../../lib/utils';
+import { AUDIO_ACCEPT, PHOTO_VIDEO_ACCEPT } from '../../lib/mediaAccept';
 import { resolveUser, findUserById, safeMediaUrl, safeIdArray } from '../../lib/safe';
 import {
   openNativeVideoFullscreen,
@@ -52,6 +53,22 @@ import { MessagesActiveCallOverlay } from './MessagesActiveCallOverlay';
 import { MessagesChatThread } from './MessagesChatThread';
 import { MessagesComposeBar } from './MessagesComposeBar';
 import { MessagesScreenOverlays } from './MessagesScreenOverlays';
+import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
+import {
+  ensureCloudThreadForPeer,
+  startCloudChatRealtime,
+  syncCloudChatHistory,
+  syncCloudChatInbox,
+} from '../../lib/chat/cloudChatSync';
+import {
+  fetchOnlinePresence,
+  isPlatformApiAvailable,
+  postChatTyping,
+  postPresenceHeartbeat,
+} from '../../lib/platformApi';
+import { useDiscoverableUserSearch } from '../../hooks/useDiscoverableUserSearch';
+import { useChatCall } from '../../lib/chat/useChatCall';
+import { ensureCloudThreadForGroup } from '../../lib/chat/cloudChatSync';
 
 const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
 
@@ -94,7 +111,7 @@ export function MessagesScreen({
     }
   }, [initialChatId, onClearInitialChatId]);
 
-  const [activeCall, setActiveCall] = useState<'video' | 'audio' | null>(null);
+  const chatCall = useChatCall(currentUser.id);
   const [messageText, setMessageText] = useState('');
   const [openReactionPickerKey, setOpenReactionPickerKey] = useState<string | null>(null);
   const [reactionPickerDirection, setReactionPickerDirection] = useState<'up' | 'down'>('up');
@@ -182,16 +199,21 @@ export function MessagesScreen({
           const files = Array.from(e.target.files);
           const newMedia = await Promise.all(files.map(async (file) => {
             const uploaded = await processUploadFile(file);
+            const kind = detectMediaKind(file);
             return {
               url: uploaded.url,
-              isVideo: uploaded.type === 'video',
-              isAudio: uploaded.type === 'audio',
+              isVideo: kind === 'video',
+              isAudio: kind === 'audio',
               name: uploaded.name,
+              mimeType: file.type || undefined,
             };
           }));
           setChatMedia((prev) => [...prev, ...newMedia]);
+          setShowAttachmentMenu(false);
         } catch {
           showToast('Error processing media');
+        } finally {
+          e.target.value = '';
         }
       }
   };
@@ -230,24 +252,23 @@ export function MessagesScreen({
   const handleCreateGroup = () => {
     if (!newGroupName.trim() || selectedGroupMemberIds.length === 0) return;
     const newId = `group_${Date.now()}`;
-    setGroups((prev) => [
-      ...prev,
-      {
-        id: newId,
-        displayName: newGroupName,
-        username: `${selectedGroupMemberIds.length + 1} member${selectedGroupMemberIds.length + 1 > 1 ? 's' : ''}`,
-        avatarUrl:
-          newGroupAvatar ||
-          'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
-        isGroup: true,
-        memberIds: [currentUser.id, ...selectedGroupMemberIds],
-        createdBy: currentUser.id,
-        adminIds: [currentUser.id],
-        mutedMemberIds: [],
-        adminOnlyPosting: false,
-        requireApprovalToJoin: false,
-      },
-    ]);
+    const group: ChatGroup = {
+      id: newId,
+      displayName: newGroupName,
+      username: `${selectedGroupMemberIds.length + 1} member${selectedGroupMemberIds.length + 1 > 1 ? 's' : ''}`,
+      avatarUrl:
+        newGroupAvatar ||
+        'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
+      isGroup: true,
+      memberIds: [currentUser.id, ...selectedGroupMemberIds],
+      createdBy: currentUser.id,
+      adminIds: [currentUser.id],
+      mutedMemberIds: [],
+      adminOnlyPosting: false,
+      requireApprovalToJoin: false,
+    };
+    db.upsertChatGroup(group);
+    void ensureCloudThreadForGroup(group);
     setSelectedChatId(newId);
     setShowNewGroupModal(false);
     resetNewGroupForm();
@@ -320,33 +341,57 @@ export function MessagesScreen({
     }
   };
 
-  const [groups, setGroups] = useState<ChatGroup[]>([
-    {
-      id: 'group1',
-      displayName: 'Design Team UI/UX',
-      username: '3 members',
-      avatarUrl: 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
-      isGroup: true,
-      memberIds: [currentUser.id, USERS[1]?.id, USERS[2]?.id].filter((id): id is string => Boolean(id)),
-      createdBy: currentUser.id,
-      adminIds: [currentUser.id],
-      mutedMemberIds: [] as string[],
-      adminOnlyPosting: false,
-      requireApprovalToJoin: false,
-    }
-  ]);
+  const groups = db.chatGroups;
 
   const [newGroupName, setNewGroupName] = useState('');
   const [groupManageSearchQuery, setGroupManageSearchQuery] = useState('');
   const [groupNameDraft, setGroupNameDraft] = useState('');
 
-  const selectedUser =
-    (selectedChatId ? findUserById(USERS, selectedChatId) : null) ??
-    groups.find((g) => g.id === selectedChatId) ??
-    null;
-  const selectedGroup = groups.find((g: ChatGroup) => g.id === selectedChatId) || null;
-
   const messages = db.messages;
+  const groupIds = React.useMemo(() => new Set(groups.map((group) => group.id)), [groups]);
+
+  const directMessageUsers = React.useMemo(() => {
+    const byId = new Map<string, User>();
+    for (const user of USERS) {
+      if (user.id !== currentUser.id) byId.set(user.id, resolveUser(USERS, user));
+    }
+    for (const chatId of Object.keys(messages)) {
+      if (groupIds.has(chatId) || chatId === currentUser.id) continue;
+      if (byId.has(chatId)) continue;
+      byId.set(chatId, resolveUser(USERS, findUserById(USERS, chatId)));
+    }
+    return Array.from(byId.values());
+  }, [USERS, currentUser.id, groupIds, messages]);
+
+  const cloudPeerIds = React.useMemo(
+    () => directMessageUsers.map((user) => user.id).filter((id) => isCloudAuthUserId(id)),
+    [directMessageUsers],
+  );
+
+  const isLiveCloudDm = React.useCallback(
+    (peerId: string | null | undefined) =>
+      !!peerId &&
+      isPlatformApiAvailable() &&
+      isCloudAuthUserId(currentUser.id) &&
+      isCloudAuthUserId(peerId),
+    [currentUser.id],
+  );
+
+  // Resolve groups before users — findUserById always returns a placeholder User,
+  // which would swallow group ids like `group1` and break group chat.
+  const selectedGroup = selectedChatId
+    ? groups.find((g: ChatGroup) => g.id === selectedChatId) ?? null
+    : null;
+  const selectedUser: User | ChatGroup | null =
+    selectedGroup ??
+    (selectedChatId
+      ? resolveUser(
+          USERS,
+          directMessageUsers.find((user) => user.id === selectedChatId) ??
+            USERS.find((user) => user.id === selectedChatId) ??
+            findUserById(USERS, selectedChatId),
+        )
+      : null);
   const persistedPresence = db.chatPresence;
   const persistedReadState = db.chatReadState;
   const persistedPeerReadState = db.chatPeerReadState;
@@ -358,21 +403,25 @@ export function MessagesScreen({
   const presenceMapDebounceRef = React.useRef<number | null>(null);
   const simulatedReplyCleanupRef = React.useRef<(() => void) | null>(null);
   const [onlineStatusByUserId, setOnlineStatusByUserId] = useState<Record<string, boolean>>(
-    () => Object.fromEntries(USERS.map((user) => {
-      const persisted = db.getUserPresence(user.id);
-      const fallbackOnline = Math.random() > 0.35;
-      return [user.id, persisted.lastActiveAt > 0 || persisted.lastSeenAt > 0 ? persisted.online : fallbackOnline];
-    }))
+    () =>
+      Object.fromEntries(
+        USERS.map((user) => {
+          const persisted = db.getUserPresence(user.id);
+          return [user.id, !!persisted.online];
+        }),
+      ),
   );
   const [lastSeenByUserId, setLastSeenByUserId] = useState<Record<string, number>>(
     () => Object.fromEntries(USERS.map((user) => [user.id, db.getUserPresence(user.id).lastSeenAt || 0]))
   );
   const [lastActiveByUserId, setLastActiveByUserId] = useState<Record<string, number>>(
-    () => Object.fromEntries(USERS.map((user) => {
-      const persisted = db.getUserPresence(user.id);
-      const fallback = Date.now() - Math.floor(Math.random() * 25_000);
-      return [user.id, persisted.lastActiveAt || fallback];
-    }))
+    () =>
+      Object.fromEntries(
+        USERS.map((user) => {
+          const persisted = db.getUserPresence(user.id);
+          return [user.id, persisted.lastActiveAt || persisted.lastSeenAt || 0];
+        }),
+      ),
   );
   const [chatLastReadAt, setChatLastReadAt] = useState<Record<string, number>>(
     () => Object.fromEntries(Object.keys(messages).map((chatId) => [chatId, db.getChatReadAt(chatId)]))
@@ -468,6 +517,7 @@ export function MessagesScreen({
 
   useEffect(() => {
     const OFFLINE_THRESHOLD_MS = 65_000;
+    const liveCloud = isPlatformApiAvailable() && isCloudAuthUserId(currentUser.id);
     const statusIntervalId = window.setInterval(() => {
       const now = Date.now();
       setClockTick(now);
@@ -475,6 +525,8 @@ export function MessagesScreen({
       setOnlineStatusByUserId((prevOnline) => {
         const nextOnline = { ...prevOnline };
         USERS.forEach((user) => {
+          // Cloud peers: presence API owns online status.
+          if (liveCloud && isCloudAuthUserId(user.id)) return;
           const lastActive = lastActiveByUserId[user.id] || 0;
           nextOnline[user.id] = now - lastActive <= OFFLINE_THRESHOLD_MS;
         });
@@ -484,6 +536,7 @@ export function MessagesScreen({
       setLastSeenByUserId((prevSeen) => {
         const nextSeen = { ...prevSeen };
         USERS.forEach((user) => {
+          if (liveCloud && isCloudAuthUserId(user.id)) return;
           const lastActive = lastActiveByUserId[user.id] || 0;
           const isOnline = now - lastActive <= OFFLINE_THRESHOLD_MS;
           if (!isOnline) {
@@ -497,7 +550,7 @@ export function MessagesScreen({
     return () => {
       window.clearInterval(statusIntervalId);
     };
-  }, [USERS, lastActiveByUserId]);
+  }, [USERS, lastActiveByUserId, currentUser.id]);
 
   useEffect(() => {
     if (!persistedPresence || typeof persistedPresence !== 'object') return;
@@ -694,8 +747,10 @@ export function MessagesScreen({
   useEffect(() => {
     if (selectedUser) {
       document.documentElement.classList.add('chat-open-mobile');
+      document.body.setAttribute('data-chat-open', 'true');
     } else {
       document.documentElement.classList.remove('chat-open-mobile');
+      document.body.removeAttribute('data-chat-open');
     }
 
     window.dispatchEvent(
@@ -706,6 +761,7 @@ export function MessagesScreen({
 
     return () => {
       document.documentElement.classList.remove('chat-open-mobile');
+      document.body.removeAttribute('data-chat-open');
       window.dispatchEvent(
         new CustomEvent('messages:chat-open', {
           detail: { chatOpen: false },
@@ -723,11 +779,13 @@ export function MessagesScreen({
 
   useEffect(() => {
     if (!selectedUser || 'isGroup' in selectedUser) return;
+    // Do not fake peer activity for real cloud DMs — presence API owns that.
+    if (isLiveCloudDm(selectedUser.id)) return;
     const keepAliveId = window.setInterval(() => {
       markUserActive(selectedUser.id);
     }, 20_000);
     return () => window.clearInterval(keepAliveId);
-  }, [selectedUser, markUserActive]);
+  }, [selectedUser, markUserActive, isLiveCloudDm]);
 
   useEffect(() => {
     const mobileTopNav = document.querySelector('.mobile-top-nav');
@@ -740,6 +798,71 @@ export function MessagesScreen({
       mobileTopNav.classList.remove('force-hide-chat-nav');
     };
   }, [selectedUser]);
+
+  // Keep cloud DMs live for both Shell and Karaoke Messages entries.
+  useEffect(() => {
+    if (!isPlatformApiAvailable() || !isCloudAuthUserId(currentUser.id)) return;
+    void startCloudChatRealtime(currentUser.id);
+    void syncCloudChatInbox();
+    const inboxTimer = window.setInterval(() => {
+      void syncCloudChatInbox();
+    }, 20_000);
+    return () => {
+      window.clearInterval(inboxTimer);
+    };
+  }, [currentUser.id]);
+
+  // Real online presence for DM peers across the internet.
+  useEffect(() => {
+    if (!isPlatformApiAvailable() || !isCloudAuthUserId(currentUser.id)) return;
+
+    let cancelled = false;
+    const refreshPresence = async () => {
+      try {
+        // Heartbeat marks this user online and returns which DM peers are online.
+        const heartbeat = await postPresenceHeartbeat(cloudPeerIds);
+        const data =
+          heartbeat.userIds != null
+            ? heartbeat
+            : await fetchOnlinePresence(cloudPeerIds.length ? cloudPeerIds : undefined);
+        if (cancelled) return;
+        const onlineIds = new Set(data.userIds ?? []);
+        const now = Date.now();
+        setOnlineStatusByUserId((prev) => {
+          const next = { ...prev, [currentUser.id]: true };
+          for (const id of cloudPeerIds) {
+            next[id] = onlineIds.has(id);
+          }
+          return next;
+        });
+        setLastActiveByUserId((prev) => {
+          const next = { ...prev, [currentUser.id]: now };
+          for (const id of cloudPeerIds) {
+            if (onlineIds.has(id)) next[id] = now;
+          }
+          return next;
+        });
+        setLastSeenByUserId((prev) => {
+          const next = { ...prev };
+          for (const id of cloudPeerIds) {
+            if (!onlineIds.has(id)) {
+              next[id] = prev[id] || now;
+            }
+          }
+          return next;
+        });
+      } catch {
+        /* presence is best-effort */
+      }
+    };
+
+    void refreshPresence();
+    const timer = window.setInterval(refreshPresence, 12_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+    };
+  }, [currentUser.id, cloudPeerIds]);
 
   useEffect(() => {
     setOpenReactionPickerKey(null);
@@ -757,7 +880,12 @@ export function MessagesScreen({
   }, [selectedChatId]);
 
   useEffect(() => {
-    setGroupManageSearchQuery('');
+    if (!selectedChatId || !isPlatformApiAvailable()) return;
+    if (!isCloudAuthUserId(currentUser.id) || !isCloudAuthUserId(selectedChatId)) return;
+    void syncCloudChatHistory(selectedChatId);
+  }, [currentUser.id, selectedChatId]);
+
+  useEffect(() => {
     setGroupAddUsersSearchQuery('');
     setGroupModerationSearchQuery('');
     setGroupNameDraft(selectedGroup?.displayName || '');
@@ -911,37 +1039,43 @@ export function MessagesScreen({
     stickToBottomRef.current = true;
     requestAnimationFrame(() => scrollToBottom('smooth'));
 
-    // Simulate real-time replies
+    // Simulated replies for local/demo peers only — real cloud DMs use Supabase sync.
     if (!wasEditing && !('isGroup' in selectedUser)) {
       const peerId = selectedUser.id;
-      markUserActive(peerId);
-      const replyDelayMs = 1500 + Math.random() * 2000;
-      simulatedReplyCleanupRef.current?.();
-      setUserTypingState(peerId, true, replyDelayMs + 2_000);
-      const typingRenewId = window.setInterval(() => {
-        setUserTypingState(peerId, true, replyDelayMs + 2_000);
-      }, 1_200);
-      const replyTimeoutId = window.setTimeout(() => {
-        window.clearInterval(typingRenewId);
-        setUserTypingState(peerId, false);
-        const responses = [
-          'That sounds amazing!',
-          'I completely agree.',
-          "Let's sync up about this tomorrow.",
-          'Interesting perspective! Tell me more.',
-          "Wow, didn't know that. 🚀",
-          "Regarding that, I'm on it.",
-        ];
-        const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-        db.addMessage(peerId, { text: randomResponse, isAuthor: false, timestamp: Date.now() });
+      const cloudDm =
+        isPlatformApiAvailable() &&
+        isCloudAuthUserId(currentUser.id) &&
+        isCloudAuthUserId(peerId);
+      if (!cloudDm) {
         markUserActive(peerId);
-        simulatedReplyCleanupRef.current = null;
-      }, replyDelayMs);
-      simulatedReplyCleanupRef.current = () => {
-        window.clearInterval(typingRenewId);
-        window.clearTimeout(replyTimeoutId);
-        setUserTypingState(peerId, false);
-      };
+        const replyDelayMs = 1500 + Math.random() * 2000;
+        simulatedReplyCleanupRef.current?.();
+        setUserTypingState(peerId, true, replyDelayMs + 2_000);
+        const typingRenewId = window.setInterval(() => {
+          setUserTypingState(peerId, true, replyDelayMs + 2_000);
+        }, 1_200);
+        const replyTimeoutId = window.setTimeout(() => {
+          window.clearInterval(typingRenewId);
+          setUserTypingState(peerId, false);
+          const responses = [
+            'That sounds amazing!',
+            'I completely agree.',
+            "Let's sync up about this tomorrow.",
+            'Interesting perspective! Tell me more.',
+            "Wow, didn't know that. 🚀",
+            "Regarding that, I'm on it.",
+          ];
+          const randomResponse = responses[Math.floor(Math.random() * responses.length)];
+          db.addMessage(peerId, { text: randomResponse, isAuthor: false, timestamp: Date.now() });
+          markUserActive(peerId);
+          simulatedReplyCleanupRef.current = null;
+        }, replyDelayMs);
+        simulatedReplyCleanupRef.current = () => {
+          window.clearInterval(typingRenewId);
+          window.clearTimeout(replyTimeoutId);
+          setUserTypingState(peerId, false);
+        };
+      }
     }
   };
 
@@ -966,20 +1100,49 @@ export function MessagesScreen({
       return;
     }
     try {
-      const url = await processUploadFileAsUrl(file);
-      setChatMedia((prev) => [
-        ...prev,
-        {
-          url,
-          isVideo: false,
-          isFile: true,
-          name: file.name,
-          mimeType: file.type || 'application/octet-stream',
-          size: file.size,
-        },
-      ]);
-      showToast(`Attached ${file.name} — tap Send`);
-      requestAnimationFrame(() => messageInputRef.current?.focus());
+      const kind = detectMediaKind(file);
+      if (kind === 'audio') {
+        const uploaded = await processUploadFile(file);
+        setChatMedia((prev) => [
+          ...prev,
+          {
+            url: uploaded.url,
+            isVideo: false,
+            isAudio: true,
+            name: uploaded.name,
+            mimeType: file.type || undefined,
+          },
+        ]);
+        showToast(`Attached ${file.name} — tap Send`);
+      } else if (kind === 'video' || kind === 'image') {
+        const uploaded = await processUploadFile(file);
+        setChatMedia((prev) => [
+          ...prev,
+          {
+            url: uploaded.url,
+            isVideo: kind === 'video',
+            isAudio: false,
+            name: uploaded.name,
+            mimeType: file.type || undefined,
+          },
+        ]);
+        showToast(`Attached ${file.name} — tap Send`);
+      } else {
+        const url = await processUploadFileAsUrl(file);
+        setChatMedia((prev) => [
+          ...prev,
+          {
+            url,
+            isVideo: false,
+            isFile: true,
+            name: file.name,
+            mimeType: file.type || 'application/octet-stream',
+            size: file.size,
+          },
+        ]);
+        showToast(`Attached ${file.name} — tap Send`);
+      }
+      setShowAttachmentMenu(false);
     } catch {
       showToast('Could not attach file');
     } finally {
@@ -993,22 +1156,31 @@ export function MessagesScreen({
       const files = Array.from(e.target.files);
       const newMedia = await Promise.all(
         files.map(async (file) => {
+          const kind = detectMediaKind(file);
+          if (kind !== 'audio') {
+            throw new Error(`unsupported:${file.name}`);
+          }
           const uploaded = await processUploadFile(file);
           return {
             url: uploaded.url,
             isVideo: false,
-            isAudio: uploaded.type === 'audio',
+            isAudio: true,
             name: uploaded.name,
+            mimeType: file.type || undefined,
           };
         }),
       );
       setChatMedia((prev) => [...prev, ...newMedia]);
       setShowAttachmentMenu(false);
       showToast(
-        newMedia.length === 1 ? 'Audio attached' : `${newMedia.length} audio files attached`
+        newMedia.length === 1 ? 'Audio attached' : `${newMedia.length} audio files attached`,
       );
-    } catch {
-      showToast('Error processing audio');
+    } catch (err) {
+      if (err instanceof Error && err.message.startsWith('unsupported:')) {
+        showToast('Please choose an audio file (mp3, wav, m4a, etc.)');
+      } else {
+        showToast('Error processing audio');
+      }
     } finally {
       e.target.value = '';
     }
@@ -1054,7 +1226,10 @@ export function MessagesScreen({
   };
 
   const updateGroupById = (groupId: string, updater: (group: ChatGroup) => ChatGroup) => {
-    setGroups((prev) => prev.map((group: ChatGroup) => (group.id === groupId ? updater(group) : group)));
+    const current = db.getChatGroup(groupId);
+    if (!current) return;
+    const next = updater(current);
+    db.upsertChatGroup(next);
   };
 
   const handleSaveGroupName = () => {
@@ -1156,7 +1331,7 @@ export function MessagesScreen({
       showToast('Only the group owner can delete this group.');
       return;
     }
-    setGroups((prev) => prev.filter((group: ChatGroup) => group.id !== selectedGroup.id));
+    db.saveChatGroups(db.chatGroups.filter((group) => group.id !== selectedGroup.id));
     setShowInfoPanel(false);
     setSelectedChatId(null);
     showToast('Group deleted');
@@ -1329,12 +1504,76 @@ export function MessagesScreen({
     setUserTypingState,
   ]);
 
+  // Push/poll typing indicators over the platform API for real cloud DMs.
+  useEffect(() => {
+    if (!viewerInDirectChat || !selectedPeerId || !isLiveCloudDm(selectedPeerId)) return;
+
+    let cancelled = false;
+    let threadId: string | null = null;
+
+    const resolveThread = async () => {
+      if (!threadId) threadId = await ensureCloudThreadForPeer(selectedPeerId);
+      return threadId;
+    };
+
+    const pushAndPoll = async (typing: boolean) => {
+      const tid = await resolveThread();
+      if (!tid || cancelled) return;
+      try {
+        const res = await postChatTyping(tid, typing);
+        if (cancelled) return;
+        const typers = new Set(res.userIds ?? []);
+        typers.delete(currentUser.id);
+        const peerTyping = typers.has(selectedPeerId);
+        setTypingByUserId((prev) => {
+          if (prev[selectedPeerId] === peerTyping) return prev;
+          return { ...prev, [selectedPeerId]: peerTyping };
+        });
+        db.setUserTyping(selectedPeerId, peerTyping);
+        if (peerTyping) markUserActive(selectedPeerId);
+      } catch {
+        /* typing is best-effort */
+      }
+    };
+
+    void pushAndPoll(isComposeTyping);
+    const pollId = window.setInterval(() => {
+      void pushAndPoll(isComposeTyping);
+    }, 2_000);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(pollId);
+      void (async () => {
+        const tid = threadId ?? (await ensureCloudThreadForPeer(selectedPeerId).catch(() => null));
+        if (tid) await postChatTyping(tid, false).catch(() => {});
+      })();
+      setTypingByUserId((prev) => ({ ...prev, [selectedPeerId]: false }));
+      db.setUserTyping(selectedPeerId, false);
+    };
+  }, [
+    viewerInDirectChat,
+    selectedPeerId,
+    currentUser.id,
+    isComposeTyping,
+    isLiveCloudDm,
+    markUserActive,
+    db,
+  ]);
+
   const isPeerTyping = React.useMemo(() => {
     if (!selectedUser || 'isGroup' in selectedUser) return false;
     return getUserTyping(selectedUser.id);
   }, [selectedUser, getUserTyping]);
 
+  // Local/demo only: mirror typing when both participants share one device session.
   useEffect(() => {
+    if (selectedPeerId && isLiveCloudDm(selectedPeerId)) {
+      if (peerMirrorTypingRef.current) {
+        peerMirrorTypingRef.current = false;
+      }
+      return;
+    }
     if (!bothParticipantsInChat || !selectedUser || 'isGroup' in selectedUser) {
       if (peerMirrorTypingRef.current && selectedPeerId) {
         peerMirrorTypingRef.current = false;
@@ -1371,6 +1610,7 @@ export function MessagesScreen({
     selectedUser,
     selectedPeerId,
     setUserTypingState,
+    isLiveCloudDm,
   ]);
 
   React.useEffect(() => {
@@ -1699,19 +1939,22 @@ export function MessagesScreen({
   }, [groups, sidebarSearchQuery]);
 
   const filteredUsers = React.useMemo(() => {
-    if (!sidebarSearchQuery.trim()) return USERS;
+    if (!sidebarSearchQuery.trim()) return directMessageUsers;
     const { term, mode } = parseSearchQuery(sidebarSearchQuery);
     if (mode === 'tag') return [];
-    return USERS.filter((user) => (`${user.displayName} ${user.username} ${user.id}`).toLowerCase().includes(term));
-  }, [USERS, sidebarSearchQuery]);
+    return directMessageUsers.filter((user) =>
+      (`${user.displayName} ${user.username} ${user.id}`).toLowerCase().includes(term),
+    );
+  }, [directMessageUsers, sidebarSearchQuery]);
+
+  const { results: discoverableNewMessageUsers, loading: newMessageSearchLoading } =
+    useDiscoverableUserSearch(newMessageSearchQuery);
 
   const filteredNewMessageUsers = React.useMemo(() => {
-    const query = newMessageSearchQuery.trim().toLowerCase();
-    if (!query) return USERS;
-    return USERS.filter((user) =>
-      (`${user.displayName} ${user.username} ${user.id}`).toLowerCase().includes(query)
-    );
-  }, [USERS, newMessageSearchQuery]);
+    const query = newMessageSearchQuery.trim();
+    if (!query) return directMessageUsers;
+    return discoverableNewMessageUsers.filter((user) => user.id !== currentUser.id);
+  }, [currentUser.id, directMessageUsers, discoverableNewMessageUsers, newMessageSearchQuery]);
 
   const filteredNewGroupUsers = React.useMemo(() => {
     const query = newGroupSearchQuery.trim().toLowerCase();
@@ -1856,7 +2099,6 @@ export function MessagesScreen({
     setReplyToMessage({ index: messageIndex, text: previewText });
     setReplyToMessages([]);
     setOpenMessageMenuKey(null);
-    requestAnimationFrame(() => messageInputRef.current?.focus());
   };
 
   const handleForwardMessage = (msg: ChatMessage) => {
@@ -1919,7 +2161,6 @@ export function MessagesScreen({
     setEditingMessageIndex(messageIndex);
     setMessageText(typeof msg?.text === 'string' ? msg.text : '');
     setOpenMessageMenuKey(null);
-    requestAnimationFrame(() => messageInputRef.current?.focus());
   };
 
   const handleCopyMessage = async (msg: ChatMessage) => {
@@ -1978,7 +2219,6 @@ export function MessagesScreen({
     setReplyToMessage(null);
     setReplyToMessages(replies);
     setOpenMessageMenuKey(null);
-    requestAnimationFrame(() => messageInputRef.current?.focus());
     setSelectedMessageKeys([]);
   };
 
@@ -2209,10 +2449,11 @@ export function MessagesScreen({
     setTokenSuggestion(null);
     setActiveTokenIndex(0);
 
+    // Keep cursor only if the user is already typing in the field (keyboard already open).
     requestAnimationFrame(() => {
-      if (messageInputRef.current) {
-        messageInputRef.current.focus();
-        messageInputRef.current.setSelectionRange(nextCursor, nextCursor);
+      const input = messageInputRef.current;
+      if (input && document.activeElement === input) {
+        input.setSelectionRange(nextCursor, nextCursor);
       }
     });
   };
@@ -2285,12 +2526,12 @@ export function MessagesScreen({
       data-embedded={embedded ? 'true' : 'false'}
       className={
         embedded
-          ? 'w-full h-full flex overflow-hidden bg-background relative'
-          : `w-full h-full flex pt-0 md:pt-0 max-w-[935px] mx-auto md:border border-border bg-background md:my-4 rounded-none md:rounded-[32px] overflow-hidden shadow-sm fixed inset-x-0 z-[60] md:relative md:inset-auto md:z-auto md:h-[calc(100dvh-2rem)] md:max-h-[calc(100dvh-2rem)] ${
+          ? 'relative flex h-full w-full min-h-0 overflow-hidden bg-background'
+          : `flex w-full min-h-0 flex-1 flex-row overflow-hidden bg-background max-w-[935px] mx-auto fixed inset-x-0 z-[60] ${
               selectedUser
-                ? 'top-[env(safe-area-inset-top)] bottom-0'
-                : 'top-[calc(60px+env(safe-area-inset-top))] bottom-[calc(50px+env(safe-area-inset-bottom))]'
-            }`
+                ? 'inset-y-0 pt-[var(--app-safe-top)]'
+                : 'top-shell-nav bottom-0'
+            } md:static md:z-auto md:h-full md:max-h-full md:border md:border-border md:rounded-[32px] md:shadow-sm md:pt-0`
       }
     >
       
@@ -2323,7 +2564,7 @@ export function MessagesScreen({
       {!selectedUser ? (
         <MessagesEmptyChat onNewMessage={() => setShowNewMessageModal(true)} />
       ) : (
-        <div className="flex flex-col flex-1 bg-background">
+        <div className="messages-chat-column flex flex-col flex-1 min-h-0 max-h-full overflow-hidden bg-background">
           <MessagesChatHeader
             selectedUser={selectedUser}
             clockTick={clockTick}
@@ -2335,8 +2576,20 @@ export function MessagesScreen({
             onBack={() => setSelectedChatId(null)}
             onToggleChatSearch={() => setShowChatSearch((prev) => !prev)}
             onChatSearchQueryChange={setChatSearchQuery}
-            onAudioCall={() => setActiveCall('audio')}
-            onVideoCall={() => setActiveCall('video')}
+            onAudioCall={() => {
+              if (!chatCall.isLiveKitConfigured) {
+                showToast('Audio calls are not configured on this server.');
+                return;
+              }
+              void chatCall.startAudioCall(selectedUser.id);
+            }}
+            onVideoCall={() => {
+              if (!chatCall.isLiveKitConfigured) {
+                showToast('Video calls are not configured on this server.');
+                return;
+              }
+              void chatCall.startVideoCall(selectedUser.id);
+            }}
             onOpenInfo={() => setShowInfoPanel(true)}
           />
 
@@ -2452,14 +2705,37 @@ export function MessagesScreen({
       )}
 
       <AnimatePresence>
-        {activeCall && selectedUser && (
-          <MessagesActiveCallOverlay
-            activeCall={activeCall}
-            selectedUser={selectedUser}
-            currentUserAvatarUrl={currentUser.avatarUrl}
-            onEndCall={() => setActiveCall(null)}
-          />
-        )}
+        {chatCall.phase !== 'idle' && (() => {
+          const callChatId = chatCall.activeChatId || chatCall.incoming?.chatId || selectedChatId;
+          const callPeer =
+            (callChatId &&
+              (groups.find((g) => g.id === callChatId) ||
+                directMessageUsers.find((u) => u.id === callChatId) ||
+                (chatCall.incoming
+                  ? findUserById(USERS, chatCall.incoming.fromUserId)
+                  : null))) ||
+            selectedUser;
+          if (!callPeer) return null;
+          return (
+            <MessagesActiveCallOverlay
+              activeCall={chatCall.callKind}
+              phase={chatCall.phase}
+              selectedUser={callPeer}
+              currentUserAvatarUrl={currentUser.avatarUrl}
+              error={chatCall.error}
+              remoteVideoReady={chatCall.remoteVideoReady}
+              localVideoRef={chatCall.localVideoRef}
+              remoteVideoRef={chatCall.remoteVideoRef}
+              remoteAudioRef={chatCall.remoteAudioRef}
+              localStreamRef={chatCall.localStreamRef}
+              onReplaceVideoTrack={(track) => {
+                void chatCall.replacePublishedVideoTrack(track);
+              }}
+              onAccept={chatCall.phase === 'incoming' ? () => void chatCall.acceptCall() : undefined}
+              onEndCall={() => void chatCall.endCall()}
+            />
+          );
+        })()}
       </AnimatePresence>
 
       {/* Modals & Panels */}

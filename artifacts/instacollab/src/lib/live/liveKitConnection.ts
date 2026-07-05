@@ -1,5 +1,6 @@
 import { Room } from 'livekit-client';
 import { fetchLiveKitToken } from '../platformApi';
+import { canAttemptLiveKit, connectWithTokenFetcher } from '../livekit/liveKitInstant';
 
 export type LiveKitConnection = {
   room: Room;
@@ -7,23 +8,42 @@ export type LiveKitConnection = {
   roomName: string;
 };
 
+/**
+ * Host live stream — local camera/mic starts first, LiveKit publishes when connect succeeds.
+ */
 export async function connectLiveKitHost(
   streamId: string,
   options?: { mediaStream?: MediaStream },
 ): Promise<LiveKitConnection> {
-  const { token, url, roomName } = await fetchLiveKitToken(streamId, 'host');
-  const room = new Room({ adaptiveStream: true, dynacast: true });
-  await room.connect(url, token);
-
+  // Instant local media (clear self-view) before any network.
   const media =
     options?.mediaStream ??
     (await navigator.mediaDevices.getUserMedia({ video: true, audio: true }));
 
-  for (const track of media.getTracks()) {
-    await room.localParticipant.publishTrack(track);
+  if (!canAttemptLiveKit()) {
+    // Return a stub-less error path: caller can still show local media.
+    const err = new Error('LiveKit unavailable — local camera is ready.');
+    (err as Error & { localStream?: MediaStream }).localStream = media;
+    throw err;
   }
 
-  return { room, localStream: media, roomName };
+  const result = await connectWithTokenFetcher(() => fetchLiveKitToken(streamId, 'host'));
+  if (!result.ok) {
+    const err = new Error(result.reason || 'LiveKit connect failed');
+    (err as Error & { localStream?: MediaStream }).localStream = media;
+    throw err;
+  }
+
+  const room = result.room;
+  for (const track of media.getTracks()) {
+    try {
+      await room.localParticipant.publishTrack(track);
+    } catch {
+      /* keep trying other tracks */
+    }
+  }
+
+  return { room, localStream: media, roomName: room.name || `stream-${streamId}` };
 }
 
 export async function disconnectLiveKit(room: Room | null, localStream: MediaStream | null) {

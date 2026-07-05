@@ -58,13 +58,13 @@ function copyTree(src, dest, relBase = '') {
 
 function writeTrimmedWorkspace() {
   const raw = fs.readFileSync(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8');
-  const catalogStart = raw.indexOf('catalog:');
-  const catalog = catalogStart >= 0 ? raw.slice(catalogStart) : '';
   const pkgLines = STAGING_PACKAGES.map((p) => `  - ${p}`).join('\n');
+  // Keep catalog, overrides, and pnpm build-policy blocks — only trim workspace packages.
+  const tail = raw.replace(/^[\s\S]*?(?=^catalog:)/m, '');
   const trimmed = `packages:
 ${pkgLines}
 
-${catalog}`;
+${tail}`;
   fs.writeFileSync(path.join(STAGING, 'pnpm-workspace.yaml'), trimmed);
 }
 
@@ -76,7 +76,7 @@ function main() {
   fs.rmSync(STAGING, { recursive: true, force: true });
   fs.mkdirSync(STAGING, { recursive: true });
 
-  for (const file of ['package.json', 'pnpm-lock.yaml', '.npmrc']) {
+  for (const file of ['package.json', 'pnpm-lock.yaml', '.npmrc', 'tsconfig.base.json']) {
     copyTree(path.join(ROOT, file), path.join(STAGING, file));
   }
 

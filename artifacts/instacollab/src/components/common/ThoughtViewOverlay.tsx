@@ -108,7 +108,6 @@ export function ThoughtViewOverlay({ user, thought, onClose }: ThoughtViewOverla
               <div className="absolute top-[2px] left-[5%] w-[90%] h-[35%] bg-gradient-to-b from-white/90 dark:from-white/10 to-transparent rounded-t-full pointer-events-none" />
               {isOwner ? (
                 <textarea
-                  autoFocus
                   maxLength={THOUGHT_NOTE_MAX_LENGTH}
                   value={draft}
                   onChange={(e) => handleDraftChange(e.target.value)}

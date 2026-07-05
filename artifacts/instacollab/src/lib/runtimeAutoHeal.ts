@@ -5,8 +5,12 @@
  */
 import { refreshCloudSystemsInPlace } from './appCloudSystems';
 import { isCloudAuthConfigured } from './auth/config';
-import { probeSupabaseHealth, invalidateSupabaseHealthCache } from './auth/health';
-import { clearSupabaseUnhealthy, markSupabaseUnhealthy } from './auth/providerState';
+import {
+  probeSupabaseOAuthReady,
+  probeSupabaseHealth,
+  invalidateSupabaseHealthCache,
+} from './auth/health';
+import { clearSupabaseOAuthDegraded, markSupabaseOAuthDegraded } from './auth/providerState';
 import { db } from './db/localDb';
 import { flushBufferedHandoffTasks, submitHandoffTask } from './handoff';
 import { healLaunchProgressForReturningUser } from './launchRoute';
@@ -61,36 +65,23 @@ async function healSessionState(): Promise<void> {
 async function healCloudAuth(): Promise<void> {
   if (!isCloudAuthConfigured() || !isNetworkOnline()) return;
 
-  const key = 'supabase_health_down';
-  const confirmedDown = await confirmTwice(
-    async () => {
-      invalidateSupabaseHealthCache();
-      return probeSupabaseHealth();
-    },
-    (ok) => !ok,
-  );
+  try {
+    invalidateSupabaseHealthCache();
+    const healthOk = await probeSupabaseHealth(2500);
+    if (!healthOk) return;
 
-  if (!confirmedDown) {
-    memoryConfirmations = 0;
-    const ok = await probeSupabaseHealth();
-    if (ok) clearSupabaseUnhealthy();
-    return;
-  }
+    clearSupabaseOAuthDegraded();
 
-  if (!canActOnCorroboration(key, 60_000, 2)) return;
-  markCorroborationActed(key);
+    const oauthOk = await probeSupabaseOAuthReady(6000);
+    if (oauthOk) {
+      clearSupabaseOAuthDegraded();
+      return;
+    }
 
-  markSupabaseUnhealthy();
-  reportHeal('auth_failover');
-
-  if (shouldEscalateHandoff('supabase_down', 'confirmed_health_failure')) {
-    submitHandoffTask({
-      type: 'health',
-      reason: 'supabase_down_confirmed',
-      detail: getRuntimePlatform().label,
-      screen: getCurrentScreen(),
-      meta: { ...platformMetaForTelemetry(), corroborated: true },
-    });
+    markSupabaseOAuthDegraded();
+    reportHeal('oauth_lane_firebase');
+  } catch (err) {
+    console.warn('[auto-heal] supabase oauth lane probe failed:', err);
   }
 }
 

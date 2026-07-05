@@ -1,6 +1,11 @@
 import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { MoreVertical } from 'lucide-react';
+import { MoreVertical, Music, Youtube } from 'lucide-react';
+import {
+  getYoutubeMiniPlayerState,
+  openYoutubeMiniPlayerPicker,
+  toggleYoutubeMiniPlayerMinimized,
+} from '../../lib/youtubeMiniPlayer';
 
 export type RoomHeaderMenuItem = {
   id: string;
@@ -10,6 +15,58 @@ export type RoomHeaderMenuItem = {
   hidden?: boolean;
   badge?: string | number;
 };
+
+export function createSingHeaderMenuItem(
+  onOpen: () => void,
+  options?: {
+    hasActiveSong?: boolean;
+    hidden?: boolean;
+    queueLength?: number;
+  },
+): RoomHeaderMenuItem {
+  return {
+    id: 'sing',
+    label: options?.hasActiveSong ? 'Open lyrics' : 'Sing a song',
+    icon: <Music size={15} aria-hidden />,
+    onClick: onOpen,
+    hidden: options?.hidden,
+    badge: options?.queueLength,
+  };
+}
+
+export function createRoomBackgroundHeaderMenuItem(
+  onOpen: () => void,
+  options?: { hidden?: boolean },
+): RoomHeaderMenuItem {
+  return {
+    id: 'background',
+    label: 'Change background',
+    icon: <span className="text-[9px] font-black tracking-wide">BG</span>,
+    onClick: onOpen,
+    hidden: options?.hidden,
+  };
+}
+
+export function createYoutubeMiniHeaderMenuItem(options?: {
+  hidden?: boolean;
+}): RoomHeaderMenuItem {
+  const current = getYoutubeMiniPlayerState();
+  const active = current.open && Boolean(current.videoId);
+  return {
+    id: 'youtube-mini',
+    label: active ? (current.minimized ? 'Expand YouTube mini' : 'Minimize YouTube mini') : 'YouTube mini player',
+    icon: <Youtube size={15} aria-hidden />,
+    onClick: () => {
+      const state = getYoutubeMiniPlayerState();
+      if (!state.videoId) {
+        openYoutubeMiniPlayerPicker();
+        return;
+      }
+      toggleYoutubeMiniPlayerMinimized();
+    },
+    hidden: options?.hidden,
+  };
+}
 
 function resolveMenuPortalRoot(): HTMLElement {
   return (

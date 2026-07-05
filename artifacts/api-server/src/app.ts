@@ -3,15 +3,29 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { securityHeaders } from "./middlewares/securityHeaders";
+import { fallbackRateLimit } from "./middlewares/fallbackRateLimit";
+import { isUpstashConfigured } from "./lib/upstash";
 
-function parseCorsOrigins(): string[] | true {
+function parseCorsOrigins(): string[] | boolean {
   const raw = process.env.CORS_ORIGINS?.trim();
+  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
+    if (!raw || raw === "*") {
+      return [
+        "https://app.uniapplab.com",
+        "https://uniapplab.com",
+        "https://www.uniapplab.com",
+      ];
+    }
+    return raw.split(",").map((o) => o.trim()).filter(Boolean);
+  }
   if (!raw || raw === "*") return true;
   return raw.split(",").map((o) => o.trim()).filter(Boolean);
 }
 
 const app: Express = express();
 
+app.use(securityHeaders);
 app.use(
   pinoHttp({
     logger,
@@ -32,6 +46,9 @@ app.use(
   }),
 );
 app.use(cors({ origin: parseCorsOrigins(), credentials: true }));
+if (!isUpstashConfigured()) {
+  app.use(fallbackRateLimit);
+}
 app.use("/api/qstash", express.raw({ type: "application/json" }));
 app.use("/api/livekit/webhook", express.raw({ type: "application/webhook+json" }));
 app.use("/api/linear/webhook", express.raw({ type: "application/json" }));

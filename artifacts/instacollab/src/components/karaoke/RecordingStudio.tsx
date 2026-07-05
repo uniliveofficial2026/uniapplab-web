@@ -26,6 +26,7 @@ import {
   EyeOff,
   RotateCcw,
   Square,
+  ScanFace,
   Loader2,
 } from 'lucide-react';
 import {
@@ -86,9 +87,35 @@ import {
 import { saveKaraokeCoverRecording, type KaraokeCoverRecordingMeta } from '../../lib/karaokeRecordings';
 import { VirtualBackgroundLayer } from './VirtualBackgroundLayer';
 import { BackgroundPickerImage } from './BackgroundPickerImage';
-import { DeepAREffectPicker } from '../deepar/DeepAREffectPicker';
+import { DeepARFilterCarousel } from '../deepar/DeepARFilterCarousel';
+import { LiveBeautySheet } from '../../smule-rooms/components/LiveBeautySheet';
+import { MultiGuestEffectsSheet } from '../../smule-rooms/components/MultiGuestEffectsSheet';
 import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
+import {
+  deeparSelectionActive,
+  deeparSelectionFromEffectId,
+  EMPTY_DEEPAR_EFFECT_SELECTION,
+  resolveDeepARPrimaryEffectId,
+  type DeepAREffectSelection,
+} from '../../lib/deepar/deeparEffectSelection';
 import { useDeepAR } from '../../lib/deepar/useDeepAR';
+import {
+  CAMERA_AR_BUTTON_LABEL,
+  CAMERA_BEAUTY_BUTTON_LABEL,
+} from '../../lib/camera/cameraBeautyLabels';
+import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
+import {
+  isBodyShapeActive,
+  EMPTY_BODY_SHAPE,
+  type BodyShapeParams,
+} from '../../lib/ar/bodyShape';
+import { useStreamBeauty } from '../../lib/ar/useStreamBeauty';
+import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
+import {
+  EMPTY_TENCENT_EFFECT_SELECTION,
+  type TencentEffectSelection,
+} from '../../lib/webar/webarTypes';
+import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useDB } from '../../lib/useDB';
 import { safeAvatarUrl } from '../../lib/safe';
@@ -206,7 +233,16 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
   const [selectedStudioFilter, setSelectedStudioFilter] = useState<string>('Studio Room');
   const [activeVoicePreset, setActiveVoicePreset] = useState<VoicePresetName>('Studio');
   const [videoBeautyFilter, setVideoBeautyFilter] = useState<string>('None');
-  const [deeparEffectId, setDeeparEffectId] = useState('none');
+  const [trtcBeautyId, setTrtcBeautyId] = useState<BeautyPresetId>('none');
+  const [trtcBeautyEffects, setTrtcBeautyEffects] = useState<TencentEffectSelection>(
+    EMPTY_TENCENT_EFFECT_SELECTION,
+  );
+  const [trtcBodyShape, setTrtcBodyShape] = useState<BodyShapeParams>(EMPTY_BODY_SHAPE);
+  const [deeparSelection, setDeeparSelection] = useState<DeepAREffectSelection>(
+    EMPTY_DEEPAR_EFFECT_SELECTION,
+  );
+  const [deeparPanelOpen, setDeeparPanelOpen] = useState(false);
+  const [beautyPanelOpen, setBeautyPanelOpen] = useState(false);
   const deeparPreviewRef = useRef<HTMLDivElement>(null);
   const deeparActiveRef = useRef(false);
   const [videoBackground, setVideoBackground] = useState<string | null>(null);
@@ -293,22 +329,139 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     videoBgReadyRef.current = videoBgReady;
   }, [videoBgReady]);
 
-  const deeparActive = deeparEffectId !== 'none' && isDeepARConfigured();
+  const deeparActive = deeparSelectionActive(deeparSelection) && isDeepARConfigured();
+  const deeparEffectId = resolveDeepARPrimaryEffectId(deeparSelection);
   useEffect(() => {
     deeparActiveRef.current = deeparActive;
   }, [deeparActive]);
 
+  const [cameraInputStream, setCameraInputStream] = useState<MediaStream | null>(null);
+  const trtcBeautyEffectsActive = Boolean(
+    trtcBeautyEffects.makeupId ||
+      trtcBeautyEffects.stickerId ||
+      trtcBeautyEffects.filterId ||
+      trtcBeautyEffects.backgroundUrl,
+  );
+  const trtcShapeActive = isBodyShapeActive(trtcBodyShape);
+  const trtcBeautyOn =
+    trtcBeautyId !== 'none' || trtcBeautyEffectsActive || trtcShapeActive;
+  const trtcBeautyOnRef = useRef(false);
+  const trtcBeautyActiveRef = useRef(false);
+
+  useEffect(() => {
+    trtcBeautyOnRef.current = trtcBeautyOn;
+  }, [trtcBeautyOn]);
+
+  useEffect(() => {
+    if (!cameraEnabled) {
+      setCameraInputStream(null);
+      return;
+    }
+    setCameraInputStream(cameraStreamRef.current);
+  }, [cameraEnabled]);
+
+  const streamBeauty = useStreamBeauty({
+    /** Keep TRTC warm whenever camera is on — avoids freeze when applying beauty. */
+    enabled: cameraEnabled && isTencentWebARConfigured(),
+    inputStream: cameraInputStream,
+    beautyId: trtcBeautyId,
+    effects: trtcBeautyEffects,
+    bodyShape: trtcBodyShape,
+  });
+
+  const trtcVideoReady = useVideoFrameReady(
+    streamBeauty.outputVideoRef,
+    cameraEnabled && isTencentWebARConfigured(),
+  );
+
+  useEffect(() => {
+    trtcBeautyActiveRef.current =
+      trtcBeautyOn && streamBeauty.ready && trtcVideoReady;
+  }, [streamBeauty.ready, trtcBeautyOn, trtcVideoReady]);
+
   const deepar = useDeepAR({
     previewRef: deeparPreviewRef,
     videoElementRef: videoRef,
-    enabled: cameraEnabled && deeparActive,
+    /** Keep engine warm while camera is on — faster effect apply, no raw freeze. */
+    enabled: cameraEnabled && isDeepARConfigured(),
+    processingActive: deeparActive,
+    effectSelection: deeparSelection,
     initialEffectId: deeparEffectId,
+    bodyShape: trtcBodyShape,
   });
 
-  useEffect(() => {
-    if (!deepar.ready || !deeparActive) return;
-    void deepar.switchEffect(deeparEffectId);
-  }, [deepar.ready, deeparActive, deeparEffectId, deepar]);
+  const handleDeeparSelectionChange = useCallback((selection: DeepAREffectSelection) => {
+    setDeeparSelection(selection);
+    if (deeparSelectionActive(selection)) {
+      setTrtcBeautyId('none');
+      setTrtcBeautyEffects(EMPTY_TENCENT_EFFECT_SELECTION);
+      setVideoBeautyFilter('None');
+    }
+  }, []);
+
+  const handleSelectKaraokeDeepAR = useCallback((effectId: string) => {
+    handleDeeparSelectionChange(deeparSelectionFromEffectId(effectId));
+  }, [handleDeeparSelectionChange]);
+
+  const handleSelectKaraokeBeauty = useCallback((beautyId: BeautyPresetId) => {
+    setTrtcBeautyId(beautyId);
+    if (beautyId !== 'none') {
+      setDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
+      // TRTC SDK handles beauty — never route through CSS compositor (causes lag/black frames).
+      setVideoBeautyFilter('None');
+    } else {
+      setVideoBeautyFilter('None');
+    }
+  }, []);
+
+  const handleKaraokeBeautyEffectsChange = useCallback((effects: TencentEffectSelection) => {
+    setTrtcBeautyEffects(effects);
+    const active = Boolean(
+      effects.makeupId || effects.stickerId || effects.filterId || effects.backgroundUrl,
+    );
+    if (active) {
+      setDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
+      setVideoBeautyFilter('None');
+    }
+  }, []);
+
+  const toggleKaraokeDeeparPanel = useCallback(() => {
+    if (!cameraEnabled) {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Enable camera first' }));
+      return;
+    }
+    setDeeparPanelOpen((open) => {
+      const next = !open;
+      if (next) setBeautyPanelOpen(false);
+      return next;
+    });
+  }, [cameraEnabled]);
+
+  const toggleKaraokeBeautyPanel = useCallback(() => {
+    if (!cameraEnabled) {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Enable camera first' }));
+      return;
+    }
+    setBeautyPanelOpen((open) => {
+      const next = !open;
+      if (next) setDeeparPanelOpen(false);
+      return next;
+    });
+  }, [cameraEnabled]);
+
+  const showDirectTrtcPreview =
+    cameraEnabled &&
+    trtcBeautyOn &&
+    streamBeauty.ready &&
+    trtcVideoReady &&
+    !videoBackground &&
+    !deeparActive;
+  const showCompositorCanvas =
+    cameraEnabled &&
+    !deeparActive &&
+    !showDirectTrtcPreview &&
+    (Boolean(videoBackground) ||
+      (videoBeautyFilter !== 'None' && !trtcBeautyOn));
 
   useEffect(() => {
     cameraEnabledRef.current = cameraEnabled;
@@ -1331,7 +1484,12 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     let cancelled = false;
 
     navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'user', width: { ideal: 1280 }, height: { ideal: 720 } },
+      video: {
+        facingMode: 'user',
+        width: { ideal: window.innerWidth < 640 ? 640 : 1280 },
+        height: { ideal: window.innerWidth < 640 ? 480 : 720 },
+        frameRate: { ideal: 24, max: 30 },
+      },
       audio: true,
     })
       .then((stream) => {
@@ -1341,6 +1499,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
         }
 
         cameraStreamRef.current = stream;
+        setCameraInputStream(stream);
         const videoEl = videoRef.current;
         if (!videoEl) return;
 
@@ -1401,15 +1560,41 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
 
     const runCompositorLoop = () => {
       if (deeparActiveRef.current) {
+        const isRecording = videoRecorderRef.current?.state === 'recording';
+        if (!isRecording) {
+          return;
+        }
         const video = videoRef.current;
         if (video) {
           compositorHandle = scheduleVideoCompositorFrame(video, runCompositorLoop);
         }
         return;
       }
+
+      const hasVirtualBg = Boolean(
+        videoBackgroundRef.current && videoBgReadyRef.current,
+      );
+      const trtcOn = trtcBeautyActiveRef.current;
+      const cssOnly =
+        videoBeautyFilterRef.current !== 'None' &&
+        !trtcOn &&
+        !trtcBeautyOnRef.current;
+      const isRecording = videoRecorderRef.current?.state === 'recording';
+
+      // Direct <video> / DeepAR preview — never spin compositor for TRTC or idle camera.
+      if (!isRecording && !hasVirtualBg && !cssOnly) {
+        return;
+      }
+
       const canvas = compositorCanvasRef.current;
       const recorderCanvas = recorderCanvasRef.current;
-      const video = videoRef.current;
+      const trtcVideo = streamBeauty.outputVideoRef.current;
+      const useTrtcBeauty =
+        trtcBeautyActiveRef.current &&
+        trtcVideo &&
+        trtcVideo.readyState >= 2 &&
+        trtcVideo.videoWidth > 0;
+      const video = useTrtcBeauty ? trtcVideo : videoRef.current;
       const scratch = compositorScratchRef.current;
       if (!canvas || !recorderCanvas || !video || !scratch || cancelled) return;
 
@@ -1433,10 +1618,12 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
       const recordCtx = recorderCanvas.getContext('2d');
       if (!ctx || !recordCtx) return;
 
-      const filterCss = VIDEO_BEAUTY_FILTERS[videoBeautyFilterRef.current] ?? VIDEO_BEAUTY_FILTERS.None;
+      const filterCss = useTrtcBeauty
+        ? 'none'
+        : VIDEO_BEAUTY_FILTERS[videoBeautyFilterRef.current] ?? VIDEO_BEAUTY_FILTERS.None;
       const bgImage =
         videoBackgroundRef.current && videoBgReadyRef.current ? videoBgImageRef.current : null;
-      const hasVirtualBg = Boolean(bgImage);
+
       const mattingEnabled = hasVirtualBg;
       const composeOptions = {
         beautyFilter: filterCss,
@@ -1518,7 +1705,17 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
         disposeCompositorScratch(compositorScratchRef.current);
       }
     };
-  }, [cameraEnabled, startCompositorVideoRecorder]);
+  }, [
+    cameraEnabled,
+    startCompositorVideoRecorder,
+    videoBeautyFilter,
+    trtcBeautyOn,
+    beautyPanelOpen,
+    videoBgReady,
+    videoBackground,
+    deeparActive,
+    isRecording,
+  ]);
 
   // Master playback clock — reads media time every frame, throttles React UI updates.
   useEffect(() => {
@@ -2967,8 +3164,19 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                 autoPlay
                 muted
                 playsInline
-                className="absolute w-px h-px opacity-0 pointer-events-none"
-                aria-hidden
+                className={`absolute inset-0 z-[1] object-cover scale-x-[-1] ${
+                  (duetMode || groupMode) ? 'w-1/2 h-full border-r border-white/20' : 'w-full h-full'
+                }`}
+              />
+              <video
+                ref={streamBeauty.outputVideoRef}
+                autoPlay
+                muted
+                playsInline
+                className={`absolute inset-0 z-[2] object-cover transition-opacity duration-150 ${
+                  showDirectTrtcPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                } ${(duetMode || groupMode) ? 'w-1/2 h-full' : 'w-full h-full'}`}
+                aria-hidden={!showDirectTrtcPreview}
               />
               <canvas
                 ref={recorderCanvasRef}
@@ -2978,19 +3186,22 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
               <canvas
                 ref={compositorCanvasRef}
                 className={`absolute inset-0 z-[1] ${
-                  deeparActive ? 'opacity-0 pointer-events-none' : ''
+                  showCompositorCanvas ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 } ${
                   (duetMode || groupMode) ? 'w-1/2 h-full border-r border-white/20' : 'w-full h-full'
                 }`}
               />
-              {deeparActive && (
+              {(cameraEnabled && isDeepARConfigured()) ? (
                 <div
                   ref={deeparPreviewRef}
-                  className={`absolute inset-0 z-[2] ${
+                  className={`absolute inset-0 z-[3] transition-opacity duration-150 ${
+                    deeparActive && deepar.ready ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  } ${
                     (duetMode || groupMode) ? 'w-1/2 h-full' : 'w-full h-full'
                   }`}
+                  aria-hidden={!(deeparActive && deepar.ready)}
                 />
-              )}
+              ) : null}
               {(duetMode || groupMode) && (
                  <div className="w-1/2 h-full bg-zinc-900 flex items-center justify-center relative overflow-hidden">
                    <img src="https://images.unsplash.com/photo-1516280440502-6c9ab45187fb?w=800&auto=format&fit=crop&q=60" className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" />
@@ -3076,97 +3287,6 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
 
          {/* Lyrics zone */}
          <div className="relative flex-1 min-h-0 flex flex-col overflow-hidden">
-         <div className="absolute right-4 sm:right-6 top-1/2 -translate-y-1/2 flex flex-col justify-center gap-4 items-center z-20 select-none pointer-events-auto">
-          <button 
-            type="button"
-            onClick={() => {
-              setIsFullScreenLyrics(!isFullScreenLyrics);
-              window.dispatchEvent(new CustomEvent('app-toast', { 
-                detail: !isFullScreenLyrics ? 'Full Screen Lyrics Enabled' : 'Split Settings Enabled' 
-              }));
-            }} 
-            className="group flex flex-col items-center gap-1.5 focus:outline-none"
-          >
-            <div className={`w-11 h-11 rounded-full backdrop-blur-md flex items-center justify-center text-white transition-all active:scale-95 border ${
-              isFullScreenLyrics 
-                ? 'bg-rose-500/20 border-rose-500/40 shadow-[0_0_12px_rgba(244,63,94,0.35)]' 
-                : 'bg-black/40 border-white/10 hover:bg-black/60'
-            }`}>
-              {isFullScreenLyrics ? (
-                <Minimize2 className="w-5 h-5 text-rose-400 group-hover:scale-110 transition stroke-[2.5px]" />
-              ) : (
-                <Maximize2 className="w-5 h-5 text-white group-hover:scale-110 transition stroke-[2.5px]" />
-              )}
-            </div>
-            <span className="text-[10px] font-black uppercase text-white/90 drop-shadow-md">
-              {isFullScreenLyrics ? "Split" : "Full View"}
-            </span>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => {
-              window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Clip created! Start and end times updated.' }));
-            }} 
-            className="group flex flex-col items-center gap-1.5 focus:outline-none"
-          >
-            <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-95">
-              <Layers className="w-5 h-5 group-hover:text-primary transition" />
-            </div>
-            <span className="text-[10px] font-bold text-white/80 drop-shadow">Clip</span>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => {
-              const nextSize = lyricsSize === 'sm' ? 'md' : lyricsSize === 'md' ? 'lg' : 'sm';
-              setLyricsSize(nextSize);
-              window.dispatchEvent(new CustomEvent('app-toast', { detail: `Lyrics size set to ${nextSize.toUpperCase()}` }));
-            }} 
-            className="group flex flex-col items-center gap-1.5 focus:outline-none"
-          >
-            <div className="w-10 h-10 rounded-full bg-black/40 border border-white/10 backdrop-blur-md flex items-center justify-center text-white hover:bg-black/60 transition active:scale-95">
-              <Type className="w-5 h-5 group-hover:text-primary transition" />
-            </div>
-            <span className="text-[10px] font-bold text-white/80 drop-shadow">Size</span>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => {
-              setShowChords(!showChords);
-              window.dispatchEvent(new CustomEvent('app-toast', { detail: !showChords ? 'Chords HUD Shown' : 'Chords HUD Hidden' }));
-            }} 
-            className="group flex flex-col items-center gap-1.5 focus:outline-none animate-in fade-in duration-200"
-          >
-            <div className={`w-10 h-10 rounded-full border backdrop-blur-md flex items-center justify-center transition-all active:scale-95 ${
-              showChords 
-                ? 'bg-[#2dd4bf]/20 border-[#2dd4bf]/40 text-[#2dd4bf] shadow-[0_0_12px_rgba(45,212,191,0.35)]' 
-                : 'bg-black/40 border-white/10 hover:bg-black/60 text-white/60'
-            }`}>
-              {showChords ? <Eye className="w-5 h-5 stroke-[2.2px]" /> : <EyeOff className="w-5 h-5 stroke-[2px]" />}
-            </div>
-            <span className="text-[10px] font-bold text-white/80 drop-shadow">Chords</span>
-          </button>
-
-          <button 
-            type="button"
-            onClick={() => {
-              setShowPitchHUD(!showPitchHUD);
-              window.dispatchEvent(new CustomEvent('app-toast', { detail: !showPitchHUD ? 'Laser Pitch HUD Shown' : 'Laser Pitch HUD Hidden' }));
-            }} 
-            className="group flex flex-col items-center gap-1.5 focus:outline-none animate-in fade-in duration-200"
-          >
-            <div className={`w-10 h-10 rounded-full border backdrop-blur-md flex items-center justify-center transition-all active:scale-95 ${
-              showPitchHUD 
-                ? 'bg-rose-500/20 border-rose-500/40 text-rose-450 shadow-[0_0_12px_rgba(244,63,94,0.35)]' 
-                : 'bg-black/40 border-white/10 hover:bg-black/60 text-white/60'
-            }`}>
-              {showPitchHUD ? <Eye className="w-5 h-5 stroke-[2.2px]" /> : <EyeOff className="w-5 h-5 stroke-[2px]" />}
-            </div>
-            <span className="text-[10px] font-bold text-white/80 drop-shadow">Visuals</span>
-          </button>
-         </div>
 
          {/* Center Lyrics List Wrapper */}
          <div className="flex-1 min-h-0 flex flex-col overflow-hidden px-3 sm:px-12 md:px-16 py-1 pointer-events-none">
@@ -3603,6 +3723,143 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
          </div>
          </div>
 
+        {/* Studio side rail — mobile: bottom scroll strip; desktop: right column (scrollable, no clip) */}
+        <div className="absolute z-40 inset-x-0 bottom-1 pointer-events-none sm:inset-x-auto sm:inset-y-0 sm:right-3 sm:bottom-0 sm:left-auto sm:flex sm:items-center sm:justify-end">
+          <div className="pointer-events-auto flex max-w-full flex-row items-end gap-2 overflow-x-auto overscroll-x-contain px-2 pb-[max(0.25rem,env(safe-area-inset-bottom))] scrollbar-hide touch-pan-x select-none sm:max-h-[min(100%,calc(100dvh-6rem))] sm:flex-col sm:items-center sm:gap-3 sm:overflow-x-visible sm:overflow-y-auto sm:overscroll-y-contain sm:touch-pan-y sm:px-0 sm:pb-2 sm:pt-2 sm:scrollbar-hide">
+          <button 
+            type="button"
+            onClick={() => {
+              setIsFullScreenLyrics(!isFullScreenLyrics);
+              window.dispatchEvent(new CustomEvent('app-toast', { 
+                detail: !isFullScreenLyrics ? 'Full Screen Lyrics Enabled' : 'Split Settings Enabled' 
+              }));
+            }} 
+            className="group flex flex-col items-center gap-1 shrink-0 min-w-[3.25rem] focus:outline-none"
+          >
+            <div className={`w-11 h-11 rounded-full flex items-center justify-center text-white transition-all active:scale-95 border touch-manipulation bg-black/55 border-white/20 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.5)] hover:bg-black/65 ${
+              isFullScreenLyrics 
+                ? 'bg-rose-500/25 border-rose-400/50 shadow-[0_0_14px_rgba(244,63,94,0.4)]' 
+                : ''
+            }`}>
+              {isFullScreenLyrics ? (
+                <Minimize2 className="w-5 h-5 text-rose-400 group-hover:scale-110 transition stroke-[2.5px]" />
+              ) : (
+                <Maximize2 className="w-5 h-5 text-white group-hover:scale-110 transition stroke-[2.5px]" />
+              )}
+            </div>
+            <span className="text-[10px] font-black uppercase text-white/90 drop-shadow-md">
+              {isFullScreenLyrics ? "Split" : "Full View"}
+            </span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => {
+              window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Clip created! Start and end times updated.' }));
+            }} 
+            className="group flex flex-col items-center gap-1 shrink-0 min-w-[3.25rem] focus:outline-none"
+          >
+            <div className="w-11 h-11 rounded-full bg-black/55 border border-white/20 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.5)] flex items-center justify-center text-white hover:bg-black/65 transition active:scale-95 touch-manipulation">
+              <Layers className="w-5 h-5 group-hover:text-primary transition" />
+            </div>
+            <span className="text-[10px] font-bold text-white/80 drop-shadow">Clip</span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => {
+              const nextSize = lyricsSize === 'sm' ? 'md' : lyricsSize === 'md' ? 'lg' : 'sm';
+              setLyricsSize(nextSize);
+              window.dispatchEvent(new CustomEvent('app-toast', { detail: `Lyrics size set to ${nextSize.toUpperCase()}` }));
+            }} 
+            className="group flex flex-col items-center gap-1 shrink-0 min-w-[3.25rem] focus:outline-none"
+          >
+            <div className="w-11 h-11 rounded-full bg-black/55 border border-white/20 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.5)] flex items-center justify-center text-white hover:bg-black/65 transition active:scale-95 touch-manipulation">
+              <Type className="w-5 h-5 group-hover:text-primary transition" />
+            </div>
+            <span className="text-[10px] font-bold text-white/80 drop-shadow">Size</span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => {
+              setShowChords(!showChords);
+              window.dispatchEvent(new CustomEvent('app-toast', { detail: !showChords ? 'Chords HUD Shown' : 'Chords HUD Hidden' }));
+            }} 
+            className="group flex flex-col items-center gap-1.5 shrink-0 focus:outline-none animate-in fade-in duration-200"
+          >
+            <div className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all active:scale-95 touch-manipulation bg-black/55 border-white/20 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.5)] hover:bg-black/65 ${
+              showChords 
+                ? 'bg-[#2dd4bf]/25 border-[#2dd4bf]/50 text-[#2dd4bf] shadow-[0_0_14px_rgba(45,212,191,0.4)]' 
+                : 'text-white/70'
+            }`}>
+              {showChords ? <Eye className="w-5 h-5 stroke-[2.2px]" /> : <EyeOff className="w-5 h-5 stroke-[2px]" />}
+            </div>
+            <span className="text-[10px] font-bold text-white/80 drop-shadow">Chords</span>
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => {
+              setShowPitchHUD(!showPitchHUD);
+              window.dispatchEvent(new CustomEvent('app-toast', { detail: !showPitchHUD ? 'Laser Pitch HUD Shown' : 'Laser Pitch HUD Hidden' }));
+            }} 
+            className="group flex flex-col items-center gap-1.5 shrink-0 focus:outline-none animate-in fade-in duration-200"
+          >
+            <div className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all active:scale-95 touch-manipulation bg-black/55 border-white/20 backdrop-blur-xl shadow-[0_4px_16px_rgba(0,0,0,0.5)] hover:bg-black/65 ${
+              showPitchHUD 
+                ? 'bg-rose-500/25 border-rose-400/50 text-rose-450 shadow-[0_0_14px_rgba(244,63,94,0.4)]' 
+                : 'text-white/70'
+            }`}>
+              {showPitchHUD ? <Eye className="w-5 h-5 stroke-[2.2px]" /> : <EyeOff className="w-5 h-5 stroke-[2px]" />}
+            </div>
+            <span className="text-[10px] font-bold text-white/80 drop-shadow">Visuals</span>
+          </button>
+
+          {cameraEnabled && isDeepARConfigured() ? (
+            <button
+              type="button"
+              onClick={toggleKaraokeDeeparPanel}
+              className="group flex flex-col items-center gap-1 shrink-0 min-w-[3.25rem] focus:outline-none"
+              aria-label="AR effects"
+              aria-pressed={deeparPanelOpen || deeparActive}
+            >
+              <div
+                className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all active:scale-95 touch-manipulation bg-black/60 border-white/25 backdrop-blur-xl shadow-[0_4px_20px_rgba(0,0,0,0.55)] hover:bg-black/70 ${
+                  deeparPanelOpen || deeparActive
+                    ? 'bg-fuchsia-500/30 border-fuchsia-300/60 text-fuchsia-100 shadow-[0_0_16px_rgba(217,70,239,0.45)]'
+                    : 'text-white'
+                }`}
+              >
+                <Sparkles className="w-5 h-5 stroke-[2px]" />
+              </div>
+              <span className="text-[10px] font-bold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{CAMERA_AR_BUTTON_LABEL}</span>
+            </button>
+          ) : null}
+
+          {cameraEnabled ? (
+            <button
+              type="button"
+              onClick={toggleKaraokeBeautyPanel}
+              className="group flex flex-col items-center gap-1 shrink-0 min-w-[3.25rem] focus:outline-none"
+              aria-label="Beauty effects"
+              aria-pressed={beautyPanelOpen || trtcBeautyOn}
+            >
+              <div
+                className={`w-11 h-11 rounded-full border flex items-center justify-center transition-all active:scale-95 touch-manipulation bg-black/80 border-white/30 backdrop-blur-xl shadow-[0_4px_22px_rgba(0,0,0,0.65)] hover:bg-black/90 ${
+                  beautyPanelOpen || trtcBeautyOn
+                    ? 'bg-rose-600/40 border-rose-200/70 text-rose-50 shadow-[0_0_18px_rgba(244,63,94,0.5)]'
+                    : 'text-white'
+                }`}
+              >
+                <ScanFace className="w-5 h-5 stroke-[2px]" />
+              </div>
+              <span className="text-[10px] font-bold text-white/90 drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]">{CAMERA_BEAUTY_BUTTON_LABEL}</span>
+            </button>
+          ) : null}
+          </div>
+        </div>
+
         {/* Action Controls Panel (Bottom Overlay) */}
         <div className="shrink-0 p-6 flex flex-col items-center gap-5 z-20 relative select-none">
           
@@ -3947,56 +4204,39 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                     </span>
                   </div>
                   <div>
-                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2"><Smile className="w-4 h-4"/> Beauty AR Filters</h3>
-                    <div className="flex gap-3 overflow-x-auto pb-2 scrollbar-hide">
-                      {Object.keys(VIDEO_BEAUTY_FILTERS).map((filter) => (
-                        <button
-                          key={filter}
-                          type="button"
-                          onClick={() => {
-                            setVideoBeautyFilter(filter);
-                            if (filter !== 'None') {
-                              window.dispatchEvent(new CustomEvent('app-toast', { detail: `${filter} beauty filter applied` }));
-                            }
-                          }}
-                          className={`relative w-20 shrink-0 aspect-[3/4] rounded-lg overflow-hidden transition border ${
-                            videoBeautyFilter === filter
-                              ? 'border-primary ring-2 ring-primary/40'
-                              : 'border-border/50 hover:border-primary'
-                          }`}
-                        >
-                          <canvas
-                            ref={(el) => {
-                              filterPreviewCanvasRefs.current[filter] = el;
-                            }}
-                            className="absolute inset-0 w-full h-full bg-zinc-900"
-                            aria-hidden
-                          />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent pointer-events-none" />
-                          <span className="absolute inset-x-0 bottom-0 z-10 px-1 pb-2 text-[10px] font-bold uppercase tracking-wider text-white text-center">
-                            {filter}
-                          </span>
-                        </button>
-                      ))}
-                    </div>
+                    <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
+                      <Smile className="w-4 h-4"/> Beauty · TRTC
+                      {streamBeauty.configured ? (
+                        <span className="rounded-full bg-rose-500/15 px-1.5 py-0.5 text-[9px] font-black text-rose-400">
+                          SDK
+                        </span>
+                      ) : null}
+                    </h3>
+                    <LiveBeautySheet
+                        isOpen
+                        onClose={() => {}}
+                        variant="inline"
+                        activeBeautyId={trtcBeautyId}
+                        onSelectBeauty={handleSelectKaraokeBeauty}
+                        effects={trtcBeautyEffects}
+                        onEffectsChange={handleKaraokeBeautyEffectsChange}
+                        catalogs={streamBeauty.catalogs}
+                        anchorBottom={0}
+                        webarConfigured={streamBeauty.configured}
+                        webarLoading={streamBeauty.loading}
+                        webarError={streamBeauty.error}
+                      />
                   </div>
                   {isDeepARConfigured() ? (
                     <div>
                       <h3 className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-4 flex items-center gap-2">
-                        <Sparkles className="w-4 h-4" /> DeepAR Face Effects
+                        <Sparkles className="w-4 h-4" /> {CAMERA_AR_BUTTON_LABEL} · Makeup &amp; Beauty
                       </h3>
-                      <DeepAREffectPicker
+                      <DeepARFilterCarousel
                         activeEffectId={deeparEffectId}
-                        onSelect={(id) => {
-                          setDeeparEffectId(id);
-                          if (id !== 'none') {
-                            window.dispatchEvent(
-                              new CustomEvent('app-toast', {
-                                detail: `${id.replace(/_/g, ' ')} AR effect applied`,
-                              }),
-                            );
-                          }
-                        }}
+                        activeSelection={deeparSelection}
+                        onSelectionChange={handleDeeparSelectionChange}
+                        multiSelect
                         disabled={!cameraEnabled || (deeparActive && !deepar.ready)}
                       />
                       {deeparActive && !deepar.ready && !deepar.error && (
@@ -4172,6 +4412,36 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
         </div>
        </div>
      )}
+      {cameraEnabled && isDeepARConfigured() ? (
+        <MultiGuestEffectsSheet
+          isOpen={deeparPanelOpen}
+          onClose={() => setDeeparPanelOpen(false)}
+          activeSelection={deeparSelection}
+          onSelectionChange={handleDeeparSelectionChange}
+          bodyShape={trtcBodyShape}
+          onBodyShapeChange={setTrtcBodyShape}
+          loading={deepar.loading}
+          cameraReady={cameraEnabled}
+          anchorBottom={0}
+        />
+      ) : null}
+      {cameraEnabled ? (
+        <LiveBeautySheet
+          isOpen={beautyPanelOpen}
+          onClose={() => setBeautyPanelOpen(false)}
+          activeBeautyId={trtcBeautyId}
+          onSelectBeauty={handleSelectKaraokeBeauty}
+          effects={trtcBeautyEffects}
+          onEffectsChange={handleKaraokeBeautyEffectsChange}
+          bodyShape={trtcBodyShape}
+          onBodyShapeChange={setTrtcBodyShape}
+          catalogs={streamBeauty.catalogs}
+          anchorBottom={0}
+          webarConfigured={streamBeauty.configured}
+          webarLoading={streamBeauty.loading}
+          webarError={streamBeauty.error}
+        />
+      ) : null}
     </div>
   );
 }

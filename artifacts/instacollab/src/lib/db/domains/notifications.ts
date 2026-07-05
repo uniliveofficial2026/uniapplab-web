@@ -206,6 +206,56 @@ export function WithNotifications<T extends Constructor<DbCoreBacked>>(Base: T):
         this.asLocalDB().setHasUnreadNotifications(true);
       }
       this.notifyListeners();
+
+      // Cross-device / cross-user delivery over the internet.
+      if (ownerId !== this.asLocalDB().currentUserId) {
+        void import('../../cloudNotificationSync').then((m) => {
+          m.queueCloudNotificationDelivery(ownerId, payload);
+        });
+      }
+
+      return row;
+    }
+
+    mergeInboundCloudNotification(
+      ownerUserId: string,
+      payload: Partial<AppNotification> & {
+        id: string;
+        type: AppNotificationType;
+        createdAt: number;
+      }
+    ): AppNotification | null {
+      const ownerId = String(ownerUserId || '').trim();
+      const id = String(payload.id || '').trim();
+      if (!ownerId || !id) return null;
+
+      const row = this.normalizeNotificationRow({
+        ...payload,
+        id,
+        createdAt: payload.createdAt,
+        read: !!payload.read,
+      });
+
+      const store = this.getNotificationInboxStore();
+      const list = store[ownerId] ?? [];
+      const byId = list.findIndex((n) => n.id === id);
+      let next: AppNotification[];
+      if (byId >= 0) {
+        next = list.map((n, i) => (i === byId ? { ...n, ...row, id } : n));
+      } else {
+        const key = notificationDedupeKey(row);
+        const filtered = list.filter(
+          (n) => n.id !== id && notificationDedupeKey(n) !== key,
+        );
+        next = [row, ...filtered].slice(0, NOTIFICATIONS_CAP);
+      }
+      this.saveNotificationInboxStore({ ...store, [ownerId]: next });
+
+      if (ownerId === this.asLocalDB().currentUserId) {
+        const unread = next.some((n) => !n.read);
+        this.asLocalDB().setHasUnreadNotifications(unread);
+      }
+      this.notifyListeners();
       return row;
     }
 
@@ -258,6 +308,9 @@ export function WithNotifications<T extends Constructor<DbCoreBacked>>(Base: T):
       if (ownerId === this.asLocalDB().currentUserId) {
         const unread = next.filter((n) => !n.read).length;
         this.asLocalDB().setHasUnreadNotifications(unread > 0);
+        void import('../../cloudNotificationSync').then((m) => {
+          void m.markCloudNotificationRead(notificationId);
+        });
       }
       this.notifyListeners();
     }
@@ -270,6 +323,9 @@ export function WithNotifications<T extends Constructor<DbCoreBacked>>(Base: T):
       this.saveNotificationInboxStore({ ...store, [ownerId]: next });
       if (ownerId === this.asLocalDB().currentUserId) {
         this.asLocalDB().setHasUnreadNotifications(false);
+        void import('../../cloudNotificationSync').then((m) => {
+          void m.markAllCloudNotificationsRead();
+        });
       }
       this.notifyListeners();
     }

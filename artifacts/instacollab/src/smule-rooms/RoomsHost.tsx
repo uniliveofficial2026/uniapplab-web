@@ -65,7 +65,7 @@ function AppContent() {
 
 export function RoomsHost({ initialPath = '/party', routerKey = 0 }: { initialPath?: string; routerKey?: number }) {
   useEffect(() => {
-    if (!localStorage.getItem('auth_token')) {
+    if (import.meta.env.DEV && !localStorage.getItem('auth_token')) {
       localStorage.setItem('auth_token', 'demo');
     }
   }, []);

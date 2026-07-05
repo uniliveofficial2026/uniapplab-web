@@ -303,7 +303,6 @@ export function PostModalCommentItem({
                 username: author.username || 'user',
               });
               setCommentText(`@${author.username} `);
-              commentInputRef.current?.focus();
             }}
             className="hover:text-foreground transition-colors"
           >

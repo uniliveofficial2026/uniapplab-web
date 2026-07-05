@@ -49,7 +49,13 @@ import { MediaWithSoundtrack } from "../common/MediaWithSoundtrack";
 import { ShareIcon } from "../common/ShareIcon";
 import { ShareModal } from "./ShareModal";
 import { buildPostSharePayload } from "../../lib/shareLinks";
-import { FullscreenMediaStage } from "../common/FullscreenMediaStage";
+import {
+  FULLSCREEN_MEDIA_CLOSE_CLASS,
+  FULLSCREEN_MEDIA_DOTS_CLASS,
+  FULLSCREEN_MEDIA_NAV_CLASS,
+  FULLSCREEN_MEDIA_OVERLAY_CLASS,
+  FullscreenMediaStage,
+} from "../common/FullscreenMediaStage";
 import { FullscreenPostMediaContent } from "../common/FullscreenPostMediaContent";
 import { PLAYBACK_PRIORITY } from "../../lib/playbackAudio";
 import { buildMediaFilterStyle } from "../../lib/mediaFilters";
@@ -1247,7 +1253,7 @@ export function PostModal({
                     />
                   </button>
                   <button
-                    onClick={() => commentInputRef.current?.focus()}
+                    type="button"
                     className="hover:text-muted-foreground transition-colors hover:scale-110"
                   >
                     <MessageCircle className="w-6 h-6" />
@@ -1367,7 +1373,6 @@ export function PostModal({
                             type="button"
                             onClick={() => {
                               setShowEmojiPicker(false);
-                              commentInputRef.current?.focus();
                             }}
                             className="px-4 py-1.5 bg-primary text-primary-foreground font-bold rounded-full text-sm hover:opacity-90 transition-opacity"
                           >
@@ -1378,7 +1383,6 @@ export function PostModal({
                           <EmojiPicker
                             onEmojiClick={(emoji) => {
                               setCommentText((prev) => prev + emoji.emoji);
-                              commentInputRef.current?.focus();
                             }}
                             width="100%"
                             height="100%"
@@ -1393,7 +1397,6 @@ export function PostModal({
                         <EmojiPicker
                           onEmojiClick={(emoji) => {
                             setCommentText((prev) => prev + emoji.emoji);
-                            commentInputRef.current?.focus();
                           }}
                           previewConfig={{ showPreview: false }}
                           theme={Theme.AUTO}
@@ -1529,16 +1532,17 @@ export function PostModal({
       {fullscreenMedia && createPortal(
         <div 
           id="media-full-screen-modal"
-          className="fixed inset-0 z-[320] flex items-center justify-center bg-background pointer-events-auto animate-in fade-in duration-200"
+          data-media-fullscreen="true"
+          className={FULLSCREEN_MEDIA_OVERLAY_CLASS}
           onTouchStart={handleFsTouchStart}
           onTouchMove={handleFsTouchMove}
           onTouchEnd={handleFsTouchEnd}
         >
           <button
             onClick={handleCloseModalFullscreen}
-            className="absolute top-4 right-4 z-[260] text-foreground p-2 hover:bg-secondary rounded-full transition-colors cursor-pointer border border-border shadow-sm"
+            className={FULLSCREEN_MEDIA_CLOSE_CLASS}
           >
-            <X className="w-8 h-8" />
+            <X className="w-7 h-7 sm:w-8 sm:h-8" />
           </button>
           
           <FullscreenMediaStage
@@ -1552,7 +1556,7 @@ export function PostModal({
 
               if (item.isText) {
                 return (
-                  <div className={`w-full max-w-2xl h-full max-h-[85vh] flex flex-col items-center justify-center p-12 ${item.bg && !item.bg.includes('bg-secondary') ? item.bg : 'bg-background'} rounded-3xl relative shadow-2xl overflow-hidden`} onClick={(e) => e.stopPropagation()}>
+                  <div className={`w-full max-w-2xl max-h-[100dvh] flex flex-col items-center justify-center px-6 py-[max(2rem,env(safe-area-inset-top))] sm:p-12 ${item.bg && !item.bg.includes('bg-secondary') ? item.bg : 'bg-background'} sm:rounded-3xl relative shadow-2xl overflow-hidden`} onClick={(e) => e.stopPropagation()}>
                     <div className="w-full flex-1 overflow-y-auto no-scrollbar flex flex-col items-center justify-center py-8 text-center px-4">
                        <p className={`story-user-text editor-adaptive-text ${getFontClass(item.font)} ${getAlignClass(item.alignment)} ${item.size || ((item.caption?.length ?? 0) > 50 ? 'text-3xl' : 'text-6xl')} ${resolveEditorTextColorClass(item.color)} font-black break-words w-full`}>
                          {formatMentionsAndTags(item.caption ?? '')}
@@ -1613,7 +1617,7 @@ export function PostModal({
                     prev ? { ...prev, mediaIndex: (prev.mediaIndex === 0 ? prev.items.length - 1 : prev.mediaIndex - 1) } : null
                   );
                 }}
-                className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 hidden lg:flex items-center justify-center text-white transition-all z-[260] hover:scale-105 active:scale-95"
+                className={`${FULLSCREEN_MEDIA_NAV_CLASS} left-[max(0.75rem,env(safe-area-inset-left,0px))]`}
               >
                 <ChevronLeft className="w-6 h-6" />
               </button>
@@ -1624,13 +1628,12 @@ export function PostModal({
                     prev ? { ...prev, mediaIndex: (prev.mediaIndex === prev.items.length - 1 ? 0 : prev.mediaIndex + 1) } : null
                   );
                 }}
-                className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 hidden lg:flex items-center justify-center text-white transition-all z-[260] hover:scale-105 active:scale-95"
+                className={`${FULLSCREEN_MEDIA_NAV_CLASS} right-[max(0.75rem,env(safe-area-inset-right,0px))]`}
               >
                 <ChevronRight className="w-6 h-6" />
               </button>
 
-              {/* Index indicator */}
-              <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-[260] bg-black/50 backdrop-blur-md px-3 py-1.5 rounded-full">
+              <div className={FULLSCREEN_MEDIA_DOTS_CLASS}>
                 {fullscreenMedia.items.map((_, i) => (
                   <div 
                     key={`fs-dot-${i}`}

@@ -18,6 +18,9 @@ import type {
 import type { WorkspaceTask } from '../../dbTypes';
 import { scheduleSupabaseProfileSync } from '../../supabase/syncProfile';
 import { scheduleLiveSessionSync } from '../../liveSessionSync';
+import { isCloudAuthUserId } from '../../auth/cloudProfile';
+import { setProfileLivePresence } from '../../supabase/liveDiscovery';
+import { isSupabaseConfigured } from '../../supabase/config';
 import type { AuthPostsLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
 
@@ -204,6 +207,7 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
     logout() {
       this.save('isLoggedIn', false);
       this.save('currentUserId', null);
+      void import('../../sessionCache').then((m) => m.clearSessionCache());
     }
 
     /** Merge Supabase-authenticated user into local store and set session. */
@@ -234,6 +238,14 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       } else if (userRowChanged) {
         this.syncUserRefsInContent(user.id);
       }
+
+      // Sync localStorage hint so next cold start shows main shell from cache instantly.
+      const progress = this.asLocalDB().getLaunchProgress?.();
+      void import('../../sessionCache').then((m) =>
+        m.writeSessionCache(merged, {
+          profileSetupComplete: Boolean(progress?.profileSetupComplete),
+        }),
+      );
     }
 
     registerUser(user: User) {
@@ -341,11 +353,59 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       ) {
         this.syncPostMediaInNotifications(after);
       }
+      // Republish content edits (not engagement-only) to shared posts table.
+      if (
+        before &&
+        after &&
+        postUserId(after) === this.currentUserId &&
+        (before.caption !== after.caption ||
+          before.imageUrl !== after.imageUrl ||
+          before.videoUrl !== after.videoUrl ||
+          before.audioUrl !== after.audioUrl ||
+          before.isArchived !== after.isArchived ||
+          JSON.stringify(before.mediaList) !== JSON.stringify(after.mediaList))
+      ) {
+        void import('../../cloudSocial/cloudSocialContent').then((m) =>
+          m.scheduleCloudPostMutation(after),
+        );
+      }
+    }
+
+    applyInboundPostEngagement(
+      postId: string,
+      engagement: { likes: number; isLiked: boolean; isSaved: boolean },
+    ) {
+      const existing = this.posts.find((p) => p.id === postId);
+      if (!existing) return;
+      if (
+        existing.likes === engagement.likes &&
+        existing.isLiked === engagement.isLiked &&
+        existing.isSaved === engagement.isSaved
+      ) {
+        return;
+      }
+      const updated = this.posts.map((p) =>
+        p.id === postId
+          ? {
+              ...p,
+              likes: engagement.likes,
+              isLiked: engagement.isLiked,
+              isSaved: engagement.isSaved,
+            }
+          : p,
+      );
+      this.save('posts', updated);
     }
 
     deletePost(id: string) {
+      const existing = this.posts.find((p) => p.id === id);
       const updated = this.posts.filter((p) => p.id !== id);
       this.save('posts', updated);
+      if (existing && postUserId(existing) === this.currentUserId) {
+        void import('../../cloudSocial/cloudSocialContent').then((m) =>
+          m.scheduleCloudPostDelete(id, this.currentUserId),
+        );
+      }
     }
 
     /** Archive or unarchive a post (owner only in UI). Returns new archived state. */
@@ -402,6 +462,11 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         status: isLive ? 'live' : hasStory ? 'story' : 'none',
         liveKind: isLive ? liveKind : undefined,
       }));
+      if (isSupabaseConfigured() && isCloudAuthUserId(userId)) {
+        void setProfileLivePresence(userId, isLive, liveKind).catch((err) => {
+          console.warn('[live] cloud presence sync failed:', err);
+        });
+      }
       return true;
     }
 
@@ -564,6 +629,14 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         const likes = Math.max(0, (Number(p.likes) || 0) + (nextLiked ? 1 : -1));
         return { ...p, isLiked: nextLiked, likes };
       });
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudEngagement({
+          targetKind: 'post',
+          targetId: postId,
+          kind: 'like',
+          active: nextLiked,
+        }),
+      );
       if (nextLiked && meId && ownerId && ownerId !== meId) {
         this.asLocalDB().pushNotificationForUser(ownerId, {
           type: 'like',
@@ -584,6 +657,14 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         nextSaved = !p.isSaved;
         return { ...p, isSaved: nextSaved };
       });
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudEngagement({
+          targetKind: 'post',
+          targetId: postId,
+          kind: 'save',
+          active: nextSaved,
+        }),
+      );
       if (nextSaved && meId && ownerId && ownerId !== meId) {
         this.asLocalDB().pushNotificationForUser(ownerId, {
           type: 'activity',
@@ -608,6 +689,14 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         const likes = Math.max(0, (Number(r.likes) || 0) + (nextLiked ? 1 : -1));
         return { ...r, isLiked: nextLiked, likes };
       });
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudEngagement({
+          targetKind: 'reel',
+          targetId: reelId,
+          kind: 'like',
+          active: nextLiked,
+        }),
+      );
       if (nextLiked && meId && ownerId && ownerId !== meId) {
         this.asLocalDB().pushNotificationForUser(ownerId, {
           type: 'like',
@@ -625,6 +714,14 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         nextSaved = !r.isSaved;
         return { ...r, isSaved: nextSaved };
       });
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudEngagement({
+          targetKind: 'reel',
+          targetId: reelId,
+          kind: 'save',
+          active: nextSaved,
+        }),
+      );
       return nextSaved;
     }
   } as unknown as MixinCtor<T, AuthPostsLayer>;

@@ -1,0 +1,155 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #fff;
+      }
+      canvas {
+        display: block;
+      }
+    </style>
+  </head>
+  <body>
+    <img id="source" crossorigin="anonymous" alt="" />
+    <canvas id="out" width="512" height="512"></canvas>
+    <script type="module">
+      import { FilesetResolver, ImageSegmenter } from 'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/+esm';
+
+      const fail = (error) => {
+        window.__segmentError = error?.message || String(error);
+        window.__segmentDone = true;
+      };
+
+      setTimeout(() => {
+        if (!window.__segmentDone) fail(new Error('Timed out waiting for segment preview'));
+      }, 120000);
+
+      function isGreenFoliage(r, g, b) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        const delta = max - min;
+        if (max < 36) return false;
+        if (delta < 10 && max < 90) return false;
+        let hue = 0;
+        if (delta > 0) {
+          if (max === g) hue = 60 * (2 + (b - r) / delta);
+          else if (max === r) hue = 60 * (((g - b) / delta + 6) % 6);
+          else hue = 60 * ((r - g) / delta + 4);
+          if (hue < 0) hue += 360;
+        }
+        const saturation = max === 0 ? 0 : delta / max;
+        return saturation > 0.1 && hue >= 48 && hue <= 165;
+      }
+
+      function isPersonTone(r, g, b) {
+        const max = Math.max(r, g, b);
+        const min = Math.min(r, g, b);
+        if (min > 185) return true;
+        if (max < 105 && max - min < 35) return true;
+        if (r > 75 && r >= g - 10 && r > b - 12) return true;
+        return false;
+      }
+
+      try {
+        const config = window.__segmentConfig;
+        if (!config?.imageUrl) throw new Error('Missing segment config');
+
+        const img = document.getElementById('source');
+        await new Promise((resolve, reject) => {
+          img.onload = resolve;
+          img.onerror = reject;
+          img.src = config.imageUrl;
+        });
+
+        const size = 512;
+        const sourceCanvas = document.createElement('canvas');
+        sourceCanvas.width = size;
+        sourceCanvas.height = size;
+        const sourceCtx = sourceCanvas.getContext('2d');
+        sourceCtx.fillStyle = '#ffffff';
+        sourceCtx.fillRect(0, 0, size, size);
+        sourceCtx.drawImage(img, 0, 0, size, size);
+        const sourceData = sourceCtx.getImageData(0, 0, size, size);
+
+        const vision = await FilesetResolver.forVisionTasks(
+          'https://cdn.jsdelivr.net/npm/@mediapipe/tasks-vision@0.10.35/wasm',
+        );
+
+        const modelAssetPath =
+          'https://storage.googleapis.com/mediapipe-models/image_segmenter/selfie_segmenter/float16/latest/selfie_segmenter.tflite';
+
+        let segmenter;
+        try {
+          segmenter = await ImageSegmenter.createFromOptions(vision, {
+            baseOptions: { modelAssetPath, delegate: 'GPU' },
+            runningMode: 'IMAGE',
+            outputConfidenceMasks: true,
+          });
+        } catch {
+          segmenter = await ImageSegmenter.createFromOptions(vision, {
+            baseOptions: { modelAssetPath, delegate: 'CPU' },
+            runningMode: 'IMAGE',
+            outputConfidenceMasks: true,
+          });
+        }
+
+        const result = segmenter.segment(sourceCanvas);
+        const mask = result.confidenceMasks?.[0];
+        if (!mask) throw new Error('Segmentation mask missing');
+
+        const maskData = mask.getAsFloat32Array();
+        const maskW = mask.width;
+        const maskH = mask.height;
+
+        const outCanvas = document.getElementById('out');
+        const outCtx = outCanvas.getContext('2d');
+        const outData = outCtx.createImageData(size, size);
+
+        for (let i = 0; i < outData.data.length; i += 4) {
+          outData.data[i] = 255;
+          outData.data[i + 1] = 255;
+          outData.data[i + 2] = 255;
+          outData.data[i + 3] = 255;
+        }
+
+        const cx = size / 2;
+        const cy = size * 0.53;
+
+        for (let y = 0; y < size; y++) {
+          for (let x = 0; x < size; x++) {
+            const mx = Math.min(maskW - 1, Math.floor((x * maskW) / size));
+            const my = Math.min(maskH - 1, Math.floor((y * maskH) / size));
+            const confidence = Math.min(1, Math.max(0, maskData[my * maskW + mx] ?? 0));
+            const si = (y * size + x) * 4;
+            const r = sourceData.data[si];
+            const g = sourceData.data[si + 1];
+            const b = sourceData.data[si + 2];
+            const dx = x - cx;
+            const dy = y - cy;
+            const dist = Math.sqrt(dx * dx + dy * dy);
+            const inOuterField = dist > size * 0.34;
+
+            if (confidence < 0.5 || isGreenFoliage(r, g, b) || (inOuterField && !isPersonTone(r, g, b))) {
+              continue;
+            }
+
+            outData.data[si] = r;
+            outData.data[si + 1] = g;
+            outData.data[si + 2] = b;
+          }
+        }
+
+        outCtx.putImageData(outData, 0, 0);
+        window.__segmentResult = outCanvas.toDataURL('image/png');
+        segmenter.close();
+        window.__segmentDone = true;
+      } catch (error) {
+        fail(error);
+      }
+    </script>
+  </body>
+</html>

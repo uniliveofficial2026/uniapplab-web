@@ -1,211 +1,414 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Radio } from 'lucide-react';
 import { useDB, useDbRevision } from '../../lib/useDB';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
-import { Avatar } from '../common/Avatar';
-import { ProfileNameLines } from '../common/ProfileNameLines';
-import { LIVE_KIND_LABELS } from '../../lib/liveRing';
+import {
+  LIVE_KIND_LABELS,
+  isLiveKind,
+  liveKindFromRoomMode,
+  roomModeFromLiveKind,
+} from '../../lib/liveRing';
 import type { LiveKind, User } from '../../types';
-import { openProfilePreview } from '../../lib/utils';
-import { resolveUser } from '../../lib/safe';
-import { usePlatformStream } from '../../lib/live/platformStream';
-import { useHostStreamViewerCount } from '../../lib/live/useStreamViewerPresence';
-import { isPlatformApiAvailable } from '../../lib/platformApi';
-import { DeepARLivePreview } from '../deepar/DeepARLivePreview';
-import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
+import { handleMediaError } from '../../lib/utils';
+import { FALLBACK_MEDIA, resolveUser, safeAvatarUrl, safeMediaUrl } from '../../lib/safe';
+import { useCloudLiveDiscovery } from '../../hooks/useCloudLiveDiscovery';
+import { useLiveViewerPreviews } from '../../hooks/useLiveViewerPreviews';
+import { formatViewerCount } from '../../lib/live/formatViewerCount';
+import {
+  openGoLiveCreateRoom,
+  openLiveUserRoom,
+  preloadKaraokeScreen,
+} from '../../lib/live/openLiveRoom';
+import { isSupabaseConfigured } from '../../lib/supabase/config';
+import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
+import { LiveDiscoveryVideoPreview } from './LiveDiscoveryVideoPreview';
+import {
+  LiveFiltersPanel,
+  countryFlagEmoji,
+  formatLiveCountryLabel,
+  liveFollowFilterLabel,
+  liveTypeFilterLabel,
+  matchesLiveSearch,
+  matchesLiveTypeFilter,
+  parseLiveSearchQuery,
+  resolveLiveCountry,
+  resolveLiveRoomType,
+  type LiveFollowFilter,
+  type LiveTypeFilter,
+} from './LiveFiltersPanel';
 
-const LIVE_KIND_OPTIONS: LiveKind[] = [
-  'solo',
-  'audio-room',
-  'video-multi',
-  'pk',
-  'commerce',
-  'game',
-];
+const LIVE_PREVIEW_FALLBACK = FALLBACK_MEDIA;
+
+function pickCloudLiveItem<T extends { partyRoomId?: string; streamId?: string; viewerCount?: number }>(
+  a: T | undefined,
+  b: T,
+): T {
+  if (!a) return b;
+  const score = (item: T) =>
+    (item.partyRoomId ? 4 : 0) + (item.streamId ? 2 : 0) + (item.viewerCount ?? 0);
+  return score(b) >= score(a) ? b : a;
+}
+
+function resolveCardLiveKind(
+  user: User,
+  cloud?: { tags?: string[]; partyRoomId?: string },
+): LiveKind {
+  if (user.liveKind && isLiveKind(user.liveKind)) return user.liveKind;
+  const tag = cloud?.tags?.[0];
+  if (tag && isLiveKind(tag)) return tag;
+  if (tag) return liveKindFromRoomMode(tag);
+  return 'solo';
+}
 
 export function LiveScreen() {
   const db = useDB();
-  useDbRevision();
   const me = resolveUser(db.users, db.currentUser);
-  const platformStream = usePlatformStream();
-  const hostViewerCount = useHostStreamViewerCount(platformStream.streamId);
-  const previewVideoRef = useRef<HTMLVideoElement | null>(null);
-  const getDeepARStreamRef = useRef<(() => Promise<MediaStream | null>) | null>(null);
-  const [platformBusy, setPlatformBusy] = useState(false);
-  const [arPreview, setArPreview] = useState(isDeepARConfigured());
-  const liveUsers = db.users.filter(
+  const cloudLive = useCloudLiveDiscovery(isSupabaseConfigured());
+  const localLiveUsers = db.users.filter(
     (u: User) => u.status === 'live' && u.id !== me.id
   );
-  const isLive = me.status === 'live' || Boolean(platformStream.streamId);
-
-  const startLive = (kind: LiveKind) => {
-    if (!me.id) return;
-    db.setUserLiveStatus(me.id, true, kind);
-    if (isPlatformApiAvailable() && (me.role === 'streamer' || me.role === 'admin')) {
-      setPlatformBusy(true);
-      void (async () => {
-        try {
-          let mediaStream: MediaStream | undefined;
-          if (arPreview && getDeepARStreamRef.current) {
-            mediaStream = (await getDeepARStreamRef.current()) ?? undefined;
-          }
-          await platformStream.goLive(LIVE_KIND_LABELS[kind], { mediaStream });
-        } finally {
-          setPlatformBusy(false);
-        }
-      })();
-    }
-  };
-
-  const endLive = () => {
-    if (!me?.id) return;
-    db.setUserLiveStatus(me.id, false);
-    void platformStream.endLive();
-  };
+  const [filtersOpen, setFiltersOpen] = useState(false);
+  const [typeFilter, setTypeFilter] = useState<LiveTypeFilter>('all');
+  const [countryFilter, setCountryFilter] = useState('all');
+  const [followFilter, setFollowFilter] = useState<LiveFollowFilter>('all');
+  const [searchQuery, setSearchQuery] = useState('');
+  const dbRevision = useDbRevision();
 
   useEffect(() => {
-    const el = previewVideoRef.current;
-    if (!el) return;
-    el.srcObject = platformStream.localStream;
-  }, [platformStream.localStream]);
+    // Instant karaoke warm — Go Live has 0 chunk wait.
+    void preloadKaraokeScreen();
+  }, []);
+
+  const liveUsers = useMemo(() => {
+    const byId = new Map<string, User>();
+    for (const u of localLiveUsers) byId.set(u.id, u);
+    for (const row of cloudLive.streams) {
+      if (!row.userId || row.userId === me.id || byId.has(row.userId)) continue;
+      const kindTag = row.tags[0];
+      const liveKind = isLiveKind(kindTag)
+        ? kindTag
+        : liveKindFromRoomMode(kindTag);
+      byId.set(row.userId, {
+        id: row.userId,
+        username: row.user,
+        displayName: row.user,
+        avatarUrl: row.img,
+        bio: '',
+        followers: 0,
+        following: 0,
+        status: 'live',
+        liveKind,
+      });
+    }
+    return [...byId.values()];
+  }, [localLiveUsers, cloudLive.streams, me.id]);
+
+  const followingIds = useMemo(
+    () => new Set(db.getFollowingIds(me.id)),
+    [db, me.id, dbRevision],
+  );
+  const followerIds = useMemo(
+    () => new Set(db.getFollowerIds(me.id)),
+    [db, me.id, dbRevision],
+  );
+
+  const livePreviewCards = useMemo(() => {
+    const cloudByUserId = new Map<string, (typeof cloudLive.streams)[number]>();
+    for (const stream of cloudLive.streams) {
+      if (!stream.userId) continue;
+      cloudByUserId.set(
+        stream.userId,
+        pickCloudLiveItem(cloudByUserId.get(stream.userId), stream),
+      );
+    }
+    return liveUsers.map((user) => {
+      const cloud = cloudByUserId.get(user.id);
+      const liveKind = resolveCardLiveKind(user, cloud);
+      const partyRoomId =
+        cloud?.partyRoomId || getStoredOwnerPartyRoomId(user.id) || undefined;
+      const roomMode =
+        cloud?.tags?.find((t) => !isLiveKind(t) && t !== 'Live') || undefined;
+      const roomType = resolveLiveRoomType(liveKind, roomMode);
+      const country = resolveLiveCountry(user.id, user.country);
+      const resolved = resolveUser(db.users, user, me);
+      return {
+        user: resolved,
+        img:
+          safeMediaUrl(cloud?.img || resolved.avatarUrl || user.avatarUrl, {
+            fallback: LIVE_PREVIEW_FALLBACK,
+          }) || LIVE_PREVIEW_FALLBACK,
+        viewerCount: cloud?.viewerCount ?? 0,
+        streamId: cloud?.streamId,
+        partyRoomId,
+        liveKind,
+        kindLabel: LIVE_KIND_LABELS[liveKind],
+        title: cloud?.title || `${resolved.displayName || resolved.username}'s live`,
+        roomMode,
+        roomType,
+        country,
+        isFollowing: followingIds.has(user.id),
+        isFollower: followerIds.has(user.id),
+      };
+    });
+  }, [liveUsers, cloudLive.streams, db.users, me, followingIds, followerIds]);
+
+  const availableCountries = useMemo(() => {
+    const set = new Set(livePreviewCards.map((card) => card.country));
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [livePreviewCards]);
+
+  const parsedSearch = useMemo(
+    () => parseLiveSearchQuery(searchQuery),
+    [searchQuery],
+  );
+
+  const effectiveTypeFilter: LiveTypeFilter =
+    typeFilter !== 'all' ? typeFilter : parsedSearch.typeHint ?? 'all';
+  const effectiveCountryFilter =
+    countryFilter !== 'all' ? countryFilter : parsedSearch.countryHint ?? 'all';
+  const effectiveFollowFilter: LiveFollowFilter =
+    followFilter !== 'all' ? followFilter : parsedSearch.followHint ?? 'all';
+
+  const filteredLiveCards = useMemo(() => {
+    return livePreviewCards.filter((card) => {
+      if (!matchesLiveTypeFilter(effectiveTypeFilter, card.liveKind, card.roomMode)) {
+        return false;
+      }
+      if (effectiveCountryFilter !== 'all' && card.country !== effectiveCountryFilter) {
+        return false;
+      }
+      if (effectiveFollowFilter === 'following' && !card.isFollowing) {
+        return false;
+      }
+      if (effectiveFollowFilter === 'followers' && !card.isFollower) {
+        return false;
+      }
+      if (!matchesLiveSearch(card, parsedSearch.text)) {
+        return false;
+      }
+      return true;
+    });
+  }, [
+    livePreviewCards,
+    effectiveTypeFilter,
+    effectiveCountryFilter,
+    effectiveFollowFilter,
+    parsedSearch.text,
+  ]);
+
+  const viewerPreviewTargets = useMemo(
+    () =>
+      filteredLiveCards.map((card) => ({
+        key: card.user.id,
+        streamId: card.streamId,
+        partyRoomId: card.partyRoomId,
+        initialCount: card.viewerCount,
+      })),
+    [filteredLiveCards],
+  );
+  const liveViewerPreviews = useLiveViewerPreviews(viewerPreviewTargets, true);
+
+  useEffect(() => {
+    const discovered = cloudLive.streams
+      .filter((s) => s.userId && s.userId !== me.id)
+      .map((s) => {
+        const kindTag = s.tags[0];
+        const liveKind = isLiveKind(kindTag)
+          ? kindTag
+          : liveKindFromRoomMode(kindTag);
+        return {
+          id: s.userId,
+          username: s.user,
+          displayName: s.user,
+          avatarUrl: s.img,
+          bio: '',
+          followers: 0,
+          following: 0,
+          status: 'live' as const,
+          liveKind,
+        };
+      });
+    if (discovered.length) db.cacheDiscoveredUsers(discovered);
+  }, [cloudLive.streams, db, me.id]);
+
+  const filterSummary = [
+    searchQuery.trim() ? `“${searchQuery.trim()}”` : null,
+    effectiveFollowFilter !== 'all'
+      ? liveFollowFilterLabel(effectiveFollowFilter)
+      : null,
+    effectiveTypeFilter !== 'all' ? liveTypeFilterLabel(effectiveTypeFilter) : null,
+    effectiveCountryFilter !== 'all'
+      ? formatLiveCountryLabel(effectiveCountryFilter)
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
 
   return (
     <div className="flex flex-col h-full w-full max-w-[600px] mx-auto px-4 py-6 md:py-10 gap-6">
-      <div>
-        <h2 className="text-3xl font-bold text-foreground mb-1">Live</h2>
-        <p className="text-sm text-muted-foreground">
-          Go live or watch creators streaming now. Followers get notified when you start.
-        </p>
-      </div>
-
-      <div className="rounded-2xl border border-border bg-card p-4 space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
-          Your stream
-        </p>
-        {isLive ? (
-          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
-              <span className="relative flex h-3 w-3 shrink-0">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-500 opacity-75" />
-                <span className="relative inline-flex rounded-full h-3 w-3 bg-red-500" />
-              </span>
-              <div className="min-w-0">
-                <p className="font-bold text-foreground truncate">
-                  You are live
-                  {me?.liveKind
-                    ? ` · ${LIVE_KIND_LABELS[me.liveKind]}`
-                    : ''}
-                </p>
-                <p className="text-xs text-muted-foreground">
-                  {platformStream.mode === 'livekit'
-                    ? `LiveKit room ${platformStream.roomName ?? ''}`.trim()
-                    : platformStream.streamId
-                      ? 'Platform stream active (WebRTC fallback).'
-                      : 'Followers were notified. End live when you are done.'}
-                  {platformStream.streamId && hostViewerCount > 0
-                    ? ` · ${hostViewerCount} watching`
-                    : ''}
-                </p>
-              </div>
-            </div>
-            {platformStream.localStream ? (
-              <video
-                autoPlay
-                muted
-                playsInline
-                controls
-                ref={previewVideoRef}
-                className="w-full sm:w-40 aspect-video rounded-lg border border-border object-cover"
-                {...nativeVideoControlGuardProps()}
-              />
-            ) : null}
-            <button
-              type="button"
-              onClick={endLive}
-              disabled={platformBusy}
-              className="shrink-0 px-4 py-2 rounded-lg bg-destructive text-destructive-foreground font-bold text-sm hover:bg-destructive/90 transition-colors disabled:opacity-50"
-            >
-              End live
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">
-              Pick a format and start broadcasting.
-            </p>
-            {isDeepARConfigured() && (
-              <label className="flex items-center gap-2 text-xs font-semibold text-muted-foreground">
-                <input
-                  type="checkbox"
-                  checked={arPreview}
-                  onChange={(e) => setArPreview(e.target.checked)}
-                  className="rounded border-border"
-                />
-                Use DeepAR face effects when going live
-              </label>
-            )}
-            {!isLive && arPreview && isDeepARConfigured() && (
-              <DeepARLivePreview
-                enabled={!isLive}
-                className="w-full"
-                onReady={(getStream) => {
-                  getDeepARStreamRef.current = getStream;
-                }}
-              />
-            )}
-            <div className="flex flex-wrap gap-2">
-              {LIVE_KIND_OPTIONS.map((kind) => (
-                <button
-                  key={kind}
-                  type="button"
-                  onClick={() => startLive(kind)}
-                  disabled={platformBusy}
-                  className="inline-flex items-center gap-1.5 rounded-full border border-border bg-secondary px-3 py-1.5 text-xs font-semibold hover:border-primary/40 hover:bg-primary/10 transition-colors disabled:opacity-50"
-                >
-                  <Radio className="w-3.5 h-3.5 text-red-500" />
-                  {LIVE_KIND_LABELS[kind]}
-                </button>
-              ))}
-            </div>
-          </div>
-        )}
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <h2 className="text-3xl font-bold text-foreground mb-1">Live</h2>
+          <p className="text-sm text-muted-foreground">
+            Go live or watch creators streaming now. Followers get notified when you start.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={() => {
+            openGoLiveCreateRoom();
+          }}
+          className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 text-sm font-bold shadow-md shadow-red-500/25 transition-colors"
+        >
+          <Radio className="w-4 h-4" />
+          Go Live
+        </button>
       </div>
 
       <div className="space-y-3">
-        <p className="text-xs font-bold uppercase tracking-wider text-muted-foreground px-1">
-          Live now ({liveUsers.length})
-        </p>
-        {liveUsers.length === 0 ? (
+        <LiveFiltersPanel
+          title={`Live now (${filteredLiveCards.length}${
+            filteredLiveCards.length !== livePreviewCards.length
+              ? ` / ${livePreviewCards.length}`
+              : ''
+          })`}
+          open={filtersOpen}
+          onOpenChange={setFiltersOpen}
+          typeFilter={typeFilter}
+          onTypeFilterChange={setTypeFilter}
+          countryFilter={countryFilter}
+          onCountryFilterChange={setCountryFilter}
+          followFilter={followFilter}
+          onFollowFilterChange={setFollowFilter}
+          searchQuery={searchQuery}
+          onSearchQueryChange={setSearchQuery}
+          availableCountries={availableCountries}
+        />
+
+        {filterSummary ? (
+          <p className="px-1 text-[11px] font-semibold text-muted-foreground">
+            Showing: {filterSummary}
+          </p>
+        ) : null}
+
+        {livePreviewCards.length === 0 ? (
           <div className="rounded-2xl border border-dashed border-border py-12 text-center text-muted-foreground text-sm">
-            No one is live right now. Check back from the home story ring.
+            No one is live right now. Tap Go Live to start a room.
+          </div>
+        ) : filteredLiveCards.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border py-12 text-center text-muted-foreground text-sm space-y-3">
+            <p>No live rooms match these filters.</p>
+            <button
+              type="button"
+              onClick={() => {
+                setTypeFilter('all');
+                setCountryFilter('all');
+                setFollowFilter('all');
+                setSearchQuery('');
+              }}
+              className="rounded-full border border-border bg-card px-4 py-2 text-xs font-bold text-foreground hover:bg-secondary transition-colors"
+            >
+              Clear filters
+            </button>
           </div>
         ) : (
-          <div className="flex flex-col gap-2">
-            {liveUsers.map((user: User) => (
+          <div className="grid grid-cols-2 gap-3">
+            {filteredLiveCards.map(
+              ({
+                user,
+                img,
+                viewerCount,
+                partyRoomId,
+                streamId,
+                liveKind,
+                kindLabel,
+                title,
+                roomMode,
+                country,
+              }) => {
+              const preview = liveViewerPreviews[user.id];
+              const count = preview?.count ?? viewerCount;
+              const avatars = preview?.avatars ?? [];
+              const caption = preview?.caption ?? (partyRoomId ? 'Room' : 'Live');
+              return (
               <button
                 key={user.id}
                 type="button"
-                onClick={() => openProfilePreview(user)}
-                className="flex items-center gap-3 p-3 rounded-2xl border border-border bg-card hover:bg-secondary/50 transition-colors text-left"
+                onClick={() => {
+                  void openLiveUserRoom(user.id, {
+                    partyRoomId,
+                    streamId,
+                    roomName: title,
+                    roomMode: roomMode || roomModeFromLiveKind(liveKind),
+                    hostName: user.displayName || user.username,
+                    liveKind,
+                  });
+                }}
+                className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-border bg-secondary text-left"
               >
-                <Avatar user={user} size="md" />
-                <div className="flex flex-col min-w-0 flex-1">
-                  <ProfileNameLines
-                    user={user}
-                    primaryClassName="font-bold truncate w-full text-left"
-                    secondaryClassName="text-xs text-muted-foreground truncate w-full text-left"
-                  />
-                  <span className="text-xs text-muted-foreground">
-                    {user.liveKind
-                      ? `${LIVE_KIND_LABELS[user.liveKind]} live`
-                      : 'Live'}
+                <LiveDiscoveryVideoPreview
+                  posterUrl={img}
+                  hostUserId={user.id}
+                  partyRoomId={partyRoomId}
+                  streamId={streamId}
+                />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20 pointer-events-none" />
+
+                <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1">
+                  <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
+                    LIVE
+                  </span>
+                  <span className="bg-black/50 backdrop-blur text-white text-[10px] font-bold pl-1 pr-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/10 shrink-0 tabular-nums">
+                    {avatars.length > 0 ? (
+                      <span className="flex -space-x-1.5 mr-0.5">
+                        {avatars.map((viewer) => (
+                          <img
+                            key={viewer.id}
+                            src={safeAvatarUrl(viewer.avatarUrl)}
+                            alt=""
+                            className="w-4 h-4 rounded-full border border-black/60 object-cover bg-secondary"
+                            onError={handleMediaError}
+                          />
+                        ))}
+                      </span>
+                    ) : null}
+                    {formatViewerCount(count)}
                   </span>
                 </div>
-                <span className="text-[10px] font-bold uppercase tracking-wide text-red-500 shrink-0">
-                  LIVE
-                </span>
+
+                <div className="absolute bottom-0 left-0 right-0 p-2.5 flex flex-col gap-1">
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="inline-flex max-w-[60%] items-center gap-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white/90 border border-white/10">
+                      <span className="text-[11px] leading-none shrink-0" aria-hidden>
+                        {countryFlagEmoji(country)}
+                      </span>
+                      <span className="truncate uppercase">{country}</span>
+                    </span>
+                    <span className="text-[9px] font-semibold uppercase tracking-wide text-white/85 drop-shadow-sm shrink-0">
+                      {caption}
+                    </span>
+                  </div>
+                  <div className="flex items-end gap-2">
+                    <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden shrink-0 shadow-md bg-secondary">
+                      <img
+                        src={user.avatarUrl || img}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={handleMediaError}
+                      />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <p className="font-bold text-white text-sm truncate drop-shadow-md">
+                        {user.displayName || user.username}
+                      </p>
+                      <p className="text-[10px] text-white/80 truncate">
+                        {kindLabel} · {title}
+                      </p>
+                    </div>
+                  </div>
+                </div>
               </button>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>

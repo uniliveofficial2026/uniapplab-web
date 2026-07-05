@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
 import { getIosInstallInstructions, isIosDevice, isPwaInstallableHost, isPrivateDevHost, isStandaloneDisplayMode } from '../../lib/pwaRegister';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -69,14 +70,14 @@ export function PwaInstallPrompt() {
   return (
     <>
       {visible ? (
-        <div className="fixed bottom-[calc(58px+env(safe-area-inset-bottom))] left-3 right-3 z-[120] md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
+        <div className="fixed bottom-[calc(58px+var(--app-safe-bottom))] left-3 right-3 z-[120] md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
           <div className="rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#FF3C00] text-sm font-black text-white">
                 IC
               </div>
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-bold text-foreground">Install InstaCollab</p>
+                <p className="text-sm font-bold text-foreground">Install {APP_DISPLAY_NAME}</p>
                 <p className="mt-0.5 text-xs text-muted-foreground">
                   Add to your home screen for full-screen mobile and desktop app experience.
                 </p>
@@ -127,7 +128,7 @@ export function PwaInstallPrompt() {
       ) : null}
 
       {privateDevHost && isIosDevice() && !isStandaloneDisplayMode() ? (
-        <div className="fixed bottom-[calc(58px+env(safe-area-inset-bottom))] left-3 right-3 z-[120] md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
+        <div className="fixed bottom-[calc(58px+var(--app-safe-bottom))] left-3 right-3 z-[120] md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
           <div className="rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
             <p className="text-sm font-bold text-foreground">Local dev on iPhone/iPad</p>
             <p className="mt-1 text-xs leading-relaxed text-muted-foreground">

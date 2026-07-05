@@ -12,6 +12,8 @@ import { thoughtAnimationKey } from '../../lib/thoughtNoteEpoch';
 import { useThoughtReplayNonce } from '../../hooks/useThoughtReplayNonce';
 import { ThoughtViewOverlay } from './ThoughtViewOverlay';
 import { AvatarThoughtBubble, InlineAvatarThoughtBubble } from './AvatarThoughtBubble';
+import { roomModeFromLiveKind } from '../../lib/liveRing';
+import { openLiveUserRoom } from '../../lib/live/openLiveRoom';
 
 interface AvatarProps {
   user: User;
@@ -76,7 +78,11 @@ export function Avatar({
     if (isLive) {
       e.stopPropagation();
       e.preventDefault();
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'live' } }));
+      void openLiveUserRoom(resolvedUser.id, {
+        roomMode: roomModeFromLiveKind(resolvedUser.liveKind ?? 'solo'),
+        hostName: resolvedUser.displayName || resolvedUser.username,
+        liveKind: resolvedUser.liveKind ?? 'solo',
+      });
       return;
     }
     
@@ -170,7 +176,6 @@ export function Avatar({
                     <div className="absolute top-[2px] left-[5%] w-[90%] h-[35%] bg-gradient-to-b from-white/90 dark:from-white/10 to-transparent rounded-t-full pointer-events-none" />
                     
                     <textarea
-                      autoFocus
                       maxLength={THOUGHT_NOTE_MAX_LENGTH}
                       value={noteEditVal}
                       onChange={e => setNoteEditVal(e.target.value)}

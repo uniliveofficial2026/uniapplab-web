@@ -18,7 +18,8 @@ import {
   AvatarStatusBadge,
   getAvatarStatusBadgeOutsidePosition,
 } from '../common/AvatarStatusBadge';
-import { getLiveRingClasses, LIVE_KIND_LABELS } from '../../lib/liveRing';
+import { getLiveRingClasses, LIVE_KIND_LABELS, roomModeFromLiveKind } from '../../lib/liveRing';
+import { openGoLiveCreateRoom, openLiveUserRoom } from '../../lib/live/openLiveRoom';
 import { getStoryRingVisualState } from '../../lib/storySegments';
 import { safeIndex, resolveUser } from '../../lib/safe';
 import { useDB, useDbRevision, useUserById } from '../../lib/useDB';
@@ -308,7 +309,7 @@ export function StoryRing({
   const segments = persistentSegments;
   const safeSegmentIndex = safeIndex(currentSegmentIndex, segments.length, 0);
   const currentSegment = segments[safeSegmentIndex];
-  const loopStoryVideo = segments.length <= 1;
+  const advanceLockRef = React.useRef(false);
 
   const sendMessage = (e: React.FormEvent) => {
     e.preventDefault();
@@ -322,6 +323,10 @@ export function StoryRing({
   const segmentCount = segments.length;
   const activeSegment = segments[safeSegmentIndex];
 
+  useEffect(() => {
+    if (showStory) advanceLockRef.current = false;
+  }, [showStory, storyUser.id]);
+
   // Auto-progress still/text segments (~4s each). Video progress is driven in StoryRingPortals.
   useEffect(() => {
     if (!showStory || isPaused || segmentCount === 0) return;
@@ -333,9 +338,10 @@ export function StoryRing({
     return () => window.clearInterval(interval);
   }, [showStory, isPaused, safeSegmentIndex, segmentCount, activeSegment?.isVideo]);
 
-  // Segment complete → next segment, adjacent profile day / feed user, or close.
+  // Segment complete → next segment, else auto-start next user's stories, else close.
   useEffect(() => {
     if (!showStory || progress < 100 || segmentCount === 0) return;
+    if (advanceLockRef.current) return;
 
     if (currentSegmentIndex < segmentCount - 1) {
       setCurrentSegmentIndex((c) => c + 1);
@@ -344,11 +350,11 @@ export function StoryRing({
       return;
     }
 
+    advanceLockRef.current = true;
     if (nextUserId) {
       handoffToAdjacentStory(nextUserId);
       return;
     }
-
     closeStoryViewer();
   }, [progress, currentSegmentIndex, segmentCount, showStory, nextUserId]);
 
@@ -555,7 +561,13 @@ export function StoryRing({
     }
     if (presentation === 'header' && isCurrentUser && !onRingClick) {
       if (isLiveUser) {
-        window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'live' } }));
+        void openLiveUserRoom(storyUser.id, {
+          roomMode: roomModeFromLiveKind(liveKind ?? 'solo'),
+          hostName: storyUser.displayName || storyUser.username,
+          liveKind: liveKind ?? 'solo',
+        }).then((opened) => {
+          if (!opened) openGoLiveCreateRoom();
+        });
         return;
       }
       setShowHeaderThoughtComposer((open) => {
@@ -578,7 +590,21 @@ export function StoryRing({
         surface: 'live',
         liveKind: liveKind ?? 'solo',
       });
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'live' } }));
+      if (isCurrentUser) {
+        void openLiveUserRoom(storyUser.id, {
+          roomMode: roomModeFromLiveKind(liveKind ?? 'solo'),
+          hostName: storyUser.displayName || storyUser.username,
+          liveKind: liveKind ?? 'solo',
+        }).then((opened) => {
+          if (!opened) openGoLiveCreateRoom();
+        });
+        return;
+      }
+      void openLiveUserRoom(storyUser.id, {
+        roomMode: roomModeFromLiveKind(liveKind ?? 'solo'),
+        hostName: storyUser.displayName || storyUser.username,
+        liveKind: liveKind ?? 'solo',
+      });
       return;
     }
     if (!isCurrentUser && !hasStoryContent) {
@@ -899,7 +925,6 @@ export function StoryRing({
         storyVideoRef={storyVideoRef}
         playbackSpeed={playbackSpeed}
         setPlaybackSpeed={setPlaybackSpeed}
-        loopStoryVideo={loopStoryVideo}
         likedSegments={likedSegments}
         handleTap={handleTap}
         toggleLike={toggleLike}
@@ -980,7 +1005,6 @@ export function StoryRing({
                     <div className="absolute top-[2px] left-[5%] w-[90%] h-[35%] bg-gradient-to-b from-white/90 dark:from-white/10 to-transparent rounded-t-full pointer-events-none" />
                     
                     <textarea
-                      autoFocus
                       maxLength={THOUGHT_NOTE_MAX_LENGTH}
                       value={noteEditVal}
                       onChange={e => setNoteEditVal(e.target.value)}

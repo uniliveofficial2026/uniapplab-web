@@ -18,8 +18,12 @@ import { isFirebaseConfigured } from '../lib/firebase/config';
 import { getFirebaseAuth } from '../lib/firebase/app';
 import { fetchFirebaseProfile, userFromFirebaseUser } from '../lib/firebase/profile';
 import { withTimeout } from '../lib/supabase/withTimeout';
-import { completeSupabaseOAuthReturnOnce } from '../lib/auth/oauthReturnGuard';
+import {
+  completeSupabaseOAuthReturnOnce,
+  completeFirebaseOAuthRedirectOnce,
+} from '../lib/auth/oauthReturnGuard';
 import { isSupabaseOAuthReturnInUrl } from '../lib/auth/supabaseOAuthReturn';
+import { shouldCompleteFirebaseOAuthRedirect } from '../lib/firebase/oauth';
 import {
   applySupabaseSessionToLocalDb,
   restoreSupabaseSession,
@@ -29,7 +33,13 @@ import {
 import { startCloudAppStateRealtime } from '../lib/auth/cloudAppState';
 import { isDevLocalAuthBypass } from '../lib/auth/devLocalAuth';
 import { isNetworkOnline } from '../lib/networkStatus';
-import { writeStoredAuthBackend } from '../lib/auth/providerState';
+import { applyFirebaseOAuthSessionToLocalDb } from '../lib/auth/applyFirebaseBackupSession';
+import {
+  isSupabaseOAuthDegraded,
+  readStoredAuthBackend,
+  writeStoredAuthBackend,
+} from '../lib/auth/providerState';
+import { readFirebaseBackupLink } from '../lib/auth/firebaseBackupLink';
 import {
   applyDevSessionOverrideFromUrl,
   shouldApplyDevSessionOverride,
@@ -37,10 +47,9 @@ import {
 import { clearActiveDeviceUid, syncDeviceAccountForAppUser } from '../lib/auth/deviceAccounts';
 import { bootstrapCloudSystemsAfterAuth } from '../lib/appCloudSystems';
 
-const STARTUP_TIMEOUT_MS = 8_000;
-const OFFLINE_STARTUP_TIMEOUT_MS = 400;
-const SESSION_MS = 12_000;
-const DB_READY_MS = 8_000;
+const SESSION_MS = 2_500;
+const DB_READY_MS = 2_000;
+const OAUTH_RETURN_MS = 5_000;
 
 type CloudAuthContextValue = {
   configured: boolean;
@@ -62,12 +71,21 @@ const CloudAuthContext = createContext<CloudAuthContextValue>({
   signOut: async () => {},
 });
 
-async function applyLegacyFirebaseUser(user: FirebaseUser | null) {
+async function applyLegacyFirebaseUser(
+  user: FirebaseUser | null,
+  options?: { silent?: boolean },
+) {
   await withTimeout(db.whenStorageReady(), DB_READY_MS, 'Local storage');
   if (!user) {
     if (isDevLocalAuthBypass() && db.isLoggedIn) return;
+    if (isSupabaseConfigured() && db.isLoggedIn) return;
     teardownCloudSession();
     db.logout();
+    return;
+  }
+  if (isSupabaseConfigured()) {
+    const silent = options?.silent ?? db.isLoggedIn;
+    await applyFirebaseOAuthSessionToLocalDb(user, { silent });
     return;
   }
   const profile = await withTimeout(
@@ -111,26 +129,24 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     let unsubAuth: (() => void) | undefined;
     let unsubFirebase: (() => void) | undefined;
 
+    let readyOnce = false;
     const markReady = () => {
-      if (!cancelled) {
-        setAuthReady(true);
-        bootstrapCloudSystemsAfterAuth();
-      }
+      if (cancelled || readyOnce) return;
+      readyOnce = true;
+      setAuthReady(true);
+      // Cloud systems only when online — never blocks readiness.
+      if (isNetworkOnline()) bootstrapCloudSystemsAfterAuth();
     };
 
-    const offlineAtBoot = typeof navigator !== 'undefined' && !navigator.onLine;
-    const startupTimer = window.setTimeout(
-      markReady,
-      offlineAtBoot ? OFFLINE_STARTUP_TIMEOUT_MS : STARTUP_TIMEOUT_MS,
-    );
+    // ALWAYS unlock UI on the next tick — slow internet must never gate first paint.
+    queueMicrotask(markReady);
+    void db.whenStorageReady().then(markReady);
 
-    void db.whenStorageReady().then(() => {
-      if (!cancelled && db.isLoggedIn) markReady();
-    });
-
-    const startSupabase = () => {
-      setActiveBackend('supabase');
-      writeStoredAuthBackend('supabase');
+    const startSupabase = (options?: { background?: boolean }) => {
+      if (!options?.background) {
+        setActiveBackend('supabase');
+        writeStoredAuthBackend('supabase');
+      }
 
       if (import.meta.env.DEV && shouldApplyDevSessionOverride(window.location.search)) {
         void applyDevSessionOverrideFromUrl().finally(markReady);
@@ -139,36 +155,35 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
 
       void (async () => {
         try {
-          if (!isNetworkOnline()) {
-            if (db.isLoggedIn) {
-              markReady();
-            }
-            return;
-          }
+          if (!isNetworkOnline()) return;
           const restored = await withTimeout(
             restoreSupabaseSession(),
             SESSION_MS,
-            'Supabase getSession'
+            'Supabase getSession',
           );
-          if (cancelled) return;
+          if (cancelled || !restored) return;
           setSession(restored);
-          if (restored) {
-            await applySupabaseSessionSafe(restored);
+          if (!options?.background) {
+            setActiveBackend('supabase');
+            writeStoredAuthBackend('supabase');
           }
+          void applySupabaseSessionSafe(restored);
         } catch (err) {
-          console.warn('[auth] Supabase restore failed:', err);
-        } finally {
-          markReady();
+          console.warn('[auth] Supabase restore failed (UI stays on cache):', err);
         }
       })();
+
+      if (options?.background) return;
 
       unsubAuth = subscribeSupabaseAuthChanges({
         onRecovery: () => setRecoveryMode(true),
         onSession: (next) => {
           if (cancelled) return;
-          if (isDevLocalAuthBypass()) return;
+          if (isDevLocalAuthBypass()) {
+            if (!next) return;
+          }
           setSession(next);
-          void applySupabaseSessionSafe(next).finally(markReady);
+          void applySupabaseSessionSafe(next);
         },
       });
     };
@@ -202,19 +217,62 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
       })();
     };
 
+    const startFirebaseBackupListener = () => {
+      const auth = getFirebaseAuth();
+      if (!auth) return;
+
+      void (async () => {
+        if (shouldCompleteFirebaseOAuthRedirect()) {
+          const redirectResult = await completeFirebaseOAuthRedirectOnce().catch(() => null);
+          if (redirectResult && !redirectResult.ok && redirectResult.reason) {
+            console.warn('[auth] Firebase redirect:', redirectResult.reason);
+          }
+        }
+
+        await auth.authStateReady();
+        if (cancelled) return;
+
+        const shouldApplyFirebaseUser = (uid: string) =>
+          isSupabaseOAuthDegraded() ||
+          readStoredAuthBackend() === 'firebase' ||
+          Boolean(readFirebaseBackupLink()?.firebaseUid === uid);
+
+        unsubFirebase = onAuthStateChanged(auth, (user) => {
+          if (cancelled) return;
+          if (!user) return;
+          if (!shouldApplyFirebaseUser(user.uid)) return;
+          void applyLegacyFirebaseUser(user, { silent: db.isLoggedIn });
+        });
+
+        const current = auth.currentUser;
+        if (current && shouldApplyFirebaseUser(current.uid)) {
+          void applyLegacyFirebaseUser(current, { silent: db.isLoggedIn });
+        }
+      })();
+    };
+
     void (async () => {
       try {
         if (isSupabaseOAuthReturnInUrl() && isSupabaseConfigured()) {
-          const oauthReturn = await completeSupabaseOAuthReturnOnce();
+          const oauthReturn = await withTimeout(
+            completeSupabaseOAuthReturnOnce(),
+            OAUTH_RETURN_MS,
+            'Supabase OAuth return',
+          ).catch(() => ({
+            handled: true,
+            ok: false,
+            reason: 'Sign-in timed out — Supabase auth may be recovering. Try again in a minute.',
+          }));
           if (oauthReturn.handled && !oauthReturn.ok && oauthReturn.reason) {
-            window.dispatchEvent(
-              new CustomEvent('app-toast', { detail: oauthReturn.reason })
-            );
+            console.warn('[auth] Supabase OAuth return:', oauthReturn.reason);
           }
         }
 
         if (isSupabaseConfigured()) {
           startSupabase();
+          if (isFirebaseConfigured()) {
+            startFirebaseBackupListener();
+          }
           return;
         }
 
@@ -232,7 +290,6 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     return () => {
       cancelled = true;
       applyGeneration.current += 1;
-      window.clearTimeout(startupTimer);
       unsubAuth?.();
       unsubFirebase?.();
       teardownCloudSession();
@@ -258,7 +315,7 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     () => ({
       configured,
       authReady,
-      activeBackend,
+      activeBackend: isSupabaseConfigured() ? 'supabase' : activeBackend,
       session,
       recoveryMode,
       clearRecoveryMode: () => setRecoveryMode(false),

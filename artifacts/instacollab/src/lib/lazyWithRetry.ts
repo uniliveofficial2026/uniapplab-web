@@ -1,5 +1,6 @@
 import React from 'react';
 import { stageAppUpdate } from './invisibleReload';
+import { isNetworkOnline } from './networkStatus';
 import { checkForPwaUpdate } from './pwaAutoUpdate';
 
 const CHUNK_RELOAD_KEY = 'instacollab-chunk-reload';
@@ -22,6 +23,9 @@ export function isChunkLoadError(reason: unknown): boolean {
 }
 
 export function chunkLoadUserMessage(): string {
+  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+    return 'This screen is not cached yet. Your other tabs and saved content stay available offline.';
+  }
   return 'This screen is updating in the background. Try again in a moment.';
 }
 
@@ -53,11 +57,12 @@ async function loadWithChunkRecovery<T extends React.ComponentType<unknown>>(
     return await factory();
   } catch (err) {
     if (!isChunkLoadError(err)) throw err;
-    if (attempt < RETRY_DELAYS_MS.length) {
-      await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
-      return loadWithChunkRecovery(factory, attempt + 1);
+    // Offline: fail immediately so UI stays on saved shell (no multi-second retry spinner).
+    if (!isNetworkOnline() || attempt >= RETRY_DELAYS_MS.length) {
+      return handleChunkLoadFailure();
     }
-    return handleChunkLoadFailure();
+    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
+    return loadWithChunkRecovery(factory, attempt + 1);
   }
 }
 

@@ -87,24 +87,44 @@ export function MessagesChatHeader({
             </span>
           </div>
         </div>
-        <div className="flex items-center gap-3 sm:gap-6 text-foreground shrink-0">
-          <Search
+        <div className="flex items-center gap-1 sm:gap-2 text-foreground shrink-0">
+          <button
+            type="button"
             onClick={onToggleChatSearch}
-            className="w-5 h-5 sm:w-6 sm:h-6 cursor-pointer hover:text-primary transition-colors shrink-0"
-          />
-          <Phone
+            className="p-2 rounded-full hover:bg-secondary hover:text-primary transition-colors"
+            aria-label="Search chat"
+            title="Search"
+          >
+            <Search className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+          </button>
+          <button
+            type="button"
             onClick={onAudioCall}
-            className="w-5 h-5 sm:w-6 sm:h-6 cursor-pointer hover:text-primary transition-colors shrink-0"
-          />
-          <Video
+            className="p-2 rounded-full hover:bg-secondary hover:text-primary transition-colors"
+            aria-label="Audio call"
+            title="Audio call"
+          >
+            <Phone className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+          </button>
+          <button
+            type="button"
             onClick={onVideoCall}
-            className="w-5 h-5 sm:w-6 sm:h-6 cursor-pointer hover:text-primary transition-colors shrink-0"
-          />
-          <div className="w-px h-5 sm:h-6 bg-border mx-0 sm:mx-1 shrink-0" />
-          <Info
+            className="p-2 rounded-full hover:bg-secondary hover:text-primary transition-colors"
+            aria-label="Video call"
+            title="Video call"
+          >
+            <Video className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+          </button>
+          <div className="w-px h-5 sm:h-6 bg-border mx-0.5 sm:mx-1 shrink-0" />
+          <button
+            type="button"
             onClick={onOpenInfo}
-            className="w-5 h-5 sm:w-6 sm:h-6 cursor-pointer hover:text-primary transition-colors shrink-0"
-          />
+            className="p-2 rounded-full hover:bg-secondary hover:text-primary transition-colors"
+            aria-label="Chat info"
+            title="Info"
+          >
+            <Info className="w-5 h-5 sm:w-6 sm:h-6 shrink-0" />
+          </button>
         </div>
       </div>
       {showChatSearch && (

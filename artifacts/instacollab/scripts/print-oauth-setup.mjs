@@ -71,6 +71,42 @@ console.log('  6. Verify: pnpm run auth:check');
 console.log('  7. Full domain map: pnpm run domains:setup');
 console.log('');
 
+const firebaseProject = (env.VITE_FIREBASE_PROJECT_ID || '').trim();
+const firebaseAuthDomain = (env.VITE_FIREBASE_AUTH_DOMAIN || '').trim();
+const firebaseRedirectUri = firebaseAuthDomain
+  ? `https://${firebaseAuthDomain.replace(/^https?:\/\//, '')}/__/auth/handler`
+  : 'https://YOUR-PROJECT.firebaseapp.com/__/auth/handler';
+const firebaseConsoleUrl = firebaseProject
+  ? `https://console.firebase.google.com/project/${firebaseProject}/authentication/settings`
+  : 'https://console.firebase.google.com/';
+
+console.log('Firebase — OAuth backup (when Supabase /authorize is down)');
+console.log('──────────────────────────────────────────────────');
+console.log('');
+console.log(`  Project: ${firebaseProject || '(set VITE_FIREBASE_PROJECT_ID in .env)'}`);
+console.log(`  Auth domain: ${firebaseAuthDomain || '(set VITE_FIREBASE_AUTH_DOMAIN)'}`);
+console.log('');
+console.log('  1. Firebase Console → Authentication → Settings → Authorized domains');
+console.log(`     ${firebaseConsoleUrl}`);
+console.log('     Add:');
+console.log('       app.uniapplab.com');
+console.log('       localhost');
+console.log(`       ${new URL(appOrigin).hostname}`);
+console.log('');
+console.log('  2. Firebase → Authentication → Sign-in method → Google (and Apple if used)');
+console.log('     Enable the provider on the same Firebase project as VITE_FIREBASE_* in .env');
+console.log('');
+console.log('  3. Google Cloud → Credentials → Web client (Firebase auto-created)');
+console.log(`     Authorized redirect URI: ${firebaseRedirectUri}`);
+console.log('     Authorized JavaScript origins:');
+console.log('       https://app.uniapplab.com');
+console.log('       http://localhost:5173');
+console.log(`       ${appOrigin}`);
+console.log('');
+console.log('  4. Vercel Production env — copy all VITE_FIREBASE_* from repo .env, then redeploy');
+console.log('  5. Backup sign-in keeps your Supabase user id — no duplicate accounts or data loss');
+console.log('');
+
 if (process.platform === 'darwin') {
   try {
     execSync(`open "${supabaseProvidersUrl}"`, { stdio: 'ignore' });

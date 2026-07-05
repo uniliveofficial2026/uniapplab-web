@@ -1,8 +1,9 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { User } from '../../types';
-import { Camera, Sparkles, X, Type } from 'lucide-react';
+import { Camera, X, Type } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
 import { detectMediaKind, processUploadFileAsUrl, handleAvatarError } from '../../lib/utils';
+import { PHOTO_VIDEO_ACCEPT } from '../../lib/mediaAccept';
 import { fileFromInput } from '../../lib/safe';
 import { useDB } from '../../lib/useDB';
 import { acquireMediaOverlayLock } from '../../lib/mediaOverlayLock';
@@ -20,6 +21,9 @@ import {
 import { StoryCreatorEdit, StoryDraftPreview } from './StoryCreatorEdit';
 import { DeepARCameraCapture } from '../deepar/DeepARCameraCapture';
 import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
+import { ARCameraCapture } from '../ar/ARCameraCapture';
+import { isFaceARAvailable } from '../../lib/ar/arConfig';
+import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
 
 export type { StoryCreatorStep, StoryDraftMedia } from './storyDraft';
 
@@ -55,6 +59,8 @@ export function StoryCreatorFlow({
   const [step, setStep] = useState<StoryCreatorStep>('select');
   const [draftMedia, setDraftMedia] = useState<StoryDraftMedia | null>(null);
   const [showARCamera, setShowARCamera] = useState(false);
+  const advancedCamera = isDeepARConfigured() || isTencentWebARConfigured();
+  const hasARCamera = advancedCamera || isFaceARAvailable();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const cameraInputRef = useRef<HTMLInputElement>(null);
@@ -204,7 +210,7 @@ export function StoryCreatorFlow({
           />
           <div className="relative z-10 flex flex-col items-center justify-center gap-16 sm:gap-20 w-full max-w-[min(100%,22rem)] mx-auto text-center">
             {isEmbedded && avatarUrl !== undefined && (
-              <div className="w-56 h-56 sm:w-72 sm:h-72 rounded-full overflow-hidden border-4 border-border shadow-xl shrink-0">
+              <div className="w-40 h-40 sm:w-56 sm:h-56 md:w-72 md:h-72 rounded-full overflow-hidden border-4 border-border shadow-xl shrink-0">
                 <img
                   src={avatarUrl || undefined}
                   alt={username}
@@ -224,7 +230,7 @@ export function StoryCreatorFlow({
             <div className="flex flex-nowrap items-start justify-center gap-10 sm:gap-12 w-full">
             <input
               type="file"
-              accept="image/*,video/*"
+              accept={PHOTO_VIDEO_ACCEPT}
               capture="environment"
               className="hidden"
               ref={cameraInputRef}
@@ -232,7 +238,7 @@ export function StoryCreatorFlow({
             />
             <input
               type="file"
-              accept="image/*,video/*"
+              accept={PHOTO_VIDEO_ACCEPT}
               className="hidden"
               ref={fileInputRef}
               onChange={handleFileChange}
@@ -240,6 +246,10 @@ export function StoryCreatorFlow({
             <button
               type="button"
               onClick={() => {
+                if (hasARCamera) {
+                  setShowARCamera(true);
+                  return;
+                }
                 if (!cameraInputRef.current) return;
                 cameraInputRef.current.value = '';
                 cameraInputRef.current.click();
@@ -271,18 +281,6 @@ export function StoryCreatorFlow({
               </div>
               <span className="text-foreground text-sm font-semibold">Text</span>
             </button>
-            {isDeepARConfigured() && (
-              <button
-                type="button"
-                onClick={() => setShowARCamera(true)}
-                className="flex flex-col items-center gap-3"
-              >
-                <div className="w-16 h-16 rounded-full bg-gradient-to-br from-pink-500 to-violet-600 flex items-center justify-center text-white hover:opacity-90 transition-opacity shadow-md">
-                  <Sparkles className="w-6 h-6" />
-                </div>
-                <span className="text-foreground text-sm font-semibold">AR</span>
-              </button>
-            )}
             </div>
           </div>
         </div>
@@ -324,8 +322,18 @@ export function StoryCreatorFlow({
         </div>
       )}
 
+      <ARCameraCapture
+        open={showARCamera && !advancedCamera && isFaceARAvailable()}
+        onClose={() => setShowARCamera(false)}
+        title="Story Camera"
+        onCaptured={({ kind, url }) => {
+          setDraftMedia(DEFAULT_MEDIA_STORY_DRAFT(url, kind === 'video'));
+          setStepAndNotify('edit');
+        }}
+      />
+
       <DeepARCameraCapture
-        open={showARCamera}
+        open={showARCamera && advancedCamera}
         onClose={() => setShowARCamera(false)}
         title="Story AR Camera"
         onCaptured={({ kind, url }) => {
@@ -346,16 +354,16 @@ export type StoryEmptyIntroProps = {
 
 export function StoryEmptyIntro({ username, avatarUrl, onCreate, onClose }: StoryEmptyIntroProps) {
   return (
-    <div className="relative flex h-full w-full min-w-0 flex-col overflow-hidden bg-background">
+    <div className="relative flex h-full min-h-0 w-full min-w-0 flex-col overflow-y-auto overscroll-contain bg-background">
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 left-4 z-50 p-2 hover:bg-secondary rounded-full transition-colors text-foreground"
+        className="absolute top-[max(1rem,env(safe-area-inset-top))] left-4 z-50 p-2 hover:bg-secondary rounded-full transition-colors text-foreground"
       >
         <X className="w-6 h-6 border border-border bg-background shadow-sm rounded-full" />
       </button>
 
-      <div className="absolute inset-0 z-0">
+      <div className="absolute inset-0 z-0 pointer-events-none">
         <img
           src={avatarUrl || undefined}
           alt={username}
@@ -365,7 +373,7 @@ export function StoryEmptyIntro({ username, avatarUrl, onCreate, onClose }: Stor
         <div className="absolute inset-0 bg-gradient-to-b from-background/30 via-background/70 to-background" />
       </div>
 
-      <div className="relative z-10 flex flex-col items-center justify-center flex-1 px-8 text-center">
+      <div className="relative z-10 flex flex-col items-center justify-center flex-1 min-h-0 px-8 py-12 pb-[max(1.5rem,env(safe-area-inset-bottom))] text-center">
         <div className="w-[88px] h-[88px] rounded-full overflow-hidden border-2 border-border mb-5 shadow-md">
           <img
             src={avatarUrl || undefined}

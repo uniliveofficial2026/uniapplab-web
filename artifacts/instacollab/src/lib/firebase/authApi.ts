@@ -9,6 +9,7 @@ import {
 } from 'firebase/auth';
 import type { AuthResult } from '../auth/types';
 import { getAuthRedirectUrl } from '../auth/redirectUrl';
+import { writeStoredAuthBackend } from '../auth/providerState';
 import { getFirebaseAuth } from './app';
 import { upsertFirebaseProfile } from './profile';
 import type { ProfileRow } from '../supabase/types';
@@ -34,6 +35,7 @@ export async function firebaseSignIn(email: string, password: string): Promise<A
   if ('ok' in gate) return gate;
   try {
     await signInWithEmailAndPassword(gate.auth, email.trim(), password);
+    writeStoredAuthBackend('firebase');
     return { ok: true };
   } catch (err: unknown) {
     const e = err as { code?: string; message?: string };
@@ -73,6 +75,7 @@ export async function firebaseSignUp(payload: {
     await upsertFirebaseProfile(row).catch((profileErr) => {
       console.warn('[auth] Firestore profile upsert after sign-up failed:', profileErr);
     });
+    writeStoredAuthBackend('firebase');
     return { ok: true, needsEmailConfirmation: !cred.user.emailVerified };
   } catch (err: unknown) {
     const e = err as { code?: string; message?: string };

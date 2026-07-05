@@ -4,6 +4,7 @@ import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64 } from '../../lib/utils';
 import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 
 const SIZE_CLASS = {
   sm: 'h-16 w-16 text-lg',
@@ -65,6 +66,7 @@ export function LaunchBrandMark({
         appLogoUrl: dataUrl,
         appLogoMediaType: isVideoFile ? 'video' : 'image',
       });
+      window.dispatchEvent(new CustomEvent('app-brand:updated'));
       showToast('App logo updated');
     } catch {
       showToast('Could not load that file');
@@ -88,10 +90,10 @@ export function LaunchBrandMark({
         {...nativeVideoControlGuardProps()}
       />
     ) : (
-      <img src={logoUrl} alt="InstaCollab" className="h-full w-full object-contain p-1" />
+      <img src={logoUrl} alt={APP_DISPLAY_NAME} className="h-full w-full object-contain p-1" />
     )
   ) : (
-  <span className="font-black text-white select-none">IC</span>
+  <span className="font-black text-white select-none">UL</span>
   );
 
   const shellClass = [

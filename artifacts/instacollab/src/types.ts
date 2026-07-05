@@ -1,4 +1,4 @@
-export type Tab = 'home' | 'search' | 'reels' | 'messages' | 'notifications' | 'workspace' | 'dating' | 'profile' | 'live' | 'karaoke' | 'rooms' | 'local-games' | 'third-party-games' | 'wallet';
+export type Tab = 'home' | 'search' | 'reels' | 'messages' | 'notifications' | 'workspace' | 'dating' | 'profile' | 'live' | 'karaoke' | 'rooms' | 'local-games' | 'third-party-games' | 'wallet' | 'youtube';
 
 /** Live ring style when `status` is `live`. */
 export type LiveKind =
@@ -31,6 +31,8 @@ export interface User {
   /** When true, only approved followers see posts/reels on profile and in feed. */
   isPrivate?: boolean;
   bio?: string;
+  /** ISO country code or display name for discovery filters. */
+  country?: string;
   /** Short thought/note shown as a speech bubble on the avatar. */
   note?: string;
   /** Unix ms when `note` was last saved. */

@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <style>
+      html,
+      body {
+        margin: 0;
+        background: #111;
+      }
+      #preview {
+        width: 512px;
+        height: 512px;
+      }
+    </style>
+  </head>
+  <body>
+    <div id="preview"></div>
+    <canvas id="source" style="display: none"></canvas>
+    <script type="module">
+      import * as deepar from '/deepar/js/deepar.esm.js';
+
+      const config = window.__deeparRenderConfig;
+      const fail = (error) => {
+        window.__deeparRenderError = error?.message || String(error);
+        window.__deeparRenderDone = true;
+      };
+
+      setTimeout(() => {
+        if (!window.__deeparRenderDone) {
+          fail(new Error('Timed out waiting for DeepAR render'));
+        }
+      }, 30000);
+
+      if (!config) {
+        fail(new Error('Missing render config'));
+      } else {
+        try {
+          const previewElement = document.getElementById('preview');
+          const deepAR = await deepar.initialize({
+            licenseKey: config.licenseKey,
+            previewElement,
+            rootPath: '/deepar-resources/',
+            additionalOptions: {
+              hint: ['faceModelsPredownload', 'faceInit'],
+              cameraConfig: { disableDefaultCamera: true },
+            },
+          });
+
+          if (config.mode === 'effect' || config.mode === 'background_replacement') {
+            await deepAR.switchEffect(config.effectPath);
+          }
+
+          if (config.mode === 'background_replacement' && config.backgroundImageUrl) {
+            await deepAR.backgroundReplacement(true, config.backgroundImageUrl);
+          }
+
+          const portrait = new Image();
+          portrait.crossOrigin = 'anonymous';
+          await new Promise((resolve, reject) => {
+            portrait.onload = resolve;
+            portrait.onerror = reject;
+            portrait.src = config.portraitUrl;
+          });
+
+          const source = document.getElementById('source');
+          source.width = portrait.naturalWidth;
+          source.height = portrait.naturalHeight;
+          const ctx = source.getContext('2d', { willReadFrequently: true });
+          ctx.drawImage(portrait, 0, 0);
+          const { data, width, height } = ctx.getImageData(0, 0, source.width, source.height);
+
+          let frames = 0;
+          const pump = () => {
+            deepAR.processFrame(data, width, height, false);
+            frames += 1;
+            if (frames < 10) {
+              requestAnimationFrame(pump);
+            } else {
+              setTimeout(async () => {
+                const canvas = deepAR.getCanvas();
+                window.__deeparRenderResult = canvas.toDataURL('image/png');
+                await deepAR.shutdown();
+                window.__deeparRenderDone = true;
+              }, 1200);
+            }
+          };
+          pump();
+        } catch (error) {
+          fail(error);
+        }
+      }
+    </script>
+  </body>
+</html>

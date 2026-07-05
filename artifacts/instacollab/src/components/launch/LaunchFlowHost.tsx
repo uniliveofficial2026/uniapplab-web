@@ -1,7 +1,6 @@
 import React, { useEffect } from 'react';
 import type { LaunchRoute } from '../../lib/launchRoute';
 import { useDB } from '../../lib/useDB';
-import { isCloudAuthConfigured } from '../../lib/auth/config';
 import { SplashScreen } from './SplashScreen';
 import { OnboardingScreen } from './OnboardingScreen';
 import { AuthScreen } from './AuthScreen';
@@ -13,7 +12,6 @@ export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
   const db = useDB();
 
   useEffect(() => {
-    if (isCloudAuthConfigured()) return;
     void db.whenReady().then(() => db.ensureDemoAuthAccounts());
   }, [db]);
 

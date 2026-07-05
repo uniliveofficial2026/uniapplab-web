@@ -15,6 +15,47 @@ const IMAGE_EXT = /\.(jpe?g|png|gif|webp|bmp|svg|heic|heif|avif|tiff?)$/i;
 const blobUrlCache = new Map<string, string>();
 const hydrateInflight = new Map<string, Promise<string>>();
 const cacheListeners = new Set<() => void>();
+/** http(s) URL → media id stored in IDB (full-resolution blob). */
+const remoteUrlToId = new Map<string, string>();
+const REMOTE_MAP_KEY = 'ic_remote_media_map_v1';
+
+function loadRemoteUrlMap(): void {
+  if (typeof localStorage === 'undefined' || remoteUrlToId.size > 0) return;
+  try {
+    const raw = localStorage.getItem(REMOTE_MAP_KEY);
+    if (!raw) return;
+    const parsed = JSON.parse(raw) as Record<string, string>;
+    for (const [url, id] of Object.entries(parsed)) {
+      if (url && id) remoteUrlToId.set(url, id);
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
+function persistRemoteUrlMap(): void {
+  if (typeof localStorage === 'undefined') return;
+  try {
+    const obj: Record<string, string> = {};
+    let n = 0;
+    for (const [url, id] of remoteUrlToId) {
+      if (n++ > 200) break;
+      obj[url] = id;
+    }
+    localStorage.setItem(REMOTE_MAP_KEY, JSON.stringify(obj));
+  } catch {
+    /* quota */
+  }
+}
+
+function hashUrl(url: string): string {
+  let h = 2166136261;
+  for (let i = 0; i < url.length; i++) {
+    h ^= url.charCodeAt(i);
+    h = Math.imul(h, 16777619);
+  }
+  return (h >>> 0).toString(36);
+}
 
 function notifyCacheListeners(): void {
   cacheListeners.forEach((listener) => listener());
@@ -126,6 +167,44 @@ export function resolveAppMediaUrlSync(url: string): string {
   return blobUrlCache.get(id) ?? url;
 }
 
+/** Sync resolve for previously cached remote http(s) media (full-res blob). */
+export function resolveRemoteMediaUrlSync(url: string): string | null {
+  if (!url.startsWith('http')) return null;
+  loadRemoteUrlMap();
+  const id = remoteUrlToId.get(url);
+  if (!id) return null;
+  return blobUrlCache.get(id) ?? null;
+}
+
+/** Persist a remote image/video blob for instant clear playback on slow networks. */
+export async function cacheRemoteMediaUrl(url: string, blob: Blob): Promise<string> {
+  loadRemoteUrlMap();
+  const id = remoteUrlToId.get(url) ?? `remote_${hashUrl(url)}`;
+  await saveBlob(id, blob, url.split('/').pop() || 'media.bin');
+  const existing = blobUrlCache.get(id);
+  if (existing) return existing;
+  const blobUrl = URL.createObjectURL(blob);
+  registerAppMediaBlobUrl(id, blobUrl);
+  remoteUrlToId.set(url, id);
+  persistRemoteUrlMap();
+  return blobUrl;
+}
+
+/** Hydrate all known remote media ids into memory (call on boot). */
+export async function hydrateRemoteMediaMap(): Promise<void> {
+  loadRemoteUrlMap();
+  const ids = [...new Set(remoteUrlToId.values())].slice(0, 80);
+  await Promise.all(
+    ids.map(async (id) => {
+      if (blobUrlCache.has(id)) return;
+      const blob = await loadBlob(id).catch(() => null);
+      if (!blob) return;
+      registerAppMediaBlobUrl(id, URL.createObjectURL(blob));
+    }),
+  );
+  notifyCacheListeners();
+}
+
 export async function hydrateAppMediaUrl(url: string): Promise<string> {
   if (!isAppMediaRef(url)) return url;
   const id = appMediaIdFromRef(url);
@@ -187,7 +266,8 @@ let warmInflight: Promise<void> | null = null;
 
 /** Call before first paint so feed/chat/story media work immediately after refresh. */
 export async function initAppMediaStore(options?: { timeoutMs?: number }): Promise<void> {
-  const timeoutMs = options?.timeoutMs ?? 4000;
+  // Default 0 — never block callers; warm continues in background.
+  const timeoutMs = options?.timeoutMs ?? 0;
   const run = async () => {
     await db.whenStorageReady();
     await warmAppMediaCache();
@@ -197,6 +277,11 @@ export async function initAppMediaStore(options?: { timeoutMs?: number }): Promi
     warmInflight = run().finally(() => {
       warmInflight = null;
     });
+  }
+
+  if (timeoutMs <= 0) {
+    void warmInflight;
+    return;
   }
 
   await Promise.race([

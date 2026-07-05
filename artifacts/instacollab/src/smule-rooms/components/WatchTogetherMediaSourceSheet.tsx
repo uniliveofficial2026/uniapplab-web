@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Link2, Upload, X } from 'lucide-react';
+import { Link2, Upload, X, Youtube } from 'lucide-react';
 import {
   clearWatchTogetherMediaUrl,
   describeWatchTogetherMediaSource,
@@ -7,8 +7,13 @@ import {
   normalizeWatchTogetherMediaUrl,
   setWatchTogetherMediaFile,
   setWatchTogetherMediaUrl,
+  setWatchTogetherYoutubeVideo,
   type WatchTogetherMedia,
 } from '../utils/watchTogetherMedia';
+import { YoutubeSearchPanel } from './YoutubeSearchPanel';
+import { recordYoutubeHistory, type YoutubeVideoSummary } from '../../services/youtube';
+
+export type WatchTogetherMediaPanel = 'url' | 'youtube' | 'upload';
 
 type WatchTogetherMediaSourceSheetProps = {
   isOpen: boolean;
@@ -17,6 +22,8 @@ type WatchTogetherMediaSourceSheetProps = {
   media: WatchTogetherMedia;
   showToast: (message: string) => void;
   onMediaUpdated?: (media: WatchTogetherMedia) => void;
+  initialPanel?: WatchTogetherMediaPanel;
+  autoPickFileOnOpen?: boolean;
 };
 
 export function WatchTogetherMediaSourceSheet({
@@ -26,8 +33,11 @@ export function WatchTogetherMediaSourceSheet({
   media,
   showToast,
   onMediaUpdated,
+  initialPanel = 'url',
+  autoPickFileOnOpen = false,
 }: WatchTogetherMediaSourceSheetProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const [panel, setPanel] = useState<WatchTogetherMediaPanel>(initialPanel);
   const [urlDraft, setUrlDraft] = useState('');
   const [isBusy, setIsBusy] = useState(false);
   const [inlineError, setInlineError] = useState<string | null>(null);
@@ -40,18 +50,25 @@ export function WatchTogetherMediaSourceSheet({
 
   useEffect(() => {
     if (!isOpen) return;
+    setPanel(initialPanel);
     setUrlDraft(
       media.isCustom && media.streamUrl.startsWith('http') ? media.streamUrl : '',
     );
     setInlineError(null);
-  }, [isOpen, media.isCustom, media.streamUrl]);
+  }, [isOpen, initialPanel, media.isCustom, media.streamUrl]);
+
+  useEffect(() => {
+    if (!isOpen || !autoPickFileOnOpen || initialPanel !== 'upload') return undefined;
+    const timer = window.setTimeout(() => fileInputRef.current?.click(), 120);
+    return () => window.clearTimeout(timer);
+  }, [autoPickFileOnOpen, initialPanel, isOpen]);
 
   if (!isOpen) return null;
 
   const applyUrl = async () => {
     const normalized = normalizeWatchTogetherMediaUrl(urlDraft);
     if (!normalized) {
-      const message = 'Enter a valid http(s) media URL';
+      const message = 'Enter a valid http(s) media URL or YouTube link';
       setInlineError(message);
       showToast(message);
       return;
@@ -130,6 +147,24 @@ export function WatchTogetherMediaSourceSheet({
     onClose();
   };
 
+  const handleSelectYoutubeVideo = async (video: YoutubeVideoSummary) => {
+    setIsBusy(true);
+    setInlineError(null);
+    try {
+      const updated = setWatchTogetherYoutubeVideo(roomDisplayId, video);
+      await recordYoutubeHistory(video);
+      onMediaUpdated?.(updated);
+      showToast(`Now playing: ${video.title}`);
+      onClose();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Could not apply YouTube video';
+      setInlineError(message);
+      showToast(message);
+    } finally {
+      setIsBusy(false);
+    }
+  };
+
   return (
     <div
       className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 backdrop-blur-sm p-3 sm:items-center"
@@ -168,7 +203,9 @@ export function WatchTogetherMediaSourceSheet({
           <p className="text-xs font-bold text-cyan-200">{sourceLabel}</p>
           <p className="mt-1 truncate text-[10px] font-mono text-white/45">
             {media.fileName
-              ?? (media.streamUrl.startsWith('http')
+              ?? (media.kind === 'youtube' && media.youtubeVideoId
+                ? `https://www.youtube.com/embed/${media.youtubeVideoId}`
+                : media.streamUrl.startsWith('http')
                 ? media.streamUrl
                 : media.kind === 'audio'
                   ? 'Audio stream'
@@ -176,6 +213,85 @@ export function WatchTogetherMediaSourceSheet({
           </p>
         </div>
 
+        <div className="mb-3 grid grid-cols-3 gap-2">
+          <button
+            type="button"
+            onClick={() => setPanel('url')}
+            className={`inline-flex items-center justify-center gap-1 rounded-xl border px-2 py-2 text-[11px] font-black ${
+              panel === 'url'
+                ? 'border-pink-500/50 bg-pink-500/15 text-pink-100'
+                : 'border-white/10 bg-white/5 text-white/60'
+            }`}
+          >
+            <Link2 size={13} />
+            URL
+          </button>
+          <button
+            type="button"
+            onClick={() => setPanel('youtube')}
+            className={`inline-flex items-center justify-center gap-1 rounded-xl border px-2 py-2 text-[11px] font-black ${
+              panel === 'youtube'
+                ? 'border-red-500/50 bg-red-500/15 text-red-100'
+                : 'border-white/10 bg-white/5 text-white/60'
+            }`}
+          >
+            <Youtube size={13} />
+            YouTube
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setPanel('upload');
+              fileInputRef.current?.click();
+            }}
+            className={`inline-flex items-center justify-center gap-1 rounded-xl border px-2 py-2 text-[11px] font-black ${
+              panel === 'upload'
+                ? 'border-cyan-500/50 bg-cyan-500/15 text-cyan-100'
+                : 'border-white/10 bg-white/5 text-white/60'
+            }`}
+          >
+            <Upload size={13} />
+            Upload
+          </button>
+        </div>
+
+        {panel === 'youtube' ? (
+          <YoutubeSearchPanel
+            compact
+            selectLabel="Play in room"
+            onSelectVideo={(video) => {
+              void handleSelectYoutubeVideo(video);
+            }}
+          />
+        ) : panel === 'upload' ? (
+          <>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="video/*,audio/*,.mp4,.webm,.mov,.m4v,.mp3,.m4a,.aac,.ogg,.wav"
+              className="hidden"
+              onChange={handleFileChange}
+            />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isBusy}
+              className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 py-4 text-sm font-bold text-white hover:bg-white/10 disabled:opacity-50"
+            >
+              <Upload size={16} />
+              {isBusy ? 'Uploading…' : 'Choose video or audio file'}
+            </button>
+            <p className="mt-2 text-center text-[10px] text-white/35">
+              Or drag and drop a file onto this panel
+            </p>
+            {inlineError ? (
+              <p className="mt-2 text-[11px] font-bold text-red-400" role="alert">
+                {inlineError}
+              </p>
+            ) : null}
+          </>
+        ) : (
+          <>
         <form
           className="mb-2"
           onSubmit={(event) => {
@@ -193,7 +309,7 @@ export function WatchTogetherMediaSourceSheet({
                 id="wt-media-url"
                 type="url"
                 inputMode="url"
-                placeholder="https://example.com/video.mp4"
+                placeholder="https://example.com/video.mp4 or YouTube URL"
                 value={urlDraft}
                 onChange={(event) => {
                   setUrlDraft(event.target.value);
@@ -218,34 +334,10 @@ export function WatchTogetherMediaSourceSheet({
             {inlineError}
           </p>
         ) : null}
+          </>
+        )}
 
-        <div className="my-4 flex items-center gap-3">
-          <div className="h-px flex-1 bg-white/10" />
-          <span className="text-[10px] font-bold uppercase tracking-wider text-white/35">or</span>
-          <div className="h-px flex-1 bg-white/10" />
-        </div>
-
-        <input
-          ref={fileInputRef}
-          type="file"
-          accept="video/*,audio/*,.mp4,.webm,.mov,.m4v,.mp3,.m4a,.aac,.ogg,.wav"
-          className="hidden"
-          onChange={handleFileChange}
-        />
-        <button
-          type="button"
-          onClick={() => fileInputRef.current?.click()}
-          disabled={isBusy}
-          className="flex w-full items-center justify-center gap-2 rounded-xl border border-dashed border-white/20 bg-white/5 py-3 text-sm font-bold text-white hover:bg-white/10 disabled:opacity-50"
-        >
-          <Upload size={16} />
-          {isBusy ? 'Uploading…' : 'Upload video or audio'}
-        </button>
-        <p className="mt-2 text-center text-[10px] text-white/35">
-          You can also drag and drop a file onto this panel
-        </p>
-
-        {media.isCustom && (
+        {media.isCustom && panel !== 'youtube' ? (
           <button
             type="button"
             onClick={handleReset}
@@ -254,7 +346,7 @@ export function WatchTogetherMediaSourceSheet({
           >
             Reset to demo stream
           </button>
-        )}
+        ) : null}
       </div>
     </div>
   );

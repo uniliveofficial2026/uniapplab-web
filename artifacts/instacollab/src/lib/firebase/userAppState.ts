@@ -1,4 +1,4 @@
-import { doc, onSnapshot, setDoc } from 'firebase/firestore';
+import { doc, getDoc, onSnapshot, setDoc } from 'firebase/firestore';
 import type { CloudAppStatePayload } from '../cloudSync/types';
 import { getFirebaseFirestore } from './app';
 import { isFirebaseConfigured } from './config';
@@ -7,6 +7,22 @@ function stateDocRef(userId: string) {
   const db = getFirebaseFirestore();
   if (!db) throw new Error('Firebase is not configured');
   return doc(db, 'user_app_state', userId);
+}
+
+export async function fetchFirebaseUserAppState(
+  userId: string,
+): Promise<CloudAppStatePayload | null> {
+  if (!isFirebaseConfigured()) return null;
+  const db = getFirebaseFirestore();
+  if (!db) return null;
+  const snap = await getDoc(doc(db, 'user_app_state', userId));
+  if (!snap.exists()) return null;
+  const data = snap.data() as { payload?: CloudAppStatePayload };
+  const payload = data?.payload;
+  if (payload && typeof payload === 'object' && payload.v === 1) {
+    return payload;
+  }
+  return null;
 }
 
 export async function upsertFirebaseUserAppState(

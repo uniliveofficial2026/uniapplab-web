@@ -5,7 +5,6 @@ import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 import { saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
   Gamepad2, 
-  Coins, 
   Check, 
   UserSquare2, 
   Loader2,
@@ -13,6 +12,7 @@ import {
   Smartphone,
   Sparkles
 } from 'lucide-react';
+import { CoinIcon } from '../common/CoinIcon';
 
 export function GameCoinTab() {
   const db = useDB();
@@ -228,7 +228,7 @@ export function GameCoinTab() {
 
                 <div className="border-t border-border pt-3 mt-4 flex items-center justify-between">
                   <span className="text-xs font-black text-amber-500 flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5" /> {pack.cost} Coins
+                    <CoinIcon className="w-3.5 h-3.5 shrink-0" /> {pack.cost} Coins
                   </span>
                   {isAffordable ? (
                     <span className="text-[10px] bg-primary/10 text-primary font-extrabold uppercase px-1.5 py-0.5 rounded">
@@ -276,7 +276,7 @@ export function GameCoinTab() {
                   <p className="text-[10px] text-muted-foreground font-semibold">Redemption Package</p>
                   <h4 className="text-sm font-black text-foreground my-0.5">{selectedPack.name} ({selectedGame.name})</h4>
                   <p className="text-[11px] text-amber-500 font-bold flex items-center gap-1">
-                    <Coins className="w-3.5 h-3.5" /> Costs {selectedPack.cost} Streaming Coins
+                    <CoinIcon className="w-3.5 h-3.5 shrink-0" /> Costs {selectedPack.cost} Streaming Coins
                   </p>
                 </div>
 

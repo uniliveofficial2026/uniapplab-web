@@ -1,5 +1,8 @@
 import {
   getGuestSeatKeysForSettingsMode,
+  getMultiGuestGuestSeatKeys,
+  resolveMultiGuestSeatCount,
+  type MultiGuestSeatCount,
   type RoomSeatKey,
 } from './roomSeats';
 
@@ -65,13 +68,14 @@ export function formatRoomBackgroundLabel(stored: string | undefined | null): st
   return 'Default theme';
 }
 
-export type RoomLayoutMode = 'Party' | 'Chorus' | 'WatchTogether';
+export type RoomLayoutMode = 'Party' | 'Chorus' | 'WatchTogether' | 'MultiGuest' | 'SoloLive';
 
 export type RoomLayoutConfig = {
   layout: RoomLayoutMode;
   /** Party-chat layout density — false for Party Chat, true for staged party modes. */
   isFullPartyMode: boolean;
   guestSeatKeys: RoomSeatKey[];
+  multiGuestSeatCount: MultiGuestSeatCount;
 };
 
 export function mapSettingsModeToRoomMode(
@@ -79,23 +83,31 @@ export function mapSettingsModeToRoomMode(
 ): RoomLayoutMode {
   if (roomMode === 'Karaoke') return 'Chorus';
   if (roomMode === 'Radio') return 'WatchTogether';
+  if (roomMode === 'Multi-Guest') return 'MultiGuest';
+  if (roomMode === 'Solo-Live') return 'SoloLive';
   return 'Party';
 }
 
 export function resolveRoomLayoutFromSettings(
   settingsMode: string | undefined,
+  multiGuestSeatCount?: number,
 ): RoomLayoutConfig {
   const layout = mapSettingsModeToRoomMode(settingsMode);
+  const seatCount = resolveMultiGuestSeatCount(multiGuestSeatCount);
   const isFullPartyMode =
     settingsMode === 'Party' ||
-    settingsMode === 'Multi-Guest' ||
     settingsMode === 'Karaoke' ||
-    settingsMode === 'Radio';
+    settingsMode === 'Radio' ||
+    settingsMode === 'Solo-Live';
 
   return {
     layout,
     isFullPartyMode,
-    guestSeatKeys: getGuestSeatKeysForSettingsMode(settingsMode),
+    guestSeatKeys:
+      layout === 'MultiGuest'
+        ? getMultiGuestGuestSeatKeys(seatCount)
+        : getGuestSeatKeysForSettingsMode(settingsMode),
+    multiGuestSeatCount: seatCount,
   };
 }
 
@@ -104,5 +116,7 @@ export function mapRoomModeToSettingsMode(
 ): string {
   if (roomMode === 'Chorus') return 'Karaoke';
   if (roomMode === 'WatchTogether') return 'Radio';
+  if (roomMode === 'MultiGuest') return 'Multi-Guest';
+  if (roomMode === 'SoloLive') return 'Solo-Live';
   return 'Chat';
 }

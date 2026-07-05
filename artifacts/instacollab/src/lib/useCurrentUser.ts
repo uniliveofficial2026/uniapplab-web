@@ -1,6 +1,6 @@
-import { useMemo } from 'react';
+import { useMemo, useContext } from 'react';
 import type { User } from '../types';
-import { useAuth } from './AuthContext';
+import { AuthContext } from './AuthContext';
 import { isPrimarySupabaseCloud } from './auth/config';
 import { resolveUser } from './safe';
 import { useDB, useDbRevision } from './useDB';
@@ -28,7 +28,7 @@ function authProfileToUserPartial(profile: Record<string, unknown> | null | unde
 export function useCurrentUser(): User {
   const db = useDB();
   const revision = useDbRevision();
-  const { profile: authProfile } = useAuth();
+  const authProfile = useContext(AuthContext)?.profile;
   const supabasePrimary = isPrimarySupabaseCloud();
   const authPartial = supabasePrimary ? null : authProfileToUserPartial(authProfile);
   const canonicalId = db.currentUser?.id;

@@ -55,7 +55,6 @@ export async function signInDemoWithCloudSync(
 
   const config = DEMO_ACCOUNTS[normalized];
   stashLegacyDemoMigrationPayload(normalized);
-  clearDevLocalAuthBypass();
 
   let authResult = await authSignInWithEmail(normalized, password);
   if (!authResult.ok && /incorrect email|invalid login/i.test(authResult.reason)) {
@@ -84,6 +83,7 @@ export async function signInDemoWithCloudSync(
     return { ok: false, reason: sync.reason };
   }
 
+  clearDevLocalAuthBypass();
   db.advanceLaunchProgressAfterLogin(true);
   const uid = db.currentUserId?.trim();
   if (uid) {

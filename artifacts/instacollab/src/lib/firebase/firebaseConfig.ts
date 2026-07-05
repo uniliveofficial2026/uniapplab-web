@@ -8,6 +8,7 @@ import {
   getFirebaseStorageBucket,
   isFirebaseConfigured,
 } from './config';
+import { ensureBundledFirebaseConfig, getRuntimeFirebaseConfig } from './runtimeAuthConfig';
 
 export type FirebaseWebConfig = {
   apiKey: string;
@@ -21,15 +22,17 @@ export type FirebaseWebConfig = {
 
 /** Firebase Web SDK options object for `initializeApp()`. */
 export function getFirebaseWebConfig(): FirebaseWebConfig | null {
+  ensureBundledFirebaseConfig();
   if (!isFirebaseConfigured()) return null;
-  const databaseURL = getFirebaseDatabaseUrl();
+  const runtime = getRuntimeFirebaseConfig();
+  const databaseURL = runtime?.databaseURL || getFirebaseDatabaseUrl();
   return {
-    apiKey: getFirebaseApiKey(),
-    authDomain: getFirebaseAuthDomain(),
-    projectId: getFirebaseProjectId(),
-    storageBucket: getFirebaseStorageBucket(),
-    messagingSenderId: getFirebaseMessagingSenderId(),
-    appId: getFirebaseAppId(),
+    apiKey: runtime?.apiKey || getFirebaseApiKey(),
+    authDomain: runtime?.authDomain || getFirebaseAuthDomain(),
+    projectId: runtime?.projectId || getFirebaseProjectId(),
+    storageBucket: runtime?.storageBucket || getFirebaseStorageBucket(),
+    messagingSenderId: runtime?.messagingSenderId || getFirebaseMessagingSenderId(),
+    appId: runtime?.appId || getFirebaseAppId(),
     ...(databaseURL ? { databaseURL } : {}),
   };
 }

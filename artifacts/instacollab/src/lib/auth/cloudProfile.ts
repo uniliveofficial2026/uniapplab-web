@@ -25,6 +25,7 @@ import {
 import { avatarUrlForCloudUpload } from './cloudAvatar';
 import { mapProfileSaveError } from './profileErrors';
 import { isInfrastructureAuthFailure } from './failover';
+import { markSupabaseCloudDegradedFromError } from './cloudDataBackend';
 import { clearSupabaseUnhealthy, markSupabaseUnhealthy, writeStoredAuthBackend } from './providerState';
 import { isCloudAuthConfigured } from './config';
 import { isCloudAppStateRemoteApply } from './cloudAppStateFlags';
@@ -276,6 +277,7 @@ export async function pushCloudProfile(
       await upsertFirebaseProfile(row);
       return;
     }
+    markSupabaseCloudDegradedFromError(err);
     throw mapped;
   }
 }

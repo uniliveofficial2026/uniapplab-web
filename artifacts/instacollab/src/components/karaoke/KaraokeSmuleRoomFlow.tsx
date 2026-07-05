@@ -42,10 +42,10 @@ function AppContent({ onClose }: { onClose: () => void }) {
     location.pathname === '/live';
 
   return (
-    <div className="flex w-full h-full min-h-0 flex-1 bg-black overflow-hidden relative">
-      <div className="flex-1 flex justify-center h-full min-h-0 overflow-hidden">
+    <div className="flex w-full h-full min-h-0 min-w-0 flex-1 overflow-hidden relative">
+      <div className="karaoke-smule-room-panel-host flex min-h-0 min-w-0 h-full w-full flex-1 overflow-hidden">
         <div
-          className={`w-full h-full min-h-0 relative flex flex-col overflow-hidden bg-gray-950 ${isFullscreen ? '' : 'sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl md:border-x border-gray-900 shadow-[0_0_40px_rgba(168,85,247,0.1)]'}`}
+          className={`karaoke-smule-room-panel w-full max-w-full min-w-0 h-full min-h-0 relative flex flex-col overflow-hidden bg-gray-950 ${isFullscreen ? '' : 'md:border-x border-gray-900 shadow-[0_0_40px_rgba(168,85,247,0.1)]'}`}
         >
           <Routes>
             <Route path="/karaoke/party-back" element={<KaraokeFlowBack onClose={onClose} />} />
@@ -77,7 +77,7 @@ export function KaraokeSmuleRoomFlow({
   flowEntry = 'default',
 }: KaraokeSmuleRoomFlowProps) {
   useEffect(() => {
-    if (!localStorage.getItem('auth_token')) {
+    if (import.meta.env.DEV && !localStorage.getItem('auth_token')) {
       localStorage.setItem('auth_token', 'demo');
     }
   }, []);

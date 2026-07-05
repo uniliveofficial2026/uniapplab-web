@@ -4,6 +4,14 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { handleMediaError } from '../../lib/utils';
 import { touchClientX } from '../../lib/safe';
 import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import {
+  FULLSCREEN_MEDIA_CLASS,
+  FULLSCREEN_MEDIA_CLOSE_CLASS,
+  FULLSCREEN_MEDIA_DOTS_CLASS,
+  FULLSCREEN_MEDIA_NAV_CLASS,
+  FULLSCREEN_MEDIA_OVERLAY_CLASS,
+  FullscreenMediaStage,
+} from '../common/FullscreenMediaStage';
 
 export type WorkspaceFullscreenMedia = {
   items: Array<{ url: string; isVideo?: boolean }>;
@@ -63,18 +71,20 @@ export function WorkspaceMediaFullscreenPortal({
   return createPortal(
     <div
       id="workspace-fs-modal"
-      className="fixed inset-0 z-[250] flex items-center justify-center bg-background pointer-events-auto animate-in fade-in duration-200"
+      data-media-fullscreen="true"
+      className={FULLSCREEN_MEDIA_OVERLAY_CLASS}
       onTouchStart={handleFsTouchStart}
       onTouchMove={handleFsTouchMove}
       onTouchEnd={handleFsTouchEnd}
     >
       <button
         onClick={onClose}
-        className="absolute top-4 right-4 z-[260] text-white p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
+        className={FULLSCREEN_MEDIA_CLOSE_CLASS}
       >
-        <X className="w-8 h-8 drop-shadow-md" />
+        <X className="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-md" />
       </button>
-      <div className="w-full h-full flex items-center justify-center p-4 select-none">
+
+      <FullscreenMediaStage onBackdropClick={onClose}>
         {(() => {
           const item = fullscreenMedia.items[fullscreenMedia.mediaIndex];
           if (!item) return null;
@@ -86,7 +96,7 @@ export function WorkspaceMediaFullscreenPortal({
                   if (el) taskVideoRefs.current.set(fullscreenMedia.mediaIndex, el);
                 }}
                 src={item.url}
-                className="max-w-full max-h-full object-contain"
+                className={`${FULLSCREEN_MEDIA_CLASS} bg-black`}
                 controls
                 playsInline
                 preload="auto"
@@ -98,13 +108,13 @@ export function WorkspaceMediaFullscreenPortal({
             <img
               key={`ws-fs-img-${fullscreenMedia.mediaIndex}`}
               src={item.url}
-              className="max-w-full max-h-full object-contain pointer-events-none"
+              className={`${FULLSCREEN_MEDIA_CLASS} pointer-events-none`}
               alt="Fullscreen media"
               onError={handleMediaError}
             />
           );
         })()}
-      </div>
+      </FullscreenMediaStage>
 
       {fullscreenMedia.items.length > 1 && (
         <>
@@ -117,7 +127,7 @@ export function WorkspaceMediaFullscreenPortal({
                   : fullscreenMedia.mediaIndex - 1
               );
             }}
-            className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 hidden lg:flex items-center justify-center text-white transition-all z-[260] hover:scale-105 active:scale-95"
+            className={`${FULLSCREEN_MEDIA_NAV_CLASS} left-[max(0.75rem,env(safe-area-inset-left,0px))]`}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -130,12 +140,12 @@ export function WorkspaceMediaFullscreenPortal({
                   : fullscreenMedia.mediaIndex + 1
               );
             }}
-            className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 hidden lg:flex items-center justify-center text-white transition-all z-[260] hover:scale-105 active:scale-95"
+            className={`${FULLSCREEN_MEDIA_NAV_CLASS} right-[max(0.75rem,env(safe-area-inset-right,0px))]`}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
 
-          <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-[260] bg-zinc-900 border border-border px-3 py-1.5 rounded-full shadow-lg">
+          <div className={FULLSCREEN_MEDIA_DOTS_CLASS}>
             {fullscreenMedia.items.map((_, i) => (
               <div
                 key={`ws-fs-dot-${i}`}

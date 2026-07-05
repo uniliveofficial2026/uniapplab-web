@@ -12,6 +12,7 @@ import { useDbRevision } from '../../lib/useDB';
 import { useProfileStats } from '../../lib/useProfileStats';
 import { listKaraokeCoverRecordingsForUser } from '../../lib/karaokeRecordings';
 import type { RoomProfilePreview } from '../utils/roomProfilePreview';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { openAppProfileFromPartyRoom, openKaraokeProfileFromPartyRoom } from '../utils/roomProfileNavigate';
 import { canOpenKnownAppProfile, isKaraokeProfileSurface } from '../../lib/profileSurface';
 import { getPartyRoomProfilePreviewPortal } from '../utils/roomProfilePreviewPortal';
@@ -329,7 +330,7 @@ export function RoomProfilePreviewModal({
                 className="flex flex-1 cursor-pointer items-center justify-center space-x-1 rounded-full border border-white/10 bg-white/10 py-2 text-xs font-bold text-gray-100 transition hover:bg-white/15 active:scale-95 disabled:cursor-default disabled:opacity-50"
               >
                 <User size={12} />
-                <span>InstaCollab</span>
+                <span>{APP_DISPLAY_NAME}</span>
               </button>
               <button
                 type="button"

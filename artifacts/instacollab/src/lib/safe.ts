@@ -1,11 +1,17 @@
 import type { Post, User } from '../types';
-import { resolveAppMediaUrlSync, isAppMediaRef } from './appMediaStore';
+import {
+  resolveAppMediaUrlSync,
+  resolveRemoteMediaUrlSync,
+  isAppMediaRef,
+} from './appMediaStore';
 import { safeLiveKind } from './liveRing';
 
 const FALLBACK_AVATAR =
-  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop';
+  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=256&h=256&fit=crop&q=85&auto=format';
 const FALLBACK_MEDIA =
-  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&fit=crop';
+  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&fit=crop&q=85&auto=format';
+
+export { FALLBACK_AVATAR, FALLBACK_MEDIA };
 
 /** Coerce unknown values to a finite number or fallback. */
 export function safeNumber(value: unknown, fallback = 0): number {
@@ -77,8 +83,13 @@ export function safeAvatarUrl(value: unknown): string {
   const s = safeString(value);
   if (!s) return FALLBACK_AVATAR;
   if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+  if (isAppMediaRef(s)) {
+    const resolved = resolveAppMediaUrlSync(s);
+    return isAppMediaRef(resolved) ? FALLBACK_AVATAR : resolved;
+  }
   const url = safeHttpUrl(s);
-  return url || FALLBACK_AVATAR;
+  if (!url) return FALLBACK_AVATAR;
+  return resolveRemoteMediaUrlSync(url) || url;
 }
 
 export function safeMediaUrl(value: unknown, options?: { fallback?: string }): string {
@@ -87,12 +98,15 @@ export function safeMediaUrl(value: unknown, options?: { fallback?: string }): s
   if (!s) return fallback;
   if (isAppMediaRef(s)) {
     const resolved = resolveAppMediaUrlSync(s);
-    if (isAppMediaRef(resolved)) return s;
+    // Never expose app-media: to the DOM — use fallback until blob is ready.
+    if (isAppMediaRef(resolved)) return fallback;
     return resolved;
   }
   if (s.startsWith('data:') || s.startsWith('blob:')) return s;
   const url = safeHttpUrl(s);
-  return url || fallback;
+  if (!url) return fallback;
+  // Prefer full-res on-device blob when we have cached this URL before.
+  return resolveRemoteMediaUrlSync(url) || url;
 }
 
 /** Keep app-media/data/blob refs for hooks to hydrate; only validate http(s). */

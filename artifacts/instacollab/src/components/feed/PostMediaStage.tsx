@@ -12,7 +12,8 @@ import {
   formatMentionsAndTags,
   handleMediaError,
 } from '../../lib/utils';
-import { resolvePostDisplayMedia } from '../../lib/safe';
+import { FALLBACK_MEDIA, resolvePostDisplayMedia } from '../../lib/safe';
+import { isAppMediaRef } from '../../lib/appMediaStore';
 import { resolveEditorSoundtrackUrl } from '../../lib/audioMedia';
 import { MediaWithSoundtrack } from '../common/MediaWithSoundtrack';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
@@ -77,7 +78,7 @@ export function PostMediaStage({
   const playbackPostId = playbackPostIdProp ?? livePost.id;
   const displayMedia = !isTextPost ? resolvePostDisplayMedia(post, currentMediaIdx) : null;
   const resolvedMediaUrl = useResolvedMediaUrl(displayMedia?.url);
-  const resolvedPosterUrl = useResolvedMediaUrl(displayMedia?.posterUrl);
+  const resolvedPosterUrl = useResolvedMediaUrl(displayMedia?.posterUrl, FALLBACK_MEDIA);
   const isVideoSlide =
     !!displayMedia &&
     displayMedia.type === 'video' &&
@@ -118,12 +119,16 @@ export function PostMediaStage({
       contrast: post.contrast,
     });
 
-    const posterSrc = resolvedPosterUrl || displayMediaResolved.posterUrl || '';
+    const posterSrc = resolvedPosterUrl || FALLBACK_MEDIA;
+    const rawUrl = displayMediaResolved.url || '';
+    const playableUrl =
+      resolvedMediaUrl ||
+      (rawUrl && !isAppMediaRef(rawUrl) ? rawUrl : '');
     const imageSrc =
       displayMediaResolved.type === 'video' || videoError || displayMediaResolved.showAsImage
         ? posterSrc
-        : resolvedMediaUrl || displayMediaResolved.url;
-    const showVideo = isVideoSlide;
+        : playableUrl || posterSrc;
+    const showVideo = isVideoSlide && !!playableUrl;
     const soundtrackUrl = resolveEditorSoundtrackUrl(
       livePost.audioUrl,
       displayMediaResolved.type
@@ -146,9 +151,9 @@ export function PostMediaStage({
           <video
             data-playback-scope={PLAYBACK_SCOPE.MANAGED}
             ref={videoRef}
-            src={resolvedMediaUrl || displayMediaResolved.url || undefined}
-            poster={posterSrc || undefined}
-            data-poster={posterSrc || undefined}
+            src={playableUrl || undefined}
+            poster={posterSrc}
+            data-poster={posterSrc}
             loop={loopCarouselItem}
             playsInline
             controls
@@ -168,7 +173,7 @@ export function PostMediaStage({
               onOpenFullscreen();
             }}
             {...nativeVideoControlGuardProps()}
-            preload="auto"
+            preload="metadata"
             style={style}
             className={`w-full h-full ${mediaFitClass} z-10 bg-black/30`}
           />

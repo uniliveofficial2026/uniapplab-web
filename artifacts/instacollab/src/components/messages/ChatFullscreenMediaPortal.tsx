@@ -15,6 +15,14 @@ import { useChatMediaVideo } from '../../lib/useChatMediaVideo';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 import { MusicDiscPlayer } from './MusicDiscPlayer';
 import type { FullscreenMediaState } from './messages/types';
+import {
+  FULLSCREEN_MEDIA_CLASS,
+  FULLSCREEN_MEDIA_CLOSE_CLASS,
+  FULLSCREEN_MEDIA_DOTS_CLASS,
+  FULLSCREEN_MEDIA_NAV_CLASS,
+  FULLSCREEN_MEDIA_OVERLAY_CLASS,
+  FullscreenMediaStage,
+} from '../common/FullscreenMediaStage';
 
 type ChatFullscreenMediaPortalProps = {
   fullscreenMedia: FullscreenMediaState;
@@ -67,15 +75,17 @@ export function ChatFullscreenMediaPortal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[400] flex items-center justify-center bg-black/95 pointer-events-auto animate-in fade-in duration-200"
+      id="media-full-screen-modal"
+      data-media-fullscreen="true"
+      className={`${FULLSCREEN_MEDIA_OVERLAY_CLASS} z-[400]`}
       onPointerUp={onBackdropClose}
     >
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 z-[410] text-white p-2 hover:bg-white/10 rounded-full transition-colors"
+        className={FULLSCREEN_MEDIA_CLOSE_CLASS}
       >
-        <X className="w-8 h-8 drop-shadow-md" />
+        <X className="w-7 h-7 sm:w-8 sm:h-8 drop-shadow-md" />
       </button>
 
       {fullscreenMedia.items.length > 1 && fullscreenMedia.mediaIndex > 0 && (
@@ -85,16 +95,16 @@ export function ChatFullscreenMediaPortal({
             e.stopPropagation();
             goPrev();
           }}
-          className="absolute left-4 z-[410] text-white p-2 hover:bg-white/10 rounded-full transition-colors"
+          className={`${FULLSCREEN_MEDIA_NAV_CLASS} left-[max(0.75rem,env(safe-area-inset-left,0px))] !flex`}
         >
-          <ChevronLeft className="w-10 h-10 drop-shadow-md" />
+          <ChevronLeft className="w-8 h-8 sm:w-10 sm:h-10 drop-shadow-md" />
         </button>
       )}
 
-      <div className="w-full h-full flex flex-col items-center justify-center p-4 relative">
-        <div className="relative max-w-full max-h-[85vh] flex items-center justify-center overflow-hidden rounded-xl border border-white/10 shadow-2xl bg-black min-w-[280px]">
+      <FullscreenMediaStage onBackdropClick={onClose} shouldIgnoreBackdropClose={shouldIgnoreClose}>
+        <div className="relative flex h-full w-full min-h-0 min-w-0 items-center justify-center">
           {currentItem.title || currentItem.caption ? (
-            <div className="absolute top-0 inset-x-0 bg-gradient-to-b from-black/80 to-transparent p-4 z-20 flex items-center gap-3">
+            <div className="pointer-events-none absolute top-0 inset-x-0 z-20 flex items-center gap-3 bg-gradient-to-b from-black/80 to-transparent px-4 pb-8 pt-[max(3.5rem,calc(env(safe-area-inset-top,0px)+2.75rem))]">
               {currentItem.avatarUrl && (
                 <div className="w-9 h-9 rounded-full overflow-hidden border border-white/20 shrink-0">
                   <img src={currentItem.avatarUrl} alt="" className="w-full h-full object-cover" />
@@ -105,7 +115,7 @@ export function ChatFullscreenMediaPortal({
                   {currentItem.title || 'User'}
                 </span>
                 {currentItem.caption && (
-                  <span className="post-caption-text text-zinc-200 text-xs mt-1 font-medium drop-shadow-sm truncate max-w-[240px] sm:max-w-md">
+                  <span className="post-caption-text text-zinc-200 text-xs mt-1 font-medium drop-shadow-sm truncate max-w-[min(70vw,24rem)]">
                     {formatMentionsAndTags(currentItem.caption)}
                   </span>
                 )}
@@ -114,7 +124,7 @@ export function ChatFullscreenMediaPortal({
           ) : null}
 
           {currentItem.isAudio ? (
-            <div className="w-full max-w-md px-6 py-10 pt-14">
+            <div className="w-full max-w-md px-6 py-10 pt-14" onClick={(e) => e.stopPropagation()}>
               {currentItem.name ? (
                 <MusicDiscPlayer
                   url={mediaUrl}
@@ -136,7 +146,7 @@ export function ChatFullscreenMediaPortal({
                 else inlineVideoRefs.current.delete(key);
               }}
               src={mediaUrl}
-              className="max-w-full max-h-[80vh] object-contain"
+              className={`${FULLSCREEN_MEDIA_CLASS} bg-black`}
               onError={handleMediaError}
               controls
               autoPlay
@@ -151,32 +161,32 @@ export function ChatFullscreenMediaPortal({
             <img
               key={`img-${fullscreenMedia.mediaIndex}-${mediaUrl.slice(0, 32)}`}
               src={mediaUrl}
-              className="max-w-full max-h-[80vh] object-contain"
+              className={FULLSCREEN_MEDIA_CLASS}
               alt={`Fullscreen media ${fullscreenMedia.mediaIndex + 1}`}
               onError={handleMediaError}
             />
           )}
         </div>
+      </FullscreenMediaStage>
 
-        {fullscreenMedia.items.length > 1 ? (
-          <div className="absolute bottom-6 flex gap-2">
-            {fullscreenMedia.items.map((_, idx) => (
-              <button
-                key={idx}
-                type="button"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  onMediaIndexChange(idx);
-                }}
-                className={`w-2.5 h-2.5 rounded-full transition-colors ${
-                  idx === fullscreenMedia.mediaIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/70'
-                }`}
-                aria-label={`View item ${idx + 1}`}
-              />
-            ))}
-          </div>
-        ) : null}
-      </div>
+      {fullscreenMedia.items.length > 1 ? (
+        <div className={FULLSCREEN_MEDIA_DOTS_CLASS}>
+          {fullscreenMedia.items.map((_, idx) => (
+            <button
+              key={idx}
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                onMediaIndexChange(idx);
+              }}
+              className={`w-2.5 h-2.5 rounded-full transition-colors ${
+                idx === fullscreenMedia.mediaIndex ? 'bg-white' : 'bg-white/40 hover:bg-white/70'
+              }`}
+              aria-label={`View item ${idx + 1}`}
+            />
+          ))}
+        </div>
+      ) : null}
 
       {fullscreenMedia.items.length > 1 &&
         fullscreenMedia.mediaIndex < fullscreenMedia.items.length - 1 && (
@@ -186,9 +196,9 @@ export function ChatFullscreenMediaPortal({
               e.stopPropagation();
               goNext();
             }}
-            className="absolute right-4 z-[410] text-white p-2 hover:bg-white/10 rounded-full transition-colors"
+            className={`${FULLSCREEN_MEDIA_NAV_CLASS} right-[max(0.75rem,env(safe-area-inset-right,0px))] !flex`}
           >
-            <ChevronRight className="w-10 h-10 drop-shadow-md" />
+            <ChevronRight className="w-8 h-8 sm:w-10 sm:h-10 drop-shadow-md" />
           </button>
         )}
     </div>,

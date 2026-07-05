@@ -4,6 +4,7 @@
 import { isNoiseSignal } from './mlGuard';
 import { reactToMlIssue } from './mlReact';
 import { platformMetaForTelemetry } from './platformDetect';
+import { getCloudAuthHeaders } from './security/apiAuth';
 
 export type UxSignalType =
   | 'screen_view'
@@ -115,9 +116,10 @@ export async function flushUxSignals(force = false): Promise<void> {
   if (!force && buf.length < FLUSH_MIN_BUFFER) return;
 
   try {
+    const authHeaders = await getCloudAuthHeaders();
     const res = await fetch(ingestUrl(), {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: authHeaders,
       body: JSON.stringify({ signals: buf }),
       keepalive: true,
     });

@@ -3,6 +3,7 @@ import { ImagePlus } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { resolveUser } from '../../lib/safe';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { handleAvatarError, fileToBase64 } from '../../lib/utils';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
 import {
@@ -182,7 +183,7 @@ export function ProfileSetupScreen() {
                   </li>
                   <li>
                     In <strong>Supabase SQL Editor</strong>: paste SQL (starts with{' '}
-                    <code className="text-[10px]">-- InstaCollab</code>) → Run
+                    <code className="text-[10px]">-- {APP_DISPLAY_NAME}</code>) → Run
                   </li>
                   <li>Hard-refresh this page, then Continue</li>
                 </ol>

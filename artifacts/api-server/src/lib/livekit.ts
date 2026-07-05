@@ -8,4 +8,5 @@ export {
   deleteLiveKitRoom,
   pingLiveKit,
   partyRoomName,
+  chatCallRoomName,
 } from "@workspace/livekit";

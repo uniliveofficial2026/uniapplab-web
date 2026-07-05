@@ -1,6 +1,7 @@
-import { useEffect, useRef } from 'react';
-import { Room, RoomEvent, Track, ConnectionState } from 'livekit-client';
+import { useEffect, useRef, useState } from 'react';
+import { ConnectionState, Room, RoomEvent, Track } from 'livekit-client';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
+import { canAttemptLiveKit, connectWithTokenFetcher } from '../../lib/livekit/liveKitInstant';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
 
 type PartyLiveKitOptions = {
@@ -11,43 +12,74 @@ type PartyLiveKitOptions = {
   publishMic: boolean;
 };
 
+function attachRemoteAudio(room: Room) {
+  room.on(RoomEvent.TrackSubscribed, (track) => {
+    if (track.kind === Track.Kind.Audio) {
+      const el = track.attach();
+      void el.play().catch(() => {});
+    }
+  });
+}
+
 /**
- * LiveKit voice for party rooms — connects when seated, publishes audio when mic is on.
+ * Voice for every non-camera room mode:
+ * Chat, Radio, Karaoke, Party, Chorus, WatchTogether.
+ * Room UI is instant; LiveKit subscribe/publish is timed + retried in background.
  */
 export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKitOptions) {
   const roomRef = useRef<Room | null>(null);
   const micTrackRef = useRef<MediaStreamTrack | null>(null);
+  const [connected, setConnected] = useState(false);
 
   useEffect(() => {
-    if (!isLiveKitConfigured() || !enabled || !roomId) return undefined;
+    if (!isLiveKitConfigured() || !enabled || !roomId || !canAttemptLiveKit()) {
+      setConnected(false);
+      return undefined;
+    }
 
     let cancelled = false;
-    const room = new Room({ adaptiveStream: true, dynacast: true });
-    roomRef.current = room;
+    let retryTimer: number | null = null;
 
-    room.on(RoomEvent.TrackSubscribed, (track) => {
-      if (track.kind === Track.Kind.Audio) {
-        const el = track.attach();
-        el.play().catch(() => {});
-      }
-    });
+    const bindRoom = (room: Room) => {
+      roomRef.current = room;
+      attachRemoteAudio(room);
+      setConnected(true);
+    };
 
-    void (async () => {
-      try {
-        const { token, url } = await fetchPartyLiveKitToken(roomId, true);
-        if (cancelled) return;
-        await room.connect(url, token);
-      } catch {
-        /* silent — local party UI still works */
+    const connect = async () => {
+      const result = await connectWithTokenFetcher(
+        () => fetchPartyLiveKitToken(roomId, true),
+        {
+          onDisconnected: () => {
+            if (!cancelled) setConnected(false);
+          },
+        },
+      );
+      if (cancelled) {
+        if (result.ok) void result.room.disconnect();
+        return;
       }
-    })();
+      if (!result.ok) {
+        setConnected(false);
+        retryTimer = window.setTimeout(() => {
+          if (!cancelled) void connect();
+        }, 2_000);
+        return;
+      }
+      bindRoom(result.room);
+    };
+
+    void connect();
 
     return () => {
       cancelled = true;
+      if (retryTimer != null) window.clearTimeout(retryTimer);
       micTrackRef.current?.stop();
       micTrackRef.current = null;
-      room.disconnect();
+      const room = roomRef.current;
       roomRef.current = null;
+      room?.disconnect();
+      setConnected(false);
     };
   }, [roomId, enabled]);
 
@@ -76,14 +108,14 @@ export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKi
           micTrackRef.current = null;
         }
       } catch {
-        /* ignore mic errors */
+        /* room UI stays up without mic */
       }
     })();
 
     return () => {
       cancelled = true;
     };
-  }, [publishMic, enabled]);
+  }, [publishMic, enabled, connected]);
 
-  return { connected: Boolean(roomRef.current) };
+  return { connected };
 }

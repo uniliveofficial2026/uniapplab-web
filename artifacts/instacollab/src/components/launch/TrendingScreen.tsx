@@ -4,6 +4,7 @@ import { useDB } from '../../lib/useDB';
 import { resolveUser } from '../../lib/safe';
 import { handleAvatarError } from '../../lib/utils';
 import { LaunchPrimaryButton, LaunchShell } from './launchUi';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 
 export function TrendingScreen() {
   const db = useDB();
@@ -99,7 +100,7 @@ export function TrendingScreen() {
       </div>
 
       <div className="p-6 pt-2 mt-auto sticky bottom-0 bg-background/90 backdrop-blur border-t border-border">
-        <LaunchPrimaryButton onClick={finish}>Enter InstaCollab</LaunchPrimaryButton>
+        <LaunchPrimaryButton onClick={finish}>Enter {APP_DISPLAY_NAME}</LaunchPrimaryButton>
       </div>
     </LaunchShell>
   );

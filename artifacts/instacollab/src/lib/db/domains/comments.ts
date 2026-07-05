@@ -30,6 +30,45 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       });
       this.asLocalDB().syncReelCommentCount(reelId);
       this.notifyCommentOnReel(reelId, String(newComment.text ?? comment?.text ?? ''));
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudCommentPublish({
+          targetKind: 'reel',
+          targetId: reelId,
+          comment: newComment,
+        }),
+      );
+    }
+
+    mergeInboundReelComments(reelId: string, inbound: CommentLike[]) {
+      this.mergeInboundCommentThread('reel_comments', reelId, inbound, () =>
+        this.asLocalDB().syncReelCommentCount(reelId),
+      );
+    }
+
+    private mergeInboundCommentThread(
+      storeKey: 'post_comments' | 'reel_comments',
+      targetId: string,
+      inbound: CommentLike[],
+      onSynced: () => void,
+    ) {
+      if (!targetId || !Array.isArray(inbound)) return;
+      const store = this.load<CommentThreadStore>(storeKey, {}) || {};
+      const existing = store[targetId] || [];
+      const inboundIds = new Set<string>();
+      const walk = (list: CommentLike[]) => {
+        for (const item of list) {
+          if (item?.id) inboundIds.add(String(item.id));
+          if (item?.replies?.length) walk(item.replies);
+        }
+      };
+      walk(inbound);
+      const meId = this.asLocalDB().currentUserId;
+      const localOnly = existing.filter(
+        (c) => c?.id && !inboundIds.has(String(c.id)) && c.userId === meId,
+      );
+      const next = [...inbound, ...localOnly];
+      this.save(storeKey, { ...store, [targetId]: next });
+      onSynced();
     }
 
     private commentMentionsUser(text: string, user: User | undefined): boolean {
@@ -209,6 +248,14 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         commentId,
         String(newReply.text ?? reply?.text ?? '')
       );
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudCommentPublish({
+          targetKind: 'reel',
+          targetId: reelId,
+          comment: newReply,
+          parentId: commentId,
+        }),
+      );
     }
 
     /** Toggle like on a reel comment (and nested replies). */
@@ -281,6 +328,19 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       });
       this.asLocalDB().syncPostCommentCount(postId);
       this.notifyCommentOnPost(postId, String(newComment.text ?? comment?.text ?? ''));
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudCommentPublish({
+          targetKind: 'post',
+          targetId: postId,
+          comment: newComment,
+        }),
+      );
+    }
+
+    mergeInboundPostComments(postId: string, inbound: CommentLike[]) {
+      this.mergeInboundCommentThread('post_comments', postId, inbound, () =>
+        this.asLocalDB().syncPostCommentCount(postId),
+      );
     }
 
     /** Toggle like on a post comment (and nested replies). */
@@ -367,6 +427,14 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         postId,
         commentId,
         String(newReply.text ?? reply?.text ?? '')
+      );
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.queueCloudCommentPublish({
+          targetKind: 'post',
+          targetId: postId,
+          comment: newReply,
+          parentId: commentId,
+        }),
       );
     }
 

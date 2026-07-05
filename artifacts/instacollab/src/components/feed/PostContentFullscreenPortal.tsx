@@ -8,7 +8,13 @@ import { resolvePostDisplayMedia } from '../../lib/safe';
 import { openNativeVideoFullscreen } from '../../lib/useNativeVideoFullscreen';
 import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
 import { FullscreenPostMediaContent } from '../common/FullscreenPostMediaContent';
-import { FullscreenMediaStage } from '../common/FullscreenMediaStage';
+import {
+  FULLSCREEN_MEDIA_CLOSE_CLASS,
+  FULLSCREEN_MEDIA_DOTS_CLASS,
+  FULLSCREEN_MEDIA_NAV_CLASS,
+  FULLSCREEN_MEDIA_OVERLAY_CLASS,
+  FullscreenMediaStage,
+} from '../common/FullscreenMediaStage';
 
 type ResolvedPost = ReturnType<typeof import('../../lib/entityResolve').resolvePost>;
 
@@ -76,7 +82,8 @@ export function PostContentFullscreenPortal({
   return createPortal(
     <div
       id="media-full-screen-modal"
-      className="fixed inset-0 z-[320] flex items-center justify-center bg-background pointer-events-auto animate-in fade-in duration-200 select-none"
+      data-media-fullscreen="true"
+      className={FULLSCREEN_MEDIA_OVERLAY_CLASS}
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -85,10 +92,10 @@ export function PostContentFullscreenPortal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 z-[260] text-foreground p-2.5 bg-background border border-border hover:bg-secondary rounded-full transition-all active:scale-95 shadow-md"
+        className={FULLSCREEN_MEDIA_CLOSE_CLASS}
         title="Close Full Screen"
       >
-        <X className="w-8 h-8" />
+        <X className="w-7 h-7 sm:w-8 sm:h-8" />
       </button>
 
       {(post.mediaList || []).length > 1 && (
@@ -99,7 +106,7 @@ export function PostContentFullscreenPortal({
               e.stopPropagation();
               onPrevCarouselItem();
             }}
-            className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 hover:bg-black/75 hidden lg:flex items-center justify-center text-white transition-all z-50 shadow-md active:scale-95"
+            className={`${FULLSCREEN_MEDIA_NAV_CLASS} left-[max(0.75rem,env(safe-area-inset-left,0px))]`}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -109,7 +116,7 @@ export function PostContentFullscreenPortal({
               e.stopPropagation();
               onNextCarouselItem();
             }}
-            className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 hover:bg-black/75 hidden lg:flex items-center justify-center text-white transition-all z-50 shadow-md active:scale-95"
+            className={`${FULLSCREEN_MEDIA_NAV_CLASS} right-[max(0.75rem,env(safe-area-inset-right,0px))]`}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -148,7 +155,7 @@ export function PostContentFullscreenPortal({
       </FullscreenMediaStage>
 
       {post.mediaList && post.mediaList.length > 1 && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-50 bg-black/30 backdrop-blur-[2px] px-3 py-1.5 rounded-full">
+        <div className={FULLSCREEN_MEDIA_DOTS_CLASS}>
           {post.mediaList.map((_, i) => (
             <div
               key={`fs-dot-${i}`}

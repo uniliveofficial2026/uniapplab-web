@@ -17,6 +17,12 @@ import { isDevTunnelHostname } from '../auth/tunnelHost';
 import { getConfiguredAppOrigin } from '../auth/redirectUrl';
 import { isUniapplabHost } from '../domains/uniapplab';
 import type { ProfileRow } from '../supabase/types';
+import { isSupabaseConfigured } from '../supabase/config';
+import { fetchProfile } from '../supabase/profile';
+import {
+  resolveLinkedSupabaseUserId,
+  shouldMirrorProfileToFirebase,
+} from '../auth/firebaseBackupLink';
 import { fetchFirebaseProfile, upsertFirebaseProfile } from './profile';
 
 const REDIRECT_PENDING_KEY = 'instacollab_firebase_oauth_redirect';
@@ -194,7 +200,31 @@ export function mapFirebaseOAuthError(code: string | undefined, message: string)
   return message || 'Sign-in failed.';
 }
 
+function minimalLinkedSupabaseProfile(user: FirebaseUser, supabaseUserId: string): ProfileRow {
+  const username = slugUsername(user.email, supabaseUserId);
+  const now = new Date().toISOString();
+  return {
+    id: supabaseUserId,
+    username,
+    display_name: user.displayName?.trim() || username,
+    avatar_url: user.photoURL,
+    bio: '',
+    profile_setup_complete: true,
+    public_user_id: username,
+    public_user_id_changed_at: now,
+  };
+}
+
 export async function ensureFirebaseProfileAfterOAuth(user: FirebaseUser): Promise<ProfileRow> {
+  if (isSupabaseConfigured()) {
+    const linkedId = resolveLinkedSupabaseUserId(user);
+    if (linkedId) {
+      const existing = await fetchProfile(linkedId).catch(() => null);
+      if (existing) return existing;
+      return minimalLinkedSupabaseProfile(user, linkedId);
+    }
+  }
+
   const existing = await fetchFirebaseProfile(user.uid).catch(() => null);
   if (existing) return existing;
 
@@ -210,6 +240,9 @@ export async function ensureFirebaseProfileAfterOAuth(user: FirebaseUser): Promi
     public_user_id: username,
     public_user_id_changed_at: now,
   };
+  if (!shouldMirrorProfileToFirebase(user.uid)) {
+    return row;
+  }
   try {
     await upsertFirebaseProfile(row);
   } catch (err) {

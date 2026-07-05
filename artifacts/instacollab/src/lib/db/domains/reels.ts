@@ -56,16 +56,97 @@ export function WithReels<T extends Constructor<DbCoreBacked>>(Base: T): MixinCt
         createdAt: reel.createdAt ?? new Date().toISOString(),
       };
       this.save('reels', this.cappedList([newReel, ...this.reels], 'reels'));
+      void import('../../cloudSocial/cloudSocialContent').then((m) =>
+        m.scheduleCloudReelPublish(newReel as Reel),
+      );
+    }
+
+    mergeInboundReels(inbound: Reel[]) {
+      if (!Array.isArray(inbound) || inbound.length === 0) return;
+      const byId = new Map(this.reels.map((r) => [r.id, r]));
+      let changed = false;
+      for (const incoming of inbound) {
+        if (!incoming?.id || !incoming.user?.id) continue;
+        const existing = byId.get(incoming.id);
+        const merged = existing
+          ? {
+              ...existing,
+              ...incoming,
+              user: resolveUser(this.asLocalDB().users, incoming.user),
+              isLiked: existing.isLiked,
+              isSaved: existing.isSaved,
+            }
+          : {
+              ...incoming,
+              user: resolveUser(this.asLocalDB().users, incoming.user),
+            };
+        if (!existing || JSON.stringify(existing) !== JSON.stringify(merged)) {
+          byId.set(incoming.id, merged);
+          changed = true;
+        }
+      }
+      if (!changed) return;
+      const mergedList = Array.from(byId.values()).sort(
+        (a, b) => new Date(b.createdAt ?? 0).getTime() - new Date(a.createdAt ?? 0).getTime(),
+      );
+      this.save('reels', this.cappedList(mergedList, 'reels'));
+      this.asLocalDB().cacheDiscoveredUsers(inbound.map((r) => r.user).filter(Boolean) as User[]);
+    }
+
+    applyInboundReelEngagement(
+      reelId: string,
+      engagement: { likes: number; isLiked: boolean; isSaved: boolean },
+    ) {
+      const existing = this.reels.find((r) => r.id === reelId);
+      if (!existing) return;
+      if (
+        existing.likes === engagement.likes &&
+        existing.isLiked === engagement.isLiked &&
+        existing.isSaved === engagement.isSaved
+      ) {
+        return;
+      }
+      const updated = this.reels.map((r) =>
+        r.id === reelId
+          ? {
+              ...r,
+              likes: engagement.likes,
+              isLiked: engagement.isLiked,
+              isSaved: engagement.isSaved,
+            }
+          : r,
+      );
+      this.save('reels', updated);
     }
 
     updateReel(id: string, updateFn: (reel: Reel) => Reel) {
-      const updated = this.reels.map((r) => r.id === id ? updateFn(r) : r);
+      const before = this.reels.find((r) => r.id === id);
+      const updated = this.reels.map((r) => (r.id === id ? updateFn(r) : r));
       this.save('reels', updated);
+      const after = updated.find((r) => r.id === id);
+      if (
+        before &&
+        after &&
+        after.user?.id === this.asLocalDB().currentUserId &&
+        (before.caption !== after.caption ||
+          before.videoUrl !== after.videoUrl ||
+          JSON.stringify(before.mediaList) !== JSON.stringify(after.mediaList))
+      ) {
+        void import('../../cloudSocial/cloudSocialContent').then((m) =>
+          m.scheduleCloudReelPublish(after),
+        );
+      }
     }
 
     deleteReel(id: string) {
+      const existing = this.reels.find((r) => r.id === id);
       const updated = this.reels.filter((r) => r.id !== id);
       this.save('reels', updated);
+      if (existing?.user?.id === this.asLocalDB().currentUserId) {
+        void import('../../cloudSocial/cloudSocialContent').then((m) =>
+          m.scheduleCloudReelDelete(id),
+        );
+      }
     }
   } as unknown as MixinCtor<T, ReelsLayer>;
 }

@@ -30,6 +30,8 @@ import {
 } from '../../lib/notifications';
 import type { AppNotification, AppNotificationType } from '../../types';
 import { PostModal } from '../feed/PostModal';
+import { refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
+import { syncCloudNotifications } from '../../lib/cloudNotificationSync';
 
 const TYPE_FILTER_ICONS: Partial<
   Record<AppNotificationType, React.ComponentType<{ className?: string }>>
@@ -106,7 +108,10 @@ export function NotificationsScreen({ embedded = false }: { embedded?: boolean }
   const typeFilterScrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
-    db.markAllNotificationsRead();
+    refreshLiveCloudSurface('notifications');
+    void syncCloudNotifications().finally(() => {
+      db.markAllNotificationsRead();
+    });
   }, []);
 
   useEffect(() => {
@@ -380,7 +385,6 @@ export function NotificationsScreen({ embedded = false }: { embedded?: boolean }
                       value={query}
                       onChange={(e) => setQuery(e.target.value)}
                       placeholder="Search by name or message"
-                      autoFocus
                       className="w-full rounded-lg border border-border bg-secondary py-2 pl-9 pr-8 text-sm text-foreground outline-none placeholder:text-foreground/45 focus:border-ring transition-colors"
                     />
                     {hasSearchQuery ? (
@@ -563,7 +567,7 @@ export function NotificationsScreen({ embedded = false }: { embedded?: boolean }
                   initial={{ opacity: 0, y: 8 }}
                   animate={{ opacity: 1, y: 0 }}
                   exit={{ opacity: 0, y: -4 }}
-                  transition={{ delay: Math.min(idx * 0.03, 0.2) }}
+                  transition={{ duration: 0.12 }}
                   key={notification.id}
                   onClick={() => handleRowClick(notification)}
                   className={`flex items-center gap-4 p-3 rounded-2xl transition-colors cursor-pointer ${

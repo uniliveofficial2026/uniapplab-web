@@ -17,45 +17,81 @@ import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithR
 import { installRuntimeGuards } from './lib/runtimeGuards';
 import { installRuntimeSelfHeal } from './lib/selfHeal';
 import { initRuntimeAutoHeal } from './lib/runtimeAutoHeal';
+import { initSupabaseResilience } from './lib/auth/supabaseResilience';
 import { installUxTelemetry } from './lib/uxTelemetry';
+import { installAppSecurity } from './lib/security/installAppSecurity';
 import { installPresenceHeartbeat } from './lib/presenceHeartbeat';
+import { installNativeKeyboardPolicy } from './lib/nativeKeyboardPolicy';
+import { installAppSafeArea } from './lib/safeArea';
+import { bootstrapSupabaseAuthState } from './lib/auth/providerState';
+import { blockLivePresenceCloudQueries } from './lib/supabase/livePresenceGuard';
+import { ensureBundledFirebaseConfig } from './lib/firebase/runtimeAuthConfig';
 
+// Sync-only setup (no network / IDB waits).
+bootstrapSupabaseAuthState();
+ensureBundledFirebaseConfig();
+blockLivePresenceCloudQueries();
 bootstrapDocumentTheme();
+installAppSafeArea();
 installChunkLoadRecovery();
+installPersistenceGuards();
+installRuntimeGuards();
+installAppSecurity();
+installRuntimeSelfHeal();
+initRuntimeAutoHeal();
+initSupabaseResilience();
+installUxTelemetry();
+installNativeKeyboardPolicy();
+
+// Instant media: hydrate app-media blobs from localStorage mirrors (feed/chat/k-star).
+void import('./lib/mediaInstant').then((m) => m.warmMediaFromLocalStorageMirrors());
+
+// First-install DeepAR + TRTC assets → local cache; later launches skip full install.
+void import('./lib/ar/arAssetBootstrap').then((m) => m.bootstrapArAssets());
+
+const rootEl = document.getElementById('root');
+if (!rootEl) {
+  throw new Error('Missing #root');
+}
+
+// CRITICAL: paint React immediately. Never await network/IDB before first UI.
+createRoot(rootEl).render(
+  <ErrorBoundary>
+    <CloudAuthProvider>
+      <AuthProvider>
+        <App />
+        <SpeedInsights />
+      </AuthProvider>
+    </CloudAuthProvider>
+  </ErrorBoundary>,
+);
+
+// Remove HTML boot shell once React has mounted.
+queueMicrotask(() => {
+  document.getElementById('boot-shell')?.remove();
+});
+
+// Background services — must not block first paint.
 registerAppServiceWorker();
 initWalletKstarSyncListeners();
 initAppCloudSystems();
-installPersistenceGuards();
-installRuntimeGuards();
-installRuntimeSelfHeal();
-initRuntimeAutoHeal();
-installUxTelemetry();
 installPresenceHeartbeat();
+clearChunkReloadGuard();
 
-async function bootstrap() {
-  await initSupabaseClient();
-  await initAppMediaStore();
-  clearChunkReloadGuard();
+// Cache-first: local IDB paints UI, then live cloud syncs in background.
+void import('./lib/cacheFirstSync').then((m) => m.startCacheFirstCloudSync());
 
-  void import('./lib/cloudPostSync').then((m) => m.bootstrapCloudPosts());
+void initSupabaseClient().then(() => {
+  void import('./lib/preloadAppSurfaces').then((m) => m.preloadAllAppSurfaces());
+});
 
-  db.subscribe(() => {
-    scheduleWarmAppMediaCache();
-  });
+void import('./lib/firebase/app').then((m) => {
+  m.getFirebaseApp();
+});
 
-  const rootEl = document.getElementById('root');
-  if (!rootEl) return;
+// Media cache warm is best-effort and never blocks UI.
+void initAppMediaStore({ timeoutMs: 0 });
 
-  createRoot(rootEl).render(
-    <ErrorBoundary>
-      <CloudAuthProvider>
-        <AuthProvider>
-          <App />
-          <SpeedInsights />
-        </AuthProvider>
-      </CloudAuthProvider>
-    </ErrorBoundary>,
-  );
-}
-
-void bootstrap();
+db.subscribe(() => {
+  scheduleWarmAppMediaCache();
+});

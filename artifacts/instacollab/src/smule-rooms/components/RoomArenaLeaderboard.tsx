@@ -11,6 +11,28 @@ type RoomArenaLeaderboardProps = {
   onOpen: () => void;
 };
 
+type RoomArenaOpenButtonProps = {
+  onOpen: () => void;
+  className?: string;
+};
+
+/** Compact arena entry — opens the full rankings overlay. */
+export function RoomArenaOpenButton({ onOpen, className = '' }: RoomArenaOpenButtonProps) {
+  return (
+    <button
+      type="button"
+      onClick={onOpen}
+      aria-label="Open arena rankings"
+      title="Arena rankings"
+      className={`solo-live-arena-btn flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-fuchsia-500/35 bg-gradient-to-b from-[#321c4e]/95 to-[#0e041c]/95 text-fuchsia-200 shadow-md shadow-purple-950/50 transition hover:border-fuchsia-400/55 hover:text-white active:scale-95 sm:h-11 sm:w-11 ${className}`}
+    >
+      <span className="text-base leading-none sm:text-lg" aria-hidden>
+        🏟️
+      </span>
+    </button>
+  );
+}
+
 export function RoomArenaLeaderboard({
   participants,
   countdownText,

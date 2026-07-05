@@ -1,5 +1,5 @@
 import React from 'react';
-import { Star } from 'lucide-react';
+import { CoinIcon } from '../../components/common/CoinIcon';
 
 function truncateName(name: string, max = 14): string {
   const trimmed = name.trim();
@@ -45,7 +45,7 @@ export function RoomOwnerProfileChip({
           {truncateName(name, nameMaxLength)}
         </span>
         <div className="flex items-center space-x-1 text-[9px] font-bold text-white/90">
-          <Star size={9} className="fill-yellow-400 text-yellow-400" />
+          <CoinIcon className="h-[9px] w-[9px] shrink-0" />
           <span>{starCount.toLocaleString()}</span>
         </div>
       </div>

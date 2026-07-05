@@ -472,8 +472,38 @@ export function WithProfile<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
       if (ctx.surface === 'live') {
         this.asLocalDB().notifyLiveJoined(ownerId, visitorId, ctx.liveKind);
       }
+      void import('../../cloudSocial/cloudProfileVisits').then((m) =>
+        m.queueCloudProfileVisit({
+          ownerId,
+          surface: ctx.surface,
+          contentId: ctx.contentId,
+          previewUrl: ctx.previewUrl,
+          liveKind: ctx.liveKind,
+        }),
+      );
       this.notifyListeners();
       return true;
+    }
+
+    mergeInboundProfileVisit(entry: ProfileVisitEntry) {
+      const ownerId = this.asLocalDB().currentUserId;
+      if (!ownerId || !entry?.visitorUserId) return;
+      const store = this.getProfileVisitsStore();
+      const list = [...this.getProfileVisitList(ownerId)];
+      const idx = list.findIndex((v) => v.visitorUserId === entry.visitorUserId);
+      const nextEntry: ProfileVisitEntry = {
+        ...(idx >= 0 ? list[idx] : {}),
+        ...entry,
+        isHidden: false,
+      };
+      if (idx >= 0) list[idx] = nextEntry;
+      else list.push(nextEntry);
+      list.sort((a, b) => b.lastVisitedAt - a.lastVisitedAt);
+      this.saveProfileVisitsStore({
+        ...store,
+        [ownerId]: list.slice(0, PROFILE_VISITS_CAP),
+      });
+      this.notifyListeners();
     }
 
     getProfileVisitorStats(profileUserId: string): ProfileVisitorStats {

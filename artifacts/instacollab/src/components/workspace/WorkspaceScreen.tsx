@@ -1,5 +1,4 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { createPortal } from 'react-dom';
 import { MusicDiscPlayer } from '../messages/MusicDiscPlayer';
 import { 
   CheckCircle2, Circle, Clock, MoreVertical, Search, 
@@ -7,10 +6,10 @@ import {
   Moon, Sun, MessageSquare, Link as LinkIcon, FileText, History, ShieldAlert, Ban, Zap, Star, Activity, Plus, FileUp, X, Filter, Trash2, ArrowUpRight, Image,
   ChevronLeft, ChevronRight, Mail
 } from 'lucide-react';
-import { useDB } from '../../lib/useDB';
+import { useDB, useDbRevision } from '../../lib/useDB';
 import { handleAvatarError, handleMediaError, fileToBase64 } from '../../lib/utils';
 import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
-import { safeAvatarUrl } from '../../lib/safe';
+import { resolveUser, safeAvatarUrl } from '../../lib/safe';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
 import { useAuth } from '../../lib/AuthContext';
@@ -18,29 +17,22 @@ import { GoogleChatTab } from './GoogleChatTab';
 import { GoogleKeepTab } from './GoogleKeepTab';
 import { GmailTab } from './GmailTab';
 import { AdminPanel } from '../admin/AdminPanel';
+import { AppBrandPortalCard } from '../admin/AppBrandPortalCard';
+import { AutomationControlToggles } from './AutomationControlToggles';
+import { WORKSPACE_DISPLAY_NAME } from '../../lib/appBrand';
 import { GoogleContactsTab } from './GoogleContactsTab';
 import { GoogleCalendarTab } from './GoogleCalendarTab';
 import { GoogleDocsTab } from './GoogleDocsTab';
+import { WorkspaceMediaFullscreenPortal } from './WorkspaceMediaFullscreenPortal';
+import type { User } from '../../types';
 
 type TabType = 'dashboard' | 'calendar' | 'files' | 'docs' | 'gmail' | 'contacts' | 'chat' | 'keep' | 'admin';
 
-const COLLABORATOR_DETAILS: Record<string, { role: string; contribution: string; timestamp: number; status: 'online' | 'idle' | 'offline' }> = {
-  'u1': { role: 'Lead Architect', contribution: 'Updated workspace dashboard layout', timestamp: Date.now() - 1000 * 60 * 45, status: 'online' }, // 45m ago
-  'u2': { role: 'Product Manager', contribution: 'Approved Milestone 2 specs', timestamp: Date.now() - 1000 * 60 * 120, status: 'online' }, // 2h ago
-  'u3': { role: 'Frontend Engineer', contribution: 'Refactored React Context states', timestamp: Date.now() - 1000 * 60 * 240, status: 'idle' }, // 4h ago
-  'u4': { role: 'QA Lead', contribution: 'Logged 3 critical security bugs', timestamp: Date.now() - 1000 * 60 * 60 * 48, status: 'offline' }, // 2d ago
-  'u5': { role: 'Cloud Specialist', contribution: 'Deployed new build containers to Cloud Run', timestamp: Date.now() - 1000 * 60 * 60 * 8, status: 'online' }, // 8h ago
-  'u6': { role: 'Backend Developer', contribution: 'Wrote core middleware for API security', timestamp: Date.now() - 1000 * 60 * 60 * 24, status: 'offline' }, // 1d ago
-  'u7': { role: 'Fullstack Engineer', contribution: 'Integrated persistent offline storage layer', timestamp: Date.now() - 1000 * 60 * 30, status: 'online' } // 30m ago
-};
-
-const getCollaboratorInfo = (userId: string) => {
-  return COLLABORATOR_DETAILS[userId] || {
-    role: 'Contributor',
-    contribution: 'Involved in active task review',
-    timestamp: Date.now() - 1000 * 60 * 60 * 12, // 12h ago
-    status: 'offline' as const
-  };
+type CollaboratorLiveInfo = {
+  role: string;
+  contribution: string;
+  timestamp: number;
+  status: 'online' | 'idle' | 'offline';
 };
 
 const getRelativeTimeString = (time: number) => {
@@ -54,10 +46,121 @@ const getRelativeTimeString = (time: number) => {
   return `${days}d ago`;
 };
 
+function roleLabelForUser(user: User): string {
+  if (user.role === 'admin') return 'Admin';
+  if (user.role === 'streamer') return 'Streamer';
+  if (user.status === 'live') return 'Live creator';
+  return 'Member';
+}
+
+function postTimeMs(post: { createdAt?: string; timestamp?: number | string }): number {
+  if (post.createdAt) {
+    const parsed = Date.parse(post.createdAt);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  const ts = Number(post.timestamp || 0);
+  return Number.isFinite(ts) ? ts : 0;
+}
+
+function getCollaboratorLiveInfo(
+  db: {
+    getUserPresence: (userId: string) => {
+      online: boolean;
+      lastSeenAt: number;
+      lastActiveAt: number;
+    };
+  },
+  user: User,
+  posts: Array<{ user?: { id?: string }; caption?: string; createdAt?: string; timestamp?: number | string }>,
+): CollaboratorLiveInfo {
+  const presence = db.getUserPresence(user.id);
+  const lastActive = Math.max(
+    presence.lastActiveAt || 0,
+    presence.lastSeenAt || 0,
+    user.noteUpdatedAt || 0,
+  );
+  const idleCutoff = Date.now() - 30 * 60 * 1000;
+  const status: CollaboratorLiveInfo['status'] = presence.online
+    ? 'online'
+    : lastActive >= idleCutoff
+      ? 'idle'
+      : 'offline';
+
+  const userPosts = posts.filter((post) => post.user?.id === user.id);
+  const latestPost = userPosts
+    .slice()
+    .sort((a, b) => postTimeMs(b) - postTimeMs(a))[0];
+  const contribution = latestPost?.caption?.trim()
+    ? `Posted: ${latestPost.caption.trim().slice(0, 72)}`
+    : user.note?.trim()
+      ? `Note: ${user.note.trim().slice(0, 72)}`
+      : user.bio?.trim()
+        ? user.bio.trim().slice(0, 72)
+        : 'Active on UniLive';
+
+  const timestamp = Math.max(
+    lastActive,
+    postTimeMs(latestPost || {}),
+    user.noteUpdatedAt || 0,
+    Date.now() - 12 * 60 * 60 * 1000,
+  );
+
+  return {
+    role: roleLabelForUser(user),
+    contribution,
+    timestamp,
+    status,
+  };
+}
+
+function formatAuditLogTime(log: { id?: number; time?: string }): string {
+  const id = Number(log.id);
+  if (Number.isFinite(id) && id > 1_000_000_000_000) {
+    return getRelativeTimeString(id);
+  }
+  return log.time || 'Just now';
+}
+
+function buildWeeklyActivityChart(
+  posts: Array<{ createdAt?: string; timestamp?: number | string }>,
+): Array<{ id: string; name: string; value: number; previous: number }> {
+  const dayNames = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+  const now = new Date();
+  const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const thisWeek = Array.from({ length: 7 }, () => 0);
+  const prevWeek = Array.from({ length: 7 }, () => 0);
+
+  for (const post of posts) {
+    const ts = postTimeMs(post);
+    if (!ts) continue;
+    const dayStart = new Date(ts);
+    dayStart.setHours(0, 0, 0, 0);
+    const dayMs = dayStart.getTime();
+    const daysAgo = Math.round((startOfToday - dayMs) / (24 * 60 * 60 * 1000));
+    if (daysAgo >= 0 && daysAgo < 7) {
+      thisWeek[dayStart.getDay()] += 1;
+    } else if (daysAgo >= 7 && daysAgo < 14) {
+      prevWeek[dayStart.getDay()] += 1;
+    }
+  }
+
+  // Order Mon → Sun for the chart.
+  const order = [1, 2, 3, 4, 5, 6, 0];
+  return order.map((dayIndex) => ({
+    id: dayNames[dayIndex].toLowerCase(),
+    name: dayNames[dayIndex],
+    value: thisWeek[dayIndex],
+    previous: prevWeek[dayIndex],
+  }));
+}
+
 export function WorkspaceScreen() {
     const db = useDB();
+    const dbRevision = useDbRevision();
     const USERS = db.users;
     const FILES = db.files;
+    const me = resolveUser(db.users, db.currentUser);
+    const posts = db.posts ?? [];
 
     const isDark = db.settings.theme === 'dark';
     const performanceChartTheme = useRechartsTheme();
@@ -65,6 +168,7 @@ export function WorkspaceScreen() {
 
     const [activeTab, setActiveTab ] = useState<TabType>('dashboard');
     const workspaceTabsScrollRef = useRef<HTMLDivElement | null>(null);
+    const [presenceTick, setPresenceTick] = useState(0);
 
     const scrollWorkspaceTabs = (direction: 'left' | 'right') => {
       const el = workspaceTabsScrollRef.current;
@@ -74,23 +178,119 @@ export function WorkspaceScreen() {
     };
     const [collabSortBy, setCollabSortBy] = useState<'name-asc' | 'name-desc' | 'contribution-desc'>('contribution-desc');
 
-    const sortedCollaborators = React.useMemo(() => {
+    const collaboratorInfoById = useMemo(() => {
+      const map = new Map<string, CollaboratorLiveInfo>();
+      for (const user of USERS) {
+        map.set(user.id, getCollaboratorLiveInfo(db, user, posts));
+      }
+      return map;
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [USERS, posts, dbRevision, presenceTick]);
+
+    const sortedCollaborators = useMemo(() => {
       return [...USERS].sort((a, b) => {
-        const infoA = getCollaboratorInfo(a.id);
-        const infoB = getCollaboratorInfo(b.id);
+        const infoA = collaboratorInfoById.get(a.id)!;
+        const infoB = collaboratorInfoById.get(b.id)!;
         if (collabSortBy === 'name-asc') {
           return (a.displayName || a.username).localeCompare(b.displayName || b.username);
-        } else if (collabSortBy === 'name-desc') {
-          return (b.displayName || b.username).localeCompare(a.displayName || a.username);
-        } else if (collabSortBy === 'contribution-desc') {
-          return infoB.timestamp - infoA.timestamp;
         }
-        return 0;
+        if (collabSortBy === 'name-desc') {
+          return (b.displayName || b.username).localeCompare(a.displayName || a.username);
+        }
+        return infoB.timestamp - infoA.timestamp;
       });
-    }, [USERS, collabSortBy]);
+    }, [USERS, collabSortBy, collaboratorInfoById]);
 
+    const activeProjects = useMemo(
+      () => (db.tasks ?? []).filter((task) => !task.completed).length,
+      // eslint-disable-next-line react-hooks/exhaustive-deps
+      [db.tasks, dbRevision],
+    );
+    const teamActiveCount = useMemo(
+      () =>
+        USERS.filter((user) => {
+          const info = collaboratorInfoById.get(user.id);
+          return info?.status === 'online' || info?.status === 'idle';
+        }).length,
+      [USERS, collaboratorInfoById],
+    );
+    const privateShare = useMemo(() => {
+      if (!USERS.length) return 100;
+      const privateCount = USERS.filter((user) => user.isPrivate).length;
+      return Math.round((privateCount / USERS.length) * 100);
+    }, [USERS]);
+    const performerRankLabel = useMemo(() => {
+      const ranked = [...USERS].sort(
+        (a, b) => (b.followers ?? 0) - (a.followers ?? 0) || (b.following ?? 0) - (a.following ?? 0),
+      );
+      const index = ranked.findIndex((user) => user.id === me.id);
+      if (index < 0 || ranked.length === 0) return 'Top creator';
+      const percentile = Math.max(1, Math.round(((index + 1) / ranked.length) * 100));
+      return `Top ${percentile}% Performer`;
+    }, [USERS, me.id]);
+    const performerBarWidth = useMemo(() => {
+      const ranked = [...USERS].sort((a, b) => (b.followers ?? 0) - (a.followers ?? 0));
+      const index = ranked.findIndex((user) => user.id === me.id);
+      if (index < 0 || ranked.length === 0) return 50;
+      return Math.max(8, Math.round((1 - index / ranked.length) * 100));
+    }, [USERS, me.id]);
 
-    
+    const liveChartData = useMemo(() => buildWeeklyActivityChart(posts), [posts]);
+
+    const moderationFlags = useMemo(() => {
+      return posts
+        .filter((post) => post.isReported && !post.isArchived)
+        .slice()
+        .sort((a, b) => postTimeMs(b) - postTimeMs(a))
+        .map((post) => {
+          const author = resolveUser(USERS, post.user);
+          const thumb =
+            post.imageUrl ||
+            post.mediaList?.find((m) => m.type === 'image' || m.type === 'video')?.url ||
+            author.avatarUrl;
+          return {
+            id: post.id,
+            text: `Review requested on post "${String(post.id).slice(0, 14)}"`,
+            reason: post.caption?.trim()
+              ? `Caption: ${post.caption.trim().slice(0, 64)}`
+              : 'Community Guidelines review',
+            userId: author.id,
+            userName: author.displayName || author.username,
+            username: author.username,
+            avatarUrl: author.avatarUrl,
+            thumbUrl: thumb,
+            isVideo: Boolean(post.videoUrl || post.mediaList?.some((m) => m.type === 'video')),
+            createdAt: postTimeMs(post),
+          };
+        });
+    }, [posts, USERS, dbRevision]);
+
+    const approveReportedPost = (postId: string) => {
+      const post = posts.find((p) => p.id === postId);
+      const author = post ? resolveUser(USERS, post.user) : null;
+      db.updatePost(postId, (p) => ({ ...p, isReported: false }));
+      db.addAuditLog({
+        id: Date.now(),
+        text: `Approved post ${postId}${author ? ` by @${author.username}` : ''}`,
+        time: 'Just now',
+      });
+    };
+
+    const rejectReportedPost = (postId: string) => {
+      const post = posts.find((p) => p.id === postId);
+      const author = post ? resolveUser(USERS, post.user) : null;
+      db.updatePost(postId, (p) => ({
+        ...p,
+        isReported: false,
+        isArchived: true,
+      }));
+      db.addAuditLog({
+        id: Date.now(),
+        text: `Rejected & archived post ${postId}${author ? ` by @${author.username}` : ''}`,
+        time: 'Just now',
+      });
+    };
+
     // Live update toggle
     const [liveMode, setLiveMode] = useState(true);
     
@@ -101,40 +301,7 @@ export function WorkspaceScreen() {
       items: Array<{ url: string; isVideo?: boolean }>;
       mediaIndex: number;
     } | null>(null);
-
-    // Full screen swipe handlers
-    const [fsTouchStart, setFsTouchStart] = useState<number | null>(null);
-    const [fsTouchEnd, setFsTouchEnd] = useState<number | null>(null);
-    const minSwipeDistance = 50;
-
-    const handleFsTouchStart = (e: React.TouchEvent) => {
-      setFsTouchEnd(null);
-      setFsTouchStart(e.targetTouches[0].clientX);
-    };
-
-    const handleFsTouchMove = (e: React.TouchEvent) => {
-      setFsTouchEnd(e.targetTouches[0].clientX);
-    };
-
-    const handleFsTouchEnd = () => {
-      if (!fsTouchStart || !fsTouchEnd) return;
-      const distance = fsTouchStart - fsTouchEnd;
-      const isLeftSwipe = distance > minSwipeDistance;
-      const isRightSwipe = distance < -minSwipeDistance;
-      if (isLeftSwipe || isRightSwipe) {
-        if (fullscreenMedia && fullscreenMedia.items.length > 1) {
-          if (isLeftSwipe) {
-            setFullscreenMedia((prev) => 
-               prev ? { ...prev, mediaIndex: (prev.mediaIndex === prev.items.length - 1 ? 0 : prev.mediaIndex + 1) } : null
-            );
-          } else {
-            setFullscreenMedia((prev) => 
-               prev ? { ...prev, mediaIndex: (prev.mediaIndex === 0 ? prev.items.length - 1 : prev.mediaIndex - 1) } : null
-            );
-          }
-        }
-      }
-    };
+    const taskVideoRefs = useRef<Map<number, HTMLVideoElement>>(new Map());
 
     const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files.length > 0) {
@@ -163,57 +330,16 @@ export function WorkspaceScreen() {
     const [isSyncCalendarModalOpen, setIsSyncCalendarModalOpen] = useState(false);
     const [isAddIntegrationModalOpen, setIsAddIntegrationModalOpen] = useState(false);
     
-    // --- DASHBOARD REALTIME DATA ---
-    const [chartData, setChartData] = useState([
-       { id: 'mon', name: 'Mon', value: 40, previous: 30 },
-       { id: 'tue', name: 'Tue', value: 70, previous: 50 },
-       { id: 'wed', name: 'Wed', value: 45, previous: 60 },
-       { id: 'thu', name: 'Thu', value: 90, previous: 40 },
-       { id: 'fri', name: 'Fri', value: 65, previous: 70 },
-       { id: 'sat', name: 'Sat', value: 80, previous: 55 },
-       { id: 'sun', name: 'Sun', value: 100, previous: 85 },
-    ]);
-
     const auditLogs = db.auditLogs;
 
+    // Refresh presence-derived collaborator status while live mode is on.
     useEffect(() => {
-        if (!liveMode) return;
-        
-        // Jitter chart data slightly to simulate real-time analytics
-        const chartInterval = setInterval(() => {
-            setChartData(prev => {
-                const newData = [...prev];
-                const lastIndex = newData.length - 1;
-                const jitter = Math.floor(Math.random() * 11) - 5; // -5 to +5
-                let newValue = newData[lastIndex].value + jitter;
-                if (newValue < 20) newValue = 20;
-                if (newValue > 150) newValue = 150;
-                newData[lastIndex] = { ...newData[lastIndex], value: newValue };
-                return newData;
-            });
-        }, 3000);
-
-        // Add an audit log occasionally
-        const systemLogEvents = [
-           'New API key generated by Alice.',
-           'Failed login attempt detected from IP 192.168.1.5',
-           'System scaled up instances due to high traffic.',
-           'Payment gateway webhook received: successful charge.',
-           'User preference schema updated.'
-        ];
-        
-        const logInterval = setInterval(() => {
-             if (Math.random() > 0.6) {
-                const msg = systemLogEvents[Math.floor(Math.random() * systemLogEvents.length)];
-                db.addAuditLog({ id: Date.now(), text: msg, time: 'Just now' });
-             }
-        }, 8000);
-
-        return () => {
-            clearInterval(chartInterval);
-            clearInterval(logInterval);
-        };
-    }, [liveMode, db]);
+        if (!liveMode) return undefined;
+        const timer = window.setInterval(() => {
+            setPresenceTick((tick) => tick + 1);
+        }, 15_000);
+        return () => window.clearInterval(timer);
+    }, [liveMode]);
 
 
     // --- CALENDAR & TASKS ---
@@ -348,8 +474,14 @@ export function WorkspaceScreen() {
 
 
     // --- ADMIN & INTEGRATIONS ---
-    const [integrations, setIntegrations] = useState<Record<string, boolean>>({ slack: true, trello: false, github: true });
-    const [dismissedFlags, setDismissedFlags] = useState<Record<number, boolean>>({});
+    const cloudConnections = Array.isArray(db.settings.cloudConnections)
+      ? db.settings.cloudConnections
+      : [];
+    const [integrations, setIntegrations] = useState<Record<string, boolean>>(() => ({
+      slack: cloudConnections.some((c) => /slack/i.test(String(c?.id ?? c?.provider ?? ''))),
+      trello: cloudConnections.some((c) => /trello/i.test(String(c?.id ?? c?.provider ?? ''))),
+      github: cloudConnections.some((c) => /github|git/i.test(String(c?.id ?? c?.provider ?? ''))),
+    }));
     
     // --- SPLASH AD SETTINGS ---
     const [splashAdUrl, setSplashAdUrl] = useState<string>((db.settings.splashAdUrl as string) || '');
@@ -366,11 +498,7 @@ export function WorkspaceScreen() {
             detail: 'Splash ad settings saved successfully!' 
         }));
     };
-    const flags = [
-        { id: 1, text: 'Review requested on post "p_9842"', reason: 'Community Guidelines Violation', user: 5 },
-        { id: 2, text: 'Suspicious login activity reported', reason: 'Unusual IP location', user: 2 }
-    ];
-    const activeFlags = flags.filter(f => !dismissedFlags[f.id]);
+    const activeFlags = moderationFlags;
 
     const toggleIntegration = (key: string) => {
         const newVal = !integrations[key];
@@ -398,8 +526,8 @@ export function WorkspaceScreen() {
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
                 <div>
-                    <h1 className="text-3xl font-serif italic font-black flex items-center gap-3">
-                        <span className="vibe-gradient-text">Collab Workspace</span>
+                    <h1 className="text-3xl font-serif italic font-black flex items-center gap-3 flex-wrap">
+                        <span className="vibe-gradient-text">{WORKSPACE_DISPLAY_NAME}</span>
                         {liveMode && (
                             <span className="flex items-center gap-1.5 text-xs font-bold text-green-500 bg-green-500/10 px-2.5 py-1 rounded-full border border-green-500/20 shadow-sm animate-pulse">
                                 <Circle className="w-2 h-2 fill-green-500" /> Live
@@ -408,6 +536,8 @@ export function WorkspaceScreen() {
                     </h1>
                     <p className="text-muted-foreground mt-1 font-medium text-sm">Advanced project management & analytics dashboard</p>
                 </div>
+                <div className="flex flex-col gap-3 w-full sm:w-auto sm:items-end">
+                    <AutomationControlToggles />
                 <div className="flex items-center gap-3">
                     <button 
                         onClick={() => setLiveMode(!liveMode)}
@@ -428,6 +558,7 @@ export function WorkspaceScreen() {
                         className="px-5 py-2 bg-primary text-primary-foreground rounded-xl font-bold shadow-md hover:bg-primary/90 transition-colors flex items-center gap-2">
                         <Plus className="w-4 h-4" /> New Project
                     </button>
+                </div>
                 </div>
             </div>
 
@@ -513,26 +644,32 @@ export function WorkspaceScreen() {
                                 <div className="p-2 bg-blue-500/10 text-blue-500 rounded-xl"><FolderKanban className="w-6 h-6" /></div>
                                 <MoreVertical className="w-5 h-5 text-muted-foreground cursor-pointer" />
                             </div>
-                            <div className="text-3xl font-black mb-1">12</div>
+                            <div className="text-3xl font-black mb-1">{activeProjects}</div>
                             <div className="text-sm font-medium text-muted-foreground">Active Projects</div>
                         </div>
                         <div className="p-6 border border-border rounded-2xl bg-card shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-2 bg-green-500/10 text-green-500 rounded-xl"><ShieldCheck className="w-6 h-6" /></div>
                             </div>
-                            <div className="text-3xl font-black mb-1 text-green-500">100%</div>
-                            <div className="text-sm font-medium text-muted-foreground">Data Encrypted</div>
+                            <div className="text-3xl font-black mb-1 text-green-500">{privateShare}%</div>
+                            <div className="text-sm font-medium text-muted-foreground">Private accounts</div>
                         </div>
                         <div className="p-6 border border-border rounded-2xl bg-card shadow-sm hover:shadow-md transition-shadow">
                             <div className="flex justify-between items-start mb-4">
                                 <div className="p-2 bg-purple-500/10 text-purple-500 rounded-xl"><Users className="w-6 h-6" /></div>
                             </div>
-                            <div className="text-3xl font-black mb-1">24</div>
+                            <div className="text-3xl font-black mb-1">{teamActiveCount}</div>
                             <div className="text-sm font-medium text-muted-foreground">Team Active</div>
                             <div className="flex items-center gap-[-8px] mt-2">
-                                {USERS.slice(0, 5).map(u => (
-                                    <img key={u.id} src={u.avatarUrl || undefined} className="w-6 h-6 rounded-full border-2 border-background object-cover" alt="team" onError={handleAvatarError} />
-                                ))}
+                                {sortedCollaborators
+                                  .filter((u) => {
+                                    const status = collaboratorInfoById.get(u.id)?.status;
+                                    return status === 'online' || status === 'idle';
+                                  })
+                                  .slice(0, 5)
+                                  .map((u) => (
+                                    <img key={u.id} src={safeAvatarUrl(u.avatarUrl)} className="w-6 h-6 rounded-full border-2 border-background object-cover" alt="" onError={handleAvatarError} />
+                                  ))}
                             </div>
                         </div>
                         <div className="p-6 border border-border rounded-2xl bg-gradient-to-br from-amber-400/20 to-orange-500/20 text-card-foreground shadow-sm">
@@ -540,8 +677,8 @@ export function WorkspaceScreen() {
                                 <div className="p-2 bg-orange-500/20 text-orange-500 rounded-xl"><Star className="w-6 h-6 fill-orange-500" /></div>
                             </div>
                             <div className="text-3xl font-black mb-1 text-orange-500">Rank</div>
-                            <div className="text-sm font-bold text-foreground">Top 5% Performer</div>
-                            <div className="w-full bg-black/10 rounded-full h-1.5 mt-2 overflow-hidden"><div className="bg-orange-500 w-[85%] h-full"></div></div>
+                            <div className="text-sm font-bold text-foreground">{performerRankLabel}</div>
+                            <div className="w-full bg-black/10 rounded-full h-1.5 mt-2 overflow-hidden"><div className="bg-orange-500 h-full" style={{ width: `${performerBarWidth}%` }}></div></div>
                         </div>
                     </div>
 
@@ -556,7 +693,7 @@ export function WorkspaceScreen() {
                             </div>
                             <div className="p-6 h-[350px] w-full min-w-0 overflow-hidden pr-0 pl-0 sm:pl-2">
                                  <ResponsiveContainer width="99%" height="100%">
-                                     <AreaChart data={chartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
+                                     <AreaChart data={liveChartData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                                        <defs>
                                          <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                                             <stop offset="5%" stopColor={performanceChartTheme.seriesFillTop} stopOpacity={1}/>
@@ -591,14 +728,18 @@ export function WorkspaceScreen() {
                                 <h2 className="text-lg font-bold flex items-center gap-2"><Clock className="w-5 h-5 text-accent" /> Audit Trail</h2>
                             </div>
                             <div className="p-5 overflow-y-auto space-y-6 flex-1 no-scrollbar relative">
-                                {auditLogs.map((activity, i) => (
+                                {auditLogs.length === 0 ? (
+                                    <p className="text-sm text-muted-foreground font-medium">No workspace activity yet.</p>
+                                ) : (
+                                  auditLogs.map((activity, i) => (
                                     <div key={activity.id} className="relative pl-6 animate-in slide-in-from-left-2 fade-in duration-300">
                                         {i !== auditLogs.length - 1 && <div className="absolute left-2 top-2 bottom-[-24px] w-[2px] bg-border" />}
                                         <div className="absolute left-[3px] top-1.5 w-2 h-2 rounded-full bg-primary ring-4 ring-background" />
                                         <p className="text-[13px] font-bold leading-relaxed">{activity.text}</p>
-                                        <span className="text-[11px] text-muted-foreground font-medium">{activity.time}</span>
+                                        <span className="text-[11px] text-muted-foreground font-medium">{formatAuditLogTime(activity)}</span>
                                     </div>
-                                ))}
+                                  ))
+                                )}
                             </div>
                         </div>
                     </div>
@@ -631,13 +772,13 @@ export function WorkspaceScreen() {
                         <div className="p-5 overflow-x-auto no-scrollbar">
                             <div className="min-w-[600px] divide-y divide-border/60">
                                 {sortedCollaborators.map((user) => {
-                                    const info = getCollaboratorInfo(user.id);
+                                    const info = collaboratorInfoById.get(user.id) ?? getCollaboratorLiveInfo(db, user, posts);
                                     return (
                                         <div key={user.id} className="flex items-center justify-between py-3.5 first:pt-0 last:pb-0 group">
                                             <div className="flex items-center gap-3.5">
                                                 <div className="relative">
                                                     <img 
-                                                        src={user.avatarUrl || undefined} 
+                                                        src={safeAvatarUrl(user.avatarUrl)} 
                                                         className="w-11 h-11 rounded-full object-cover border border-border/80" 
                                                         alt={user.displayName}
                                                         onError={handleAvatarError}
@@ -939,6 +1080,7 @@ export function WorkspaceScreen() {
                 {/* Admin & Integrations View */}
                 {activeTab === 'admin' && (
                   <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
+                     <AppBrandPortalCard />
                      <AdminPanel />
                      
                      <div className="border border-border bg-card rounded-2xl overflow-hidden shadow-sm">
@@ -952,25 +1094,57 @@ export function WorkspaceScreen() {
                            </span>
                         </div>
                         <div className="p-5">
-                           {activeFlags.map((flag) => (
+                           {activeFlags.map((flag) => {
+                               const author = resolveUser(USERS, { id: flag.userId });
+                               return (
                                <div key={flag.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-destructive/20 rounded-xl bg-destructive/5 mb-3 gap-4">
-                                  <div className="flex items-center gap-3">
-                                    <img src={safeAvatarUrl(USERS.length > 0 ? USERS[flag.user % USERS.length]?.avatarUrl : db.currentUser?.avatarUrl)} className="w-10 h-10 rounded-lg object-cover border border-border" alt="flagged" onError={handleAvatarError} />
-                                    <div>
-                                       <div className="font-bold text-[14px]">{flag.text}</div>
-                                       <div className="text-xs text-destructive flex items-center gap-1 mt-0.5"><Zap className="w-3 h-3"/> Reason: {flag.reason}</div>
+                                  <div className="flex items-center gap-3 min-w-0">
+                                    <div className="relative shrink-0">
+                                      <img
+                                        src={safeAvatarUrl(flag.thumbUrl || author.avatarUrl)}
+                                        className="w-12 h-12 rounded-lg object-cover border border-border"
+                                        alt=""
+                                        onError={handleAvatarError}
+                                      />
+                                      <img
+                                        src={safeAvatarUrl(author.avatarUrl)}
+                                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full object-cover border-2 border-card"
+                                        alt=""
+                                        onError={handleAvatarError}
+                                      />
+                                    </div>
+                                    <div className="min-w-0">
+                                       <div className="font-bold text-[14px] truncate">{flag.text}</div>
+                                       <div className="text-xs text-muted-foreground mt-0.5 truncate">
+                                         {author.displayName || flag.userName} · @{author.username || flag.username}
+                                         {flag.createdAt ? ` · ${getRelativeTimeString(flag.createdAt)}` : ''}
+                                       </div>
+                                       <div className="text-xs text-destructive flex items-center gap-1 mt-0.5"><Zap className="w-3 h-3 shrink-0"/> Reason: {flag.reason}</div>
                                     </div>
                                   </div>
-                                  <div className="flex gap-2 self-end sm:self-auto">
-                                     <button onClick={() => setDismissedFlags(prev => ({...prev, [flag.id]: true}))} className="px-3 py-1.5 border border-border rounded-lg hover:bg-secondary text-sm font-bold flex items-center gap-1"><Ban className="w-4 h-4 text-destructive" /> Reject</button>
-                                     <button onClick={() => setDismissedFlags(prev => ({...prev, [flag.id]: true}))} className="px-3 py-1.5 border border-border rounded-lg hover:bg-secondary text-sm font-bold flex items-center gap-1"><CheckCircle2 className="w-4 h-4 text-green-500" /> Approve</button>
+                                  <div className="flex gap-2 self-end sm:self-auto shrink-0">
+                                     <button
+                                       type="button"
+                                       onClick={() => rejectReportedPost(flag.id)}
+                                       className="px-3 py-1.5 border border-border rounded-lg hover:bg-secondary text-sm font-bold flex items-center gap-1"
+                                     >
+                                       <Ban className="w-4 h-4 text-destructive" /> Reject
+                                     </button>
+                                     <button
+                                       type="button"
+                                       onClick={() => approveReportedPost(flag.id)}
+                                       className="px-3 py-1.5 border border-border rounded-lg hover:bg-secondary text-sm font-bold flex items-center gap-1"
+                                     >
+                                       <CheckCircle2 className="w-4 h-4 text-green-500" /> Approve
+                                     </button>
                                   </div>
                                </div>
-                           ))}
+                           );
+                           })}
                            {activeFlags.length === 0 && (
                              <div className="text-center text-sm font-medium text-muted-foreground py-8 flex flex-col items-center justify-center gap-2">
                                <ShieldCheck className="w-10 h-10 text-green-500 opacity-50" />
-                               All clear! No pending moderations.
+                               All clear! No reported posts pending review.
                              </div>
                            )}
                         </div>
@@ -1119,92 +1293,16 @@ export function WorkspaceScreen() {
             </div>
 
             {/* MODALS */}
-            {fullscreenMedia && createPortal(
-                <div 
-                  id="workspace-fs-modal"
-                  className="fixed inset-0 z-[250] flex items-center justify-center bg-white dark:bg-zinc-950 pointer-events-auto animate-in fade-in duration-200"
-                  onTouchStart={handleFsTouchStart}
-                  onTouchMove={handleFsTouchMove}
-                  onTouchEnd={handleFsTouchEnd}
-                >
-                  <button
-                    onClick={() => setFullscreenMedia(null)}
-                    className="absolute top-4 right-4 z-[260] text-white p-2 hover:bg-white/10 rounded-full transition-colors cursor-pointer"
-                  >
-                    <X className="w-8 h-8 drop-shadow-md" />
-                  </button>
-                  <div className="w-full h-full flex items-center justify-center p-4 select-none">
-                    {(() => {
-                      const item = fullscreenMedia.items[fullscreenMedia.mediaIndex];
-                      if (!item) return null;
-                      if (item.isVideo) {
-                        return (
-                          <video
-                            key={`ws-fs-vid-${fullscreenMedia.mediaIndex}`}
-                            src={item.url || undefined}
-                            className="max-w-full max-h-full object-contain"
-                            controls
-                            autoPlay
-                            loop
-                            playsInline
-                            preload="auto"
-                            {...nativeVideoControlGuardProps()}
-                          />
-                        );
-                      } else {
-                        return (
-                          <img
-                            key={`ws-fs-img-${fullscreenMedia.mediaIndex}`}
-                            src={item.url || undefined}
-                            className="max-w-full max-h-full object-contain pointer-events-none"
-                            alt="Fullscreen media"
-                            onError={handleMediaError}
-                          />
-                        );
-                      }
-                    })()}
-                  </div>
-
-                  {/* Navigation controls - Hidden on Mobile / Tablet, Swipes active everywhere */}
-                  {fullscreenMedia.items.length > 1 && (
-                    <>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFullscreenMedia((prev) => 
-                            prev ? { ...prev, mediaIndex: (prev.mediaIndex === 0 ? prev.items.length - 1 : prev.mediaIndex - 1) } : null
-                          );
-                        }}
-                        className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 hidden lg:flex items-center justify-center text-white transition-all z-[260] hover:scale-105 active:scale-95"
-                      >
-                        <ChevronLeft className="w-6 h-6" />
-                      </button>
-                      <button
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setFullscreenMedia((prev) => 
-                            prev ? { ...prev, mediaIndex: (prev.mediaIndex === prev.items.length - 1 ? 0 : prev.mediaIndex + 1) } : null
-                          );
-                        }}
-                        className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/60 hover:bg-black/80 hidden lg:flex items-center justify-center text-white transition-all z-[260] hover:scale-105 active:scale-95"
-                      >
-                        <ChevronRight className="w-6 h-6" />
-                      </button>
-
-                      {/* Dot indicators */}
-                      <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex items-center gap-1.5 z-[260] bg-zinc-900 border border-border px-3 py-1.5 rounded-full shadow-lg">
-                        {fullscreenMedia.items.map((_, i) => (
-                          <div 
-                            key={`ws-fs-dot-${i}`}
-                            className={`w-1.5 h-1.5 rounded-full transition-all ${i === fullscreenMedia.mediaIndex ? 'bg-white scale-125' : 'bg-white/30'}`}
-                          />
-                        ))}
-                      </div>
-                    </>
-                  )}
-                </div>,
-                document.body
-             )}
+            {fullscreenMedia ? (
+              <WorkspaceMediaFullscreenPortal
+                fullscreenMedia={fullscreenMedia}
+                onClose={() => setFullscreenMedia(null)}
+                onMediaIndexChange={(mediaIndex) =>
+                  setFullscreenMedia((prev) => (prev ? { ...prev, mediaIndex } : null))
+                }
+                taskVideoRefs={taskVideoRefs}
+              />
+            ) : null}
             {isNewProjectModalOpen && (
                 <div className="fixed inset-0 bg-white dark:bg-zinc-950 z-[200] flex items-center justify-center p-4">
                     <div className="absolute inset-0" onClick={() => setIsNewProjectModalOpen(false)}></div>

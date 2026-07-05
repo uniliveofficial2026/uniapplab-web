@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import { createPortal } from 'react-dom';
 import { MoreHorizontal, X } from 'lucide-react';
 import {
@@ -13,6 +13,7 @@ import { ProfilePremiumBadgeForUser } from '../common/ProfilePremiumBadge';
 import { ProfileNameLines } from '../common/ProfileNameLines';
 import { getProfileMentionLabel } from '../../lib/profileDisplay';
 import { openUserProfileSurface } from '../../lib/profileSurface';
+import { refreshCloudFollowsForProfile } from '../../lib/cloudSocial/followsSync';
 
 export function FollowListModal({
   profileUserId,
@@ -31,6 +32,10 @@ export function FollowListModal({
   const [hoverFollowId, setHoverFollowId] = useState<string | null>(null);
   const [menuUserId, setMenuUserId] = useState<string | null>(null);
   const { hoveredMenuItem, setHoveredMenuItem } = useOptionsMenuHover(!!menuUserId);
+
+  useEffect(() => {
+    void refreshCloudFollowsForProfile(profileUserId);
+  }, [profileUserId]);
 
   const members = useMemo(
     () => db.getFollowListMembers(profileUserId, mode),

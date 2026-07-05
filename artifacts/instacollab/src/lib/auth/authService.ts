@@ -25,7 +25,12 @@ import {
   firebaseUpdatePassword,
 } from '../firebase/authApi';
 import { isFirebaseConfigured } from '../firebase/config';
+import { withSupabaseFirebaseFailover } from './failover';
+import {
+  isSupabaseOAuthDegraded,
+} from './providerState';
 import { clearDevLocalAuthBypass } from './devLocalAuth';
+import { clearFirebaseBackupLink } from './firebaseBackupLink';
 import type { AuthResult } from './types';
 
 export type { AuthResult } from './types';
@@ -40,6 +45,15 @@ function isCredentialMismatch(reason: string): boolean {
 
 export async function authSignInWithEmail(email: string, password: string): Promise<AuthResult> {
   const trimmed = email.trim();
+  if (isSupabaseConfigured() && isFirebaseConfigured()) {
+    const result = await withSupabaseFirebaseFailover(
+      () => supabaseSignIn(trimmed, password),
+      () => firebaseSignIn(trimmed, password),
+      { failOnCredentialError: true },
+    );
+    if (result.ok) clearDevLocalAuthBypass();
+    return result;
+  }
   if (isSupabaseConfigured()) {
     const supabaseResult = await supabaseSignIn(trimmed, password);
     if (supabaseResult.ok) {
@@ -64,6 +78,13 @@ export async function authSignUp(payload: {
   username: string;
   displayName: string;
 }): Promise<AuthResult & { needsEmailConfirmation?: boolean }> {
+  if (isSupabaseConfigured() && isFirebaseConfigured()) {
+    return withSupabaseFirebaseFailover(
+      () => supabaseSignUp(payload),
+      () => firebaseSignUp(payload),
+      { failOnCredentialError: true },
+    );
+  }
   if (isSupabaseConfigured()) {
     return supabaseSignUp(payload);
   }
@@ -107,6 +128,13 @@ export async function authVerifyEmailOtp(
 }
 
 export async function authRequestPasswordReset(email: string): Promise<AuthResult> {
+  if (isSupabaseConfigured() && isFirebaseConfigured()) {
+    return withSupabaseFirebaseFailover(
+      () => supabaseRequestPasswordReset(email),
+      () => firebaseRequestPasswordReset(email),
+      { failOnCredentialError: false },
+    );
+  }
   if (isSupabaseConfigured()) {
     return supabaseRequestPasswordReset(email);
   }
@@ -131,13 +159,25 @@ export async function authSignInWithGoogle(options?: {
   loginHint?: string;
 }): Promise<AuthResult> {
   clearDevLocalAuthBypass();
+
+  if (isSupabaseConfigured() && isFirebaseConfigured()) {
+    if (isSupabaseOAuthDegraded()) {
+      return firebaseSignInWithGoogle();
+    }
+    return withSupabaseFirebaseFailover(
+      async () => {
+        const result = await supabaseSignInWithGoogle(options);
+        return result.ok ? { ok: true, redirecting: true } : result;
+      },
+      async () => firebaseSignInWithGoogle(),
+      { failOnCredentialError: false },
+    );
+  }
   if (isSupabaseConfigured()) {
-    await firebaseSignOut().catch(() => {});
     const result = await supabaseSignInWithGoogle(options);
     return result.ok ? { ok: true, redirecting: true } : result;
   }
   if (isFirebaseConfigured()) {
-    await supabaseSignOut().catch(() => {});
     return firebaseSignInWithGoogle();
   }
   return noCloud();
@@ -145,13 +185,25 @@ export async function authSignInWithGoogle(options?: {
 
 export async function authSignInWithApple(): Promise<AuthResult> {
   clearDevLocalAuthBypass();
+
+  if (isSupabaseConfigured() && isFirebaseConfigured()) {
+    if (isSupabaseOAuthDegraded()) {
+      return firebaseSignInWithApple();
+    }
+    return withSupabaseFirebaseFailover(
+      async () => {
+        const result = await supabaseSignInWithApple();
+        return result.ok ? { ok: true, redirecting: true } : result;
+      },
+      async () => firebaseSignInWithApple(),
+      { failOnCredentialError: false },
+    );
+  }
   if (isSupabaseConfigured()) {
-    await firebaseSignOut().catch(() => {});
     const result = await supabaseSignInWithApple();
     return result.ok ? { ok: true, redirecting: true } : result;
   }
   if (isFirebaseConfigured()) {
-    await supabaseSignOut().catch(() => {});
     return firebaseSignInWithApple();
   }
   return noCloud();
@@ -159,5 +211,6 @@ export async function authSignInWithApple(): Promise<AuthResult> {
 
 export async function authSignOut(options?: { keepDevBypass?: boolean }): Promise<void> {
   if (!options?.keepDevBypass) clearDevLocalAuthBypass();
+  clearFirebaseBackupLink();
   await Promise.allSettled([supabaseSignOut(), firebaseSignOut()]);
 }

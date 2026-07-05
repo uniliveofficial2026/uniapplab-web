@@ -1,20 +1,49 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { ReactNode, useEffect, useRef, useState } from 'react';
-import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Gamepad2, Globe, Wallet, Circle, X, Heart, Sun, Moon } from 'lucide-react';
+import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Gamepad2, Globe, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings } from 'lucide-react';
 import { Tab, User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
-import { handleAvatarError, handleMediaError } from '../../lib/utils';
+import { fileToBase64, handleAvatarError } from '../../lib/utils';
+import { safeAvatarUrl } from '../../lib/safe';
+import { SafeMediaImage } from '../common/SafeMediaImage';
+import { getProfileDisplayName } from '../../lib/profileDisplay';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
+
+/** Stable marketplace images (no fragile query params). */
+const MARKETPLACE_PRESET_IMAGES = [
+  'https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1492691527719-9d1e07e534b4?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1516035069371-29a1b244cc32?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1452587925148-ce544e77e70d?w=400&h=400&fit=crop',
+] as const;
+
+const MARKETPLACE_REC_IMAGES = [
+  'https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1486312338219-ce68d2c6f44d?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1432888498266-38ffec3eaf0a?w=400&h=400&fit=crop',
+  'https://images.unsplash.com/photo-1552664730-d307ca884978?w=400&h=400&fit=crop',
+] as const;
 import { PostAudioPlaybackRoot } from '../playback/PostAudioPlaybackRoot';
+import { AppLogo } from '../common/AppLogo';
 import { pauseAllPlayback } from '../../lib/playbackAudio';
 import { resetMediaOverlayLocks } from '../../lib/mediaOverlayLock';
 import { applyDocumentTheme, nextTheme } from '../../lib/theme';
-import { useDB } from '../../lib/useDB';
+import { useDB, useDbRevision } from '../../lib/useDB';
+import { resolveUser } from '../../lib/safe';
 import { dispatchTapRefresh, scrollAppMainToTop } from '../../lib/appRefresh';
 import { requestKaraokeStudioOpen } from '../../lib/karaokeSearch';
 import { navTapButtonClass, navTapIconButtonClass, navTapRowButtonClass } from '../../lib/navTap';
 import { ShellCreateModal, type CreateLaunch } from './ShellCreateModal';
 import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 import { MobileDevConnectBanner } from '../common/MobileDevConnectBanner';
+import { AccountSwitcherModal } from '../profile/AccountSwitcherModal';
+import { ProfileEditSettingsModal } from '../profile/ProfileEditSettingsModal';
+import { BlockedUsersModal } from '../profile/BlockedUsersModal';
+import { useAuth } from '../../lib/AuthContext';
+import { useCloudAuth } from '../../contexts/CloudAuthContext';
+import { isCloudAuthConfigured } from '../../lib/auth/config';
+import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
+import { liveSurfaceFromTab, refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
 
 interface ShellProps {
   currentTab: Tab;
@@ -25,12 +54,72 @@ interface ShellProps {
 
 export function Shell({ currentTab, setCurrentTab, currentUser, children }: ShellProps) {
   const db = useDB();
+  useDbRevision();
+  const {
+    logout: firebaseLogout,
+    switchAccount,
+    deleteAccount,
+    userAccounts,
+    selectAccount,
+    removeAccount,
+    ensureDeviceAccountsSynced,
+    sendEmailAuthOtp,
+    verifyEmailAuthOtp,
+  } = useAuth();
+  const { signOut: cloudSignOut, session: cloudSession } = useCloudAuth();
   const [showCreateMenu, setShowCreateMenu] = useState(false);
   const [createLaunch, setCreateLaunch] = useState<CreateLaunch | null>(null);
   const [showMarketplace, setShowMarketplace] = useState(false);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [hideMobileTopNavForChat, setHideMobileTopNavForChat] = useState(false);
+  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [showSettings, setShowSettings] = useState(false);
+  const [showBlockedUsers, setShowBlockedUsers] = useState(false);
+  const [accountLinking, setAccountLinking] = useState(false);
+  const [localUser, setLocalUser] = useState(() => resolveUser(db.users, currentUser));
+  const settingsFileInputRef = useRef<HTMLInputElement | null>(null);
   const { showToast } = useToast();
+
+  useEffect(() => {
+    setLocalUser(resolveUser(db.users, currentUser));
+  }, [db.users, currentUser]);
+
+  const openAccountSwitcher = () => {
+    void ensureDeviceAccountsSynced().then(() => setShowAccountSwitcher(true));
+  };
+
+  const openSettings = () => {
+    setLocalUser(resolveUser(db.users, currentUser));
+    setShowSettings(true);
+  };
+
+  const handleLogout = () => {
+    if (!window.confirm(`Log out of ${APP_DISPLAY_NAME} on this device?`)) return;
+    void (async () => {
+      if (isCloudAuthConfigured()) {
+        await cloudSignOut();
+      } else {
+        await firebaseLogout();
+      }
+      showToast('Logged out');
+    })();
+  };
+
+  const handleSettingsAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    e.target.value = '';
+    if (!file || !localUser.id) return;
+    try {
+      const avatarUrl = await fileToBase64(file);
+      const next = { ...localUser, avatarUrl };
+      setLocalUser(next);
+      db.updateUser(localUser.id, () => next);
+      if (isCloudAuthConfigured()) scheduleCloudProfileSync(next);
+      showToast('Profile photo updated');
+    } catch {
+      showToast('Failed to update profile photo');
+    }
+  };
 
   const openCreator = (type: 'post' | 'reel' | 'text' | 'story' = 'post') => {
     setCreateLaunch({ type, step: 'upload' });
@@ -48,12 +137,14 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   };
 
   const navigateToTab = (tab: Tab) => {
+    // Paint tab change first — cloud refresh is deferred inside refreshLiveCloudSurface.
     if (tab === 'notifications') db.setHasUnreadNotifications(false);
     if (tab === 'messages') db.setUnreadMessagesCount(0);
     if (tab === 'karaoke') {
       requestKaraokeStudioOpen();
     }
     setCurrentTab(tab);
+    refreshLiveCloudSurface(liveSurfaceFromTab(tab));
   };
 
   const handleHomeTap = () => {
@@ -137,15 +228,20 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     { id: 'local-games', icon: Gamepad2, label: 'Local Games' },
     { id: 'third-party-games', icon: Globe, label: 'Third Party Games' },
     { id: 'wallet', icon: Wallet, label: 'Wallet' },
+    { id: 'youtube', icon: Youtube, label: 'YouTube' },
   ];
 
   const hideShellMobileTopNav =
     hideMobileTopNavForChat || currentTab === 'karaoke' || currentTab === 'rooms';
   const showShellMobileBottomNav =
     !hideMobileTopNavForChat &&
+    currentTab !== 'messages' &&
     currentTab !== 'reels' &&
     currentTab !== 'karaoke' &&
     currentTab !== 'rooms';
+
+  const isFullHeightTab =
+    currentTab === 'messages' || currentTab === 'karaoke' || currentTab === 'rooms';
 
   return (
     <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden font-sans">
@@ -216,16 +312,35 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                   <div>
                     <h3 className="font-bold text-xl mb-4">Trending Presets</h3>
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                      {[...Array(4)].map((_, i) => (
+                      {MARKETPLACE_PRESET_IMAGES.map((imageUrl, i) => {
+                        const creator = db.users[i % Math.max(1, db.users.length)];
+                        const creatorHandle = creator
+                          ? `@${creator.username}`
+                          : `@creator_${i + 1}`;
+                        return (
                         <div key={'trending-'+i} className="border border-border rounded-2xl overflow-hidden p-3 bg-secondary/10 hover:bg-secondary/40 cursor-pointer transition-all group">
                           <div className="aspect-square bg-muted rounded-xl mb-3 overflow-hidden relative">
-                            <img src={`https://images.unsplash.com/photo-1546069901-ba9599a7e63c?w=300&fit=crop&sig=${i}`} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" alt="Product" onError={handleMediaError} />
+                            <SafeMediaImage
+                              src={imageUrl}
+                              alt=""
+                              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                            />
                             <div className="absolute top-2 right-2 bg-zinc-900/90 text-xs font-bold px-2 py-1 rounded-md text-white">
                               ⭐ 4.9
                             </div>
                           </div>
                           <div className="font-bold text-[15px] leading-tight mb-1 group-hover:text-primary transition-colors">Cinematic Film {i+1}</div>
-                          <div className="text-xs text-muted-foreground font-medium mb-2">By @creator_{i+1}</div>
+                          <div className="text-xs text-muted-foreground font-medium mb-2 flex items-center gap-1.5 min-w-0">
+                            {creator ? (
+                              <img
+                                src={safeAvatarUrl(creator.avatarUrl)}
+                                alt=""
+                                className="w-4 h-4 rounded-full object-cover shrink-0"
+                                onError={handleAvatarError}
+                              />
+                            ) : null}
+                            <span className="truncate">By {creatorHandle}</span>
+                          </div>
                           <div className="flex items-center justify-between">
                             <div className="font-black">${(10 + i * 7.3).toFixed(2)}</div>
                             <button 
@@ -236,28 +351,39 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                             </button>
                           </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 
                   <div>
                     <h3 className="font-bold text-xl mb-4">Recommended for you</h3>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      {[...Array(4)].map((_, i) => (
+                      {MARKETPLACE_REC_IMAGES.map((imageUrl, i) => {
+                        const creator = db.users[(i + 2) % Math.max(1, db.users.length)];
+                        return (
                         <div key={'rec-'+i} className="border border-border rounded-2xl p-4 flex gap-4 bg-secondary/10 hover:bg-secondary/40 cursor-pointer transition-all">
                            <div className="w-24 h-24 bg-secondary rounded-xl overflow-hidden shrink-0">
-                             <img src={`https://images.unsplash.com/photo-1517836357463-d25dfeac3438?w=200&fit=crop&sig=${i+4}`} className="w-full h-full object-cover" onError={handleMediaError} />
+                             <SafeMediaImage
+                               src={imageUrl}
+                               alt=""
+                               className="w-full h-full object-cover"
+                             />
                            </div>
-                           <div className="flex flex-col justify-center flex-1">
+                           <div className="flex flex-col justify-center flex-1 min-w-0">
                               <h4 className="font-bold text-[16px] mb-1">Notion Content Planner</h4>
-                              <p className="text-xs text-muted-foreground font-medium mb-3">Complete template for managing your content schedule and sponsorships.</p>
+                              <p className="text-xs text-muted-foreground font-medium mb-3">
+                                Complete template for managing your content schedule
+                                {creator ? ` · by ${getProfileDisplayName(creator)}` : ''}.
+                              </p>
                               <div className="flex items-center justify-between mt-auto">
                                 <span className="font-black text-primary">$19.99</span>
                                 <span className="text-xs font-bold text-muted-foreground">⭐ 4.8 (120)</span>
                               </div>
                            </div>
                         </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
               </div>
@@ -269,7 +395,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
 
       {/* Desktop Sidebar */}
       {currentTab !== 'karaoke' && currentTab !== 'rooms' && (
-      <div className="hidden md:flex flex-col w-[72px] lg:w-[244px] h-full border-r border-border bg-background pt-[calc(2rem+env(safe-area-inset-top))] pb-[calc(1rem+env(safe-area-inset-bottom))] px-3 lg:px-4 shrink-0 transition-all relative z-40 overflow-y-auto no-scrollbar">
+      <div className="hidden md:flex flex-col w-[72px] lg:w-[244px] h-full border-r border-border bg-background pt-[calc(2rem+var(--app-safe-top))] pb-[calc(1rem+var(--app-safe-bottom))] px-3 lg:px-4 shrink-0 transition-all relative z-40 overflow-y-auto no-scrollbar">
         {/* Logo */}
         <div className="mb-10 px-2 flex items-center justify-center lg:justify-start">
           <button
@@ -279,10 +405,10 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
             aria-label={currentTab === 'home' ? 'Refresh feed' : 'Go to home'}
           >
             <span className="lg:hidden flex">
-              <span className="font-black text-xl italic font-serif vibe-gradient-text">I</span>
+              <AppLogo showText={false} iconClassName="w-8 h-8" />
             </span>
             <span className="hidden lg:flex">
-              <span className="font-black text-2xl tracking-tighter vibe-gradient-text logo-font font-serif italic">InstaCollab</span>
+              <AppLogo iconClassName="w-8 h-8" textClassName="text-2xl" />
             </span>
           </button>
         </div>
@@ -368,6 +494,42 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
             </div>
             <span className="hidden lg:block text-[15px]">{themeToggleLabel}</span>
           </button>
+          <button
+            type="button"
+            onClick={openSettings}
+            className={`${navTapRowButtonClass} p-2 hover:text-foreground text-muted-foreground font-medium transition-colors group`}
+            aria-label="Settings"
+            title="Settings"
+          >
+            <div className="p-2 rounded-xl bg-muted group-hover:bg-foreground group-hover:text-background transition-colors">
+              <Settings className="w-5 h-5 stroke-[2px]" />
+            </div>
+            <span className="hidden lg:block text-[15px]">Settings</span>
+          </button>
+          <button
+            type="button"
+            onClick={openAccountSwitcher}
+            className={`${navTapRowButtonClass} p-2 hover:text-foreground text-muted-foreground font-medium transition-colors group`}
+            aria-label="Add or Switch Account"
+            title="Add or Switch Account"
+          >
+            <div className="p-2 rounded-xl bg-muted group-hover:bg-foreground group-hover:text-background transition-colors">
+              <UserPlus className="w-5 h-5 stroke-[2px]" />
+            </div>
+            <span className="hidden lg:block text-[15px]">Add or Switch Account</span>
+          </button>
+          <button
+            type="button"
+            onClick={handleLogout}
+            className={`${navTapRowButtonClass} p-2 hover:text-foreground text-muted-foreground font-medium transition-colors group`}
+            aria-label="Log out"
+            title="Log out"
+          >
+            <div className="p-2 rounded-xl bg-muted group-hover:bg-foreground group-hover:text-background transition-colors">
+              <LogOut className="w-5 h-5 stroke-[2px]" />
+            </div>
+            <span className="hidden lg:block text-[15px]">Log out</span>
+          </button>
         </div>
       </div>
       )}
@@ -382,10 +544,10 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                <button
                  type="button"
                  onClick={handleHomeTap}
-                 className={`${navTapButtonClass} font-black text-2xl tracking-tighter vibe-gradient-text logo-font font-serif italic min-h-[44px]`}
+                 className={`${navTapButtonClass} min-h-[44px]`}
                  aria-label={currentTab === 'home' ? 'Refresh feed' : 'Go to home'}
                >
-                 InstaCollab
+                 <AppLogo showText iconClassName="w-8 h-8" textClassName="text-2xl" />
                </button>
                <div className={`flex items-center gap-1 ${currentTab === 'reels' ? 'text-white' : 'text-foreground'}`}>
                   <button type="button" onClick={() => navigateToTab('workspace')} className={navTapIconButtonClass} aria-label="Workspace">
@@ -411,8 +573,14 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
           </div>
         )}
 
-        <main className={`flex-1 flex flex-col relative w-full ${currentTab === 'rooms' ? 'pt-0' : hideShellMobileTopNav ? 'pt-[env(safe-area-inset-top)]' : ''} bg-transparent ${(currentTab === 'messages' || currentTab === 'karaoke' || currentTab === 'rooms') ? 'overflow-hidden h-full pb-0' : currentTab === 'reels' ? 'overflow-y-auto overflow-x-hidden no-scrollbar pb-0 bg-black' : 'overflow-y-auto overflow-x-hidden no-scrollbar pb-[calc(50px_+_env(safe-area-inset-bottom))] md:pb-[max(1.5rem,env(safe-area-inset-bottom))]'}`}>
-          <div className={`w-full flex-1 flex flex-col bg-transparent ${(currentTab === 'messages' || currentTab === 'karaoke' || currentTab === 'rooms') ? 'h-full justify-stretch items-stretch overflow-hidden' : 'items-center'}`}>
+        <main className={`flex-1 flex flex-col relative w-full min-h-0 ${!isFullHeightTab && hideShellMobileTopNav ? 'pt-[var(--app-safe-top)]' : ''} bg-transparent ${isFullHeightTab ? 'overflow-hidden h-full pb-0' : currentTab === 'reels' ? 'overflow-y-auto overflow-x-hidden no-scrollbar pb-0 bg-black' : 'overflow-y-auto overflow-x-hidden no-scrollbar pb-shell-nav md:pb-[max(1.5rem,var(--app-safe-bottom))]'}`}>
+          <div
+            className={`w-full flex flex-col bg-transparent ${
+              isFullHeightTab
+                ? 'flex-1 min-h-0 h-full justify-stretch items-stretch overflow-hidden'
+                : 'w-full'
+            }`}
+          >
                {children}
           </div>
         </main>
@@ -495,6 +663,39 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                  }} aria-label={themeToggleLabel} className={`${navTapRowButtonClass} p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}>
                    <ThemeToggleIcon className="w-6 h-6 text-foreground" /> {themeToggleLabel}
                  </button>
+
+                 <div className="pt-2 mt-2 border-t border-border space-y-2">
+                   <button
+                     type="button"
+                     onClick={() => {
+                       setShowMobileMenu(false);
+                       openSettings();
+                     }}
+                     className={`${navTapRowButtonClass} p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}
+                   >
+                     <Settings className="w-6 h-6 text-foreground" /> Settings
+                   </button>
+                   <button
+                     type="button"
+                     onClick={() => {
+                       setShowMobileMenu(false);
+                       openAccountSwitcher();
+                     }}
+                     className={`${navTapRowButtonClass} p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}
+                   >
+                     <UserPlus className="w-6 h-6 text-primary" /> Add or Switch Account
+                   </button>
+                   <button
+                     type="button"
+                     onClick={() => {
+                       setShowMobileMenu(false);
+                       handleLogout();
+                     }}
+                     className={`${navTapRowButtonClass} p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}
+                   >
+                     <LogOut className="w-6 h-6 text-foreground" /> Log out
+                   </button>
+                 </div>
                </div>
             </motion.div>
           </div>
@@ -504,7 +705,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
 
       {/* Mobile Bottom Navigation */}
       {showShellMobileBottomNav && (
-        <div className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 w-full min-h-[50px] pt-1 pb-safe bg-background border-border border-t flex items-center justify-around z-[100] px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
+        <div className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 w-full pt-1 bg-background border-border border-t flex items-center justify-around z-[100] px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
           <button type="button" onClick={() => handleBottomNavTap('home')} className={navTapIconButtonClass} aria-label="Home">
             <Home className={`w-6 h-6 ${currentTab === 'home' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
           </button>
@@ -526,6 +727,116 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
       )}
       <MobileDevConnectBanner />
       <PwaInstallPrompt />
+
+      {showSettings ? (
+        <ProfileEditSettingsModal
+          onClose={() => setShowSettings(false)}
+          onOpenSettings={() => setShowSettings(true)}
+          targetUser={localUser}
+          isCurrentUser
+          localUser={localUser}
+          setLocalUser={setLocalUser}
+          fileInputRef={settingsFileInputRef}
+          handleAvatarChange={handleSettingsAvatarChange}
+          onOpenBlockedUsers={() => {
+            setShowSettings(false);
+            setShowBlockedUsers(true);
+          }}
+          onOpenAccountSwitcher={() => {
+            setShowSettings(false);
+            openAccountSwitcher();
+          }}
+          onDeleteAccount={deleteAccount}
+          onLogout={handleLogout}
+        />
+      ) : null}
+
+      {showBlockedUsers ? (
+        <BlockedUsersModal onClose={() => setShowBlockedUsers(false)} />
+      ) : null}
+
+      <AccountSwitcherModal
+        open={showAccountSwitcher}
+        accounts={userAccounts}
+        liveUsers={db.users}
+        activeUid={cloudSession?.user?.id ?? db.currentUserId ?? currentUser?.id}
+        linking={accountLinking}
+        cloudAuthEnabled={isCloudAuthConfigured()}
+        onClose={() => setShowAccountSwitcher(false)}
+        onRefreshAccounts={ensureDeviceAccountsSynced}
+        onSelectAccount={async (uid, password) => {
+          try {
+            const label =
+              userAccounts.find((a) => a.uid === uid)?.displayName || 'selected account';
+            showToast(`Switching to ${label}…`);
+            await selectAccount(uid, password);
+            await ensureDeviceAccountsSynced();
+            setLocalUser(resolveUser(db.users, db.currentUser));
+            setShowAccountSwitcher(false);
+          } catch (err) {
+            const message = err instanceof Error ? err.message : 'Failed to switch account.';
+            showToast(message);
+          }
+        }}
+        onRemoveAccount={(uid) => {
+          removeAccount(uid);
+          void ensureDeviceAccountsSynced();
+        }}
+        onSendEmailOtp={async (email, mode, profile) => {
+          try {
+            setAccountLinking(true);
+            await ensureDeviceAccountsSynced();
+            return await sendEmailAuthOtp(email, {
+              createAccount: mode === 'signup',
+              displayName: profile?.displayName,
+              username: profile?.username,
+            });
+          } catch {
+            return { ok: false, reason: 'Failed to send email code.' };
+          } finally {
+            setAccountLinking(false);
+          }
+        }}
+        onVerifyEmailOtp={async (email, code) => {
+          try {
+            setAccountLinking(true);
+            const result = await verifyEmailAuthOtp(email, code, { switchAccount: true });
+            if (result.ok) {
+              await ensureDeviceAccountsSynced();
+              setLocalUser(resolveUser(db.users, db.currentUser));
+              setShowAccountSwitcher(false);
+            }
+            return result;
+          } catch {
+            return { ok: false, reason: 'Failed to verify email code.' };
+          } finally {
+            setAccountLinking(false);
+          }
+        }}
+        onLinkGoogle={async () => {
+          try {
+            setAccountLinking(true);
+            setShowAccountSwitcher(false);
+            await ensureDeviceAccountsSynced();
+            const result = await switchAccount();
+            if (result.redirecting) {
+              showToast('Opening Google sign-in…');
+              return;
+            }
+            if (result.ok) {
+              await ensureDeviceAccountsSynced();
+              setLocalUser(resolveUser(db.users, db.currentUser));
+              showToast('Google account linked!');
+            } else if (result.reason) {
+              showToast(result.reason);
+            }
+          } catch {
+            showToast('Failed to start account linking.');
+          } finally {
+            setAccountLinking(false);
+          }
+        }}
+      />
     </div>
   );
 }

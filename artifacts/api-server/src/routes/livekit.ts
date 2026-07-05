@@ -12,6 +12,7 @@ import {
   pingLiveKit,
   streamRoomName,
   partyRoomName,
+  chatCallRoomName,
 } from "../lib/livekit";
 
 const router: IRouter = Router();
@@ -115,7 +116,25 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
     }
 
     const userId = req.authUser!.id;
-    const roomName = partyRoomName(roomId.trim());
+    const normalizedRoomId = roomId.trim();
+    const { data: room, error: roomError } = await getSupabaseService()
+      .from("party_rooms")
+      .select("id, owner_id, status, privacy")
+      .eq("id", normalizedRoomId)
+      .maybeSingle();
+
+    if (roomError || !room || room.status !== "active") {
+      res.status(404).json({ error: "party_room_not_found" });
+      return;
+    }
+
+    const wantsPublish = Boolean(publish);
+    if (wantsPublish && room.owner_id !== userId && room.privacy !== "Public") {
+      res.status(403).json({ error: "publish_not_allowed" });
+      return;
+    }
+
+    const roomName = partyRoomName(normalizedRoomId);
     await ensureLiveKitRoom(roomName);
 
     const token = await createLiveKitToken({
@@ -129,8 +148,63 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
       token,
       url: getLiveKitUrl(),
       roomName,
-      roomId: roomId.trim(),
+      roomId: normalizedRoomId,
       publish: Boolean(publish),
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** 1:1 / group chat audio+video calls — any thread member may publish. */
+router.post("/livekit/chat/token", auth, requireNotBanned, async (req, res, next) => {
+  try {
+    if (!isLiveKitConfigured()) {
+      res.status(503).json({ error: "livekit_not_configured" });
+      return;
+    }
+
+    const { threadId, callKind = "audio" } = req.body as {
+      threadId?: string;
+      callKind?: "audio" | "video";
+    };
+    if (!threadId?.trim()) {
+      res.status(400).json({ error: "threadId required" });
+      return;
+    }
+
+    const userId = req.authUser!.id;
+    const tid = threadId.trim();
+    const { data: membership, error } = await getSupabaseService()
+      .from("chat_thread_members")
+      .select("user_id")
+      .eq("thread_id", tid)
+      .eq("user_id", userId)
+      .maybeSingle();
+    if (error || !membership) {
+      res.status(403).json({ error: "not_thread_member" });
+      return;
+    }
+
+    const kind = callKind === "video" ? "video" : "audio";
+    const roomName = chatCallRoomName(tid, kind);
+    await ensureLiveKitRoom(roomName);
+
+    const token = await createLiveKitToken({
+      identity: userId,
+      name: req.profile?.display_name || req.profile?.username || userId,
+      room: roomName,
+      // Both call types publish audio; only video calls publish camera.
+      canPublish: true,
+    });
+
+    res.json({
+      token,
+      url: getLiveKitUrl(),
+      roomName,
+      threadId: tid,
+      callKind: kind,
+      publish: true,
     });
   } catch (err) {
     next(err);

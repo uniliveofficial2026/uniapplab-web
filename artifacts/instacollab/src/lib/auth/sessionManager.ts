@@ -13,7 +13,7 @@ import {
   userFromSession,
 } from '../supabase/profile';
 import type { ProfileRow } from '../supabase/types';
-import { withTimeout } from '../supabase/withTimeout';
+import { NET_AUTH_MS, NET_HYDRATE_MS, withTimeout } from '../networkPolicy';
 import { isDevLocalAuthBypass } from './devLocalAuth';
 import { isNetworkOnline } from '../networkStatus';
 import { startCloudAppStateRealtime, stopCloudAppStateRealtime } from './cloudAppState';
@@ -25,13 +25,17 @@ import {
   loadStoredAccountSession,
   saveStoredAccountSession,
 } from './storedAccountSessions';
-import { initThoughtNoteCloudSync, teardownThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
-import { startCloudChatRealtime, stopCloudChatRealtime } from '../chat/cloudChatSync';
+import { initThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
 import { syncLiveSessionData } from '../liveSessionSync';
 import { bootstrapCloudSystemsAfterAuth } from '../appCloudSystems';
+import {
+  startLiveCloudSurfaces,
+  stopLiveCloudSurfaces,
+} from '../liveCloudSurfaces';
+import { shouldIgnoreSupabaseSignedOut } from './silentAuthSwitch';
 
-const DB_READY_MS = 8_000;
-const PROFILE_MS = 12_000;
+const DB_READY_MS = NET_AUTH_MS;
+const PROFILE_MS = NET_HYDRATE_MS;
 
 let profileRealtimeUnsub: (() => void) | null = null;
 
@@ -75,78 +79,99 @@ function startProfileRealtime(userId: string): void {
 }
 
 /** Apply (or clear) Supabase session into the local store and wire realtime channels. */
-export async function applySupabaseSessionToLocalDb(session: Session | null): Promise<void> {
-  await withTimeout(db.whenStorageReady(), DB_READY_MS, 'Local storage');
+export async function applySupabaseSessionToLocalDb(
+  session: Session | null,
+  options?: { silent?: boolean },
+): Promise<void> {
+  const silent = options?.silent === true;
+  // Don't hang on slow IDB — localStorage mirror already seeds the cache.
+  await withTimeout(db.whenStorageReady(), DB_READY_MS, 'Local storage').catch(() => undefined);
 
   if (isDevLocalAuthBypass() && db.isLoggedIn) {
     return;
   }
 
   if (!session?.user) {
+    if (shouldIgnoreSupabaseSignedOut()) {
+      return;
+    }
     if (isDevLocalAuthBypass() && db.isLoggedIn) return;
     // Ignore stale SIGNED_OUT during account switch — a newer session may already exist.
     const supabase = getSupabaseClient();
     if (supabase && isNetworkOnline()) {
-      const { data } = await supabase.auth.getSession();
+      const { data } = await withTimeout(
+        supabase.auth.getSession(),
+        DB_READY_MS,
+        'Supabase getSession',
+      ).catch(() => ({ data: { session: null as Session | null } }));
       if (data.session?.user) return;
+    }
+    // Offline: never wipe local cache/session — keep working from IDB.
+    if (!isNetworkOnline() && db.isLoggedIn) {
+      return;
     }
     stopProfileRealtime();
     stopCloudAppStateRealtime();
+    stopLiveCloudSurfaces();
     db.logout();
     return;
   }
 
+  // ── Cache-first: paint local user immediately, then live cloud in background ──
+  const userId = session.user.id;
+  const cached = db.users.find((u) => u.id === userId);
+  const instantUser = cached ?? userFromSession(session, null);
+  db.syncAuthUser(instantUser);
+  syncDeviceAccountForAppUser({
+    ...instantUser,
+    email: session.user.email ?? undefined,
+  });
+  saveStoredAccountSession(userId, session);
+  writeStoredAuthBackend('supabase');
+
   if (!isNetworkOnline()) {
-    const userId = session.user.id;
-    const existing = db.users.find((u) => u.id === userId);
-    if (existing) {
-      db.syncAuthUser(existing);
-    } else {
-      db.syncAuthUser(userFromSession(session, null));
-    }
-    syncDeviceAccountForAppUser({
-      ...(db.users.find((u) => u.id === userId) ?? userFromSession(session, null)),
-      email: session.user.email ?? undefined,
-    });
     startProfileRealtime(userId);
     initThoughtNoteCloudSync();
-    await startCloudAppStateRealtime(userId);
-    void startCloudChatRealtime(userId);
+    void startCloudAppStateRealtime(userId);
+    startLiveCloudSurfaces(userId);
     bootstrapCloudSystemsAfterAuth();
     return;
   }
 
-  let profile = await withTimeout(
-    fetchProfile(session.user.id),
-    PROFILE_MS,
-    'Profile fetch',
-  ).catch(() => null);
-
-  if (!profile) {
-    profile = await withTimeout(
-      ensureProfileFromSession(session),
+  // Live cloud hydrate — never blocks first UI frame.
+  void (async () => {
+    let profile = await withTimeout(
+      fetchProfile(userId),
       PROFILE_MS,
-      'Profile ensure',
+      'Profile fetch',
     ).catch(() => null);
-  }
 
-  const appUser = userFromSession(session, profile);
-  db.syncAuthUser(appUser);
-  syncDeviceAccountForAppUser({
-    ...appUser,
-    email: session.user.email ?? undefined,
-  });
-  saveStoredAccountSession(session.user.id, session);
-  db.advanceLaunchProgressAfterLogin(Boolean(profile?.profile_setup_complete));
-  writeStoredAuthBackend('supabase');
-  clearSupabaseUnhealthy();
+    if (!profile) {
+      profile = await withTimeout(
+        ensureProfileFromSession(session),
+        PROFILE_MS,
+        'Profile ensure',
+      ).catch(() => null);
+    }
 
-  startProfileRealtime(appUser.id);
-  initThoughtNoteCloudSync();
-  await startCloudAppStateRealtime(appUser.id);
-  void startCloudChatRealtime(appUser.id);
-  await syncLiveSessionData(appUser.id);
-  bootstrapCloudSystemsAfterAuth();
+    const appUser = userFromSession(session, profile);
+    db.syncAuthUser(appUser);
+    syncDeviceAccountForAppUser({
+      ...appUser,
+      email: session.user.email ?? undefined,
+    });
+    if (!silent || db.currentUserId !== appUser.id) {
+      db.advanceLaunchProgressAfterLogin(Boolean(profile?.profile_setup_complete));
+    }
+    clearSupabaseUnhealthy();
+
+    startProfileRealtime(appUser.id);
+    initThoughtNoteCloudSync();
+    void startCloudAppStateRealtime(appUser.id);
+    startLiveCloudSurfaces(appUser.id);
+    void syncLiveSessionData(appUser.id);
+    bootstrapCloudSystemsAfterAuth();
+  })();
 }
 
 /** Restore a previously saved per-account Supabase session (seamless account switch). */
@@ -223,6 +248,5 @@ export function subscribeSupabaseAuthChanges(handlers: {
 export function teardownCloudSession(): void {
   stopProfileRealtime();
   stopCloudAppStateRealtime();
-  stopCloudChatRealtime();
-  teardownThoughtNoteCloudSync();
+  stopLiveCloudSurfaces();
 }

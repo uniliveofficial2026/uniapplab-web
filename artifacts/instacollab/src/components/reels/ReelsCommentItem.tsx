@@ -94,7 +94,6 @@ export function ReelsCommentItem({
                   username: commentAuthor.username || 'user',
                 });
                 setCommentText(`@${commentAuthor.username} `);
-                commentInputRef.current?.focus();
               }}
               className="hover:text-foreground"
             >

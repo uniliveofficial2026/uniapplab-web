@@ -117,7 +117,7 @@ export function FullscreenPostMediaContent({
   if (isTextPost) {
     return (
       <div
-        className={`w-full max-w-2xl h-full max-h-[80vh] flex flex-col items-center justify-center p-12 ${livePost.bg && !livePost.bg.includes('bg-secondary') ? livePost.bg : 'bg-background'} rounded-3xl relative shadow-2xl border border-border/50`}
+        className={`w-full max-w-2xl max-h-[100dvh] flex flex-col items-center justify-center px-6 py-[max(2rem,env(safe-area-inset-top))] sm:p-12 ${livePost.bg && !livePost.bg.includes('bg-secondary') ? livePost.bg : 'bg-background'} sm:rounded-3xl relative shadow-2xl border border-border/50`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="w-full flex-1 overflow-y-auto no-scrollbar flex flex-col items-center justify-center py-6">
@@ -181,7 +181,7 @@ export function FullscreenPostMediaContent({
   if (showVideo && (resolvedFsUrl || fsMedia.url)) {
     const poster = resolvedFsPoster || fsMedia.posterUrl || undefined;
     return (
-      <MediaWithSoundtrack className="inline-flex max-w-full">
+      <MediaWithSoundtrack className="flex h-full w-full max-h-full max-w-full items-center justify-center">
         <video
           key={`fs-vid-${currentMediaIdx}`}
           data-playback-scope={PLAYBACK_SCOPE.MANAGED}
@@ -214,7 +214,7 @@ export function FullscreenPostMediaContent({
   }
 
   return (
-    <MediaWithSoundtrack className="inline-flex max-w-full">
+    <MediaWithSoundtrack className="flex h-full w-full max-h-full max-w-full items-center justify-center">
       <img
         key={`fs-img-${currentMediaIdx}`}
         src={fsImageSrc || undefined}

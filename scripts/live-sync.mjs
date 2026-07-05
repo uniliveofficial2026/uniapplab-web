@@ -13,8 +13,8 @@
  *   LIVE_SYNC_DEPLOY_ON_START=1      — deploy on startup (default: off)
  *   LIVE_SYNC_AUTO_HEAL=0               — skip self-heal before deploy (default: on)
  *   LIVE_SYNC_VERIFY=0                  — skip post-deploy production checks (default: on)
- *   LIVE_SYNC_AUTO_PUSH=0               — skip git commit+push before deploy (default: on)
- *   LIVE_SYNC_DEPLOY=0                  — local dev only, no Vercel deploys (use when rate-limited)
+ *   LIVE_SYNC_AUTO_PUSH=1               — git commit+push before deploy (default: off; see config/auto-deploy.json)
+ *   LIVE_SYNC_DEPLOY=1                  — enable Vercel deploys on save (default: off; see config/auto-deploy.json)
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -22,6 +22,20 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const AUTO_DEPLOY_CONFIG_PATH = path.join(ROOT, 'config/auto-deploy.json');
+
+function loadAutoDeployConfig() {
+  try {
+    if (!fs.existsSync(AUTO_DEPLOY_CONFIG_PATH)) {
+      return { enabled: false, autoPush: false };
+    }
+    return JSON.parse(fs.readFileSync(AUTO_DEPLOY_CONFIG_PATH, 'utf8'));
+  } catch {
+    return { enabled: false, autoPush: false };
+  }
+}
+
+const autoDeployConfig = loadAutoDeployConfig();
 const USE_POLL_WATCH =
   process.env.LIVE_SYNC_POLLING === '1' || ROOT.startsWith('/Volumes/');
 const DEBOUNCE_MS = Number(
@@ -34,8 +48,12 @@ const DEPLOY_MODE = (process.env.LIVE_SYNC_MODE || 'remote').toLowerCase();
 const POLL_WATCH_MS = Number(process.env.LIVE_SYNC_POLL_MS ?? '800');
 const AUTO_HEAL = process.env.LIVE_SYNC_AUTO_HEAL !== '0';
 const VERIFY_PROD = process.env.LIVE_SYNC_VERIFY !== '0';
-const AUTO_PUSH = process.env.LIVE_SYNC_AUTO_PUSH !== '0';
-const DEPLOY_ENABLED = process.env.LIVE_SYNC_DEPLOY !== '0';
+const AUTO_PUSH =
+  process.env.LIVE_SYNC_AUTO_PUSH === '1' ||
+  (process.env.LIVE_SYNC_AUTO_PUSH !== '0' && autoDeployConfig.autoPush === true);
+const DEPLOY_ENABLED =
+  process.env.LIVE_SYNC_DEPLOY === '1' ||
+  (process.env.LIVE_SYNC_DEPLOY !== '0' && autoDeployConfig.enabled === true);
 const VERIFY_WAIT_MS = Number(process.env.LIVE_SYNC_VERIFY_WAIT_MS ?? '45000');
 const MAX_VERIFY_RETRIES = Number(process.env.LIVE_SYNC_VERIFY_RETRIES ?? '2');
 
@@ -239,7 +257,12 @@ function runSelfHeal() {
 }
 
 function runAutoPush() {
-  if (!AUTO_PUSH) return 0;
+  const autoDeployConfig = loadAutoDeployConfig();
+  const autoPush =
+    process.env.LIVE_SYNC_AUTO_PUSH === '1' ||
+    (process.env.LIVE_SYNC_AUTO_PUSH !== '0' && autoDeployConfig.autoPush === true);
+
+  if (!autoPush) return 0;
 
   const status = spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
   const dirty = (status.stdout || '').trim();
@@ -318,8 +341,13 @@ function spawnDeploy(deployEnv) {
 let deployRateLimitedUntil = 0;
 
 async function runDeploy(reason, verifyAttempt = 0) {
-  if (!DEPLOY_ENABLED) {
-    log('deploy skipped (LIVE_SYNC_DEPLOY=0)');
+  const autoDeployConfig = loadAutoDeployConfig();
+  const deployEnabled =
+    process.env.LIVE_SYNC_DEPLOY === '1' ||
+    (process.env.LIVE_SYNC_DEPLOY !== '0' && autoDeployConfig.enabled === true);
+
+  if (!deployEnabled) {
+    log('deploy skipped (auto-deploy paused — set config/auto-deploy.json enabled:true or LIVE_SYNC_DEPLOY=1)');
     return;
   }
   if (Date.now() < deployRateLimitedUntil) {
@@ -454,7 +482,7 @@ process.on('SIGTERM', shutdown);
 
 log('Develop mode — local http://localhost:5173 (silent background sync)');
 if (!SILENT) {
-  log(`Deploy: ${DEPLOY_MODE}`);
+  log(`Deploy: ${DEPLOY_ENABLED ? DEPLOY_MODE : 'paused'}`);
   log(`Self-heal: ${AUTO_HEAL ? 'on' : 'off'} · Verify: ${VERIFY_PROD ? 'on' : 'off'} · Auto-push: ${AUTO_PUSH ? 'on' : 'off'}`);
   log(`Handoff agent: ${process.env.UX_AGENT === '0' ? 'off' : 'on (silent)'}`);
 }

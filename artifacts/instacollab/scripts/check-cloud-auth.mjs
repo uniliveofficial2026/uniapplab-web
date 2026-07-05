@@ -49,7 +49,11 @@ async function main() {
   }
 
   if (firebaseProject) {
-    ok.push(`Firebase project (legacy/optional): ${firebaseProject}`);
+    ok.push(`Firebase backup OAuth: ${firebaseProject}`);
+  } else if (supabaseUrl && !supabaseUrl.includes('your-project')) {
+    issues.push(
+      'VITE_FIREBASE_PROJECT_ID missing — Google/Apple backup sign-in will not work when Supabase OAuth is down',
+    );
   }
 
   const migrationFiles = fs.existsSync(migrationsDir)
@@ -81,6 +85,8 @@ async function main() {
   console.log('');
   console.log('Cloud auth check');
   console.log('────────────────');
+  console.log('  (SQL like select to_regclass(...) runs in Supabase SQL Editor — not Terminal.)');
+  console.log('');
 
   if (supabaseUrl && supabaseKey) {
     try {
@@ -146,12 +152,36 @@ async function main() {
       } else if (appStateProbe.missingTable) {
         exitCode = 1;
         issues.push(
-          'public.user_app_state table is MISSING — run full supabase/bootstrap.sql (pnpm run auth:bootstrap-db)',
+          'public.user_app_state table is MISSING — run pnpm run auth:bootstrap-db (bootstrap-full.sql)',
         );
       } else {
         issues.push(
           `Could not verify user_app_state table (${appStateProbe.body?.slice(0, 120) ?? 'unknown'})`,
         );
+      }
+
+      for (const [table, col, label] of [
+        ['follows', 'follower_id', 'public.follows (global social graph)'],
+        ['party_rooms', 'owner_id', 'public.party_rooms (K-Star room discovery)'],
+        ['party_room_messages', 'room_id', 'public.party_room_messages (live room chat)'],
+        ['streams', 'user_id', 'public.streams (live discovery)'],
+        ['posts', 'author_id', 'public.posts (shared feed)'],
+      ]) {
+        const probe = await probeTable(supabaseUrl, supabaseKey, table, col);
+        if (probe.ok) {
+          ok.push(`${label}: exists`);
+        } else if (probe.missingTable) {
+          exitCode = 1;
+          if (table === 'follows') {
+            issues.push(`${label} is MISSING — run: pnpm run auth:repair-follows`);
+          } else if (table === 'party_room_messages') {
+            issues.push(
+              `${label} is MISSING — paste supabase/migrations/20260703140000_party_room_chat.sql in SQL Editor`,
+            );
+          } else {
+            issues.push(`${label} is MISSING — run pnpm run auth:bootstrap-db`);
+          }
+        }
       }
     } catch (err) {
       issues.push(`Could not reach Supabase: ${err instanceof Error ? err.message : err}`);
@@ -167,7 +197,7 @@ async function main() {
     console.log('  Or apply migrations one-by-one:');
     for (const f of migrationFiles) console.log(`    • supabase/migrations/${f}`);
     console.log('');
-    console.log('  Faster: one file → supabase/bootstrap.sql (pnpm run auth:bootstrap-db)');
+    console.log('  Faster: one file → supabase/bootstrap-full.sql (pnpm run auth:bootstrap-db)');
   } else if (!fs.existsSync(path.join(appRoot, 'supabase', 'bootstrap.sql'))) {
     issues.push('Missing supabase/bootstrap.sql under artifacts/instacollab/');
   }

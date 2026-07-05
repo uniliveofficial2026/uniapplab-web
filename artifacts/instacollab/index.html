@@ -6,7 +6,7 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="InstaCollab" />
+    <meta name="apple-mobile-web-app-title" content="UniLive" />
     <meta name="theme-color" content="#020617" />
     <script>
       (function () {
@@ -20,25 +20,102 @@
           var root = document.documentElement;
           if (theme === 'dark') root.classList.add('dark');
           root.style.colorScheme = theme;
+          // Instant paint colors before CSS/JS load
+          document.documentElement.style.backgroundColor = theme === 'dark' ? '#020617' : '#f8fafc';
+          document.documentElement.style.color = theme === 'dark' ? '#ffffff' : '#000000';
         } catch (e) {}
       })();
     </script>
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
     <link rel="apple-touch-icon" href="/opengraph.jpg" />
+    <!-- Non-blocking fonts — UI paints with system font first -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
-    <title>InstaCollab</title>
-    <meta name="description" content="InstaCollab — social platform for creators" />
-    <meta property="og:title" content="InstaCollab" />
-    <meta property="og:description" content="InstaCollab — social platform for creators" />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+    </noscript>
+    <title>UniLive</title>
+    <meta name="description" content="UniLive — social platform for creators" />
+    <meta property="og:title" content="UniLive" />
+    <meta property="og:description" content="UniLive — social platform for creators" />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="InstaCollab" />
-    <meta name="twitter:description" content="InstaCollab — social platform for creators" />
+    <meta name="twitter:title" content="UniLive" />
+    <meta name="twitter:description" content="UniLive — social platform for creators" />
+    <style>
+      /* Visible before any JS — prevents blank white/black flash */
+      html, body {
+        margin: 0;
+        min-height: 100dvh;
+        background: #020617;
+        color: #fff;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      html:not(.dark), html:not(.dark) body {
+        background: #f8fafc;
+        color: #000;
+      }
+      #boot-shell {
+        position: fixed;
+        inset: 0;
+        display: flex;
+        flex-direction: column;
+        background: inherit;
+        color: inherit;
+        z-index: 0;
+      }
+      #boot-shell .boot-top {
+        height: calc(3.25rem + var(--app-safe-top, env(safe-area-inset-top, 0px)));
+        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
+        flex-shrink: 0;
+      }
+      #boot-shell .boot-main {
+        flex: 1;
+        padding: 1rem;
+        display: flex;
+        flex-direction: column;
+        gap: 0.75rem;
+      }
+      #boot-shell .boot-row {
+        height: 0.75rem;
+        border-radius: 999px;
+        background: rgba(148, 163, 184, 0.2);
+        max-width: 12rem;
+      }
+      #boot-shell .boot-card {
+        height: 10rem;
+        border-radius: 1rem;
+        background: rgba(148, 163, 184, 0.15);
+      }
+      #boot-shell .boot-nav {
+        height: calc(3.25rem + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
+        border-top: 1px solid rgba(148, 163, 184, 0.25);
+        flex-shrink: 0;
+      }
+      #root:not(:empty) + #boot-shell,
+      #root:has(*) ~ #boot-shell {
+        display: none;
+      }
+    </style>
   </head>
   <body>
     <div id="root"></div>
+    <!-- Instant visible chrome while JS bundle parses/executes -->
+    <div id="boot-shell" aria-hidden="true">
+      <div class="boot-top"></div>
+      <div class="boot-main">
+        <div class="boot-row"></div>
+        <div class="boot-card"></div>
+        <div class="boot-card"></div>
+      </div>
+      <div class="boot-nav"></div>
+    </div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

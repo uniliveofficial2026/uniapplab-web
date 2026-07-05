@@ -54,6 +54,7 @@ import {
   useOptionsMenuHover,
   type OptionsMenuTone,
 } from '../../lib/optionsMenu';
+import { refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
 
 export function ReelsScreen() {
   const db = useDB();
@@ -65,6 +66,10 @@ export function ReelsScreen() {
   const [activeReelIndex, setActiveReelIndex] = useState(0);
   const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    refreshLiveCloudSurface('reels');
+  }, []);
   
   useEffect(() => {
     const handleScroll = () => {

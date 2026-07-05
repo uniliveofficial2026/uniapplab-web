@@ -50,19 +50,29 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
+      const offline =
+        typeof navigator !== 'undefined' && navigator.onLine === false;
+      const chunkError = isChunkLoadError(this.state.message);
       return (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="text-lg font-bold text-foreground">Something went wrong</p>
+        <div className="flex min-h-[40vh] flex-1 flex-col items-center justify-center gap-3 p-6 text-center bg-background text-foreground">
+          <p className="text-lg font-bold text-foreground">
+            {offline && chunkError ? 'Saved layout only' : 'Something went wrong'}
+          </p>
           {this.props.screen ? (
             <p className="text-xs text-muted-foreground">Screen: {this.props.screen}</p>
           ) : null}
           <p className="max-w-md text-sm text-muted-foreground">{this.state.message}</p>
+          {offline ? (
+            <p className="max-w-md text-xs text-muted-foreground">
+              Navigation, profile, and any screens you opened online stay available. Reconnect to load this tab.
+            </p>
+          ) : null}
           <button
             type="button"
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
             onClick={this.handleRetry}
           >
-            Try again
+            {offline ? 'Stay on app' : 'Try again'}
           </button>
         </div>
       );

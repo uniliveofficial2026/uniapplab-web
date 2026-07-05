@@ -105,6 +105,14 @@ export type AppSettings = {
   profileVisitorsEnabled?: boolean;
   cloudLastSyncAt?: string | null;
   cloudConnection?: CloudConnection | null;
+  /** Workspace automation — auto deploy on save (live-sync / CI) */
+  autoDeployEnabled?: boolean;
+  /** Git commit & push before deploy */
+  autoPushEnabled?: boolean;
+  /** Trigger GitHub Actions deploy workflow */
+  githubActionsDeploy?: boolean;
+  /** UX learning + Gemini auto-fix pipeline */
+  autoMachineLearning?: boolean;
   [key: string]: unknown;
 };
 

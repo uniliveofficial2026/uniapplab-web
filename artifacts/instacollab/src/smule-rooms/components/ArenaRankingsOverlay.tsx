@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { X, Trophy, Sparkles, Star, Coins, Heart, Send } from "lucide-react";
+import { X, Trophy, Sparkles, Heart, Send } from "lucide-react";
+import { CoinIcon } from "../../components/common/CoinIcon";
 
 export interface ArenaParticipant {
   id: string;
@@ -52,7 +53,7 @@ export function ArenaRankingsOverlay({ isOpen, onClose, participants, onSendSupp
     const amount = parseInt(customAmount);
     if (isNaN(amount) || amount <= 0) return;
 
-    onSendSupport(candidate.id, "Custom Stars Support", "⭐", amount * 10);
+    onSendSupport(candidate.id, "Custom Coins Support", "🪙", amount * 10);
   };
 
   return (
@@ -236,7 +237,7 @@ export function ArenaRankingsOverlay({ isOpen, onClose, participants, onSendSupp
                             placeholder="Enter Stars..."
                             className="w-full bg-[#1e0f33] border border-white/10 rounded-full pl-3.5 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-pink-500 font-bold"
                           />
-                          <span className="absolute right-3.5 top-1/2 -translate-y-1/2 text-yellow-400 text-xs">⭐</span>
+                          <CoinIcon className="absolute right-3.5 top-1/2 h-3 w-3 -translate-y-1/2 shrink-0" />
                         </div>
                         <button
                           type="submit"
@@ -256,7 +257,7 @@ export function ArenaRankingsOverlay({ isOpen, onClose, participants, onSendSupp
           </div>
 
           <div className="bg-black/30 border border-white/5 rounded-2xl p-3.5 text-left flex items-start space-x-3 select-none">
-            <Coins size={16} className="text-yellow-400 shrink-0 mt-0.5" />
+            <CoinIcon className="h-4 w-4 shrink-0 mt-0.5" />
             <div>
               <h4 className="text-[11px] font-black text-gray-100 uppercase tracking-wide">Dynamic Rank Swapping Rules</h4>
               <p className="text-[9.5px] text-gray-400 mt-0.5">

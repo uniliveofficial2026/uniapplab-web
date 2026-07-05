@@ -5,6 +5,7 @@ import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { safeMediaUrl } from '../../lib/safe';
 import { handleMediaError } from '../../lib/utils';
 import { formatChatFileSize } from './messages/chatFileUtils';
+import { AUDIO_ACCEPT, DOCUMENT_ACCEPT, PHOTO_VIDEO_ACCEPT } from '../../lib/mediaAccept';
 import { ChatInlineVideo } from './ChatInlineVideo';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 import { Waveform } from './Waveform';
@@ -64,14 +65,14 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
   } = props;
 
   return (
-    <div className="p-4 sm:p-6 pt-2 shrink-0 bg-background w-full z-20">
+    <div className="p-3 sm:p-4 pt-2 shrink-0 bg-background w-full z-20 pb-[max(0.5rem,var(--app-safe-bottom))]">
     <div className="flex flex-col gap-2">
        {chatMedia.length > 0 && (
-          <div className="flex gap-2 overflow-x-auto py-2">
+          <div className="flex gap-3 overflow-x-auto py-2 touch-pan-x scrollbar-hide">
             {chatMedia.map((media, idx) => (
               <div
                 key={idx}
-                className="relative inline-block border border-border rounded-lg max-w-[100px] h-20 group shrink-0 overflow-hidden"
+                className="relative inline-block border border-border rounded-xl max-w-[min(42vw,160px)] min-w-[120px] h-28 sm:h-32 group shrink-0 overflow-hidden shadow-sm"
               >
                 {media.isVideo ? (
                   <ChatInlineVideo
@@ -120,11 +121,18 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                     <span className="text-[8px] font-semibold text-primary">View</span>
                   </button>
                 ) : media.isAudio ? (
-                   <div className="w-full h-full bg-secondary flex items-center justify-center p-2">
-                     <div className="w-full h-full rounded-lg bg-primary/20 flex items-center justify-center relative overflow-hidden group-hover:scale-110 transition-transform">
-                        <Music className="w-8 h-8 text-primary animate-pulse" />
-                     </div>
-                   </div>
+                   <button
+                     type="button"
+                     onClick={() =>
+                       tryOpenMediaFullscreen(chatMedia, idx, `compose-${idx}`)
+                     }
+                     className="w-full h-full bg-secondary flex flex-col items-center justify-center gap-1 p-2 hover:bg-secondary/80 transition-colors"
+                   >
+                     <Music className="w-9 h-9 text-primary" />
+                     <span className="text-[9px] font-bold text-center line-clamp-2 px-1">
+                       {media.name || 'Audio'}
+                     </span>
+                   </button>
                  ) : (
                   <img
                     src={safeMediaUrl(media.url) || undefined}
@@ -257,7 +265,7 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                       animate={{ opacity: 1, scale: 1, y: 0 }}
                       exit={{ opacity: 0, scale: 0.5, y: 20 }}
                       data-attachment-menu-panel="true"
-                      className="absolute bottom-full left-0 mb-4 w-52 bg-white/75 dark:bg-zinc-900/75 backdrop-blur-xl border border-black/10 dark:border-white/15 rounded-3xl shadow-2xl overflow-hidden z-20"
+                      className="absolute bottom-full left-0 mb-3 w-[min(13rem,72vw)] max-h-[min(16rem,40dvh)] overflow-y-auto bg-white/75 dark:bg-zinc-900/75 backdrop-blur-xl border border-black/10 dark:border-white/15 rounded-3xl shadow-2xl z-20 sm:mb-4"
                     >
                       <div className="p-2 flex flex-col gap-1">
                         <button 
@@ -462,15 +470,15 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                )}
 </div>
 
-             <input type="file" id="chat-media-photo" className="hidden" accept="image/*,video/*" multiple onChange={onMediaUpload} />
+             <input type="file" id="chat-media-photo" className="hidden" accept={PHOTO_VIDEO_ACCEPT} multiple onChange={onMediaUpload} />
              <input
                type="file"
                id="chat-media-file"
                className="hidden"
-               accept="*/*"
+               accept={`${DOCUMENT_ACCEPT},${PHOTO_VIDEO_ACCEPT},${AUDIO_ACCEPT}`}
                onChange={onFileUploadMenu}
              />
-             <input type="file" id="chat-media-music" className="hidden" accept="audio/*" multiple onChange={onMusicUpload} />
+             <input type="file" id="chat-media-music" className="hidden" accept={AUDIO_ACCEPT} multiple onChange={onMusicUpload} />
              <button
                type="button"
               onMouseDown={handleMicDown}

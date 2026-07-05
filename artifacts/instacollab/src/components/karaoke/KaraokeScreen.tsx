@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Mic2, MicVocal, Search, TrendingUp, Music, Users, Play, Star, ChevronRight, Video, Gift, Trophy, Crown, Heart, MessageCircle, Bell, Coins, X, ArrowLeft, Edit, Save, Plus, Trash2, Sparkles, Camera, Info, Bookmark, MoreHorizontal, Clock, ChevronLeft, SkipBack, SkipForward, Upload, Sun, Moon, Menu, ImagePlus, UserRound, UserPen, UserPlus, UserCheck, UserMinus, UserX } from 'lucide-react';
+import { Mic, Mic2, MicVocal, Search, TrendingUp, Music, Users, Play, Star, ChevronRight, Video, Gift, Trophy, Crown, Heart, MessageCircle, Bell, X, ArrowLeft, Edit, Save, Plus, Trash2, Sparkles, Camera, Info, Bookmark, MoreHorizontal, Clock, ChevronLeft, SkipBack, SkipForward, Upload, Sun, Moon, Menu, ImagePlus, UserRound, Settings, UserPlus, UserCheck, UserMinus, UserX } from 'lucide-react';
+import { CoinIcon } from '../common/CoinIcon';
 import { ShareIcon } from '../common/ShareIcon';
-import { saveRoomSettings } from '../../smule-rooms/utils/storage';
+import { ensureRoomSettingsSeeded, saveRoomSettings } from '../../smule-rooms/utils/storage';
 import { RecordingStudio } from './RecordingStudio';
 import { PartyRoomIcon } from '../common/KaraokeNavIcons';
 import { ChallengeView } from './ChallengeView';
@@ -17,8 +18,13 @@ import { SavedRoomsList } from '../../smule-rooms/components/SavedRoomsList';
 import { ManagedRoomsList } from '../../smule-rooms/components/ManagedRoomsList';
 import { activateRoomContext, clearActiveRoomSession, type ManagedRoom } from '../../smule-rooms/utils/managedRooms';
 import type { RoomFlowEntry } from '../../smule-rooms/context/RoomFlowContext';
-import { ensureRoomSettingsSeeded } from '../../smule-rooms/utils/storage';
 import { ensureRoomRoleUserIds } from '../../smule-rooms/utils/roomRoleUsers';
+import {
+  consumePendingKaraokeRoomOpen,
+  type OpenKaraokeRoomDetail,
+} from '../../lib/live/openLiveRoom';
+import { AvatarQuickPresets } from '../common/AvatarQuickPresets';
+import { avatarPresetUrl } from '../../lib/avatarPresets';
 import { formatRoomHostMeta, resolveRoomHostDisplay } from '../../smule-rooms/utils/roomHostDisplay';
 import { formatProfileHandle, getProfileDisplayName } from '../../lib/profileDisplay';
 import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
@@ -32,6 +38,7 @@ import { useProfileStats } from '../../lib/useProfileStats';
 import { FollowListModal } from '../profile/FollowListModal';
 import { ShareModal } from '../feed/ShareModal';
 import { MessagesScreen } from '../messages/MessagesScreen';
+import { SafeMediaImage } from '../common/SafeMediaImage';
 import { NotificationsScreen } from '../notifications/NotificationsScreen';
 import { buildContextualProfileSharePayload } from '../../lib/profileShare';
 import { buildKaraokeTrackSharePayload, type SharePayload } from '../../lib/shareLinks';
@@ -41,6 +48,7 @@ import {
   type KaraokeProfileReturnContext,
 } from '../../lib/karaokeReturnContext';
 import { openAppProfileSurface } from '../../lib/profileSurface';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { resolveCanonicalAppUserId } from '../../lib/profileIdentity';
 import type { User } from '../../types';
 import { useDB, useDbRevision } from '../../lib/useDB';
@@ -55,9 +63,13 @@ import {
   spendKstarCoins,
 } from '../../lib/walletKstarSync';
 import { syncLiveSessionData } from '../../lib/liveSessionSync';
+import { liveSurfaceFromTab, refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
 import { isKstarVip } from '../../lib/kstarUserState';
 import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
 import { compressAvatarDataUrl } from '../../lib/auth/cloudAvatar';
+import { useCloudPartyRooms, type CloudPartyLobbyRoom } from '../../hooks/useCloudPartyRooms';
+import { useCloudLiveDiscovery } from '../../hooks/useCloudLiveDiscovery';
+import { isSupabaseConfigured } from '../../lib/supabase/config';
 import { safeAvatarUrl, safeMediaUrl, safeString, safeUsername, safeVideoUrl } from '../../lib/safe';
 import { fileToBase64, handleAvatarError, resolveAvatarSrc } from '../../lib/utils';
 import {
@@ -497,7 +509,7 @@ const COMMUNITY_DUETS = [
   { id: '1', users: ['@sarah_sings', '@johnny_b'], song: 'Shallow (A Star Is Born)', likes: '12K', comments: 452, videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
   { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likes: '8.5K', comments: 120, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?w=800&auto=format&fit=crop&q=60' },
 ];
-const LIVE_STREAMS = [
+const LIVE_STREAMS_FALLBACK = [
   { id: '1', user: 'Vocal Star 99', viewers: '1.2K', img: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=500&auto=format&fit=crop&q=60', tags: ['Live Concert', 'Pop'] },
   { id: '2', user: 'Acoustic Sessions', viewers: '840', img: 'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=500&auto=format&fit=crop&q=60', tags: ['Acoustic', 'Chill'] },
 ];
@@ -620,6 +632,8 @@ export function KaraokeScreen() {
     ensureDeviceAccountsSynced,
   } = useAuth();
   const { session: cloudSession } = useCloudAuth();
+  const cloudParty = useCloudPartyRooms(isSupabaseConfigured());
+  const cloudLive = useCloudLiveDiscovery(isSupabaseConfigured());
 
   const userCoins = useMemo(
     () => getLiveCoinsBalance(appUser.id),
@@ -839,7 +853,17 @@ export function KaraokeScreen() {
   const [selectedSong, setSelectedSong] = useState<any>(null);
   const [activeLiveStream, setActiveLiveStream] = useState<any>(null);
   const [showMobileMenu, setShowMobileMenu] = useState(false);
+  const [messagesChatOpen, setMessagesChatOpen] = useState(false);
   const contentScrollRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const onChatState = (event: Event) => {
+      const custom = event as CustomEvent<{ chatOpen?: boolean }>;
+      setMessagesChatOpen(!!custom.detail?.chatOpen);
+    };
+    window.addEventListener('messages:chat-open', onChatState as EventListener);
+    return () => window.removeEventListener('messages:chat-open', onChatState as EventListener);
+  }, []);
 
   type KaraokeTab = typeof activeTab;
 
@@ -882,6 +906,7 @@ export function KaraokeScreen() {
         contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
         window.dispatchEvent(new CustomEvent('app-toast', { detail: 'K-Star refreshed' }));
       }
+      refreshLiveCloudSurface(liveSurfaceFromTab(tab));
       return;
     }
     if (tab === 'messages') {
@@ -899,6 +924,7 @@ export function KaraokeScreen() {
       setProfileReturnContext(null);
     }
     setActiveTab(tab);
+    refreshLiveCloudSurface(liveSurfaceFromTab(tab));
     commitKaraokeNavigation({
       tab,
       profileTab: tab === 'profile' ? profileActiveTab : null,
@@ -914,7 +940,7 @@ export function KaraokeScreen() {
   const KARAOKE_MOBILE_NAV = [
     { id: 'sing' as const, icon: MicVocal, label: 'Sing' },
     { id: 'party' as const, icon: PartyRoomIcon, label: 'Party' },
-    { id: 'feed' as const, icon: TrendingUp, label: 'Explore' },
+    { id: 'feed' as const, icon: Search, label: 'Explore' },
     { id: 'messages' as const, icon: MessageCircle, label: 'Messages' },
     { id: 'notifications' as const, icon: Bell, label: 'Notifications' },
     { id: 'live' as const, icon: Video, label: 'Live' },
@@ -930,19 +956,123 @@ export function KaraokeScreen() {
     setShowSmuleRoomFlow(true);
   };
 
+  const lastKaraokeRoomOpenRef = useRef<string>('');
+  const applyKaraokeRoomOpen = useCallback((detail?: OpenKaraokeRoomDetail | null) => {
+    if (!detail) return;
+    const path =
+      detail.path ||
+      (detail.roomId ? `/room/${detail.roomId}` : null);
+    if (!path) return;
+
+    const roomId =
+      detail.roomId ||
+      (path.startsWith('/room/') && path !== '/room/create'
+        ? path.replace(/^\/room\//, '').split('/')[0]
+        : '');
+    const entry = detail.entry ?? 'karaoke-party';
+    const dedupeKey = `${path}|${roomId}|${entry}|${detail.asViewer ? 'v' : 'h'}`;
+    const now = Date.now();
+    const prev = lastKaraokeRoomOpenRef.current;
+    if (prev.startsWith(`${dedupeKey}|`)) {
+      const prevAt = Number(prev.split('|').pop() || 0);
+      if (now - prevAt < 1200) return;
+    }
+    lastKaraokeRoomOpenRef.current = `${dedupeKey}|${now}`;
+
+    if (roomId && path !== '/room/create') {
+      const roomName = detail.roomName?.trim() || `Room ${roomId}`;
+      const roomMode = detail.roomMode || 'Chat';
+      const hostName = detail.hostName?.trim() || roomName;
+      const hostUserId = detail.hostUserId?.trim() || '';
+
+      ensureRoomSettingsSeeded(roomId, {
+        roomId,
+        roomName,
+        roomMode,
+        owner: hostName,
+        ownerUserId: hostUserId || undefined,
+        hostUserId: hostUserId || undefined,
+        host: hostName,
+      });
+
+      if (detail.asViewer) {
+        saveRoomSettings(roomId, {
+          roomId,
+          roomName,
+          roomMode,
+          owner: hostName,
+          ownerUserId: hostUserId || undefined,
+          hostUserId: hostUserId || undefined,
+          host: hostName,
+        });
+        localStorage.setItem('currentUserRole', 'user');
+      } else if (detail.roomName || detail.roomMode) {
+        saveRoomSettings(roomId, {
+          roomId,
+          ...(detail.roomName ? { roomName: detail.roomName } : {}),
+          ...(detail.roomMode ? { roomMode: detail.roomMode } : {}),
+        });
+      }
+
+      ensureRoomRoleUserIds(roomId);
+      localStorage.setItem('activeRoomId', roomId);
+    }
+
+    // Pending open was delivered — clear so retries don't re-open after leave.
+    consumePendingKaraokeRoomOpen();
+    openSmuleRoomFlow(path, entry);
+  }, []);
+
   const openManagedRoom = (room: ManagedRoom, path?: string) => {
     activateRoomContext(room);
     openSmuleRoomFlow(path ?? `/room/${room.id}`, 'karaoke-profile-manage');
   };
 
-  const PARTY_LOBBY_ROOMS = [
-    { id: 1181033, name: 'Pop Hits 2026 🎵', host: 'VocalKing', participants: 42, max: 50, tags: ['Pop', 'Top 40'], roomMode: 'Karaoke' as const },
-    { id: 1167298, name: '90s R&B Throwbacks', host: 'SoulSister', participants: 28, max: 50, tags: ['R&B', '90s'], roomMode: 'Chat' as const },
-    { id: 3, name: 'K-Pop Fanatics', host: 'BTS_Army12', participants: 49, max: 50, tags: ['K-Pop', 'Dance'], roomMode: 'Karaoke' as const },
-    { id: 4, name: 'Chill Acoustic Vibes', host: 'GuitarHero', participants: 15, max: 50, tags: ['Acoustic', 'Chill'], roomMode: 'Radio' as const },
-  ];
+  const PARTY_LOBBY_ROOMS: CloudPartyLobbyRoom[] =
+    cloudParty.rooms.length > 0
+      ? cloudParty.rooms
+      : [
+          { id: '1181033', name: 'Pop Hits 2026 🎵', host: 'VocalKing', hostUserId: '', participants: 42, max: 50, tags: ['Pop', 'Top 40'], roomMode: 'Karaoke', coverUrl: null },
+          { id: '1167298', name: '90s R&B Throwbacks', host: 'SoulSister', hostUserId: '', participants: 28, max: 50, tags: ['R&B', '90s'], roomMode: 'Chat', coverUrl: null },
+        ];
 
-  const joinPartyRoom = (room: (typeof PARTY_LOBBY_ROOMS)[number]) => {
+  const liveStreamsForUi =
+    cloudLive.streams.length > 0
+      ? cloudLive.streams.map((s) => ({
+          id: s.id,
+          user: s.user,
+          title: s.title,
+          viewers: s.viewers,
+          img: s.img,
+          tags: s.tags,
+          partyRoomId: s.partyRoomId,
+        }))
+      : LIVE_STREAMS_FALLBACK;
+
+  const openLiveDiscoveryItem = (stream: {
+    partyRoomId?: string;
+    title?: string;
+    user: string;
+    id: string;
+  }) => {
+    if (stream.partyRoomId) {
+      joinPartyRoom({
+        id: stream.partyRoomId,
+        name: stream.title || `${stream.user}'s room`,
+        host: stream.user,
+        hostUserId: '',
+        participants: 0,
+        max: 50,
+        tags: [],
+        roomMode: 'SoloLive',
+        coverUrl: null,
+      });
+      return;
+    }
+    setActiveLiveStream(stream);
+  };
+
+  const joinPartyRoom = (room: CloudPartyLobbyRoom) => {
     const roomId = String(room.id);
     ensureRoomSettingsSeeded(roomId, {
       roomId,
@@ -1818,10 +1948,13 @@ export function KaraokeScreen() {
   );
 
   useEffect(() => {
+    // Deliver any open that was queued before KaraokeScreen mounted (Live tab → room).
+    applyKaraokeRoomOpen(consumePendingKaraokeRoomOpen());
+
     const onRoomOpen = (event: Event) => {
-      const roomId = (event as CustomEvent<{ roomId?: string }>).detail?.roomId;
-      if (!roomId) return;
-      openSmuleRoomFlow(`/room/${roomId}`);
+      applyKaraokeRoomOpen(
+        (event as CustomEvent<OpenKaraokeRoomDetail>).detail,
+      );
     };
     const onTrackOpen = (event: Event) => {
       const detail = (event as CustomEvent<{ trackId?: string; recordingId?: string | null }>).detail;
@@ -1834,7 +1967,7 @@ export function KaraokeScreen() {
       window.removeEventListener('karaoke-room-open', onRoomOpen);
       window.removeEventListener('karaoke-track-open', onTrackOpen);
     };
-  }, [openKaraokeTrackFromShare]);
+  }, [applyKaraokeRoomOpen, openKaraokeTrackFromShare]);
 
   const toggleCoverRecordingPlayback = useCallback((recording: KaraokeCoverRecordingMeta) => {
     if (activeCoverRecording?.id === recording.id) {
@@ -2666,6 +2799,10 @@ export function KaraokeScreen() {
   const fallbackCopy = (text: string) => {
     const textArea = document.createElement("textarea");
     textArea.value = text;
+    textArea.setAttribute('readonly', 'readonly');
+    textArea.setAttribute('inputmode', 'none');
+    textArea.setAttribute('aria-hidden', 'true');
+    textArea.tabIndex = -1;
     textArea.style.position = "fixed";
     textArea.style.top = "0";
     textArea.style.left = "0";
@@ -2676,9 +2813,10 @@ export function KaraokeScreen() {
     textArea.style.outline = "none";
     textArea.style.boxShadow = "none";
     textArea.style.background = "transparent";
+    textArea.style.opacity = "0";
     document.body.appendChild(textArea);
-    textArea.focus();
     textArea.select();
+    textArea.setSelectionRange(0, text.length);
     try {
       const successful = document.execCommand('copy');
       if (successful) {
@@ -2689,6 +2827,7 @@ export function KaraokeScreen() {
     } catch (err) {
       prompt("Copy this link:", text);
     }
+    textArea.blur();
     document.body.removeChild(textArea);
   };
 
@@ -2780,7 +2919,7 @@ export function KaraokeScreen() {
            </button>
            <button type="button" onClick={() => handleKaraokeTabTap('feed')} className={karaokeNavButtonClass('feed', activeTab === 'feed' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
              <span className="relative">
-               <TrendingUp className="w-6 h-6 shrink-0" />
+               <Search className="w-6 h-6 shrink-0" />
                {activeTab === 'feed' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
              </span>
              <span className="hidden lg:block text-[15px]">Explore</span>
@@ -2843,7 +2982,7 @@ export function KaraokeScreen() {
              onClick={() => { setGiftingDuetId(null); setShowGiftModal(true); }}
              className={`${karaokeNavButtonClass('sing')} bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold text-sm ring-1 ring-amber-500/20`}
            >
-             <Coins className="w-5 h-5 shrink-0" />
+             <CoinIcon className="w-5 h-5 shrink-0" />
              <span className="hidden lg:inline">{userCoins.toLocaleString()}</span>
            </button>
            <button
@@ -2889,9 +3028,10 @@ export function KaraokeScreen() {
       <div className={`flex-1 flex flex-col h-full min-h-0 bg-background md:bg-card/30 shadow-sm relative w-full overflow-hidden transition-colors duration-300 ${
         showSmuleRoomFlow && activeTab === 'profile' ? 'z-[80]' : 'z-10'
       }`}>
-        {/* Top Header — hidden while smule room flow is open, except when profile is on top */}
-        {(!showSmuleRoomFlow || activeTab === 'profile') && (
-        <div className="px-4 py-3 bg-card border-b border-border flex items-center justify-between sticky top-0 z-20 shadow-sm min-h-[64px] shrink-0">
+        {/* Top Header — hidden in chat thread, smule room flow, etc. */}
+        {(!showSmuleRoomFlow || activeTab === 'profile') &&
+          !(activeTab === 'messages' && messagesChatOpen) && (
+        <div className="karaoke-screen-header px-4 py-3 pt-safe bg-card border-b border-border flex items-center justify-between sticky top-0 z-20 shadow-sm min-h-[64px] shrink-0">
            <div className="flex items-center gap-3">
              {/* Back Button */}
              <button
@@ -3355,16 +3495,27 @@ export function KaraokeScreen() {
                    </h3>
                    <p className="text-white/80 max-w-sm text-sm">Sing live, accept song requests, interact with fans, and earn Coins from virtual gifts!</p>
                  </div>
-                 <button className="relative z-10 px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 shadow-2xl whitespace-nowrap text-lg">
+                 <button
+                   type="button"
+                   onClick={() => {
+                     db.setUserLiveStatus(appUser.id, true, 'solo');
+                     window.dispatchEvent(
+                       new CustomEvent('app-toast', {
+                         detail: 'You are live — others can find you in Live discovery',
+                       }),
+                     );
+                   }}
+                   className="relative z-10 px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 shadow-2xl whitespace-nowrap text-lg"
+                 >
                    Start Concert
                  </button>
                </div>
 
                <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Popular Live Streams</h3>
                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {LIVE_STREAMS.map(stream => (
-                    <div key={stream.id} onClick={() => setActiveLiveStream(stream)} className="relative aspect-video rounded-2xl overflow-hidden group cursor-pointer border border-border">
-                       <img src={stream.img} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-700" />
+                  {liveStreamsForUi.map(stream => (
+                    <div key={stream.id} onClick={() => openLiveDiscoveryItem(stream)} className="relative aspect-video rounded-2xl overflow-hidden group cursor-pointer border border-border">
+                       <SafeMediaImage src={stream.img} priority className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
                        <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
                        
                        <div className="absolute top-3 left-3 flex items-center gap-2">
@@ -3417,7 +3568,6 @@ export function KaraokeScreen() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search catalog, community uploads, and cover recordings..." 
                     className="w-full bg-secondary/80 focus:bg-secondary border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20 rounded-2xl py-4 pl-12 pr-4 transition-all outline-none" 
-                    autoFocus 
                   />
                   {searchQuery && (
                     <button 
@@ -4024,8 +4174,8 @@ export function KaraokeScreen() {
                            });
                          }}
                          className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                         aria-label="Open InstaCollab profile"
-                         title="InstaCollab"
+                         aria-label={`Open ${APP_DISPLAY_NAME} profile`}
+                         title={APP_DISPLAY_NAME}
                        >
                          <UserRound className="w-[18px] h-[18px]" />
                        </button>
@@ -4058,17 +4208,17 @@ export function KaraokeScreen() {
                          type="button"
                          onClick={handleEditProfileClick}
                          className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                         aria-label="Edit profile"
-                         title="Edit profile"
+                         aria-label="Settings"
+                         title="Settings"
                        >
-                         <UserPen className="w-[18px] h-[18px]" />
+                         <Settings className="w-[18px] h-[18px] shrink-0" />
                        </button>
                        <button
                          type="button"
                          onClick={() => openAppProfileSurface({ userId: null, isSelf: true })}
                          className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                         aria-label="Open InstaCollab profile"
-                         title="InstaCollab"
+                         aria-label={`Open ${APP_DISPLAY_NAME} profile`}
+                         title={APP_DISPLAY_NAME}
                        >
                          <UserRound className="w-[18px] h-[18px]" />
                        </button>
@@ -4445,13 +4595,13 @@ export function KaraokeScreen() {
                 aria-label="Close menu"
                 onClick={() => setShowMobileMenu(false)}
               />
-              <div className="md:hidden fixed inset-0 z-[100] flex justify-end pointer-events-none">
+              <div id="karaoke-mobile-menu" className="md:hidden fixed inset-0 z-[100] flex justify-end pointer-events-none">
               <motion.div
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="karaoke-mobile-menu pointer-events-auto relative w-[300px] h-full bg-card/90 backdrop-blur-xl shadow-2xl border-l border-border pt-safe pb-safe flex flex-col"
+                className="karaoke-mobile-menu pointer-events-auto relative w-[min(300px,88vw)] h-full bg-card/90 backdrop-blur-xl shadow-2xl border-l border-border pt-safe pb-safe flex flex-col"
               >
                 <div className="px-6 pb-6 border-b border-border mb-4 flex items-center justify-between">
                   <h3 className="font-bold text-xl">K-Star Menu</h3>
@@ -4672,7 +4822,7 @@ export function KaraokeScreen() {
                
                <div className="flex items-center justify-between bg-amber-500/10 px-4 py-3 rounded-xl mb-6 border border-amber-500/20">
                   <div className="flex items-center gap-2">
-                     <Coins className="w-5 h-5 text-amber-500" />
+                     <CoinIcon className="w-5 h-5 shrink-0" />
                      <span className="font-black text-amber-500">{userCoins.toLocaleString()} Coins</span>
                   </div>
                   {import.meta.env.DEV ? (
@@ -4708,7 +4858,7 @@ export function KaraokeScreen() {
                      >
                         <div className="text-2xl mb-1">{gift.icon}</div>
                         <div className="text-[10px] font-bold uppercase tracking-wider">{gift.name}</div>
-                        <div className="text-[10px] font-black flex items-center gap-0.5 mt-1 opacity-90"><Coins className="w-3 h-3 text-amber-500" /> {gift.cost}</div>
+                        <div className="text-[10px] font-black flex items-center gap-0.5 mt-1 opacity-90"><CoinIcon className="w-3 h-3 shrink-0" /> {gift.cost}</div>
                      </button>
                   ))}
                </div>
@@ -4967,7 +5117,7 @@ export function KaraokeScreen() {
                           if (val.startsWith('http://') || val.startsWith('https://')) {
                             setEditProfileAvatar(val);
                           } else {
-                            setEditProfileAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${val}`);
+                            setEditProfileAvatar(avatarPresetUrl(val));
                           }
                         } else {
                           setEditProfileAvatar('');
@@ -4980,25 +5130,10 @@ export function KaraokeScreen() {
                   </div>
                 </div>
 
-                {/* Predefined Beautiful Seeds Grid */}
-                <div className="mt-3">
-                  <span className="text-[10px] uppercase font-bold text-muted-foreground/70 block mb-1.5">Quick Presets</span>
-                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
-                    {['vocal', 'melody', 'rhythm', 'superstar', 'diva', 'artist', 'legend', 'wave'].map(seed => {
-                      const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
-                      const isSelected = editProfileAvatar === url;
-                      return (
-                        <button 
-                          key={seed}
-                          onClick={() => setEditProfileAvatar(url)}
-                          className={`w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 bg-secondary hover:scale-105 transition-transform ${isSelected ? 'border-primary shadow-md shadow-primary/25' : 'border-transparent'}`}
-                        >
-                          <img src={url} className="w-full h-full" alt={seed} />
-                        </button>
-                      );
-                    })}
-                  </div>
-                </div>
+                <AvatarQuickPresets
+                  selectedUrl={editProfileAvatar}
+                  onSelect={setEditProfileAvatar}
+                />
               </div>
 
               <div>
@@ -5898,7 +6033,6 @@ export function KaraokeScreen() {
                       if (e.key === 'Enter') handleCreatePlaylist();
                     }}
                     placeholder="E.g. Late Night Chill Vibes 🌙"
-                    autoFocus
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary focus:outline-none pl-10"
                   />
                   <Music className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
@@ -5948,10 +6082,12 @@ export function KaraokeScreen() {
       <AccountSwitcherModal
         open={showAccountSwitcher}
         accounts={userAccounts}
-        activeUid={cloudSession?.user?.id ?? appUser.id}
+        liveUsers={db.users}
+        activeUid={cloudSession?.user?.id ?? db.currentUserId ?? appUser.id}
         linking={accountLinking}
         cloudAuthEnabled={isCloudAuthConfigured()}
         onClose={() => setShowAccountSwitcher(false)}
+        onRefreshAccounts={ensureDeviceAccountsSynced}
         onSelectAccount={async (uid, password) => {
           try {
             const label =
@@ -5960,6 +6096,7 @@ export function KaraokeScreen() {
               new CustomEvent('app-toast', { detail: `Switching to ${label}…` }),
             );
             await selectAccount(uid, password);
+            await ensureDeviceAccountsSynced();
             setShowAccountSwitcher(false);
             void loadUserUploads();
           } catch (err) {
@@ -5967,7 +6104,10 @@ export function KaraokeScreen() {
             window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
           }
         }}
-        onRemoveAccount={removeAccount}
+        onRemoveAccount={(uid) => {
+          removeAccount(uid);
+          void ensureDeviceAccountsSynced();
+        }}
         onSendEmailOtp={async (email, mode, profile) => {
           try {
             setAccountLinking(true);
@@ -5988,6 +6128,7 @@ export function KaraokeScreen() {
             setAccountLinking(true);
             const result = await verifyEmailAuthOtp(email, code, { switchAccount: true });
             if (result.ok) {
+              await ensureDeviceAccountsSynced();
               setShowAccountSwitcher(false);
               void loadUserUploads();
             }
@@ -6002,7 +6143,9 @@ export function KaraokeScreen() {
           setAccountLinking(true);
           try {
             const result = await linkGoogleAccount();
-            if (!result.ok && result.reason) {
+            if (result.ok) {
+              await ensureDeviceAccountsSynced();
+            } else if (result.reason) {
               window.dispatchEvent(new CustomEvent('app-toast', { detail: result.reason }));
             }
           } finally {

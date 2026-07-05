@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useDB } from '../../lib/useDB';
 import { LaunchBrandMark, LaunchShell } from './launchUi';
+import { APP_DISPLAY_NAME, APP_TAGLINE } from '../../lib/appBrand';
 
 export function SplashScreen() {
   const db = useDB();
@@ -23,9 +24,9 @@ export function SplashScreen() {
       >
         <LaunchBrandMark size="hero" allowUpload />
         <div>
-          <h1 className="text-3xl font-black tracking-tight">InstaCollab</h1>
+          <h1 className="text-3xl font-black tracking-tight">{APP_DISPLAY_NAME}</h1>
           <p className="text-muted-foreground mt-2 text-sm font-medium">
-            Create, connect, and collaborate in real time.
+            {APP_TAGLINE}
           </p>
         </div>
         <motion.div

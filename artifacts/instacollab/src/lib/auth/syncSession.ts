@@ -3,12 +3,11 @@ import { isSupabaseConfigured } from '../supabase/config';
 import { applySupabaseSessionToLocalDb, restoreSupabaseSession } from './sessionManager';
 import { isFirebaseConfigured } from '../firebase/config';
 import { getFirebaseAuth } from '../firebase/app';
-import { fetchFirebaseProfile, userFromFirebaseUser } from '../firebase/profile';
 import { withTimeout } from '../supabase/withTimeout';
-import { writeStoredAuthBackend } from './providerState';
+import { writeStoredAuthBackend, isSupabaseOAuthDegraded } from './providerState';
+import { applyFirebaseOAuthSessionToLocalDb } from './applyFirebaseBackupSession';
 
 const STORAGE_READY_MS = 30_000;
-const PROFILE_MS = 12_000;
 
 async function waitForLocalStorage(): Promise<void> {
   try {
@@ -28,7 +27,7 @@ export async function syncCloudSessionNow(): Promise<{ ok: true } | { ok: false;
     return { ok: false, reason: 'Local storage is still loading. Try again in a moment.' };
   }
 
-  if (isSupabaseConfigured()) {
+  if (isSupabaseConfigured() && !isSupabaseOAuthDegraded()) {
     try {
       const session = await restoreSupabaseSession();
       if (session?.user) {
@@ -45,15 +44,8 @@ export async function syncCloudSessionNow(): Promise<{ ok: true } | { ok: false;
     const auth = getFirebaseAuth();
     const user = auth?.currentUser;
     if (user) {
-      const profile = await withTimeout(
-        fetchFirebaseProfile(user.uid),
-        PROFILE_MS,
-        'Profile fetch'
-      ).catch(() => null);
-      const appUser = userFromFirebaseUser(user, profile);
-      db.syncAuthUser(appUser);
-      db.advanceLaunchProgressAfterLogin(Boolean(profile?.profile_setup_complete));
-      writeStoredAuthBackend('firebase');
+      const silent = db.isLoggedIn;
+      await applyFirebaseOAuthSessionToLocalDb(user, { silent });
       return { ok: true };
     }
   }

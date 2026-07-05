@@ -96,8 +96,8 @@ if (proxyPort !== vitePort) {
   freePort(proxyPort);
 }
 
-console.log('[dev] Syncing DeepAR assets…');
-spawnSync('node', ['scripts/sync-deepar-assets.mjs'], { cwd: appRoot, stdio: 'inherit' });
+console.log('[dev] Syncing AR assets (DeepAR + TRTC, cached after first install)…');
+spawnSync('node', ['scripts/sync-ar-assets.mjs'], { cwd: appRoot, stdio: 'inherit' });
 
 console.log('[dev] Starting Vite…');
 console.log(`[dev] App     http://localhost:${vitePort}`);

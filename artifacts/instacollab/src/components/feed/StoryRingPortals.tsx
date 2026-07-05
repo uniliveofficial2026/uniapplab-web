@@ -26,19 +26,20 @@ import {
 
 /** Full-viewport shell — story viewer / empty intro (above main nav) */
 const STORY_OVERLAY_SCRIM =
-  'fixed inset-0 z-[100] flex items-center justify-center overflow-hidden overscroll-contain bg-background p-0 sm:p-4';
+  'fixed inset-0 z-[100] flex flex-col overflow-hidden overscroll-contain bg-black pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]';
 
+/** Must fill the scrim: media is position:absolute, so sm:h-auto/max-w-md collapses to chrome-only height. */
 const STORY_OVERLAY_PANEL =
-  'relative flex h-[100dvh] max-h-[100dvh] w-full max-w-md min-w-0 flex-col overflow-hidden sm:h-[90vh] sm:max-h-[90vh] sm:rounded-3xl bg-background border border-border shadow-2xl';
+  'relative flex h-full w-full min-h-0 min-w-0 flex-1 flex-col overflow-hidden overscroll-contain bg-black';
 
 /** Standalone story creator — full-bleed scrim (no feed peeking); bottom nav hidden via CSS */
 const STORY_CREATE_OVERLAY_SCRIM =
-  'fixed z-50 inset-x-0 bottom-0 top-[calc(60px+env(safe-area-inset-top)+1px)] flex items-center justify-center overflow-hidden overscroll-contain bg-background px-3 pt-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] sm:px-4 sm:pt-4 sm:pb-[max(1rem,env(safe-area-inset-bottom))] md:inset-y-0 md:left-[72px] md:right-0 lg:left-[244px] md:p-4';
+  'fixed z-50 inset-0 flex flex-col overflow-hidden overscroll-contain bg-background pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)] px-3 sm:px-4 md:left-[72px] md:right-0 lg:left-[244px] md:p-4';
 
 const STORY_CREATE_PANEL_BASE =
   'relative flex w-full min-w-0 max-h-full min-h-0 flex-col overflow-hidden rounded-3xl bg-background border border-border shadow-2xl md:h-[90vh]';
 
-const STORY_CREATE_PANEL_SELECT = `${STORY_CREATE_PANEL_BASE} max-w-md md:max-h-[90vh] h-full`;
+const STORY_CREATE_PANEL_SELECT = `${STORY_CREATE_PANEL_BASE} max-w-md h-full min-h-0 sm:h-auto md:max-h-[90vh]`;
 
 /** Same shell as `#create-modal` story edit (max-w-4xl, max-h-[92vh], scrollable) */
 const STORY_CREATE_PANEL_EDIT =
@@ -67,7 +68,6 @@ export type StoryRingPortalsProps = {
   storyVideoRef: React.RefObject<HTMLVideoElement | null>;
   playbackSpeed: number;
   setPlaybackSpeed: React.Dispatch<React.SetStateAction<number>>;
-  loopStoryVideo: boolean;
   likedSegments: Record<number, boolean>;
   handleTap: (direction: 'left' | 'right') => void;
   toggleLike: () => void;
@@ -109,7 +109,6 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
     storyVideoRef,
     playbackSpeed,
     setPlaybackSpeed,
-    loopStoryVideo,
     likedSegments,
     handleTap,
     toggleLike,
@@ -315,7 +314,7 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                     <video 
                       ref={storyVideoRef}
                       src={currentSegment.url || undefined} 
-                      className="absolute inset-0 w-full h-full object-contain" 
+                      className="absolute inset-0 h-full w-full object-cover" 
                       style={storyDraftFilterStyle(currentSegment)}
                       autoPlay 
                       playsInline 
@@ -342,30 +341,17 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                           video.currentTime = startTime;
                         }
                         if (video.currentTime >= endTime - 0.05) {
-                          if (loopStoryVideo) {
-                            video.currentTime = startTime;
-                          } else if (currentSegmentIndex < segments.length - 1) {
-                            setCurrentSegmentIndex((c) => c + 1);
-                            setProgress(0);
-                            setIsPaused(false);
-                          } else {
-                            setProgress(100);
-                          }
+                          // Finish segment → parent advances to next segment or next user.
+                          video.pause();
+                          setProgress(100);
                           return;
                         }
                         const span = Math.max(endTime - startTime, 0.001);
                         setProgress(((video.currentTime - startTime) / span) * 100);
                       }}
-                      loop={loopStoryVideo}
+                      loop={false}
                       onEnded={() => {
-                        if (loopStoryVideo) return;
-                        if (currentSegmentIndex < segments.length - 1) {
-                          setCurrentSegmentIndex((c) => c + 1);
-                          setProgress(0);
-                          setIsPaused(false);
-                        } else {
-                          setProgress(100);
-                        }
+                        setProgress(100);
                       }}
                       onLoadedMetadata={(e) => {
                         const video = e.currentTarget;
@@ -381,7 +367,7 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                     <img
                       src={getStorySegmentPreviewUrl(currentSegment, resolveAvatarSrc(storyUser.avatarUrl))}
                       alt="Story content"
-                      className="absolute inset-0 w-full h-full object-contain"
+                      className="absolute inset-0 h-full w-full object-cover"
                       style={storyDraftFilterStyle(currentSegment)}
                       onError={handleMediaError}
                     />

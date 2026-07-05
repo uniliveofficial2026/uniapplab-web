@@ -12,6 +12,7 @@ import { ProfilePremiumBadgeForUser } from '../common/ProfilePremiumBadge';
 import { handleMediaError } from '../../lib/utils';
 import { useToast } from '../../lib/ToastContext';
 import { resolveProfileGridPost } from '../../lib/profilePostGrid';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { FollowListModal } from './FollowListModal';
 import { CreatorLevelBadge } from './CreatorLevelBadge';
 import { CreatorProgressModal } from './CreatorProgressModal';
@@ -228,7 +229,7 @@ export function UserProfilePreview({
                }}
                className="text-xs font-bold text-primary hover:underline hover:text-primary/80 transition-colors"
              >
-               InstaCollab
+               {APP_DISPLAY_NAME}
              </button>
              <span className="text-muted-foreground/40">·</span>
              <button

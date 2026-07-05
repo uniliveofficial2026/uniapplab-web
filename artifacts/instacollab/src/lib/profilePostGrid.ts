@@ -2,7 +2,7 @@ import type { Post } from '../types';
 import type { LocalDB } from './db/localDbType';
 import { countCommentThread, resolvePost } from './entityResolve';
 import { resolvePostMediaSource } from './repostMedia';
-import { resolvePostDisplayMedia, preserveMediaRef } from './safe';
+import { FALLBACK_MEDIA, resolvePostDisplayMedia, preserveMediaRef, safeMediaUrl } from './safe';
 
 export type ProfileGridPost = {
   id: string;
@@ -25,9 +25,11 @@ export function resolveProfileGridPost(
     countCommentThread(thread),
   );
   const media = resolvePostDisplayMedia(mediaPost);
-  const thumbUrl = preserveMediaRef(
+  const rawThumb = preserveMediaRef(
     media.posterUrl || (media.type !== 'video' ? media.url : ''),
   );
+  const thumbUrl =
+    safeMediaUrl(rawThumb, { fallback: FALLBACK_MEDIA }) || FALLBACK_MEDIA;
   return {
     id: livePost.id,
     thumbUrl,

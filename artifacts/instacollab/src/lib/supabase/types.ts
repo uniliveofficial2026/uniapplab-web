@@ -17,6 +17,8 @@ export type ProfileRow = {
   /** Avatar thought bubble text (empty string = no thought). */
   note?: string | null;
   note_updated_at?: string | null;
+  /** Private account — follow requests required. */
+  is_private?: boolean | null;
   created_at?: string;
   updated_at?: string;
 };

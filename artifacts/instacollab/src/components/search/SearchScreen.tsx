@@ -1,8 +1,8 @@
-import React, { useState, useEffect } from 'react';
-import { Search, MapPin, Music, Hash, UserCircle2, Loader2 } from 'lucide-react';
-import { useDB } from '../../lib/useDB';
+import React, { useState, useEffect, useMemo } from 'react';
+import { Search, MapPin, Music, Hash, UserCircle2, Loader2, Play } from 'lucide-react';
+import { useDB, useDbRevision } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
-import { handleAvatarError, handleMediaError } from '../../lib/utils';
+import { handleAvatarError } from '../../lib/utils';
 import { useDiscoverableUserSearch } from '../../hooks/useDiscoverableUserSearch';
 import { isCloudAuthConfigured, isPrimarySupabaseCloud } from '../../lib/auth/config';
 
@@ -11,7 +11,10 @@ import { PostModal } from '../feed/PostModal';
 import { openProfilePreview } from '../../lib/utils';
 import { ProfileNameLines } from '../common/ProfileNameLines';
 import { getProfileDisplayName } from '../../lib/profileDisplay';
-import { isPostActive, resolvePost } from '../../lib/entityResolve';
+import { isPostActive } from '../../lib/entityResolve';
+import { resolveProfileGridPost } from '../../lib/profilePostGrid';
+import { SafeMediaImage } from '../common/SafeMediaImage';
+import { safeAvatarUrl } from '../../lib/safe';
 import type { User } from '../../types';
 import { snapshotPostPlayback } from '../../lib/postPlayback';
 
@@ -39,10 +42,20 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
 
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const db = useDB();
+  const dbRevision = useDbRevision();
   const POSTS = db.posts;
   const { results: searchUsers, loading: searchUsersLoading } = useDiscoverableUserSearch(query);
   const cloudSearchEnabled = isPrimarySupabaseCloud() || isCloudAuthConfigured();
   const { showToast } = useToast();
+
+  const explorePosts = useMemo(
+    () =>
+      POSTS.filter((raw) => isPostActive(raw)).map((raw) =>
+        resolveProfileGridPost(raw, db),
+      ),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [POSTS, db.posts, db.users, db.postComments, dbRevision],
+  );
 
   const toggleFollow = (user: User, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -91,9 +104,7 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
         {!query ? (
           // Explore Grid
           <div className="grid grid-cols-3 gap-1 md:gap-2">
-            {POSTS.filter((raw) => isPostActive(raw)).map((raw, i) => {
-              const post = resolvePost(db.posts, raw, db.users);
-              // Create dynamic layout variations
+            {explorePosts.map((post, i) => {
               const isLarge = i % 10 === 0;
               const isTall = i % 7 === 0 && !isLarge;
               
@@ -106,15 +117,19 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
                   }}
                   className={`bg-secondary relative group cursor-pointer overflow-hidden rounded-xl ${isLarge ? 'col-span-2 row-span-2 aspect-square' : isTall ? 'row-span-2 aspect-[1/2]' : 'aspect-square'}`}
                 >
-                  <img 
-                    src={post.imageUrl || undefined}
-                    alt={`Explore ${post.id}`} 
-                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105" 
-                    onError={handleMediaError}
+                  <SafeMediaImage
+                    src={post.thumbUrl}
+                    alt=""
+                    className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
                   />
+                  {post.isVideo ? (
+                    <div className="absolute top-2 right-2 text-white drop-shadow-md pointer-events-none">
+                      <Play className="w-4 h-4 fill-white" />
+                    </div>
+                  ) : null}
                   <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center text-white backdrop-blur-[2px]">
-                     <span className="font-bold text-lg flex items-center gap-2">
-                        {post?.likes || 0} ♥
+                     <span className="font-bold text-lg flex items-center gap-2 tabular-nums">
+                        {post.likes.toLocaleString()} ♥
                      </span>
                   </div>
                 </div>
@@ -146,7 +161,7 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
                     <div key={'top-user-'+user.id || i} className="flex items-center justify-between hover:bg-secondary/50 p-2 rounded-xl cursor-pointer" onClick={() => openProfilePreview(user)}>
                       <div className="flex items-center gap-3">
                          <div className="w-12 h-12 rounded-full overflow-hidden border border-border">
-                           <img src={user.avatarUrl || undefined} className="w-full h-full object-cover" onError={handleAvatarError} />
+                           <img src={safeAvatarUrl(user.avatarUrl)} className="w-full h-full object-cover" onError={handleAvatarError} />
                          </div>
                          <div className="flex flex-col">
                            <ProfileNameLines
@@ -155,7 +170,7 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
                              secondaryClassName="text-sm text-muted-foreground"
                              premiumBadge={user.isVerified ? <span>✓</span> : null}
                            />
-                           <span className="text-sm text-muted-foreground">{user.followers} followers</span>
+                           <span className="text-sm text-muted-foreground">{(user.followers ?? 0).toLocaleString()} followers</span>
                          </div>
                       </div>
                     </div>
@@ -194,7 +209,7 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
                     <div key={'user-'+user.id || i} className="flex items-center justify-between hover:bg-secondary/50 p-3 rounded-xl cursor-pointer" onClick={() => openProfilePreview(user)}>
                       <div className="flex items-center gap-4">
                          <div className="w-14 h-14 rounded-full overflow-hidden border border-border">
-                           <img src={user.avatarUrl || undefined} className="w-full h-full object-cover" onError={handleAvatarError} />
+                           <img src={safeAvatarUrl(user.avatarUrl)} className="w-full h-full object-cover" onError={handleAvatarError} />
                          </div>
                          <div className="flex flex-col">
                            <ProfileNameLines

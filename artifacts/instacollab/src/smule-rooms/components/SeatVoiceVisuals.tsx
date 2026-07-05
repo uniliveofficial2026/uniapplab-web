@@ -3,9 +3,11 @@ import React from 'react';
 export function SeatSpeakingLevelBars({
   active,
   audioPulse,
+  className = '',
 }: {
   active: boolean;
   audioPulse: number;
+  className?: string;
 }) {
   if (!active) return null;
   const heights = [
@@ -15,7 +17,9 @@ export function SeatSpeakingLevelBars({
   ];
 
   return (
-    <div className="absolute -top-3 sm:-top-3.5 left-1/2 -translate-x-1/2 flex items-end justify-center gap-[3px] pointer-events-none z-30">
+    <div
+      className={`absolute -top-3 sm:-top-3.5 left-1/2 -translate-x-1/2 flex items-end justify-center gap-[3px] pointer-events-none z-30 ${className}`}
+    >
       {heights.map((height, index) => (
         <span
           key={index}

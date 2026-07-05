@@ -3,47 +3,66 @@ import {
   hydrateAppMediaUrl,
   isAppMediaRef,
   resolveAppMediaUrlSync,
+  resolveRemoteMediaUrlSync,
   subscribeAppMediaCache,
 } from '../lib/appMediaStore';
+import { instantMediaSrc, preferClearMediaUrl, warmMediaUrl } from '../lib/mediaInstant';
 
-function resolveForDom(url: string | undefined | null): string {
-  if (!url) return '';
-  const sync = resolveAppMediaUrlSync(url);
-  if (isAppMediaRef(sync)) return '';
-  return sync;
-}
+/**
+ * Instant clear media URL for img/video/audio.
+ * Prefers on-device full-res blobs; never blocks on slow bandwidth.
+ */
+export function useResolvedMediaUrl(
+  url: string | undefined | null,
+  fallback = '',
+): string {
+  const [resolved, setResolved] = useState(() => instantMediaSrc(url, fallback));
 
-/** Resolve app-media refs to blob URLs for img/video/audio src. Never exposes app-media: to the DOM. */
-export function useResolvedMediaUrl(url: string | undefined | null): string {
-  const [resolved, setResolved] = useState(() => resolveForDom(url));
-
-  useEffect(() => subscribeAppMediaCache(() => setResolved(resolveForDom(url))), [url]);
+  useEffect(() => {
+    warmMediaUrl(url);
+    return subscribeAppMediaCache(() => setResolved(instantMediaSrc(url, fallback)));
+  }, [url, fallback]);
 
   useEffect(() => {
     if (!url) {
-      setResolved('');
+      setResolved(fallback);
       return;
     }
 
-    const sync = resolveForDom(url);
-    if (sync) {
-      setResolved(sync);
-      return;
+    setResolved(instantMediaSrc(url, fallback));
+
+    if (isAppMediaRef(url)) {
+      let cancelled = false;
+      void hydrateAppMediaUrl(url).then((next) => {
+        if (cancelled) return;
+        if (next && !isAppMediaRef(next)) setResolved(next);
+      });
+      return () => {
+        cancelled = true;
+      };
     }
 
-    if (!isAppMediaRef(url)) {
-      setResolved(url);
-      return;
+    if (url.startsWith('http')) {
+      const clear = preferClearMediaUrl(url);
+      const cached =
+        resolveRemoteMediaUrlSync(clear) || resolveRemoteMediaUrlSync(url);
+      if (cached) {
+        setResolved(cached);
+        return;
+      }
+      // Network URL paints immediately; warmMediaUrl upgrades to blob when ready.
+      setResolved(clear);
+      warmMediaUrl(url);
+      const unsub = subscribeAppMediaCache(() => {
+        const next =
+          resolveRemoteMediaUrlSync(clear) || resolveRemoteMediaUrlSync(url);
+        if (next) setResolved(next);
+      });
+      return unsub;
     }
 
-    let cancelled = false;
-    void hydrateAppMediaUrl(url).then(() => {
-      if (!cancelled) setResolved(resolveForDom(url));
-    });
-    return () => {
-      cancelled = true;
-    };
-  }, [url]);
+    return undefined;
+  }, [url, fallback]);
 
   return resolved;
 }

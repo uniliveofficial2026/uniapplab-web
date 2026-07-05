@@ -5,8 +5,15 @@ import type {
   MessagesByChatStore,
 } from '../../dbTypes';
 import { safeUserId } from '../../safe';
-import { queueCloudMessageSend } from '../../chat/cloudChatSync';
-import type { ChatPresenceStore, ChatTimestampStore } from '../../../types';
+import {
+  ensureCloudThreadForGroup,
+  queueCloudMessageDelete,
+  queueCloudMessageReaction,
+  queueCloudMessageSend,
+  queueCloudMessageUpdate,
+  queueCloudReadReceipt,
+} from '../../chat/cloudChatSync';
+import type { ChatGroup, ChatPresenceStore, ChatTimestampStore } from '../../../types';
 import type { MessagesLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
 
@@ -17,6 +24,48 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
     }
     get messages(): MessagesByChatStore {
       return this.load<MessagesByChatStore>('messages', {}) || {};
+    }
+
+    get chatGroups(): ChatGroup[] {
+      const raw = this.load<ChatGroup[]>('chat_groups', []);
+      return Array.isArray(raw) ? raw : [];
+    }
+
+    getChatGroup(groupId: string): ChatGroup | null {
+      const id = String(groupId || '').trim();
+      if (!id) return null;
+      return this.chatGroups.find((g) => g.id === id) ?? null;
+    }
+
+    saveChatGroups(groups: ChatGroup[]) {
+      this.save('chat_groups', Array.isArray(groups) ? groups : []);
+    }
+
+    upsertChatGroup(group: ChatGroup) {
+      if (!group?.id) return;
+      const list = this.chatGroups.filter((g) => g.id !== group.id);
+      this.saveChatGroups([group, ...list]);
+      void ensureCloudThreadForGroup(group);
+    }
+
+    mergeInboundChatGroup(group: ChatGroup) {
+      if (!group?.id) return;
+      const existing = this.getChatGroup(group.id);
+      if (existing) {
+        this.saveChatGroups(
+          this.chatGroups.map((g) =>
+            g.id === group.id
+              ? {
+                  ...existing,
+                  ...group,
+                  memberIds: [...new Set([...(group.memberIds || []), ...(existing.memberIds || [])])],
+                }
+              : g,
+          ),
+        );
+        return;
+      }
+      this.saveChatGroups([group, ...this.chatGroups]);
     }
 
     get chatPresence(): ChatPresenceStore {
@@ -116,7 +165,11 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       return typeof value === 'number' ? value : 0;
     }
 
-    setChatReadAt(chatId: string, timestamp: number, options?: { allowDecrease?: boolean }) {
+    setChatReadAt(
+      chatId: string,
+      timestamp: number,
+      options?: { allowDecrease?: boolean; skipCloud?: boolean },
+    ) {
       if (!chatId) return;
       const readState = this.asLocalDB().chatReadState;
       const previous = typeof readState[chatId] === 'number' ? readState[chatId] : 0;
@@ -127,6 +180,9 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         ...readState,
         [chatId]: Math.max(0, nextValue),
       });
+      if (!options?.skipCloud) {
+        queueCloudReadReceipt(chatId, Math.max(0, nextValue));
+      }
     }
 
     getChatPeerReadAt(chatId: string) {
@@ -179,6 +235,79 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       });
     }
 
+    mergeInboundMessage(
+      chatId: string,
+      message: ChatMessage,
+      options?: { bumpUnread?: boolean },
+    ) {
+      if (!chatId || !message) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      const nextMessage = this.ensureMessageId(message, chatId);
+      const idx = existing.findIndex(
+        (m) =>
+          (m.id && nextMessage.id && m.id === nextMessage.id) ||
+          (m.cloudId && nextMessage.cloudId && m.cloudId === nextMessage.cloudId),
+      );
+      if (idx >= 0) {
+        existing[idx] = { ...existing[idx], ...nextMessage };
+        this.save('messages', {
+          ...msgs,
+          [chatId]: this.cappedList(existing, 'messages'),
+        });
+        return;
+      }
+      if (options?.bumpUnread !== false && !nextMessage.isAuthor) {
+        this.asLocalDB().setUnreadMessagesCount(this.asLocalDB().unreadMessagesCount + 1);
+      }
+      this.save('messages', {
+        ...msgs,
+        [chatId]: this.cappedList([...existing, nextMessage], 'messages'),
+      });
+    }
+
+    attachCloudMessageId(chatId: string, localId: string, cloudId: string) {
+      if (!chatId || !localId || !cloudId) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      let changed = false;
+      const next = existing.map((m) => {
+        if (m.id !== localId && m.cloudId !== cloudId) return m;
+        changed = true;
+        return { ...m, id: m.id || localId, cloudId };
+      });
+      if (!changed) return;
+      this.save('messages', { ...msgs, [chatId]: next });
+    }
+
+    markCloudMessageDeleted(chatId: string, cloudId: string) {
+      if (!chatId || !cloudId) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      const next = existing.map((m) =>
+        m.cloudId === cloudId || m.id === cloudId
+          ? { ...m, text: 'Message deleted', media: undefined, location: undefined, deleted: true }
+          : m,
+      );
+      this.save('messages', { ...msgs, [chatId]: next });
+    }
+
+    applyInboundMessageReaction(
+      chatId: string,
+      localOrCloudId: string,
+      state: { counts: Record<string, number>; selected: string | null },
+    ) {
+      if (!chatId || !localOrCloudId) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      const next = existing.map((m) =>
+        m.id === localOrCloudId || m.cloudId === localOrCloudId
+          ? { ...m, reactionState: { selected: state.selected, counts: state.counts } }
+          : m,
+      );
+      this.save('messages', { ...msgs, [chatId]: next });
+    }
+
     addMessage(chatId: string, message: ChatMessage) {
       const msgs = this.asLocalDB().messages;
       const existing = msgs[chatId] || [];
@@ -189,45 +318,68 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         [chatId]: this.cappedList([...existing, nextMessage], 'messages'),
       });
       queueMicrotask(() => {
-        queueCloudMessageSend(chatId, nextMessage);
+        queueCloudMessageSend(chatId, {
+          ...nextMessage,
+          from: nextMessage.from || this.asLocalDB().currentUserId || undefined,
+        });
       });
       const meId = this.asLocalDB().currentUserId;
-      const recipientId = safeUserId(chatId);
-      if (nextMessage?.isAuthor && recipientId && meId && recipientId !== meId) {
-        const mediaList = Array.isArray(nextMessage.media) ? nextMessage.media : [];
-        const fileAttachment = mediaList.find(
-          (item) =>
-            item &&
-            typeof item === 'object' &&
-            (item as { isFile?: boolean }).isFile === true
-        ) as { name?: string } | undefined;
-        const loc = nextMessage.location;
-        const hasLocation =
-          loc &&
-          typeof loc === 'object' &&
-          !Array.isArray(loc) &&
-          Number.isFinite(Number((loc as { latitude?: unknown }).latitude)) &&
-          Number.isFinite(Number((loc as { longitude?: unknown }).longitude));
-        const locationLabel =
-          hasLocation && typeof (loc as { label?: unknown }).label === 'string'
-            ? String((loc as { label: string }).label).trim()
-            : '';
-        const preview = String(nextMessage.text ?? '').trim().slice(0, 120);
-        const fileName =
-          typeof fileAttachment?.name === 'string' ? fileAttachment.name.trim() : '';
+      if (!nextMessage?.isAuthor || !meId) return;
+
+      const group = this.getChatGroup(chatId);
+      const recipientIds = group
+        ? (group.memberIds || []).filter((id) => id && id !== meId)
+        : [safeUserId(chatId)].filter((id): id is string => !!id && id !== meId);
+
+      const mediaList = Array.isArray(nextMessage.media) ? nextMessage.media : [];
+      const fileAttachment = mediaList.find(
+        (item) =>
+          item &&
+          typeof item === 'object' &&
+          (item as { isFile?: boolean }).isFile === true,
+      ) as { name?: string } | undefined;
+      const loc = nextMessage.location;
+      const hasLocation =
+        loc &&
+        typeof loc === 'object' &&
+        !Array.isArray(loc) &&
+        Number.isFinite(Number((loc as { latitude?: unknown }).latitude)) &&
+        Number.isFinite(Number((loc as { longitude?: unknown }).longitude));
+      const locationLabel =
+        hasLocation && typeof (loc as { label?: unknown }).label === 'string'
+          ? String((loc as { label: string }).label).trim()
+          : '';
+      const preview = String(nextMessage.text ?? '').trim().slice(0, 120);
+      const fileName =
+        typeof fileAttachment?.name === 'string' ? fileAttachment.name.trim() : '';
+      const firstMedia = mediaList[0] as
+        | { isAudio?: boolean; isVideo?: boolean }
+        | undefined;
+      const text = nextMessage.isCallEvent
+        ? nextMessage.callKind === 'video'
+          ? 'Started a video call'
+          : 'Started an audio call'
+        : preview ||
+          (hasLocation
+            ? locationLabel
+              ? `Shared location: ${locationLabel}`
+              : 'Shared a location'
+            : fileName
+              ? `Sent you ${fileName}`
+              : firstMedia?.isAudio
+                ? 'Sent an audio message'
+                : firstMedia?.isVideo
+                  ? 'Sent a video'
+                  : mediaList.length
+                    ? 'Sent a photo'
+                    : 'Sent you a message');
+
+      for (const recipientId of recipientIds) {
         this.asLocalDB().pushNotificationForUser(recipientId, {
-          type: 'message',
+          type: nextMessage.isCallEvent ? 'activity' : 'message',
           actorUserId: meId,
-          text:
-            preview ||
-            (hasLocation
-              ? locationLabel
-                ? `Shared location: ${locationLabel}`
-                : 'Shared a location'
-              : fileName
-                ? `Sent you ${fileName}`
-                : 'Sent you a message'),
-          link: `chat:${recipientId}`,
+          text,
+          link: `chat:${chatId}`,
           targetTab: 'messages',
         });
       }
@@ -264,18 +416,21 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         selected = emoji;
       }
 
-      existing[messageIndex] = {
+      const nextMessage = {
         ...message,
         reactionState: {
           selected,
           counts,
         },
       };
+      existing[messageIndex] = nextMessage;
 
       this.save('messages', {
         ...msgs,
         [chatId]: this.cappedList(existing, 'messages'),
       });
+
+      queueCloudMessageReaction(chatId, nextMessage, selected);
 
       const meId = this.asLocalDB().currentUserId;
       const recipientId = safeUserId(chatId);
@@ -304,11 +459,13 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
       if (messageIndex < 0 || messageIndex >= existing.length) return;
       const current = existing[messageIndex];
-      existing[messageIndex] = updater(current);
+      const next = updater(current);
+      existing[messageIndex] = next;
       this.save('messages', {
         ...msgs,
         [chatId]: this.cappedList(existing, 'messages'),
       });
+      if (next?.isAuthor) queueCloudMessageUpdate(chatId, next);
     }
 
     deleteMessage(chatId: string, messageIndex: number) {
@@ -316,6 +473,8 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       const msgs = this.asLocalDB().messages;
       const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
       if (messageIndex < 0 || messageIndex >= existing.length) return;
+      const removed = existing[messageIndex];
+      if (removed?.isAuthor) queueCloudMessageDelete(chatId, removed);
       existing.splice(messageIndex, 1);
 
       const normalized = existing.map((message: ChatMessage) => {

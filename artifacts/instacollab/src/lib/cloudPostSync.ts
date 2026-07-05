@@ -12,10 +12,13 @@ import { postUserId } from './safe';
 import {
   fetchCloudFeedPosts,
   fetchCloudUserPosts,
+  subscribeCloudPosts,
   uploadPostMediaBlob,
   upsertCloudPost,
 } from './supabase/cloudPosts';
 import { isSupabaseConfigured } from './supabase/config';
+import { scheduleInstant } from './instantTask';
+import { NET_FEED_MS, withTimeout } from './networkPolicy';
 
 let publishInflight = new Map<string, Promise<void>>();
 let feedSyncInflight: Promise<void> | null = null;
@@ -150,20 +153,13 @@ export async function publishPostToCloud(post: Post): Promise<void> {
   return job;
 }
 
-const publishQueue = new Map<string, ReturnType<typeof setTimeout>>();
-
 export function scheduleCloudPostPublish(post: Post): void {
   const authorId = postUserId(post);
   if (!isSupabaseConfigured() || !authorId || !isCloudAuthUserId(authorId)) return;
-  const prev = publishQueue.get(post.id);
-  if (prev) clearTimeout(prev);
-  publishQueue.set(
-    post.id,
-    setTimeout(() => {
-      publishQueue.delete(post.id);
-      void publishPostToCloud(post);
-    }, 400),
-  );
+  // Zero-delay microtask coalesce — no artificial publish lag.
+  scheduleInstant(`post-publish:${post.id}`, () => {
+    void publishPostToCloud(post);
+  });
 }
 
 export async function syncCloudFeed(): Promise<void> {
@@ -172,8 +168,10 @@ export async function syncCloudFeed(): Promise<void> {
 
   feedSyncInflight = (async () => {
     try {
-      const remote = await fetchCloudFeedPosts();
+      const remote = await withTimeout(fetchCloudFeedPosts(), NET_FEED_MS, 'cloud-feed');
       if (remote.length) db.mergeInboundPosts(remote);
+    } catch {
+      /* slow network — keep local cache */
     } finally {
       feedSyncInflight = null;
     }
@@ -200,10 +198,27 @@ export async function syncCloudUserPosts(userId: string): Promise<void> {
   return job;
 }
 
+let postRealtimeUnsub: (() => void) | null = null;
+
+export function stopCloudPostRealtimeSync(): void {
+  postRealtimeUnsub?.();
+  postRealtimeUnsub = null;
+}
+
 export function startCloudPostRealtimeSync(): () => void {
-  // Realtime merge disabled — avoids feed flash during background deploys.
-  // Feed/profile pull cloud posts on open and pull-to-refresh only.
-  return () => {};
+  if (!isSupabaseConfigured()) return () => {};
+  stopCloudPostRealtimeSync();
+
+  postRealtimeUnsub = subscribeCloudPosts(() => {
+    // Instant coalesce — no 800ms lag on live feed updates.
+    scheduleInstant('posts-realtime-sync', () => {
+      void import('./cloudSocial/cloudSocialContent').then((m) => {
+        void m.syncCloudSocialFeed();
+      });
+    });
+  });
+
+  return stopCloudPostRealtimeSync;
 }
 
 export async function syncOwnPostsToCloud(): Promise<void> {
@@ -219,10 +234,10 @@ export async function syncOwnPostsToCloud(): Promise<void> {
 
 export async function bootstrapCloudPosts(): Promise<void> {
   if (!isSupabaseConfigured()) return;
-  // Defer feed sync so first paint is stable (no flash from merge)
-  window.setTimeout(() => {
-    void syncCloudFeed();
-    void syncOwnPostsToCloud();
-  }, 4000);
+  // Immediate feed hydrate — no 4s startup delay.
+  void import('./cloudSocial/cloudSocialContent').then((m) => {
+    void m.syncCloudSocialFeed();
+  });
+  void syncOwnPostsToCloud();
   startCloudPostRealtimeSync();
 }

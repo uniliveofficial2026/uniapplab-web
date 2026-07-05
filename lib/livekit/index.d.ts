@@ -3,6 +3,7 @@ declare module "@workspace/livekit" {
   export function getLiveKitUrl(): string;
   export function streamRoomName(streamId: string): string;
   export function partyRoomName(roomId: string): string;
+  export function chatCallRoomName(threadId: string, callKind?: "audio" | "video"): string;
   export function getRoomService(): import("livekit-server-sdk").RoomServiceClient | null;
   export function createLiveKitToken(options: {
     identity: string;

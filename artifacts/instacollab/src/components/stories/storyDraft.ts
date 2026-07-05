@@ -19,6 +19,8 @@ import {
 export type StoryCreatorStep = 'select' | 'edit' | 'preview';
 
 export type StoryDraftMedia = {
+  /** Stable cloud id when synced via social_stories. */
+  id?: string;
   url: string;
   isVideo: boolean;
   caption?: string;

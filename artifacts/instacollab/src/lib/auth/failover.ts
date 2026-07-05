@@ -1,22 +1,22 @@
 import type { AuthResult } from './types';
 import {
-  clearSupabaseUnhealthy,
-  markSupabaseUnhealthy,
-  resolveInitialAuthBackend,
+  clearSupabaseOAuthDegraded,
+  markSupabaseOAuthDegraded,
+  resolveOAuthSignInBackend,
   writeStoredAuthBackend,
 } from './providerState';
 import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
 
 const INFRA_PATTERNS =
-  /not configured|network|fetch|timeout|failed to fetch|service unavailable|503|502|504|econnrefused|health/i;
+  /not configured|network|fetch|timeout|timed out|failed to fetch|service unavailable|522|524|503|502|504|econnrefused|health|unavailable|connection|database error|postgres|pgrst|internal server error|could not connect|relation.*does not exist/i;
 
 export function isInfrastructureAuthFailure(reason: string): boolean {
   return INFRA_PATTERNS.test(reason);
 }
 
 export function getActiveAuthBackendForRequest(): 'supabase' | 'firebase' {
-  return resolveInitialAuthBackend();
+  return resolveOAuthSignInBackend();
 }
 
 export async function withSupabaseFirebaseFailover<T extends AuthResult>(
@@ -37,7 +37,7 @@ export async function withSupabaseFirebaseFailover<T extends AuthResult>(
   if (!isFirebaseConfigured()) {
     const only = await runSupabase();
     if (only.ok) {
-      clearSupabaseUnhealthy();
+      clearSupabaseOAuthDegraded();
       writeStoredAuthBackend('supabase');
     }
     return only;
@@ -45,7 +45,7 @@ export async function withSupabaseFirebaseFailover<T extends AuthResult>(
 
   const primary = await runSupabase();
   if (primary.ok) {
-    clearSupabaseUnhealthy();
+    clearSupabaseOAuthDegraded();
     writeStoredAuthBackend('supabase');
     return primary;
   }
@@ -54,7 +54,7 @@ export async function withSupabaseFirebaseFailover<T extends AuthResult>(
     return primary;
   }
 
-  markSupabaseUnhealthy();
+  markSupabaseOAuthDegraded();
   writeStoredAuthBackend('firebase');
   return runFirebase();
 }

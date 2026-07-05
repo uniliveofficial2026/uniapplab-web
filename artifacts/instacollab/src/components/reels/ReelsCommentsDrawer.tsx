@@ -112,7 +112,6 @@ export function ReelsCommentsDrawer({
                           type="button"
                           onClick={() => {
                             onCommentTextChange(`@${USERS[i % USERS.length]?.username} `);
-                            commentInputRef.current?.focus();
                           }}
                           className="hover:text-foreground"
                         >

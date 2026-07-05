@@ -1,5 +1,5 @@
 
-export type RoomMode = 'Chat' | 'Radio' | 'Karaoke' | 'Multi-Guest' | 'Party';
+export type RoomMode = 'Chat' | 'Radio' | 'Karaoke' | 'Multi-Guest' | 'Party' | 'Solo-Live';
 
 export type RoomSettings = {
     coverPhoto: string;
@@ -33,6 +33,8 @@ export type RoomSettings = {
     watchTogetherMediaUrl?: string;
     /** Display name when watchTogetherMediaUrl is an IndexedDB upload marker. */
     watchTogetherMediaFileName?: string;
+    /** Multi-Guest video seat capacity (7, 12, or 15). */
+    multiGuestSeatCount?: number;
 };
 
 const ROOM_SETTINGS_PREFIX = 'roomSettings:';
@@ -58,6 +60,7 @@ function defaultSettings(): RoomSettings {
         singingManagement: 'Enabled',
         songList: 'Edit',
         blockList: 'Edit',
+        multiGuestSeatCount: 15,
     };
 }
 

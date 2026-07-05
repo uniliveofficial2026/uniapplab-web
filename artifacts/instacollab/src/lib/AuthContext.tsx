@@ -16,8 +16,10 @@ import { getFirebaseAuth, getFirestoreDB } from './firebase';
 import { db } from './db/localDb';
 import { safeLocalStorage } from './utils';
 import { isSupabaseConfigured, isPrimarySupabaseCloud } from './auth/config';
+import { withTimeout, NET_AUTH_MS } from './networkPolicy';
 import { authSignInWithEmail, authSignInWithGoogle, authSignOut, authSignUp, authRequestPasswordReset, authResendSignupConfirmation, authSendEmailOtp, authVerifyEmailOtp } from './auth/authService';
 import { syncCloudSessionNow } from './auth/syncSession';
+import { applyFirebaseOAuthSessionToLocalDb } from './auth/applyFirebaseBackupSession';
 import { flushCloudAppStateSync, stopCloudAppStateRealtimeAsync } from './auth/cloudAppState';
 import { flushCloudProfileSync, isCloudAuthUserId } from './auth/cloudProfile';
 import { teardownCloudSession, applySupabaseSessionToLocalDb, restoreStoredAccountSession } from './auth/sessionManager';
@@ -32,6 +34,7 @@ import {
   accountFromSupabaseUser,
   clearActiveDeviceUid,
   clearGoogleAccessToken,
+  enrichDeviceAccountsForDisplay,
   loadGoogleAccessToken,
   readActiveDeviceUid,
   filterEligibleDeviceAccounts,
@@ -49,7 +52,7 @@ import {
   saveStoredAccountSession,
 } from './auth/storedAccountSessions';
 
-interface AuthContextType {
+export type AuthContextValue = {
   user: User | null;
   profile: any | null;
   setProfile: React.Dispatch<React.SetStateAction<any | null>>;
@@ -84,9 +87,38 @@ interface AuthContextType {
   selectAccount: (uid: string, password?: string) => Promise<void>;
   removeAccount: (uid: string) => void;
   ensureDeviceAccountsSynced: () => Promise<void>;
-}
+};
 
-const AuthContext = createContext<AuthContextType | undefined>(undefined);
+/** Offline-safe fallback when a lazy chunk resolves a duplicate context module. */
+export const AUTH_OFFLINE_STUB: AuthContextValue = {
+  user: null,
+  profile: null,
+  setProfile: () => {},
+  loading: false,
+  userAccounts: [],
+  googleAccessToken: null,
+  loginWithGoogle: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  loginWithApple: async () => {},
+  loginWithEmail: async () => {},
+  signupWithEmail: async () => {},
+  resetPassword: async () => {},
+  logout: async () => {},
+  switchAccount: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  linkGoogleAccount: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  linkEmailAccount: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  linkEmailSignUp: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  resendEmailConfirmation: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  sendEmailAuthOtp: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  verifyEmailAuthOtp: async () => ({ ok: false, reason: 'Auth unavailable' }),
+  deleteAccount: async () => {},
+  selectAccount: async () => {},
+  removeAccount: () => {},
+  ensureDeviceAccountsSynced: async () => {},
+};
+
+export const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+let warnedMissingAuthProvider = false;
 
 function persistGoogleCredential(uid: string, credential: ReturnType<typeof GoogleAuthProvider.credentialFromResult>) {
   if (credential?.accessToken) {
@@ -110,7 +142,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     if (isPrimarySupabaseCloud()) {
       const supabase = getSupabaseClient();
-      const session = supabase ? (await supabase.auth.getSession()).data.session : null;
+      const session = supabase
+        ? (
+            await withTimeout(
+              supabase.auth.getSession(),
+              NET_AUTH_MS,
+              'Supabase getSession',
+            ).catch(() => ({ data: { session: null } }))
+          ).data.session
+        : null;
       if (session?.user) {
         next = upsertDeviceAccount(accountFromSupabaseUser(session.user), next);
         if (session.refresh_token) {
@@ -130,6 +170,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     next = filterEligibleDeviceAccounts(next);
+    next = enrichDeviceAccountsForDisplay(next, db.users ?? []);
     writeDeviceAccounts(next);
     setUserAccounts(next);
   }, []);
@@ -640,7 +681,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (token) setGoogleAccessToken(token);
 
         if (supabasePrimary) {
-          setUser(firebaseUser);
+          if (firebaseUser) {
+            void applyFirebaseOAuthSessionToLocalDb(firebaseUser, { silent: db.isLoggedIn });
+            setUser(firebaseUser);
+          }
           setLoading(false);
           return;
         }
@@ -873,10 +917,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   );
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextValue {
   const context = useContext(AuthContext);
   if (context === undefined) {
-    throw new Error('useAuth must be used within an AuthProvider');
+    if (!warnedMissingAuthProvider) {
+      warnedMissingAuthProvider = true;
+      console.warn(
+        '[auth] useAuth called without AuthProvider context — using offline stub. Hard refresh if this persists.',
+      );
+    }
+    return AUTH_OFFLINE_STUB;
   }
   return context;
+}
+
+/** Returns null when auth context is unavailable (duplicate chunk / pre-provider mount). */
+export function useAuthOptional(): AuthContextValue | null {
+  const context = useContext(AuthContext);
+  return context ?? null;
 }

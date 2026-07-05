@@ -13,7 +13,8 @@ import { ProfileNameLines } from '../common/ProfileNameLines';
 import { resolveUser } from '../../lib/safe';
 import { isPostActive } from '../../lib/entityResolve';
 import { TAP_REFRESH_EVENT } from '../../lib/appRefresh';
-import { syncCloudFeed } from '../../lib/cloudPostSync';
+import { syncCloudSocialFeed } from '../../lib/cloudSocial/cloudSocialContent';
+import { subscribeLiveCloudSurfaceRefresh } from '../../lib/liveCloudSurfaces';
 
 export function Feed() {
   const db = useDB();
@@ -25,17 +26,29 @@ export function Feed() {
   
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
-  const [feedRefreshKey, setFeedRefreshKey] = useState(0);
 
+  // Cache-first: render db.posts immediately; cloud merge updates via useDB() only.
   useEffect(() => {
-    void syncCloudFeed();
+    const sync = () => {
+      void syncCloudSocialFeed();
+    };
+    // Defer cloud until after first paint of cached posts.
+    const idle = window.setTimeout(sync, 0);
+    const unsub = subscribeLiveCloudSurfaceRefresh(
+      ['home', 'feed', 'reels', 'stories', 'comments', 'all'],
+      sync,
+    );
+    return () => {
+      window.clearTimeout(idle);
+      unsub();
+    };
   }, []);
 
   useEffect(() => {
     const onRefresh = (event: Event) => {
       const scope = (event as CustomEvent<{ scope?: string }>).detail?.scope;
       if (scope === 'home' || scope === 'global') {
-        void syncCloudFeed();
+        void syncCloudSocialFeed();
       }
     };
     window.addEventListener(TAP_REFRESH_EVENT, onRefresh);
@@ -61,7 +74,7 @@ export function Feed() {
   return (
     <div className="w-full flex flex-col items-center pt-6 pb-6 min-h-0 overflow-visible">
       {/* Stories should span the full feed lane (edge-to-edge), not the post card max width */}
-      <div className="w-full overflow-visible" key={`stories-${feedRefreshKey}`}>
+      <div className="w-full overflow-visible">
         <StoryStrip />
       </div>
 

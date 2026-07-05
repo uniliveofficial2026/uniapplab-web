@@ -93,6 +93,19 @@ export async function upsertCloudPost(post: Post): Promise<boolean> {
   return true;
 }
 
+export async function deleteCloudPost(postId: string): Promise<boolean> {
+  if (!isSupabaseConfigured() || !postId) return false;
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const { error } = await supabase.from(TABLE).delete().eq('id', postId);
+  if (error) {
+    console.warn('[posts] cloud delete failed:', error.message);
+    return false;
+  }
+  return true;
+}
+
 async function fetchProfilesForAuthors(authorIds: string[]): Promise<Map<string, User>> {
   const supabase = getSupabaseClient();
   const map = new Map<string, User>();

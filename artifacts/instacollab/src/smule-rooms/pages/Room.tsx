@@ -3,13 +3,14 @@ import { motion } from "motion/react";
 import { useParams, useNavigate } from "react-router-dom";
 import { 
   X, Mic, MicOff, Users, MessageCircle, Gift, Heart, Settings, Plus, Send, 
-  Crown, Shield, Menu, Pencil, ChevronRight, LayoutGrid,
-  Coins, Star, Volume2, Sparkle, FolderClosed, Sofa, User, Activity, Music,
+  Crown, Shield, Pencil, ChevronRight, LayoutGrid,
+  Volume2, Sparkle, FolderClosed, Sofa, User, Activity, Music,
   UserPlus, UserMinus, LogOut, Eye, ShieldAlert, UserX, Lock, Unlock, Search, HelpCircle,
   Info, Settings2,
 } from "lucide-react";
 
 import { ShareIcon } from "../../components/common/ShareIcon";
+import { CoinIcon } from "../../components/common/CoinIcon";
 
 import { ShareModal } from "../../components/feed/ShareModal";
 import { buildPartySharePayload } from "../../lib/shareLinks";
@@ -19,11 +20,22 @@ import { LyricsOverlay } from "../components/LyricsOverlay";
 import { ChorusPerformanceStage } from "../components/ChorusPerformanceStage";
 import { GuestManagementOverlay } from "../components/GuestManagementOverlay";
 import { RoomViewersOverlay } from "../components/RoomViewersOverlay";
+import { GiftSendersOverlay } from "../components/GiftSendersOverlay";
 import { ArenaRankingsOverlay } from "../components/ArenaRankingsOverlay";
 import { RoomArenaColumn } from "../components/RoomArenaLeaderboard";
-import { RoomHeaderActionsMenu, type RoomHeaderMenuItem } from "../components/RoomHeaderActionsMenu";
+import {
+  RoomHeaderActionsMenu,
+  createYoutubeMiniHeaderMenuItem,
+  createRoomBackgroundHeaderMenuItem,
+  createSingHeaderMenuItem,
+  type RoomHeaderMenuItem,
+} from "../components/RoomHeaderActionsMenu";
+import { RoomHeaderYoutubeMiniButton } from "../components/RoomHeaderYoutubeMiniButton";
 import { ChatRoleBadges } from "../components/ChatRoleBadges";
 import { WatchTogetherView } from "../components/WatchTogetherView";
+import { MultiGuestView } from "../components/MultiGuestView";
+import { SoloLiveView } from "../components/SoloLiveView";
+import { RoomFooterTrayActions } from "../components/RoomFooterTrayActions";
 import { RoomProfilePreviewModal } from "../components/RoomProfilePreviewModal";
 import { RoomDetailsScreen } from "../pages/RoomDetails";
 import { EditRoomScreen } from "../pages/EditRoom";
@@ -43,6 +55,16 @@ import { useRoomOwnerSocial } from "../hooks/useRoomOwnerSocial";
 import { getRoomSettings, ensureRoomSettingsSeeded, saveRoomSettings, type RoomMode } from "../utils/storage";
 import { resolveWatchTogetherMedia, hydrateWatchTogetherMedia } from "../utils/watchTogetherMedia";
 import { activateRoomContext, clearActiveRoomSession, formatRoomModeLabel, getManagedRoomById, syncManagedRoomFromActiveSession } from "../utils/managedRooms";
+import { setStoredOwnerPartyRoomId } from "../utils/ownerPartyRoomId";
+import { syncPartyRoomToCloud } from "../utils/syncPartyRoomCloud";
+import { usePartyRoomChat } from "../hooks/usePartyRoomChat";
+import { usePartyRoomPresence } from "../hooks/usePartyRoomPresence";
+import { isCloudAuthUserId } from "../../lib/auth/cloudProfile";
+import { db } from "../../lib/db/localDb";
+import {
+  isLiveRingRoomMode,
+  liveKindFromRoomMode,
+} from "../../lib/liveRing";
 import {
   isPrivateRoom,
   resolveRoomPrivacy,
@@ -102,7 +124,6 @@ import {
   resolveOwnerUserId,
   type ChatRoleFlags,
 } from "../utils/roomRoleUsers";
-import { db } from "../../lib/db/localDb";
 import {
   FREE_EXP_PER_SECOND,
   getRoomExpProgress,
@@ -137,9 +158,23 @@ import {
   hydratePartySeatsWithStars,
   savePartySeats,
   formatSeatActionSubtitle,
+  formatMultiGuestSeatActionSubtitle,
+  formatMultiGuestSeatLabel,
   formatStaffSeatLabel,
   isPartyStaffSeatKey,
   formatGuestSeatNumber,
+  formatSeatDisplayLabel,
+  canRoleLockSeat,
+  isMultiGuestSeatActive,
+  isSoloLiveActiveSeat,
+  isSoloLiveGuestSeat,
+  SOLO_LIVE_GUEST_SEAT_KEYS,
+  prunePartySeatsForMultiGuestCount,
+  pruneLockedSeatsForMultiGuestCount,
+  findOpenMultiGuestSeat,
+  findPreferredOpenSeat,
+  resolveMultiGuestSeatCount,
+  type MultiGuestSeatCount,
   splitPartyGuestSeatRows,
   splitChorusGuestSeatRows,
   ALL_SEAT_KEYS,
@@ -151,6 +186,14 @@ import {
 import { SeatSpeakingLevelBars, SeatVoiceGlowEffect } from "../components/SeatVoiceVisuals";
 import { useMicVoiceActivity } from "../hooks/useMicVoiceActivity";
 import { usePartyRoomLiveKit } from "../hooks/usePartyRoomLiveKit";
+import { buildLiveViewMediaProps, RoomLiveMediaSession } from "../components/RoomLiveMediaSession";
+import type { BeautyPresetId } from "../../lib/ar/beautyFilters";
+import {
+  deeparSelectionActive,
+  EMPTY_DEEPAR_EFFECT_SELECTION,
+  type DeepAREffectSelection,
+} from "../../lib/deepar/deeparEffectSelection";
+import { EMPTY_BODY_SHAPE, type TencentBodyShapeParams } from "../../lib/webar/webarTypes";
 import { useSongPerformanceTimer } from "../hooks/useSongPerformanceTimer";
 import { useSingingSession } from "../hooks/useSingingSession";
 import { usePerformanceBackingTrack } from "../hooks/usePerformanceBackingTrack";
@@ -281,13 +324,14 @@ export function Room() {
   const [isFullPartyMode, setIsFullPartyMode] = useState<boolean>(() =>
     resolveRoomLayoutFromSettings(ensureRoomSettingsSeeded(roomDisplayId).roomMode).isFullPartyMode,
   );
-  const [roomMode, setRoomMode] = useState<'Party' | 'Chorus' | 'WatchTogether'>(() =>
+  const [roomMode, setRoomMode] = useState<'Party' | 'Chorus' | 'WatchTogether' | 'MultiGuest' | 'SoloLive'>(() =>
     resolveRoomLayoutFromSettings(ensureRoomSettingsSeeded(roomDisplayId).roomMode).layout,
   );
   const roomLayoutConfig = useMemo(
-    () => resolveRoomLayoutFromSettings(liveSettings.roomMode),
-    [liveSettings.roomMode],
+    () => resolveRoomLayoutFromSettings(liveSettings.roomMode, liveSettings.multiGuestSeatCount),
+    [liveSettings.roomMode, liveSettings.multiGuestSeatCount],
   );
+  const multiGuestSeatCount = roomLayoutConfig.multiGuestSeatCount;
   const partyGuestSeatRows = useMemo(
     () => splitPartyGuestSeatRows(roomLayoutConfig.guestSeatKeys),
     [roomLayoutConfig.guestSeatKeys],
@@ -296,7 +340,17 @@ export function Room() {
     () => splitChorusGuestSeatRows(roomLayoutConfig.guestSeatKeys),
     [roomLayoutConfig.guestSeatKeys],
   );
-  const usesLivePartyFeed = isFullPartyMode || roomMode === 'WatchTogether';
+  const usesLivePartyFeed =
+    isFullPartyMode || roomMode === 'WatchTogether' || roomMode === 'MultiGuest' || roomMode === 'SoloLive';
+
+  const partyRoomChat = usePartyRoomChat({
+    roomId: roomDisplayId,
+    enabled: usesLivePartyFeed,
+    senderId: self.id,
+    senderName: self.chatLabel,
+  });
+  const liveChatMsgs = partyRoomChat.messages;
+  const appendLiveChatMsg = partyRoomChat.appendMessage;
   
   // Custom states
   const [customGreeting, setCustomGreeting] = useState("Show your enthusiasm");
@@ -356,7 +410,6 @@ export function Room() {
     return !isPrivateRoom(settings);
   });
   const [countdown, setCountdown] = useState(345475); // Starting total seconds
-  const [liveChatMsgs, setLiveChatMsgs] = useState<any[]>([]);
   
   const [guestRequests, setGuestRequests] = useState<SeatGuestRequest[]>([]);
 
@@ -379,20 +432,17 @@ export function Room() {
     const targetParticipant = arenaParticipants.find(p => p.id === participantId);
     const receiverName = targetParticipant ? targetParticipant.name : "Candidate";
 
-    setLiveChatMsgs(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        user: self.chatLabel,
-        userId: self.id,
-        isGiftEvent: true,
-        giftName,
-        giftIcon,
-        giftAmount: amount,
-        receiver: receiverName,
-        text: `Sent ${giftName} ${giftIcon} to ${receiverName}`
-      }
-    ].slice(-15));
+    appendLiveChatMsg({
+      id: Date.now(),
+      user: self.chatLabel,
+      userId: self.id,
+      isGiftEvent: true,
+      giftName,
+      giftIcon,
+      giftAmount: amount,
+      receiver: receiverName,
+      text: `Sent ${giftName} ${giftIcon} to ${receiverName}`,
+    });
 
     const starValue = Math.max(1, Math.floor(amount / 5));
     applyRoomGiftRef.current?.(
@@ -523,81 +573,10 @@ export function Room() {
       setCountdown(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
     
-    const chatSource = ["amazing! 🔥", "sing it bestie", "hello room", "can you hear me?", "welcome...", "nice voice!", "lets gooo"];
-    const ownerUserId = resolveOwnerUserId(liveSettings) ?? undefined;
-    const usersSource = [
-      { name: "Mildred" },
-      { name: "Guest_991" },
-      { name: "Alex" },
-      { name: "captain ghe" },
-      { name: "VIP_Sanny", userId: ownerUserId },
-      { name: "MR Nikk" },
-    ];
-    
-    const chatInterval = setInterval(() => {
-      const rand = Math.random();
-      if (rand > 0.5) {
-        // A simulated user speaks
-        const user = usersSource[Math.floor(Math.random() * usersSource.length)];
-        const simUserId =
-          user.userId ??
-          `sim-${user.name.trim().toLowerCase().replace(/\s+/g, '-')}`;
-        setLiveChatMsgs(prev => [
-          ...prev, 
-          {
-            id: Date.now(),
-            user: user.name,
-            userId: simUserId,
-            text: chatSource[Math.floor(Math.random() * chatSource.length)]
-          }
-        ].slice(-15)); // Keep only latest 15 messages so DOM doesn't bloat
-
-        // Move/Add user to top of viewers list with current timestamp
-        setViewers((prev) => {
-          const entry = viewerEntryFromSimulatedUser(liveSettings, roomDisplayId, self.id, user);
-          const filtered = prev.filter(
-            (viewer) => viewer.id !== entry.id && viewer.name !== entry.name,
-          );
-          return [{ ...entry, joinedAt: Date.now() }, ...filtered];
-        });
-      } else if (rand > 0.42 && rand <= 0.52 && usesLivePartyFeed) {
-        const gift = PARTY_GIFT_CATALOG[Math.floor(Math.random() * PARTY_GIFT_CATALOG.length)];
-        const sender = usersSource[Math.floor(Math.random() * usersSource.length)];
-        const seated = Object.entries(activeSeatsRef.current).filter(
-          (entry): entry is [string, Guest] => entry[1] !== null,
-        );
-        if (seated.length > 0) {
-          const [, receiver] = seated[Math.floor(Math.random() * seated.length)];
-          applyRoomGiftRef.current?.({
-            senderName: sender.name,
-            receiverName: receiver.name,
-            giftName: gift.name,
-            giftIcon: gift.icon,
-            starValue: gift.stars,
-          });
-        }
-      } else if (rand > 0.25) {
-        const coolNames = [
-          "shining_star⭐", "panda_cute🐼", "ruby_player💎", "golden_voice🎤", 
-          "rose_petal🌸", "blue_ocean🌊", "chill_zone🧘", "shadow_dancer💃",
-          "cyber_hero🤖", "mystic_dreamer🔮", "retro_wave🌈", "neon_rider🏍️",
-          "Burmese_Boy🇲🇲", "Ruby_Queen👑", "Lucky_Spells✨", "Midnight_Melody🎵"
-        ];
-        const newName = coolNames[Math.floor(Math.random() * coolNames.length)] + "_" + Math.floor(Math.random() * 900 + 100);
-        const joinEntry = viewerEntryFromDisplayName(liveSettings, roomDisplayId, self.id, newName);
-        announceUserJoinedRoomRef.current(joinEntry.id, joinEntry.name, { allowRepeat: true });
-        setViewers((prev) => {
-          const entry = viewerEntryFromDisplayName(liveSettings, roomDisplayId, self.id, newName);
-          return [entry, ...prev.filter((viewer) => viewer.name !== newName)];
-        });
-      }
-    }, 2800);
-    
     return () => {
       clearInterval(metricInterval);
-      clearInterval(chatInterval);
     };
-  }, [usesLivePartyFeed, roomDisplayId, liveSettings, self.id]);
+  }, [usesLivePartyFeed, roomDisplayId]);
 
   const formatCountdown = (secs: number) => {
     const d = Math.floor(secs / (3600*24));
@@ -623,6 +602,24 @@ export function Room() {
   const [singingVoiceEffect, setSingingVoiceEffect] = useState<VoiceChangerEffectId>('studio');
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
   const [isRoomViewersOpen, setIsRoomViewersOpen] = useState(false);
+  const [giftSendersTarget, setGiftSendersTarget] = useState<{
+    name: string;
+    userId?: string;
+  } | null>(null);
+  const [userCameraOn, setUserCameraOn] = useState(true);
+  const [multiGuestDeeparSelection, setMultiGuestDeeparSelection] =
+    useState<DeepAREffectSelection>(EMPTY_DEEPAR_EFFECT_SELECTION);
+  const [isMultiGuestEffectsOpen, setIsMultiGuestEffectsOpen] = useState(false);
+  const [liveBeautyEffectId, setLiveBeautyEffectId] = useState<BeautyPresetId>('none');
+  const [liveBeautyEffects, setLiveBeautyEffects] = useState(() => ({
+    makeupId: null as string | null,
+    stickerId: null as string | null,
+    filterId: null as string | null,
+    backgroundUrl: null as string | null,
+  }));
+  const [liveBodyShape, setLiveBodyShape] = useState<TencentBodyShapeParams>(EMPTY_BODY_SHAPE);
+  const [isLiveBeautyOpen, setIsLiveBeautyOpen] = useState(false);
+  const [userMicPrefOn, setUserMicPrefOn] = useState(true);
   const [isShareRoomOpen, setIsShareRoomOpen] = useState(false);
   const [isQueueSheetOpen, setIsQueueSheetOpen] = useState(false);
   const [chorusSongTab, setChorusSongTab] = useState<ChorusSongTab>('recommended');
@@ -643,6 +640,9 @@ export function Room() {
     localStorage.setItem('activeRoomId', roomDisplayId);
     const settings = ensureRoomRoleUserIds(roomDisplayId);
     setLiveSettings(settings);
+    if (settings.ownerUserId && settings.ownerUserId === self.id) {
+      setStoredOwnerPartyRoomId(settings.ownerUserId, roomDisplayId);
+    }
     const managed = getManagedRoomById(roomDisplayId);
     if (managed) {
       activateRoomContext(managed);
@@ -704,16 +704,37 @@ export function Room() {
     );
   };
 
+  const handleMultiGuestSeatCountChange = (count: MultiGuestSeatCount) => {
+    if (resolveMultiGuestSeatCount(liveSettings.multiGuestSeatCount) === count) return;
+    saveRoomSettings(roomDisplayId, { multiGuestSeatCount: count });
+    setLiveSettings(getRoomSettings(roomDisplayId));
+    setActiveSeats((prev) => prunePartySeatsForMultiGuestCount(prev, count));
+    setLockedSeats((prev) => pruneLockedSeatsForMultiGuestCount(prev, count));
+    showToast(`Video seat count updated to ${count}.`);
+  };
+
+  useEffect(() => {
+    if (roomMode !== 'MultiGuest') return;
+    setActiveSeats((prev) => prunePartySeatsForMultiGuestCount(prev, multiGuestSeatCount));
+    setLockedSeats((prev) => pruneLockedSeatsForMultiGuestCount(prev, multiGuestSeatCount));
+  }, [roomMode, multiGuestSeatCount]);
+
   const handleToggleSeatLock = (seatKey: string) => {
+    if (!canRoleLockSeat(seatKey, currentUserRole)) {
+      showToast('You do not have permission to lock this seat.');
+      return;
+    }
+    const seatLabel =
+      roomMode === 'MultiGuest'
+        ? formatMultiGuestSeatLabel(seatKey, multiGuestSeatCount)
+        : formatSeatDisplayLabel(seatKey);
     setLockedSeats(prev => {
       const isLocked = !prev[seatKey];
-      const sNum = seatKey.replace("no", "");
       if (isLocked) {
-        showToast(`Seat ${sNum} has been LOCKED successfully!`);
-        // Kick occupant if any
+        showToast(`${seatLabel} has been locked.`);
         setActiveSeats(curr => ({ ...curr, [seatKey]: null }));
       } else {
-        showToast(`Seat ${sNum} has been UNLOCKED successfully!`);
+        showToast(`${seatLabel} has been unlocked.`);
       }
       return { ...prev, [seatKey]: isLocked };
     });
@@ -844,22 +865,17 @@ export function Room() {
       setRoomGiftSummary(summary);
 
       if (options?.showChat !== false) {
-        setLiveChatMsgs((prev) =>
-          [
-            ...prev,
-            {
-              id: Date.now(),
-              user: input.senderName,
-              userId: self.id,
-              isGiftEvent: true,
-              giftName: input.giftName,
-              giftIcon: input.giftIcon,
-              giftAmount: event.starValue,
-              receiver: input.receiverName,
-              text: `Sent ${input.giftName} ${input.giftIcon} to ${input.receiverName}`,
-            },
-          ].slice(-15),
-        );
+        appendLiveChatMsg({
+          id: Date.now(),
+          user: input.senderName,
+          userId: self.id,
+          isGiftEvent: true,
+          giftName: input.giftName,
+          giftIcon: input.giftIcon,
+          giftAmount: event.starValue,
+          receiver: input.receiverName,
+          text: `Sent ${input.giftName} ${input.giftIcon} to ${input.receiverName}`,
+        });
       }
 
       if (options?.creditSeat !== false) {
@@ -910,7 +926,7 @@ export function Room() {
         starValue: gift.stars,
       });
       setIsGiftPickerOpen(false);
-      showToast(`Sent ${gift.icon} ${gift.name} to ${target.name} (+${gift.stars} ⭐)`);
+      showToast(`Sent ${gift.icon} ${gift.name} to ${target.name} (+${gift.stars} coins)`);
     },
     [applyRoomGift, defaultGiftReceiver],
   );
@@ -920,29 +936,126 @@ export function Room() {
     sessionUserId: self.id,
   });
 
-  const isUserSeated =
-    Object.values(activeSeats).some(
-      (guest: Guest | null) => guest !== null && isRoomSelfGuest(guest, self),
-    ) ||
-    (isRoomOwner(currentUserRole) && Boolean(activeSeats.host)) ||
-    (isRoomCoOwner(currentUserRole) && Boolean(activeSeats.coowner)) ||
-    (selfCanTakeAdminSeat && Boolean(activeSeats.admin));
-  const userSeatKey =
-    Object.entries(activeSeats).find(([, guest]) => guest && isRoomSelfGuest(guest, self))?.[0] ??
-    (isRoomOwner(currentUserRole) && activeSeats.host ? 'host' : null) ??
-    (isRoomCoOwner(currentUserRole) && activeSeats.coowner ? 'coowner' : null) ??
-    (selfCanTakeAdminSeat && activeSeats.admin ? 'admin' : null);
+  const isSeatActiveInLayout = useCallback(
+    (seatKey: string) => {
+      if (roomMode === 'SoloLive') return isSoloLiveActiveSeat(seatKey);
+      if (roomMode === 'MultiGuest') return isMultiGuestSeatActive(seatKey, multiGuestSeatCount);
+      return true;
+    },
+    [roomMode, multiGuestSeatCount],
+  );
+
+  const selfSeatEntry = Object.entries(activeSeats).find(
+    ([seatKey, guest]) =>
+      guest &&
+      isRoomSelfGuest(guest, self) &&
+      isSeatActiveInLayout(seatKey),
+  );
+  const isUserSeated = Boolean(selfSeatEntry);
+  const userSeatKey = selfSeatEntry?.[0] ?? null;
   const userMicOn = userSeatKey ? Boolean(activeSeats[userSeatKey]?.isSpeaking) : false;
   const userMicAdminMuted = userSeatKey ? Boolean(activeSeats[userSeatKey]?.isAdminMuted) : false;
   const { isVoiceActive: userVoiceActive, audioLevel: userMicLevel } = useMicVoiceActivity(
     Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
   );
 
+  // All non-camera room modes (Chat, Radio, Karaoke, Party, Chorus, WatchTogether):
+  // everyone joins LiveKit as subscriber instantly in background; only seated users publish mic.
   usePartyRoomLiveKit({
     roomId: roomDisplayId,
-    enabled: Boolean(userSeatKey),
+    enabled: roomMode !== 'MultiGuest' && roomMode !== 'SoloLive',
     publishMic: Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
   });
+
+  const isSelfSoloHost =
+    roomMode === 'SoloLive' &&
+    Boolean(userSeatKey === 'host' && activeSeats.host && isRoomSelfGuest(activeSeats.host, self));
+
+  const prevRoomModeRef = useRef(roomMode);
+  useEffect(() => {
+    const prev = prevRoomModeRef.current;
+    if (prev === roomMode) return;
+    prevRoomModeRef.current = roomMode;
+    const prevLive = prev === 'SoloLive' || prev === 'MultiGuest';
+    const nextLive = roomMode === 'SoloLive' || roomMode === 'MultiGuest';
+    if (prevLive || nextLive) {
+      setIsMultiGuestEffectsOpen(false);
+      setIsLiveBeautyOpen(false);
+    }
+  }, [roomMode]);
+
+  const toggleLiveEffectsPanel = useCallback(() => {
+    setIsMultiGuestEffectsOpen((open) => {
+      const next = !open;
+      if (next) setIsLiveBeautyOpen(false);
+      return next;
+    });
+  }, []);
+
+  const toggleLiveBeautyPanel = useCallback(() => {
+    setIsLiveBeautyOpen((open) => {
+      const next = !open;
+      if (next) setIsMultiGuestEffectsOpen(false);
+      return next;
+    });
+  }, []);
+
+  /** AR and Beauty are mutually exclusive on the publish path. */
+  const handleDeeparSelectionChange = useCallback((selection: DeepAREffectSelection) => {
+    setMultiGuestDeeparSelection(selection);
+    if (deeparSelectionActive(selection)) {
+      setLiveBeautyEffectId('none');
+      setLiveBeautyEffects({
+        makeupId: null,
+        stickerId: null,
+        filterId: null,
+        backgroundUrl: null,
+      });
+    }
+  }, []);
+
+  const handleSelectLiveBeauty = useCallback((beautyId: BeautyPresetId) => {
+    setLiveBeautyEffectId(beautyId);
+    if (beautyId !== 'none') {
+      setMultiGuestDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
+    }
+  }, []);
+
+  const handleLiveBeautyEffectsChange = useCallback(
+    (effects: {
+      makeupId: string | null;
+      stickerId: string | null;
+      filterId: string | null;
+      backgroundUrl: string | null;
+    }) => {
+      setLiveBeautyEffects(effects);
+      const active = Boolean(
+        effects.makeupId || effects.stickerId || effects.filterId || effects.backgroundUrl,
+      );
+      if (active) setMultiGuestDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
+    },
+    [],
+  );
+
+  useEffect(() => {
+    const isOwnerHost =
+      currentUserRole === 'owner' || liveSettings.ownerUserId === self.id;
+    if (!isOwnerHost || !self.id) return undefined;
+
+    const settingsMode = String(liveSettings.roomMode || '');
+    const liveKind = liveKindFromRoomMode(settingsMode);
+    const isPublishingLive = isLiveRingRoomMode(settingsMode);
+
+    db.setUserLiveStatus(self.id, isPublishingLive, liveKind);
+    return () => {
+      db.setUserLiveStatus(self.id, false);
+    };
+  }, [
+    self.id,
+    currentUserRole,
+    liveSettings.ownerUserId,
+    liveSettings.roomMode,
+  ]);
 
   const performanceKey = isSingingMode && currentlySinging ? currentlySinging.id : null;
   const isUploadPerformance = Boolean(performanceKey && isKaraokeUploadSongId(performanceKey));
@@ -1067,13 +1180,19 @@ export function Room() {
     });
   }, []);
 
+  const usesLyricsSingFlow =
+    roomMode === 'Party' ||
+    roomMode === 'MultiGuest' ||
+    roomMode === 'WatchTogether' ||
+    roomMode === 'SoloLive';
+
   const handleOpenSing = useCallback(() => {
-    if (roomMode === 'Party' && currentlySinging) {
+    if (currentlySinging) {
       setIsLyricsOverlayOpen(true);
       return;
     }
     setIsSongSelectorOpen(true);
-  }, [roomMode, currentlySinging]);
+  }, [currentlySinging]);
 
   const partyHeaderMenuItems = useMemo<RoomHeaderMenuItem[]>(
     () => [
@@ -1091,13 +1210,17 @@ export function Room() {
         hidden: !canEditRoomAnnouncement,
       },
       {
-        id: 'sing',
-        label: currentlySinging ? 'Open lyrics' : 'Sing a song',
-        icon: <Music size={15} aria-hidden />,
-        onClick: handleOpenSing,
-        hidden: isLyricsOverlayOpen,
-        badge: songQueue.length,
+        id: 'mode',
+        label: 'Change room mode',
+        icon: <LayoutGrid size={15} aria-hidden />,
+        onClick: handleOpenRoomModePicker,
+        hidden: !canEditRoomAnnouncement,
       },
+      createSingHeaderMenuItem(handleOpenSing, {
+        hasActiveSong: Boolean(currentlySinging),
+        hidden: isLyricsOverlayOpen,
+        queueLength: songQueue.length,
+      }),
       {
         id: 'share',
         label: 'Share room',
@@ -1111,6 +1234,10 @@ export function Room() {
         onClick: handleOpenAnnouncementEditor,
         hidden: !canEditRoomAnnouncement,
       },
+      createRoomBackgroundHeaderMenuItem(() => setIsRoomBackgroundMenuOpen(true), {
+        hidden: !canChangeRoomBackground,
+      }),
+      createYoutubeMiniHeaderMenuItem(),
     ],
     [
       openRoomDetails,
@@ -1121,6 +1248,8 @@ export function Room() {
       isLyricsOverlayOpen,
       songQueue.length,
       handleOpenAnnouncementEditor,
+      handleOpenRoomModePicker,
+      canChangeRoomBackground,
     ],
   );
 
@@ -1140,6 +1269,18 @@ export function Room() {
         hidden: !canEditRoomAnnouncement,
       },
       {
+        id: 'mode',
+        label: 'Change room mode',
+        icon: <LayoutGrid size={15} aria-hidden />,
+        onClick: handleOpenRoomModePicker,
+        hidden: !canEditRoomAnnouncement,
+      },
+      createSingHeaderMenuItem(handleOpenSing, {
+        hasActiveSong: Boolean(currentlySinging),
+        hidden: isLyricsOverlayOpen,
+        queueLength: songQueue.length,
+      }),
+      {
         id: 'share',
         label: 'Share room',
         icon: <ShareIcon size="room" tone="inherit" className="h-4 w-4" />,
@@ -1152,12 +1293,22 @@ export function Room() {
         onClick: handleOpenAnnouncementEditor,
         hidden: !canEditRoomAnnouncement,
       },
+      createRoomBackgroundHeaderMenuItem(() => setIsRoomBackgroundMenuOpen(true), {
+        hidden: !canChangeRoomBackground,
+      }),
+      createYoutubeMiniHeaderMenuItem(),
     ],
     [
       openRoomDetails,
       openRoomEdit,
       canEditRoomAnnouncement,
+      currentlySinging,
+      handleOpenSing,
+      isLyricsOverlayOpen,
+      songQueue.length,
       handleOpenAnnouncementEditor,
+      handleOpenRoomModePicker,
+      canChangeRoomBackground,
     ],
   );
 
@@ -1188,6 +1339,12 @@ export function Room() {
     buildViewersFromPartyState(liveSettings, activeSeats, self, roomDisplayId),
   );
 
+  const partyPresence = usePartyRoomPresence({
+    roomId: roomDisplayId,
+    enabled: usesLivePartyFeed,
+    self: { id: self.id, roomName: self.roomName, avatarUrl: self.avatarUrl },
+  });
+
   const getSelfJoinContext = useCallback((): RoomJoinContext => {
     return buildSelfRoomJoinContext(
       liveSettings,
@@ -1197,6 +1354,7 @@ export function Room() {
   }, [liveSettings, self.id, currentUserRole]);
 
   useEffect(() => {
+    if (partyPresence.cloudActive) return;
     setViewers((prev) =>
       mergeViewerJoinTimestamps(
         buildViewersFromPartyState(liveSettings, activeSeats, self, roomDisplayId),
@@ -1204,6 +1362,7 @@ export function Room() {
       ),
     );
   }, [
+    partyPresence.cloudActive,
     liveSettings,
     activeSeats,
     self.id,
@@ -1212,6 +1371,32 @@ export function Room() {
     roomDisplayId,
     self,
   ]);
+
+  useEffect(() => {
+    if (!partyPresence.cloudActive) return;
+    setViewers((prev) => {
+      const seated = buildViewersFromPartyState(liveSettings, activeSeats, self, roomDisplayId);
+      const byId = new Map<string, RoomViewerEntry>();
+      for (const entry of seated) byId.set(entry.id, entry);
+      for (const entry of partyPresence.remoteViewers) {
+        if (!byId.has(entry.id)) byId.set(entry.id, entry);
+      }
+      return mergeViewerJoinTimestamps(Array.from(byId.values()), prev);
+    });
+  }, [
+    partyPresence.cloudActive,
+    partyPresence.remoteViewers,
+    liveSettings,
+    activeSeats,
+    self,
+    roomDisplayId,
+  ]);
+
+  useEffect(() => {
+    if (!usesLivePartyFeed || !isCloudAuthUserId(self.id)) return;
+    const ownerId = liveSettings.ownerUserId ?? self.id;
+    syncPartyRoomToCloud(roomDisplayId, ownerId, liveSettings);
+  }, [usesLivePartyFeed, roomDisplayId, liveSettings, self.id]);
 
   useEffect(() => {
     seedDemoRoomMedia(roomDisplayId, []);
@@ -1326,18 +1511,15 @@ export function Room() {
     // 1. Post simulated system messages inside chats
     const kickNotice = `👢 @${viewerName} was kicked from the room by the room administration`;
     
-    setLiveChatMsgs(prev => [
-      ...prev,
-      {
-        id: Date.now(),
-        user: "SYSTEM",
-        isOwner: false,
-        isAdmin: true,
-        isSystem: true,
-        text: kickNotice,
-        iconBadge: "ban"
-      }
-    ].slice(-15));
+    appendLiveChatMsg({
+      id: Date.now(),
+      user: 'SYSTEM',
+      isOwner: false,
+      isAdmin: true,
+      isSystem: true,
+      text: kickNotice,
+      iconBadge: 'ban',
+    });
 
     setMessages(prev => [
       ...prev,
@@ -1576,9 +1758,9 @@ export function Room() {
 
   type AnnouncementWelcomeChatMsg = {
     id: string | number;
-    isAnnouncementWelcome: true;
-    targetViewerId: string;
-    targetViewerName: string;
+    isAnnouncementWelcome?: boolean;
+    targetViewerId?: string;
+    targetViewerName?: string;
     targetViewerAvatar?: string;
   };
 
@@ -1784,12 +1966,15 @@ export function Room() {
 
   const renderAnnouncementWelcome = useCallback(
     (message: AnnouncementWelcomeChatMsg) => {
-      const welcome = buildViewerRoomWelcome(liveSettings, message.targetViewerName);
+      const targetViewerId = message.targetViewerId?.trim();
+      const targetViewerName = message.targetViewerName?.trim();
+      if (!message.isAnnouncementWelcome || !targetViewerId || !targetViewerName) return null;
+
+      const welcome = buildViewerRoomWelcome(liveSettings, targetViewerName);
       if (!welcome) return null;
 
       const recipientViewer = viewers.find(
-        (entry) =>
-          entry.id === message.targetViewerId || entry.name === message.targetViewerName,
+        (entry) => entry.id === targetViewerId || entry.name === targetViewerName,
       );
 
       return (
@@ -1804,8 +1989,8 @@ export function Room() {
           onSelectOwner={handleSelectRoomOwner}
           onSelectRecipient={() =>
             handleSelectViewer({
-              id: message.targetViewerId,
-              name: message.targetViewerName,
+              id: targetViewerId,
+              name: targetViewerName,
               avatar:
                 message.targetViewerAvatar ??
                 recipientViewer?.avatar ??
@@ -1882,6 +2067,7 @@ export function Room() {
     });
 
     if (isSelf) {
+      setUserMicPrefOn(nextSpeaking);
       showToast(nextSpeaking ? "You unmuted your microphone!" : "You muted your microphone!");
       if (seatKey === "host") {
         setIsMuted(!nextSpeaking);
@@ -1902,15 +2088,15 @@ export function Room() {
     setActiveSeats(prev => {
       const copy = { ...prev };
       Object.keys(copy).forEach(k => {
-        if (!isPartyStaffSeatKey(k)) {
-          const occupant = copy[k];
-          if (occupant) {
-            copy[k] = { 
-              ...occupant, 
-              isSpeaking: !nextMuteState,
-              isAdminMuted: nextMuteState // locks if muting all, unlocks if unmuting all
-            };
-          }
+        if (isPartyStaffSeatKey(k)) return;
+        if (roomMode === 'MultiGuest' && !isMultiGuestSeatActive(k, multiGuestSeatCount)) return;
+        const occupant = copy[k];
+        if (occupant) {
+          copy[k] = { 
+            ...occupant, 
+            isSpeaking: !nextMuteState,
+            isAdminMuted: nextMuteState // locks if muting all, unlocks if unmuting all
+          };
         }
       });
       return copy;
@@ -1967,9 +2153,7 @@ export function Room() {
 
   const showToast = (message: string) => {
     if (roomMode === 'WatchTogether') {
-      setLiveChatMsgs((prev) =>
-        [...prev, { id: Date.now(), isSystem: true, text: message }].slice(-50),
-      );
+      appendLiveChatMsg({ id: Date.now(), isSystem: true, text: message });
       return;
     }
     window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
@@ -2003,10 +2187,6 @@ export function Room() {
     );
     return seated?.userId;
   }, [activeSeats, self]);
-
-  const appendLiveChatMsg = useCallback((message: Record<string, unknown>) => {
-    setLiveChatMsgs((prev) => [...prev, message].slice(-50));
-  }, []);
 
   const pushRoomChatMessage = useCallback((message: {
     id: string;
@@ -2078,9 +2258,16 @@ export function Room() {
   announceUserJoinedRoomRef.current = announceUserJoinedRoom;
 
   const handleAcceptRequest = useCallback((reqId: string) => {
-    const emptySeatEntry = Object.entries(activeSeats).find(([key, guest]) => key !== 'host' && guest === null);
-    if (!emptySeatEntry) return;
-    const [emptySeatKey] = emptySeatEntry;
+    const emptySeatKey =
+      roomMode === 'MultiGuest'
+        ? findOpenMultiGuestSeat(activeSeats, multiGuestSeatCount, lockedSeats)
+        : roomMode === 'SoloLive'
+          ? (SOLO_LIVE_GUEST_SEAT_KEYS.find(
+              (key) => activeSeats[key] === null && !lockedSeats[key],
+            ) ?? null)
+          : (Object.entries(activeSeats).find(([key, guest]) => key !== 'host' && guest === null)?.[0] ??
+            null);
+    if (!emptySeatKey) return;
     const acceptedReq = guestRequests.find((request) => request.id === reqId);
     if (!acceptedReq) return;
 
@@ -2090,7 +2277,15 @@ export function Room() {
     }));
     setGuestRequests((prev) => prev.filter((request) => request.id !== reqId));
     announceUserJoinedRoom(acceptedReq.userId ?? acceptedReq.id, acceptedReq.name);
-  }, [activeSeats, announceUserJoinedRoom, guestRequests, roomDisplayId]);
+  }, [
+    activeSeats,
+    announceUserJoinedRoom,
+    guestRequests,
+    multiGuestSeatCount,
+    roomDisplayId,
+    roomMode,
+    lockedSeats,
+  ]);
 
   useEffect(() => {
     announcedJoinUserIdsRef.current = new Set();
@@ -2164,14 +2359,11 @@ export function Room() {
 
     if (roomMode === 'Chorus' && !isUserSeated) {
       showToast('Take a seat before requesting a song.');
-      setLiveChatMsgs((prev) => [
-        ...prev,
-        {
-          id: `seat_req_${Date.now()}`,
-          user: 'ℹ️ Room',
-          text: 'Take a seat before requesting a song.',
-        },
-      ]);
+      appendLiveChatMsg({
+        id: `seat_req_${Date.now()}`,
+        user: 'ℹ️ Room',
+        text: 'Take a seat before requesting a song.',
+      });
       return;
     }
 
@@ -2223,7 +2415,7 @@ export function Room() {
       return;
     }
 
-    if (roomMode === 'Party') {
+    if (usesLyricsSingFlow) {
       prepareLyricsForSong(song);
       showToast(`"${song.title}" ready — tap SING on the lyrics card to start.`);
       return;
@@ -2289,7 +2481,7 @@ export function Room() {
       if (prev.length > 0) {
         const [next, ...rest] = prev;
 
-        if (roomMode === 'Party') {
+        if (usesLyricsSingFlow) {
           setCurrentlySinging(resolveActiveSong(next));
           setCurrentSingerName(null);
           setIsSingingMode(false);
@@ -2418,11 +2610,12 @@ export function Room() {
     setActiveSeats((prev) =>
       hydratePartySeatsWithStars(roomDisplayId, liveSettings, prev),
     );
-  }, [usesLivePartyFeed, roomDisplayId, liveSettings.ownerUserId, liveSettings.owner, liveSettings.roomId, self.id, self.roomName, self.avatarUrl]);
+  }, [usesLivePartyFeed, roomDisplayId, liveSettings.ownerUserId, liveSettings.owner, liveSettings.roomId, liveSettings.roomMode, liveSettings.multiGuestSeatCount, self.id, self.roomName, self.avatarUrl]);
 
   useEffect(() => {
     if (!usesLivePartyFeed) return;
-    const allowAdminSeat = roomMode === 'Party' && !isFullPartyMode;
+    const allowAdminSeat =
+      (roomMode === 'Party' && !isFullPartyMode) || roomMode === 'MultiGuest';
     if (allowAdminSeat) return;
     setActiveSeats((prev) => (prev.admin ? { ...prev, admin: null } : prev));
   }, [usesLivePartyFeed, roomMode, isFullPartyMode]);
@@ -2467,17 +2660,63 @@ export function Room() {
   }, [usesLivePartyFeed, roomDisplayId, self.id, self.roomName, self.avatarUrl, self]);
 
   useEffect(() => {
+    if (roomMode !== 'SoloLive' || !usesLivePartyFeed || !isRoomOwner(currentUserRole)) return;
+    setUserCameraOn(true);
+    setActiveSeats((prev) => {
+      if (prev.host && isRoomSelfGuest(prev.host, self)) return prev;
+      const next = { ...prev };
+      for (const key of ALL_SEAT_KEYS) {
+        if (next[key] && isRoomSelfGuest(next[key], self)) {
+          next[key] = null;
+        }
+      }
+      next.host = createGuestFromSelf({
+        userId: self.id,
+        name: self.roomName,
+        avatar: self.avatarUrl,
+        roomId: roomDisplayId,
+        isHost: true,
+        isSpeaking: userMicPrefOn,
+      });
+      return next;
+    });
+  }, [
+    roomMode,
+    usesLivePartyFeed,
+    currentUserRole,
+    roomDisplayId,
+    self,
+    userMicPrefOn,
+  ]);
+
+  useEffect(() => {
     if (!usesLivePartyFeed) return;
     savePartySeats(roomDisplayId, activeSeats);
   }, [activeSeats, roomDisplayId, usesLivePartyFeed]);
 
   // Handle seat clicks
   const handleSeatClick = (seatKey: string) => {
+    if (roomMode === 'SoloLive' && !isSoloLiveActiveSeat(seatKey)) {
+      showToast('That seat is not available in Solo Live.');
+      return;
+    }
+    if (roomMode === 'MultiGuest' && !isMultiGuestSeatActive(seatKey, multiGuestSeatCount)) {
+      showToast('That seat is not available in this room layout.');
+      return;
+    }
+
     const occupant = activeSeats[seatKey as keyof PartySeatMap];
     if (!occupant) {
       if (seatKey === "host" && !isRoomOwner(currentUserRole)) {
-        showToast("Only the room owner can take this seat!");
-        return;
+        if (roomMode === 'SoloLive') {
+          if (!isRoomAdminOrOwner(currentUserRole)) {
+            showToast("Only room staff can go live on camera.");
+            return;
+          }
+        } else {
+          showToast("Only the room owner can take this seat!");
+          return;
+        }
       }
       if (seatKey === "coowner" && !isRoomCoOwner(currentUserRole) && !isRoomOwner(currentUserRole)) {
         showToast("Only the room owner or co-owner can take this seat!");
@@ -2491,13 +2730,19 @@ export function Room() {
       // Check seat locked state
       if (lockedSeats[seatKey]) {
         const lockedLabel =
-          seatKey === "coowner"
-            ? "Co-owner seat"
-            : seatKey === "admin"
-              ? "Boss seat"
-            : seatKey === "host"
-              ? "Host seat"
-              : `Seat ${seatKey.replace("no", "")}`;
+          roomMode === 'MultiGuest'
+            ? (() => {
+                const staff = formatStaffSeatLabel(seatKey);
+                if (staff) return `${staff} seat`;
+                return formatMultiGuestSeatActionSubtitle(seatKey, multiGuestSeatCount);
+              })()
+            : seatKey === "coowner"
+              ? "Co-owner seat"
+              : seatKey === "admin"
+                ? "Boss seat"
+                : seatKey === "host"
+                  ? "Host seat"
+                  : `Seat ${seatKey.replace("no", "")}`;
         showToast(`${lockedLabel} has been locked by the Host/Admin!`);
         return;
       }
@@ -2567,9 +2812,14 @@ export function Room() {
         isCoOwner: isCoOwnerSeat,
         isAdminSeat: isAdminStaffSeat,
         isAdmin: isRoomAdminOrOwner(currentUserRole) || isCoOwnerSeat || isAdminStaffSeat,
+        isSpeaking: userMicPrefOn,
       });
       
       setActiveSeats(newSeats);
+
+      if (roomMode === 'SoloLive') {
+        setUserCameraOn(true);
+      }
       
       // Broadcast join message
       const joinText = isHost
@@ -2578,9 +2828,17 @@ export function Room() {
           ? "took the Co-owner seat!"
           : isAdminStaffSeat
             ? "took the Boss seat!"
-          : `took Seat ${seatKey.replace("no", "")}`;
+          : roomMode === 'MultiGuest'
+            ? `took ${formatMultiGuestSeatActionSubtitle(seatKey, multiGuestSeatCount)}!`
+            : `took Seat ${seatKey.replace("no", "")}`;
       if (usesLivePartyFeed) {
-        setLiveChatMsgs(prev => [...prev, { id: Date.now(), user: self.chatLabel, userId: self.id, text: joinText, isBurmese: false }]);
+        appendLiveChatMsg({
+          id: Date.now(),
+          user: self.chatLabel,
+          userId: self.id,
+          text: joinText,
+          isBurmese: false,
+        });
       } else {
         setMessages(prev => [...prev, { isSystem: false, user: self.chatLabel, text: joinText, isBurmese: false, isJoinEvent: false }]);
       }
@@ -2592,9 +2850,59 @@ export function Room() {
     }
   };
 
+  const handleToggleSeatParticipation = () => {
+    if (userSeatKey) {
+      // Solo Live footer control is guest-seat only (host stays on stage).
+      if (roomMode === 'SoloLive' && !isSoloLiveGuestSeat(userSeatKey)) {
+        return;
+      }
+      setActiveSeats((prev) => {
+        const next = { ...prev };
+        for (const key of ALL_SEAT_KEYS) {
+          const guest = next[key];
+          if (guest && isRoomSelfGuest(guest, self)) {
+            next[key] = null;
+          }
+        }
+        return next;
+      });
+      if (isSingingMode && currentSingerName === self.roomName) {
+        cancelCurrentSongRef.current();
+      }
+      setSongQueue((prev) => prev.filter((entry) => !isRoomSelfName(entry.requestedBy, self)));
+      showToast('You left your seat.');
+      return;
+    }
+
+    const openSeat = findPreferredOpenSeat({
+      seats: activeSeats,
+      roomMode,
+      multiGuestSeatCount,
+      lockedSeats,
+      canTakeHost:
+        roomMode === 'SoloLive'
+          ? false
+          : isRoomOwner(currentUserRole),
+      canTakeCoOwner: isRoomCoOwner(currentUserRole) || isRoomOwner(currentUserRole),
+      canTakeAdmin: selfCanTakeAdminSeat || isRoomOwner(currentUserRole),
+    });
+
+    if (!openSeat) {
+      if (roomMode === 'SoloLive') {
+        showToast('No open guest seats right now.');
+        return;
+      }
+      setIsGuestManagementOpen(true);
+      showToast('No open seats — pick one from the grid or guest list.');
+      return;
+    }
+
+    handleSeatClick(openSeat);
+  };
+
   const handleFooterMyMicClick = () => {
     if (!userSeatKey) {
-      setIsGuestManagementOpen(true);
+      handleToggleSeatParticipation();
       return;
     }
     handleToggleSeatMic(userSeatKey);
@@ -2603,6 +2911,14 @@ export function Room() {
   const handleFooterSeatManagementClick = () => {
     setIsGuestManagementOpen(true);
   };
+
+  const handlePkComingSoon = useCallback(() => {
+    showToast('PK battles — coming soon!');
+  }, [showToast]);
+
+  const handleGameComingSoon = useCallback(() => {
+    showToast('Games — coming soon!');
+  }, [showToast]);
 
   const handleLeaveRoom = useCallback(() => {
     cancelCurrentSong();
@@ -2692,10 +3008,7 @@ export function Room() {
     isAutoScrollEnabled.current = true;
 
     if (usesLivePartyFeed) {
-      setLiveChatMsgs(prev => [
-        ...prev,
-        { id: Date.now(), user: self.chatLabel, userId: self.id, text: chatInput, isBurmese: false }
-      ]);
+      partyRoomChat.sendTextMessage(chatInput);
     } else {
       setMessages(prev => [
         ...prev,
@@ -2897,7 +3210,11 @@ export function Room() {
             <div>
               <h3 className="text-white font-bold text-lg">{occupant.name}</h3>
               <p className="text-purple-300 text-xs">
-                {isSelfSeat ? 'Your seat' : formatSeatActionSubtitle(seatKey)}
+                {isSelfSeat
+                  ? 'Your seat'
+                  : roomMode === 'MultiGuest'
+                    ? formatMultiGuestSeatActionSubtitle(seatKey, multiGuestSeatCount)
+                    : formatSeatActionSubtitle(seatKey)}
               </p>
             </div>
           </div>
@@ -3031,6 +3348,9 @@ export function Room() {
         roomPriority={liveSettings.roomPriority}
         joinPolicySummary={joinPolicySummary}
         guestSeatKeys={roomLayoutConfig.guestSeatKeys}
+        roomLayoutMode={roomMode}
+        multiGuestSeatCount={multiGuestSeatCount}
+        onMultiGuestSeatCountChange={handleMultiGuestSeatCountChange}
       />
 
       <RoomViewersOverlay
@@ -3047,6 +3367,27 @@ export function Room() {
           setIsRoomViewersOpen(false); // smoothly auto-close viewers overlay when profile pre-view is selected
         }}
       />
+
+      {giftSendersTarget && (
+        <GiftSendersOverlay
+          isOpen={Boolean(giftSendersTarget)}
+          onClose={() => setGiftSendersTarget(null)}
+          roomDisplayId={roomDisplayId}
+          receiverName={giftSendersTarget.name}
+          receiverUserId={giftSendersTarget.userId}
+          onSelectSender={(sender) => {
+            handleSelectViewer({
+              id: sender.id,
+              name: sender.name,
+              avatar: sender.avatar,
+              isOwner: false,
+              isAdmin: false,
+              isFollowing: false,
+            });
+            setGiftSendersTarget(null);
+          }}
+        />
+      )}
 
       <ArenaRankingsOverlay
         isOpen={isArenaRankingsOpen}
@@ -3114,6 +3455,8 @@ export function Room() {
             patch.roomKey !== previousKey;
 
           saveRoomSettings(roomDisplayId, patch);
+          const updatedSettings = getRoomSettings(roomDisplayId);
+          syncPartyRoomToCloud(roomDisplayId, updatedSettings.ownerUserId, updatedSettings);
           const managed = getManagedRoomById(roomDisplayId);
           if (managed) {
             syncManagedRoomFromActiveSession(roomDisplayId, managed.role, {
@@ -3144,7 +3487,7 @@ export function Room() {
 
       {isRoomBackgroundMenuOpen && canChangeRoomBackground && (
         <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
-          <div className="bg-[#1a0f2e] w-full max-w-sm rounded-[28px] border border-purple-500/30 p-6 shadow-2xl relative">
+          <div className="bg-[#1a0f2e] w-full max-w-md rounded-[28px] border border-purple-500/30 p-6 shadow-2xl relative">
             <button 
                onClick={() => { setPendingBackgroundMode(null); setIsRoomBackgroundMenuOpen(false); }} 
                className="absolute top-4 right-4 text-gray-400 hover:text-white"
@@ -3154,7 +3497,7 @@ export function Room() {
             <h2 className="text-white font-bold text-xl mb-6">Select Room Background</h2>
             
             {/* Background Preview */}
-            <div className="relative w-full h-32 rounded-2xl mb-6 overflow-hidden border border-white/20 shadow-inner">
+            <div className="relative mb-6 h-56 w-full overflow-hidden rounded-2xl border border-white/20 shadow-inner sm:h-64 md:h-72">
               <div className={`absolute inset-0 z-0 ${ (pendingBackgroundMode || backgroundMode).type === 'css' ? (pendingBackgroundMode || backgroundMode).value : ''}`}>
                 {(pendingBackgroundMode || backgroundMode).type === 'video' && (
                   <video src={(pendingBackgroundMode || backgroundMode).value} autoPlay loop muted playsInline controls className="absolute inset-0 w-full h-full object-cover pointer-events-auto" {...nativeVideoControlGuardProps()} />
@@ -3263,9 +3606,12 @@ export function Room() {
           renderJoinChatEvent={renderJoinChatEvent}
           renderSingChatEvent={renderSingChatEvent}
           renderGiftChatEvent={renderGiftChatEvent}
+          renderAnnouncementWelcome={renderAnnouncementWelcome}
           renderStandardChatMessage={renderStandardChatMessage}
           mentionSearch={mentionSearch}
           onToggleUserMic={handleFooterMyMicClick}
+          onToggleSeatParticipation={handleToggleSeatParticipation}
+          guestManagementOpen={isGuestManagementOpen}
           userSeatKey={userSeatKey}
           userMicOn={userMicOn}
           userVoiceActive={userVoiceActive}
@@ -3284,7 +3630,221 @@ export function Room() {
           onEditAnnouncement={handleOpenAnnouncementEditor}
           canChangeRoomMode={canEditRoomAnnouncement}
           onOpenRoomModePicker={handleOpenRoomModePicker}
+          onOpenSing={handleOpenSing}
+          hasActiveSong={Boolean(currentlySinging)}
+          songQueueLength={songQueue.length}
+          hideSingMenu={isLyricsOverlayOpen}
+          onPkClick={handlePkComingSoon}
+          onGameClick={handleGameComingSoon}
         />
+      )}
+
+      {roomMode === 'SoloLive' && (
+        <RoomLiveMediaSession
+          key="SoloLive"
+          sessionMode="SoloLive"
+          roomId={roomDisplayId}
+          userSeatKey={userSeatKey}
+          userCameraOn={userCameraOn}
+          userMicOn={userMicOn}
+          userMicAdminMuted={userMicAdminMuted}
+          effectSelection={multiGuestDeeparSelection}
+          beautyId={liveBeautyEffectId}
+          beautyEffects={liveBeautyEffects}
+          bodyShape={liveBodyShape}
+        >
+          {(media) => (
+        <SoloLiveView
+          {...buildLiveViewMediaProps(media)}
+          roomDisplayId={roomDisplayId}
+          roomTitle={roomTitle}
+          announcement={roomAnnouncement}
+          isRoomSaved={isRoomSaved}
+          roomIdCopied={roomIdCopied}
+          onCopyRoomId={handleCopyRoomId}
+          onToggleSaveRoom={handleToggleSaveRoom}
+          onLeaveRoom={handleLeaveRoom}
+          onOpenRoomDetails={openRoomDetails}
+          onOpenRoomEdit={openRoomEdit}
+          activeSeats={activeSeats}
+          viewers={viewers}
+          roomExpProgress={roomExpProgress}
+          roomGiftSummary={roomGiftSummary}
+          handleSeatClick={handleSeatClick}
+          handleToggleSeatMic={handleToggleSeatMic}
+          handleSelectViewer={handleSelectViewer}
+          buildViewerFromGuest={buildViewerFromGuest}
+          lockedSeats={lockedSeats}
+          setIsRoomBackgroundMenuOpen={(open) => {
+            if (open) handleOpenRoomBackgroundMenu();
+            else {
+              setIsRoomBackgroundMenuOpen(false);
+              setPendingBackgroundMode(null);
+            }
+          }}
+          setIsRoomViewersOpen={setIsRoomViewersOpen}
+          setIsGiftPickerOpen={setIsGiftPickerOpen}
+          setIsGuestManagementOpen={setIsGuestManagementOpen}
+          liveChatMsgs={liveChatMsgs}
+          chatInput={chatInput}
+          handleChatInputChange={handleChatInputChange}
+          handleSendMessage={handleSendMessage}
+          handleChatScroll={handleChatScroll}
+          chatScrollRef={chatScrollRef}
+          getMentionSuggestions={getMentionSuggestions}
+          selectMention={selectMention}
+          renderJoinChatEvent={renderJoinChatEvent}
+          renderSingChatEvent={renderSingChatEvent}
+          renderGiftChatEvent={renderGiftChatEvent}
+          renderAnnouncementWelcome={renderAnnouncementWelcome}
+          renderStandardChatMessage={renderStandardChatMessage}
+          mentionSearch={mentionSearch}
+          onToggleUserMic={handleFooterMyMicClick}
+          onToggleSeatParticipation={handleToggleSeatParticipation}
+          guestManagementOpen={isGuestManagementOpen}
+          userCameraOn={userCameraOn}
+          onToggleUserCamera={() => setUserCameraOn((prev) => !prev)}
+          userSeatKey={userSeatKey}
+          userMicOn={userMicOn}
+          userVoiceActive={userVoiceActive}
+          userMicLevel={userMicLevel}
+          audioPulse={audioPulse}
+          onOpenArenaRankings={() => setIsArenaRankingsOpen(true)}
+          canChangeRoomBackground={canChangeRoomBackground}
+          backgroundMode={backgroundMode}
+          canEditAnnouncement={canEditRoomAnnouncement}
+          onEditAnnouncement={handleOpenAnnouncementEditor}
+          canChangeRoomMode={canEditRoomAnnouncement}
+          onOpenRoomModePicker={handleOpenRoomModePicker}
+          ownerSocial={ownerSocial}
+          effectsPanelOpen={isMultiGuestEffectsOpen}
+          onToggleEffectsPanel={toggleLiveEffectsPanel}
+          activeDeeparSelection={multiGuestDeeparSelection}
+          onDeeparSelectionChange={handleDeeparSelectionChange}
+          beautyEffectId={liveBeautyEffectId}
+          beautyEffects={liveBeautyEffects}
+          beautyBodyShape={liveBodyShape}
+          onBeautyBodyShapeChange={setLiveBodyShape}
+          beautyPanelOpen={isLiveBeautyOpen}
+          onToggleBeautyPanel={toggleLiveBeautyPanel}
+          onSelectBeauty={handleSelectLiveBeauty}
+          onBeautyEffectsChange={handleLiveBeautyEffectsChange}
+          onOpenSing={handleOpenSing}
+          hasActiveSong={Boolean(currentlySinging)}
+          songQueueLength={songQueue.length}
+          hideSingMenu={isLyricsOverlayOpen}
+          onPkClick={handlePkComingSoon}
+          onGameClick={handleGameComingSoon}
+          isSelfHost={isSelfSoloHost}
+        />
+          )}
+        </RoomLiveMediaSession>
+      )}
+
+      {roomMode === 'MultiGuest' && (
+        <RoomLiveMediaSession
+          key="MultiGuest"
+          sessionMode="MultiGuest"
+          roomId={roomDisplayId}
+          userSeatKey={userSeatKey}
+          userCameraOn={userCameraOn}
+          userMicOn={userMicOn}
+          userMicAdminMuted={userMicAdminMuted}
+          effectSelection={multiGuestDeeparSelection}
+          beautyId={liveBeautyEffectId}
+          beautyEffects={liveBeautyEffects}
+          bodyShape={liveBodyShape}
+        >
+          {(media) => (
+        <MultiGuestView
+          {...buildLiveViewMediaProps(media)}
+          roomDisplayId={roomDisplayId}
+          roomTitle={roomTitle}
+          announcement={roomAnnouncement}
+          isRoomSaved={isRoomSaved}
+          roomIdCopied={roomIdCopied}
+          onCopyRoomId={handleCopyRoomId}
+          onToggleSaveRoom={handleToggleSaveRoom}
+          onLeaveRoom={handleLeaveRoom}
+          onShareRoom={() => setIsShareRoomOpen(true)}
+          onOpenRoomDetails={openRoomDetails}
+          onOpenRoomEdit={openRoomEdit}
+          activeSeats={activeSeats}
+          viewers={viewers}
+          roomExpProgress={roomExpProgress}
+          roomGiftSummary={roomGiftSummary}
+          handleSeatClick={handleSeatClick}
+          handleToggleSeatMic={handleToggleSeatMic}
+          buildViewerFromGuest={buildViewerFromGuest}
+          handleSelectViewer={handleSelectViewer}
+          onOpenGiftSenders={setGiftSendersTarget}
+          setIsRoomBackgroundMenuOpen={(open) => {
+            if (open) handleOpenRoomBackgroundMenu();
+            else {
+              setIsRoomBackgroundMenuOpen(false);
+              setPendingBackgroundMode(null);
+            }
+          }}
+          setIsRoomViewersOpen={setIsRoomViewersOpen}
+          setIsGiftPickerOpen={setIsGiftPickerOpen}
+          setIsGuestManagementOpen={setIsGuestManagementOpen}
+          liveChatMsgs={liveChatMsgs}
+          chatInput={chatInput}
+          handleChatInputChange={handleChatInputChange}
+          handleSendMessage={handleSendMessage}
+          handleChatScroll={handleChatScroll}
+          chatScrollRef={chatScrollRef}
+          getMentionSuggestions={getMentionSuggestions}
+          selectMention={selectMention}
+          renderJoinChatEvent={renderJoinChatEvent}
+          renderSingChatEvent={renderSingChatEvent}
+          renderGiftChatEvent={renderGiftChatEvent}
+          renderAnnouncementWelcome={renderAnnouncementWelcome}
+          renderStandardChatMessage={renderStandardChatMessage}
+          mentionSearch={mentionSearch}
+          onToggleUserMic={handleFooterMyMicClick}
+          onToggleSeatParticipation={handleToggleSeatParticipation}
+          guestManagementOpen={isGuestManagementOpen}
+          userCameraOn={userCameraOn}
+          onToggleUserCamera={() => setUserCameraOn((prev) => !prev)}
+          userSeatKey={userSeatKey}
+          userMicOn={userMicOn}
+          userVoiceActive={userVoiceActive}
+          userMicLevel={userMicLevel}
+          audioPulse={audioPulse}
+          arenaParticipants={arenaParticipants}
+          arenaCountdownText={formatCountdown(countdown)}
+          onOpenArenaRankings={() => setIsArenaRankingsOpen(true)}
+          lockedSeats={lockedSeats}
+          canChangeRoomBackground={canChangeRoomBackground}
+          backgroundMode={backgroundMode}
+          canEditAnnouncement={canEditRoomAnnouncement}
+          onEditAnnouncement={handleOpenAnnouncementEditor}
+          canChangeRoomMode={canEditRoomAnnouncement}
+          onOpenRoomModePicker={handleOpenRoomModePicker}
+          ownerSocial={ownerSocial}
+          multiGuestSeatCount={multiGuestSeatCount}
+          effectsPanelOpen={isMultiGuestEffectsOpen}
+          onToggleEffectsPanel={toggleLiveEffectsPanel}
+          activeDeeparSelection={multiGuestDeeparSelection}
+          onDeeparSelectionChange={handleDeeparSelectionChange}
+          beautyEffectId={liveBeautyEffectId}
+          beautyEffects={liveBeautyEffects}
+          beautyBodyShape={liveBodyShape}
+          onBeautyBodyShapeChange={setLiveBodyShape}
+          beautyPanelOpen={isLiveBeautyOpen}
+          onToggleBeautyPanel={toggleLiveBeautyPanel}
+          onSelectBeauty={handleSelectLiveBeauty}
+          onBeautyEffectsChange={handleLiveBeautyEffectsChange}
+          onOpenSing={handleOpenSing}
+          hasActiveSong={Boolean(currentlySinging)}
+          songQueueLength={songQueue.length}
+          hideSingMenu={isLyricsOverlayOpen}
+          onPkClick={handlePkComingSoon}
+          onGameClick={handleGameComingSoon}
+        />
+          )}
+        </RoomLiveMediaSession>
       )}
 
       {roomMode === 'Chorus' && (
@@ -3326,6 +3886,7 @@ export function Room() {
                           <span className="party-viewers-count font-black text-gray-100">{viewers.length}</span>
                         </div>
                     </div>
+                    <RoomHeaderYoutubeMiniButton />
                     <RoomHeaderActionsMenu items={chorusHeaderMenuItems} />
                     <button
                       type="button"
@@ -3339,7 +3900,7 @@ export function Room() {
                 </div>
             </div>
 
-            <div className="relative z-20 flex shrink-0 items-center gap-2 px-3 sm:px-4 py-0.5 min-h-0">
+            <div className="chorus-owner-strip relative z-20 flex shrink-0 items-center gap-2 px-3 sm:px-4 py-0.5 min-h-0">
               <div className="flex min-w-0 flex-1 items-center space-x-1.5 overflow-x-auto sm:space-x-2 scrollbar-hide">
                 <RoomOwnerSocialControls
                   name={activeSeats.host?.name ?? ownerSocial.ownerIdentity.name}
@@ -3374,7 +3935,7 @@ export function Room() {
                   onClick={() => setIsGiftPickerOpen(true)}
                   title={`${roomGiftSummary.giftCount.toLocaleString()} gifts received in this room`}
                 >
-                  <Star size={8} className="fill-pink-400 text-pink-400 mr-0.5" />
+                  <CoinIcon className="mr-0.5 h-2 w-2 shrink-0" />
                   <span>{roomGiftSummary.totalStars.toLocaleString()}</span>
                   <ChevronRight size={8} className="ml-0.5 text-pink-400" />
                 </div>
@@ -3405,8 +3966,8 @@ export function Room() {
                 onCancel={cancelCurrentSong}
               />
             ) : (
-              <div className="mx-3 sm:mx-4 mt-2 shrink-0 bg-purple-900/20 backdrop-blur-md rounded-[28px] border border-white/5 flex flex-col overflow-hidden max-h-[min(240px,30vh)] sm:max-h-[min(320px,36vh)]">
-                  <div className="px-5 py-3 flex items-center space-x-4">
+              <div className="chorus-song-picker mx-3 sm:mx-4 mt-2 flex-1 min-h-0 bg-purple-900/20 backdrop-blur-md rounded-[28px] border border-white/5 flex flex-col overflow-hidden max-h-none sm:max-h-[min(320px,36vh)]">
+                  <div className="chorus-song-picker-toolbar px-3 py-2 sm:px-5 sm:py-3 flex items-center space-x-3 sm:space-x-4 shrink-0">
                       <label className="flex-1 bg-white/10 rounded-full h-8 flex items-center px-4 min-w-0">
                           <Search size={14} className="text-gray-400 shrink-0" />
                           <input
@@ -3437,7 +3998,7 @@ export function Room() {
                           />
                       </div>
                   </div>
-                  <div className="px-5 flex items-center space-x-6 overflow-x-auto scrollbar-hide border-b border-white/5 pb-2">
+                  <div className="chorus-song-picker-tabs px-3 sm:px-5 flex items-center space-x-4 sm:space-x-6 overflow-x-auto scrollbar-hide border-b border-white/5 pb-2 shrink-0">
                       {CHORUS_SONG_TABS.map((tab) => (
                           <button
                             key={tab.id}
@@ -3453,7 +4014,7 @@ export function Room() {
                           </button>
                       ))}
                   </div>
-                  <div className="flex-1 overflow-y-auto px-5 py-4 space-y-4 scrollbar-hide">
+                  <div className="chorus-song-picker-scroll flex flex-1 min-h-0 flex-col gap-2 overflow-y-auto px-3 py-2 sm:gap-4 sm:px-5 sm:py-4 scrollbar-hide">
                       {chorusPanelSongs.length === 0 ? (
                         <p className="text-center text-xs text-gray-500 py-6">
                           No songs match your search. Try another tab or keyword.
@@ -3508,7 +4069,7 @@ export function Room() {
                               className={`chorus-guest-seat relative flex flex-col items-center rounded-full transition-all duration-200 ${
                                 guest 
                                   ? `p-[1.5px] ${getAvatarFrameStyles(guest.frameStyle).border} ${getAvatarFrameStyles(guest.frameStyle).shadow}` 
-                                  : "bg-white/5 border border-white/10 flex items-center justify-center text-gray-500 hover:border-pink-500/50"
+                                  : "chorus-guest-seat--empty flex items-center justify-center text-gray-400 hover:border-pink-500/50"
                               }`}
                             >
                                 {guest ? (
@@ -3623,6 +4184,7 @@ export function Room() {
                       <span className="party-viewers-count font-black text-gray-100">{viewers.length}</span>
                     </div>
                 </div>
+                <RoomHeaderYoutubeMiniButton />
                 <RoomHeaderActionsMenu items={partyHeaderMenuItems} />
                 <button
                   type="button"
@@ -3675,7 +4237,7 @@ export function Room() {
                 onClick={() => setIsGiftPickerOpen(true)}
                 title={`${roomGiftSummary.giftCount.toLocaleString()} gifts received in this room`}
               >
-                <Star size={8} className="fill-pink-400 text-pink-400 mr-0.5" />
+                <CoinIcon className="mr-0.5 h-2 w-2 shrink-0" />
                 <span>{roomGiftSummary.totalStars.toLocaleString()}</span>
                 <ChevronRight size={8} className="ml-0.5 text-pink-400" />
               </div>
@@ -3726,7 +4288,7 @@ export function Room() {
           >
         
         {/* Host + co-owner staff seats (top center) */}
-        <div className="party-host-seat-row relative z-10">
+        <div className="party-host-seat-row party-seat-grid relative z-10">
         <div className="party-host-seat-block flex flex-col items-center" id="host-seat-island">
           {activeSeats.host ? (
             // Seated Host
@@ -3778,9 +4340,9 @@ export function Room() {
               >
                 {activeSeats.host.name}
               </span>
-              {/* Star Badge Rating */}
+              {/* Coin badge rating */}
               <div className="flex items-center space-x-0.5 bg-cyan-950/80 px-1.5 py-[2px] rounded-full border border-cyan-400/40 mt-1 shadow-sm shadow-cyan-950/50">
-                <Star size={8} className="fill-yellow-400 text-yellow-400 sm:w-[9px] sm:h-[9px]" />
+                <CoinIcon className="h-2 w-2 shrink-0 sm:h-[9px] sm:w-[9px]" />
                 <span className="text-[8px] sm:text-[9.5px] font-black text-yellow-300 font-mono leading-none">{activeSeats.host.stars}</span>
               </div>
             </div>
@@ -3847,7 +4409,7 @@ export function Room() {
                 {activeSeats.coowner.name}
               </span>
               <div className="flex items-center space-x-0.5 bg-amber-950/80 px-1.5 py-[2px] rounded-full border border-amber-400/40 mt-1 shadow-sm shadow-amber-950/50">
-                <Star size={8} className="fill-yellow-400 text-yellow-400 sm:w-[9px] sm:h-[9px]" />
+                <CoinIcon className="h-2 w-2 shrink-0 sm:h-[9px] sm:w-[9px]" />
                 <span className="text-[8px] sm:text-[9.5px] font-black text-yellow-300 font-mono leading-none">{activeSeats.coowner.stars}</span>
               </div>
             </div>
@@ -3913,7 +4475,7 @@ export function Room() {
                 {activeSeats.admin.name}
               </span>
               <div className="flex items-center space-x-0.5 bg-violet-950/80 px-1.5 py-[2px] rounded-full border border-violet-400/40 mt-1 shadow-sm shadow-violet-950/50">
-                <Star size={8} className="fill-yellow-400 text-yellow-400 sm:w-[9px] sm:h-[9px]" />
+                <CoinIcon className="h-2 w-2 shrink-0 sm:h-[9px] sm:w-[9px]" />
                 <span className="text-[8px] sm:text-[9.5px] font-black text-yellow-300 font-mono leading-none">{activeSeats.admin.stars}</span>
               </div>
             </div>
@@ -4027,9 +4589,9 @@ export function Room() {
                           {seatValue.name}
                         </span>
 
-                        {/* Stars Pill rating */}
+                        {/* Coins pill rating */}
                         <div className="flex items-center space-x-0.5 bg-black/75 px-1.5 py-[2px] rounded-full border border-white/10 mt-1 shadow-sm">
-                          <Star size={7} className="fill-yellow-400 text-yellow-400 sm:w-[8px] sm:h-[8px]" />
+                          <CoinIcon className="h-[7px] w-[7px] shrink-0 sm:h-2 sm:w-2" />
                           <span className="text-[8px] sm:text-[9px] font-black text-yellow-300 font-mono leading-none">{seatValue.stars}</span>
                         </div>
                       </div>
@@ -4176,7 +4738,7 @@ export function Room() {
       )}
 
       {/* FIXED DOWNMOST INTERACTIVE FOOTER BAR CONTROL SHEET */}
-      {roomMode !== 'WatchTogether' && (
+      {roomMode !== 'WatchTogether' && roomMode !== 'MultiGuest' && roomMode !== 'SoloLive' && (
         <div
           id="party-room-footer"
           className="relative z-30 shrink-0 border-t border-white/5 bg-[#07010a]/95 backdrop-blur-md pt-[10px] pb-[max(10px,env(safe-area-inset-bottom))] px-3 sm:px-4"
@@ -4219,103 +4781,28 @@ export function Room() {
           </form>
 
           {/* Tray Buttons matching screenshot */}
-          <div className="party-room-footer-actions flex items-center gap-1.5 shrink-0">
-            {roomMode === 'Chorus' && (
-                <>
-                <div className="w-9 h-9 rounded-full bg-gradient-to-b from-blue-700 to-blue-900 border border-blue-400/30 flex items-center justify-center text-white text-[9px] font-black shadow-lg">
-                    PK
-                </div>
-                </>
-            )}
-            
-            <button
-                type="button"
-                onClick={handleFooterMyMicClick}
-                title={
-                  userSeatKey
-                    ? userMicOn
-                      ? "Mute your microphone"
-                      : userMicAdminMuted
-                        ? "Your mic is locked by the host"
-                        : "Unmute your microphone"
-                    : "Take a seat to use your microphone"
-                }
-                aria-label={
-                  userSeatKey
-                    ? userMicOn
-                      ? "Mute your microphone"
-                      : "Unmute your microphone"
-                    : "Take a seat to use your microphone"
-                }
-                className={`w-9 h-9 rounded-full border flex items-center justify-center active:scale-90 transition ${
-                  userSeatKey
-                    ? userMicOn
-                      ? userVoiceActive
-                        ? 'bg-cyan-500/25 border-cyan-400/60 text-cyan-200 shadow-[0_0_10px_rgba(34,211,238,0.45)] animate-pulse'
-                        : 'bg-cyan-500/15 border-cyan-500/40 text-cyan-300'
-                      : 'bg-red-500/15 border-red-500/40 text-red-300'
-                    : 'party-glass-tap text-gray-300'
-                }`}
-            >
-                {userSeatKey && !userMicOn ? <MicOff size={16} /> : <Mic size={16} />}
-            </button>
-            <button
-                type="button"
-                onClick={handleFooterSeatManagementClick}
-                title="Join a seat and guest management"
-                aria-label="Join a seat and guest management"
-                className={`w-9 h-9 rounded-full border flex items-center justify-center active:scale-90 transition ${
-                  isGuestManagementOpen
-                    ? "bg-purple-500/20 border-purple-500/40 text-purple-300"
-                    : "party-glass-tap text-gray-300"
-                }`}
-            >
-                <Users size={16} />
-            </button>
-            {canEditRoomAnnouncement && (
-              <button
-                type="button"
-                onClick={handleOpenRoomModePicker}
-                title="Change room mode"
-                aria-label="Change room mode"
-                className="w-9 h-9 rounded-full party-glass-tap flex items-center justify-center text-gray-300 active:scale-90 transition cursor-pointer"
-              >
-                <LayoutGrid size={16} />
-              </button>
-            )}
-            {canChangeRoomBackground && (
-            <div className="relative">
-                <button 
-                    type="button"
-                    onClick={handleOpenRoomBackgroundMenu}
-                    title="Change room background"
-                    aria-label="Change room background"
-                    className="w-9 h-9 rounded-full party-glass-tap flex items-center justify-center text-gray-300 active:scale-90 transition cursor-pointer"
-                >
-                    <Menu size={16} />
-                </button>
-                <span className="absolute -top-1 -right-1 bg-red-500 text-[7px] font-bold px-1 rounded-full border border-black">99+</span>
-            </div>
-            )}
-            <button
-              type="button"
-              onClick={() => setIsGiftPickerOpen(true)}
-              title="Send a gift"
-              aria-label="Send a gift"
-              className="w-9 h-9 rounded-[10px] bg-gradient-to-tr from-pink-500 to-yellow-400 p-[1px] active:scale-90 transition"
-            >
-                <div className="w-full h-full bg-[#0d011c] rounded-[9px] flex items-center justify-center">
-                    <Gift size={16} className="text-yellow-400" />
-                </div>
-            </button>
-          </div>
+          <RoomFooterTrayActions
+            userSeatKey={userSeatKey}
+            userMicOn={userMicOn}
+            userVoiceActive={userVoiceActive}
+            userMicAdminMuted={userMicAdminMuted}
+            onToggleUserMic={handleFooterMyMicClick}
+            onToggleSeatParticipation={handleToggleSeatParticipation}
+            onOpenGuestManagement={handleFooterSeatManagementClick}
+            guestManagementOpen={isGuestManagementOpen}
+            onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
+            onPkClick={handlePkComingSoon}
+            onGameClick={handleGameComingSoon}
+            micAccent="cyan"
+            className="party-room-footer-actions shrink-0"
+          />
         </div>
       </div>
       )}
 
       {isGiftPickerOpen && (
-        <div className="fixed inset-0 z-[190] flex items-end justify-center p-4 bg-black/60 backdrop-blur-sm pointer-events-auto">
-          <div className="w-full max-w-sm bg-[#1c1130] border border-pink-500/30 rounded-[24px] p-4 shadow-2xl">
+        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[190] flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
+          <div className="pointer-events-auto w-full max-w-sm rounded-[24px] border border-pink-500/30 bg-[#1c1130] p-4 shadow-2xl">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-sm font-black text-white">Send Gift</h3>
               <button type="button" onClick={() => setIsGiftPickerOpen(false)} className="text-gray-400 hover:text-white">
@@ -4327,7 +4814,10 @@ export function Room() {
               <span className="text-pink-300 font-bold">{defaultGiftReceiver()?.name ?? 'No seated guest'}</span>
               {' · '}
               Room total:{' '}
-              <span className="text-yellow-300 font-bold">{roomGiftSummary.totalStars.toLocaleString()} ⭐</span>
+              <span className="inline-flex items-center gap-1 text-yellow-300 font-bold">
+                {roomGiftSummary.totalStars.toLocaleString()}
+                <CoinIcon className="h-2.5 w-2.5 shrink-0" />
+              </span>
             </p>
             <div className="grid grid-cols-3 gap-2">
               {PARTY_GIFT_CATALOG.map((gift) => (
@@ -4339,7 +4829,10 @@ export function Room() {
                 >
                   <span className="text-2xl">{gift.icon}</span>
                   <span className="text-[9px] font-bold text-gray-200">{gift.name}</span>
-                  <span className="text-[8px] font-black text-yellow-300">{gift.stars} ⭐</span>
+                  <span className="inline-flex items-center gap-0.5 text-[8px] font-black text-yellow-300">
+                    {gift.stars}
+                    <CoinIcon className="h-2 w-2 shrink-0" />
+                  </span>
                 </button>
               ))}
             </div>

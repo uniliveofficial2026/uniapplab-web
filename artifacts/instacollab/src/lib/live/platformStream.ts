@@ -3,6 +3,7 @@ import type { Room } from 'livekit-client';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
 import { isLiveKitConfigured } from '../livekit/livekitConfig';
+import { canAttemptLiveKit } from '../livekit/liveKitInstant';
 import { connectLiveKitHost, disconnectLiveKit } from './liveKitConnection';
 import { postStreamSignal, startStream, stopStream } from '../platformApi';
 
@@ -16,6 +17,9 @@ export type PlatformStreamState = {
   roomName: string | null;
 };
 
+/**
+ * Platform live stream — local camera/mic paints first; LiveKit/WebRTC publish is background.
+ */
 export function usePlatformStream() {
   const [streamId, setStreamId] = useState<string | null>(null);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
@@ -32,24 +36,28 @@ export function usePlatformStream() {
   }, [localStream]);
 
   const goLive = async (title?: string, options?: { mediaStream?: MediaStream }) => {
-    const created = await startStream(title);
-    setStreamId(created.id);
-
-    if (isLiveKitConfigured()) {
-      const connection = await connectLiveKitHost(created.id, options);
-      liveKitRoomRef.current = connection.room;
-      setLocalStream(connection.localStream);
-      setRoomName(connection.roomName);
-      setMode('livekit');
-      return;
-    }
-
-    setMode('webrtc');
+    // Instant local media before any network.
     const media =
       options?.mediaStream ??
       (await navigator.mediaDevices.getUserMedia({ video: true, audio: true }));
     setLocalStream(media);
 
+    const created = await startStream(title);
+    setStreamId(created.id);
+
+    if (isLiveKitConfigured() && canAttemptLiveKit()) {
+      try {
+        const connection = await connectLiveKitHost(created.id, { mediaStream: media });
+        liveKitRoomRef.current = connection.room;
+        setRoomName(connection.roomName);
+        setMode('livekit');
+        return;
+      } catch {
+        // Local camera already showing — fall through to WebRTC or stay local-only.
+      }
+    }
+
+    setMode('webrtc');
     const pc = new RTCPeerConnection({ iceServers: [{ urls: 'stun:stun.l.google.com:19302' }] });
     pcRef.current = pc;
     media.getTracks().forEach((track) => pc.addTrack(track, media));
@@ -112,4 +120,4 @@ export function usePlatformStream() {
   };
 
   return { streamId, localStream, goLive, endLive, mode, roomName };
-};
+}

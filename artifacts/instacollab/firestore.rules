@@ -1,0 +1,47 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    match /{document=**} {
+      allow read, write: if false;
+    }
+
+    function isAuthed() {
+      return request.auth != null;
+    }
+
+    // Firebase backup lane: profiles keyed by Supabase UUID when custom claim is set.
+    function ownsCloudUser(userId) {
+      return isAuthed() && (
+        request.auth.uid == userId ||
+        request.auth.token.supabase_uid == userId
+      );
+    }
+
+    function safeProfileData(data) {
+      return data.keys().hasAll(['id', 'username', 'display_name'])
+        && data.id == resource.id
+        && data.username is string
+        && data.username.size() >= 3
+        && data.username.size() <= 32
+        && data.display_name is string
+        && data.display_name.size() <= 80
+        && (!('role' in data))
+        && (!('banned_at' in data))
+        && (!('ban_reason' in data));
+    }
+
+    match /profiles/{userId} {
+      allow read: if true;
+      allow create: if ownsCloudUser(userId) && safeProfileData(request.resource.data);
+      allow update: if ownsCloudUser(userId)
+        && safeProfileData(request.resource.data)
+        && request.resource.data.id == resource.data.id;
+      allow delete: if false;
+    }
+
+    match /user_app_state/{userId} {
+      allow read, create, update: if ownsCloudUser(userId);
+      allow delete: if false;
+    }
+  }
+}

@@ -1,15 +1,38 @@
 import { Router, type IRouter } from "express";
 import fs from "node:fs";
 import path from "node:path";
+import { auth } from "../middlewares/auth";
+import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { isUpstashConfigured, pushHandoffTask } from "../lib/upstash";
 
 const router: IRouter = Router();
 const workspaceRoot = path.resolve(import.meta.dirname, "../../../..");
 const handoffPath = path.join(workspaceRoot, ".local/handoff-queue.jsonl");
 
-router.post("/handoff/task", async (req, res) => {
+const ALLOWED_TYPES = new Set([
+  "heal",
+  "deploy",
+  "verify",
+  "cloud_data",
+  "health",
+  "gemini",
+  "ux_learn",
+  "custom",
+]);
+
+function handoffGate(req: import("express").Request, res: import("express").Response, next: import("express").NextFunction) {
+  const expected = process.env.INTERNAL_API_SECRET?.trim();
+  const provided = req.headers["x-internal-secret"];
+  if (expected && typeof provided === "string" && provided === expected) {
+    next();
+    return;
+  }
+  auth(req, res, () => requireNotBanned(req, res, next));
+}
+
+router.post("/handoff/task", handoffGate, async (req, res) => {
   const task = req.body;
-  if (!task || typeof task !== "object" || !task.type) {
+  if (!task || typeof task !== "object" || !task.type || !ALLOWED_TYPES.has(String(task.type))) {
     res.status(400).json({ error: "task.type required" });
     return;
   }

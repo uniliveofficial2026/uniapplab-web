@@ -168,6 +168,73 @@ export function accountFromAppUser(user: {
   };
 }
 
+function readLocalProfileSnapshot(uid: string): {
+  displayName?: string;
+  username?: string;
+  avatarUrl?: string;
+  email?: string;
+} | null {
+  if (typeof localStorage === 'undefined' || !uid) return null;
+  try {
+    const raw = localStorage.getItem(`local_profile_${uid}`);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Record<string, unknown>;
+    return {
+      displayName:
+        typeof parsed.displayName === 'string' ? parsed.displayName : undefined,
+      username: typeof parsed.username === 'string' ? parsed.username : undefined,
+      avatarUrl: typeof parsed.avatarUrl === 'string' ? parsed.avatarUrl : undefined,
+      email: typeof parsed.email === 'string' ? parsed.email : undefined,
+    };
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Merge device-account rows with live app users + local profile snapshots
+ * so the switcher shows current names/avatars, not stale cached metadata.
+ */
+export function enrichDeviceAccountsForDisplay(
+  accounts: StoredDeviceAccount[],
+  liveUsers: Array<{
+    id: string;
+    displayName?: string;
+    username?: string;
+    avatarUrl?: string;
+    email?: string;
+  }> = [],
+): StoredDeviceAccount[] {
+  const byId = new Map(liveUsers.map((user) => [user.id, user]));
+  return accounts.map((account) => {
+    const live = byId.get(account.uid);
+    const snapshot = readLocalProfileSnapshot(account.uid);
+    const displayName =
+      live?.displayName ||
+      live?.username ||
+      snapshot?.displayName ||
+      snapshot?.username ||
+      account.displayName ||
+      'User';
+    const photoURL =
+      live?.avatarUrl || snapshot?.avatarUrl || account.photoURL || null;
+    const email = live?.email || snapshot?.email || account.email || null;
+    if (
+      displayName === account.displayName &&
+      photoURL === account.photoURL &&
+      email === account.email
+    ) {
+      return account;
+    }
+    return {
+      ...account,
+      displayName,
+      photoURL,
+      email,
+    };
+  });
+}
+
 /** Persist the active app user into the on-device account list (cloud accounts only when configured). */
 export function syncDeviceAccountForAppUser(user: {
   id: string;

@@ -196,6 +196,7 @@ export const ROOM_MODE_OPTIONS = [
   'Karaoke',
   'Radio',
   'Multi-Guest',
+  'Solo-Live',
 ] as const;
 
 export type RoomModePickerOption = (typeof ROOM_MODE_OPTIONS)[number];
@@ -206,7 +207,8 @@ export const ROOM_MODE_DESCRIPTIONS: Record<RoomModePickerOption, string> = {
   Party: 'Full party stage · 8 guest seats · sing & chat',
   Karaoke: 'Chorus stage · 12 seats (2 rows × 6) · song queue & duets',
   Radio: 'Watch Together · 9 seats · shared video or audio',
-  'Multi-Guest': 'Large party stage · 9 guest seats',
+  'Multi-Guest': 'Square video grid · 15 seats (5×3) · 70% screen stage',
+  'Solo-Live': 'Solo host · full-screen live camera · chat & gifts',
 };
 
 export function formatRoomModeLabel(mode: RoomMode | string): string {
@@ -219,6 +221,8 @@ export function formatRoomModeLabel(mode: RoomMode | string): string {
       return 'Watch Together';
     case 'Multi-Guest':
       return 'Multi-Guest';
+    case 'Solo-Live':
+      return 'Solo Live';
     case 'Chat':
       return 'Chat Lounge';
     default:

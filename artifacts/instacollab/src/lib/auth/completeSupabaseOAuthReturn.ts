@@ -3,13 +3,16 @@ import { isSupabaseConfigured } from '../supabase/config';
 import { mapGoogleSignInConfigurationError } from './googleSignInErrorHints';
 import { safeDecodeOAuthError } from './safeDecodeOAuthError';
 import { isSupabaseOAuthReturnInUrl, stripSupabaseOAuthParamsFromUrl } from './supabaseOAuthReturn';
-import { writeStoredAuthBackend } from './providerState';
+import { markSupabaseOAuthDegraded, writeStoredAuthBackend } from './providerState';
+import { withTimeout } from '../networkPolicy';
 
 export type SupabaseOAuthReturnResult = {
   handled: boolean;
   ok: boolean;
   reason?: string;
 };
+
+const OAUTH_EXCHANGE_MS = 5_000;
 
 /**
  * After Google/Apple redirect, Supabase client exchanges ?code= for a session.
@@ -42,10 +45,14 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
     const tokenHash = params.get('token_hash');
     const otpType = params.get('type');
     if (tokenHash && otpType) {
-      const { data, error } = await supabase.auth.verifyOtp({
-        token_hash: tokenHash,
-        type: otpType as 'signup' | 'email' | 'recovery' | 'invite' | 'magiclink' | 'email_change',
-      });
+      const { data, error } = await withTimeout(
+        supabase.auth.verifyOtp({
+          token_hash: tokenHash,
+          type: otpType as 'signup' | 'email' | 'recovery' | 'invite' | 'magiclink' | 'email_change',
+        }),
+        OAUTH_EXCHANGE_MS,
+        'Supabase verifyOtp',
+      );
       if (error) {
         return { handled: true, ok: false, reason: error.message };
       }
@@ -58,7 +65,11 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
 
     const code = params.get('code');
     if (code) {
-      const { data, error } = await supabase.auth.exchangeCodeForSession(code);
+      const { data, error } = await withTimeout(
+        supabase.auth.exchangeCodeForSession(code),
+        OAUTH_EXCHANGE_MS,
+        'Supabase exchangeCodeForSession',
+      );
       if (error) {
         const mapped = mapGoogleSignInConfigurationError(error.message, String(error.status ?? ''));
         return { handled: true, ok: false, reason: mapped || error.message };
@@ -70,7 +81,11 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
       }
     }
 
-    const { data, error } = await supabase.auth.getSession();
+    const { data, error } = await withTimeout(
+      supabase.auth.getSession(),
+      OAUTH_EXCHANGE_MS,
+      'Supabase getSession',
+    );
     if (error) {
       const mapped = mapGoogleSignInConfigurationError(error.message, String(error.status ?? ''));
       return { handled: true, ok: false, reason: mapped || error.message };
@@ -88,6 +103,9 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
     };
   } catch (err) {
     const message = err instanceof Error ? err.message : 'OAuth session failed';
+    if (/timed out|timeout|522|524|failed to fetch|network/i.test(message)) {
+      markSupabaseOAuthDegraded();
+    }
     return { handled: true, ok: false, reason: message };
   }
 }

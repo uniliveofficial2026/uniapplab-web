@@ -17,7 +17,7 @@ export function BannedScreen() {
     <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-background text-foreground">
       <h1 className="text-2xl font-semibold mb-3">Account suspended</h1>
       <p className="text-muted-foreground max-w-md mb-2">
-        Your account has been banned and cannot access InstaCollab.
+        Your account has been banned and cannot access UniLive.
       </p>
       {reason ? (
         <p className="text-sm text-muted-foreground max-w-md mb-6">Reason: {reason}</p>

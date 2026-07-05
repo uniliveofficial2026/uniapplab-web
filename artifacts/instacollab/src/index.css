@@ -42,6 +42,16 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-
 
 @layer base {
   :root {
+    /* Mobile shell chrome + safe areas (JS may refine --app-safe-* at runtime) */
+    --app-mobile-top-nav-h: 60px;
+    --app-mobile-bottom-nav-h: 50px;
+    --app-safe-top: env(safe-area-inset-top, 0px);
+    --app-safe-bottom: env(safe-area-inset-bottom, 0px);
+    --app-safe-left: env(safe-area-inset-left, 0px);
+    --app-safe-right: env(safe-area-inset-right, 0px);
+    --app-shell-top-offset: calc(var(--app-mobile-top-nav-h) + var(--app-safe-top));
+    --app-shell-bottom-offset: calc(var(--app-mobile-bottom-nav-h) + var(--app-safe-bottom));
+
     --background: #f8fafc;
     --foreground: #000000;
     --card: rgba(255, 255, 255, 0.45);
@@ -212,17 +222,86 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-
 
 @layer utilities {
   .pb-safe {
-    padding-bottom: env(safe-area-inset-bottom);
+    padding-bottom: var(--app-safe-bottom);
   }
   .pt-safe {
-    padding-top: env(safe-area-inset-top);
+    padding-top: var(--app-safe-top);
   }
   .pl-safe {
-    padding-left: env(safe-area-inset-left);
+    padding-left: var(--app-safe-left);
   }
   .pr-safe {
-    padding-right: env(safe-area-inset-right);
+    padding-right: var(--app-safe-right);
   }
+  .top-safe {
+    top: var(--app-safe-top);
+  }
+  .bottom-safe {
+    bottom: var(--app-safe-bottom);
+  }
+  .top-shell-nav {
+    top: var(--app-shell-top-offset);
+  }
+  .pb-shell-nav {
+    padding-bottom: var(--app-shell-bottom-offset);
+  }
+  .min-h-shell-bottom-nav {
+    min-height: var(--app-shell-bottom-offset);
+  }
+}
+
+/* Shell mobile chrome — extend background into OS safe bars so they feel in-app */
+.mobile-top-nav {
+  position: sticky;
+}
+
+.mobile-top-nav::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-safe-top);
+  background: inherit;
+  pointer-events: none;
+}
+
+.mobile-bottom-nav {
+  position: fixed;
+  min-height: var(--app-shell-bottom-offset);
+  padding-bottom: var(--app-safe-bottom);
+}
+
+.mobile-bottom-nav::after {
+  content: '';
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: var(--app-safe-bottom);
+  background: inherit;
+  pointer-events: none;
+}
+
+.karaoke-screen-header::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: var(--app-safe-top);
+  background: inherit;
+  pointer-events: none;
+}
+
+.karaoke-screen-header {
+  position: sticky;
+}
+
+/* Full-height tabs manage their own insets — never double-pad main */
+body[data-chat-open='true'] main,
+body:has(#messages-screen[data-chat-open='true']) main {
+  padding-top: 0 !important;
 }
 
 .vibe-gradient-text {
@@ -231,9 +310,38 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-
   color: transparent;
 }
 
-.nav-tap-button {
+/* Instant interactions app-wide — no 300ms tap delay, no grey flash */
+button,
+[role='button'],
+a,
+label,
+summary,
+.tap-instant,
+.nav-tap-button,
+input[type='button'],
+input[type='submit'],
+input[type='reset'],
+input[type='checkbox'],
+input[type='radio'],
+input[type='file'] {
   touch-action: manipulation;
   -webkit-tap-highlight-color: transparent;
+}
+
+.nav-tap-button,
+.tap-instant {
+  touch-action: manipulation;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Keep press feedback snappy (avoid long transition-all lag on controls) */
+button,
+[role='button'],
+.tap-instant,
+.nav-tap-button {
+  transition-property: color, background-color, border-color, opacity, box-shadow, transform;
+  transition-duration: 75ms;
+  transition-timing-function: ease-out;
 }
 
 .mobile-top-nav button,
@@ -258,12 +366,20 @@ body:has(#story-modal) .mobile-top-nav,
 body:has(#story-create-modal-root) .mobile-bottom-nav,
 body:has(#story-create-modal) .mobile-bottom-nav, 
 body:has(#story-create-modal) .mobile-top-nav,
+body:has(#story-empty-modal) .mobile-bottom-nav,
+body:has(#story-empty-modal) .mobile-top-nav,
 body:has(#mobile-menu-modal) .mobile-bottom-nav,
 body:has(#mobile-menu-modal) .mobile-top-nav,
+body:has(#karaoke-mobile-menu) .mobile-bottom-nav,
+body:has(#karaoke-mobile-menu) .mobile-top-nav,
 body:has(#reels-comments-drawer) .mobile-bottom-nav,
 body:has(#reels-comments-drawer) .mobile-top-nav,
 body:has(#media-full-screen-modal) .mobile-bottom-nav,
-body:has(#media-full-screen-modal) .mobile-top-nav {
+body:has(#media-full-screen-modal) .mobile-top-nav,
+body:has([data-media-fullscreen="true"]) .mobile-bottom-nav,
+body:has([data-media-fullscreen="true"]) .mobile-top-nav,
+body:has(#workspace-fs-modal) .mobile-bottom-nav,
+body:has(#workspace-fs-modal) .mobile-top-nav {
   display: none !important;
 }
 
@@ -274,11 +390,15 @@ body:has(#edit-profile-modal),
 body:has(#story-modal),
 body:has(#story-create-modal),
 body:has(#story-create-modal-root),
+body:has(#story-empty-modal),
 body:has(#mobile-menu-modal),
 body:has(#reels-comments-drawer),
 body:has(#media-full-screen-modal),
+body:has([data-media-fullscreen="true"]),
+body:has(#workspace-fs-modal),
 body:has(#reel-full-screen-modal) {
   overflow: hidden;
+  overscroll-behavior: none;
 }
 
 body:has(#create-modal) main,
@@ -288,9 +408,12 @@ body:has(#edit-profile-modal) main,
 body:has(#story-modal) main,
 body:has(#story-create-modal) main,
 body:has(#story-create-modal-root) main,
+body:has(#story-empty-modal) main,
 body:has(#mobile-menu-modal) main,
 body:has(#reels-comments-drawer) main,
 body:has(#media-full-screen-modal) main,
+body:has([data-media-fullscreen="true"]) main,
+body:has(#workspace-fs-modal) main,
 body:has(#reel-full-screen-modal) main {
   overflow: hidden !important;
 }
@@ -324,8 +447,16 @@ body[data-feed-scrolling="true"] #story-thought-composer-portal {
   pointer-events: none !important;
 }
 
-/* Hide global mobile top nav while a specific chat thread is open */
-body:has(#messages-screen[data-chat-open="true"]) .mobile-top-nav {
+/* Hide global mobile nav while a specific chat thread is open */
+body:has(#messages-screen[data-chat-open="true"]) .mobile-top-nav,
+body:has(#messages-screen[data-chat-open="true"]) .mobile-bottom-nav,
+body[data-chat-open="true"] .mobile-top-nav,
+body[data-chat-open="true"] .mobile-bottom-nav {
+  display: none !important;
+}
+
+/* Hide mobile bottom nav while messages inbox / users list is open */
+body:has(#messages-screen[data-embedded="false"]) .mobile-bottom-nav {
   display: none !important;
 }
 
@@ -335,6 +466,27 @@ html.chat-open-mobile .mobile-top-nav {
 
 .force-hide-chat-nav {
   display: none !important;
+}
+
+/* Messages chat — flex column; thread scrolls, compose stays pinned */
+#messages-screen .messages-chat-column {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  max-height: 100%;
+}
+
+#messages-screen[data-chat-open="true"] {
+  max-height: 100dvh;
+}
+
+#messages-screen[data-embedded="true"][data-chat-open="true"] {
+  height: 100%;
+}
+
+.messages-chat-column [data-message-bubble-shell="true"] {
+  min-width: 0;
+  max-width: min(85%, 100%);
 }
 
 /* Emoji picker glass background */

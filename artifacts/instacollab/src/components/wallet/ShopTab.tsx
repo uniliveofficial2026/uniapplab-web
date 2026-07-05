@@ -3,10 +3,10 @@ import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 import { spendWalletCoins } from '../../lib/walletKstarSync';
+import { CoinIcon } from '../common/CoinIcon';
 import { 
   ShoppingBag, 
   Tag, 
-  Coins, 
   DollarSign, 
   PlusCircle, 
   Trash, 
@@ -261,7 +261,7 @@ export function ShopTab() {
                       <div className="flex items-center gap-1">
                         {prod.priceType === 'coins' ? (
                           <>
-                            <Coins className="w-4 h-4 text-amber-500" />
+                            <CoinIcon className="w-4 h-4 shrink-0" />
                             <span className="text-sm font-black text-amber-500">{prod.price.toLocaleString()}</span>
                           </>
                         ) : (

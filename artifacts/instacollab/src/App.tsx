@@ -18,14 +18,15 @@ const ReelsScreen = lazy(() =>
 const MessagesScreen = lazy(() =>
   import('./components/messages/MessagesScreen').then((m) => ({ default: m.MessagesScreen }))
 );
-const WorkspaceScreen = lazy(() => import('./components/workspace/WorkspaceScreen'));
+const WorkspaceGate = lazy(() => import('./components/workspace/WorkspaceGate'));
 const ProfileScreen = lazy(() =>
   import('./components/profile/ProfileScreen').then((m) => ({ default: m.ProfileScreen }))
 );
 const DatingScreen = lazy(() =>
   import('./components/dating/DatingScreen').then((m) => ({ default: m.DatingScreen }))
 );
-const Feed = lazy(() => import('./components/feed/Feed').then((m) => ({ default: m.Feed })));
+// Home feed is eager so the main UI is always in the bundle (works offline).
+import { Feed } from './components/feed/Feed';
 const SearchScreen = lazy(() =>
   import('./components/search/SearchScreen').then((m) => ({ default: m.SearchScreen }))
 );
@@ -60,6 +61,9 @@ const ThirdPartyGamesScreen = lazy(() =>
     default: m.ThirdPartyGamesScreen,
   }))
 );
+const YouTubePage = lazy(() =>
+  import('./pages/YouTube').then((m) => ({ default: m.YouTubePage }))
+);
 const WalletScreen = lazy(() =>
   import('./components/wallet/WalletScreen').then((m) => ({ default: m.WalletScreen }))
 );
@@ -88,10 +92,15 @@ import { LaunchShell } from './components/launch/launchUi';
 import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
 import { useSupabaseAuth } from './contexts/SupabaseAuthContext';
 import { useAuth } from './lib/AuthContext';
-import { getFirebaseAuth } from './lib/firebase';
+import { getFirebaseAuth } from './lib/firebase/app';
 import { isPrimarySupabaseCloud } from './lib/auth/config';
 const SplashScreen = lazy(() =>
   import('./components/auth/SplashScreen').then((m) => ({ default: m.SplashScreen }))
+);
+const YoutubeMiniPlayerHost = lazy(() =>
+  import('./components/youtube/YoutubeMiniPlayerHost').then((m) => ({
+    default: m.YoutubeMiniPlayerHost,
+  }))
 );
 const AuthScreen = lazy(() =>
   import('./components/auth/AuthScreen').then((m) => ({ default: m.AuthScreen }))
@@ -113,6 +122,13 @@ import {
   writePersistedShellState,
   type PersistedShellState,
 } from './lib/navigationRestore';
+import {
+  clearSessionCache,
+  readSessionCache,
+  sessionCacheToUser,
+  writeSessionCache,
+} from './lib/sessionCache';
+import type { LaunchRoute } from './lib/launchRoute';
 
 function ToastListener() {
   const { showToast } = useToast();
@@ -163,11 +179,46 @@ export default function App() {
     roomsInitialPath,
   };
   const db = useDB();
-  const currentUser = useCurrentUser();
+  const dbUser = useCurrentUser();
   const { configured: supabaseAuth, authReady } = useSupabaseAuth();
   const launchRoute = useLaunchRoute();
   const isOnline = useIsOnline();
   const { user: firebaseUser, profile: firebaseProfile, loading: firebaseLoading } = useAuth();
+
+  // Cache-first: localStorage hint is available before IndexedDB hydrates.
+  const [sessionHint, setSessionHint] = useState(() => readSessionCache());
+  const [storageReady, setStorageReady] = useState(false);
+
+  useEffect(() => {
+    void db.whenStorageReady().then(() => {
+      setStorageReady(true);
+      if (db.isLoggedIn && db.currentUser) {
+        writeSessionCache(db.currentUser, {
+          profileSetupComplete: db.getLaunchProgress().profileSetupComplete,
+        });
+        setSessionHint(readSessionCache());
+      } else if (!db.isLoggedIn) {
+        clearSessionCache();
+        setSessionHint(null);
+      }
+    });
+  }, [db]);
+
+  // Prefer IDB user; fall back to session cache so Shell never waits on network.
+  const currentUser =
+    db.isLoggedIn && dbUser.id !== 'unknown'
+      ? dbUser
+      : sessionHint
+        ? sessionCacheToUser(sessionHint)
+        : dbUser;
+
+  // Show main app from cache while IDB loads, or whenever we have a local session.
+  const effectiveLaunchRoute: LaunchRoute =
+    launchRoute === 'banned'
+      ? 'banned'
+      : sessionHint && (!storageReady || db.isLoggedIn)
+        ? 'main'
+        : launchRoute;
 
   useEffect(() => {
     registerAppTabGetter(() => currentTabRef.current);
@@ -229,7 +280,7 @@ export default function App() {
 
   /** Cold-start: ?tab=profile&profileTab=manage and other share URLs → K-Star / party / track. */
   useEffect(() => {
-    if (deepLinkBootstrappedRef.current || launchRoute !== 'main') return;
+    if (deepLinkBootstrappedRef.current || effectiveLaunchRoute !== 'main') return;
     const ref = parseShareLink(window.location.href);
     if (!ref) return;
     if (
@@ -240,7 +291,7 @@ export default function App() {
       deepLinkBootstrappedRef.current = true;
       openShareLink(ref, db.users);
     }
-  }, [launchRoute, db.users]);
+  }, [effectiveLaunchRoute, db.users]);
 
   useEffect(() => {
     applyDocumentTheme(db.settings.theme === 'dark' ? 'dark' : 'light');
@@ -446,7 +497,7 @@ export default function App() {
           />,
         );
       case 'workspace':
-        return screen('workspace', <WorkspaceScreen />);
+        return screen('workspace', <WorkspaceGate />);
       case 'profile':
         return screen(
           'profile',
@@ -476,39 +527,27 @@ export default function App() {
         return screen('third-party-games', <ThirdPartyGamesScreen />);
       case 'wallet':
         return screen('wallet', <WalletScreen />);
+      case 'youtube':
+        return screen('youtube', <YouTubePage onBack={goBack} />);
       default:
         return screen('home', <Feed />);
     }
   };
 
-  const hasLocalSession = db.isLoggedIn && Boolean(db.currentUserId);
-  const deferAuthSpinnerForLocalSession = hasLocalSession;
-
-  if (supabaseAuth && !authReady && !deferAuthSpinnerForLocalSession) {
-    return (
-      <ToastProvider>
-        <ToastListener />
-        <LaunchShell className="items-center justify-center gap-3 p-6">
-          <div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" />
-          <p className="text-sm text-muted-foreground">
-            {isOnline ? 'Restoring your session…' : 'Loading your saved app…'}
-          </p>
-        </LaunchShell>
-        <OfflineStatusBanner />
-      </ToastProvider>
-    );
-  }
-
+  // Never full-screen block on auth/network — mount real routes from local state
+  // immediately. Session restore runs in CloudAuthProvider in the background.
   const supabasePrimary = isPrimarySupabaseCloud();
 
   // Firebase auth gate — skip when Supabase owns auth (primary cloud).
-  if (!supabasePrimary && firebaseLoading) {
+  // Offline: never block on Firebase loading — show saved UI.
+  if (!supabasePrimary && firebaseLoading && isOnline) {
     return (
       <ToastProvider>
         <ToastListener />
         <Suspense fallback={<LaunchShell className="items-center justify-center gap-3 p-6"><div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></LaunchShell>}>
           <SplashScreen isLoading={true} />
         </Suspense>
+        <OfflineStatusBanner />
       </ToastProvider>
     );
   }
@@ -536,13 +575,13 @@ export default function App() {
     );
   }
 
-  if (launchRoute !== 'main') {
+  if (effectiveLaunchRoute !== 'main') {
     return (
       <ToastProvider>
         <ToastListener />
         <OfflineStatusBanner />
         <Suspense fallback={<LaunchShell className="items-center justify-center gap-3 p-6"><div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></LaunchShell>}>
-          <LaunchFlowHost route={launchRoute} />
+          <LaunchFlowHost route={effectiveLaunchRoute} />
         </Suspense>
         {import.meta.env.DEV ? (
           <Suspense fallback={null}>
@@ -557,6 +596,9 @@ export default function App() {
     <ToastProvider>
       <ToastListener />
       <OfflineStatusBanner insetBelowNav />
+      <Suspense fallback={null}>
+        <YoutubeMiniPlayerHost />
+      </Suspense>
       <Shell currentTab={currentTab} setCurrentTab={handleTabChange} currentUser={currentUser}>
         {renderContent()}
       </Shell>

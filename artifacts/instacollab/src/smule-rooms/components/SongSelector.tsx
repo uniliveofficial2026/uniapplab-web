@@ -34,6 +34,11 @@ type SongSelectorProps = {
   onClose: () => void;
   onSelectSong: (song: SongPickerSong) => void;
   songQueue: SongSelectorQueueItem[];
+  /**
+   * `widget` — bottom sheet over the live room (host still sees the stage).
+   * `fullscreen` — classic full-screen picker.
+   */
+  variant?: 'widget' | 'fullscreen';
 };
 
 const TABS: { id: SongSelectorTab; label: string }[] = [
@@ -61,6 +66,7 @@ export function SongSelector({
   onClose,
   onSelectSong,
   songQueue,
+  variant = 'widget',
 }: SongSelectorProps) {
   const [activeTab, setActiveTab] = useState<SongSelectorTab>('queue');
   const [browseMode, setBrowseMode] = useState<BrowseMode>('selection');
@@ -140,14 +146,29 @@ export function SongSelector({
     });
   };
 
-  return (
-    <div className="fixed inset-0 z-[100] flex flex-col bg-[#0f0b12] min-h-0 w-full h-full">
-      <div className="flex flex-1 flex-col min-h-0 w-full h-full overflow-hidden pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]">
-        <div className="p-4 flex items-center shrink-0 gap-2">
+  const isWidget = variant === 'widget';
+
+  const panel = (
+    <div
+      className={
+        isWidget
+          ? 'pointer-events-auto flex max-h-[min(72vh,40rem)] w-full max-w-lg flex-col overflow-hidden rounded-t-3xl border border-white/10 border-b-0 bg-[#0f0b12]/92 shadow-[0_-16px_48px_rgba(0,0,0,0.55)] backdrop-blur-xl sm:max-h-[min(70vh,42rem)] sm:rounded-3xl sm:border-b'
+          : 'flex min-h-0 h-full w-full flex-1 flex-col overflow-hidden bg-[#0f0b12] pt-[env(safe-area-inset-top)] pb-[env(safe-area-inset-bottom)]'
+      }
+      role="dialog"
+      aria-modal="true"
+      aria-label="Song selector"
+      onClick={(event) => event.stopPropagation()}
+    >
+      <div className="flex min-h-0 flex-1 flex-col overflow-hidden">
+        {isWidget ? (
+          <div className="mx-auto mt-2 mb-1 h-1 w-10 shrink-0 rounded-full bg-white/20" aria-hidden />
+        ) : null}
+        <div className="flex shrink-0 items-center gap-2 p-4 pt-2 sm:pt-4">
           <button type="button" onClick={onClose} aria-label="Close song selector">
             <X size={20} className="text-gray-400" />
           </button>
-          <div className="flex space-x-4 ml-2 uppercase font-bold text-sm tracking-wide overflow-x-auto min-w-0 flex-1">
+          <div className="ml-2 flex min-w-0 flex-1 space-x-4 overflow-x-auto text-sm font-bold uppercase tracking-wide">
             {TABS.map((tab) => (
               <button
                 key={tab.id}
@@ -155,7 +176,7 @@ export function SongSelector({
                 onClick={() => setActiveTab(tab.id)}
                 className={`shrink-0 transition ${
                   activeTab === tab.id
-                    ? 'text-pink-500 border-b-2 border-pink-500 pb-1'
+                    ? 'border-b-2 border-pink-500 pb-1 text-pink-500'
                     : 'text-gray-500 hover:text-gray-300'
                 }`}
               >
@@ -166,29 +187,29 @@ export function SongSelector({
           </div>
         </div>
 
-        <div className="px-4 mb-4 shrink-0">
-          <label className="bg-black/40 rounded-full px-4 py-2 flex items-center text-gray-500">
+        <div className="mb-3 shrink-0 px-4">
+          <label className="flex items-center rounded-full bg-black/40 px-4 py-2 text-gray-500">
             <Search size={16} className="shrink-0" />
             <input
               type="search"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
               placeholder="Search by Artists or Songs"
-              className="ml-2 text-sm bg-transparent border-none outline-none flex-1 min-w-0 text-gray-200 placeholder:text-gray-500"
+              className="ml-2 min-w-0 flex-1 border-none bg-transparent text-sm text-gray-200 outline-none placeholder:text-gray-500"
             />
           </label>
         </div>
 
         {showBrowseFilters && (
           <>
-            <div className="px-4 flex space-x-2 mb-4 shrink-0">
+            <div className="mb-3 flex shrink-0 space-x-2 px-4">
               <button
                 type="button"
                 onClick={() => {
                   setBrowseMode('artists');
                   setSelectedArtist(null);
                 }}
-                className={`px-4 py-1.5 rounded-full font-bold text-xs transition ${
+                className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
                   browseMode === 'artists'
                     ? 'bg-pink-100 text-pink-500'
                     : 'bg-white/5 text-gray-400 hover:text-gray-200'
@@ -199,7 +220,7 @@ export function SongSelector({
               <button
                 type="button"
                 onClick={() => setBrowseMode('selection')}
-                className={`px-4 py-1.5 rounded-full font-bold text-xs transition ${
+                className={`rounded-full px-4 py-1.5 text-xs font-bold transition ${
                   browseMode === 'selection'
                     ? 'bg-orange-100 text-orange-500'
                     : 'bg-white/5 text-gray-400 hover:text-gray-200'
@@ -211,14 +232,14 @@ export function SongSelector({
                 <button
                   type="button"
                   onClick={() => setSelectedArtist(null)}
-                  className="px-3 py-1.5 rounded-full font-bold text-xs bg-white/10 text-teal-400"
+                  className="rounded-full bg-white/10 px-3 py-1.5 text-xs font-bold text-teal-400"
                 >
                   {selectedArtist} ×
                 </button>
               )}
             </div>
 
-            <div className="px-4 flex space-x-3 mb-4 text-xs font-bold text-gray-400 shrink-0 overflow-x-auto">
+            <div className="mb-3 flex shrink-0 space-x-3 overflow-x-auto px-4 text-xs font-bold text-gray-400">
               {SONG_CATEGORIES.map((item) => (
                 <button
                   key={item.id}
@@ -237,18 +258,22 @@ export function SongSelector({
           </>
         )}
 
-        <div className="flex-1 min-h-0 overflow-y-auto px-4 pb-4">
+        <div
+          className={`min-h-0 flex-1 overflow-y-auto px-4 ${
+            isWidget ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : 'pb-4'
+          }`}
+        >
           {activeTab === 'queue' ? (
             filteredQueue.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-12">
+              <p className="py-12 text-center text-sm text-gray-500">
                 {songQueue.length === 0
                   ? 'No songs in the room queue yet.'
                   : 'No queue matches your search.'}
               </p>
             ) : (
               filteredQueue.map((item, index) => (
-                <div key={item.id} className="flex items-center space-x-3 mb-4">
-                  <div className="w-8 text-center text-xs font-black text-pink-400 shrink-0">
+                <div key={item.id} className="mb-4 flex items-center space-x-3">
+                  <div className="w-8 shrink-0 text-center text-xs font-black text-pink-400">
                     #{index + 1}
                   </div>
                   <img
@@ -257,11 +282,11 @@ export function SongSelector({
                       'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=80'
                     }
                     alt=""
-                    className="w-12 h-12 rounded-lg object-cover shrink-0"
+                    className="h-12 w-12 shrink-0 rounded-lg object-cover"
                   />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-white truncate">{item.title}</h4>
-                    <p className="text-xs text-gray-400 truncate">
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate font-bold text-white">{item.title}</h4>
+                    <p className="truncate text-xs text-gray-400">
                       {item.artist} · requested by {item.requestedBy}
                     </p>
                   </div>
@@ -270,22 +295,22 @@ export function SongSelector({
             )
           ) : browseMode === 'artists' ? (
             artists.length === 0 ? (
-              <p className="text-sm text-gray-500 text-center py-12">No artists found.</p>
+              <p className="py-12 text-center text-sm text-gray-500">No artists found.</p>
             ) : (
               artists.map((artist) => (
                 <button
                   key={artist.name}
                   type="button"
                   onClick={() => handleSelectArtist(artist)}
-                  className="flex items-center space-x-3 mb-4 w-full text-left hover:bg-white/5 rounded-xl p-2 -mx-2 transition"
+                  className="-mx-2 mb-4 flex w-full items-center space-x-3 rounded-xl p-2 text-left transition hover:bg-white/5"
                 >
                   <img
                     src={artist.image}
                     alt=""
-                    className="w-12 h-12 rounded-full object-cover shrink-0"
+                    className="h-12 w-12 shrink-0 rounded-full object-cover"
                   />
-                  <div className="flex-1 min-w-0">
-                    <h4 className="font-bold text-white truncate">{artist.name}</h4>
+                  <div className="min-w-0 flex-1">
+                    <h4 className="truncate font-bold text-white">{artist.name}</h4>
                     <p className="text-xs text-gray-400">
                       {artist.songCount} song{artist.songCount === 1 ? '' : 's'}
                     </p>
@@ -294,21 +319,24 @@ export function SongSelector({
               ))
             )
           ) : filteredSongs.length === 0 ? (
-            <p className="text-sm text-gray-500 text-center py-12">No songs match this filter.</p>
+            <p className="py-12 text-center text-sm text-gray-500">No songs match this filter.</p>
           ) : (
             filteredSongs.map((song) => (
-              <div key={song.id} className="flex items-center space-x-3 mb-4">
-                <img src={song.image} alt="" className="w-12 h-12 rounded-lg object-cover shrink-0" />
-                <div className="flex-1 min-w-0">
-                  <h4 className="font-bold text-white truncate">{song.title}</h4>
-                  <p className="text-xs text-gray-400 truncate">
-                    {song.artist} • {isKaraokeUploadSongId(song.id) ? 'Your upload' : `${song.recordings} recordings`}
+              <div key={song.id} className="mb-4 flex items-center space-x-3">
+                <img src={song.image} alt="" className="h-12 w-12 shrink-0 rounded-lg object-cover" />
+                <div className="min-w-0 flex-1">
+                  <h4 className="truncate font-bold text-white">{song.title}</h4>
+                  <p className="truncate text-xs text-gray-400">
+                    {song.artist} •{' '}
+                    {isKaraokeUploadSongId(song.id)
+                      ? 'Your upload'
+                      : `${song.recordings} recordings`}
                   </p>
                 </div>
                 <button
                   type="button"
                   onClick={() => handleQueueSong(song)}
-                  className="bg-white/10 text-pink-500 font-bold text-xs px-4 py-1.5 rounded-full shrink-0 hover:bg-pink-500/20 transition"
+                  className="shrink-0 rounded-full bg-white/10 px-4 py-1.5 text-xs font-bold text-pink-500 transition hover:bg-pink-500/20"
                 >
                   Queue
                 </button>
@@ -319,4 +347,18 @@ export function SongSelector({
       </div>
     </div>
   );
+
+  if (isWidget) {
+    return (
+      <div
+        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+        onClick={onClose}
+        role="presentation"
+      >
+        {panel}
+      </div>
+    );
+  }
+
+  return <div className="fixed inset-0 z-[100] flex min-h-0 w-full flex-col">{panel}</div>;
 }

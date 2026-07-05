@@ -68,6 +68,8 @@ export function appTabBackLabel(tab: Tab): string {
       return 'K-Star';
     case 'wallet':
       return 'Wallet';
+    case 'youtube':
+      return 'YouTube';
     case 'rooms':
       return 'Party';
     case 'local-games':

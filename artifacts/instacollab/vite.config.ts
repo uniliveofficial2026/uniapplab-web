@@ -8,6 +8,7 @@ import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
 import { defineConfig, loadEnv } from "vite";
 import { agentIngestPlugin } from "./vite-plugins/agentIngest";
+import { youtubeApiPlugin } from "./vite-plugins/youtubeApi";
 
 const appRoot = path.resolve(import.meta.dirname);
 const workspaceRoot = path.resolve(import.meta.dirname, "../..");
@@ -33,15 +34,19 @@ function resolveEnvDir(): string {
   return appRoot;
 }
 
-/** Merge VITE_* (and GEMINI) from every known env location; app `.env` wins over root/legacy. */
+/** Merge VITE_* (and GEMINI in dev only) from every known env location; app `.env` wins over root/legacy. */
 function loadMergedViteEnv(mode: string): Record<string, string> {
   let merged: Record<string, string> = {};
+  const allowGemini = mode !== "production";
   for (const dir of [...envSourceDirs].reverse()) {
     if (!fs.existsSync(dir)) continue;
     merged = { ...merged, ...loadEnv(mode, dir, "VITE_") };
     const all = loadEnv(mode, dir, "");
-    if (all.GEMINI_API_KEY?.trim()) {
+    if (allowGemini && all.GEMINI_API_KEY?.trim()) {
       merged.VITE_GEMINI_API_KEY = all.GEMINI_API_KEY.trim();
+    }
+    if (mode !== "production" && all.YOUTUBE_API_KEY?.trim()) {
+      merged.VITE_YOUTUBE_API_KEY = merged.VITE_YOUTUBE_API_KEY?.trim() || all.YOUTUBE_API_KEY.trim();
     }
   }
   return merged;
@@ -109,6 +114,7 @@ const replitPlugins =
     : [];
 
 export default defineConfig(({ mode }) => {
+  const isProd = mode === "production";
   const viteEnv = loadMergedViteEnv(mode);
   const unifiedLive =
     viteEnv.VITE_UNIFIED_LIVE === "true" ||
@@ -117,11 +123,15 @@ export default defineConfig(({ mode }) => {
     (viteEnv.VITE_UNIFIED_LIVE_API || process.env.VITE_UNIFIED_LIVE_API || "https://app.uniapplab.com")
       .replace(/\/$/, "");
   const envDefine = Object.fromEntries(
-    Object.entries(viteEnv).map(([key, val]) => [
-      `import.meta.env.${key}`,
-      JSON.stringify(val),
-    ]),
+    Object.entries(viteEnv)
+      .filter(([key]) => !(isProd && (key === "VITE_GEMINI_API_KEY" || key === "VITE_YOUTUBE_API_KEY")))
+      .map(([key, val]) => [`import.meta.env.${key}`, JSON.stringify(val)]),
   );
+  const youtubeApiKey =
+    process.env.YOUTUBE_API_KEY?.trim() ||
+    viteEnv.VITE_YOUTUBE_API_KEY?.trim() ||
+    "";
+  const youtubePlugin = youtubeApiPlugin(youtubeApiKey);
 
   return {
   base: basePath,
@@ -147,8 +157,8 @@ export default defineConfig(({ mode }) => {
       },
       manifest: {
         id: normalizedBase,
-        name: "InstaCollab",
-        short_name: "InstaCollab",
+        name: "UniLive",
+        short_name: "UniLive",
         description: "Create, connect, and collaborate in real time.",
         theme_color: "#020617",
         background_color: "#020617",
@@ -182,12 +192,17 @@ export default defineConfig(({ mode }) => {
     }),
     ...replitPlugins,
     agentIngestPlugin(workspaceRoot),
+    ...(youtubePlugin ? [youtubePlugin] : []),
   ],
   define: {
     ...envDefine,
-    "process.env.GEMINI_API_KEY": JSON.stringify(
-      viteEnv.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "",
-    ),
+    ...(isProd
+      ? {}
+      : {
+          "process.env.GEMINI_API_KEY": JSON.stringify(
+            viteEnv.VITE_GEMINI_API_KEY || process.env.GEMINI_API_KEY || "",
+          ),
+        }),
   },
   resolve: {
     alias: {
@@ -196,7 +211,7 @@ export default defineConfig(({ mode }) => {
     dedupe: ["react", "react-dom"],
   },
   optimizeDeps: {
-    exclude: ["deepar"],
+    exclude: ["deepar", "@deepar/beauty"],
   },
   assetsInclude: ['**/*.wasm', '**/*.bin', '**/*.deepar'],
   root: appRoot,
@@ -231,15 +246,15 @@ export default defineConfig(({ mode }) => {
           interval: Number(process.env.DEV_POLL_INTERVAL_MS ?? 300),
         }
       : undefined,
-    proxy: {
-      "/api": {
-        target: unifiedLive
-          ? unifiedApiOrigin
-          : (process.env.VITE_API_PROXY ?? "http://127.0.0.1:3000"),
-        changeOrigin: true,
-        secure: unifiedLive,
-      },
-    },
+    proxy: unifiedLive
+      ? {
+          "/api": {
+            target: unifiedApiOrigin,
+            changeOrigin: true,
+            secure: unifiedLive,
+          },
+        }
+      : undefined,
     hmr: disableHmr
       ? false
       : lanHost

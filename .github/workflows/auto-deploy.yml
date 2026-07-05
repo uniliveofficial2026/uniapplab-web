@@ -1,8 +1,8 @@
 name: Auto deploy
 
+# Paused by default (config/auto-deploy.json → githubActionsDeploy: false).
+# Run manually from GitHub Actions when you want a production deploy.
 on:
-  push:
-    branches: [main, master]
   workflow_dispatch:
 
 concurrency:
@@ -34,7 +34,7 @@ jobs:
 
   deploy:
     needs: verify
-    if: github.event_name == 'workflow_dispatch' || (github.ref == 'refs/heads/main' && secrets.VERCEL_TOKEN != '')
+    if: secrets.VERCEL_TOKEN != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

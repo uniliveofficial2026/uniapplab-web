@@ -4,6 +4,7 @@
  */
 import { fingerprintIssue, isNoiseSignal, shouldEscalateHandoff } from './mlGuard';
 import { platformMetaForTelemetry } from './platformDetect';
+import { getCloudAuthHeaders } from './security/apiAuth';
 
 export type HandoffTaskType =
   | 'heal'
@@ -80,12 +81,14 @@ export function submitHandoffTask(task: HandoffTask): void {
 
   bufferTask(enriched);
 
-  void fetch(handoffUrl(), {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(enriched),
-    keepalive: true,
-  }).catch(() => {});
+  void getCloudAuthHeaders().then((authHeaders) =>
+    fetch(handoffUrl(), {
+      method: 'POST',
+      headers: authHeaders,
+      body: JSON.stringify(enriched),
+      keepalive: true,
+    }).catch(() => {}),
+  );
 }
 
 function escalate(kind: string, detail: string, screen: string | undefined, task: HandoffTask): void {
@@ -143,9 +146,10 @@ export async function flushBufferedHandoffTasks(): Promise<void> {
     if (!buf.length) return;
     for (const task of buf.slice(-5)) {
       if (isThrottled(task.type)) continue;
+      const authHeaders = await getCloudAuthHeaders();
       await fetch(handoffUrl(), {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: authHeaders,
         body: JSON.stringify(task),
         keepalive: true,
       }).catch(() => {});

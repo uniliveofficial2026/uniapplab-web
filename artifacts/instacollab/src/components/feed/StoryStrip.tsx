@@ -92,11 +92,26 @@ export function StoryStrip({
     [profileDayEntries]
   );
 
+  const currentUserHasFeedStories = useMemo(
+    () => db.getFeedStorySegments(currentUser.id).length > 0,
+    [db, dbRevision, currentUser.id],
+  );
+
+  /** Full playback chain: own stories (if any) then everyone else in the strip. */
+  const feedPlaybackIds = useMemo(() => {
+    if (mode !== 'feed') return orderedUserIds;
+    if (showAddStory && currentUserHasFeedStories) {
+      return [currentUser.id, ...orderedUserIds.filter((id) => id !== currentUser.id)];
+    }
+    return orderedUserIds;
+  }, [mode, showAddStory, currentUserHasFeedStories, currentUser.id, orderedUserIds]);
+
   const getAdjacentUserId = (userId: string, direction: 'prev' | 'next') => {
-    const idx = orderedUserIds.indexOf(userId);
+    const ids = mode === 'feed' ? feedPlaybackIds : orderedUserIds;
+    const idx = ids.indexOf(userId);
     if (idx < 0) return null;
-    if (direction === 'prev') return orderedUserIds[idx - 1] ?? null;
-    return orderedUserIds[idx + 1] ?? null;
+    if (direction === 'prev') return ids[idx - 1] ?? null;
+    return ids[idx + 1] ?? null;
   };
 
   const getAdjacentProfileDayId = (dayId: string, direction: 'prev' | 'next') => {
@@ -151,6 +166,17 @@ export function StoryStrip({
               isCurrentUser
               storyScope={mode === 'profile' ? 'profile' : 'feed'}
               presentation={mode === 'profile' ? 'card' : 'ring'}
+              isOpen={
+                mode === 'feed' ? activeStoryUserId === currentUser.id : false
+              }
+              onClose={() => setActiveStoryUserId(null)}
+              prevUserId={
+                mode === 'feed' ? getAdjacentUserId(currentUser.id, 'prev') : null
+              }
+              nextUserId={
+                mode === 'feed' ? getAdjacentUserId(currentUser.id, 'next') : null
+              }
+              onRequestOpenUser={(userId) => setActiveStoryUserId(userId)}
             />
           )}
           {mode === 'profile'

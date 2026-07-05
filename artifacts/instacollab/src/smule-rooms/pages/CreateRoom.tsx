@@ -1,5 +1,5 @@
-import React, { useState, useRef } from 'react';
-import { ArrowLeft, Camera, Globe, Lock, Music2, Radio, MessageSquare, Users2, CheckCircle2 } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { ArrowLeft, Camera, Globe, Lock, Music2, Radio, MessageSquare, Users2, Video, CheckCircle2 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import { useRoomSettingsNavigateBack } from '../context/RoomFlowContext';
 import { useCurrentUser } from '../../lib/useCurrentUser';
@@ -10,6 +10,9 @@ import { roomPrivacyPatch, validateRoomKeyInput, MAX_ROOM_KEY_LENGTH, MIN_ROOM_K
 import { upsertManagedRoom } from '../utils/managedRooms';
 import { initRoomExp } from '../utils/roomExp';
 import { initRoomGifts } from '../utils/roomGifts';
+import { resolveOwnerPartyRoomId, getStoredOwnerPartyRoomId } from '../utils/ownerPartyRoomId';
+import { syncPartyRoomToCloud } from '../utils/syncPartyRoomCloud';
+import { getRoomSettings } from '../utils/storage';
 
 const CreateRoom = () => {
   const navigate = useNavigate();
@@ -24,6 +27,28 @@ const CreateRoom = () => {
   const [privateKeyError, setPrivateKeyError] = useState<string | null>(null);
   const [mode, setMode] = useState("Chat");
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
+  const [canonicalRoomId, setCanonicalRoomId] = useState<string | null>(null);
+  const [launching, setLaunching] = useState(false);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      const existing =
+        getStoredOwnerPartyRoomId(currentUser?.id) ??
+        (await resolveOwnerPartyRoomId(currentUser?.id, { createIfMissing: false }));
+      if (cancelled || !existing) return;
+      setCanonicalRoomId(existing);
+      const settings = getRoomSettings(existing);
+      if (settings.roomName?.trim()) setRoomName(settings.roomName);
+      if (settings.roomMode) setMode(String(settings.roomMode));
+      if (settings.privacy === 'Private' || settings.privacy === 'Public') {
+        setPrivacy(settings.privacy);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [currentUser?.id]);
 
   const handleImageClick = () => {
     fileInputRef.current?.click();
@@ -41,7 +66,7 @@ const CreateRoom = () => {
   };
 
   const handleCreate = () => {
-    if (!roomName.trim()) {
+    if (!roomName.trim() || launching) {
       return;
     }
 
@@ -53,15 +78,19 @@ const CreateRoom = () => {
       }
     }
     setPrivateKeyError(null);
+    setLaunching(true);
 
-    // Generate a unique ID for the new room
-    const newRoomId = Math.floor(1000000 + Math.random() * 9000000);
-    
-    // Save settings
-    const roomIdString = newRoomId.toString();
-    const privacyPatch = roomPrivacyPatch(privacy, privateRoomKey);
-    saveRoomSettings(roomIdString, {
-      ...assignOwnerToSettings(
+    void (async () => {
+      const roomIdString =
+        (await resolveOwnerPartyRoomId(currentUser?.id, { createIfMissing: true })) ??
+        canonicalRoomId;
+      if (!roomIdString) {
+        setLaunching(false);
+        return;
+      }
+
+      const privacyPatch = roomPrivacyPatch(privacy, privateRoomKey);
+      const ownerSettings = assignOwnerToSettings(
         {
           roomName,
           roomId: roomIdString,
@@ -70,31 +99,40 @@ const CreateRoom = () => {
           ...privacyPatch,
         },
         currentUser,
-      ),
-    });
+      );
 
-    initRoomExp(roomIdString, {
-      totalExp: 0,
-      todayExp: 0,
-      todayEmptyRoomFreeExp: 0,
-      todaySeatedFreeExp: 0,
-      todayGoldExp: 0,
-    });
-    initRoomGifts(roomIdString, { totalStars: 0, todayStars: 0, giftCount: 0, recentGifts: [] });
+      saveRoomSettings(roomIdString, ownerSettings);
 
-    upsertManagedRoom({
-      id: roomIdString,
-      name: roomName,
-      roomMode: mode as RoomMode,
-      role: 'owner',
-      hostName: hostDisplayName,
-    });
-    
-    // Set identity as Host/Owner
-    localStorage.setItem('currentUserRole', 'owner');
-    localStorage.setItem('activeRoomId', roomIdString);
+      initRoomExp(roomIdString, {
+        totalExp: 0,
+        todayExp: 0,
+        todayEmptyRoomFreeExp: 0,
+        todaySeatedFreeExp: 0,
+        todayGoldExp: 0,
+      });
+      initRoomGifts(roomIdString, { totalStars: 0, todayStars: 0, giftCount: 0, recentGifts: [] });
 
-    navigate(`/room/${newRoomId}`);
+      upsertManagedRoom({
+        id: roomIdString,
+        name: roomName,
+        roomMode: mode as RoomMode,
+        role: 'owner',
+        hostName: hostDisplayName,
+      });
+
+      syncPartyRoomToCloud(roomIdString, currentUser?.id, {
+        roomName,
+        roomMode: mode as RoomMode,
+        privacy,
+        whoCanJoin: privacyPatch.whoCanJoin,
+        coverPhoto: coverPreview ?? 'Default',
+      });
+
+      localStorage.setItem('currentUserRole', 'owner');
+      localStorage.setItem('activeRoomId', roomIdString);
+
+      navigate(`/room/${roomIdString}`);
+    })().finally(() => setLaunching(false));
   };
 
   const privateKeyValidation = validateRoomKeyInput(privateRoomKey);
@@ -106,7 +144,8 @@ const CreateRoom = () => {
     { id: 'Chat', icon: <MessageSquare size={18} />, label: 'Chat', desc: 'Classic Party Layout' },
     { id: 'Radio', icon: <Radio size={18} />, label: 'Watch Together', desc: 'Broadcast audio & video' },
     { id: 'Karaoke', icon: <Music2 size={18} />, label: 'Karaoke', desc: 'New Chorus Layout' },
-    { id: 'Multi-Guest', icon: <Users2 size={18} />, label: 'Multi-Guest', desc: 'Up to 12 guests' },
+    { id: 'Multi-Guest', icon: <Users2 size={18} />, label: 'Multi-Guest', desc: '15 video seats (5×3) · 70% screen' },
+    { id: 'Solo-Live', icon: <Video size={18} />, label: 'Solo Live', desc: 'Full-screen host camera & chat' },
   ];
 
   return (
@@ -119,8 +158,16 @@ const CreateRoom = () => {
         >
           <ArrowLeft size={24} />
         </button>
-        <h1 className="flex-1 text-center font-black text-lg tracking-tight uppercase mr-10">Create Room</h1>
+        <h1 className="flex-1 text-center font-black text-lg tracking-tight uppercase mr-10">
+          {canonicalRoomId ? 'Your Room' : 'Create Room'}
+        </h1>
       </header>
+
+      {canonicalRoomId ? (
+        <p className="px-5 pt-3 text-center text-[11px] font-semibold text-blue-300/90">
+          Your permanent room ID is <span className="font-mono">ID:{canonicalRoomId}</span> — it stays the same when you change mode.
+        </p>
+      ) : null}
 
       <div className="flex-1 overflow-y-auto p-5 space-y-8 scrollbar-hide pb-32">
         {/* 1. Room Cover */}
@@ -258,14 +305,14 @@ const CreateRoom = () => {
       <div className="sticky bottom-0 left-0 right-0 p-5 bg-gradient-to-t from-slate-950 via-slate-950/90 to-transparent pt-10 z-30">
         <button 
           onClick={handleCreate}
-          disabled={!canLaunch}
+          disabled={!canLaunch || launching}
           className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
-            !canLaunch
+            !canLaunch || launching
               ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50' 
               : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20 border border-white/10'
           }`}
         >
-          Launch Room
+          {launching ? 'Opening…' : canonicalRoomId ? 'Open Room' : 'Launch Room'}
         </button>
       </div>
     </div>

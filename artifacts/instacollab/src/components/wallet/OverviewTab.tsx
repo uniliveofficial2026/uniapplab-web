@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { 
-  Coins, 
   DollarSign, 
   TrendingUp, 
   ArrowUpRight, 
@@ -14,6 +13,7 @@ import {
   TrendingDown,
   Filter
 } from 'lucide-react';
+import { CoinIcon } from '../common/CoinIcon';
 import { 
   AreaChart, 
   Area, 
@@ -188,7 +188,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
           <div className="flex items-center justify-between mb-4">
             <span className="text-xs font-bold text-amber-200/70 uppercase tracking-widest">Streaming Coins</span>
             <div className="p-2 rounded-xl bg-amber-500/10 text-amber-400">
-              <Coins className="w-4 h-4" />
+              <CoinIcon className="w-4 h-4" />
             </div>
           </div>
           <h3 className="text-3xl font-black text-white tracking-tight" id="balance-coins">
@@ -233,7 +233,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
             className="flex flex-col items-center justify-center p-4 bg-secondary/15 hover:bg-secondary/40 border border-border/50 rounded-2xl transition-all group"
           >
             <div className="w-12 h-12 rounded-full bg-amber-500/10 text-amber-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
-              <Coins className="w-6 h-6" />
+              <CoinIcon className="w-6 h-6" />
             </div>
             <span className="text-xs font-black text-foreground">Redeem Games</span>
           </button>
@@ -358,7 +358,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
             <div className="p-3 bg-secondary/15 rounded-2xl flex flex-wrap sm:flex-nowrap items-center justify-between border border-border/[0.2] gap-2">
               <div className="flex items-center gap-2.5 min-w-0 flex-1">
                 <div className="p-2 bg-amber-500/10 text-amber-500 rounded-xl shrink-0">
-                  <Coins className="w-4 h-4" />
+                  <CoinIcon className="w-4 h-4" />
                 </div>
                 <div className="min-w-0 pr-2">
                   <h4 className="text-xs font-black text-foreground truncate">Live Streaming Coins</h4>

@@ -1,7 +1,13 @@
 import React from 'react';
 import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
-import { FullscreenMediaStage } from '../common/FullscreenMediaStage';
+import {
+  FULLSCREEN_MEDIA_CLOSE_CLASS,
+  FULLSCREEN_MEDIA_DOTS_CLASS,
+  FULLSCREEN_MEDIA_NAV_CLASS,
+  FULLSCREEN_MEDIA_OVERLAY_CLASS,
+  FullscreenMediaStage,
+} from '../common/FullscreenMediaStage';
 
 export type ReelContentFullscreenPortalProps = {
   isOpen: boolean;
@@ -39,8 +45,9 @@ export function ReelContentFullscreenPortal({
   return createPortal(
     <div
       id="reel-full-screen-modal"
+      data-media-fullscreen="true"
       ref={fullscreenSwipeRef}
-      className="fixed inset-0 z-[320] flex items-center justify-center bg-background pointer-events-auto animate-in fade-in duration-200 select-none"
+      className={FULLSCREEN_MEDIA_OVERLAY_CLASS}
       onWheel={(e) => e.stopPropagation()}
       onTouchStart={onTouchStart}
       onTouchMove={onTouchMove}
@@ -49,10 +56,10 @@ export function ReelContentFullscreenPortal({
       <button
         type="button"
         onClick={onClose}
-        className="absolute top-4 right-4 z-[260] text-foreground p-2.5 bg-background border border-border hover:bg-secondary rounded-full transition-all active:scale-95 shadow-md"
+        className={FULLSCREEN_MEDIA_CLOSE_CLASS}
         title="Close fullscreen"
       >
-        <X className="w-8 h-8" />
+        <X className="w-7 h-7 sm:w-8 sm:h-8" />
       </button>
 
       {hasCarousel && (
@@ -64,7 +71,7 @@ export function ReelContentFullscreenPortal({
               e.stopPropagation();
               onPrevCarouselItem();
             }}
-            className="absolute left-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 hover:bg-black/75 max-lg:hidden flex items-center justify-center text-white transition-all z-50 shadow-md active:scale-95"
+            className={`${FULLSCREEN_MEDIA_NAV_CLASS} left-[max(0.75rem,env(safe-area-inset-left,0px))]`}
           >
             <ChevronLeft className="w-6 h-6" />
           </button>
@@ -75,7 +82,7 @@ export function ReelContentFullscreenPortal({
               e.stopPropagation();
               onNextCarouselItem();
             }}
-            className="absolute right-6 top-1/2 -translate-y-1/2 w-12 h-12 rounded-full bg-black/50 hover:bg-black/75 max-lg:hidden flex items-center justify-center text-white transition-all z-50 shadow-md active:scale-95"
+            className={`${FULLSCREEN_MEDIA_NAV_CLASS} right-[max(0.75rem,env(safe-area-inset-right,0px))]`}
           >
             <ChevronRight className="w-6 h-6" />
           </button>
@@ -90,7 +97,7 @@ export function ReelContentFullscreenPortal({
       </FullscreenMediaStage>
 
       {hasCarousel && (
-        <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2 z-50 bg-black/30 backdrop-blur-[2px] px-3 py-1.5 rounded-full pointer-events-none">
+        <div className={`${FULLSCREEN_MEDIA_DOTS_CLASS} pointer-events-none`}>
           {Array.from({ length: carouselLength }, (_, i) => (
             <div
               key={`reel-fs-dot-${i}`}

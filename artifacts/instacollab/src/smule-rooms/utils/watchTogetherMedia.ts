@@ -5,6 +5,12 @@ import {
   loadWatchTogetherUpload,
   saveWatchTogetherUpload,
 } from './watchTogetherMediaStorage';
+import {
+  isYoutubeMediaRef,
+  parseYoutubeVideoId,
+  toWatchTogetherYoutubeRef,
+  type YoutubeVideoSummary,
+} from '../../services/youtube';
 
 /** Short public-domain sample used when the room has no custom stream URL yet. */
 export const WATCH_TOGETHER_DEMO_STREAM =
@@ -13,7 +19,7 @@ export const WATCH_TOGETHER_DEMO_STREAM =
 /** Persisted settings value when playback comes from an uploaded file in IndexedDB. */
 export const WATCH_TOGETHER_UPLOAD_MARKER = '__watch_together_upload__';
 
-export type WatchTogetherMediaKind = 'video' | 'audio';
+export type WatchTogetherMediaKind = 'video' | 'audio' | 'youtube';
 
 export type WatchTogetherMedia = {
   posterUrl: string;
@@ -22,6 +28,7 @@ export type WatchTogetherMedia = {
   isCustom: boolean;
   fileName?: string;
   isHydrating?: boolean;
+  youtubeVideoId?: string;
 };
 
 const AUDIO_EXTENSIONS = /\.(mp3|m4a|aac|ogg|wav|flac|opus|webm)(\?|$)/i;
@@ -36,6 +43,7 @@ type BlobPlaybackCache = {
 const blobPlaybackCache = new Map<string, BlobPlaybackCache>();
 
 export function inferWatchTogetherMediaKind(url: string): WatchTogetherMediaKind {
+  if (isYoutubeMediaRef(url)) return 'youtube';
   if (url.startsWith('data:audio/')) return 'audio';
   if (url.startsWith('data:video/')) return 'video';
   if (AUDIO_EXTENSIONS.test(url)) return 'audio';
@@ -52,6 +60,10 @@ export function inferWatchTogetherMediaKindFromFile(file: File): WatchTogetherMe
 export function normalizeWatchTogetherMediaUrl(input: string): string | null {
   const trimmed = input.trim();
   if (!trimmed) return null;
+
+  const youtubeId = parseYoutubeVideoId(trimmed);
+  if (youtubeId) return toWatchTogetherYoutubeRef(youtubeId);
+
   if (trimmed.startsWith('data:') || trimmed.startsWith('blob:')) return trimmed;
   try {
     const parsed = new URL(trimmed);
@@ -95,7 +107,7 @@ export function isWatchTogetherUploadMarker(value: string | undefined): boolean 
 export function resolveWatchTogetherStreamUrl(
   settings: Pick<RoomSettings, 'watchTogetherMediaUrl' | 'watchTogetherMediaFileName'>,
   roomId: string,
-): { streamUrl: string; isCustom: boolean; kind?: WatchTogetherMediaKind; fileName?: string; isHydrating?: boolean } {
+): { streamUrl: string; isCustom: boolean; kind?: WatchTogetherMediaKind; fileName?: string; isHydrating?: boolean; youtubeVideoId?: string } {
   const custom = settings.watchTogetherMediaUrl?.trim();
 
   if (isWatchTogetherUploadMarker(custom)) {
@@ -117,10 +129,12 @@ export function resolveWatchTogetherStreamUrl(
   }
 
   if (custom) {
+    const youtubeVideoId = parseYoutubeVideoId(custom) ?? undefined;
     return {
       streamUrl: custom,
       isCustom: true,
-      kind: inferWatchTogetherMediaKind(custom),
+      kind: youtubeVideoId ? 'youtube' : inferWatchTogetherMediaKind(custom),
+      youtubeVideoId,
     };
   }
 
@@ -142,6 +156,7 @@ export function resolveWatchTogetherMedia(
     isCustom: resolved.isCustom,
     fileName: resolved.fileName,
     isHydrating: resolved.isHydrating,
+    youtubeVideoId: resolved.youtubeVideoId,
   };
 }
 
@@ -157,6 +172,7 @@ export function describeWatchTogetherMediaSource(
   fileName?: string,
 ): string {
   if (!isCustom) return 'Demo stream';
+  if (isYoutubeMediaRef(streamUrl)) return fileName || 'YouTube video';
   if (fileName) return fileName;
   if (!streamUrl) return 'Uploaded file';
   if (streamUrl.startsWith('blob:')) return 'Uploaded file';
@@ -219,6 +235,21 @@ export async function hydrateWatchTogetherMedia(roomId: string): Promise<WatchTo
   const media = resolveWatchTogetherMedia(getRoomSettings(roomId), roomId);
   emitWatchTogetherMediaUpdated(roomId, media);
   return media;
+}
+
+/** Persist a YouTube video for the whole room and broadcast to listeners. */
+export function setWatchTogetherYoutubeVideo(
+  roomId: string,
+  video: Pick<YoutubeVideoSummary, 'videoId' | 'title'>,
+): WatchTogetherMedia {
+  void deleteWatchTogetherUpload(roomId);
+  revokeBlobPlaybackUrl(roomId);
+
+  saveRoomSettings(roomId, {
+    watchTogetherMediaUrl: toWatchTogetherYoutubeRef(video.videoId),
+    watchTogetherMediaFileName: video.title,
+  });
+  return buildAndEmitRoomMedia(roomId);
 }
 
 /** Persist a hosted URL and broadcast to all room listeners. */

@@ -50,14 +50,16 @@ export function ChatFilePreviewPortal({
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[410] flex flex-col bg-black/95 pointer-events-auto animate-in fade-in duration-200"
+      id="media-full-screen-modal"
+      data-media-fullscreen="true"
+      className="fixed inset-0 z-[410] flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-black pointer-events-auto animate-in fade-in duration-200 overscroll-none"
       role="dialog"
       aria-modal="true"
       aria-label={`View ${name}`}
       onPointerUp={onBackdropClose}
     >
       <header
-        className="flex items-center gap-3 px-4 py-3 border-b border-white/10 shrink-0 safe-area-top"
+        className="flex items-center gap-3 px-4 py-3 border-b border-white/10 shrink-0 pt-[max(0.75rem,env(safe-area-inset-top,0px))] pr-[max(1rem,env(safe-area-inset-right,0px))] pl-[max(1rem,env(safe-area-inset-left,0px))]"
         onPointerUp={(e) => e.stopPropagation()}
       >
         <div className="flex-1 min-w-0">
@@ -86,7 +88,7 @@ export function ChatFilePreviewPortal({
       </header>
 
       <div
-        className="flex-1 min-h-0 overflow-hidden p-3 sm:p-4"
+        className="flex min-h-0 flex-1 items-center justify-center overflow-hidden pb-[env(safe-area-inset-bottom,0px)]"
         onPointerUp={(e) => e.stopPropagation()}
       >
         {canView ? (

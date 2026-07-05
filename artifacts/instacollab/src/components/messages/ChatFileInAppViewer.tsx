@@ -73,7 +73,7 @@ function ViewerBody({ kind, src, name }: { kind: ChatFileKind; src: string; name
         <img
           src={src}
           alt={name}
-          className="max-w-full max-h-full object-contain rounded-lg shadow-2xl"
+          className="block h-auto w-auto max-h-full max-w-full object-contain"
         />
       );
     case 'pdf':
@@ -83,7 +83,7 @@ function ViewerBody({ kind, src, name }: { kind: ChatFileKind; src: string; name
         <iframe
           title={name}
           src={src}
-          className="w-full h-full min-h-[50vh] max-w-5xl rounded-lg bg-white shadow-2xl border-0"
+          className="h-full w-full min-h-0 max-w-full bg-white border-0"
         />
       );
     case 'video':
@@ -92,7 +92,7 @@ function ViewerBody({ kind, src, name }: { kind: ChatFileKind; src: string; name
           src={src}
           controls
           playsInline
-          className="max-w-full max-h-full w-full max-w-4xl rounded-lg bg-black shadow-2xl"
+          className="block h-auto w-auto max-h-full max-w-full object-contain bg-black"
           {...nativeVideoControlGuardProps()}
         />
       );

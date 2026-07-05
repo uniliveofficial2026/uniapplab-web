@@ -19,11 +19,13 @@ import { isCloudUsernameAvailable } from '../../lib/auth/cloudProfile';
 import { syncCloudSessionNow } from '../../lib/auth/syncSession';
 import { isSupabaseConfigured } from '../../lib/supabase/config';
 import { clearSupabaseUnhealthy } from '../../lib/auth/providerState';
-import { completeSupabaseOAuthReturnOnce } from '../../lib/auth/oauthReturnGuard';
-import { isKnownLocalDemoEmail, tryLocalDemoLogin } from '../../lib/auth/localDemoAuth';
+import { completeSupabaseOAuthReturnOnce, completeFirebaseOAuthRedirectOnce } from '../../lib/auth/oauthReturnGuard';
+import { DEMO_EMAIL, DEMO_PASSWORD, isKnownLocalDemoEmail, loginDemoAccountLocal, tryLocalDemoLogin } from '../../lib/auth/localDemoAuth';
 import { signInDemoWithCloudSync } from '../../lib/auth/demoCloudAuth';
 import { isSupabaseOAuthReturnInUrl } from '../../lib/auth/supabaseOAuthReturn';
+import { shouldCompleteFirebaseOAuthRedirect } from '../../lib/firebase/oauth';
 import { scheduleLiveSessionSync } from '../../lib/liveSessionSync';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import {
   LaunchBrandMark,
   LaunchField,
@@ -48,6 +50,7 @@ export function AuthScreen() {
   const [newPassword, setNewPassword] = useState('');
   const [busy, setBusy] = useState(false);
   const [emailAuthMode, setEmailAuthMode] = useState<'signin' | 'signup'>('signin');
+  const [emailMethod, setEmailMethod] = useState<'password' | 'otp'>('password');
 
   useEffect(() => {
     if (mode === 'login') setEmailAuthMode('signin');
@@ -85,6 +88,30 @@ export function AuthScreen() {
     };
   }, [useCloudAuth, showToast]);
 
+  useEffect(() => {
+    if (!useCloudAuth || !shouldCompleteFirebaseOAuthRedirect()) return;
+    let cancelled = false;
+    void (async () => {
+      const result = await completeFirebaseOAuthRedirectOnce();
+      if (cancelled) return;
+      if (!result) return;
+      if (!result.ok) {
+        if (result.reason) showToast(result.reason);
+        return;
+      }
+      const sync = await syncCloudSessionNow();
+      if (cancelled) return;
+      if (!sync.ok) {
+        showToast(sync.reason);
+        return;
+      }
+      showToast('Signed in!');
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [useCloudAuth, showToast]);
+
   const onEmailOtpVerified = async () => {
     const sync = await syncCloudSessionNow();
     if (!sync.ok) {
@@ -103,23 +130,42 @@ export function AuthScreen() {
     showToast('Welcome back!');
   };
 
-  const onLogin = async () => {
+  const onLogin = async (loginEmail = email, loginPassword = password) => {
     setBusy(true);
     try {
-      if (useCloudAuth) {
-        if (isKnownLocalDemoEmail(email)) {
-          const demoCloud = await signInDemoWithCloudSync(email, password);
-          if (demoCloud.ok) {
-            showToast('Welcome back! (demo — synced to cloud)');
-            return;
-          }
-          if (!import.meta.env.DEV) {
-            showToast(demoCloud.reason);
-            return;
-          }
+      const normalizedEmail = loginEmail.trim().toLowerCase();
+
+      if (useCloudAuth && isKnownLocalDemoEmail(normalizedEmail)) {
+        if (loginPassword !== DEMO_PASSWORD) {
+          showToast(`Demo password is ${DEMO_PASSWORD} for ${DEMO_EMAIL} and sarah@instacollab.app.`);
+          return;
         }
 
-        const demoLogin = tryLocalDemoLogin(email, password);
+        // Dev: local demo first — cloud sync can race and log the user out if Supabase is slow/down.
+        if (import.meta.env.DEV) {
+          const demoLocal = loginDemoAccountLocal(normalizedEmail, loginPassword);
+          if (demoLocal.ok) {
+            showToast('Welcome back! (demo account)');
+            void signInDemoWithCloudSync(normalizedEmail, loginPassword).then((cloud) => {
+              if (cloud.ok) showToast('Demo synced to cloud');
+            });
+            return;
+          }
+          showToast(demoLocal.reason);
+          return;
+        }
+
+        const demoCloud = await signInDemoWithCloudSync(normalizedEmail, loginPassword);
+        if (demoCloud.ok) {
+          showToast('Welcome back! (demo — synced to cloud)');
+          return;
+        }
+        showToast(demoCloud.reason);
+        return;
+      }
+
+      if (useCloudAuth) {
+        const demoLogin = tryLocalDemoLogin(normalizedEmail, loginPassword);
         if (demoLogin?.ok) {
           showToast('Welcome back! (demo account — offline dev only)');
           return;
@@ -130,13 +176,11 @@ export function AuthScreen() {
         }
 
         clearSupabaseUnhealthy();
-        const result = await cloudSignIn(email, password);
+        const result = await cloudSignIn(loginEmail, loginPassword);
         if (!result.ok) {
-          const hint = isKnownLocalDemoEmail(email)
-            ? ' Demo password is demo123 for demo@instacollab.app and sarah@instacollab.app.'
-            : import.meta.env.DEV
-              ? ' No cloud account? Sign up, or use demo@instacollab.app / demo123 (dev).'
-              : ' Try Sign up if you have not created a cloud account yet.';
+          const hint = import.meta.env.DEV
+            ? ` Try demo: ${DEMO_EMAIL} / ${DEMO_PASSWORD}.`
+            : ' Try Sign up if you have not created a cloud account yet.';
           showToast(result.reason + hint);
           return;
         }
@@ -148,7 +192,7 @@ export function AuthScreen() {
         showToast('Welcome back!');
         return;
       }
-      const result = db.signInWithCredentials(email, password);
+      const result = db.signInWithCredentials(loginEmail, loginPassword);
       if (!result.ok) {
         showToast(result.reason);
         return;
@@ -158,6 +202,14 @@ export function AuthScreen() {
     } finally {
       setBusy(false);
     }
+  };
+
+  const onDemoLogin = () => {
+    setEmail(DEMO_EMAIL);
+    setPassword(DEMO_PASSWORD);
+    setEmailMethod('password');
+    setEmailAuthMode('signin');
+    void onLogin(DEMO_EMAIL, DEMO_PASSWORD);
   };
 
   const onSignup = async () => {
@@ -307,13 +359,13 @@ export function AuthScreen() {
     mode === 'login'
       ? useCloudAuth
         ? import.meta.env.DEV
-          ? 'Cloud: email, Google, or Apple. Demo (syncs live): demo@instacollab.app / demo123.'
+          ? `Cloud: email, Google, or Apple. Demo: ${DEMO_EMAIL} / ${DEMO_PASSWORD} (or button below).`
           : 'Sign in with email, Google, or Apple (syncs across devices).'
         : import.meta.env.DEV
           ? 'Demo mode — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to a .env file, then restart npm run dev.'
-          : 'Sign in with demo@instacollab.app / demo123'
+          : `Sign in with ${DEMO_EMAIL} / ${DEMO_PASSWORD}`
       : mode === 'signup'
-        ? 'Join InstaCollab and set up your profile.'
+        ? `Join ${APP_DISPLAY_NAME} and set up your profile.`
         : mode === 'forgot'
           ? useCloudAuth
             ? 'We will email you a secure reset link.'
@@ -365,34 +417,150 @@ export function AuthScreen() {
             )}
 
             {useCloudAuth && (mode === 'login' || mode === 'signup') ? (
-              <EmailOtpPanel
-                mode={emailAuthMode}
-                onModeChange={setEmailAuthMode}
-                busy={busy}
-                showSignupFields={emailAuthMode === 'signup'}
-                inputClass={launchInputClass}
-                onSendOtp={async (targetEmail, otpMode, profile) => {
-                  if (otpMode === 'signup' && profile?.username) {
-                    const available = await isCloudUsernameAvailable(profile.username);
-                    if (!available) return { ok: false, reason: 'Username is taken' };
-                  }
-                  clearSupabaseUnhealthy();
-                  return authSendEmailOtp(targetEmail, {
-                    shouldCreateUser: otpMode === 'signup',
-                    displayName: profile?.displayName,
-                    username: profile?.username,
-                  });
-                }}
-                onVerifyOtp={async (targetEmail, code) => {
-                  setBusy(true);
-                  try {
-                    return await authVerifyEmailOtp(targetEmail, code);
-                  } finally {
-                    setBusy(false);
-                  }
-                }}
-                onVerified={() => void onEmailOtpVerified()}
-              />
+              <div className="flex flex-col gap-3 w-full">
+                <div className="flex gap-2 p-1 rounded-xl bg-secondary/30 border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setEmailAuthMode('signin')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
+                      emailAuthMode === 'signin'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Sign in
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEmailAuthMode('signup')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
+                      emailAuthMode === 'signup'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Create account
+                  </button>
+                </div>
+
+                <div className="flex gap-2 p-1 rounded-xl bg-secondary/30 border border-border">
+                  <button
+                    type="button"
+                    onClick={() => setEmailMethod('password')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
+                      emailMethod === 'password'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Password
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => setEmailMethod('otp')}
+                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
+                      emailMethod === 'otp'
+                        ? 'bg-primary text-primary-foreground'
+                        : 'text-muted-foreground hover:text-foreground'
+                    }`}
+                  >
+                    Email code
+                  </button>
+                </div>
+
+                {emailMethod === 'password' ? (
+                  <form
+                    className="flex flex-col gap-4 w-full"
+                    onSubmit={(e) => {
+                      e.preventDefault();
+                      if (emailAuthMode === 'signin') void onLogin();
+                      else void onSignup();
+                    }}
+                  >
+                    {emailAuthMode === 'signup' && (
+                      <>
+                        <LaunchField label="Display name">
+                          <input
+                            className={launchInputClass}
+                            value={displayName}
+                            onChange={(e) => setDisplayName(e.target.value)}
+                            placeholder="Your name"
+                            required
+                          />
+                        </LaunchField>
+                        <LaunchField label="Username">
+                          <input
+                            className={launchInputClass}
+                            value={username}
+                            onChange={(e) => setUsername(e.target.value)}
+                            placeholder="creative_you"
+                            required
+                            minLength={3}
+                          />
+                        </LaunchField>
+                      </>
+                    )}
+                    <LaunchField label="Email">
+                      <input
+                        className={launchInputClass}
+                        type="email"
+                        autoComplete="email"
+                        value={email}
+                        onChange={(e) => setEmail(e.target.value)}
+                        placeholder="you@example.com"
+                        required
+                      />
+                    </LaunchField>
+                    <LaunchField label="Password">
+                      <input
+                        className={launchInputClass}
+                        type="password"
+                        autoComplete={emailAuthMode === 'signin' ? 'current-password' : 'new-password'}
+                        value={password}
+                        onChange={(e) => setPassword(e.target.value)}
+                        placeholder="••••••••"
+                        required
+                        minLength={6}
+                      />
+                    </LaunchField>
+                    <LaunchPrimaryButton type="submit" disabled={busy}>
+                      {emailAuthMode === 'signin' ? 'Log in' : 'Sign up'}
+                    </LaunchPrimaryButton>
+                  </form>
+                ) : (
+                  <EmailOtpPanel
+                    mode={emailAuthMode}
+                    onModeChange={setEmailAuthMode}
+                    busy={busy}
+                    showModeToggle={false}
+                    showSignupFields={emailAuthMode === 'signup'}
+                    initialEmail={email}
+                    inputClass={launchInputClass}
+                    onSendOtp={async (targetEmail, otpMode, profile) => {
+                      setEmail(targetEmail);
+                      if (otpMode === 'signup' && profile?.username) {
+                        const available = await isCloudUsernameAvailable(profile.username);
+                        if (!available) return { ok: false, reason: 'Username is taken' };
+                      }
+                      clearSupabaseUnhealthy();
+                      return authSendEmailOtp(targetEmail, {
+                        shouldCreateUser: otpMode === 'signup',
+                        displayName: profile?.displayName,
+                        username: profile?.username,
+                      });
+                    }}
+                    onVerifyOtp={async (targetEmail, code) => {
+                      setBusy(true);
+                      try {
+                        return await authVerifyEmailOtp(targetEmail, code);
+                      } finally {
+                        setBusy(false);
+                      }
+                    }}
+                    onVerified={() => void onEmailOtpVerified()}
+                  />
+                )}
+              </div>
             ) : (
             <form
               className="flex flex-col gap-4 w-full"
@@ -485,16 +653,15 @@ export function AuthScreen() {
             )}
 
             <footer className="flex flex-col items-center gap-2.5 text-sm text-center pt-1">
+              {import.meta.env.DEV && mode === 'login' && (
+                <LaunchTextButton disabled={busy} onClick={() => onDemoLogin()}>
+                  Try demo ({DEMO_EMAIL} / {DEMO_PASSWORD})
+                </LaunchTextButton>
+              )}
               {mode === 'login' && (
-                <>
-                  <LaunchTextButton onClick={() => setMode('forgot')}>
-                    Forgot password?
-                  </LaunchTextButton>
-                  <span className="text-muted-foreground">
-                    New here?{' '}
-                    <LaunchTextButton onClick={() => setMode('signup')}>Sign up</LaunchTextButton>
-                  </span>
-                </>
+                <LaunchTextButton onClick={() => setMode('forgot')}>
+                  Forgot password?
+                </LaunchTextButton>
               )}
               {mode === 'signup' && (
                 <span className="text-muted-foreground">

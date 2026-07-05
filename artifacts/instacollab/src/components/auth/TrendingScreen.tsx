@@ -40,7 +40,7 @@ export function TrendingScreen({ onContinue }: Props) {
 
   const viralTopics = [
     { name: 'AIArtRevolution', posts: '1.2M', growth: '+45%' },
-    { name: 'InstaCollabGlobal', posts: '850K', growth: '+12%' },
+    { name: 'UniLiveGlobal', posts: '850K', growth: '+12%' },
     { name: 'CreativeCoding', posts: '420K', growth: '+88%' },
     { name: 'FutureOfDesign', posts: '310K', growth: '+5%' },
   ];

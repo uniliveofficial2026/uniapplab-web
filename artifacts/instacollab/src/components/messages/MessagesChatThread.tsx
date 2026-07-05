@@ -7,6 +7,7 @@ import { useDB } from '../../lib/useDB';
 import { handleAvatarError, handleMediaError } from '../../lib/utils';
 import { safeMediaUrl } from '../../lib/safe';
 import { formatProfileHandle, getProfileDisplayName } from '../../lib/profileDisplay';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
 import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { ChatInlineVideo } from './ChatInlineVideo';
@@ -108,7 +109,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
   };
 
   return (
-<div className="flex-1 relative overflow-hidden">
+<div className="flex-1 relative min-h-0 overflow-hidden">
      {activeCustomWallpaper?.kind === 'video' && (
        <div className="absolute inset-0 z-0 overflow-hidden">
          <video
@@ -139,7 +140,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
 <div
      ref={chatScrollRef}
      onScroll={onChatScroll}
-     className="relative z-[2] h-full overflow-y-auto p-4 sm:p-6 flex flex-col gap-5 w-full"
+     className="relative z-[2] h-full min-h-0 overflow-y-auto overflow-x-hidden p-4 sm:p-6 flex flex-col gap-5 w-full max-w-full"
    >
       <div className="flex flex-col items-center justify-center py-6 sm:py-10 opacity-80">
           <div className={`w-24 h-24 sm:w-28 sm:h-28 overflow-hidden mb-4 border-2 border-border shadow-sm ${'isGroup' in selectedUser ? 'rounded-2xl' : 'rounded-full'}`}>
@@ -147,7 +148,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
           </div>
           <h2 className="text-[20px] sm:text-[22px] font-black text-center">{getProfileDisplayName(selectedUser)}</h2>
           <span className="text-muted-foreground text-[13px] sm:text-[14px] font-medium text-center px-4">
-            {formatProfileHandle(selectedUser) || getProfileDisplayName(selectedUser)} · InstaCollab End-to-End Encrypted
+            {formatProfileHandle(selectedUser) || getProfileDisplayName(selectedUser)} · {APP_DISPLAY_NAME} End-to-End Encrypted
           </span>
           {!('isGroup' in selectedUser) && <button onClick={onViewProfile} className="mt-4 sm:mt-5 px-6 py-2 bg-secondary hover:bg-foreground hover:text-background rounded-full text-[14px] font-bold transition-all shadow-sm">View Profile</button>}
       </div>
@@ -189,7 +190,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
             )}
            <div
              data-message-bubble-shell="true"
-             className={`relative flex flex-col ${msg.isAuthor ? 'items-end' : 'items-start'} max-w-[80%] sm:max-w-[70%]`}
+             className={`relative flex flex-col min-w-0 ${msg.isAuthor ? 'items-end' : 'items-start'} max-w-[min(85%,100%)] sm:max-w-[70%]`}
            >
            <div
              onClick={(e) => {
@@ -211,7 +212,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                setOpenReactionPickerKey(null);
                setOpenMessageMenuKey((prev) => prev === messageKey ? null : messageKey);
              }}
-             className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-[20px] w-full shadow-md backdrop-blur-sm ${
+             className={`px-4 sm:px-5 py-2.5 sm:py-3 rounded-[20px] w-full max-w-full min-w-0 shadow-md backdrop-blur-sm overflow-hidden ${
                selectedMessageKeys.includes(getMessageSelectionKey(msg, idx)) ? 'ring-2 ring-primary/50' : ''
              } ${msg.isAuthor ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-secondary/70 text-foreground rounded-bl-sm border border-border/50'}`}
            >
@@ -360,7 +361,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                  const { messageBody } = extractMessageSegments(msg.text);
                  if (!messageBody) return null;
                  return (
-                   <span className="text-[14px] sm:text-[15px] leading-relaxed font-medium break-words">
+                   <span className="text-[14px] sm:text-[15px] leading-relaxed font-medium break-words [overflow-wrap:anywhere]">
                      {messageBody}
                    </span>
                  );

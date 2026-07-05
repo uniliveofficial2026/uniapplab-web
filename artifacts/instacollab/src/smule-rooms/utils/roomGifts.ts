@@ -288,6 +288,84 @@ export type RecordRoomGiftResult = {
   receiverStarsTotal: number;
 };
 
+export type ReceiverGiftSender = {
+  senderName: string;
+  senderUserId?: string;
+  totalStars: number;
+  giftCount: number;
+  lastGiftAt: number;
+};
+
+function giftMatchesReceiver(
+  event: RoomGiftEvent,
+  receiverName: string,
+  receiverUserId?: string,
+): boolean {
+  const normalizedReceiver = normalizeReceiverNameKey(receiverName);
+  const normalizedEventReceiver = normalizeReceiverNameKey(event.receiverName);
+  if (normalizedReceiver && normalizedReceiver === normalizedEventReceiver) return true;
+
+  const receiverLookupId = receiverUserId ?? lookupUserIdByDisplayName(receiverName);
+  if (receiverLookupId) {
+    const eventReceiverUserId = lookupUserIdByDisplayName(event.receiverName);
+    if (eventReceiverUserId === receiverLookupId) return true;
+  }
+
+  return false;
+}
+
+/** Aggregate senders who contributed gift stars to a receiver (from recent gift history). */
+export function getReceiverGiftSenders(
+  roomId: string,
+  receiverName: string,
+  receiverUserId?: string,
+): ReceiverGiftSender[] {
+  if (!receiverName.trim()) return [];
+  ensureGlobalReceiverStarsMigrated();
+
+  const roomIds = new Set([
+    roomId,
+    ...listPersistedRoomGiftIds(),
+    ...Object.keys(DEMO_SEEDS),
+  ]);
+
+  const aggregated = new Map<string, ReceiverGiftSender>();
+
+  for (const id of roomIds) {
+    const state = readRoomGiftState(id);
+    for (const event of state.recentGifts) {
+      if (event.starValue <= 0) continue;
+      if (!giftMatchesReceiver(event, receiverName, receiverUserId)) continue;
+
+      const senderKey = event.senderName.trim().toLowerCase() || 'unknown';
+      const senderUserId = lookupUserIdByDisplayName(event.senderName);
+      const existing = aggregated.get(senderKey);
+
+      if (existing) {
+        existing.totalStars += event.starValue;
+        existing.giftCount += 1;
+        existing.lastGiftAt = Math.max(existing.lastGiftAt, event.at);
+        if (!existing.senderUserId && senderUserId) {
+          existing.senderUserId = senderUserId;
+        }
+      } else {
+        aggregated.set(senderKey, {
+          senderName: event.senderName,
+          senderUserId,
+          totalStars: event.starValue,
+          giftCount: 1,
+          lastGiftAt: event.at,
+        });
+      }
+    }
+  }
+
+  return Array.from(aggregated.values()).sort((a, b) => {
+    if (b.totalStars !== a.totalStars) return b.totalStars - a.totalStars;
+    return b.lastGiftAt - a.lastGiftAt;
+  });
+}
+
 export function getReceiverGiftStars(
   roomId: string,
   receiverName: string,

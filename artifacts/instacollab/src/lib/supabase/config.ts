@@ -1,4 +1,13 @@
-import { getRuntimeSupabaseConfig } from './runtimeAuthConfig';
+import { getRuntimeSupabaseConfig, isStaleSupabaseProjectRef, supabaseUrlProjectRef } from './runtimeAuthConfig';
+
+function resolveSupabaseUrl(): string {
+  const runtime = getRuntimeSupabaseConfig();
+  if (runtime?.supabaseUrl) return runtime.supabaseUrl;
+  const fromEnv = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
+  const ref = supabaseUrlProjectRef(fromEnv);
+  if (ref && isStaleSupabaseProjectRef(ref)) return '';
+  return fromEnv;
+}
 
 export function isSupabaseConfigured(): boolean {
   const url = getSupabaseUrl();
@@ -10,9 +19,7 @@ export function isSupabaseConfigured(): boolean {
 }
 
 export function getSupabaseUrl(): string {
-  const runtime = getRuntimeSupabaseConfig();
-  if (runtime?.supabaseUrl) return runtime.supabaseUrl;
-  return String(import.meta.env.VITE_SUPABASE_URL || '').trim();
+  return resolveSupabaseUrl();
 }
 
 export function getSupabaseProjectRef(): string | null {

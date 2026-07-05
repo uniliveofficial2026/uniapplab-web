@@ -1,6 +1,6 @@
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseAnonKey, getSupabaseUrl, isSupabaseConfigured } from './config';
-import { loadRuntimeAuthConfig } from './runtimeAuthConfig';
+import { ensureBundledAuthConfig, loadRuntimeAuthConfig } from './runtimeAuthConfig';
 
 let client: SupabaseClient | null = null;
 let clientProjectUrl: string | null = null;
@@ -19,11 +19,13 @@ function buildClient(): SupabaseClient | null {
   });
 }
 
-/** Load runtime config then return the singleton Supabase client. */
+/** Return the singleton Supabase client — never blocks first paint on network. */
 export async function initSupabaseClient(): Promise<SupabaseClient | null> {
   if (initPromise) return initPromise;
   initPromise = (async () => {
-    await loadRuntimeAuthConfig();
+    // Instant bundled/env config; network override runs in background.
+    ensureBundledAuthConfig();
+    void loadRuntimeAuthConfig();
     const url = getSupabaseUrl();
     if (client && clientProjectUrl && clientProjectUrl !== url) {
       client = null;

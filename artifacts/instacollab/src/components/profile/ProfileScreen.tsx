@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import { useDB, useDbRevision } from '../../lib/useDB';
-import { Grid, PlaySquare, Bookmark, UserSquare, Heart, MessageCircle, ArrowLeft, UserX, X, CheckCircle, Users, Mic2, UserPen, Archive, UserPlus, UserCheck, UserMinus, Clock } from 'lucide-react';
+import { Grid, PlaySquare, Bookmark, UserSquare, Heart, MessageCircle, ArrowLeft, UserX, X, CheckCircle, Users, Mic2, Settings, Archive, UserPlus, UserCheck, UserMinus, Clock } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
 import { ShareModal } from '../feed/ShareModal';
 import type { ProfileSharePayload } from '../../lib/profileShare';
@@ -10,7 +10,10 @@ import { useToast } from '../../lib/ToastContext';
 import { useAuth } from '../../lib/AuthContext';
 import { useCloudAuth } from '../../contexts/CloudAuthContext';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
+import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
+import { syncDeviceAccountForAppUser } from '../../lib/auth/deviceAccounts';
 import { useCurrentUser } from '../../lib/useCurrentUser';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { getFirestoreDB, handleFirestoreError, OperationType } from '../../lib/firebase';
 import { addDoc, collection } from 'firebase/firestore';
 
@@ -46,7 +49,7 @@ import {
 } from '../../lib/optionsMenu';
 import { navTapButtonClass } from '../../lib/navTap';
 import { openKaraokeProfileSurface } from '../../lib/profileSurface';
-import { syncCloudUserPosts } from '../../lib/cloudPostSync';
+import { syncCloudUserSocial } from '../../lib/cloudSocial/cloudSocialContent';
 
 export function ProfileScreen({
   userId,
@@ -65,7 +68,7 @@ export function ProfileScreen({
   const { showToast } = useToast();
   
   const handleLogout = () => {
-    if (!window.confirm('Log out of InstaCollab on this device?')) return;
+    if (!window.confirm(`Log out of ${APP_DISPLAY_NAME} on this device?`)) return;
     void (async () => {
       if (isCloudAuthConfigured()) {
         await cloudSignOut();
@@ -91,7 +94,7 @@ export function ProfileScreen({
   const profileLabel = getProfileMentionLabel(profileUser);
 
   useEffect(() => {
-    void syncCloudUserPosts(profileUserId);
+    void syncCloudUserSocial(profileUserId);
   }, [profileUserId]);
   
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged' | 'rooms'>('posts');
@@ -322,9 +325,13 @@ export function ProfileScreen({
       } catch (e) {
         console.warn("Storage quota exceeded or error occurred while updating profile in localStorage:", e);
       }
+      // 4. Keep device account switcher list in sync (name / avatar)
+      syncDeviceAccountForAppUser(updatedUser);
+      // 5. Sync to Supabase profile (shared with karaoke / live ring / discovery)
+      if (isCloudAuthConfigured()) scheduleCloudProfileSync(updatedUser);
     }
     
-    // 4. Update Firestore in the background
+    // 5. Update Firestore in the background
     try {
       const dbInstance = getFirestoreDB();
       if (dbInstance) {
@@ -420,7 +427,7 @@ export function ProfileScreen({
   };
 
   return (
-    <div className="w-full max-w-[935px] mx-auto pt-8 px-4 flex flex-col min-h-0 pb-6">
+    <div className="w-full max-w-[935px] mx-auto pt-8 px-4 flex flex-col pb-6">
       
       {/* Post Modal View */}
       {showNewCollectionModal && (
@@ -431,7 +438,6 @@ export function ProfileScreen({
             <h3 className="font-bold text-lg mb-4">New Collection</h3>
             <div className="mb-4">
                <input 
-                 autoFocus
                  type="text" 
                  value={newCollectionName}
                  onChange={e => setNewCollectionName(e.target.value)}
@@ -597,10 +603,10 @@ export function ProfileScreen({
                     type="button"
                     onClick={() => setShowEditProfile(true)}
                     className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                    aria-label="Edit profile"
-                    title="Edit profile"
+                    aria-label="Settings"
+                    title="Settings"
                   >
-                    <UserPen className="w-[18px] h-[18px]" />
+                    <Settings className="w-[18px] h-[18px]" />
                   </button>
                   <button
                     type="button"
@@ -970,23 +976,29 @@ export function ProfileScreen({
       <AccountSwitcherModal
         open={showAccountSwitcher}
         accounts={userAccounts}
-        activeUid={cloudSession?.user?.id ?? currentUser?.id}
+        liveUsers={db.users}
+        activeUid={cloudSession?.user?.id ?? db.currentUserId ?? currentUser?.id}
         linking={accountLinking}
         cloudAuthEnabled={isCloudAuthConfigured()}
         onClose={() => setShowAccountSwitcher(false)}
+        onRefreshAccounts={ensureDeviceAccountsSynced}
         onSelectAccount={async (uid, password) => {
           try {
             const label =
               userAccounts.find((a) => a.uid === uid)?.displayName || 'selected account';
             showToast(`Switching to ${label}…`);
             await selectAccount(uid, password);
+            await ensureDeviceAccountsSynced();
             setShowAccountSwitcher(false);
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to switch account.';
             showToast(message);
           }
         }}
-        onRemoveAccount={removeAccount}
+        onRemoveAccount={(uid) => {
+          removeAccount(uid);
+          void ensureDeviceAccountsSynced();
+        }}
         onSendEmailOtp={async (email, mode, profile) => {
           try {
             setAccountLinking(true);
@@ -1007,6 +1019,7 @@ export function ProfileScreen({
             setAccountLinking(true);
             const result = await verifyEmailAuthOtp(email, code, { switchAccount: true });
             if (result.ok) {
+              await ensureDeviceAccountsSynced();
               setShowAccountSwitcher(false);
               setShowEditProfile(false);
             }
@@ -1029,6 +1042,7 @@ export function ProfileScreen({
               return;
             }
             if (result.ok) {
+              await ensureDeviceAccountsSynced();
               showToast('Google account linked!');
             } else if (result.reason) {
               showToast(result.reason);

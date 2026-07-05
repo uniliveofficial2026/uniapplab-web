@@ -1,0 +1,7 @@
+{
+  "enabled": false,
+  "autoPush": false,
+  "githubActionsDeploy": false,
+  "autoMachineLearning": false,
+  "note": "Auto deploy and git push are paused to avoid Vercel rate limits. Set enabled/autoPush/githubActionsDeploy/autoMachineLearning to true when you want them back. Toggle from Workspace → UniappLab Workspace header."
+}

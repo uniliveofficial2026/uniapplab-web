@@ -39,6 +39,7 @@ export const TAB_PATH: Record<Tab, string> = {
   'local-games': '/games',
   'third-party-games': '/games/web',
   wallet: '/wallet',
+  youtube: '/youtube',
 };
 
 const STATIC_PATH_TAB: Record<string, Tab> = {
@@ -59,6 +60,7 @@ const STATIC_PATH_TAB: Record<string, Tab> = {
   '/games': 'local-games',
   '/games/web': 'third-party-games',
   '/wallet': 'wallet',
+  '/youtube': 'youtube',
 };
 
 export function appBasePath(): string {
