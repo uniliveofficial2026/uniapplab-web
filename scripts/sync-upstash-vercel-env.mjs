@@ -46,7 +46,6 @@ const VARS = [
 const missing = VARS.filter(([name, value]) => {
   if (name.startsWith('QSTASH_') && name !== 'QSTASH_CURRENT_SIGNING_KEY') return false;
   if (name === 'QSTASH_NEXT_SIGNING_KEY') return false;
-  if (name === 'SUPABASE_SERVICE_ROLE_KEY') return false;
   return !value || /your|xxxx|placeholder/i.test(value);
 });
 
