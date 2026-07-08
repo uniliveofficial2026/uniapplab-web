@@ -39,6 +39,8 @@ let hydrateGeneration = 0;
 
 /** Device-local LWW timestamp — survives refresh so cloud hydrate cannot stomp newer IDB data. */
 const LOCAL_REV_KEY = 'user_app_state_local_rev';
+const HYDRATE_RETRY_INITIAL_MS = 500;
+const HYDRATE_RETRY_MAX_MS = 30_000;
 
 type LocalAppStateRev = { userId: string; updatedAt: number };
 
@@ -100,7 +102,11 @@ function collectPayload(store: LocalDB): CloudAppStatePayload {
 function applyPayloadIfNewer(payload: CloudAppStatePayload, source: 'remote' | 'bootstrap') {
   if (isDevLocalAuthBypass()) return;
   if (!payload?.updatedAt || payload.v !== CLOUD_APP_STATE_VERSION) return;
-  if (source === 'remote' && payload.updatedAt <= lastAppliedRemoteAt) return;
+  const localRev =
+    subscribedUserId && isCloudAuthUserId(subscribedUserId)
+      ? readPersistedLocalRevision(subscribedUserId)
+      : 0;
+  if (source === 'remote' && payload.updatedAt <= Math.max(lastAppliedRemoteAt, localRev)) return;
   if (source === 'bootstrap' && payload.updatedAt <= lastPushedAt) return;
 
   withCloudAppStateRemoteApply(() => {
@@ -290,6 +296,44 @@ async function hydrateCloudAppStateForUser(
   return { result: 'error', pushLocal: false };
 }
 
+function scheduleHydrateRetry(
+  userId: string,
+  generation: number,
+  delayMs = HYDRATE_RETRY_INITIAL_MS,
+): void {
+  window.setTimeout(() => {
+    void (async () => {
+      if (subscribedUserId !== userId || generation !== hydrateGeneration || cloudSyncReady) return;
+
+      let retry: HydrateOutcome;
+      try {
+        retry = await hydrateCloudAppStateForUser(userId, generation);
+      } catch (err) {
+        console.warn('[sync] cloud app state hydrate retry failed:', err);
+        retry = { result: 'error', pushLocal: false };
+      }
+
+      if (generation !== hydrateGeneration || subscribedUserId !== userId) return;
+      if (retry.result === 'error') {
+        scheduleHydrateRetry(
+          userId,
+          generation,
+          Math.min(delayMs * 2, HYDRATE_RETRY_MAX_MS),
+        );
+        return;
+      }
+
+      cloudSyncReady = true;
+      if (retry.pushLocal) {
+        queueMicrotask(() => void pushNow(userId));
+      }
+      queueMicrotask(() => {
+        scheduleLiveSessionSync(userId);
+      });
+    })();
+  }, delayMs);
+}
+
 async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
   if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || !isCloudAuthUserId(userId)) return;
 
@@ -327,27 +371,7 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
     queueMicrotask(() => void pushNow(userId));
   }
   if (hydrateResult === 'error') {
-    window.setTimeout(() => {
-      void (async () => {
-        if (subscribedUserId !== userId || generation !== hydrateGeneration) return;
-        const retry = await hydrateCloudAppStateForUser(userId, generation);
-        if (generation !== hydrateGeneration) return;
-        if (retry.result !== 'error' && subscribedUserId === userId) {
-          cloudSyncReady = true;
-          if (retry.pushLocal) {
-            queueMicrotask(() => void pushNow(userId));
-          }
-          queueMicrotask(() => {
-            scheduleLiveSessionSync(userId);
-          });
-        }
-      })();
-    }, 500);
-    window.setTimeout(() => {
-      if (subscribedUserId === userId && !cloudSyncReady) {
-        cloudSyncReady = true;
-      }
-    }, 3000);
+    scheduleHydrateRetry(userId, generation);
   }
   if (hydrateResult !== 'error' && generation === hydrateGeneration) {
     queueMicrotask(() => {

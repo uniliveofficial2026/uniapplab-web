@@ -5,6 +5,7 @@ import {
   setKstarCoins,
 } from './kstarUserState';
 import { db } from './db/localDb';
+import { isCloudAuthUserId } from './auth/cloudProfile';
 
 /** Shared default when `coins_balance` has never been persisted. */
 export const DEFAULT_WALLET_COINS = 0;
@@ -101,10 +102,7 @@ export function saveGameInHouseCoins(_userId: string, nextInHouse: number): void
   db.save('game_coins', { ...raw, in_house: next });
 }
 
-/**
- * After login, account switch, or cloud hydrate — merge wallet + K-Star row once.
- * Uses max() only to heal drift; never inflates above the higher of the two stores.
- */
+/** After login, account switch, or cloud hydrate — keep wallet + K-Star row aligned. */
 export function reconcileWalletAndKstarCoins(userId: string): void {
   const id = userId?.trim();
   if (!id || isCloudAppStateRemoteApply()) return;
@@ -114,7 +112,7 @@ export function reconcileWalletAndKstarCoins(userId: string): void {
 
   const wallet = loadWalletCoinsBalance();
   const kstarRow = getKstarCoinsFromStore(id);
-  const canonical = Math.max(wallet, kstarRow);
+  const canonical = isCloudAuthUserId(id) ? wallet : Math.max(wallet, kstarRow);
   if (canonical !== wallet || canonical !== kstarRow) {
     setUnifiedCoinsForUser(id, canonical);
   }

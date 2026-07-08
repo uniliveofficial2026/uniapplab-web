@@ -27,6 +27,17 @@ function thoughtPatchFromRow(row: ProfileRow): { note?: string; noteUpdatedAt?: 
   return patch;
 }
 
+function localThoughtIsNewer(
+  existing: { note?: string; noteUpdatedAt?: number } | undefined,
+  incoming: { note?: string; noteUpdatedAt?: number },
+): boolean {
+  const localTs = existing?.noteUpdatedAt ?? 0;
+  if (localTs <= 0) return false;
+  const incomingTs = incoming.noteUpdatedAt ?? 0;
+  if (incomingTs > 0) return incomingTs < localTs;
+  return Boolean(existing?.note?.trim());
+}
+
 function mergeThoughtPatch(
   userId: string,
   patch: { note?: string; noteUpdatedAt?: number },
@@ -62,6 +73,8 @@ function applyProfileThoughtRow(row: ProfileRow): void {
   }
 
   const next = thoughtPatchFromRow(row);
+  if (localThoughtIsNewer(existing, next)) return;
+
   const sameNote = (existing.note ?? '') === (next.note ?? '');
   const sameTs = (existing.noteUpdatedAt ?? 0) === (next.noteUpdatedAt ?? 0);
   if (sameNote && sameTs) return;

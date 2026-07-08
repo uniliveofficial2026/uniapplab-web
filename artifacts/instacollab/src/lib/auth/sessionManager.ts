@@ -53,6 +53,11 @@ function startProfileRealtime(userId: string): void {
     const keepLocalAvatar =
       (localAvatar.startsWith('data:') || localAvatar.startsWith('blob:')) &&
       !cloudAvatar;
+    const localThoughtTs = me.noteUpdatedAt ?? 0;
+    const cloudThoughtTs = merged.noteUpdatedAt ?? 0;
+    const keepLocalThought =
+      localThoughtTs > 0 &&
+      (cloudThoughtTs > 0 ? cloudThoughtTs < localThoughtTs : Boolean(me.note?.trim()));
     db.syncAuthUser({
       ...me,
       username: merged.username,
@@ -65,8 +70,8 @@ function startProfileRealtime(userId: string): void {
       bannedAt: merged.bannedAt,
       banReason: merged.banReason,
       mutedUntil: merged.mutedUntil,
-      note: merged.note,
-      noteUpdatedAt: merged.noteUpdatedAt,
+      note: keepLocalThought ? me.note : merged.note,
+      noteUpdatedAt: keepLocalThought ? me.noteUpdatedAt : merged.noteUpdatedAt,
     });
     if (row.profile_setup_complete && !db.getLaunchProgress().profileSetupComplete) {
       db.advanceLaunchProgressAfterLogin(true);
