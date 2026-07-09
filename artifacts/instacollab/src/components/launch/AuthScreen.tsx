@@ -25,6 +25,11 @@ import { shouldCompleteFirebaseOAuthRedirect } from '../../lib/firebase/oauth';
 import { scheduleLiveSessionSync } from '../../lib/liveSessionSync';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import {
+  LEGAL_AGE_REQUIREMENT_YEARS,
+  openPrivacyPolicy,
+  openTermsOfService,
+} from '../../lib/legalDocs';
+import {
   LaunchBrandMark,
   LaunchField,
   LaunchPrimaryButton,
@@ -669,6 +674,31 @@ export function AuthScreen() {
               {(mode === 'forgot' || mode === 'reset') && (
                 <LaunchTextButton onClick={() => setMode('login')}>Back to log in</LaunchTextButton>
               )}
+              <div className="w-full pt-2 mt-1 border-t border-border/60 space-y-1.5">
+                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[320px] mx-auto">
+                  {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. Read our policies
+                  before you sign in or create an account.
+                </p>
+                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-semibold">
+                  <button
+                    type="button"
+                    onClick={openPrivacyPolicy}
+                    className="text-primary hover:underline underline-offset-2"
+                  >
+                    Privacy Policy
+                  </button>
+                  <span className="text-muted-foreground/50" aria-hidden>
+                    ·
+                  </span>
+                  <button
+                    type="button"
+                    onClick={openTermsOfService}
+                    className="text-primary hover:underline underline-offset-2"
+                  >
+                    Terms of Service
+                  </button>
+                </div>
+              </div>
             </footer>
           </div>
         </div>
