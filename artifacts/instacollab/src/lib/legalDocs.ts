@@ -5,7 +5,7 @@
 import { APP_DISPLAY_NAME, WORKSPACE_DISPLAY_NAME } from './appBrand';
 
 /** Bump when material terms change so users can be re-prompted later if needed. */
-export const LEGAL_AGREEMENT_VERSION = '2026-07-09-b';
+export const LEGAL_AGREEMENT_VERSION = '2026-07-09-c';
 
 export const PRIVACY_POLICY_PATH = '/privacy-policy.html';
 export const TERMS_OF_SERVICE_PATH = '/terms-of-service.html';
@@ -19,11 +19,13 @@ export const LEGAL_AGE_DISCLAIMER =
   `You must be at least ${LEGAL_AGE_REQUIREMENT_YEARS} years old to create an account or use ${APP_DISPLAY_NAME}. ` +
   `If you are under ${LEGAL_AGE_REQUIREMENT_YEARS}, you are not permitted to use this service. ` +
   `The developer, ${WORKSPACE_DISPLAY_NAME}, ${APP_DISPLAY_NAME}, and related operators accept no responsibility ` +
-  `or liability for any use of the app, website, or services by anyone under ${LEGAL_AGE_REQUIREMENT_YEARS}.`;
+  `or liability for any use of the app, website, or services by anyone under ${LEGAL_AGE_REQUIREMENT_YEARS}. ` +
+  `You may not hack, steal, sell, or copy other users’ information.`;
 
 export const LEGAL_AGREEMENT_CHECKBOX_LABEL =
   `I confirm I am ${LEGAL_AGE_REQUIREMENT_YEARS} years of age or older, and I agree to the Privacy Policy and the Terms of Service & User Agreement. ` +
-  `I understand that underage use is prohibited and that the developer, service, and app are not responsible for underage users.`;
+  `I understand underage use is prohibited; the developer, service, and app are not responsible for underage users; ` +
+  `and I will not hack, take, sell, or copy other users’ information.`;
 
 export function privacyPolicyUrl(origin?: string): string {
   const base = (origin ?? (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '');
