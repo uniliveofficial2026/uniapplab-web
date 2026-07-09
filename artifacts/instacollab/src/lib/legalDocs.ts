@@ -5,7 +5,7 @@
 import { APP_DISPLAY_NAME, WORKSPACE_DISPLAY_NAME } from './appBrand';
 
 /** Bump when material terms change so users can be re-prompted later if needed. */
-export const LEGAL_AGREEMENT_VERSION = '2026-07-09';
+export const LEGAL_AGREEMENT_VERSION = '2026-07-09-b';
 
 export const PRIVACY_POLICY_PATH = '/privacy-policy.html';
 export const TERMS_OF_SERVICE_PATH = '/terms-of-service.html';

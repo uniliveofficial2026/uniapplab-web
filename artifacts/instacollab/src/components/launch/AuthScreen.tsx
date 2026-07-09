@@ -676,8 +676,8 @@ export function AuthScreen() {
               )}
               <div className="w-full pt-2 mt-1 border-t border-border/60 space-y-1.5">
                 <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[320px] mx-auto">
-                  {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. Read our policies
-                  before you sign in or create an account.
+                  {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. We do not sell or share
+                  your personal data for advertising. Read our policies before you sign in or create an account.
                 </p>
                 <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-semibold">
                   <button

@@ -777,8 +777,8 @@ export function ProfileEditSettingsModal({
         <h3 className="font-bold flex items-center gap-2"><Scale className="w-5 h-5 text-violet-500" /> Legal</h3>
         <div className="bg-secondary/30 rounded-xl p-4 border border-border space-y-3">
           <p className="text-[11px] leading-relaxed text-muted-foreground">
-            {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. The developer, service, and app
-            are not responsible for underage use.
+            {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. We do not sell or share your
+            personal data for advertising. The developer, service, and app are not responsible for underage use.
           </p>
           <button
             type="button"
