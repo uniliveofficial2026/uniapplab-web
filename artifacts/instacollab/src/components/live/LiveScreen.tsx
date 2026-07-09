@@ -347,6 +347,14 @@ export function LiveScreen() {
                     roomMode: roomMode || roomModeFromLiveKind(liveKind),
                     hostName: user.displayName || user.username,
                     liveKind,
+                  }).then((opened) => {
+                    if (!opened) {
+                      window.dispatchEvent(
+                        new CustomEvent('app-toast', {
+                          detail: 'This live room is no longer available.',
+                        }),
+                      );
+                    }
                   });
                 }}
                 className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-border bg-secondary text-left"

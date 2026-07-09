@@ -21,7 +21,7 @@ import {
   formatViewerCount,
   parseViewerCount,
 } from '../lib/live/formatViewerCount';
-import { isLiveRingRoomMode, liveKindFromRoomMode } from '../lib/liveRing';
+import { isDiscoverableLiveRoomMode, liveKindFromRoomMode } from '../lib/liveRing';
 import { subscribeLiveCloudSurfaceRefresh } from '../lib/liveCloudSurfaces';
 import { scheduleInstant } from '../lib/instantTask';
 import { isNetworkOnline } from '../lib/networkStatus';
@@ -160,7 +160,7 @@ async function buildDiscoveryItems(): Promise<LiveDiscoveryItem[]> {
     }
 
     const liveRooms = partyRows.filter(
-      (room) => isLiveRingRoomMode(room.room_mode) && !seenPartyIds.has(room.id),
+      (room) => isDiscoverableLiveRoomMode(room.room_mode) && !seenPartyIds.has(room.id),
     );
     const ownerIds = [...new Set(liveRooms.map((room) => room.owner_id).filter(Boolean))];
     const ownerProfiles = await Promise.all(
@@ -209,7 +209,7 @@ async function buildDiscoveryItems(): Promise<LiveDiscoveryItem[]> {
       items.map((entry) => entry.partyRoomId).filter(Boolean) as string[],
     );
     const liveRooms = partyRows.filter(
-      (room) => isLiveRingRoomMode(room.room_mode) && !seenPartyIds.has(room.id),
+      (room) => isDiscoverableLiveRoomMode(room.room_mode) && !seenPartyIds.has(room.id),
     );
     const ownerIds = [...new Set(liveRooms.map((room) => room.owner_id).filter(Boolean))];
     const ownerProfiles = await Promise.all(

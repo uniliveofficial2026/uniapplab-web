@@ -169,6 +169,7 @@ async function openDiscoveryViewerRoom(options: {
   liveKind?: LiveKind;
 }): Promise<void> {
   void preloadRoomsHost();
+  void preloadKaraokeScreen();
 
   const { getRoomSettings } = await import('../../smule-rooms/utils/storage');
   const { dispatchRoomsLiveOpen, stashPendingLiveRoomOpen } = await import('./pendingLiveRoomOpen');
@@ -205,12 +206,24 @@ async function openDiscoveryViewerRoom(options: {
 
   stashPendingLiveRoomOpen(payload);
 
+  // Karaoke embed is the real room shell for Live discovery joins.
+  openKaraokeRoomFlow({
+    path,
+    roomId: options.roomId,
+    entry: 'live-discovery',
+    roomName,
+    roomMode,
+    hostUserId,
+    hostName,
+    asViewer: true,
+  });
+
+  // Also notify RoomsHost if it is already mounted (admin embed / rooms tab).
   window.dispatchEvent(
     new CustomEvent('navigate', {
       detail: { tab: 'rooms', roomsPath: path },
     }),
   );
-
   dispatchRoomsLiveOpen(payload);
 }
 

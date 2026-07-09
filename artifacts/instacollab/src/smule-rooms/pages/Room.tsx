@@ -193,7 +193,7 @@ import { SeatSpeakingLevelBars, SeatVoiceGlowEffect } from "../components/SeatVo
 import { useMicVoiceActivity } from "../hooks/useMicVoiceActivity";
 import { usePartyRoomLiveKit } from "../hooks/usePartyRoomLiveKit";
 import { useLiveRoomBus } from "../hooks/useLiveRoomBus";
-import { giftFromDefinition, DEFAULT_COMMERCE_CATALOG, DEFAULT_COMMERCE_CARD_POSITION, DEFAULT_GAME_STATE, clampCommerceCardPosition, createCommerceOrderId, findCommerceProduct, mergeCommerceCatalog, normalizeCommerceProduct, type CommerceCardPosition, type CommerceOrder, type CommerceProduct, type GameLiveState } from "../utils/liveRoomTypes";
+import { giftFromDefinition, DEFAULT_COMMERCE_CATALOG, DEFAULT_COMMERCE_CARD_POSITION, DEFAULT_GAME_STATE, clampCommerceCardPosition, createCommerceOrderId, findCommerceProduct, mergeCommerceCatalog, normalizeCommerceProduct, type CommerceCardPosition, type CommerceOrder, type CommerceProduct, type GameLiveState, type GiftPlayPayload } from "../utils/liveRoomTypes";
 import type { CommerceCheckoutResult } from "../components/CommerceLiveCheckoutModal";
 import {
   applyPendingHostCashEarnings,
@@ -203,6 +203,7 @@ import {
   settleCommerceCoinSale,
 } from "../../lib/commercePayments";
 import { PartyGiftPickerPanel } from "../components/PartyGiftPickerPanel";
+import { GiftPlayOverlay } from "../components/GiftPlayOverlay";
 import { buildLiveViewMediaProps, RoomLiveMediaSession } from "../components/RoomLiveMediaSession";
 import {
   LiveSeatFullscreenOverlay,
@@ -393,6 +394,7 @@ export function Room() {
     enabled: usesLivePartyFeed,
   });
   const processedGiftPlayIdsRef = useRef<Set<string>>(new Set());
+  const [activeGiftPlay, setActiveGiftPlay] = useState<GiftPlayPayload | null>(null);
   const liveChatMsgs = partyRoomChat.messages;
   const appendLiveChatMsg = partyRoomChat.appendMessage;
 
@@ -1021,6 +1023,7 @@ export function Room() {
     if (!gift?.playId || processedGiftPlayIdsRef.current.has(gift.playId)) return;
     if (gift.senderId && gift.senderId === self.id) return;
     processedGiftPlayIdsRef.current.add(gift.playId);
+    setActiveGiftPlay(gift);
     applyRoomGiftRef.current?.(
       {
         senderName: gift.senderName,
@@ -1353,13 +1356,14 @@ export function Room() {
           giftIcon: gift.icon,
           starValue: gift.stars,
         });
-        void liveRoomBus.emitGiftPlay(
-          giftFromDefinition(
-            gift,
-            { id: self.id, name: self.roomName || self.chatLabel },
-            { name: target.name, userId: target.userId },
-          ),
+        const playPayload = giftFromDefinition(
+          gift,
+          { id: self.id, name: self.roomName || self.chatLabel },
+          { name: target.name, userId: target.userId },
         );
+        processedGiftPlayIdsRef.current.add(playPayload.playId ?? `local_${Date.now()}`);
+        setActiveGiftPlay(playPayload);
+        void liveRoomBus.emitGiftPlay(playPayload);
         setGiftPickerReceiver(null);
         setIsGiftPickerOpen(false);
         showToast(`Sent ${gift.icon} ${gift.name} to ${target.name} (+${gift.stars} coins)`);
@@ -5809,6 +5813,10 @@ export function Room() {
           onClose={() => setLiveSeatFullscreen(null)}
         />
       ) : null}
+
+      <div className="pointer-events-none absolute inset-0 z-[185] overflow-hidden">
+        <GiftPlayOverlay gift={activeGiftPlay} onDone={() => setActiveGiftPlay(null)} />
+      </div>
 
       {isGiftPickerOpen ? (
         <PartyGiftPickerPanel

@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Gift, Palette, Play, Plus, Save, Sparkles, Trash2 } from 'lucide-react';
+import React, { useMemo, useRef, useState } from 'react';
+import { Gift, Palette, Play, Plus, Save, Sparkles, Trash2, Upload } from 'lucide-react';
 import { GiftPlayOverlay } from '../../smule-rooms/components/GiftPlayOverlay';
 import type { GiftPlayPayload } from '../../smule-rooms/utils/liveRoomTypes';
 import type { GiftEffectTier } from '../../lib/live/giftEffectCatalogTypes';
@@ -7,9 +7,10 @@ import {
   createEmptyBeautyDraft,
   createEmptyGiftDraft,
   deletePublishedBeauty,
-  deletePublishedGift,
+  isBuiltinGiftId,
   listPublishedBeauty,
-  listPublishedGifts,
+  listStudioGiftCatalog,
+  resetBuiltinGiftOverride,
   upsertPublishedBeauty,
   upsertPublishedGift,
   type PublishedBeautyItem,
@@ -23,6 +24,12 @@ import {
   getBeautyProviderOptions,
   getGiftTierOptions,
 } from '../../lib/adminStudioStore';
+import {
+  isGiftSvgaFile,
+  isGiftVideoFile,
+  uploadGiftEffectAsset,
+} from '../../lib/giftAssetUpload';
+import { PARTY_GIFT_CATALOG_UPDATED_EVENT } from '../../lib/cloudSocial/platformGiftCatalogCloud';
 import { useDB, useDbRevision } from '../../lib/useDB';
 
 type StudioTab = 'gifts' | 'beauty';
@@ -37,8 +44,19 @@ export function AdminCreationStudio() {
   const [newProvider, setNewProvider] = useState('');
   const [newTier, setNewTier] = useState('');
   const [studioTick, setStudioTick] = useState(0);
+  const [catalogTick, setCatalogTick] = useState(0);
+  const [uploadingKind, setUploadingKind] = useState<'svga' | 'video' | null>(null);
 
-  const gifts = useMemo(() => listPublishedGifts(true), [db]);
+  React.useEffect(() => {
+    const onUpdate = () => setCatalogTick((value) => value + 1);
+    window.addEventListener(PARTY_GIFT_CATALOG_UPDATED_EVENT, onUpdate);
+    return () => window.removeEventListener(PARTY_GIFT_CATALOG_UPDATED_EVENT, onUpdate);
+  }, []);
+
+  const gifts = useMemo(() => {
+    void catalogTick;
+    return listStudioGiftCatalog();
+  }, [db, catalogTick]);
   const beautyItems = useMemo(() => listPublishedBeauty(true), [db]);
   const beautyProviders = useMemo(() => {
     void studioTick;
@@ -53,18 +71,27 @@ export function AdminCreationStudio() {
 
   const saveGift = (publish: boolean) => {
     upsertPublishedGift({ ...giftDraft, status: publish ? 'published' : 'draft' });
-    window.dispatchEvent(new CustomEvent('app-toast', { detail: publish ? 'Gift published to live rooms' : 'Gift draft saved' }));
+    setCatalogTick((value) => value + 1);
+    window.dispatchEvent(
+      new CustomEvent('app-toast', {
+        detail: publish ? 'Gift published to live rooms' : 'Gift draft saved',
+      }),
+    );
   };
 
   const saveBeauty = (publish: boolean) => {
     upsertPublishedBeauty({ ...beautyDraft, status: publish ? 'published' : 'draft' });
-    window.dispatchEvent(new CustomEvent('app-toast', { detail: publish ? 'Beauty preset published' : 'Beauty draft saved' }));
+    window.dispatchEvent(
+      new CustomEvent('app-toast', {
+        detail: publish ? 'Beauty preset published' : 'Beauty draft saved',
+      }),
+    );
   };
 
   const playGiftPreview = () => {
     setPreviewGift({
       action: 'play',
-      playId: `preview-${giftDraft.id}`,
+      playId: `preview-${giftDraft.id}-${Date.now()}`,
       giftId: giftDraft.id,
       giftName: giftDraft.name,
       giftIcon: giftDraft.icon,
@@ -72,7 +99,40 @@ export function AdminCreationStudio() {
       senderName: 'Admin Preview',
       receiverName: 'Host',
       effectVideoUrl: giftDraft.effectVideoUrl,
+      effectSvgaUrl: giftDraft.effectSvgaUrl,
     });
+  };
+
+  const handleGiftAssetUpload = async (kind: 'svga' | 'video', file: File | null) => {
+    if (!file) return;
+    if (kind === 'svga' && !isGiftSvgaFile(file)) {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Choose an .svga file' }));
+      return;
+    }
+    if (kind === 'video' && !isGiftVideoFile(file)) {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Choose an MP4/WebM video' }));
+      return;
+    }
+    setUploadingKind(kind);
+    try {
+      const url = await uploadGiftEffectAsset(giftDraft.id, file);
+      if (!url) {
+        window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Upload failed — check storage' }));
+        return;
+      }
+      setGiftDraft((prev) =>
+        kind === 'svga'
+          ? { ...prev, effectSvgaUrl: url }
+          : { ...prev, effectVideoUrl: url },
+      );
+      window.dispatchEvent(
+        new CustomEvent('app-toast', {
+          detail: kind === 'svga' ? 'SVGA uploaded — publish to replace in-app gift' : 'Video uploaded',
+        }),
+      );
+    } finally {
+      setUploadingKind(null);
+    }
   };
 
   const addProvider = () => {
@@ -93,6 +153,18 @@ export function AdminCreationStudio() {
     }
   };
 
+  const removeGift = (id: string) => {
+    if (isBuiltinGiftId(id)) {
+      resetBuiltinGiftOverride(id);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Builtin gift reset to default' }));
+    } else {
+      resetBuiltinGiftOverride(id);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Gift removed from catalog' }));
+    }
+    setCatalogTick((value) => value + 1);
+    if (giftDraft.id === id) setGiftDraft(createEmptyGiftDraft());
+  };
+
   return (
     <div className="space-y-4">
       <div className="flex gap-2">
@@ -103,8 +175,17 @@ export function AdminCreationStudio() {
       {tab === 'gifts' ? (
         <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4">
           <div className="space-y-4">
-            <EditorShell title="Create / edit gift" description="Publish to party & live rooms · SVGA / video effects">
-              <GiftEditor draft={giftDraft} onChange={setGiftDraft} tiers={giftTiers} />
+            <EditorShell
+              title="Create / edit gift"
+              description="In-app gifts appear below — edit & upload SVGA/video to replace effects in live rooms (TRTC/LiveKit style)"
+            >
+              <GiftEditor
+                draft={giftDraft}
+                onChange={setGiftDraft}
+                tiers={giftTiers}
+                uploadingKind={uploadingKind}
+                onUpload={handleGiftAssetUpload}
+              />
               <StudioOptionManager
                 label="Gift tiers"
                 placeholder="Add custom tier…"
@@ -134,14 +215,18 @@ export function AdminCreationStudio() {
             </EditorShell>
 
             <CatalogList
-              title="Gift catalog"
+              title="Gift catalog (in-app + published)"
               empty="No gifts yet"
-              items={gifts.map((g) => ({ id: g.id, label: `${g.icon} ${g.name}`, meta: `${g.stars} coins · ${g.tier} · ${g.status}` }))}
+              items={gifts.map((g) => ({
+                id: g.id,
+                label: `${g.icon} ${g.name}`,
+                meta: `${g.stars} coins · ${g.tier} · ${g.status}${isBuiltinGiftId(g.id) ? ' · in-app' : ''}${(g.updatedAt ?? 0) > 0 && isBuiltinGiftId(g.id) ? ' · replaced' : ''}`,
+              }))}
               onSelect={(id) => {
                 const row = gifts.find((g) => g.id === id);
-                if (row) setGiftDraft(row);
+                if (row) setGiftDraft({ ...row });
               }}
-              onDelete={(id) => deletePublishedGift(id)}
+              onDelete={removeGift}
             />
           </div>
 
@@ -315,13 +400,21 @@ function GiftEditor({
   draft,
   onChange,
   tiers,
+  uploadingKind,
+  onUpload,
 }: {
   draft: PublishedGiftItem;
   onChange: (v: PublishedGiftItem) => void;
   tiers: Array<{ id: string; label: string }>;
+  uploadingKind: 'svga' | 'video' | null;
+  onUpload: (kind: 'svga' | 'video', file: File | null) => void;
 }) {
+  const svgaInputRef = useRef<HTMLInputElement>(null);
+  const videoInputRef = useRef<HTMLInputElement>(null);
+
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+      <Field label="Gift id (stable)" value={draft.id} onChange={(id) => onChange({ ...draft, id })} mono />
       <Field label="Name" value={draft.name} onChange={(name) => onChange({ ...draft, name })} />
       <Field label="Icon (emoji)" value={draft.icon} onChange={(icon) => onChange({ ...draft, icon })} />
       <Field label="Coin" value={String(draft.stars)} onChange={(v) => onChange({ ...draft, stars: Number(v) || 0 })} />
@@ -339,9 +432,55 @@ function GiftEditor({
           ))}
         </select>
       </label>
-      <Field label="SVGA URL" value={draft.effectSvgaUrl ?? ''} onChange={(effectSvgaUrl) => onChange({ ...draft, effectSvgaUrl })} className="sm:col-span-2" mono />
-      <Field label="Video URL" value={draft.effectVideoUrl ?? ''} onChange={(effectVideoUrl) => onChange({ ...draft, effectVideoUrl })} className="sm:col-span-2" mono />
       <Field label="Particle color" value={draft.particleColor ?? ''} onChange={(particleColor) => onChange({ ...draft, particleColor })} mono />
+      <div className="sm:col-span-2 space-y-2">
+        <Field label="SVGA URL" value={draft.effectSvgaUrl ?? ''} onChange={(effectSvgaUrl) => onChange({ ...draft, effectSvgaUrl })} mono />
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={svgaInputRef}
+            type="file"
+            accept=".svga,application/octet-stream"
+            className="hidden"
+            onChange={(e) => {
+              onUpload('svga', e.target.files?.[0] ?? null);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            disabled={uploadingKind === 'svga'}
+            onClick={() => svgaInputRef.current?.click()}
+            className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            {uploadingKind === 'svga' ? 'Uploading…' : 'Upload SVGA'}
+          </button>
+        </div>
+      </div>
+      <div className="sm:col-span-2 space-y-2">
+        <Field label="Video URL" value={draft.effectVideoUrl ?? ''} onChange={(effectVideoUrl) => onChange({ ...draft, effectVideoUrl })} mono />
+        <div className="flex flex-wrap gap-2">
+          <input
+            ref={videoInputRef}
+            type="file"
+            accept="video/mp4,video/webm,video/quicktime,.mp4,.webm,.mov"
+            className="hidden"
+            onChange={(e) => {
+              onUpload('video', e.target.files?.[0] ?? null);
+              e.target.value = '';
+            }}
+          />
+          <button
+            type="button"
+            disabled={uploadingKind === 'video'}
+            onClick={() => videoInputRef.current?.click()}
+            className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]"
+          >
+            <Upload className="w-3.5 h-3.5" />
+            {uploadingKind === 'video' ? 'Uploading…' : 'Upload video'}
+          </button>
+        </div>
+      </div>
     </div>
   );
 }

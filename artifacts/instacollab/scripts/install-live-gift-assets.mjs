@@ -12,10 +12,10 @@ const outDir = path.join(appRoot, 'public/live-gifts');
 const marker = path.join(outDir, '.live-gifts-installed.json');
 
 const REMOTE_ASSETS = [
-  { url: 'https://cdn.jsdelivr.net/gh/svga/SVGA-Samples@master/PinJump.svga', name: 'mic.svga' },
-  { url: 'https://cdn.jsdelivr.net/gh/svga/SVGA-Samples@master/angel.svga', name: 'star.svga' },
-  { url: 'https://cdn.jsdelivr.net/gh/svga/SVGA-Samples@master/kingset.svga', name: 'crown.svga' },
-  { url: 'https://cdn.jsdelivr.net/gh/svga/SVGA-Samples@master/Rocket.svga', name: 'rocket.svga' },
+  { url: 'https://raw.githubusercontent.com/svga/SVGA-Samples/master/PinJump.svga', name: 'mic.svga' },
+  { url: 'https://raw.githubusercontent.com/svga/SVGA-Samples/master/angel.svga', name: 'star.svga' },
+  { url: 'https://raw.githubusercontent.com/svga/SVGA-Samples/master/kingset.svga', name: 'crown.svga' },
+  { url: 'https://raw.githubusercontent.com/svga/SVGA-Samples/master/Rocket.svga', name: 'rocket.svga' },
 ];
 
 function alreadyInstalled() {

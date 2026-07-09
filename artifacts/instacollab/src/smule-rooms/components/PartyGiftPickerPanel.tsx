@@ -3,7 +3,9 @@ import { Pencil, Trash2, Wrench, X } from 'lucide-react';
 import {
   createEmptyGiftDraft,
   deletePublishedGift,
+  isBuiltinGiftId,
   listPublishedGifts,
+  resetBuiltinGiftOverride,
   upsertPublishedGift,
   type PublishedGiftItem,
 } from '../../lib/adminCatalogStore';
@@ -35,9 +37,15 @@ function findPublishedGift(gift: PartyGiftDefinition): PublishedGiftItem | null 
 function giftToDraft(gift: PartyGiftDefinition): PublishedGiftItem {
   const existing = findPublishedGift(gift);
   if (existing) return { ...existing };
+  const stableId =
+    gift.id?.trim() ||
+    gift.name
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, '-');
   return {
     ...createEmptyGiftDraft(),
-    id: gift.id ?? `gift-${gift.name.toLowerCase().replace(/\s+/g, '-')}`,
+    id: stableId,
     name: gift.name,
     icon: gift.icon,
     stars: gift.stars,
@@ -84,9 +92,11 @@ export function PartyGiftPickerPanel({
 
   const removeGift = () => {
     if (!editing) return;
-    const existing = findPublishedGift(editing);
-    if (existing) {
-      deletePublishedGift(existing.id);
+    if (isBuiltinGiftId(editing.id)) {
+      resetBuiltinGiftOverride(editing.id);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Builtin gift reset to default' }));
+    } else {
+      deletePublishedGift(editing.id);
       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Gift removed from catalog' }));
     }
     closeEditor();

@@ -6,7 +6,6 @@ import { SafeMediaImage } from '../common/SafeMediaImage';
 import { shouldSkipLiveVideoPreview, warmMediaUrl } from '../../lib/mediaInstant';
 import { canAttemptLiveKit } from '../../lib/livekit/liveKitInstant';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
-import { isPlatformApiAvailable } from '../../lib/platformApi';
 
 type LiveDiscoveryVideoPreviewProps = {
   posterUrl: string;
@@ -18,8 +17,8 @@ type LiveDiscoveryVideoPreviewProps = {
 
 /**
  * Live tab discovery cards: sharp poster instantly; LiveKit upgrades when a host
- * publishes camera (party Solo/Multi-Guest or legacy stream). Audio-only rooms
- * show an AUDIO LIVE badge instead of a blank poster.
+ * publishes camera (any room type). Audio-only rooms show an AUDIO LIVE badge.
+ * Tap the card (parent button) to enter as viewer and watch the live stream.
  */
 export function LiveDiscoveryVideoPreview({
   posterUrl,
@@ -34,6 +33,7 @@ export function LiveDiscoveryVideoPreview({
   const [visible, setVisible] = useState(false);
   const [hasVideo, setHasVideo] = useState(false);
   const [hasAudioLive, setHasAudioLive] = useState(false);
+  const [videoReady, setVideoReady] = useState(false);
 
   useEffect(() => {
     warmMediaUrl(posterUrl);
@@ -43,8 +43,8 @@ export function LiveDiscoveryVideoPreview({
     const el = rootRef.current;
     if (!el) return undefined;
     const observer = new IntersectionObserver(
-      ([entry]) => setVisible(Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.2)),
-      { threshold: [0, 0.2, 0.45, 0.7], rootMargin: '48px' },
+      ([entry]) => setVisible(Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.15)),
+      { threshold: [0, 0.15, 0.35, 0.6], rootMargin: '80px' },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -56,12 +56,12 @@ export function LiveDiscoveryVideoPreview({
       canAttemptLiveKit() &&
       !shouldSkipLiveVideoPreview() &&
       isLiveKitConfigured() &&
-      isPlatformApiAvailable() &&
       Boolean(partyRoomId || streamId);
 
     if (!canConnect) {
       setHasVideo(false);
       setHasAudioLive(false);
+      setVideoReady(false);
       return undefined;
     }
 
@@ -79,8 +79,15 @@ export function LiveDiscoveryVideoPreview({
         }
       }
       attachedTrackRef.current = null;
-      if (video) video.srcObject = null;
-      if (!cancelled) setHasVideo(false);
+      if (video) {
+        video.srcObject = null;
+        video.onloadeddata = null;
+        video.onplaying = null;
+      }
+      if (!cancelled) {
+        setHasVideo(false);
+        setVideoReady(false);
+      }
     };
 
     const attachTrack = (track: RemoteTrack | null) => {
@@ -89,13 +96,29 @@ export function LiveDiscoveryVideoPreview({
         detachVideo();
         return;
       }
-      if (attachedTrackRef.current === track) return;
+      if (attachedTrackRef.current === track && video.srcObject) {
+        setHasVideo(true);
+        return;
+      }
       detachVideo();
       attachedTrackRef.current = track;
       track.attach(video);
       video.muted = true;
       video.playsInline = true;
-      void video.play().catch(() => undefined);
+      video.setAttribute('playsinline', 'true');
+      video.setAttribute('webkit-playsinline', 'true');
+      const markReady = () => {
+        if (!cancelled) {
+          setHasVideo(true);
+          setVideoReady(true);
+        }
+      };
+      video.onloadeddata = markReady;
+      video.onplaying = markReady;
+      void video.play().then(markReady).catch(() => {
+        // Still show once frames arrive
+        if (video.readyState >= 2) markReady();
+      });
       setHasVideo(true);
     };
 
@@ -123,6 +146,8 @@ export function LiveDiscoveryVideoPreview({
     };
   }, [visible, partyRoomId, streamId, hostUserId]);
 
+  const showLiveVideo = hasVideo && videoReady;
+
   return (
     <div ref={rootRef} className={`absolute inset-0 overflow-hidden bg-secondary ${className}`}>
       <SafeMediaImage
@@ -131,7 +156,7 @@ export function LiveDiscoveryVideoPreview({
         priority
         fallback={FALLBACK_MEDIA}
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-          hasVideo ? 'opacity-0' : 'opacity-100'
+          showLiveVideo ? 'opacity-0' : 'opacity-100'
         }`}
       />
       <video
@@ -140,10 +165,10 @@ export function LiveDiscoveryVideoPreview({
         playsInline
         autoPlay
         className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-          hasVideo ? 'opacity-100' : 'opacity-0'
+          showLiveVideo ? 'opacity-100' : 'opacity-0'
         }`}
       />
-      {hasVideo ? (
+      {showLiveVideo ? (
         <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/45 px-1.5 py-0.5">
           <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
           <span className="text-[9px] font-bold uppercase tracking-wide text-white">Live</span>

@@ -1,3 +1,4 @@
+import { GIFT_EFFECT_CATALOG_BASE } from '../../lib/live/giftEffectCatalogBase';
 import { lookupUserIdByDisplayName } from './roomUserLookup';
 
 export type RoomGiftEvent = {
@@ -37,14 +38,17 @@ export type PartyGiftDefinition = {
   particleColor?: string;
 };
 
-export const PARTY_GIFT_CATALOG: PartyGiftDefinition[] = [
-  { name: 'Rose', icon: '🌹', stars: 5 },
-  { name: 'Heart', icon: '💖', stars: 10 },
-  { name: 'Mic', icon: '🎤', stars: 25 },
-  { name: 'Star', icon: '⭐', stars: 50 },
-  { name: 'Crown', icon: '👑', stars: 100 },
-  { name: 'Rocket', icon: '🚀', stars: 250 },
-];
+/** In-app party gifts — same ids/effects as TRTC-style giftEffectCatalogBase. */
+export const PARTY_GIFT_CATALOG: PartyGiftDefinition[] = GIFT_EFFECT_CATALOG_BASE.map((gift) => ({
+  id: gift.id,
+  name: gift.name,
+  icon: gift.icon,
+  stars: gift.stars,
+  tier: gift.tier,
+  effectSvgaUrl: gift.effectSvgaUrl,
+  effectVideoUrl: gift.effectVideoUrl,
+  particleColor: gift.particleColor,
+}));
 
 /** Includes admin-published gifts when available. */
 export function getActivePartyGiftCatalog(): PartyGiftDefinition[] {

@@ -57,6 +57,12 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    match /platform_gift_catalog/{docId} {
+      allow read: if true;
+      allow create, update: if docId == 'default' && isPlatformAdmin();
+      allow delete: if false;
+    }
+
     match /user_app_state/{userId} {
       allow read, create, update: if ownsCloudUser(userId);
       allow delete: if false;

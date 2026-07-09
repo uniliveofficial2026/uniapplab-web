@@ -23,7 +23,18 @@ function readGifts(): PublishedGiftItem[] {
   return db.load<PublishedGiftItem[]>(GIFT_CATALOG_KEY, []);
 }
 
-function writeGifts(items: PublishedGiftItem[]): void {
+function publishMergedGiftCatalog(localItems: PublishedGiftItem[], removedIds: string[] = []): void {
+  const removed = new Set(removedIds);
+  const remote = getRemotePublishedGifts().filter((gift) => !removed.has(gift.id));
+  const localIds = new Set(localItems.map((gift) => gift.id));
+  const merged = [
+    ...localItems.filter((gift) => !removed.has(gift.id)),
+    ...remote.filter((gift) => !localIds.has(gift.id)),
+  ];
+  void publishPlatformGiftCatalog(merged);
+}
+
+function writeGifts(items: PublishedGiftItem[], removedIds: string[] = []): void {
   db.save(GIFT_CATALOG_KEY, items);
   db.addAuditLog?.({
     id: Date.now(),
@@ -31,7 +42,7 @@ function writeGifts(items: PublishedGiftItem[]): void {
     time: 'Just now',
   });
   dispatchPartyGiftCatalogUpdated();
-  void publishPlatformGiftCatalog(items);
+  publishMergedGiftCatalog(items, removedIds);
 }
 
 function readBeauty(): PublishedBeautyItem[] {
@@ -113,7 +124,55 @@ export function upsertPublishedBeauty(input: Omit<PublishedBeautyItem, 'updatedA
 }
 
 export function deletePublishedGift(id: string): void {
-  writeGifts(readGifts().filter((g) => g.id !== id));
+  writeGifts(
+    readGifts().filter((g) => g.id !== id),
+    [id],
+  );
+}
+
+/** Builtin in-app gifts + admin drafts/overrides for Creation Studio edit/replace. */
+export function listStudioGiftCatalog(): PublishedGiftItem[] {
+  const published = mergePublishedGiftSources();
+  const drafts = readGifts().filter((gift) => gift.status === 'draft');
+  const byId = new Map<string, PublishedGiftItem>();
+
+  for (const gift of GIFT_EFFECT_CATALOG_BASE) {
+    byId.set(gift.id, {
+      ...gift,
+      status: 'published',
+      updatedAt: 0,
+    });
+  }
+  for (const gift of published) {
+    byId.set(gift.id, gift);
+  }
+  for (const gift of drafts) {
+    byId.set(gift.id, gift);
+  }
+
+  return Array.from(byId.values()).sort((a, b) => {
+    const aBuiltin = GIFT_EFFECT_CATALOG_BASE.some((g) => g.id === a.id) ? 0 : 1;
+    const bBuiltin = GIFT_EFFECT_CATALOG_BASE.some((g) => g.id === b.id) ? 0 : 1;
+    if (aBuiltin !== bBuiltin) return aBuiltin - bBuiltin;
+    if (a.stars !== b.stars) return a.stars - b.stars;
+    return (b.updatedAt ?? 0) - (a.updatedAt ?? 0);
+  });
+}
+
+export function isBuiltinGiftId(id: string): boolean {
+  return GIFT_EFFECT_CATALOG_BASE.some((gift) => gift.id === id);
+}
+
+/** Reset a builtin gift override so the in-app default returns. */
+export function resetBuiltinGiftOverride(id: string): void {
+  if (!isBuiltinGiftId(id)) {
+    deletePublishedGift(id);
+    return;
+  }
+  writeGifts(
+    readGifts().filter((g) => g.id !== id),
+    [id],
+  );
 }
 
 export function deletePublishedBeauty(id: string): void {

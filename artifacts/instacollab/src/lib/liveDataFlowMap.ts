@@ -112,8 +112,9 @@ export const LIVE_DATA_FLOW_MAP = {
   },
   gifts: {
     write:
-      'adminCatalogStore upsert/delete → platform_gift_catalog (Supabase realtime) + admin_published_gifts user_app_state',
-    read: 'usePartyGiftCatalog + platformGiftCatalogCloud realtime + getMergedPartyGiftCatalog',
+      'adminCatalogStore upsert/delete → platform_gift_catalog (Supabase + Firestore) + admin_published_gifts; Room emitGiftPlay via liveRoomBus',
+    read:
+      'usePartyGiftCatalog + platformGiftCatalogCloud realtime (Supabase postgres_changes + Firestore onSnapshot) + getMergedPartyGiftCatalog; GiftPlayOverlay in Room',
     users: 'all viewers in live rooms; admin edits from Creation Studio or in-room gift panel',
     transport: 'CU+AS',
   },

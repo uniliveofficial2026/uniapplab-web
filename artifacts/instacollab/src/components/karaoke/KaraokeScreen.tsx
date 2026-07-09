@@ -797,6 +797,9 @@ export function KaraokeScreen() {
       pending.path?.trim() ||
       (pending.roomId?.trim() ? `/room/${pending.roomId.trim()}` : '');
     if (!path) return;
+    if (pending.asViewer) {
+      localStorage.setItem('currentUserRole', 'user');
+    }
     openSmuleRoomFlow(path);
   }, []);
 
@@ -1526,11 +1529,33 @@ export function KaraokeScreen() {
 
   useEffect(() => {
     const onRoomOpen = (event: Event) => {
-      const detail = (event as CustomEvent<{ roomId?: string; path?: string }>).detail;
+      const detail = (event as CustomEvent<{
+        roomId?: string;
+        path?: string;
+        asViewer?: boolean;
+      }>).detail;
       const path =
         detail?.path?.trim() ||
         (detail?.roomId?.trim() ? `/room/${detail.roomId.trim()}` : '');
       if (!path) return;
+      if (detail?.asViewer) {
+        localStorage.setItem('currentUserRole', 'user');
+      }
+      openSmuleRoomFlow(path);
+    };
+    const onRoomsLiveOpen = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        roomId?: string;
+        path?: string;
+        asViewer?: boolean;
+      }>).detail;
+      const path =
+        detail?.path?.trim() ||
+        (detail?.roomId?.trim() ? `/room/${detail.roomId.trim()}` : '');
+      if (!path) return;
+      if (detail?.asViewer !== false) {
+        localStorage.setItem('currentUserRole', 'user');
+      }
       openSmuleRoomFlow(path);
     };
     const onTrackOpen = (event: Event) => {
@@ -1539,9 +1564,11 @@ export function KaraokeScreen() {
       void openKaraokeTrackFromShare(detail.trackId, detail.recordingId);
     };
     window.addEventListener('karaoke-room-open', onRoomOpen);
+    window.addEventListener('rooms-live-open', onRoomsLiveOpen);
     window.addEventListener('karaoke-track-open', onTrackOpen);
     return () => {
       window.removeEventListener('karaoke-room-open', onRoomOpen);
+      window.removeEventListener('rooms-live-open', onRoomsLiveOpen);
       window.removeEventListener('karaoke-track-open', onTrackOpen);
     };
   }, [openKaraokeTrackFromShare]);

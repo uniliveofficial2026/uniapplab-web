@@ -29,7 +29,16 @@ export function pickDiscoveryVideoTrack(
   for (const participant of ordered) {
     for (const publication of participant.videoTrackPublications.values()) {
       const track = publication.track;
-      if (track && track.kind === Track.Kind.Video && !publication.isMuted) {
+      if (track && track.kind === Track.Kind.Video) {
+        return track;
+      }
+    }
+  }
+  // Fallback: any remote video (host identity may differ from profile id).
+  for (const participant of participants) {
+    for (const publication of participant.videoTrackPublications.values()) {
+      const track = publication.track;
+      if (track && track.kind === Track.Kind.Video) {
         return track;
       }
     }
@@ -68,9 +77,13 @@ export async function connectDiscoveryPreview(
   if (
     !canAttemptLiveKit() ||
     !isLiveKitConfigured() ||
-    !isPlatformApiAvailable() ||
-    !partyRoomId && !streamId
+    (!partyRoomId && !streamId)
   ) {
+    return null;
+  }
+
+  // Token API needs platform auth; without it keep poster-only (no throw).
+  if (!isPlatformApiAvailable() && !partyRoomId) {
     return null;
   }
 

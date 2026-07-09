@@ -53,6 +53,10 @@ export function liveKindFromRoomMode(roomMode: string | undefined): LiveKind {
       return 'game';
     case 'Karaoke':
       return 'audio-room';
+    case 'WatchTogether':
+      return 'video-multi';
+    case 'Chorus':
+      return 'audio-room';
     default:
       return 'solo';
   }
@@ -62,7 +66,7 @@ export function roomModeFromLiveKind(liveKind: LiveKind | undefined): RoomMode {
   return LIVE_KIND_ROOM_MODE[liveKind && isLiveKind(liveKind) ? liveKind : 'solo'];
 }
 
-/** Room modes that show the host on the live ring while the room is active. */
+/** Room modes that show the host on the live ring / Live discovery while active. */
 export function isLiveRingRoomMode(roomMode: string | undefined): boolean {
   const mode = String(roomMode || '').trim();
   return (
@@ -72,8 +76,18 @@ export function isLiveRingRoomMode(roomMode: string | undefined): boolean {
     mode === 'Party' ||
     mode === 'Radio' ||
     mode === 'Game-Live' ||
-    mode === 'Commerce-Live'
+    mode === 'Commerce-Live' ||
+    mode === 'Karaoke' ||
+    mode === 'WatchTogether' ||
+    mode === 'Chorus'
   );
+}
+
+/** Any active party room is joinable from Live discovery (viewer watch). */
+export function isDiscoverableLiveRoomMode(roomMode: string | undefined): boolean {
+  const mode = String(roomMode || '').trim();
+  if (!mode) return true;
+  return isLiveRingRoomMode(mode) || mode === 'Karaoke' || mode === 'WatchTogether' || mode === 'Chorus';
 }
 
 export function resolveLiveKind(

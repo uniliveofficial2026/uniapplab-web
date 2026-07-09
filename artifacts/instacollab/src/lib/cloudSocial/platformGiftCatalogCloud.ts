@@ -1,10 +1,18 @@
 /**
- * Cross-user platform gift catalog — published gifts visible in every live room.
+ * Cross-user platform gift catalog — Supabase + Firebase dual lane.
+ * Published gifts visible in every live room + gift studio.
  */
 import { isCloudAuthUserId } from '../auth/cloudProfile';
 import { db } from '../db/localDb';
+import {
+  fetchFirebasePlatformGiftCatalog,
+  isFirebasePlatformGiftCatalogAvailable,
+  publishFirebasePlatformGiftCatalog,
+  subscribeFirebasePlatformGiftCatalog,
+} from '../firebase/platformGiftCatalog';
 import type { PublishedGiftItem } from '../live/giftEffectCatalogTypes';
 import { isSocialCloudAvailable } from '../social/socialCloud';
+import { isSupabaseConfigured } from '../supabase/config';
 import { getSupabaseClient } from '../supabase/client';
 
 const REMOTE_CACHE_KEY = 'platform_gift_catalog_remote';
@@ -18,7 +26,7 @@ export function dispatchPartyGiftCatalogUpdated(): void {
 }
 
 export function isPlatformGiftCatalogCloudAvailable(): boolean {
-  return isSocialCloudAvailable();
+  return isSocialCloudAvailable() || isFirebasePlatformGiftCatalogAvailable();
 }
 
 function readRemoteCache(): PublishedGiftItem[] {
@@ -30,24 +38,63 @@ function writeRemoteCache(items: PublishedGiftItem[]): void {
   dispatchPartyGiftCatalogUpdated();
 }
 
-export async function fetchPlatformGiftCatalog(): Promise<PublishedGiftItem[]> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return readRemoteCache();
-
-  try {
-    const { data, error } = await supabase
-      .from('platform_gift_catalog')
-      .select('gifts, updated_at')
-      .eq('id', PLATFORM_ROW_ID)
-      .maybeSingle();
-    if (error) throw error;
-    const gifts = Array.isArray(data?.gifts) ? (data.gifts as PublishedGiftItem[]) : [];
-    writeRemoteCache(gifts);
-    return gifts;
-  } catch (err) {
-    console.warn('[platform-gifts] fetch failed:', err);
-    return readRemoteCache();
+function mergeGiftLists(...lists: PublishedGiftItem[][]): PublishedGiftItem[] {
+  const byId = new Map<string, PublishedGiftItem>();
+  for (const list of lists) {
+    for (const gift of list) {
+      if (!gift?.id) continue;
+      const prev = byId.get(gift.id);
+      if (!prev || (gift.updatedAt ?? 0) >= (prev.updatedAt ?? 0)) {
+        byId.set(gift.id, gift);
+      }
+    }
   }
+  return Array.from(byId.values()).filter((gift) => gift.status === 'published');
+}
+
+async function fetchSupabasePlatformGiftCatalog(): Promise<PublishedGiftItem[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+  const { data, error } = await supabase
+    .from('platform_gift_catalog')
+    .select('gifts, updated_at')
+    .eq('id', PLATFORM_ROW_ID)
+    .maybeSingle();
+  if (error) throw error;
+  return Array.isArray(data?.gifts) ? (data.gifts as PublishedGiftItem[]) : [];
+}
+
+export async function fetchPlatformGiftCatalog(): Promise<PublishedGiftItem[]> {
+  if (!isPlatformGiftCatalogCloudAvailable()) return readRemoteCache();
+
+  const [supabaseGifts, firebaseGifts] = await Promise.all([
+    fetchSupabasePlatformGiftCatalog().catch((err) => {
+      console.warn('[platform-gifts/supabase] fetch failed:', err);
+      return [] as PublishedGiftItem[];
+    }),
+    fetchFirebasePlatformGiftCatalog().catch((err) => {
+      console.warn('[platform-gifts/firebase] fetch failed:', err);
+      return [] as PublishedGiftItem[];
+    }),
+  ]);
+
+  const gifts = mergeGiftLists(supabaseGifts, firebaseGifts);
+  writeRemoteCache(gifts);
+  return gifts;
+}
+
+async function publishSupabasePlatformGiftCatalog(published: PublishedGiftItem[]): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+  const { error } = await supabase.from('platform_gift_catalog').upsert(
+    {
+      id: PLATFORM_ROW_ID,
+      gifts: published,
+      updated_at: new Date().toISOString(),
+    },
+    { onConflict: 'id' },
+  );
+  if (error) throw error;
 }
 
 export async function publishPlatformGiftCatalog(items: PublishedGiftItem[]): Promise<void> {
@@ -56,23 +103,29 @@ export async function publishPlatformGiftCatalog(items: PublishedGiftItem[]): Pr
   if (db.currentUser?.role !== 'admin') return;
 
   const published = items.filter((gift) => gift.status === 'published');
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
+  const tasks: Promise<void>[] = [];
 
-  try {
-    const { error } = await supabase.from('platform_gift_catalog').upsert(
-      {
-        id: PLATFORM_ROW_ID,
-        gifts: published,
-        updated_at: new Date().toISOString(),
-      },
-      { onConflict: 'id' },
+  if (isSupabaseConfigured()) {
+    tasks.push(
+      publishSupabasePlatformGiftCatalog(published).catch((err) => {
+        console.warn('[platform-gifts/supabase] publish failed:', err);
+      }),
     );
-    if (error) throw error;
-    writeRemoteCache(published);
-  } catch (err) {
-    console.warn('[platform-gifts] publish failed:', err);
   }
+  if (isFirebasePlatformGiftCatalogAvailable()) {
+    tasks.push(
+      publishFirebasePlatformGiftCatalog(published).catch((err) => {
+        console.warn('[platform-gifts/firebase] publish failed:', err);
+      }),
+    );
+  }
+
+  if (tasks.length === 0) {
+    writeRemoteCache(published);
+    return;
+  }
+  await Promise.all(tasks);
+  writeRemoteCache(published);
 }
 
 let unsubscribe: (() => void) | null = null;
@@ -83,22 +136,39 @@ export function startPlatformGiftCatalogRealtime(): () => void {
 
   void fetchPlatformGiftCatalog();
 
+  const stops: Array<() => void> = [];
   const supabase = getSupabaseClient();
-  if (!supabase) return () => {};
+  if (supabase) {
+    const channel = supabase
+      .channel('platform-gift-catalog')
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'platform_gift_catalog',
+          filter: `id=eq.${PLATFORM_ROW_ID}`,
+        },
+        () => {
+          void fetchPlatformGiftCatalog();
+        },
+      )
+      .subscribe();
+    stops.push(() => {
+      void supabase.removeChannel(channel);
+    });
+  }
 
-  const channel = supabase
-    .channel('platform-gift-catalog')
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'platform_gift_catalog', filter: `id=eq.${PLATFORM_ROW_ID}` },
-      () => {
+  if (isFirebasePlatformGiftCatalogAvailable()) {
+    stops.push(
+      subscribeFirebasePlatformGiftCatalog(() => {
         void fetchPlatformGiftCatalog();
-      },
-    )
-    .subscribe();
+      }),
+    );
+  }
 
   unsubscribe = () => {
-    void supabase.removeChannel(channel);
+    stops.forEach((stop) => stop());
   };
 
   return stopPlatformGiftCatalogRealtime;
