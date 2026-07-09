@@ -8,7 +8,6 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { isAutopilotOn } from './lib/automation-config.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.LIVE_DEV_PORT ?? process.env.PORT ?? '5173');
@@ -24,6 +23,15 @@ function isCiOrCloud() {
       process.env.CF_PAGES ||
       process.env.NETLIFY,
   );
+}
+
+async function readAutopilotEnabled() {
+  try {
+    const mod = await import('./lib/automation-config.mjs');
+    return mod.isAutopilotOn();
+  } catch {
+    return false;
+  }
 }
 
 function log(msg) {
@@ -78,7 +86,7 @@ async function main() {
   const out = fs.openSync(LOG_FILE, 'a');
   const onExternalVolume = ROOT.startsWith('/Volumes/');
   const devCommand = onExternalVolume ? 'dev:light' : 'live';
-  const autopilot = isAutopilotOn();
+  const autopilot = await readAutopilotEnabled();
   const child = spawn('pnpm', [devCommand], {
     cwd: ROOT,
     detached: true,

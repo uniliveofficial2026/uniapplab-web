@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { readAppBrandSnapshot } from '../../lib/appBrandRuntime';
+import { useDB } from '../../lib/useDB';
 import { AppNativeVideo } from './AppNativeVideo';
 
 type AppBrandIconProps = {
@@ -18,6 +19,9 @@ export function AppBrandIcon({
   roundedClassName = 'rounded-xl',
   imageFit = 'contain',
 }: AppBrandIconProps) {
+  const db = useDB();
+  void db.settings.appLogoUrl;
+  void db.settings.appLogoMediaType;
   const [, setBrandTick] = useState(0);
 
   useEffect(() => {

@@ -4,18 +4,20 @@
  */
 import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME, APP_SHORT_NAME } from './appBrand';
 import { readPlatformAppBrandCache } from './cloudSocial/platformAppBrandCloud';
+import { isUniapplabHost } from './domains/uniapplab';
 import { db } from './db/localDb';
 
 const BRAND_ICON_LINK_ID = 'app-brand-dynamic-icon';
 const BRAND_APPLE_LINK_ID = 'app-brand-dynamic-apple-touch';
 const BRAND_MANIFEST_LINK_ID = 'app-brand-dynamic-manifest';
+const API_MANIFEST = '/api/platform/manifest.webmanifest';
+const API_BRAND_ICON = '/api/platform/brand-icon';
 
 export type AppBrandSnapshot = {
   logoUrl: string | null;
   mediaType: 'image' | 'video';
 };
 
-let manifestObjectUrl: string | null = null;
 let lastAppliedLogo: string | null | undefined;
 
 function readSettingsBrand(): AppBrandSnapshot {
@@ -30,6 +32,7 @@ function readSettingsBrand(): AppBrandSnapshot {
       mediaType: settings.appLogoMediaType === 'video' ? 'video' : 'image',
     };
   } catch {
+    /* fall through */
   }
 
   if (typeof localStorage === 'undefined') {
@@ -73,6 +76,14 @@ function readPlatformBrandFromLocalStorage(): AppBrandSnapshot | null {
   }
 }
 
+function hasCustomLogo(brand: AppBrandSnapshot): boolean {
+  return Boolean(
+    brand.logoUrl &&
+      brand.mediaType !== 'video' &&
+      brand.logoUrl !== APP_BRAND_FALLBACK_ICON,
+  );
+}
+
 /** Platform backend logo wins; then local settings; then neutral static icon. */
 export function readAppBrandSnapshot(): AppBrandSnapshot {
   const platform = readPlatformAppBrandCache();
@@ -88,6 +99,22 @@ export function readAppBrandSnapshot(): AppBrandSnapshot {
     logoUrl: APP_BRAND_FALLBACK_ICON,
     mediaType: 'image',
   };
+}
+
+function canUseApiBrandRoutes(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (import.meta.env.DEV) return true;
+  return isUniapplabHost(window.location.hostname);
+}
+
+/** Install/PWA requires fetchable URLs — route data URLs through the API icon endpoint. */
+function resolveHeadIconHref(brand: AppBrandSnapshot): string {
+  if (!hasCustomLogo(brand)) return APP_BRAND_FALLBACK_ICON;
+  const logo = brand.logoUrl!;
+  if (canUseApiBrandRoutes() && (logo.startsWith('data:') || logo.length > 2048)) {
+    return API_BRAND_ICON;
+  }
+  return logo;
 }
 
 function upsertHeadLink(
@@ -108,44 +135,20 @@ function upsertHeadLink(
   else el.removeAttribute('type');
 }
 
-function removeHeadLink(id: string): void {
-  document.getElementById(id)?.remove();
+function removeStaticManifestLinks(): void {
+  document.querySelectorAll('link[rel="manifest"]').forEach((node) => {
+    if (node.id !== BRAND_MANIFEST_LINK_ID) node.remove();
+  });
 }
 
-function guessImageMime(dataUrl: string): string {
-  const match = dataUrl.match(/^data:(image\/[a-zA-Z0-9.+-]+)/);
-  return match?.[1] ?? 'image/png';
-}
-
-function applyDynamicManifest(iconUrl: string): void {
-  if (manifestObjectUrl) {
-    URL.revokeObjectURL(manifestObjectUrl);
-    manifestObjectUrl = null;
+function guessImageMime(url: string): string {
+  if (url.startsWith('data:')) {
+    const match = url.match(/^data:(image\/[a-zA-Z0-9.+-]+)/);
+    return match?.[1] ?? 'image/png';
   }
-
-  const manifest = {
-    name: APP_DISPLAY_NAME,
-    short_name: APP_SHORT_NAME,
-    icons: [
-      {
-        src: iconUrl,
-        sizes: '512x512',
-        type: guessImageMime(iconUrl),
-        purpose: 'any',
-      },
-      {
-        src: iconUrl,
-        sizes: '512x512',
-        type: guessImageMime(iconUrl),
-        purpose: 'maskable',
-      },
-    ],
-  };
-
-  manifestObjectUrl = URL.createObjectURL(
-    new Blob([JSON.stringify(manifest)], { type: 'application/json' }),
-  );
-  upsertHeadLink(BRAND_MANIFEST_LINK_ID, 'manifest', manifestObjectUrl);
+  if (url.includes('brand-icon')) return 'image/png';
+  if (url.endsWith('.svg')) return 'image/svg+xml';
+  return 'image/png';
 }
 
 function setAppleWebAppTitle(): void {
@@ -157,16 +160,21 @@ export function applyAppBrandToDocument(snapshot?: AppBrandSnapshot): void {
   if (typeof document === 'undefined') return;
 
   const brand = snapshot ?? readAppBrandSnapshot();
-  const iconUrl =
-    brand.logoUrl && brand.mediaType !== 'video' ? brand.logoUrl : APP_BRAND_FALLBACK_ICON;
+  const iconUrl = resolveHeadIconHref(brand);
+  const custom = hasCustomLogo(brand);
 
-  if (iconUrl === lastAppliedLogo) return;
+  if (iconUrl === lastAppliedLogo && !custom) return;
   lastAppliedLogo = iconUrl;
 
-  const mime = iconUrl.startsWith('data:') ? guessImageMime(iconUrl) : 'image/svg+xml';
-  upsertHeadLink(BRAND_ICON_LINK_ID, 'icon', iconUrl, mime);
+  upsertHeadLink(BRAND_ICON_LINK_ID, 'icon', iconUrl, guessImageMime(iconUrl));
   upsertHeadLink(BRAND_APPLE_LINK_ID, 'apple-touch-icon', iconUrl);
-  applyDynamicManifest(iconUrl);
+
+  if (custom && canUseApiBrandRoutes()) {
+    removeStaticManifestLinks();
+    upsertHeadLink(BRAND_MANIFEST_LINK_ID, 'manifest', API_MANIFEST);
+  } else {
+    document.getElementById(BRAND_MANIFEST_LINK_ID)?.remove();
+  }
 
   document.title = APP_DISPLAY_NAME;
   setAppleWebAppTitle();
@@ -184,7 +192,7 @@ export function initAppBrandRuntime(): void {
   window.addEventListener('platform-app-brand-updated', refreshBrand);
 
   db.subscribe(() => {
-    const next = readAppBrandSnapshot().logoUrl;
+    const next = resolveHeadIconHref(readAppBrandSnapshot());
     if (next !== lastAppliedLogo) {
       applyAppBrandToDocument();
     }

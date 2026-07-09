@@ -106,6 +106,7 @@ function main() {
   ]) {
     copyTree(path.join(ROOT, 'scripts', script), path.join(scriptsDest, script));
   }
+  copyTree(path.join(ROOT, 'scripts', 'lib'), path.join(scriptsDest, 'lib'));
 
   const vendorArchives = path.join(ROOT, 'artifacts', 'instacollab', 'vendor', 'archives');
   if (!fs.existsSync(path.join(vendorArchives, 'DeepAR-Web-v5.6.22.zip'))) {

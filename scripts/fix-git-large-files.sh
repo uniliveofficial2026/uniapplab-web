@@ -30,12 +30,12 @@ fi
 
 git reset --soft "$upstream"
 
-# Drop paths GitHub rejects (>100MB) and local Vercel mirrors from the squash commit.
+# Stage gitignore first so `git add -A` does not re-include dropped paths.
+git add .gitignore 2>/dev/null || true
+
 git rm -rf --cached --ignore-unmatch \
   ".vercel" \
-  ".vercel/source-staging/artifacts/instacollab/vendor/archives/free_package.zip" \
-  ".vercel/source-staging/artifacts/instacollab/public/trtc-webar/backgrounds/video-bg-2.mp4" \
-  "artifacts/instacollab/vendor/archives/free_package.zip" \
+  "artifacts/instacollab/vendor/archives" \
   "artifacts/instacollab/public/trtc-webar/backgrounds/video-bg-2.mp4" \
   2>/dev/null || true
 
@@ -54,7 +54,7 @@ fi
 
 if [[ "$stashed" -eq 1 ]]; then
   echo "[fix-large-files] Restoring stashed changes…"
-  git stash pop || echo "[fix-large-files] Stash pop had conflicts — resolve manually with: git stash list"
+  git stash pop || echo "[fix-large-files] Stash pop had conflicts — resolve with: git stash list"
 fi
 
 echo "[fix-large-files] Done. Next: bash scripts/github-push.sh ${branch}"

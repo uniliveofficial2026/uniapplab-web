@@ -36,7 +36,7 @@
             }
           } catch (e) {}
           if (!brandHref && s && typeof s.appLogoUrl === 'string' && s.appLogoUrl && s.appLogoMediaType !== 'video') {
-            brandHref = s.appLogoUrl;
+            brandHref = s.appLogoUrl.indexOf('data:') === 0 ? '/api/platform/brand-icon' : s.appLogoUrl;
           }
           if (brandHref) {
             var href = brandHref;
@@ -48,6 +48,10 @@
             apple.rel = 'apple-touch-icon';
             apple.href = href;
             document.head.appendChild(apple);
+            var manifest = document.createElement('link');
+            manifest.rel = 'manifest';
+            manifest.href = '/api/platform/manifest.webmanifest';
+            document.head.appendChild(manifest);
           }
         } catch (e) {}
       })();

@@ -1,16 +1,24 @@
 import { ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
+import { useEffect } from 'react';
 import { LaunchBrandMark } from '../launch/LaunchBrandMark';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME, APP_TAGLINE } from '../../lib/appBrand';
 import { readAppBrandSnapshot } from '../../lib/appBrandRuntime';
-import { publishPlatformAppBrand } from '../../lib/cloudSocial/platformAppBrandCloud';
+import {
+  ensurePlatformBrandPublishedFromSettings,
+  publishPlatformAppBrand,
+} from '../../lib/cloudSocial/platformAppBrandCloud';
 
 export function AppBrandPortalCard() {
   const db = useDB();
   const { showToast } = useToast();
   const brand = readAppBrandSnapshot();
   const hasLogo = Boolean(brand.logoUrl && brand.logoUrl !== APP_BRAND_FALLBACK_ICON);
+
+  useEffect(() => {
+    void ensurePlatformBrandPublishedFromSettings();
+  }, [db.currentUserId, db.currentUser?.role, db.settings.appLogoUrl]);
 
   const clearLogo = () => {
     db.updateSettings({ appLogoUrl: null, appLogoMediaType: 'image' });

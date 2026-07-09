@@ -171,3 +171,45 @@ export async function fetchFirestorePartyRoom(
 export function isFirestoreAdminAvailable(): boolean {
   return Boolean(parseServiceAccount() && (firebaseProjectId() || parseServiceAccount()?.project_id));
 }
+
+export async function upsertFirestoreDocument(
+  collectionPath: string,
+  docId: string,
+  fields: Record<string, string | null>,
+): Promise<boolean> {
+  const projectId = firebaseProjectId() || parseServiceAccount()?.project_id || null;
+  const token = await getFirestoreAccessToken();
+  if (!projectId || !token) return false;
+
+  const firestoreFields: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(fields)) {
+    firestoreFields[key] =
+      value === null ? { nullValue: null } : { stringValue: String(value) };
+  }
+
+  const path = `${collectionPath}/${docId}`;
+  const mask = Object.keys(fields)
+    .map((field) => `updateMask.fieldPaths=${field}`)
+    .join("&");
+  const url = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${path}?${mask}`;
+  const res = await fetch(url, {
+    method: "PATCH",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields: firestoreFields }),
+  });
+  if (res.ok) return true;
+
+  const createUrl = `https://firestore.googleapis.com/v1/projects/${projectId}/databases/(default)/documents/${collectionPath}?documentId=${docId}`;
+  const createRes = await fetch(createUrl, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${token}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ fields: firestoreFields }),
+  });
+  return createRes.ok;
+}

@@ -351,6 +351,28 @@ export type AutomationConfig = {
   liveCloudSyncAggressive?: boolean;
 };
 
+export type PlatformBrandApiResponse = {
+  logoUrl: string | null;
+  mediaType: 'image' | 'video';
+  updatedAt: string;
+  iconUrl: string | null;
+  manifestUrl: string;
+};
+
+export async function fetchPlatformBrandFromApi(): Promise<PlatformBrandApiResponse> {
+  return apiFetch<PlatformBrandApiResponse>('/api/platform/brand');
+}
+
+export async function publishPlatformBrandViaApi(
+  logoUrl: string | null,
+  mediaType: 'image' | 'video' = 'image',
+): Promise<PlatformBrandApiResponse> {
+  return apiFetch<PlatformBrandApiResponse>('/api/platform/brand', {
+    method: 'POST',
+    body: JSON.stringify({ logoUrl, mediaType }),
+  });
+}
+
 export async function fetchAutomationConfig(): Promise<AutomationConfig> {
   return apiFetch<AutomationConfig>('/api/automation');
 }

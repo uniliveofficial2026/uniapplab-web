@@ -16,6 +16,7 @@ import linearRouter from "./linear";
 import youtubeRouter from "./youtube";
 import automationRouter from "./automation";
 import paymentsRouter from "./payments";
+import platformBrandRouter from "./platformBrand";
 import aiRouter from "./ai";
 import { upstashRateLimit } from "../lib/ratelimit";
 
@@ -39,6 +40,7 @@ router.use(presenceRouter);
 router.use(uxRouter);
 router.use(handoffRouter);
 router.use(automationRouter);
+router.use(platformBrandRouter);
 router.use(aiRouter);
 
 export default router;

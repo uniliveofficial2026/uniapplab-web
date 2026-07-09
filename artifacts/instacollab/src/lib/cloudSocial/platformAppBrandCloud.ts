@@ -5,6 +5,10 @@
 import { isCloudAuthUserId } from '../auth/cloudProfile';
 import { db } from '../db/localDb';
 import {
+  fetchPlatformBrandFromApi,
+  publishPlatformBrandViaApi,
+} from '../platformApi';
+import {
   fetchFirebasePlatformAppBrand,
   isFirebasePlatformAppBrandAvailable,
   publishFirebasePlatformAppBrand,
@@ -123,6 +127,19 @@ async function fetchSupabasePlatformAppBrand(): Promise<BrandWithMeta | null> {
 }
 
 export async function fetchPlatformAppBrand(): Promise<PlatformAppBrand> {
+  const fromApi = await fetchPlatformAppBrandFromApi().catch((err) => {
+    console.warn('[platform-brand/api] fetch failed:', err);
+    return null;
+  });
+  if (fromApi?.logoUrl) {
+    const brand: PlatformAppBrand = {
+      logoUrl: fromApi.logoUrl,
+      mediaType: fromApi.mediaType === 'video' ? 'video' : 'image',
+    };
+    writeRemoteCache(brand);
+    return brand;
+  }
+
   if (!isPlatformAppBrandCloudAvailable()) return readRemoteCache();
 
   const [supabaseBrand, firebaseBrand] = await Promise.all([
@@ -138,9 +155,36 @@ export async function fetchPlatformAppBrand(): Promise<PlatformAppBrand> {
       }),
   ]);
 
-  const brand = mergeBrands(supabaseBrand, firebaseBrand);
+  const brand = mergeBrands(
+    fromApi
+      ? {
+          logoUrl: fromApi.logoUrl,
+          mediaType: fromApi.mediaType === 'video' ? 'video' : 'image',
+          updatedAt: fromApi.updatedAt,
+        }
+      : null,
+    supabaseBrand,
+    firebaseBrand,
+  );
   writeRemoteCache(brand);
   return brand;
+}
+
+async function fetchPlatformAppBrandFromApi(): Promise<{
+  logoUrl: string | null;
+  mediaType: 'image' | 'video';
+  updatedAt: string;
+} | null> {
+  try {
+    const data = await fetchPlatformBrandFromApi();
+    return {
+      logoUrl: data.logoUrl,
+      mediaType: data.mediaType === 'video' ? 'video' : 'image',
+      updatedAt: data.updatedAt,
+    };
+  } catch {
+    return null;
+  }
 }
 
 async function publishSupabasePlatformAppBrand(brand: PlatformAppBrand): Promise<void> {
@@ -171,6 +215,15 @@ export async function publishPlatformAppBrand(
     mediaType,
   };
 
+  let published = false;
+
+  try {
+    await publishPlatformBrandViaApi(brand.logoUrl, brand.mediaType);
+    published = true;
+  } catch (err) {
+    console.warn('[platform-brand/api] publish failed:', err);
+  }
+
   const tasks: Promise<void>[] = [];
   if (isSupabaseConfigured()) {
     tasks.push(
@@ -190,9 +243,27 @@ export async function publishPlatformAppBrand(
     );
   }
 
-  if (tasks.length === 0) return;
+  if (tasks.length === 0 && !published) return;
   await Promise.all(tasks);
   writeRemoteCache(brand);
+}
+
+/** If admin already has a local logo but platform backend is empty, publish once. */
+export async function ensurePlatformBrandPublishedFromSettings(): Promise<void> {
+  const meId = db.currentUserId;
+  if (!meId || !isCloudAuthUserId(meId) || db.currentUser?.role !== 'admin') return;
+
+  const localUrl =
+    typeof db.settings.appLogoUrl === 'string' && db.settings.appLogoUrl.trim()
+      ? db.settings.appLogoUrl.trim()
+      : null;
+  if (!localUrl) return;
+
+  const remote = await fetchPlatformAppBrand();
+  if (remote.logoUrl) return;
+
+  const mediaType = db.settings.appLogoMediaType === 'video' ? 'video' : 'image';
+  await publishPlatformAppBrand(localUrl, mediaType);
 }
 
 let unsubscribe: (() => void) | null = null;
@@ -249,9 +320,13 @@ export function stopPlatformAppBrandRealtime(): void {
 
 /** Boot-time fetch + realtime — works before sign-in (public read on both backends). */
 export function bootstrapPlatformAppBrand(): void {
+  void fetchPlatformAppBrand();
   startPlatformAppBrandRealtime();
   void Promise.all([
     import('../supabase/client').then((m) => m.initSupabaseClient()),
     import('../firebase/app').then((m) => m.getFirebaseApp()),
-  ]).then(() => fetchPlatformAppBrand());
+  ]).then(() => {
+    void fetchPlatformAppBrand();
+    void ensurePlatformBrandPublishedFromSettings();
+  });
 }
