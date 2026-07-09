@@ -11,10 +11,10 @@ import {
 } from '../../lib/utils';
 import { resolvePostDisplayMedia, preserveMediaRef } from '../../lib/safe';
 import { MediaWithSoundtrack } from './MediaWithSoundtrack';
+import { AppNativeVideo } from './AppNativeVideo';
 import { FULLSCREEN_MEDIA_CLASS } from './FullscreenMediaStage';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
 import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type ResolvedPost = ReturnType<typeof import('../../lib/entityResolve').resolvePost>;
 
@@ -182,32 +182,25 @@ export function FullscreenPostMediaContent({
     const poster = resolvedFsPoster || fsMedia.posterUrl || undefined;
     return (
       <MediaWithSoundtrack className="flex h-full w-full max-h-full max-w-full items-center justify-center">
-        <video
+        <AppNativeVideo
           key={`fs-vid-${currentMediaIdx}`}
-          data-playback-scope={PLAYBACK_SCOPE.MANAGED}
+          playbackScope={PLAYBACK_SCOPE.MANAGED}
           ref={videoRef}
           src={resolvedFsUrl || fsMedia.url || undefined}
           poster={poster}
           data-poster={poster}
           loop={loopCarouselItem}
-          playsInline
-          controls
           preload="auto"
           muted={soundtrackUrl ? true : globalMuted}
           style={filterStyle}
           className={`${FULLSCREEN_MEDIA_CLASS} z-10 bg-black`}
           onError={handleMediaError}
           onEnded={loopCarouselItem ? undefined : onNextCarouselItem}
-          onVolumeChange={(e) => {
-            if (!soundtrackUrl && onSetGlobalMuted) {
-              onSetGlobalMuted(e.currentTarget.muted);
-            }
-          }}
+          onGlobalMutedChange={soundtrackUrl ? undefined : onSetGlobalMuted}
           onDoubleClick={(e) => {
             e.stopPropagation();
             onRequestNativeVideoFullscreen?.();
           }}
-          {...nativeVideoControlGuardProps()}
         />
       </MediaWithSoundtrack>
     );

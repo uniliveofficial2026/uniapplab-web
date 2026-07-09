@@ -1,8 +1,8 @@
 import React from 'react';
 import type { StoryDraftMedia } from '../stories/storyDraft';
 import { handleAvatarError } from '../../lib/utils';
-import { getStorySegmentPreviewUrl, pickStoryCardPreviewSegment } from '../../lib/storyPreview';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
+import { pickStoryCardPreviewSegment, getStorySegmentPreviewUrl } from '../../lib/storyPreview';
 
 type ProfileStoryCardMediaProps = {
   segments: StoryDraftMedia[];
@@ -52,17 +52,15 @@ export function ProfileStoryCardMedia({
   if (segment.isVideo && segment.url) {
     return (
       <div className={shellClass}>
-        <video
+        <AppNativeVideo
           src={segment.url}
+          controls={false}
           muted
-          playsInline
           autoPlay
           loop
-          controls
           preload="metadata"
           className="profile-story-card-media-el"
           aria-label={alt}
-          {...nativeVideoControlGuardProps()}
         />
       </div>
     );

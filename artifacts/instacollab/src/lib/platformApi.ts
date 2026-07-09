@@ -113,6 +113,41 @@ export async function transferCoins(toUser: string, amount: number): Promise<unk
   });
 }
 
+export type CommerceCheckoutSessionRequest = {
+  amountUsdCents: number;
+  productId: string;
+  productTitle: string;
+  roomId: string;
+  hostUserId: string;
+  orderId: string;
+  buyerUserId: string;
+  successUrl: string;
+  cancelUrl: string;
+};
+
+export async function createCommerceCheckoutSession(
+  payload: CommerceCheckoutSessionRequest,
+): Promise<{ sessionId: string; url: string }> {
+  return apiFetch('/api/payments/commerce/checkout-session', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function verifyCommerceCheckoutSession(
+  sessionId: string,
+): Promise<{
+  paid: boolean;
+  amountUsdCents?: number;
+  orderId?: string | null;
+  hostUserId?: string | null;
+  productId?: string | null;
+}> {
+  return apiFetch(
+    `/api/payments/commerce/verify-session?sessionId=${encodeURIComponent(sessionId)}`,
+  );
+}
+
 export async function adminListUsers(q?: string): Promise<{ users: AdminUserRow[] }> {
   const query = q?.trim() ? `?q=${encodeURIComponent(q)}` : '';
   return apiFetch(`/api/admin/users${query}`);
@@ -143,6 +178,11 @@ export async function adminMuteUser(userId: string, minutes = 60): Promise<unkno
   });
 }
 
+/** Admin-only fetch — surfaces 403 clearly. */
+export async function apiFetchAdmin<T>(path: string, init?: RequestInit): Promise<T> {
+  return apiFetch<T>(path, init);
+}
+
 export async function createChatThread(memberIds: string[]): Promise<{ id: string }> {
   return apiFetch('/api/chat/threads', {
     method: 'POST',
@@ -150,10 +190,20 @@ export async function createChatThread(memberIds: string[]): Promise<{ id: strin
   });
 }
 
-export async function sendChatMessageApi(threadId: string, body: string): Promise<unknown> {
+export async function sendChatMessageApi(
+  threadId: string,
+  body: string,
+  payload?: Record<string, unknown>,
+  clientId?: string,
+): Promise<{ id: string; thread_id?: string; sender_id?: string; created_at?: string }> {
   return apiFetch('/api/chat/messages', {
     method: 'POST',
-    body: JSON.stringify({ threadId, body }),
+    body: JSON.stringify({
+      threadId,
+      body,
+      payload: payload ?? undefined,
+      clientId: clientId ?? undefined,
+    }),
   });
 }
 
@@ -293,10 +343,12 @@ export async function postChatTyping(
 }
 
 export type AutomationConfig = {
+  autopilot: boolean;
   enabled: boolean;
   autoPush: boolean;
   githubActionsDeploy: boolean;
   autoMachineLearning: boolean;
+  liveCloudSyncAggressive?: boolean;
 };
 
 export async function fetchAutomationConfig(): Promise<AutomationConfig> {

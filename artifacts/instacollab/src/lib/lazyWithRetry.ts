@@ -1,10 +1,7 @@
 import React from 'react';
-import { stageAppUpdate } from './invisibleReload';
-import { isNetworkOnline } from './networkStatus';
-import { checkForPwaUpdate } from './pwaAutoUpdate';
+import { queueInvisibleReload } from './invisibleReload';
 
 const CHUNK_RELOAD_KEY = 'instacollab-chunk-reload';
-const RETRY_DELAYS_MS = [400, 800, 1200];
 
 export function isChunkLoadError(reason: unknown): boolean {
   const message =
@@ -22,11 +19,51 @@ export function isChunkLoadError(reason: unknown): boolean {
   );
 }
 
+/** React #310/#311 — hook list desync (often Vite HMR mid-session). */
+export function isInvalidHookCallError(reason: unknown): boolean {
+  const message =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === 'string'
+        ? reason
+        : '';
+  return (
+    /Should have a queue/i.test(message) ||
+    /Rendered more hooks than during the previous render/i.test(message) ||
+    /Rendered fewer hooks than expected/i.test(message) ||
+    /change in the order of Hooks/i.test(message) ||
+    /Invalid hook call/i.test(message) ||
+    /calling Hooks conditionally/i.test(message)
+  );
+}
+
+/**
+ * Stale Vite HMR / half-applied module — e.g. removed `menuDrag` still referenced
+ * by a hot-patched render until a full remount.
+ */
+export function isStaleModuleReferenceError(reason: unknown): boolean {
+  const message =
+    reason instanceof Error
+      ? reason.message
+      : typeof reason === 'string'
+        ? reason
+        : '';
+  if (!/\bis not defined\b/i.test(message)) return false;
+  return /\b(menuDrag|chatToggleDrag|viewersToggleDrag|menuPosition|toolsDockDrag)\b/i.test(
+    message,
+  );
+}
+
+export function isRecoverableRenderError(reason: unknown): boolean {
+  return isInvalidHookCallError(reason) || isStaleModuleReferenceError(reason);
+}
+
 export function chunkLoadUserMessage(): string {
-  if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return 'This screen is not cached yet. Your other tabs and saved content stay available offline.';
-  }
-  return 'This screen is updating in the background. Try again in a moment.';
+  return 'A newer version is available. Reload when you are ready.';
+}
+
+export function invalidHookUserMessage(): string {
+  return 'The live session got out of sync. Reloading…';
 }
 
 export function clearChunkReloadGuard(): void {
@@ -44,8 +81,7 @@ export function clearChunkReloadGuard(): void {
 }
 
 async function handleChunkLoadFailure(): Promise<never> {
-  await checkForPwaUpdate();
-  stageAppUpdate('lazy_chunk');
+  queueInvisibleReload('lazy_chunk');
   throw new Error(chunkLoadUserMessage());
 }
 
@@ -57,12 +93,11 @@ async function loadWithChunkRecovery<T extends React.ComponentType<unknown>>(
     return await factory();
   } catch (err) {
     if (!isChunkLoadError(err)) throw err;
-    // Offline: fail immediately so UI stays on saved shell (no multi-second retry spinner).
-    if (!isNetworkOnline() || attempt >= RETRY_DELAYS_MS.length) {
-      return handleChunkLoadFailure();
+    if (attempt === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 400));
+      return loadWithChunkRecovery(factory, 1);
     }
-    await new Promise((resolve) => setTimeout(resolve, RETRY_DELAYS_MS[attempt]));
-    return loadWithChunkRecovery(factory, attempt + 1);
+    return handleChunkLoadFailure();
   }
 }
 
@@ -79,7 +114,6 @@ export function installChunkLoadRecovery(): void {
   window.addEventListener('unhandledrejection', (event) => {
     if (!isChunkLoadError(event.reason)) return;
     event.preventDefault();
-    void checkForPwaUpdate();
-    stageAppUpdate('chunk_unhandled');
+    queueInvisibleReload('chunk_unhandled');
   });
 }

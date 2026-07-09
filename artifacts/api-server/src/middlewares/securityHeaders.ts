@@ -8,9 +8,6 @@ export function securityHeaders(_req: Request, res: Response, next: NextFunction
   res.setHeader("Permissions-Policy", "camera=(self), microphone=(self), geolocation=()");
   res.setHeader("Cross-Origin-Opener-Policy", "same-origin");
   res.setHeader("Cross-Origin-Resource-Policy", "same-site");
-  if (process.env.NODE_ENV === "production" || process.env.VERCEL === "1") {
-    res.setHeader("Strict-Transport-Security", "max-age=63072000; includeSubDomains; preload");
-  }
   res.removeHeader("X-Powered-By");
   next();
 }

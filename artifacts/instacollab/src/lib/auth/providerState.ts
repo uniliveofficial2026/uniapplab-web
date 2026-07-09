@@ -4,14 +4,11 @@ import { isSupabaseConfigured } from '../supabase/config';
 
 const PROVIDER_KEY = 'instacollab_auth_backend';
 const PROVIDER_AT_KEY = 'instacollab_auth_backend_at';
-/** OAuth + data lane — Firebase when Supabase auth/rest/oauth is down. */
+/** OAuth redirect lane only — never blocks Supabase data/realtime/session restore. */
 const OAUTH_DEGRADED_KEY = 'instacollab_supabase_oauth_degraded';
-const OAUTH_DEGRADED_LS_KEY = 'instacollab_supabase_oauth_degraded_until';
-/** Set by background probe when /authorize responds — enables instant Supabase OAuth again. */
-const OAUTH_HEALTHY_KEY = 'instacollab_supabase_oauth_healthy';
 const LEGACY_UNHEALTHY_LS_KEY = 'instacollab_supabase_unhealthy';
 
-const OAUTH_DEGRADED_TTL_MS = 6 * 60 * 60 * 1000;
+const OAUTH_DEGRADED_TTL_MS = 5 * 60 * 1000;
 const FIREBASE_OAUTH_PREFERENCE_TTL_MS = 15 * 60 * 1000;
 
 let oauthDegradedUntilMs = 0;
@@ -41,9 +38,7 @@ export function bootstrapSupabaseAuthState(): void {
 }
 
 function syncOAuthDegradedFromSession(): void {
-  const fromSession = session()?.getItem(OAUTH_DEGRADED_KEY);
-  const fromLocal = local()?.getItem(OAUTH_DEGRADED_LS_KEY);
-  const raw = fromSession || fromLocal;
+  const raw = session()?.getItem(OAUTH_DEGRADED_KEY);
   if (!raw) {
     oauthDegradedUntilMs = 0;
     return;
@@ -51,14 +46,10 @@ function syncOAuthDegradedFromSession(): void {
   const until = Number(raw);
   if (!Number.isFinite(until) || until <= Date.now()) {
     session()?.removeItem(OAUTH_DEGRADED_KEY);
-    local()?.removeItem(OAUTH_DEGRADED_LS_KEY);
     oauthDegradedUntilMs = 0;
     return;
   }
   oauthDegradedUntilMs = until;
-  if (fromLocal && !fromSession) {
-    session()?.setItem(OAUTH_DEGRADED_KEY, String(until));
-  }
 }
 
 export function readStoredAuthBackend(): AuthBackend | null {
@@ -89,13 +80,11 @@ export function markSupabaseOAuthDegraded(): void {
   const until = Date.now() + OAUTH_DEGRADED_TTL_MS;
   oauthDegradedUntilMs = until;
   session()?.setItem(OAUTH_DEGRADED_KEY, String(until));
-  local()?.setItem(OAUTH_DEGRADED_LS_KEY, String(until));
 }
 
 export function clearSupabaseOAuthDegraded(): void {
   oauthDegradedUntilMs = 0;
   session()?.removeItem(OAUTH_DEGRADED_KEY);
-  local()?.removeItem(OAUTH_DEGRADED_LS_KEY);
   local()?.removeItem(LEGACY_UNHEALTHY_LS_KEY);
 }
 
@@ -103,29 +92,6 @@ export function isSupabaseOAuthDegraded(): boolean {
   if (!legacyPurged) bootstrapSupabaseAuthState();
   syncOAuthDegradedFromSession();
   return oauthDegradedUntilMs > Date.now();
-}
-
-/** Background probe confirmed Supabase /authorize is reachable — use Supabase OAuth again. */
-export function isSupabaseOAuthHealthyLane(): boolean {
-  return session()?.getItem(OAUTH_HEALTHY_KEY) === '1';
-}
-
-export function markSupabaseOAuthHealthyLane(): void {
-  session()?.setItem(OAUTH_HEALTHY_KEY, '1');
-  clearSupabaseOAuthDegraded();
-}
-
-export function clearSupabaseOAuthHealthyLane(): void {
-  session()?.removeItem(OAUTH_HEALTHY_KEY);
-}
-
-/** Firebase OAuth is default when both backends exist and Supabase OAuth is not confirmed healthy. */
-export function isFirebaseOAuthPrimaryMode(): boolean {
-  return (
-    isFirebaseConfigured() &&
-    isSupabaseConfigured() &&
-    !isSupabaseOAuthHealthyLane()
-  );
 }
 
 /** Back-compat aliases — unhealthy now means OAuth redirect lane only. */
@@ -148,17 +114,27 @@ export function resolveInitialAuthBackend(): AuthBackend {
   return 'supabase';
 }
 
-/** Google/Apple redirect lane — sync, zero probe delay. */
+/** Google/Apple redirect lane — Firebase when Supabase OAuth /authorize is down. */
 export function resolveOAuthSignInBackend(): AuthBackend {
-  if (isFirebaseOAuthPrimaryMode()) return 'firebase';
   if (isSupabaseOAuthDegraded() && isFirebaseConfigured()) return 'firebase';
   if (isSupabaseConfigured()) return 'supabase';
   if (isFirebaseConfigured()) return 'firebase';
   return 'supabase';
 }
 
+/**
+ * Firebase is the active Google/Apple lane ONLY when Supabase OAuth can't be used:
+ * either this is a Firebase-only env, or Supabase OAuth is currently degraded/unreachable.
+ * Supabase stays primary by default so accounts land in the Supabase data backend.
+ */
+export function isFirebaseOAuthPrimaryMode(): boolean {
+  if (!isFirebaseConfigured()) return false;
+  if (!isSupabaseConfigured()) return true;
+  return isSupabaseOAuthDegraded();
+}
+
 export function shouldPreferFirebaseOnStartup(): boolean {
-  return isFirebaseOAuthPrimaryMode();
+  return false;
 }
 
 export function shouldPreferFirebaseForOAuth(): boolean {

@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { WEBAR_CAMERA_FRAME_RATE } from './cameraPipelinePolicy';
 import { isCameraPermissionError } from './errors';
 
 export type CameraFacingMode = 'user' | 'environment';
@@ -7,21 +8,55 @@ export type UseCameraStreamOptions = {
   enabled: boolean;
   audio?: boolean;
   facingMode?: CameraFacingMode;
-  /** Ideal capture size — Tencent WebAR expects 1280×720 for custom-stream beauty. */
-  videoIdeal?: { width?: number; height?: number };
-  /** Cap capture frame rate for live publishing (defaults uncapped). */
+  videoIdeal?: { width: number; height: number };
   frameRate?: { ideal?: number; max?: number };
+  /** Lock selfie/back — only changes when caller updates facingMode (Flip button). */
+  exactFacing?: boolean;
 };
+
+async function acquireCameraStream(options: {
+  facingMode: CameraFacingMode;
+  audio: boolean;
+  videoIdeal: { width: number; height: number };
+  frameRate: { ideal?: number; max?: number };
+  exactFacing: boolean;
+}): Promise<MediaStream> {
+  const video: MediaTrackConstraints = {
+    width: { ideal: options.videoIdeal.width },
+    height: { ideal: options.videoIdeal.height },
+    frameRate: options.frameRate,
+    facingMode: options.exactFacing
+      ? { exact: options.facingMode }
+      : options.facingMode,
+  };
+
+  try {
+    return await navigator.mediaDevices.getUserMedia({ video, audio: options.audio });
+  } catch (err) {
+    if (!options.exactFacing) throw err;
+    return navigator.mediaDevices.getUserMedia({
+      video: {
+        width: { ideal: options.videoIdeal.width },
+        height: { ideal: options.videoIdeal.height },
+        frameRate: options.frameRate,
+        facingMode: options.facingMode,
+      },
+      audio: options.audio,
+    });
+  }
+}
 
 export function useCameraStream({
   enabled,
   audio = false,
   facingMode = 'user',
-  videoIdeal,
-  frameRate,
+  videoIdeal = { width: 1280, height: 720 },
+  frameRate = WEBAR_CAMERA_FRAME_RATE,
+  exactFacing = true,
 }: UseCameraStreamOptions) {
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const [stream, setStream] = useState<MediaStream | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
@@ -31,6 +66,15 @@ export function useCameraStream({
       setReady(false);
       setError(null);
       setPermissionDenied(false);
+      const stream = streamRef.current;
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      streamRef.current = null;
+      setStream(null);
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
       return;
     }
 
@@ -51,9 +95,9 @@ export function useCameraStream({
 
         const videoEl = videoRef.current;
         if (!videoEl) {
-          if (attempt < 20) {
+          if (attempt < 24) {
             await new Promise((resolve) => {
-              retryTimer = setTimeout(resolve, 50);
+              retryTimer = setTimeout(resolve, 40);
             });
             return tryAttach(attempt + 1);
           }
@@ -61,10 +105,6 @@ export function useCameraStream({
           throw new Error('Camera preview failed to mount');
         }
 
-        streamRef.current = stream;
-        stream.getVideoTracks().forEach((track) => {
-          track.contentHint = 'motion';
-        });
         videoEl.srcObject = stream;
 
         await new Promise<void>((resolve, reject) => {
@@ -92,33 +132,40 @@ export function useCameraStream({
           }
         });
 
-        if (!cancelled) {
-          setReady(true);
-          setError(null);
-          setPermissionDenied(false);
+        if (cancelled) {
+          stream.getTracks().forEach((track) => track.stop());
+          return;
         }
+
+        const previous = streamRef.current;
+        streamRef.current = stream;
+        setStream(stream);
+        if (previous && previous !== stream) {
+          previous.getTracks().forEach((track) => track.stop());
+        }
+
+        setReady(true);
+        setError(null);
+        setPermissionDenied(false);
       };
 
       await tryAttach();
     };
 
-    void navigator.mediaDevices
-      .getUserMedia({
-        video: {
-          facingMode,
-          width: { ideal: videoIdeal?.width ?? 1280 },
-          height: { ideal: videoIdeal?.height ?? 720 },
-          ...(frameRate ? { frameRate: { ideal: frameRate.ideal ?? 30, max: frameRate.max ?? 30 } } : {}),
-        },
-        audio,
-      })
+    void acquireCameraStream({
+      facingMode,
+      audio,
+      videoIdeal,
+      frameRate,
+      exactFacing,
+    })
       .then((stream) => attachStream(stream))
       .catch((err) => {
         if (cancelled) return;
         setReady(false);
         if (isCameraPermissionError(err)) {
           setPermissionDenied(true);
-          setError('Camera access is required for AR effects.');
+          setError('Camera access is required.');
         } else {
           setError(err instanceof Error ? err.message : 'Could not access the camera');
         }
@@ -127,64 +174,13 @@ export function useCameraStream({
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
-      setReady(false);
-      const stream = streamRef.current;
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
-      streamRef.current = null;
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
     };
-  }, [enabled, audio, facingMode, frameRate?.ideal, frameRate?.max, videoIdeal?.height, videoIdeal?.width]);
-
-  /** Re-attach when the preview <video> mounts after the stream is ready. */
-  useEffect(() => {
-    if (!enabled || !ready) return undefined;
-    let attempts = 0;
-    let rafId = 0;
-
-    const tryAttach = () => {
-      const stream = streamRef.current;
-      const videoEl = videoRef.current;
-      if (stream && videoEl) {
-        if (videoEl.srcObject !== stream) {
-          videoEl.srcObject = stream;
-        }
-        if (videoEl.paused) {
-          void videoEl.play().catch(() => {});
-        }
-        return;
-      }
-      if (attempts < 40) {
-        attempts += 1;
-        rafId = requestAnimationFrame(tryAttach);
-      }
-    };
-
-    tryAttach();
-    const keepAlive = window.setInterval(() => {
-      const videoEl = videoRef.current;
-      const stream = streamRef.current;
-      if (!videoEl || !stream) return;
-      if (videoEl.srcObject !== stream) {
-        videoEl.srcObject = stream;
-      }
-      if (videoEl.paused) {
-        void videoEl.play().catch(() => {});
-      }
-    }, 2000);
-
-    return () => {
-      cancelAnimationFrame(rafId);
-      window.clearInterval(keepAlive);
-    };
-  }, [enabled, ready]);
+  }, [enabled, audio, facingMode, videoIdeal.width, videoIdeal.height, frameRate.ideal, frameRate.max, exactFacing]);
 
   return {
     videoRef,
     streamRef,
+    stream,
     ready,
     error,
     permissionDenied,

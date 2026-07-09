@@ -24,21 +24,18 @@ export const CLOUD_SYNC_COLLECTION_KEYS = [
   'chat_read_state',
   'chat_peer_read_state',
   'chat_wallpapers',
-  'chat_groups',
   'app_settings',
   'globalMuted',
   'globalMutedDefaultV2',
   'unreadMessagesCount',
   'hasUnreadNotifications',
   'dating_state',
-  'coins_balance',
-  'game_coins',
-  'cash_balance',
-  'wallet_transactions',
   'karaoke_uploads',
   'karaoke_profile_backgrounds',
   'karaoke_recordings',
   'karaoke_user_state',
+  'admin_published_gifts',
+  'admin_published_beauty',
 ] as const;
 
 export type CloudSyncCollectionKey = (typeof CLOUD_SYNC_COLLECTION_KEYS)[number];

@@ -12,18 +12,12 @@ import {
   toggleYoutubeLike,
   type YoutubeVideoSummary,
 } from '../services/youtube';
-import { useCloudAuth } from '../contexts/CloudAuthContext';
-import { migrateFirebaseNewcomerToSupabase } from '../lib/auth/migrateFirebaseNewcomer';
-import { getFirebaseAuth } from '../lib/firebase/app';
-import { db } from '../lib/db/localDb';
-import { isSupabaseAuthUserId } from '../lib/auth/activeBackend';
 
 type YouTubePageProps = {
   onBack?: () => void;
 };
 
 export function YouTubePage({ onBack }: YouTubePageProps) {
-  const { authReady } = useCloudAuth();
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
   const [results, setResults] = useState<YoutubeVideoSummary[]>([]);
@@ -39,24 +33,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
   const history = useMemo(() => readYoutubeEngagement('history'), [engagementTick]);
 
   useEffect(() => {
-    if (!authReady) return;
     void isYoutubeSearchConfigured().then(setConfigured);
-    const meId = db.currentUserId;
-    if (meId && !isSupabaseAuthUserId(meId)) {
-      const fbUid = getFirebaseAuth()?.currentUser?.uid;
-      if (fbUid === meId) {
-        void migrateFirebaseNewcomerToSupabase(fbUid).catch(() => false);
-      }
-    }
-  }, [authReady]);
-
-  const ensureApiAuth = useCallback(async (): Promise<void> => {
-    const meId = db.currentUserId;
-    if (!meId || isSupabaseAuthUserId(meId)) return;
-    const fbUid = getFirebaseAuth()?.currentUser?.uid;
-    if (fbUid === meId) {
-      await migrateFirebaseNewcomerToSupabase(fbUid).catch(() => false);
-    }
   }, []);
 
   const refreshEngagement = useCallback(() => {
@@ -73,14 +50,12 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
     }
 
     try {
-      await ensureApiAuth();
       const response = await searchYoutubeVideos(q, pageToken);
       setResults((prev) => (pageToken ? [...prev, ...response.items] : response.items));
       setNextPageToken(response.nextPageToken);
       if (!pageToken) setSubmittedQuery(q);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
-      if (!pageToken) setResults([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);

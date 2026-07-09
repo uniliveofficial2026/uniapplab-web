@@ -3,8 +3,10 @@ import { Users, Plus, ArrowLeft, X, Play, Music, Search, Shield } from 'lucide-r
 import { motion, AnimatePresence } from 'motion/react';
 import type { User, ChatGroup, ChatMessage } from '../../types';
 import { handleAvatarError, handleMediaError } from '../../lib/utils';
+import { AppCameraButton } from '../camera/AppCameraButton';
+import type { AppCameraCapturePayload } from '../../contexts/AppCameraContext';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { ChatInlineVideo } from './ChatInlineVideo';
 import type { FullscreenMediaState } from './messages/types';
 
@@ -29,6 +31,7 @@ export type MessagesScreenOverlaysProps = {
   newGroupAvatar: string;
   groupAvatarInputRef: React.RefObject<HTMLInputElement | null>;
   handleGroupAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onCaptureNewGroupAvatar?: (payload: AppCameraCapturePayload) => void | Promise<void>;
   selectedGroupMemberIds: string[];
   filteredNewGroupUsers: User[];
   toggleGroupMemberSelection: (userId: string) => void;
@@ -45,6 +48,7 @@ export type MessagesScreenOverlaysProps = {
   customWallpapers: Array<{ id: string; kind: 'image' | 'video'; value: string; label: string }>;
   wallpaperInputRef: React.RefObject<HTMLInputElement | null>;
   handleWallpaperUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onCaptureWallpaper?: (payload: AppCameraCapturePayload) => void | Promise<void>;
   removeCustomWallpaper: (wallpaperId: string) => void;
   galleryItems: Array<{ url: string; isVideo: boolean; isAudio?: boolean }>;
   setShowGalleryScreen: (open: boolean) => void;
@@ -57,6 +61,7 @@ export type MessagesScreenOverlaysProps = {
   setShowGroupAddUsersScreen: (open: boolean) => void;
   groupSettingsAvatarInputRef: React.RefObject<HTMLInputElement | null>;
   handleGroupSettingsAvatarUpload: (event: React.ChangeEvent<HTMLInputElement>) => void;
+  onCaptureGroupSettingsAvatar?: (payload: AppCameraCapturePayload) => void | Promise<void>;
   groupNameDraft: string;
   setGroupNameDraft: (name: string) => void;
   handleSaveGroupName: () => void;
@@ -119,6 +124,7 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
     newGroupAvatar,
     groupAvatarInputRef,
     handleGroupAvatarUpload,
+    onCaptureNewGroupAvatar,
     selectedGroupMemberIds,
     filteredNewGroupUsers,
     toggleGroupMemberSelection,
@@ -135,6 +141,7 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
     customWallpapers,
     wallpaperInputRef,
     handleWallpaperUpload,
+    onCaptureWallpaper,
     removeCustomWallpaper,
     galleryItems,
     setShowGalleryScreen,
@@ -147,6 +154,7 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
     setShowGroupAddUsersScreen,
     groupSettingsAvatarInputRef,
     handleGroupSettingsAvatarUpload,
+    onCaptureGroupSettingsAvatar,
     groupNameDraft,
     setGroupNameDraft,
     handleSaveGroupName,
@@ -250,9 +258,18 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                       'Profile'
                     )}
                   </button>
+                  {onCaptureNewGroupAvatar ? (
+                    <AppCameraButton
+                      title="Group photo"
+                      aria-label="Group camera"
+                      onCaptured={onCaptureNewGroupAvatar}
+                      className="w-10 h-10 rounded-xl border border-border bg-secondary flex items-center justify-center shrink-0 hover:bg-secondary/80"
+                      iconClassName="w-4 h-4 text-fuchsia-600"
+                    />
+                  ) : null}
                   <div className="flex flex-col min-w-0">
                     <span className="text-sm font-semibold">Group Profile</span>
-                    <span className="text-xs text-muted-foreground truncate">Upload group photo</span>
+                    <span className="text-xs text-muted-foreground truncate">Camera or upload photo</span>
                   </div>
                 </div>
                 <input 
@@ -398,6 +415,15 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                     >
                       Upload Photo/Video Wallpaper
                     </button>
+                    {onCaptureWallpaper ? (
+                      <AppCameraButton
+                        title="Chat wallpaper"
+                        label="Camera"
+                        onCaptured={onCaptureWallpaper}
+                        className="mt-2 w-full inline-flex items-center justify-center gap-2 px-3 py-2 rounded-lg text-xs font-semibold border bg-background border-border hover:bg-secondary/50 transition-colors"
+                        iconClassName="w-4 h-4 text-fuchsia-600"
+                      />
+                    ) : null}
                   </div>
                   {customWallpapers.length > 0 && (
                     <div className="mt-3 grid grid-cols-2 gap-2">
@@ -413,17 +439,14 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                           >
                             <div className="h-20 bg-black/5">
                               {item.kind === 'video' ? (
-                                <video
-                                  data-playback-scope={PLAYBACK_SCOPE.AMBIENT}
+                                <AppNativeVideo
+                                  playbackScope={PLAYBACK_SCOPE.AMBIENT}
                                   src={item.value}
                                   className="w-full h-full object-cover pointer-events-auto"
                                   muted
                                   loop
                                   autoPlay
-                                  playsInline
-                                  controls
                                   preload="metadata"
-                                  {...nativeVideoControlGuardProps()}
                                 />
                               ) : (
                                 <img src={item.value} alt={item.label} className="w-full h-full object-cover" />
@@ -569,6 +592,16 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                         onError={handleAvatarError}
                       />
                     </button>
+                    {onCaptureGroupSettingsAvatar ? (
+                      <AppCameraButton
+                        title="Group photo"
+                        aria-label="Group camera"
+                        disabled={(selectedGroup.createdBy || currentUser.id) !== currentUser.id}
+                        onCaptured={onCaptureGroupSettingsAvatar}
+                        className="w-9 h-9 rounded-xl border border-border bg-secondary flex items-center justify-center shrink-0 hover:bg-secondary/80 disabled:opacity-60"
+                        iconClassName="w-4 h-4 text-fuchsia-600"
+                      />
+                    ) : null}
                     <div className="flex flex-col min-w-0">
                       <span className="text-xs font-semibold">Profile Picker</span>
                       <span className="text-[11px] text-muted-foreground truncate">

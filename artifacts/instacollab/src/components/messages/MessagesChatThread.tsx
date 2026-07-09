@@ -9,7 +9,7 @@ import { safeMediaUrl } from '../../lib/safe';
 import { formatProfileHandle, getProfileDisplayName } from '../../lib/profileDisplay';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { ChatInlineVideo } from './ChatInlineVideo';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 import { MusicDiscPlayer } from './MusicDiscPlayer';
@@ -34,12 +34,16 @@ import {
   isIncomingMessageReadForDisplay,
   isOutgoingMessageSeen,
 } from './messages/chatReadReceipts';
+import { deliveryStatusLabelForMessage, isMessageDeleted } from './messages/messageState';
 import type { MessagesChatThreadProps } from './messages/chatThreadProps';
 
 export function MessagesChatThread(props: MessagesChatThreadProps) {
   const db = useDB();
   const {
     selectedUser,
+    isGroupChat,
+    receiptLive,
+    resolveMessageAuthor,
     activeCustomWallpaper,
     videoWallpaperSequence,
     playNextVideoWallpaper,
@@ -82,6 +86,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
     toggleMessageReaction,
     handleReplyMessage,
     handleForwardMessage,
+    handleShareMessage,
     handleCopyMessage,
     handleTogglePinMessage,
     handleDeleteForMe,
@@ -112,15 +117,13 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
 <div className="flex-1 relative min-h-0 overflow-hidden">
      {activeCustomWallpaper?.kind === 'video' && (
        <div className="absolute inset-0 z-0 overflow-hidden">
-         <video
-           data-playback-scope={PLAYBACK_SCOPE.AMBIENT}
+         <AppNativeVideo
+           playbackScope={PLAYBACK_SCOPE.AMBIENT}
            src={activeCustomWallpaper.value}
            className="w-full h-full object-cover pointer-events-auto"
            autoPlay
            loop={videoWallpaperSequence.length <= 1}
            muted
-           playsInline
-           controls
            preload="metadata"
            onEnded={() => {
              if (videoWallpaperSequence.length > 1) {
@@ -132,7 +135,6 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                playNextVideoWallpaper();
              }
            }}
-           {...nativeVideoControlGuardProps()}
          />
        </div>
      )}
@@ -154,7 +156,10 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
       </div>
       
       <AnimatePresence>
-      {visibleMessageEntries.map(({ msg, index: idx }, visibleIdx) => (
+      {visibleMessageEntries.map(({ msg, index: idx }, visibleIdx) => {
+        const deleted = isMessageDeleted(msg);
+        const author = !msg.isAuthor && isGroupChat ? resolveMessageAuthor(msg) : null;
+        return (
         <React.Fragment key={msg.id || `${msg.timestamp || 'no-ts'}-${idx}`}>
           {(() => {
             const separatorLabel = getDaySeparatorLabel(msg.timestamp);
@@ -185,13 +190,23 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
           >
             {!msg.isAuthor && (
               <div className="w-8 h-8 rounded-full overflow-hidden shrink-0 border border-border shadow-sm">
-                <img src={selectedUser.avatarUrl || undefined} alt="user" className="w-full h-full object-cover" onError={handleAvatarError} />
+                <img
+                  src={(author?.avatarUrl || selectedUser.avatarUrl) || undefined}
+                  alt="user"
+                  className="w-full h-full object-cover"
+                  onError={handleAvatarError}
+                />
               </div>
             )}
            <div
              data-message-bubble-shell="true"
              className={`relative flex flex-col min-w-0 ${msg.isAuthor ? 'items-end' : 'items-start'} max-w-[min(85%,100%)] sm:max-w-[70%]`}
            >
+           {!msg.isAuthor && isGroupChat && author && (
+             <span className="text-[11px] font-bold text-muted-foreground mb-1 px-1">
+               {author.displayName || author.username}
+             </span>
+           )}
            <div
              onClick={(e) => {
                e.stopPropagation();
@@ -216,17 +231,22 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                selectedMessageKeys.includes(getMessageSelectionKey(msg, idx)) ? 'ring-2 ring-primary/50' : ''
              } ${msg.isAuthor ? 'bg-primary text-primary-foreground rounded-br-sm' : 'bg-secondary/70 text-foreground rounded-bl-sm border border-border/50'}`}
            >
-              {typeof msg.replyTo?.text === 'string' && msg.replyTo.text.length > 0 && (
+              {deleted ? (
+                <p className={`text-sm italic ${msg.isAuthor ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
+                  Message deleted
+                </p>
+              ) : null}
+              {!deleted && typeof msg.replyTo?.text === 'string' && msg.replyTo.text.length > 0 && (
                 <div className={`mb-2 px-2 py-1 rounded-lg text-[11px] font-semibold border ${msg.isAuthor ? 'bg-primary-foreground/10 text-primary-foreground/90 border-primary-foreground/25' : 'bg-background/70 text-muted-foreground border-border/70'}`}>
                   Reply to: {msg.replyTo.text}
                 </div>
               )}
-              {msg.isPinned === true && (
+              {!deleted && msg.isPinned === true && (
                 <div className={`mb-2 inline-flex items-center px-2 py-1 rounded-full text-[10px] font-bold border ${msg.isAuthor ? 'bg-primary-foreground/10 text-primary-foreground/90 border-primary-foreground/25' : 'bg-background/70 text-muted-foreground border-border/70'}`}>
                   Pinned
                 </div>
               )}
-              {Array.isArray(msg.replyToMany) && msg.replyToMany.length > 0 && (
+              {!deleted && Array.isArray(msg.replyToMany) && msg.replyToMany.length > 0 && (
                 <div className={`mb-2 rounded-2xl border p-2.5 ${msg.isAuthor ? 'bg-primary-foreground/10 border-primary-foreground/25' : 'bg-background/70 border-border/70'}`}>
                   <div className={`text-[11px] font-bold uppercase tracking-wide mb-2 ${msg.isAuthor ? 'text-primary-foreground/85' : 'text-muted-foreground'}`}>
                     Replying To Messages
@@ -277,7 +297,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                   </div>
                 </div>
               )}
-               {Array.isArray(msg.forwardedBundle) && msg.forwardedBundle.length > 0 ? (
+               {!deleted && Array.isArray(msg.forwardedBundle) && msg.forwardedBundle.length > 0 ? (
                  <div className={`rounded-2xl border p-2.5 ${msg.isAuthor ? 'bg-primary-foreground/10 border-primary-foreground/25' : 'bg-background/70 border-border/70'}`}>
                    <div className={`text-[11px] font-bold uppercase tracking-wide mb-2 ${msg.isAuthor ? 'text-primary-foreground/85' : 'text-muted-foreground'}`}>
                      Forwarded Messages
@@ -529,18 +549,24 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                 selectedChatId ? db.getChatPeerReadAt(selectedChatId) : 0
               );
               const isReadState = msg.isAuthor
-                ? isOutgoingMessageSeen(msg.timestamp, peerReadAt, bothParticipantsInChat)
+                ? isOutgoingMessageSeen(msg.timestamp, peerReadAt, receiptLive)
                 : isIncomingMessageReadForDisplay(
                     msg.timestamp,
                     incomingReadLabelWatermark,
-                    bothParticipantsInChat
+                    receiptLive
                   );
               const statusLabel = msg.isAuthor
-                ? (isReadState ? 'Seen' : 'Unseen')
+                ? (isReadState ? (isGroupChat ? 'Seen' : 'Seen') : 'Sent')
                 : (isReadState ? 'Read' : 'Unread');
+              const deliveryLabel = msg.isAuthor ? deliveryStatusLabelForMessage(msg) : null;
               return (
                 <div className={`mt-1.5 flex items-center justify-end gap-1.5 text-[10px] font-semibold tabular-nums ${msg.isAuthor ? 'text-primary-foreground/80' : 'text-muted-foreground'}`}>
                   <span>{formatMessageDateTime(msg.timestamp)}</span>
+                  {deliveryLabel ? (
+                    <span className={msg.deliveryStatus === 'failed' ? 'text-red-400' : 'text-primary-foreground/70'}>
+                      {deliveryLabel}
+                    </span>
+                  ) : null}
                   {msg.isAuthor ? (
                     <span className={isReadState ? 'text-blue-400' : 'text-zinc-400 dark:text-zinc-500'}>{statusLabel}</span>
                   ) : (
@@ -614,12 +640,23 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                    type="button"
                    onClick={(e) => {
                      e.stopPropagation();
+                     handleShareMessage(msg);
+                   }}
+                   className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors"
+                 >
+                   Share
+                 </button>
+                 <button
+                   type="button"
+                   onClick={(e) => {
+                     e.stopPropagation();
                      handleCopyMessage(msg);
                    }}
                    className="w-full text-left px-3 py-2 rounded-lg text-sm font-medium hover:bg-secondary transition-colors"
                  >
                    Copy
                  </button>
+                 {!deleted && (
                  <button
                    type="button"
                    onClick={(e) => {
@@ -630,6 +667,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                  >
                    {msg.isPinned ? 'Unpin' : 'Pin'}
                  </button>
+                 )}
                  <button
                    type="button"
                    onClick={(e) => {
@@ -640,7 +678,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                  >
                    Delete for me
                  </button>
-                 {msg.isAuthor && !msg.isDeleted && (
+                 {msg.isAuthor && !deleted && (
                    <button
                      type="button"
                      onClick={(e) => {
@@ -652,7 +690,7 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                      Delete for everyone
                    </button>
                  )}
-                 {msg.isAuthor && !msg.isDeleted && (
+                 {msg.isAuthor && !deleted && (
                    <button
                      type="button"
                      onClick={(e) => {
@@ -680,21 +718,21 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                .filter(([, count]) => count > 0);
              const heartSelected = rawReactionState.selected === '❤️';
 
-             if (msg.isDeleted) return null;
+             if (deleted) return null;
              return (
                <div className={`mt-1 flex flex-col gap-1 w-full ${msg.isAuthor ? 'items-end' : 'items-start'}`}>
-                 <div className={`flex items-center gap-1 flex-nowrap ${msg.isAuthor ? 'justify-end flex-row-reverse' : 'justify-start'}`}>
-                   <div className={`relative flex items-center gap-1 ${msg.isAuthor ? '' : 'flex-row-reverse'}`}>
+                 <div className={`flex items-center gap-2 flex-nowrap ${msg.isAuthor ? 'justify-end flex-row-reverse' : 'justify-start'}`}>
+                   <div className={`relative flex items-center gap-2 ${msg.isAuthor ? '' : 'flex-row-reverse'}`}>
                      <button
                        type="button"
                        onClick={(e) => {
                          e.stopPropagation();
                          toggleMessageReaction(idx, '❤️');
                        }}
-                       className={`w-6 h-6 rounded-full border flex items-center justify-center transition-colors ${heartSelected ? 'bg-red-500/15 border-red-400/40 text-red-500' : 'bg-background/70 border-border text-muted-foreground hover:text-red-500 hover:border-red-400/40'}`}
+                       className={`w-8 h-8 rounded-full border flex items-center justify-center transition-colors ${heartSelected ? 'bg-red-500/15 border-red-400/40 text-red-500' : 'bg-background/70 border-border text-muted-foreground hover:text-red-500 hover:border-red-400/40'}`}
                        title="Quick heart reaction"
                      >
-                       <Heart className={`w-3.5 h-3.5 ${heartSelected ? 'fill-current' : ''}`} />
+                       <Heart className={`w-4 h-4 ${heartSelected ? 'fill-current' : ''}`} />
                      </button>
                      <button
                        type="button"
@@ -705,10 +743,10 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
                          setOpenReactionPickerKey((prev) => prev === messageKey ? null : messageKey);
                        }}
                        data-reaction-more-button="true"
-                       className="w-6 h-6 rounded-full border bg-background/70 border-border text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
+                       className="w-8 h-8 rounded-full border bg-background/70 border-border text-muted-foreground hover:text-foreground flex items-center justify-center transition-colors"
                        title="More reactions"
                      >
-                       <MoreHorizontal className="w-3.5 h-3.5" />
+                       <MoreHorizontal className="w-4 h-4" />
                      </button>
                      {openReactionPickerKey === messageKey && (
                        <div data-reaction-picker="true" className={`absolute ${msg.isAuthor ? 'right-0' : 'left-0'} ${reactionPickerDirection === 'down' ? 'top-full mt-1' : 'bottom-full mb-1'} z-30 rounded-xl overflow-hidden border border-zinc-200 dark:border-zinc-700 shadow-xl`}>
@@ -749,7 +787,8 @@ export function MessagesChatThread(props: MessagesChatThreadProps) {
            </div>
           </motion.div>
         </React.Fragment>
-      ))}
+        );
+      })}
       {chatSearchQuery.trim() && visibleMessageEntries.length === 0 && (
         <div className="text-sm text-muted-foreground text-center py-6">
           No messages found.

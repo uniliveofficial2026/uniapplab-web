@@ -15,7 +15,8 @@ import qstashRouter from "./qstash";
 import linearRouter from "./linear";
 import youtubeRouter from "./youtube";
 import automationRouter from "./automation";
-import authMigrateRouter from "./authMigrate";
+import paymentsRouter from "./payments";
+import aiRouter from "./ai";
 import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
@@ -31,12 +32,13 @@ router.use(feedRouter);
 router.use("/me", meRouter);
 router.use("/admin", adminRouter);
 router.use("/wallet", walletRouter);
+router.use("/payments", paymentsRouter);
 router.use("/chat", chatRouter);
 router.use("/stream", streamRouter);
 router.use(presenceRouter);
 router.use(uxRouter);
 router.use(handoffRouter);
-router.use(authMigrateRouter);
 router.use(automationRouter);
+router.use(aiRouter);
 
 export default router;

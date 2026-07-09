@@ -63,7 +63,6 @@ export function YoutubeSearchPanel({
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Search failed';
       setError(message);
-      if (!pageToken) setResults([]);
     } finally {
       setLoading(false);
       setLoadingMore(false);

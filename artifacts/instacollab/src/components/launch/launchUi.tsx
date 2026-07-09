@@ -1,6 +1,6 @@
 import React from 'react';
 import { motion } from 'motion/react';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 
 export function LaunchShell({
   children,
@@ -24,16 +24,13 @@ export function LaunchShell({
         {hasBackground ? (
           <>
             {backgroundMediaType === 'video' ? (
-              <video
+              <AppNativeVideo
                 src={backgroundUrl!}
                 className="h-full w-full object-cover pointer-events-auto"
                 autoPlay
                 muted
                 loop
-                playsInline
-                controls
                 aria-hidden
-                {...nativeVideoControlGuardProps()}
               />
             ) : (
               <img src={backgroundUrl!} alt="" className="h-full w-full object-cover" aria-hidden />

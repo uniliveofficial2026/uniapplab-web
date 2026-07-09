@@ -1,12 +1,16 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { useGoogleWorkspacePoll } from '../../hooks/useGoogleWorkspacePoll';
 import { useAuth } from '../../lib/AuthContext';
 import { useDB } from '../../lib/useDB';
 import { 
   MessageSquare, Send, Users, Compass, Link as LinkIcon, 
   Sparkles, Check, AlertCircle, Plus, Info, Paperclip, X, FileText, Download
 } from 'lucide-react';
+import { AppCameraButton } from '../camera/AppCameraButton';
+import type { AppCameraCapturePayload } from '../../contexts/AppCameraContext';
+import { workspaceChatAttachmentFromCapture } from '../../lib/camera/cameraCaptureAdapters';
 import { handleAvatarError, handleMediaError, fileToBase64 } from '../../lib/utils';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 
 interface ChatSpace {
   name: string;
@@ -48,15 +52,12 @@ export function GoogleChatTab() {
     return USERS[hash % USERS.length]?.avatarUrl;
   };
 
-  const [spaces, setSpaces] = useState<ChatSpace[]>([]);
-  const [selectedSpace, setSelectedSpace] = useState<ChatSpace | null>(null);
-  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [newMessage, setNewMessage] = useState('');
-  const [loading, setLoading] = useState(false);
   const [errorInput, setErrorInput] = useState<string | null>(null);
   const [pendingAttachments, setPendingAttachments] = useState<ChatAttachment[]>([]);
   const [fullscreenImage, setFullscreenImage] = useState<string | null>(null);
   const attachInputRef = useRef<HTMLInputElement>(null);
+  const chatEndRef = useRef<HTMLDivElement>(null);
 
   const formatBytes = (bytes: number) => {
     if (!bytes) return '';
@@ -106,6 +107,21 @@ export function GoogleChatTab() {
   const removeAttachment = (id: string) =>
     setPendingAttachments((prev) => prev.filter((a) => a.id !== id));
 
+  const handleCameraCaptured = async (payload: AppCameraCapturePayload) => {
+    try {
+      const item = await workspaceChatAttachmentFromCapture(payload);
+      if (item.size > MAX_ATTACHMENT_BYTES) {
+        setErrorInput('Camera capture is over 10 MB.');
+        setTimeout(() => setErrorInput(null), 4000);
+        return;
+      }
+      setPendingAttachments((prev) => [...prev, item]);
+    } catch {
+      setErrorInput('Could not attach camera capture.');
+      setTimeout(() => setErrorInput(null), 4000);
+    }
+  };
+
   useEffect(() => {
     if (!fullscreenImage) return;
     const onKey = (e: KeyboardEvent) => {
@@ -116,13 +132,13 @@ export function GoogleChatTab() {
   }, [fullscreenImage]);
   
   // Simulated channels for fallback/mock
-  const [mockSpaces] = useState<ChatSpace[]>([
+  const mockSpaces: ChatSpace[] = [
     { name: 'spaces/dev_updates', displayName: '#development-updates', spaceType: 'ROOM' },
     { name: 'spaces/design_critique', displayName: '#design-critique', spaceType: 'SPACE' },
-    { name: 'spaces/general_chat', displayName: '#general-workspace', spaceType: 'SPACE' }
-  ]);
-  
-  const [mockMessages, setMockMessages] = useState<Record<string, ChatMessage[]>>({
+    { name: 'spaces/general_chat', displayName: '#general-workspace', spaceType: 'SPACE' },
+  ];
+
+  const mockMessages: Record<string, ChatMessage[]> = {
     'spaces/dev_updates': [
       { id: '1', text: 'Hey team, I just pushed the new database schema update!', senderName: 'Alex Mercer', createdAt: '10:42 AM', isSelf: false },
       { id: '2', text: 'Excellent work, Alex. Let\'s verify the indexing on the users table.', senderName: 'Sarah Connor', createdAt: '10:45 AM', isSelf: false },
@@ -133,10 +149,13 @@ export function GoogleChatTab() {
     ],
     'spaces/general_chat': [
       { id: '1', text: 'Welcome everyone to the new unilive-ryz8n6 coordination portal!', senderName: 'System Bot', createdAt: 'Jun 2', isSelf: false },
-    ]
-  });
+    ],
+  };
 
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const [spaces, setSpaces] = useState<ChatSpace[]>(mockSpaces);
+  const [selectedSpace, setSelectedSpace] = useState<ChatSpace | null>(mockSpaces[0]);
+  const [messages, setMessages] = useState<ChatMessage[]>(mockMessages[mockSpaces[0].name] || []);
+  const [mockMessageStore, setMockMessageStore] = useState(mockMessages);
 
   // Auto scroll to latest message
   useEffect(() => {
@@ -148,27 +167,24 @@ export function GoogleChatTab() {
     setSelectedSpace(space);
     setPendingAttachments([]);
     if (space.name.startsWith('spaces/')) {
-      // Load mock messages
-      setMessages(mockMessages[space.name] || []);
+      setMessages(mockMessageStore[space.name] || []);
     } else {
       // Real spaces messages list
       fetchRealMessages(space.name);
     }
   };
 
-  // Fetch real Google Chat spaces if token exists
   useEffect(() => {
     if (googleAccessToken) {
-      fetchRealChatSpaces();
-    } else {
-      setSpaces(mockSpaces);
-      setSelectedSpace(mockSpaces[0]);
-      setMessages(mockMessages[mockSpaces[0].name] || []);
+      void fetchRealChatSpaces();
     }
   }, [googleAccessToken]);
 
+  useGoogleWorkspacePoll(() => {
+    if (googleAccessToken) void fetchRealChatSpaces();
+  }, Boolean(googleAccessToken));
+
   const fetchRealChatSpaces = async () => {
-    setLoading(true);
     try {
       const response = await fetch('https://chat.googleapis.com/v1/spaces', {
         headers: {
@@ -183,24 +199,17 @@ export function GoogleChatTab() {
           setSelectedSpace(data.spaces[0]);
           fetchRealMessages(data.spaces[0].name);
         } else {
-          // Fall back to mocks but indicate connected status
           setSpaces(mockSpaces);
           setSelectedSpace(mockSpaces[0]);
-          setMessages(mockMessages[mockSpaces[0].name] || []);
+          setMessages(mockMessageStore[mockSpaces[0].name] || []);
         }
       } else {
-        // Fallback gracefully
         setSpaces(mockSpaces);
         setSelectedSpace(mockSpaces[0]);
-        setMessages(mockMessages[mockSpaces[0].name] || []);
+        setMessages(mockMessageStore[mockSpaces[0].name] || []);
       }
     } catch (err) {
       console.error('Error fetching Google Chat spaces:', err);
-      setSpaces(mockSpaces);
-      setSelectedSpace(mockSpaces[0]);
-      setMessages(mockMessages[mockSpaces[0].name] || []);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -262,7 +271,7 @@ export function GoogleChatTab() {
     if (selectedSpace.name.startsWith('spaces/')) {
       const updatedMessages = [...messages, pendingMsg];
       setMessages(updatedMessages);
-      setMockMessages(prev => ({
+      setMockMessageStore(prev => ({
         ...prev,
         [selectedSpace.name]: updatedMessages
       }));
@@ -290,7 +299,7 @@ export function GoogleChatTab() {
 
         setMessages(prev => {
           const newThread = [...prev, botMsg];
-          setMockMessages(mockPrev => ({
+          setMockMessageStore(mockPrev => ({
             ...mockPrev,
             [selectedSpace.name]: newThread
           }));
@@ -364,11 +373,6 @@ export function GoogleChatTab() {
         )}
 
         <div className="flex flex-row md:flex-col gap-1 md:gap-0 md:space-y-1 overflow-x-auto md:overflow-x-visible md:overflow-y-auto p-2 md:flex-1 no-scrollbar">
-          {loading && (
-            <div className="text-center py-8 text-xs text-muted-foreground w-full">
-              Loading physical API spaces...
-            </div>
-          )}
           {spaces.map(space => {
             const isSelected = selectedSpace?.name === space.name;
             return (
@@ -476,13 +480,10 @@ export function GoogleChatTab() {
                                 className="max-w-[200px] max-h-[200px] rounded-xl object-cover cursor-pointer border border-border shadow-sm"
                               />
                             ) : att.isVideo ? (
-                              <video
+                              <AppNativeVideo
                                 key={att.id}
                                 src={att.url || undefined}
-                                controls
-                                playsInline
                                 className="max-w-[220px] max-h-[200px] rounded-xl border border-border shadow-sm bg-black"
-                                {...nativeVideoControlGuardProps()}
                               />
                             ) : (
                               <a
@@ -529,7 +530,7 @@ export function GoogleChatTab() {
                       {att.isImage ? (
                         <img src={att.url || undefined} alt={att.name} onError={handleMediaError} className="w-16 h-16 rounded-lg object-cover border border-border" />
                       ) : att.isVideo ? (
-                        <video src={att.url || undefined} className="w-16 h-16 rounded-lg object-cover border border-border bg-black" muted playsInline controls {...nativeVideoControlGuardProps()} />
+                        <AppNativeVideo src={att.url || undefined} className="w-16 h-16 rounded-lg object-cover border border-border bg-black" muted />
                       ) : (
                         <div className="w-16 h-16 rounded-lg border border-border bg-secondary/50 flex flex-col items-center justify-center p-1 gap-1">
                           <FileText className="w-5 h-5 text-primary" />
@@ -555,6 +556,13 @@ export function GoogleChatTab() {
                   multiple
                   className="hidden"
                   onChange={handleAttachUpload}
+                />
+                <AppCameraButton
+                  title="Workspace camera"
+                  onCaptured={handleCameraCaptured}
+                  className="p-2.5 bg-secondary/50 text-foreground hover:bg-secondary border border-border rounded-xl transition-colors shrink-0 inline-flex items-center justify-center"
+                  iconClassName="w-4 h-4 text-fuchsia-600"
+                  aria-label="Camera"
                 />
                 <button
                   type="button"

@@ -1,6 +1,12 @@
 import { createContext } from 'react';
 
-export type RoomFlowEntry = 'karaoke-profile-manage' | 'karaoke-profile-saved' | 'karaoke-party' | 'default';
+export type RoomFlowEntry =
+  | 'karaoke-profile-manage'
+  | 'karaoke-profile-saved'
+  | 'karaoke-party'
+  | 'admin-embed'
+  | 'live-discovery'
+  | 'default';
 
 export type RoomSettingsNavState = { fromLiveRoom?: boolean };
 

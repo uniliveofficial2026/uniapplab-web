@@ -1,13 +1,15 @@
 /**
- * First-app-install AR asset warm: full DeepAR + TRTC/WebAR packages.
+ * First-app-install AR asset warm: TRTC/WebAR always; DeepAR only when enabled.
  * Runs once for each new user/device after paint; later launches use Cache API + local markers.
  */
+
+import { DEEPAR_ENABLED } from '../deepar/deeparEnabled';
 
 const MARKER_KEY = 'ic_ar_assets_ready_v2';
 const CACHE_NAME = 'ic-ar-assets-v2';
 
-/** Core SDK + beauty plugin + TRTC manifest (always warm). */
-const CORE_URLS = [
+/** Core SDK + beauty plugin + TRTC manifest (DeepAR URLs skipped when disabled). */
+const DEEPAR_CORE_URLS = [
   '/deepar-resources/wasm/deepar.wasm',
   '/deepar-resources/js/deepar.esm.js',
   '/deepar-resources/js/dynamicModules/xzimg.js',
@@ -18,8 +20,9 @@ const CORE_URLS = [
   '/deepar-beauty/assets/effects/segmentation_initialize.deepar',
   '/effects/ray-ban-wayfarer.deepar',
   '/effects/MakeupLook.deepar',
-  '/trtc-webar/manifest.json',
 ];
+
+const TRTC_CORE_URLS = ['/trtc-webar/manifest.json'];
 
 /** Beauty pre-look zips (full DeepAR beauty package). */
 const BEAUTY_PRESET_URLS = [
@@ -86,10 +89,11 @@ async function putInCache(urls: string[]): Promise<void> {
 }
 
 async function warmPackages(): Promise<void> {
-  await Promise.all([
-    import('tencentcloud-webar').catch(() => null),
-    import('deepar').catch(() => null),
-  ]);
+  const jobs: Array<Promise<unknown>> = [import('tencentcloud-webar').catch(() => null)];
+  if (DEEPAR_ENABLED) {
+    jobs.push(import('deepar').catch(() => null));
+  }
+  await Promise.all(jobs);
 }
 
 async function collectTrtcBackgrounds(): Promise<string[]> {
@@ -116,11 +120,15 @@ export function bootstrapArAssets(): void {
 
   const run = async () => {
     const backgrounds = await collectTrtcBackgrounds();
-    await putInCache(CORE_URLS);
+    const coreUrls = [
+      ...(DEEPAR_ENABLED ? DEEPAR_CORE_URLS : []),
+      ...TRTC_CORE_URLS,
+      ...(DEEPAR_ENABLED ? BEAUTY_PRESET_URLS : []),
+      ...backgrounds,
+    ];
+    await putInCache(coreUrls);
     await warmPackages();
     markReady();
-    // Beauty preset zips are large — warm in background after core SDK is cached.
-    void putInCache([...BEAUTY_PRESET_URLS, ...backgrounds]);
   };
 
   const schedule =

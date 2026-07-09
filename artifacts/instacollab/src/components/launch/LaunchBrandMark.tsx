@@ -1,10 +1,12 @@
-import React, { useId } from 'react';
+import React, { useEffect, useId, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64 } from '../../lib/utils';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
-import { APP_DISPLAY_NAME } from '../../lib/appBrand';
+import { AppNativeVideo } from '../common/AppNativeVideo';
+import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME } from '../../lib/appBrand';
+import { readAppBrandSnapshot } from '../../lib/appBrandRuntime';
+import { publishPlatformAppBrand } from '../../lib/cloudSocial/platformAppBrandCloud';
 
 const SIZE_CLASS = {
   sm: 'h-16 w-16 text-lg',
@@ -33,6 +35,7 @@ export function LaunchBrandMark({
   size = 'lg',
   allowUpload = false,
   showUploadHint = true,
+  publishToPlatform = false,
   src,
 }: {
   size?: LaunchBrandMarkSize;
@@ -40,16 +43,31 @@ export function LaunchBrandMark({
   allowUpload?: boolean;
   /** Show "Tap to upload logo" under the mark (off on compact centered layouts) */
   showUploadHint?: boolean;
-  /** Override settings.appLogoUrl */
+  /** Admin portal: publish logo to platform backend for all users + install surfaces */
+  publishToPlatform?: boolean;
+  /** Override resolved logo URL */
   src?: string | null;
 }) {
   const db = useDB();
   const { showToast } = useToast();
   const inputId = useId();
+  const [, setBrandTick] = useState(0);
 
-  const logoUrl = src ?? (db.settings.appLogoUrl as string | undefined) ?? null;
-  const mediaType = (db.settings.appLogoMediaType as 'image' | 'video' | undefined) ?? 'image';
-  const isVideo = Boolean(logoUrl && mediaType === 'video');
+  useEffect(() => {
+    const refresh = () => setBrandTick((t) => t + 1);
+    window.addEventListener('app-brand:updated', refresh);
+    window.addEventListener('platform-app-brand-updated', refresh);
+    return () => {
+      window.removeEventListener('app-brand:updated', refresh);
+      window.removeEventListener('platform-app-brand-updated', refresh);
+    };
+  }, []);
+
+  const resolved = readAppBrandSnapshot();
+  const logoUrl = src ?? resolved.logoUrl;
+  const mediaType = resolved.mediaType;
+  const isVideo = Boolean(logoUrl && mediaType === 'video' && logoUrl !== APP_BRAND_FALLBACK_ICON);
+  const hasCustomLogo = Boolean(logoUrl && logoUrl !== APP_BRAND_FALLBACK_ICON);
 
   const onPickFile = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
@@ -62,12 +80,16 @@ export function LaunchBrandMark({
     try {
       const dataUrl = await fileToBase64(file);
       const isVideoFile = file.type.startsWith('video/');
+      const nextMediaType = isVideoFile ? 'video' : 'image';
       db.updateSettings({
         appLogoUrl: dataUrl,
-        appLogoMediaType: isVideoFile ? 'video' : 'image',
+        appLogoMediaType: nextMediaType,
       });
+      if (publishToPlatform) {
+        await publishPlatformAppBrand(dataUrl, nextMediaType);
+      }
       window.dispatchEvent(new CustomEvent('app-brand:updated'));
-      showToast('App logo updated');
+      showToast(publishToPlatform ? 'App logo published for all users' : 'App logo updated');
     } catch {
       showToast('Could not load that file');
     }
@@ -76,37 +98,32 @@ export function LaunchBrandMark({
   const box = SIZE_CLASS[size];
   const interactive = allowUpload;
 
-  const inner = logoUrl ? (
+  const inner = hasCustomLogo ? (
     isVideo ? (
-      <video
-        src={logoUrl}
+      <AppNativeVideo
+        src={logoUrl!}
         className="h-full w-full object-cover"
         autoPlay
         muted
         loop
-        playsInline
-        controls
         aria-label="App logo"
-        {...nativeVideoControlGuardProps()}
       />
     ) : (
-      <img src={logoUrl} alt={APP_DISPLAY_NAME} className="h-full w-full object-contain p-1" />
+      <img src={logoUrl!} alt={APP_DISPLAY_NAME} className="h-full w-full object-contain p-1" />
     )
   ) : (
-  <span className="font-black text-white select-none">UL</span>
+    <img src={APP_BRAND_FALLBACK_ICON} alt={APP_DISPLAY_NAME} className="h-full w-full object-contain p-2" />
   );
 
   const shellClass = [
     box,
     'rounded-[1.75rem] overflow-hidden shrink-0',
     'flex items-center justify-center',
-    logoUrl
-      ? 'bg-card border border-border shadow-xl shadow-black/10'
-      : 'bg-gradient-to-br from-[#fdf497] via-[#fd5949] to-[#d6249f] shadow-xl shadow-vibe-pink/30',
+    'bg-card border border-border shadow-xl shadow-black/10',
     interactive
       ? 'cursor-pointer ring-0 hover:ring-2 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-primary/50 transition-shadow'
       : '',
-    interactive && !logoUrl ? 'border-2 border-dashed border-white/40' : '',
+    interactive && !hasCustomLogo ? 'border-2 border-dashed border-border' : '',
   ]
     .filter(Boolean)
     .join(' ');
@@ -116,7 +133,7 @@ export function LaunchBrandMark({
       {inner}
       {interactive && (
         <div
-          className={`absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 hover:opacity-100 hover:bg-black/35 transition-opacity ${logoUrl ? '' : 'opacity-100 bg-black/20'}`}
+          className={`absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 hover:opacity-100 hover:bg-black/35 transition-opacity ${hasCustomLogo ? '' : 'opacity-100 bg-black/20'}`}
           aria-hidden
         >
           <ImagePlus className={`${ICON_CLASS[size]} text-white drop-shadow`} />

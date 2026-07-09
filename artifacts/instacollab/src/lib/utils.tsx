@@ -233,6 +233,22 @@ export function fileToBase64(file: File | Blob): Promise<string> {
   });
 }
 
+/** Convert ephemeral blob URLs to data URLs before persisting profile avatars. */
+export async function persistAvatarUrl(value: unknown): Promise<string> {
+  const raw = typeof value === 'string' ? value.trim() : '';
+  if (!raw) return '';
+  if (raw.startsWith('data:')) return raw;
+  if (raw.startsWith('blob:')) {
+    try {
+      const blob = await fetch(raw).then((response) => response.blob());
+      return await fileToBase64(blob);
+    } catch {
+      return '';
+    }
+  }
+  return raw;
+}
+
 export function getFontClass(font?: string) {
   if (!font) return 'font-sans';
   if (['sans', 'serif', 'mono'].includes(font)) return `font-${font}`;

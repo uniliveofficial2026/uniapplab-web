@@ -1,7 +1,7 @@
 import { getAppUserId } from '../../lib/appUserId';
 import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
 import { isSupabaseConfigured } from '../../lib/supabase/config';
-import { fetchOwnerActivePartyRoom } from '../../lib/supabase/partyRooms';
+import { fetchOwnerActivePartyRoom } from '../../lib/party/partyRoomsCloud';
 import { getManagedRooms } from './managedRooms';
 import { getRoomSettings } from './storage';
 
@@ -51,13 +51,11 @@ export type ResolveOwnerPartyRoomOptions = {
   createIfMissing?: boolean;
 };
 
-/**
- * One permanent party room id per owner — reused when switching room type or re-opening Create Room.
- */
-export async function resolveOwnerPartyRoomId(
+/** Instant local resolution — no network (use for Open/Launch Room). */
+export function resolveLocalOwnerPartyRoomId(
   userId?: string,
-  options: ResolveOwnerPartyRoomOptions = {},
-): Promise<string | null> {
+  options: Pick<ResolveOwnerPartyRoomOptions, 'createIfMissing'> = {},
+): string | null {
   const ownerId = (userId ?? getAppUserId()).trim();
   if (!ownerId) return null;
 
@@ -66,15 +64,6 @@ export async function resolveOwnerPartyRoomId(
     findOwnedManagedRoomId(ownerId),
     activeOwnedRoomId(ownerId),
   ].filter((id): id is string => Boolean(id));
-
-  if (isSupabaseConfigured() && isCloudAuthUserId(ownerId)) {
-    try {
-      const cloud = await fetchOwnerActivePartyRoom(ownerId);
-      if (cloud?.id) candidates.unshift(cloud.id);
-    } catch {
-      /* local fallback */
-    }
-  }
 
   const canonical = candidates.find((id) => /^\d{7}$/.test(id));
   if (canonical) {
@@ -87,4 +76,55 @@ export async function resolveOwnerPartyRoomId(
   const roomId = generatePartyRoomId();
   setStoredOwnerPartyRoomId(ownerId, roomId);
   return roomId;
+}
+
+/** Background cloud reconcile — updates stored id when Supabase has the canonical room. */
+export async function reconcileOwnerPartyRoomIdFromCloud(userId?: string): Promise<string | null> {
+  const ownerId = (userId ?? getAppUserId()).trim();
+  if (!ownerId) return null;
+
+  if (isSupabaseConfigured() && isCloudAuthUserId(ownerId)) {
+    try {
+      const cloud = await fetchOwnerActivePartyRoom(ownerId);
+      if (cloud?.id && /^\d{7}$/.test(cloud.id)) {
+        setStoredOwnerPartyRoomId(ownerId, cloud.id);
+        return cloud.id;
+      }
+    } catch {
+      /* keep local */
+    }
+  }
+
+  return resolveLocalOwnerPartyRoomId(ownerId);
+}
+
+/**
+ * One permanent party room id per owner — reused when switching room type or re-opening Create Room.
+ * Prefer {@link resolveLocalOwnerPartyRoomId} on user-facing launch paths; this may await cloud when no local id exists.
+ */
+export async function resolveOwnerPartyRoomId(
+  userId?: string,
+  options: ResolveOwnerPartyRoomOptions = {},
+): Promise<string | null> {
+  const local = resolveLocalOwnerPartyRoomId(userId, {
+    createIfMissing: options.createIfMissing,
+  });
+  if (local) return local;
+
+  const ownerId = (userId ?? getAppUserId()).trim();
+  if (!ownerId) return null;
+
+  if (isSupabaseConfigured() && isCloudAuthUserId(ownerId)) {
+    try {
+      const cloud = await fetchOwnerActivePartyRoom(ownerId);
+      if (cloud?.id && /^\d{7}$/.test(cloud.id)) {
+        setStoredOwnerPartyRoomId(ownerId, cloud.id);
+        return cloud.id;
+      }
+    } catch {
+      /* local fallback */
+    }
+  }
+
+  return resolveLocalOwnerPartyRoomId(userId, { createIfMissing: options.createIfMissing });
 }

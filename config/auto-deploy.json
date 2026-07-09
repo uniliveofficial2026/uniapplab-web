@@ -1,8 +1,9 @@
 {
+  "autopilot": true,
   "enabled": true,
   "autoPush": true,
   "githubActionsDeploy": true,
-  "autoMachineLearning": false,
+  "autoMachineLearning": true,
   "liveCloudSyncAggressive": true,
-  "note": "Auto deploy, git push, and aggressive live cloud sync enabled for mobile QA. Set enabled/autoPush/githubActionsDeploy/liveCloudSyncAggressive to false when done testing."
+  "note": "Autopilot ON — auto deploy, git push, ML handoff, and aggressive live cloud sync. Set autopilot to false to pause."
 }

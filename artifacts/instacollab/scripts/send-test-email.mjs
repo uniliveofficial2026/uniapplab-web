@@ -10,9 +10,12 @@
  *   RESEND_TO=you@example.com
  */
 import { Resend } from 'resend';
-import { readMergedEnv } from './resolveProjectEnv.mjs';
+import { findEnvFile, readEnvFile } from './resolveProjectEnv.mjs';
 
-const env = { ...readMergedEnv(import.meta.dirname), ...process.env };
+const env = {
+  ...readEnvFile(findEnvFile(import.meta.dirname)),
+  ...process.env,
+};
 
 const apiKey = (env.RESEND_API_KEY || '').trim();
 if (!apiKey || apiKey === 're_xxxxxxxxx') {

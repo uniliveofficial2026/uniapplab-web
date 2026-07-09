@@ -1,10 +1,8 @@
 import {
-  clearSupabaseOAuthHealthyLane,
+  clearSupabaseOAuthDegraded,
   isSupabaseOAuthDegraded,
   markSupabaseOAuthDegraded,
-  markSupabaseOAuthHealthyLane,
 } from './providerState';
-import { performSilentSupabaseRecovery } from './silentSupabaseRecovery';
 import {
   invalidateSupabaseHealthCache,
   probeSupabaseAuthReady,
@@ -24,46 +22,38 @@ const OAUTH_PROBE_MS = 2000;
 let installed = false;
 let recoverInFlight = false;
 
-async function evaluateSupabaseCloudLane(options?: { coldStart?: boolean }): Promise<void> {
+async function evaluateSupabaseCloudLane(): Promise<void> {
   if (!isSupabaseConfigured() || !isNetworkOnline()) return;
   if (!isFirebaseConfigured()) return;
 
   invalidateSupabaseHealthCache();
 
-  const oauthMs = options?.coldStart ? 2500 : OAUTH_PROBE_MS;
-  const healthMs = options?.coldStart ? 1200 : HEALTH_PROBE_MS;
-  const dataMs = options?.coldStart ? 1200 : DATA_PROBE_MS;
-
-  // OAuth /authorize is the real gate — health alone can be 401 while authorize 522s.
-  const [healthOk, dataOk, oauthOk] = await Promise.all([
-    probeSupabaseHealth(healthMs),
-    probeSupabaseDataReady(dataMs),
-    probeSupabaseOAuthReady(oauthMs),
-  ]);
-
-  if (!healthOk || !dataOk) {
+  const healthOk = await probeSupabaseHealth(HEALTH_PROBE_MS);
+  if (!healthOk) {
     markSupabaseOAuthDegraded();
-    clearSupabaseOAuthHealthyLane();
     return;
   }
-  const wasDegraded = isSupabaseOAuthDegraded();
+
+  const dataOk = await probeSupabaseDataReady(DATA_PROBE_MS);
+  if (!dataOk) {
+    markSupabaseOAuthDegraded();
+    return;
+  }
+
+  const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
   if (oauthOk) {
-    markSupabaseOAuthHealthyLane();
-    if (wasDegraded) {
-      void performSilentSupabaseRecovery();
-    }
+    clearSupabaseOAuthDegraded();
     return;
   }
 
   markSupabaseOAuthDegraded();
-  clearSupabaseOAuthHealthyLane();
 }
 
-async function tryRecoverSupabaseOAuth(options?: { coldStart?: boolean }): Promise<void> {
+async function tryRecoverSupabaseOAuth(): Promise<void> {
   if (recoverInFlight) return;
   recoverInFlight = true;
   try {
-    await evaluateSupabaseCloudLane(options);
+    await evaluateSupabaseCloudLane();
   } finally {
     recoverInFlight = false;
   }
@@ -74,7 +64,7 @@ export function initSupabaseResilience(): void {
   if (installed || typeof window === 'undefined') return;
   installed = true;
 
-  void tryRecoverSupabaseOAuth({ coldStart: true });
+  void tryRecoverSupabaseOAuth();
 
   window.setInterval(() => {
     void tryRecoverSupabaseOAuth();

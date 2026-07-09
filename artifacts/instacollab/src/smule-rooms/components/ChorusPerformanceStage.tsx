@@ -49,12 +49,11 @@ export function ChorusPerformanceStage({
   const [voiceChangerOpen, setVoiceChangerOpen] = React.useState(false);
   const lineRefs = useRef<(HTMLParagraphElement | null)[]>([]);
   const scrollContainerRef = useRef<HTMLDivElement | null>(null);
-  const lyrics = song.lyrics ?? [];
 
   const activeLyricIndex = getActiveLyricIndex(
     elapsedSec,
     song.durationSec,
-    lyrics.length,
+    song.lyrics.length,
     song.lyricStartTimes,
   );
   const activeEffect = getVoiceChangerEffect(voiceEffect);
@@ -130,7 +129,7 @@ export function ChorusPerformanceStage({
               တေးဆို - {song.lyricist ?? song.artist}
             </span>
           </div>
-          {lyrics.map((line, index) => (
+          {song.lyrics.map((line, index) => (
             <p
               key={`${song.id}-${index}`}
               ref={(node) => {

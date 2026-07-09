@@ -24,6 +24,7 @@ export interface User {
   username: string;
   displayName: string;
   avatarUrl: string;
+  email?: string;
   isVerified?: boolean;
   followers?: number;
   following?: number;
@@ -148,6 +149,8 @@ export interface Reel {
   imageUrl?: string;
   isLiked: boolean;
   isSaved: boolean;
+  isReported?: boolean;
+  isArchived?: boolean;
   audioUrl?: string;
   /** Embedded album art / video frame for soundtrack disc UI */
   audioCoverUrl?: string;
@@ -232,6 +235,12 @@ export interface ChatMessage {
     counts?: Record<string, number>;
   };
   isAuthor?: boolean;
+  /** Local-first send lane (TRTC-style): UI shows immediately, network ack updates status. */
+  deliveryStatus?: 'sending' | 'sent' | 'failed';
+  /** Hidden only on this device (delete for me). */
+  hiddenForMe?: boolean;
+  deleted?: boolean;
+  isDeleted?: boolean;
   replyTo?: MessageReplyRef;
   replyToMany?: MessageReplyRef[];
   [key: string]: unknown;

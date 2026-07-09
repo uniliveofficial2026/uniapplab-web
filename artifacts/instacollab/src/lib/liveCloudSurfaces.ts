@@ -18,39 +18,36 @@ import {
   stopCloudNotificationRealtime,
   syncCloudNotifications,
 } from './cloudNotificationSync';
-import {
-  startCloudPostRealtimeSync,
-  stopCloudPostRealtimeSync,
-  syncOwnPostsToCloud,
-} from './cloudPostSync';
-import {
-  startCloudBlocksRealtime,
-  stopCloudBlocksRealtime,
-  syncCloudBlocks,
-} from './cloudSocial/cloudBlocks';
-import {
-  startCloudSocialRealtime,
-  stopCloudSocialRealtime,
-  syncCloudSocialFeed,
-  syncCloudStories,
-  syncCloudUserSocial,
-} from './cloudSocial/cloudSocialContent';
-import { hydrateCloudFollowsForUser } from './cloudSocial/followsSync';
+import { startCloudBlocksRealtime, stopCloudBlocksRealtime } from './cloudSocial/cloudBlocks';
 import {
   startCloudProfileVisitsRealtime,
   stopCloudProfileVisitsRealtime,
-  syncCloudProfileVisits,
 } from './cloudSocial/cloudProfileVisits';
+import {
+  startCloudPostRealtimeSync,
+  stopCloudPostRealtimeSync,
+  syncCloudFeed,
+  syncCloudUserPosts,
+  syncOwnPostsToCloud,
+} from './cloudPostSync';
+import { hydrateCloudFollowsForUser } from './cloudSocial/followsSync';
 import { db } from './db/localDb';
 import { scheduleLiveSessionSync } from './liveSessionSync';
 import { isNetworkOnline } from './networkStatus';
 import { postPresenceHeartbeat } from './platformApi';
+import { syncServerWalletBalance } from './walletServerSync';
+import { onUserSessionActive } from './walletKstarSync';
+import {
+  startPlatformGiftCatalogRealtime,
+  stopPlatformGiftCatalogRealtime,
+} from './cloudSocial/platformGiftCatalogCloud';
+import { startPlatformAppBrandRealtime, stopPlatformAppBrandRealtime } from './cloudSocial/platformAppBrandCloud';
 import {
   initThoughtNoteCloudSync,
   refreshThoughtNotesFromCloud,
   teardownThoughtNoteCloudSync,
 } from './thoughtNoteCloudSync';
-import './liveDataFlowMap';
+import { surfaceRefreshCooldownMs, inboxPollIntervalMs, presenceBeatIntervalMs } from './liveCloudSyncMode';
 
 export type LiveCloudSurface =
   | 'messages'
@@ -66,23 +63,21 @@ export type LiveCloudSurface =
   | 'stories'
   | 'thoughts'
   | 'comments'
+  | 'workspace'
+  | 'wallet'
+  | 'dating'
+  | 'games'
   | 'all';
 
 let activeUserId: string | null = null;
 let presenceTimer: number | null = null;
 let inboxTimer: number | null = null;
-let stopPostsRealtime: (() => void) | null = null;
-let stopSocialRealtime: (() => void) | null = null;
 let stopBlocksRealtime: (() => void) | null = null;
-let stopVisitsRealtime: (() => void) | null = null;
-
-const surfaceRefreshAt = new Map<string, number>();
-import { surfaceRefreshCooldownMs } from './liveCloudSyncMode';
-
-export type RefreshLiveCloudSurfaceOptions = {
-  /** User opened a tab — bypass cooldown and pull fresh cloud data. */
-  force?: boolean;
-};
+let stopProfileVisitsRealtime: (() => void) | null = null;
+let stopPostsRealtime: (() => void) | null = null;
+let lastSurfaceRefreshAt = 0;
+let surfaceRefreshTimer: number | null = null;
+let pendingSurfaceRefresh: LiveCloudSurface = 'all';
 
 function canRunCloud(userId?: string | null): userId is string {
   return (
@@ -104,7 +99,7 @@ async function beatPresence(): Promise<void> {
   const meId = db.currentUserId;
   if (!canRunCloud(meId)) return;
   try {
-    const following = db.getFollowingIds(meId);
+    const following = db.getFollowingIds?.(meId) ?? [];
     const friendIds = following.filter((id) => isCloudAuthUserId(id)).slice(0, 40);
     await postPresenceHeartbeat(friendIds);
   } catch {
@@ -142,6 +137,17 @@ export function liveSurfaceFromTab(tab: string | null | undefined): LiveCloudSur
       return 'profile';
     case 'stories':
       return 'stories';
+    case 'workspace':
+      return 'workspace';
+    case 'wallet':
+      return 'wallet';
+    case 'dating':
+      return 'dating';
+    case 'local-games':
+    case 'third-party-games':
+      return 'games';
+    case 'youtube':
+      return 'search';
     default:
       return 'all';
   }
@@ -152,7 +158,7 @@ export function startLiveCloudSurfaces(userId: string): void {
   if (!isCloudAuthConfigured() || !isCloudAuthUserId(userId)) return;
 
   if (activeUserId === userId && stopPostsRealtime) {
-    // Channels already live — avoid re-pulling every surface on foreground ticks.
+    void refreshLiveCloudSurface('all');
     return;
   }
 
@@ -162,21 +168,25 @@ export function startLiveCloudSurfaces(userId: string): void {
   void startCloudChatRealtime(userId);
   startCloudNotificationRealtime(userId);
   stopPostsRealtime = startCloudPostRealtimeSync();
-  stopSocialRealtime = startCloudSocialRealtime();
   stopBlocksRealtime = startCloudBlocksRealtime(userId);
-  stopVisitsRealtime = startCloudProfileVisitsRealtime(userId);
+  stopProfileVisitsRealtime = startCloudProfileVisitsRealtime(userId);
   initThoughtNoteCloudSync();
+  startPlatformGiftCatalogRealtime();
+  startPlatformAppBrandRealtime();
 
   void beatPresence();
   presenceTimer = window.setInterval(() => {
     void beatPresence();
-  }, 30_000);
+  }, presenceBeatIntervalMs());
 
   inboxTimer = window.setInterval(() => {
-    if (!canRunCloud(db.currentUserId)) return;
+    const meId = db.currentUserId;
+    if (!canRunCloud(meId)) return;
     void syncCloudChatInbox();
     void syncCloudNotifications();
-  }, 45_000);
+    // Same account on phone + desktop — pull authoritative wallet ledger.
+    void syncServerWalletBalance(meId).then(() => onUserSessionActive(meId));
+  }, inboxPollIntervalMs());
 
   void refreshLiveCloudSurface('all');
 }
@@ -195,65 +205,57 @@ export function stopLiveCloudSurfaces(): void {
   stopCloudNotificationRealtime();
   stopPostsRealtime?.();
   stopPostsRealtime = null;
-  stopCloudPostRealtimeSync();
-  stopSocialRealtime?.();
-  stopSocialRealtime = null;
-  stopCloudSocialRealtime();
   stopBlocksRealtime?.();
   stopBlocksRealtime = null;
-  stopCloudBlocksRealtime();
-  stopVisitsRealtime?.();
-  stopVisitsRealtime = null;
-  stopCloudProfileVisitsRealtime();
+  stopProfileVisitsRealtime?.();
+  stopProfileVisitsRealtime = null;
+  stopCloudPostRealtimeSync();
+  stopPlatformGiftCatalogRealtime();
+  stopPlatformAppBrandRealtime();
   teardownThoughtNoteCloudSync();
 }
 
-/**
- * Pull latest internet data for one surface (or all).
- * Always deferred past the current tap paint so navigation/buttons stay instant.
- */
-export function refreshLiveCloudSurface(
-  surface: LiveCloudSurface | string,
-  options?: RefreshLiveCloudSurfaceOptions,
-): void {
-  const force = options?.force === true;
-  // UI-first: never run network work on the same turn as a tap/setState.
-  queueMicrotask(() => {
-    requestAnimationFrame(() => {
-      refreshLiveCloudSurfaceNow(surface, force);
-    });
-  });
-}
-
-function refreshLiveCloudSurfaceNow(surface: LiveCloudSurface | string, force = false): void {
-  const meId = db.currentUserId;
-  if (!canRunCloud(meId)) {
-    dispatchSurfaceRefresh(liveSurfaceFromTab(surface));
-    return;
-  }
-
+/** Pull latest internet data for one surface (or all). Safe to call often — coalesced silently. */
+export function refreshLiveCloudSurface(surface: LiveCloudSurface | string, opts?: { force?: boolean }): void {
   const target = (
     surface === 'all' || surface === 'home' || surface === 'feed' || surface === 'reels'
       ? surface
       : liveSurfaceFromTab(surface)
   ) as LiveCloudSurface;
 
-  const cooldownKey = target === 'all' ? '__all__' : target;
-  const cooldownMs = surfaceRefreshCooldownMs(target === 'all');
+  const cooldown = surfaceRefreshCooldownMs(target === 'all');
   const now = Date.now();
-  const last = surfaceRefreshAt.get(cooldownKey) ?? 0;
-  if (!force && now - last < cooldownMs) {
+  if (!opts?.force && lastSurfaceRefreshAt > 0 && now - lastSurfaceRefreshAt < cooldown) {
+    pendingSurfaceRefresh = target;
+    if (surfaceRefreshTimer == null) {
+      surfaceRefreshTimer = window.setTimeout(() => {
+        surfaceRefreshTimer = null;
+        refreshLiveCloudSurface(pendingSurfaceRefresh, { force: true });
+      }, cooldown - (now - lastSurfaceRefreshAt));
+    }
+    return;
+  }
+  lastSurfaceRefreshAt = now;
+  if (surfaceRefreshTimer != null) {
+    window.clearTimeout(surfaceRefreshTimer);
+    surfaceRefreshTimer = null;
+  }
+
+  runLiveCloudSurfaceRefresh(target);
+}
+
+function runLiveCloudSurfaceRefresh(target: LiveCloudSurface): void {
+  const meId = db.currentUserId;
+  if (!canRunCloud(meId)) {
     dispatchSurfaceRefresh(target);
     return;
   }
-  surfaceRefreshAt.set(cooldownKey, now);
 
   const tasks: Array<Promise<unknown>> = [];
 
   const pullSocialFeed = () => {
-    tasks.push(syncCloudSocialFeed());
+    tasks.push(syncCloudFeed());
     tasks.push(syncOwnPostsToCloud());
-    tasks.push(syncCloudStories());
     tasks.push(flushCloudAppStateSync().catch(() => undefined));
   };
 
@@ -275,7 +277,7 @@ function refreshLiveCloudSurfaceNow(surface: LiveCloudSurface | string, force = 
       pullSocialFeed();
       break;
     case 'search':
-      tasks.push(syncCloudSocialFeed());
+      tasks.push(syncCloudFeed());
       tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
       break;
     case 'live':
@@ -288,29 +290,47 @@ function refreshLiveCloudSurfaceNow(surface: LiveCloudSurface | string, force = 
       tasks.push(flushCloudAppStateSync().catch(() => undefined));
       break;
     case 'profile':
-      tasks.push(syncCloudUserSocial(meId));
+      tasks.push(syncCloudUserPosts(meId));
       tasks.push(hydrateCloudFollowsForUser(meId));
-      tasks.push(syncCloudBlocks());
-      tasks.push(syncCloudProfileVisits());
       tasks.push(flushCloudAppStateSync().catch(() => undefined));
       tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
+      stopProfileVisitsRealtime = startCloudProfileVisitsRealtime(meId);
       break;
     case 'thoughts':
       tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
+      break;
+    case 'workspace':
+      pullSocialFeed();
+      tasks.push(hydrateCloudFollowsForUser(meId));
+      tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
+      tasks.push(flushCloudAppStateSync().catch(() => undefined));
+      void beatPresence();
+      break;
+    case 'wallet':
+      scheduleLiveSessionSync(meId);
+      tasks.push(flushCloudAppStateSync().catch(() => undefined));
+      break;
+    case 'dating':
+      tasks.push(syncCloudFeed());
+      tasks.push(hydrateCloudFollowsForUser(meId));
+      tasks.push(flushCloudAppStateSync().catch(() => undefined));
+      break;
+    case 'games':
+      scheduleLiveSessionSync(meId);
+      tasks.push(flushCloudAppStateSync().catch(() => undefined));
       break;
     case 'all':
     default:
       void startCloudChatRealtime(meId);
       startCloudNotificationRealtime(meId);
-      if (!stopSocialRealtime) stopSocialRealtime = startCloudSocialRealtime();
       pullSocialFeed();
       tasks.push(syncCloudChatInbox());
       tasks.push(syncCloudNotifications());
       tasks.push(hydrateCloudFollowsForUser(meId));
-      tasks.push(syncCloudBlocks());
-      tasks.push(syncCloudProfileVisits());
       tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
       scheduleLiveSessionSync(meId);
+      stopBlocksRealtime = startCloudBlocksRealtime(meId);
+      stopProfileVisitsRealtime = startCloudProfileVisitsRealtime(meId);
       void beatPresence();
       break;
   }

@@ -11,6 +11,7 @@ import {
 } from '../../smule-rooms/context/RoomFlowContext';
 import '../../smule-rooms/smule-rooms.css';
 import './karaoke-smule-embed.css';
+import './admin-embed-full.css';
 
 function KaraokeFlowBack({ onClose }: { onClose: () => void }) {
   const onCloseRef = useRef(onClose);
@@ -67,6 +68,8 @@ type KaraokeSmuleRoomFlowProps = {
   initialPath?: string;
   flowKey?: number;
   flowEntry?: RoomFlowEntry;
+  /** panel = compact karaoke embed; full = admin iframe fidelity (real live UX) */
+  embedVariant?: 'panel' | 'full';
 };
 
 /** Smule room pages verbatim — embedded inside KaraokeScreen with Party-tab shell. */
@@ -75,22 +78,28 @@ export function KaraokeSmuleRoomFlow({
   initialPath = '/room/create',
   flowKey = 0,
   flowEntry = 'default',
+  embedVariant = 'panel',
 }: KaraokeSmuleRoomFlowProps) {
   useEffect(() => {
-    if (import.meta.env.DEV && !localStorage.getItem('auth_token')) {
+    if (flowEntry === 'admin-embed') return;
+    if (!localStorage.getItem('auth_token')) {
       localStorage.setItem('auth_token', 'demo');
     }
-  }, []);
+  }, [flowEntry]);
 
   const initialEntries =
     initialPath === '/room/create' || initialPath.startsWith('/room/')
       ? ['/karaoke/party-back', initialPath]
       : [initialPath];
   const initialIndex = initialEntries.length - 1;
+  const embedRootClass =
+    embedVariant === 'full'
+      ? 'karaoke-smule-room-embed-full absolute inset-0 z-[70] font-sans selection:bg-purple-500/30 flex flex-col min-h-0 overflow-hidden bg-black'
+      : 'karaoke-smule-room-embed absolute inset-0 z-[70] font-sans selection:bg-purple-500/30 flex flex-col min-h-0 overflow-hidden bg-black';
 
   return (
     <>
-      <div className="karaoke-smule-room-embed absolute inset-0 z-[70] font-sans selection:bg-purple-500/30 flex flex-col min-h-0 overflow-hidden bg-black">
+      <div className={embedRootClass} data-embed-variant={embedVariant}>
         <div className="flex-1 min-h-0 flex flex-col">
           <MemoryRouter key={flowKey} initialEntries={initialEntries} initialIndex={initialIndex}>
             <RoomSelfProvider>

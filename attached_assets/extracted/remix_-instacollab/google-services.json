@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "932871409657",
+    "firebase_url": "https://uchat-app-c1b8e-default-rtdb.firebaseio.com",
+    "project_id": "uchat-app-c1b8e",
+    "storage_bucket": "uchat-app-c1b8e.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:932871409657:android:3300468a6a5b03fd347728",
+        "android_client_info": {
+          "package_name": "com.unilive.uchtapp"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "932871409657-br8k64ats85qqecv15lnlk25jp6an0pf.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyB01rNLFgRJwoo7q0J3lODSZzotnVEhDZQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "932871409657-br8k64ats85qqecv15lnlk25jp6an0pf.apps.googleusercontent.com",
+              "client_type": 3
+            },
+            {
+              "client_id": "932871409657-eh5go2ji0cjhurjh8tllkpaj6hu7iajq.apps.googleusercontent.com",
+              "client_type": 2,
+              "ios_info": {
+                "bundle_id": "com.unilive.uchatapp"
+              }
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

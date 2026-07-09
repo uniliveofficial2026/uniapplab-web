@@ -10,7 +10,6 @@ interface Props {
 export function TrendingScreen({ onContinue }: Props) {
   const db = useDB();
   const [activeCategory, setActiveCategory] = useState<'posts' | 'topics' | 'creators'>('creators');
-  const [loading, setLoading] = useState(true);
   const [followedIds, setFollowedIds] = useState<Set<string>>(new Set());
 
   const handleFollow = (userId: string) => {
@@ -26,11 +25,6 @@ export function TrendingScreen({ onContinue }: Props) {
       return next;
     });
   };
-
-  useEffect(() => {
-    const timer = setTimeout(() => setLoading(false), 800);
-    return () => clearTimeout(timer);
-  }, []);
 
   const categories = [
     { id: 'posts', label: 'Top Posts', icon: TrendingUp },
@@ -80,19 +74,6 @@ export function TrendingScreen({ onContinue }: Props) {
         </div>
 
         <AnimatePresence mode="wait">
-          {loading ? (
-            <motion.div 
-              key="loader"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex flex-col gap-4"
-            >
-              {[1, 2, 3].map(i => (
-                <div key={i} className="h-24 bg-secondary/50 rounded-2xl animate-pulse border border-border" />
-              ))}
-            </motion.div>
-          ) : (
             <motion.div
               key={activeCategory}
               initial={{ opacity: 0, x: 20 }}
@@ -169,7 +150,6 @@ export function TrendingScreen({ onContinue }: Props) {
                 </div>
               )}
             </motion.div>
-          )}
         </AnimatePresence>
       </div>
 

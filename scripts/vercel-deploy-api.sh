@@ -29,11 +29,11 @@ deploy_status=${PIPESTATUS[0]}
 set -e
 
 if [[ "$deploy_status" -ne 0 ]]; then
-  if grep -qE 'api-upload-free|api-deployments-free|Too many requests|Resource is limited|rate' "$deploy_log"; then
+  if grep -qE 'api-upload-free|Too many requests|Resource is limited|rate' "$deploy_log"; then
     echo ""
-    echo "[vercel] CLI rate-limited (100 deploys/day on free tier)."
-    echo "  pnpm run vercel:fix-root -- --git"
-    echo "  Or redeploy from: https://vercel.com/uniliveofficial2026s-projects/$PROJECT/deployments"
+    echo "[vercel] CLI rate-limited. Fix Git deploys instead:"
+    echo "  pnpm run vercel:open-settings"
+    echo "  Clear Root Directory → Save → Redeploy Production in dashboard"
     rm -f "$deploy_log"
     exit 2
   fi

@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Mic, Mic2, MicVocal, Search, TrendingUp, Music, Users, Play, Star, ChevronRight, Video, Gift, Trophy, Crown, Heart, MessageCircle, Bell, X, ArrowLeft, Edit, Save, Plus, Trash2, Sparkles, Camera, Info, Bookmark, MoreHorizontal, Clock, ChevronLeft, SkipBack, SkipForward, Upload, Sun, Moon, Menu, ImagePlus, UserRound, Settings, UserPlus, UserCheck, UserMinus, UserX } from 'lucide-react';
-import { CoinIcon } from '../common/CoinIcon';
+import { Mic, Mic2, MicVocal, Search, TrendingUp, Music, Users, Play, Star, ChevronRight, Video, Gift, Trophy, Crown, Heart, MessageCircle, Bell, Coins, X, ArrowLeft, Edit, Save, Plus, Trash2, Sparkles, Camera, Info, Bookmark, MoreHorizontal, Clock, ChevronLeft, SkipBack, SkipForward, Upload, Sun, Moon, Menu, ImagePlus, UserRound, UserPen, UserPlus, UserCheck, UserMinus, UserX } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
-import { ensureRoomSettingsSeeded, saveRoomSettings } from '../../smule-rooms/utils/storage';
+import { saveRoomSettings } from '../../smule-rooms/utils/storage';
 import { RecordingStudio } from './RecordingStudio';
 import { PartyRoomIcon } from '../common/KaraokeNavIcons';
 import { ChallengeView } from './ChallengeView';
@@ -17,64 +16,35 @@ import { KaraokeSmuleRoomFlow } from './KaraokeSmuleRoomFlow';
 import { SavedRoomsList } from '../../smule-rooms/components/SavedRoomsList';
 import { ManagedRoomsList } from '../../smule-rooms/components/ManagedRoomsList';
 import { activateRoomContext, clearActiveRoomSession, type ManagedRoom } from '../../smule-rooms/utils/managedRooms';
-import type { RoomFlowEntry } from '../../smule-rooms/context/RoomFlowContext';
+import { ensureRoomSettingsSeeded } from '../../smule-rooms/utils/storage';
 import { ensureRoomRoleUserIds } from '../../smule-rooms/utils/roomRoleUsers';
-import {
-  consumePendingKaraokeRoomOpen,
-  type OpenKaraokeRoomDetail,
-} from '../../lib/live/openLiveRoom';
-import { AvatarQuickPresets } from '../common/AvatarQuickPresets';
-import { avatarPresetUrl } from '../../lib/avatarPresets';
 import { formatRoomHostMeta, resolveRoomHostDisplay } from '../../smule-rooms/utils/roomHostDisplay';
 import { formatProfileHandle, getProfileDisplayName } from '../../lib/profileDisplay';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { useProfileStats } from '../../lib/useProfileStats';
+import { FollowListModal } from '../profile/FollowListModal';
+import { ShareModal } from '../feed/ShareModal';
+import { MessagesScreen } from '../messages/MessagesScreen';
+import { NotificationsScreen } from '../notifications/NotificationsScreen';
+import { buildContextualProfileSharePayload } from '../../lib/profileShare';
+import { openAppProfileSurface } from '../../lib/profileSurface';
+import { buildKaraokeTrackSharePayload, type SharePayload } from '../../lib/shareLinks';
+import type { User } from '../../types';
+import { useDB } from '../../lib/useDB';
+import { useCurrentUser } from '../../lib/useCurrentUser';
+import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
+import { syncLiveSessionData } from '../../lib/liveSessionSync';
+import { consumePendingKaraokeRoomOpen } from '../../lib/live/openLiveRoom';
+import { safeAvatarUrl, safeUsername } from '../../lib/safe';
+import { handleAvatarError, persistAvatarUrl } from '../../lib/utils';
 import { getFollowButtonHoverLabel } from '../../lib/followPrivacy';
+import { resolveCanonicalAppUserId } from '../../lib/profileIdentity';
 import {
   getOptionsMenuItemClass,
   optionsMenuItemPointerHandlers,
   useOptionsMenuHover,
 } from '../../lib/optionsMenu';
-import { useProfileStats } from '../../lib/useProfileStats';
-import { FollowListModal } from '../profile/FollowListModal';
-import { ShareModal } from '../feed/ShareModal';
-import { MessagesScreen } from '../messages/MessagesScreen';
-import { SafeMediaImage } from '../common/SafeMediaImage';
-import { NotificationsScreen } from '../notifications/NotificationsScreen';
-import { buildContextualProfileSharePayload } from '../../lib/profileShare';
-import { buildKaraokeTrackSharePayload, type SharePayload } from '../../lib/shareLinks';
-import {
-  openedKaraokeProfileFromMainApp,
-  registerKaraokeTabGetter,
-  type KaraokeProfileReturnContext,
-} from '../../lib/karaokeReturnContext';
-import { openAppProfileSurface } from '../../lib/profileSurface';
-import { APP_DISPLAY_NAME } from '../../lib/appBrand';
-import { resolveCanonicalAppUserId } from '../../lib/profileIdentity';
-import type { User } from '../../types';
-import { useDB, useDbRevision } from '../../lib/useDB';
-import { useCurrentUser } from '../../lib/useCurrentUser';
-import { useAuth } from '../../lib/AuthContext';
-import { useCloudAuth } from '../../contexts/CloudAuthContext';
-import { isCloudAuthConfigured } from '../../lib/auth/config';
-import { AccountSwitcherModal } from '../profile/AccountSwitcherModal';
-import {
-  addKstarCoins,
-  getLiveCoinsBalance,
-  spendKstarCoins,
-} from '../../lib/walletKstarSync';
-import { syncLiveSessionData } from '../../lib/liveSessionSync';
-import { liveSurfaceFromTab, refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
-import { isKstarVip } from '../../lib/kstarUserState';
-import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
-import { compressAvatarDataUrl } from '../../lib/auth/cloudAvatar';
-import { useCloudPartyRooms, type CloudPartyLobbyRoom } from '../../hooks/useCloudPartyRooms';
-import { useCloudLiveDiscovery } from '../../hooks/useCloudLiveDiscovery';
-import { isSupabaseConfigured } from '../../lib/supabase/config';
-import { safeAvatarUrl, safeMediaUrl, safeString, safeUsername, safeVideoUrl } from '../../lib/safe';
-import { fileToBase64, handleAvatarError, resolveAvatarSrc } from '../../lib/utils';
 import {
   deleteKaraokeUpload,
-  ensureKaraokeUploadsHydrated,
   hydrateKaraokeUploadsFromCloud,
   listKaraokeUploads,
   listKaraokeUploadsForUser,
@@ -91,18 +61,10 @@ import {
   searchKaraokeAll,
   syncKaraokeUrl,
   buildKaraokeShareUrl,
-  KARAOKE_STUDIO_OPEN_EVENT,
   type KaraokeSearchHit,
   type KaraokeProfileTab,
-  type KaraokeUrlParams,
 } from '../../lib/karaokeSearch';
-import {
-  clearPersistedKaraokeRoomFlow,
-  NAV_PERSIST_EVENT,
-  readPersistedKaraokeRoomFlow,
-  writePersistedKaraokeRoomFlow,
-  type PersistedKaraokeRoomFlow,
-} from '../../lib/navigationRestore';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { dispatchTapRefresh, TAP_REFRESH_EVENT } from '../../lib/appRefresh';
 import { navTapButtonClass, navTapIconButtonClass, navTapRowButtonClass } from '../../lib/navTap';
 import {
@@ -113,9 +75,10 @@ import {
   studioLyricsFromUpload,
 } from '../../lib/karaokeUploadSession';
 import {
-  ensureKaraokeRecordingsHydrated,
   formatRecordingAge,
   formatRecordingCount,
+  ensureKaraokeRecordingsHydrated,
+  getRecordingPerformers,
   incrementKaraokeCoverRecordingPlays,
   isCoverRecordingVideo,
   listKaraokeCoverRecordings,
@@ -174,21 +137,16 @@ function resolveUserIdFromKaraokeHandle(handle: string, users: User[]): string |
   return users.find((u) => u.username?.toLowerCase() === clean)?.id ?? null;
 }
 
-function karaokeAvatarSrc(avatar: string | null | undefined, seed: string): string {
-  const resolved = resolveAvatarSrc(avatar || '');
-  if (resolved && resolved !== '/favicon.svg') return resolved;
-  return `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(seed)}`;
-}
-
 function buildKaraokeProfileFromDbUser(user: User): KaraokeSelectedProfile {
-  const background = karaokeProfileBackgroundForUser(user.id);
   return {
     userId: user.id,
     name: getProfileDisplayName(user),
     handle: formatProfileHandle(user) || `@${user.username}`,
-    avatar: karaokeAvatarSrc(user.avatarUrl, user.id),
+    avatar:
+      safeAvatarUrl(user.avatarUrl) ||
+      `https://api.dicebear.com/7.x/avataaars/svg?seed=${user.id}`,
     description: user.bio?.trim() || '',
-    ...background,
+    ...karaokeProfileBackgroundForUser(user.id),
   };
 }
 
@@ -218,15 +176,16 @@ function buildKaraokeProfileFromHandle(
 
 
 function coverRecordingToFeedPost(meta: KaraokeCoverRecordingMeta): KaraokeDuetPost {
-  const users = meta.performers.map((performer) => performer.handle);
+  const users = getRecordingPerformers(meta).map((performer) => performer.handle || '@you');
   const feedUsers =
     meta.performanceType === 'solo' || users.length < 2
       ? [users[0] || '@you', users[0] || '@you']
-      : users.slice(0, 2);
+      : [users[0] || '@you', users[1] || users[0] || '@you'];
+  const songTitle = meta.songTitle?.trim() || 'Untitled cover';
   return {
     id: meta.id,
     users: feedUsers,
-    song: meta.caption ? `${meta.songTitle} — ${meta.caption}` : meta.songTitle,
+    song: meta.caption ? `${songTitle} — ${meta.caption}` : songTitle,
     likesCount: meta.likes,
     commentCount: 0,
     isLiked: false,
@@ -428,10 +387,9 @@ function resolveTrackDetailsCreator(options: {
   if (!playingTrack) return null;
 
   if (activeCoverRecording) {
-    const lead = activeCoverRecording.performers[0];
+    const lead = activeCoverRecording.performers?.[0];
     if (!lead) return null;
-    const handleRaw = safeString(lead.handle, '@unknown');
-    const handle = handleRaw.startsWith('@') ? handleRaw : `@${handleRaw}`;
+    const handle = lead.handle.startsWith('@') ? lead.handle : `@${lead.handle}`;
     const followKey = handle.replace(/^@/, '');
     const isSelf = activeCoverRecording.performerUserId === currentUser.id;
     return {
@@ -509,11 +467,6 @@ const COMMUNITY_DUETS = [
   { id: '1', users: ['@sarah_sings', '@johnny_b'], song: 'Shallow (A Star Is Born)', likes: '12K', comments: 452, videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
   { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likes: '8.5K', comments: 120, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?w=800&auto=format&fit=crop&q=60' },
 ];
-const LIVE_STREAMS_FALLBACK = [
-  { id: '1', user: 'Vocal Star 99', viewers: '1.2K', img: 'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=500&auto=format&fit=crop&q=60', tags: ['Live Concert', 'Pop'] },
-  { id: '2', user: 'Acoustic Sessions', viewers: '840', img: 'https://images.unsplash.com/photo-1598387993441-a364f854c3e1?w=500&auto=format&fit=crop&q=60', tags: ['Acoustic', 'Chill'] },
-];
-
 type ReplyObj = { id: string, user: string, avatar: string, text: string, time: string, likes: number, isLiked: boolean, replies?: ReplyObj[] };
 type CommentObj = { id: string, user: string, avatar: string, text: string, time: string, likes: number, isLiked: boolean, replies: ReplyObj[] };
 
@@ -567,90 +520,23 @@ function ReplyItem({ reply, postId, onReply, onLike, replyingToCommentId, setRep
   )
 }
 
-function isOtherKaraokeProfile(profile: KaraokeSelectedProfile, selfUserId: string): boolean {
-  if (profile.userId) return profile.userId !== selfUserId;
-  return true;
-}
-
-function karaokeTabNavLabel(tab: string | null | undefined): string {
-  switch (tab) {
-    case 'feed':
-      return 'Explore';
-    case 'leaderboard':
-      return 'Leaderboard';
-    case 'live':
-      return 'Live';
-    case 'challenge':
-      return 'Contests';
-    case 'messages':
-      return 'Messages';
-    case 'notifications':
-      return 'Notifications';
-    case 'search':
-      return 'Search';
-    case 'sing':
-      return 'Studio';
-    case 'party':
-      return 'Party';
-    case 'genres':
-      return 'Genres';
-    case 'top100':
-      return 'Top 100';
-    case 'profile':
-      return 'Profile';
-    default:
-      return 'Previous';
-  }
-}
-
-function karaokeProfileBackLabel(
-  previousTab: string | null,
-  returnContext?: KaraokeProfileReturnContext | null,
-): string {
-  if (returnContext?.surface === 'karaoke-party-room') {
-    return 'Party Room';
-  }
-  if (returnContext?.surface === 'karaoke') {
-    return karaokeTabNavLabel(returnContext.tab);
-  }
-  return karaokeTabNavLabel(previousTab);
-}
-
 export function KaraokeScreen() {
   const db = useDB();
-  const dbRevision = useDbRevision();
   const appUser = useCurrentUser();
-  const {
-    userAccounts,
-    selectAccount,
-    removeAccount,
-    linkEmailAccount,
-    linkEmailSignUp,
-    sendEmailAuthOtp,
-    verifyEmailAuthOtp,
-    linkGoogleAccount,
-    ensureDeviceAccountsSynced,
-  } = useAuth();
-  const { session: cloudSession } = useCloudAuth();
-  const cloudParty = useCloudPartyRooms(isSupabaseConfigured());
-  const cloudLive = useCloudLiveDiscovery(isSupabaseConfigured());
+  useLiveCloudSurface('karaoke', {
+    onSync: () => {
+      void syncLiveSessionData(appUser.id);
+    },
+    poll: false,
+  });
 
   useEffect(() => {
-    void import('../../lib/preloadAppSurfaces').then((m) => m.preloadHeavyAppSurfaces());
+    ensureKaraokeRecordingsHydrated();
   }, []);
-
-  const userCoins = useMemo(
-    () => getLiveCoinsBalance(appUser.id),
-    [appUser.id, dbRevision],
-  );
-  const userVip = useMemo(() => isKstarVip(appUser), [appUser, dbRevision]);
-
-  useEffect(() => {
-    void syncLiveSessionData(appUser.id);
-  }, [appUser.id]);
-
-  const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
-  const [accountLinking, setAccountLinking] = useState(false);
+  
+  // Real-time reactive states for tracking user coins and membership tiers
+  const [userCoins, setUserCoins] = useState(1250);
+  const [userVip, setUserVip] = useState(false);
 
   // Dynamic state for duets that makes interactions (likes, comments, gifts) reactive and persistent
   const [duets, setDuets] = useState<KaraokeDuetPost[]>(() => [
@@ -684,10 +570,14 @@ export function KaraokeScreen() {
   }, [appUser.id, mergeUploadedIntoLibrary]);
 
   useEffect(() => {
-    ensureKaraokeUploadsHydrated();
-    ensureKaraokeRecordingsHydrated();
     loadUserUploads();
-    void hydrateKaraokeUploadsFromCloud().then(loadUserUploads);
+    const runCloudHydrate = () => {
+      void hydrateKaraokeUploadsFromCloud().then(loadUserUploads);
+    };
+    const idleId =
+      typeof window.requestIdleCallback === 'function'
+        ? window.requestIdleCallback(runCloudHydrate, { timeout: 2500 })
+        : window.setTimeout(runCloudHydrate, 200);
     window.addEventListener('karaoke-uploads-updated', loadUserUploads);
     const onTapRefresh = (event: Event) => {
       const scope = (event as CustomEvent<{ scope?: string }>).detail?.scope;
@@ -696,6 +586,11 @@ export function KaraokeScreen() {
     };
     window.addEventListener(TAP_REFRESH_EVENT, onTapRefresh);
     return () => {
+      if (typeof window.cancelIdleCallback === 'function' && typeof idleId === 'number') {
+        window.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId);
+      }
       window.removeEventListener('karaoke-uploads-updated', loadUserUploads);
       window.removeEventListener(TAP_REFRESH_EVENT, onTapRefresh);
     };
@@ -709,7 +604,6 @@ export function KaraokeScreen() {
 
   const openUploadedSongListen = useCallback(async (song: KaraokeLibrarySong) => {
     captureTrackDetailsOriginRef.current();
-    window.dispatchEvent(new CustomEvent('app-toast', { detail: `Loading "${song.title}"...` }));
     const enriched = await enrichUploadedKaraokeSong(song);
     if (!enriched.audioUrl) {
       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Audio file not found for this upload. Try re-uploading.' }));
@@ -767,7 +661,6 @@ export function KaraokeScreen() {
   const [commentText, setCommentText] = useState('');
   const [chatText, setChatText] = useState('');
   const [chatMessages, setChatMessages] = useState<{user:string, text:string}[]>([]);
-  const [liveLikes, setLiveLikes] = useState(0);
   const [replyingToCommentId, setReplyingToCommentId] = useState<string | null>(null);
   const [replyText, setReplyText] = useState('');
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
@@ -791,71 +684,13 @@ export function KaraokeScreen() {
     '2': 18
   });
 
-  const [activeTab, setActiveTab] = useState<'sing' | 'feed' | 'live' | 'party' | 'profile' | 'search' | 'challenge' | 'leaderboard' | 'genres' | 'top100' | 'messages' | 'notifications'>('sing');
-  const [karaokeMessagesChatId, setKaraokeMessagesChatId] = useState<string | null>(null);
+  const [activeTab, setActiveTab] = useState<'sing' | 'feed' | 'party' | 'profile' | 'search' | 'challenge' | 'leaderboard' | 'genres' | 'top100' | 'messages' | 'notifications'>('sing');
   const [previousTab, setPreviousTab] = useState<any>(null);
-  const [profileReturnContext, setProfileReturnContext] = useState<KaraokeProfileReturnContext | null>(null);
-  const activeTabRef = useRef(activeTab);
-  activeTabRef.current = activeTab;
-  const lastAppliedSearchRef = useRef('');
-
-  const commitKaraokeNavigation = (patch: KaraokeUrlParams, mode: 'replace' | 'push' = 'replace') => {
-    syncKaraokeUrl(patch, mode);
-    lastAppliedSearchRef.current = window.location.search;
-  };
-
-  useEffect(() => {
-    registerKaraokeTabGetter(() => activeTabRef.current);
-    return () => registerKaraokeTabGetter(null);
-  }, []);
-
-  const persistedRoomFlow = readPersistedKaraokeRoomFlow();
-  const [showSmuleRoomFlow, setShowSmuleRoomFlow] = useState(
-    persistedRoomFlow?.showSmuleRoomFlow ?? false,
-  );
-  const [smuleRoomFlowKey, setSmuleRoomFlowKey] = useState(
-    persistedRoomFlow?.showSmuleRoomFlow ? 1 : 0,
-  );
-  const [smuleRoomInitialPath, setSmuleRoomInitialPath] = useState(
-    persistedRoomFlow?.smuleRoomInitialPath ?? '/room/create',
-  );
-  const [smuleRoomFlowEntry, setSmuleRoomFlowEntry] = useState<RoomFlowEntry>(
-    persistedRoomFlow?.smuleRoomFlowEntry ?? 'default',
-  );
-  const roomFlowSnapshotRef = useRef<PersistedKaraokeRoomFlow>({
-    showSmuleRoomFlow: persistedRoomFlow?.showSmuleRoomFlow ?? false,
-    smuleRoomInitialPath: persistedRoomFlow?.smuleRoomInitialPath ?? '/room/create',
-    smuleRoomFlowEntry: persistedRoomFlow?.smuleRoomFlowEntry ?? 'default',
-  });
-  roomFlowSnapshotRef.current = {
-    showSmuleRoomFlow,
-    smuleRoomInitialPath,
-    smuleRoomFlowEntry,
-  };
-
-  useEffect(() => {
-    if (!showSmuleRoomFlow) {
-      clearPersistedKaraokeRoomFlow();
-      return;
-    }
-    writePersistedKaraokeRoomFlow({
-      showSmuleRoomFlow,
-      smuleRoomInitialPath,
-      smuleRoomFlowEntry,
-    });
-  }, [showSmuleRoomFlow, smuleRoomInitialPath, smuleRoomFlowEntry]);
-
-  useEffect(() => {
-    const onPersist = () => {
-      if (!roomFlowSnapshotRef.current.showSmuleRoomFlow) return;
-      writePersistedKaraokeRoomFlow(roomFlowSnapshotRef.current);
-    };
-    window.addEventListener(NAV_PERSIST_EVENT, onPersist);
-    return () => window.removeEventListener(NAV_PERSIST_EVENT, onPersist);
-  }, []);
-
+  const [karaokeMessagesChatId, setKaraokeMessagesChatId] = useState<string | null>(null);
   const [selectedSong, setSelectedSong] = useState<any>(null);
-  const [activeLiveStream, setActiveLiveStream] = useState<any>(null);
+  const [showSmuleRoomFlow, setShowSmuleRoomFlow] = useState(false);
+  const [smuleRoomFlowKey, setSmuleRoomFlowKey] = useState(0);
+  const [smuleRoomInitialPath, setSmuleRoomInitialPath] = useState('/room/create');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [messagesChatOpen, setMessagesChatOpen] = useState(false);
   const contentScrollRef = useRef<HTMLDivElement>(null);
@@ -868,580 +703,6 @@ export function KaraokeScreen() {
     window.addEventListener('messages:chat-open', onChatState as EventListener);
     return () => window.removeEventListener('messages:chat-open', onChatState as EventListener);
   }, []);
-
-  type KaraokeTab = typeof activeTab;
-
-  const goToKaraokeStudio = useCallback(() => {
-    setSelectedUserProfile(null);
-    setKaraokeProfileStack([]);
-    if (profileReturnContext?.surface === 'app') {
-      setProfileReturnContext(null);
-    }
-    setPreviousTab(null);
-    setShowSmuleRoomFlow(false);
-    clearPersistedKaraokeRoomFlow();
-    clearActiveRoomSession();
-    setKaraokeMessagesChatId(null);
-    setActiveTab('sing');
-    commitKaraokeNavigation({
-      tab: 'sing',
-      profileTab: null,
-      user: null,
-      track: null,
-      recording: null,
-    });
-    contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-  }, [profileReturnContext?.surface]);
-
-  const handleKStarLogoTap = () => {
-    if (activeTab === 'sing' && !showSmuleRoomFlow && !selectedUserProfile) {
-      dispatchTapRefresh('karaoke');
-      contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'K-Star refreshed' }));
-      return;
-    }
-    goToKaraokeStudio();
-  };
-
-  const handleKaraokeTabTap = (tab: KaraokeTab) => {
-    if (tab === activeTab) {
-      if (tab !== 'messages' && tab !== 'notifications') {
-        dispatchTapRefresh('karaoke');
-        contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
-        window.dispatchEvent(new CustomEvent('app-toast', { detail: 'K-Star refreshed' }));
-      }
-      refreshLiveCloudSurface(liveSurfaceFromTab(tab), { force: true });
-      return;
-    }
-    if (tab === 'messages') {
-      db.setUnreadMessagesCount(0);
-    }
-    if (tab === 'notifications') {
-      db.setHasUnreadNotifications(false);
-    }
-    if (tab === 'search') {
-      setPreviousTab(activeTabRef.current);
-    }
-    setSelectedUserProfile(null);
-    setKaraokeProfileStack([]);
-    if (tab !== 'profile' && profileReturnContext?.surface === 'app') {
-      setProfileReturnContext(null);
-    }
-    setActiveTab(tab);
-    refreshLiveCloudSurface(liveSurfaceFromTab(tab), { force: true });
-    commitKaraokeNavigation({
-      tab,
-      profileTab: tab === 'profile' ? profileActiveTab : null,
-      user: null,
-      track: null,
-      recording: null,
-    });
-  };
-
-  const karaokeNavButtonClass = (tab: KaraokeTab, extra = '') =>
-    `${navTapButtonClass} w-full flex items-center lg:justify-start justify-center gap-3 lg:px-4 py-3 min-h-[44px] rounded-2xl transition ${extra}`;
-
-  const KARAOKE_MOBILE_NAV = [
-    { id: 'sing' as const, icon: MicVocal, label: 'Sing' },
-    { id: 'party' as const, icon: PartyRoomIcon, label: 'Party' },
-    { id: 'feed' as const, icon: Search, label: 'Explore' },
-    { id: 'messages' as const, icon: MessageCircle, label: 'Messages' },
-    { id: 'notifications' as const, icon: Bell, label: 'Notifications' },
-    { id: 'live' as const, icon: Video, label: 'Live' },
-    { id: 'challenge' as const, icon: Trophy, label: 'Contest' },
-    { id: 'leaderboard' as const, icon: Crown, label: 'Top' },
-  ];
-
-  const openSmuleRoomFlow = (path: string, entry: RoomFlowEntry = 'default') => {
-    setShowMobileMenu(false);
-    setSmuleRoomInitialPath(path);
-    setSmuleRoomFlowEntry(entry);
-    setSmuleRoomFlowKey((k) => k + 1);
-    setShowSmuleRoomFlow(true);
-  };
-
-  const lastKaraokeRoomOpenRef = useRef<string>('');
-  const applyKaraokeRoomOpen = useCallback((detail?: OpenKaraokeRoomDetail | null) => {
-    if (!detail) return;
-    const path =
-      detail.path ||
-      (detail.roomId ? `/room/${detail.roomId}` : null);
-    if (!path) return;
-
-    const roomId =
-      detail.roomId ||
-      (path.startsWith('/room/') && path !== '/room/create'
-        ? path.replace(/^\/room\//, '').split('/')[0]
-        : '');
-    const entry = detail.entry ?? 'karaoke-party';
-    const dedupeKey = `${path}|${roomId}|${entry}|${detail.asViewer ? 'v' : 'h'}`;
-    const now = Date.now();
-    const prev = lastKaraokeRoomOpenRef.current;
-    if (prev.startsWith(`${dedupeKey}|`)) {
-      const prevAt = Number(prev.split('|').pop() || 0);
-      if (now - prevAt < 1200) return;
-    }
-    lastKaraokeRoomOpenRef.current = `${dedupeKey}|${now}`;
-
-    if (roomId && path !== '/room/create') {
-      const roomName = detail.roomName?.trim() || `Room ${roomId}`;
-      const roomMode = detail.roomMode || 'Chat';
-      const hostName = detail.hostName?.trim() || roomName;
-      const hostUserId = detail.hostUserId?.trim() || '';
-
-      ensureRoomSettingsSeeded(roomId, {
-        roomId,
-        roomName,
-        roomMode,
-        owner: hostName,
-        ownerUserId: hostUserId || undefined,
-        hostUserId: hostUserId || undefined,
-        host: hostName,
-      });
-
-      if (detail.asViewer) {
-        saveRoomSettings(roomId, {
-          roomId,
-          roomName,
-          roomMode,
-          owner: hostName,
-          ownerUserId: hostUserId || undefined,
-          hostUserId: hostUserId || undefined,
-          host: hostName,
-        });
-        localStorage.setItem('currentUserRole', 'user');
-      } else if (detail.roomName || detail.roomMode) {
-        saveRoomSettings(roomId, {
-          roomId,
-          ...(detail.roomName ? { roomName: detail.roomName } : {}),
-          ...(detail.roomMode ? { roomMode: detail.roomMode } : {}),
-        });
-      }
-
-      ensureRoomRoleUserIds(roomId);
-      localStorage.setItem('activeRoomId', roomId);
-    }
-
-    // Pending open was delivered — clear so retries don't re-open after leave.
-    consumePendingKaraokeRoomOpen();
-    openSmuleRoomFlow(path, entry);
-  }, []);
-
-  const openManagedRoom = (room: ManagedRoom, path?: string) => {
-    activateRoomContext(room);
-    openSmuleRoomFlow(path ?? `/room/${room.id}`, 'karaoke-profile-manage');
-  };
-
-  const PARTY_LOBBY_ROOMS: CloudPartyLobbyRoom[] =
-    cloudParty.rooms.length > 0
-      ? cloudParty.rooms
-      : [
-          { id: '1181033', name: 'Pop Hits 2026 🎵', host: 'VocalKing', hostUserId: '', participants: 42, max: 50, tags: ['Pop', 'Top 40'], roomMode: 'Karaoke', coverUrl: null },
-          { id: '1167298', name: '90s R&B Throwbacks', host: 'SoulSister', hostUserId: '', participants: 28, max: 50, tags: ['R&B', '90s'], roomMode: 'Chat', coverUrl: null },
-        ];
-
-  const liveStreamsForUi =
-    cloudLive.streams.length > 0
-      ? cloudLive.streams.map((s) => ({
-          id: s.id,
-          user: s.user,
-          title: s.title,
-          viewers: s.viewers,
-          img: s.img,
-          tags: s.tags,
-          partyRoomId: s.partyRoomId,
-        }))
-      : LIVE_STREAMS_FALLBACK;
-
-  const openLiveDiscoveryItem = (stream: {
-    partyRoomId?: string;
-    title?: string;
-    user: string;
-    id: string;
-  }) => {
-    if (stream.partyRoomId) {
-      joinPartyRoom({
-        id: stream.partyRoomId,
-        name: stream.title || `${stream.user}'s room`,
-        host: stream.user,
-        hostUserId: '',
-        participants: 0,
-        max: 50,
-        tags: [],
-        roomMode: 'SoloLive',
-        coverUrl: null,
-      });
-      return;
-    }
-    setActiveLiveStream(stream);
-  };
-
-  const joinPartyRoom = (room: CloudPartyLobbyRoom) => {
-    const roomId = String(room.id);
-    ensureRoomSettingsSeeded(roomId, {
-      roomId,
-      roomName: room.name,
-      roomMode: room.roomMode,
-      owner: room.host,
-    });
-    ensureRoomRoleUserIds(roomId);
-    saveRoomSettings(roomId, {
-      roomId,
-      roomName: room.name,
-      roomMode: room.roomMode,
-    });
-    localStorage.setItem('currentUserRole', 'user');
-    openSmuleRoomFlow(`/room/${roomId}`, 'karaoke-party');
-  };
-  const [showGiftModal, setShowGiftModal] = useState(false);
-  const [showVipModal, setShowVipModal] = useState(false);
-  const [desktopLeaderboardTab, setDesktopLeaderboardTab] = useState<'weekly' | 'alltime'>('weekly');
-  const [selectedUserProfile, setSelectedUserProfile] = useState<KaraokeSelectedProfile | null>(null);
-  const [karaokeProfileStack, setKaraokeProfileStack] = useState<KaraokeSelectedProfile[]>([]);
-  const [userCovers, setUserCovers] = useState<KaraokeUserCoverCard[]>([]);
-
-  const selfProfileStats = useProfileStats(null, appUser.id);
-
-  const karaokeViewedProfileUserId = useMemo(() => {
-    if (!selectedUserProfile) return appUser.id;
-    const handle = selectedUserProfile.handle?.replace(/^@/, '');
-    const canonical = resolveCanonicalAppUserId(
-      selectedUserProfile.userId,
-      selectedUserProfile.name,
-      handle,
-    );
-    if (canonical) return canonical;
-    if (selectedUserProfile.handle) {
-      return resolveUserIdFromKaraokeHandle(selectedUserProfile.handle, db.users);
-    }
-    return null;
-  }, [selectedUserProfile, appUser.id, db.users]);
-
-  const karaokeProfileStats = useProfileStats(
-    karaokeViewedProfileUserId ? { id: karaokeViewedProfileUserId } : null,
-    karaokeViewedProfileUserId,
-  );
-
-  const viewedProfileCovers = useMemo(() => {
-    if (!selectedUserProfile) return userCovers;
-    if (karaokeViewedProfileUserId) {
-      return listKaraokeCoverRecordingsForUser(karaokeViewedProfileUserId).map(
-        coverRecordingToUserCard,
-      );
-    }
-    const handle = String(selectedUserProfile.handle).toLowerCase();
-    return listKaraokeCoverRecordings()
-      .filter((row) =>
-        row.performers.some((performer) => performer.handle.toLowerCase() === handle),
-      )
-      .map(coverRecordingToUserCard);
-  }, [selectedUserProfile, karaokeViewedProfileUserId, userCovers]);
-
-  const karaokeViewedCoverCount = viewedProfileCovers.length;
-
-  const karaokeViewedUploadCount = useMemo(() => {
-    if (!selectedUserProfile) return uploadedSongs.length;
-    if (!karaokeViewedProfileUserId) return 0;
-    return listKaraokeUploadsForUser(karaokeViewedProfileUserId).length;
-  }, [selectedUserProfile, karaokeViewedProfileUserId, uploadedSongs.length]);
-
-  const [karaokeFollowList, setKaraokeFollowList] = useState<{
-    userId: string;
-    mode: 'followers' | 'following';
-  } | null>(null);
-
-  const [karaokeShareModal, setKaraokeShareModal] = useState<SharePayload | null>(null);
-  const [profileBackgroundRevision, setProfileBackgroundRevision] = useState(0);
-
-  useEffect(() => {
-    setProfileBackgroundRevision((value) => value + 1);
-  }, [appUser.id]);
-
-  useEffect(() => {
-    const onBackgroundUpdated = () => setProfileBackgroundRevision((value) => value + 1);
-    window.addEventListener('karaoke-profile-background-updated', onBackgroundUpdated);
-    return () =>
-      window.removeEventListener('karaoke-profile-background-updated', onBackgroundUpdated);
-  }, []);
-
-  const openKaraokeShareModal = useCallback((payload: SharePayload) => {
-    setKaraokeShareModal(payload);
-  }, []);
-
-  const CURRENT_USER = useMemo(
-    () => {
-      const background = karaokeProfileBackgroundForUser(appUser.id);
-      return {
-      id: appUser.id,
-      name: getProfileDisplayName(appUser),
-      handle:
-        formatProfileHandle(appUser) ||
-        `@${(appUser.username || appUser.displayName || 'you').toLowerCase().replace(/\s+/g, '_')}`,
-      avatar: karaokeAvatarSrc(appUser.avatarUrl, appUser.id),
-      coins: userCoins,
-      vip: userVip,
-      followers: selfProfileStats.followerCount.toLocaleString(),
-      following: selfProfileStats.followingCount.toLocaleString(),
-      likes: '2.1M',
-      description:
-        appUser.bio || 'Aspiring vocalist & shower singer legend. Mostly Pop and R&B! 🎤✨',
-      ...background,
-    };
-    },
-    [
-      appUser.id,
-      appUser.username,
-      appUser.displayName,
-      appUser.avatarUrl,
-      appUser.bio,
-      selfProfileStats.followerCount,
-      selfProfileStats.followingCount,
-      userCoins,
-      userVip,
-      profileBackgroundRevision,
-    ],
-  );
-
-  // Profile-specific states
-  const [searchQuery, setSearchQuery] = useState('');
-  const [profileActiveTab, setProfileActiveTab] = useState<KaraokeProfileTab>('covers');
-  const [profileFollowHover, setProfileFollowHover] = useState(false);
-  const [showKaraokeProfileActionsMenu, setShowKaraokeProfileActionsMenu] = useState(false);
-  const { hoveredMenuItem: karaokeProfileHoveredMenuItem, setHoveredMenuItem: setKaraokeProfileHoveredMenuItem } =
-    useOptionsMenuHover(showKaraokeProfileActionsMenu);
-
-  useEffect(() => {
-    setShowKaraokeProfileActionsMenu(false);
-  }, [karaokeViewedProfileUserId, selectedUserProfile]);
-  const profileActiveTabRef = useRef(profileActiveTab);
-  profileActiveTabRef.current = profileActiveTab;
-  const selectedUserProfileRef = useRef(selectedUserProfile);
-  selectedUserProfileRef.current = selectedUserProfile;
-  const goToProfileTab = useCallback((tab: KaraokeProfileTab) => {
-    setActiveTab('profile');
-    setProfileActiveTab(tab);
-    commitKaraokeNavigation({ tab: 'profile', profileTab: tab, user: null, track: null, recording: null });
-  }, []);
-
-  /** Rose header BACK — always returns to the main app home feed. Never uses history goBack. */
-  const exitKaraokeToMainApp = useCallback(() => {
-    setSelectedUserProfile(null);
-    setProfileReturnContext(null);
-    setPreviousTab(null);
-    setShowSmuleRoomFlow(false);
-    clearPersistedKaraokeRoomFlow();
-    clearActiveRoomSession();
-    window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'home' } }));
-  }, []);
-
-  const closeOtherUserProfileView = useCallback(() => {
-    if (karaokeProfileStack.length > 0) {
-      const prior = karaokeProfileStack[karaokeProfileStack.length - 1];
-      setKaraokeProfileStack((stack) => stack.slice(0, -1));
-      setSelectedUserProfile(prior);
-      commitKaraokeNavigation({
-        tab: 'profile',
-        profileTab: profileActiveTab,
-        user: prior.handle?.replace(/^@/, '') ?? null,
-        track: null,
-        recording: null,
-      }, 'push');
-      return;
-    }
-
-    setSelectedUserProfile(null);
-    setKaraokeProfileStack([]);
-
-    if (profileReturnContext?.surface === 'karaoke-party-room') {
-      const roomPath = profileReturnContext.roomPath;
-      setProfileReturnContext(null);
-      setPreviousTab(null);
-      setActiveTab('party');
-      openSmuleRoomFlow(roomPath, 'karaoke-party');
-      commitKaraokeNavigation({
-        tab: 'party',
-        profileTab: null,
-        user: null,
-        track: null,
-        recording: null,
-      });
-      return;
-    }
-
-    const returnTab =
-      profileReturnContext?.surface === 'karaoke'
-        ? profileReturnContext.tab
-        : previousTab && previousTab !== 'profile'
-          ? previousTab
-          : 'profile';
-    const returnProfileTab = returnTab === 'profile' ? profileActiveTab : null;
-
-    setProfileReturnContext(null);
-    setPreviousTab(null);
-    setActiveTab(returnTab as KaraokeTab);
-    commitKaraokeNavigation({
-      tab: returnTab,
-      profileTab: returnProfileTab,
-      user: null,
-      track: null,
-      recording: null,
-    });
-  }, [profileReturnContext, previousTab, profileActiveTab, karaokeProfileStack]);
-
-  const navigateToKaraokeOtherProfile = useCallback(
-    (profile: KaraokeSelectedProfile) => {
-      if (
-        selectedUserProfile &&
-        isOtherKaraokeProfile(selectedUserProfile, appUser.id)
-      ) {
-        setKaraokeProfileStack((stack) => [...stack, selectedUserProfile]);
-      } else if (activeTabRef.current !== 'profile') {
-        setPreviousTab(activeTabRef.current);
-      }
-      setProfileReturnContext((ctx) => (ctx?.surface === 'app' ? null : ctx));
-      setSelectedUserProfile(profile);
-      setActiveTab('profile');
-      commitKaraokeNavigation({
-        tab: 'profile',
-        profileTab: profileActiveTab,
-        user: profile.handle?.replace(/^@/, '') ?? null,
-        track: null,
-        recording: null,
-      }, 'push');
-    },
-    [profileActiveTab, selectedUserProfile, appUser.id],
-  );
-
-  const pushKaraokeStackTab = useCallback((tab: 'genres' | 'top100' | 'search') => {
-    setPreviousTab(activeTabRef.current);
-    setActiveTab(tab);
-    commitKaraokeNavigation({
-      tab,
-      profileTab: null,
-      user: null,
-      track: null,
-      recording: null,
-    }, 'push');
-  }, []);
-
-  const popKaraokeStackBack = useCallback(() => {
-    const returnTab = (
-      previousTab && isKaraokeTab(previousTab) ? previousTab : 'sing'
-    ) as KaraokeTab;
-    setPreviousTab(null);
-    setActiveTab(returnTab);
-    commitKaraokeNavigation({
-      tab: returnTab,
-      profileTab: null,
-      user: null,
-      track: null,
-      recording: null,
-    });
-  }, [previousTab]);
-
-  useEffect(() => {
-    const onKaraokeProfileOpen = (event: Event) => {
-      const detail = (event as CustomEvent<{
-        userId?: string | null;
-        username?: string | null;
-        displayName?: string | null;
-        profileTab?: KaraokeProfileTab | null;
-        closeRoomFlow?: boolean;
-        fromShare?: boolean;
-        returnContext?: KaraokeProfileReturnContext;
-      }>).detail;
-      if (!detail) return;
-
-      if (detail.closeRoomFlow) {
-        clearActiveRoomSession();
-        setShowSmuleRoomFlow(false);
-      }
-
-      const resolveProfileFromDetail = (): KaraokeSelectedProfile | null => {
-        const canonicalUserId = detail.userId
-          ? resolveCanonicalAppUserId(
-              detail.userId,
-              detail.displayName,
-              detail.username,
-            )
-          : resolveCanonicalAppUserId(
-              null,
-              detail.displayName,
-              detail.username,
-            );
-
-        if (canonicalUserId) {
-          const byId = db.users.find((row: User) => row.id === canonicalUserId);
-          if (byId) return buildKaraokeProfileFromDbUser(byId);
-        }
-
-        if (detail.username) {
-          const handle = detail.username.startsWith('@')
-            ? detail.username
-            : `@${detail.username}`;
-          const byUsername = db.users.find(
-            (row: User) => safeUsername(row.username) === safeUsername(detail.username!),
-          );
-          if (byUsername) return buildKaraokeProfileFromDbUser(byUsername);
-          return buildKaraokeProfileFromHandle(handle, db.users);
-        }
-        if (detail.displayName) {
-          const fromDisplayName = resolveCanonicalAppUserId(
-            null,
-            detail.displayName,
-            detail.username,
-          );
-          if (fromDisplayName) {
-            const byId = db.users.find((row: User) => row.id === fromDisplayName);
-            if (byId) return buildKaraokeProfileFromDbUser(byId);
-          }
-        }
-        return null;
-      };
-
-      const profile = resolveProfileFromDetail();
-      if (detail.returnContext) {
-        setProfileReturnContext(detail.returnContext);
-      }
-      if (profile && isOtherKaraokeProfile(profile, appUser.id)) {
-        if (detail.returnContext?.surface === 'karaoke-party-room') {
-          /* Back returns to party room via profileReturnContext. */
-        } else if (
-          detail.returnContext?.surface === 'karaoke' &&
-          detail.returnContext.tab !== 'profile'
-        ) {
-          setPreviousTab(detail.returnContext.tab);
-        } else if (!detail.returnContext && activeTabRef.current !== 'profile') {
-          setPreviousTab(activeTabRef.current);
-        }
-      }
-      if (profile) {
-        setSelectedUserProfile(
-          isOtherKaraokeProfile(profile, appUser.id) ? profile : null,
-        );
-      } else if (!detail.userId && !detail.username) {
-        setSelectedUserProfile(null);
-      }
-
-      const nextTab = detail.profileTab ?? 'covers';
-      setActiveTab('profile');
-      setProfileActiveTab(nextTab);
-      commitKaraokeNavigation({
-        tab: 'profile',
-        profileTab: nextTab,
-        user: profile?.handle ?? (detail.username
-          ? detail.username.startsWith('@')
-            ? detail.username
-            : `@${detail.username}`
-          : null),
-        track: null,
-        recording: null,
-      }, 'push');
-    };
-
-    window.addEventListener('karaoke-profile-open', onKaraokeProfileOpen);
-    return () => window.removeEventListener('karaoke-profile-open', onKaraokeProfileOpen);
-  }, [db.users, appUser.id]);
 
   useEffect(() => {
     const onKaraokeMessagesOpen = (event: Event) => {
@@ -1463,13 +724,217 @@ export function KaraokeScreen() {
     return () => window.removeEventListener('karaoke-notifications-open', onKaraokeNotificationsOpen);
   }, [db]);
 
+  type KaraokeTab = typeof activeTab;
+
+  const handleKStarLogoTap = () => {
+    if (activeTab === 'sing') {
+      dispatchTapRefresh('karaoke');
+      contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'K-Star refreshed' }));
+      return;
+    }
+    setActiveTab('sing');
+  };
+
+  const handleKaraokeTabTap = (tab: KaraokeTab) => {
+    if (tab === activeTab) {
+      if (tab !== 'messages' && tab !== 'notifications') {
+        dispatchTapRefresh('karaoke');
+        contentScrollRef.current?.scrollTo({ top: 0, behavior: 'smooth' });
+        window.dispatchEvent(new CustomEvent('app-toast', { detail: 'K-Star refreshed' }));
+      }
+      return;
+    }
+    if (tab === 'messages') {
+      db.setUnreadMessagesCount(0);
+    }
+    if (tab === 'notifications') {
+      db.setHasUnreadNotifications(false);
+    }
+    if (tab !== 'messages') {
+      setKaraokeMessagesChatId(null);
+    }
+    setActiveTab(tab);
+    syncKaraokeUrl({
+      tab,
+      profileTab: tab === 'profile' ? profileActiveTab : null,
+      track: null,
+      recording: null,
+    });
+  };
+
+  const karaokeNavButtonClass = (tab: KaraokeTab, extra = '') =>
+    `${navTapButtonClass} w-full flex items-center lg:justify-start justify-center gap-3 lg:px-4 py-3 min-h-[44px] rounded-2xl transition ${extra}`;
+
+  /** Primary K-Star destinations — desktop side rail + mobile drawer share this list. */
+  const KARAOKE_PRIMARY_NAV = [
+    { id: 'sing' as const, icon: MicVocal, label: 'Studio', shortLabel: 'Sing' },
+    { id: 'party' as const, icon: PartyRoomIcon, label: 'Party Rooms', shortLabel: 'Party' },
+    { id: 'feed' as const, icon: Search, label: 'Explore', shortLabel: 'Explore' },
+    { id: 'messages' as const, icon: MessageCircle, label: 'Messages', shortLabel: 'Messages' },
+    { id: 'notifications' as const, icon: Bell, label: 'Notifications', shortLabel: 'Notifications' },
+    { id: 'challenge' as const, icon: Trophy, label: 'Challenges', shortLabel: 'Contest' },
+    { id: 'leaderboard' as const, icon: Crown, label: 'Leaderboard', shortLabel: 'Top' },
+  ];
+
+  const KARAOKE_MOBILE_NAV = KARAOKE_PRIMARY_NAV.map((item) => ({
+    id: item.id,
+    icon: item.icon,
+    label: item.shortLabel,
+  }));
+
+  const openSmuleRoomFlow = (path: string) => {
+    setShowMobileMenu(false);
+    setSmuleRoomInitialPath(path);
+    setSmuleRoomFlowKey((k) => k + 1);
+    setShowSmuleRoomFlow(true);
+  };
+
   useEffect(() => {
-    const onOpenStudio = () => {
-      goToKaraokeStudio();
+    const pending = consumePendingKaraokeRoomOpen();
+    if (!pending) return;
+    const path =
+      pending.path?.trim() ||
+      (pending.roomId?.trim() ? `/room/${pending.roomId.trim()}` : '');
+    if (!path) return;
+    openSmuleRoomFlow(path);
+  }, []);
+
+  const openManagedRoom = (room: ManagedRoom, path?: string) => {
+    activateRoomContext(room);
+    openSmuleRoomFlow(path ?? `/room/${room.id}`);
+  };
+
+  const PARTY_LOBBY_ROOMS = [
+    { id: 1181033, name: 'Pop Hits 2026 🎵', host: 'VocalKing', participants: 42, max: 50, tags: ['Pop', 'Top 40'], roomMode: 'Karaoke' as const },
+    { id: 1167298, name: '90s R&B Throwbacks', host: 'SoulSister', participants: 28, max: 50, tags: ['R&B', '90s'], roomMode: 'Chat' as const },
+    { id: 3, name: 'K-Pop Fanatics', host: 'BTS_Army12', participants: 49, max: 50, tags: ['K-Pop', 'Dance'], roomMode: 'Karaoke' as const },
+    { id: 4, name: 'Chill Acoustic Vibes', host: 'GuitarHero', participants: 15, max: 50, tags: ['Acoustic', 'Chill'], roomMode: 'Radio' as const },
+  ];
+
+  const joinPartyRoom = (room: (typeof PARTY_LOBBY_ROOMS)[number]) => {
+    const roomId = String(room.id);
+    ensureRoomSettingsSeeded(roomId, {
+      roomId,
+      roomName: room.name,
+      roomMode: room.roomMode,
+      owner: room.host,
+    });
+    ensureRoomRoleUserIds(roomId);
+    saveRoomSettings(roomId, {
+      roomId,
+      roomName: room.name,
+      roomMode: room.roomMode,
+    });
+    localStorage.setItem('currentUserRole', 'user');
+    openSmuleRoomFlow(`/room/${roomId}`);
+  };
+  const [showGiftModal, setShowGiftModal] = useState(false);
+  const [showVipModal, setShowVipModal] = useState(false);
+  const [desktopLeaderboardTab, setDesktopLeaderboardTab] = useState<'weekly' | 'alltime'>('weekly');
+  const [selectedUserProfile, setSelectedUserProfile] = useState<KaraokeSelectedProfile | null>(null);
+  const [userCovers, setUserCovers] = useState<KaraokeUserCoverCard[]>([]);
+
+  const selfProfileStats = useProfileStats(appUser, appUser.id);
+
+  const karaokeViewedProfileUserId = useMemo(() => {
+    if (!selectedUserProfile) return appUser.id;
+    if (selectedUserProfile.userId) return selectedUserProfile.userId;
+    if (selectedUserProfile.handle) {
+      return resolveUserIdFromKaraokeHandle(selectedUserProfile.handle, db.users);
+    }
+    return null;
+  }, [selectedUserProfile, appUser.id, db.users]);
+
+  const karaokeProfileStats = useProfileStats(
+    karaokeViewedProfileUserId ? { id: karaokeViewedProfileUserId } : null,
+    karaokeViewedProfileUserId,
+  );
+
+  const viewedProfileCovers = useMemo(() => {
+    if (!selectedUserProfile) return userCovers;
+    if (karaokeViewedProfileUserId) {
+      return listKaraokeCoverRecordingsForUser(karaokeViewedProfileUserId).map(
+        coverRecordingToUserCard,
+      );
+    }
+    const handle = String(selectedUserProfile.handle).toLowerCase();
+    return listKaraokeCoverRecordings()
+      .filter((row) =>
+        getRecordingPerformers(row).some(
+          (performer) => performer.handle?.toLowerCase() === handle,
+        ),
+      )
+      .map(coverRecordingToUserCard);
+  }, [selectedUserProfile, karaokeViewedProfileUserId, userCovers]);
+
+  const karaokeViewedCoverCount = viewedProfileCovers.length;
+
+  const karaokeViewedUploadCount = useMemo(() => {
+    if (!selectedUserProfile) return uploadedSongs.length;
+    if (!karaokeViewedProfileUserId) return 0;
+    return listKaraokeUploadsForUser(karaokeViewedProfileUserId).length;
+  }, [selectedUserProfile, karaokeViewedProfileUserId, uploadedSongs.length]);
+
+  const [karaokeFollowList, setKaraokeFollowList] = useState<{
+    userId: string;
+    mode: 'followers' | 'following';
+  } | null>(null);
+
+  const [karaokeShareModal, setKaraokeShareModal] = useState<SharePayload | null>(null);
+
+  const openKaraokeShareModal = useCallback((payload: SharePayload) => {
+    setKaraokeShareModal(payload);
+  }, []);
+
+  const [profileBackgroundRevision, setProfileBackgroundRevision] = useState(0);
+
+  const CURRENT_USER = useMemo(() => {
+    const background = karaokeProfileBackgroundForUser(appUser.id);
+    return {
+      id: appUser.id,
+      name: getProfileDisplayName(appUser),
+      handle:
+        formatProfileHandle(appUser) ||
+        `@${(appUser.username || appUser.displayName || 'you').toLowerCase().replace(/\s+/g, '_')}`,
+      avatar: safeAvatarUrl(appUser.avatarUrl),
+      coins: userCoins,
+      vip: userVip,
+      followers: selfProfileStats.followerCount.toLocaleString(),
+      following: selfProfileStats.followingCount.toLocaleString(),
+      likes: '2.1M',
+      description:
+        appUser.bio || 'Aspiring vocalist & shower singer legend. Mostly Pop and R&B! 🎤✨',
+      backgroundUrl: background?.backgroundUrl ?? null,
+      backgroundMediaId: background?.backgroundMediaId ?? null,
+      backgroundMimeType: background?.backgroundMimeType,
+      backgroundMediaKind: background?.backgroundMediaKind,
+      backgroundFocus: background?.backgroundFocus ?? null,
     };
-    window.addEventListener(KARAOKE_STUDIO_OPEN_EVENT, onOpenStudio);
-    return () => window.removeEventListener(KARAOKE_STUDIO_OPEN_EVENT, onOpenStudio);
-  }, [goToKaraokeStudio]);
+  }, [appUser, selfProfileStats, userCoins, userVip, profileBackgroundRevision]);
+
+  useEffect(() => {
+    const onBackgroundUpdated = () => {
+      setProfileBackgroundRevision((n) => n + 1);
+    };
+    window.addEventListener('karaoke-profile-background-updated', onBackgroundUpdated);
+    return () => {
+      window.removeEventListener('karaoke-profile-background-updated', onBackgroundUpdated);
+    };
+  }, []);
+
+  useEffect(() => {
+    const row = db.users.find((user: User) => user.id === appUser.id);
+    const avatarUrl = typeof row?.avatarUrl === 'string' ? row.avatarUrl : '';
+    if (!avatarUrl.startsWith('blob:')) return;
+    const fallback = `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(appUser.id)}`;
+    db.save(
+      'users',
+      db.users.map((user: User) =>
+        user.id === appUser.id ? { ...user, avatarUrl: fallback } : user,
+      ),
+    );
+  }, [appUser.id, db]);
 
   const [showEditProfileModal, setShowEditProfileModal] = useState(false);
   const [editProfileName, setEditProfileName] = useState('');
@@ -1506,31 +971,11 @@ export function KaraokeScreen() {
     }
   }, []);
 
-  const applySelfProfileAvatarFile = useCallback(
-    async (file: File) => {
-      try {
-        const raw = await fileToBase64(file);
-        const avatarUrl = await compressAvatarDataUrl(raw);
-        db.updateUser(appUser.id, (user) => ({ ...user, avatarUrl }));
-        const next = db.users.find((user) => user.id === appUser.id);
-        if (next) scheduleCloudProfileSync(next);
-        setEditProfileAvatar(avatarUrl);
-        window.dispatchEvent(
-          new CustomEvent('app-toast', { detail: 'Profile photo updated!' }),
-        );
-      } catch {
-        window.dispatchEvent(
-          new CustomEvent('app-toast', { detail: 'Could not update profile photo.' }),
-        );
-      }
-    },
-    [appUser.id, db],
-  );
-
   const handleBackgroundEditorSave = useCallback(
     (background: KaraokeProfileBackgroundRecord) => {
       if (backgroundEditorPersistImmediately) {
         setKaraokeProfileBackground(appUser.id, background);
+        setProfileBackgroundRevision((n) => n + 1);
         window.dispatchEvent(
           new CustomEvent('app-toast', { detail: 'K-Star profile background updated' }),
         );
@@ -1554,6 +999,80 @@ export function KaraokeScreen() {
     setBackgroundEditorDraft(null);
     setBackgroundEditorPersistImmediately(false);
   }, [backgroundEditorDraft]);
+
+  // Profile-specific states
+  const [searchQuery, setSearchQuery] = useState('');
+  const [profileActiveTab, setProfileActiveTab] = useState<KaraokeProfileTab>('covers');
+  const [profileFollowHover, setProfileFollowHover] = useState(false);
+  const [showKaraokeProfileActionsMenu, setShowKaraokeProfileActionsMenu] = useState(false);
+  const { hoveredMenuItem: karaokeProfileHoveredMenuItem, setHoveredMenuItem: setKaraokeProfileHoveredMenuItem } =
+    useOptionsMenuHover(showKaraokeProfileActionsMenu);
+
+  useEffect(() => {
+    setShowKaraokeProfileActionsMenu(false);
+    setProfileFollowHover(false);
+  }, [karaokeViewedProfileUserId, selectedUserProfile]);
+  const goToProfileTab = useCallback((tab: KaraokeProfileTab) => {
+    setActiveTab('profile');
+    setProfileActiveTab(tab);
+    syncKaraokeUrl({ tab: 'profile', profileTab: tab, user: null, track: null, recording: null });
+  }, []);
+
+  useEffect(() => {
+    const onKaraokeProfileOpen = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        userId?: string | null;
+        username?: string | null;
+        profileTab?: KaraokeProfileTab | null;
+        closeRoomFlow?: boolean;
+      }>).detail;
+      if (!detail) return;
+
+      if (detail.closeRoomFlow) {
+        clearActiveRoomSession();
+        setShowSmuleRoomFlow(false);
+      }
+
+      if (detail.userId) {
+        const user = db.users.find((row: User) => row.id === detail.userId);
+        if (user) {
+          setSelectedUserProfile(buildKaraokeProfileFromDbUser(user));
+        }
+      } else if (detail.username) {
+        const user = db.users.find(
+          (row: User) => safeUsername(row.username) === safeUsername(detail.username!),
+        );
+        if (user) {
+          setSelectedUserProfile(buildKaraokeProfileFromDbUser(user));
+        }
+      } else {
+        setSelectedUserProfile(null);
+      }
+
+      const nextTab = detail.profileTab ?? 'covers';
+      setActiveTab('profile');
+      setProfileActiveTab(nextTab);
+      const resolvedUserId =
+        detail.userId ??
+        (detail.username
+          ? db.users.find(
+              (row: User) => safeUsername(row.username) === safeUsername(detail.username!),
+            )?.id
+          : undefined);
+      syncKaraokeUrl({
+        tab: 'profile',
+        profileTab: nextTab,
+        user: resolvedUserId
+          ? `@${db.users.find((row: User) => row.id === resolvedUserId)?.username ?? ''}`
+          : null,
+        track: null,
+        recording: null,
+      });
+    };
+
+    window.addEventListener('karaoke-profile-open', onKaraokeProfileOpen);
+    return () => window.removeEventListener('karaoke-profile-open', onKaraokeProfileOpen);
+  }, [db.users]);
 
   const [userPlaylists, setUserPlaylists] = useState<any[]>([
     { id: 'up1', title: 'Late Night Chill Vibes 🌙', songCount: 8, plays: '1.2K', img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60' },
@@ -1695,11 +1214,12 @@ export function KaraokeScreen() {
     const selectedGift = giftsList.find(g => g.id === selectedGiftId);
     if (!selectedGift) return;
 
-    if (!spendKstarCoins(appUser.id, selectedGift.cost)) {
+    if (userCoins < selectedGift.cost) {
       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Insufficient Coins! Please recharge some. 🪙' }));
       return;
     }
 
+    setUserCoins(prev => prev - selectedGift.cost);
     setShowGiftModal(false);
 
     if (giftingDuetId) {
@@ -1738,13 +1258,13 @@ export function KaraokeScreen() {
   const trackSeekBarRef = useRef<HTMLDivElement | null>(null);
   const isTrackSeekingRef = useRef(false);
   const trackDetailsOriginRef = useRef<{
-    tab: KaraokeTab;
+    tab: 'sing' | 'feed' | 'party' | 'profile' | 'search' | 'challenge' | 'leaderboard' | 'genres' | 'top100' | 'messages' | 'notifications';
     profileTab: KaraokeProfileTab | null;
     selectedUserProfile: any | null;
   } | null>(null);
   const captureTrackDetailsOriginRef = useRef<
     (override?: {
-      tab?: KaraokeTab;
+      tab?: 'sing' | 'feed' | 'party' | 'profile' | 'search' | 'challenge' | 'leaderboard' | 'genres' | 'top100' | 'messages' | 'notifications';
       profileTab?: KaraokeProfileTab | null;
       selectedUserProfile?: any | null;
       force?: boolean;
@@ -1818,6 +1338,59 @@ export function KaraokeScreen() {
     }
   };
 
+  // Skip tracks navigation controls for player
+  const handleNextTrack = () => {
+    const allSongs = [...TRENDING_SONGS, ...LIBRARY_SONGS];
+    const currentIndex = playingTrack ? allSongs.findIndex(s => s.id === playingTrack.id) : -1;
+    if (currentIndex !== -1 && currentIndex < allSongs.length - 1) {
+      const nextSong = allSongs[currentIndex + 1];
+      setPlayingTrack({
+        id: nextSong.id,
+        title: nextSong.title,
+        artist: nextSong.artist,
+        plays: nextSong.plays || '1.1M',
+        likes: '120K',
+        img: `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60&seed=${nextSong.id}`
+      });
+      setTrackTime(0);
+      setIsPlayingTrack(true);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: `Next up: "${nextSong.title}" 🎧` }));
+    } else {
+      // Loop back to first
+      const firstSong = allSongs[0];
+      setPlayingTrack({
+        id: firstSong.id,
+        title: firstSong.title,
+        artist: firstSong.artist,
+        plays: firstSong.plays || '4.2M',
+        likes: '350K',
+        img: `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60&seed=${firstSong.id}`
+      });
+      setTrackTime(0);
+      setIsPlayingTrack(true);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: `First track: "${firstSong.title}" 🎧` }));
+    }
+  };
+
+  const handlePrevTrack = () => {
+    const allSongs = [...TRENDING_SONGS, ...LIBRARY_SONGS];
+    const currentIndex = playingTrack ? allSongs.findIndex(s => s.id === playingTrack.id) : -1;
+    if (currentIndex > 0) {
+      const prevSong = allSongs[currentIndex - 1];
+      setPlayingTrack({
+        id: prevSong.id,
+        title: prevSong.title,
+        artist: prevSong.artist,
+        plays: prevSong.plays || '1.1M',
+        likes: '120K',
+        img: `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60&seed=${prevSong.id}`
+      });
+      setTrackTime(0);
+      setIsPlayingTrack(true);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: `Previous track: "${prevSong.title}" 🎧` }));
+    }
+  };
+
   // Reload cover recordings when the active track changes.
   useEffect(() => {
     if (!playingTrack?.id) {
@@ -1873,7 +1446,7 @@ export function KaraokeScreen() {
       const track: KaraokeLibrarySong = song ?? {
         id: recording.songId,
         title: recording.songTitle,
-        artist: recording.performers[0]?.name || 'Unknown',
+        artist: recording.performers?.[0]?.name || 'Unknown',
         img: recording.img,
       };
       setPlayingTrack({
@@ -1952,13 +1525,13 @@ export function KaraokeScreen() {
   );
 
   useEffect(() => {
-    // Deliver any open that was queued before KaraokeScreen mounted (Live tab → room).
-    applyKaraokeRoomOpen(consumePendingKaraokeRoomOpen());
-
     const onRoomOpen = (event: Event) => {
-      applyKaraokeRoomOpen(
-        (event as CustomEvent<OpenKaraokeRoomDetail>).detail,
-      );
+      const detail = (event as CustomEvent<{ roomId?: string; path?: string }>).detail;
+      const path =
+        detail?.path?.trim() ||
+        (detail?.roomId?.trim() ? `/room/${detail.roomId.trim()}` : '');
+      if (!path) return;
+      openSmuleRoomFlow(path);
     };
     const onTrackOpen = (event: Event) => {
       const detail = (event as CustomEvent<{ trackId?: string; recordingId?: string | null }>).detail;
@@ -1971,7 +1544,7 @@ export function KaraokeScreen() {
       window.removeEventListener('karaoke-room-open', onRoomOpen);
       window.removeEventListener('karaoke-track-open', onTrackOpen);
     };
-  }, [applyKaraokeRoomOpen, openKaraokeTrackFromShare]);
+  }, [openKaraokeTrackFromShare]);
 
   const toggleCoverRecordingPlayback = useCallback((recording: KaraokeCoverRecordingMeta) => {
     if (activeCoverRecording?.id === recording.id) {
@@ -2039,7 +1612,7 @@ export function KaraokeScreen() {
     const track: KaraokeLibrarySong = song ?? {
       id: meta.songId,
       title: meta.songTitle,
-      artist: meta.performers[0]?.name || 'Unknown',
+      artist: meta.performers?.[0]?.name || 'Unknown',
       img: meta.img,
     };
     setActiveCoverRecording(null);
@@ -2114,9 +1687,21 @@ export function KaraokeScreen() {
         return [...posts, ...prev.filter((post) => !publishedIds.has(post.id))];
       });
     };
-    void hydrateFeedFromPublishedCovers();
+    const idleId =
+      typeof window.requestIdleCallback === 'function'
+        ? window.requestIdleCallback(() => {
+            void hydrateFeedFromPublishedCovers();
+          }, { timeout: 3000 })
+        : window.setTimeout(() => {
+            void hydrateFeedFromPublishedCovers();
+          }, 300);
     return () => {
       cancelled = true;
+      if (typeof window.cancelIdleCallback === 'function' && typeof idleId === 'number') {
+        window.cancelIdleCallback(idleId);
+      } else {
+        window.clearTimeout(idleId);
+      }
     };
   }, [appUser.id]);
 
@@ -2172,74 +1757,6 @@ export function KaraokeScreen() {
     setActiveCoverRecording(null);
     setActiveCoverMediaUrl(null);
   }, [activeCoverRecording?.id]);
-
-  const buildPlayingTrackFromLibrary = useCallback((song: KaraokeLibrarySong) => ({
-    ...song,
-    plays: song.plays || '1.1M',
-    img:
-      song.img ||
-      `https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60&seed=${song.id}`,
-  }), []);
-
-  const getPlayerQueueSongs = useCallback((): KaraokeLibrarySong[] => {
-    return [...trendingSongs, ...librarySongs, ...uploadedSongs];
-  }, [trendingSongs, librarySongs, uploadedSongs]);
-
-  const switchPlayingTrack = useCallback((song: KaraokeLibrarySong) => {
-    pauseUploadPreviewMedia();
-    pauseCoverPreviewMedia();
-    if (activeCoverRecording?.id) {
-      revokeKaraokeCoverRecordingUrl(activeCoverRecording.id);
-    }
-    clearActiveCoverPlayback();
-    const nextTrack = buildPlayingTrackFromLibrary(song);
-    setPlayingTrack(nextTrack);
-    setCoverRecordings(listKaraokeCoverRecordings(nextTrack.id));
-    setTrackTime(0);
-    setTrackMaxSeconds(Math.max(30, Math.floor(nextTrack.durationSec ?? 120)));
-    setIsPlayingTrack(Boolean(nextTrack.audioUrl));
-    syncKaraokeUrl({
-      tab: activeTabRef.current,
-      profileTab: activeTabRef.current === 'profile' ? profileActiveTab : null,
-      user:
-        activeTabRef.current === 'profile' && selectedUserProfile?.handle
-          ? selectedUserProfile.handle.replace(/^@/, '')
-          : null,
-      track: nextTrack.id,
-      recording: null,
-    }, 'push');
-    lastAppliedSearchRef.current = window.location.search;
-  }, [
-    activeCoverRecording?.id,
-    buildPlayingTrackFromLibrary,
-    clearActiveCoverPlayback,
-    pauseCoverPreviewMedia,
-    pauseUploadPreviewMedia,
-    profileActiveTab,
-    selectedUserProfile?.handle,
-  ]);
-
-  const handleNextTrack = () => {
-    const allSongs = getPlayerQueueSongs();
-    if (allSongs.length === 0) return;
-    const currentIndex = playingTrack ? allSongs.findIndex((s) => s.id === playingTrack.id) : -1;
-    const nextSong =
-      currentIndex !== -1 && currentIndex < allSongs.length - 1
-        ? allSongs[currentIndex + 1]
-        : allSongs[0];
-    switchPlayingTrack(nextSong);
-    window.dispatchEvent(new CustomEvent('app-toast', { detail: `Next up: "${nextSong.title}" 🎧` }));
-  };
-
-  const handlePrevTrack = () => {
-    const allSongs = getPlayerQueueSongs();
-    if (allSongs.length === 0) return;
-    const currentIndex = playingTrack ? allSongs.findIndex((s) => s.id === playingTrack.id) : -1;
-    if (currentIndex <= 0) return;
-    const prevSong = allSongs[currentIndex - 1];
-    switchPlayingTrack(prevSong);
-    window.dispatchEvent(new CustomEvent('app-toast', { detail: `Previous track: "${prevSong.title}" 🎧` }));
-  };
 
   const openSearchHitListen = useCallback(async (hit: KaraokeSearchHit) => {
     captureTrackDetailsOriginRef.current();
@@ -2356,12 +1873,9 @@ export function KaraokeScreen() {
       setProfileActiveTab(params.profileTab);
     }
 
-    if (params.user && (!params.tab || params.tab === 'profile')) {
+    if (params.user) {
       setActiveTab('profile');
-      const fromUrl = buildKaraokeProfileFromHandle(params.user, db.users);
-      setSelectedUserProfile(
-        isOtherKaraokeProfile(fromUrl, appUser.id) ? fromUrl : null,
-      );
+      setSelectedUserProfile(buildKaraokeProfileFromHandle(params.user, db.users));
     }
 
     const allUploadMetas = listKaraokeUploads();
@@ -2372,11 +1886,11 @@ export function KaraokeScreen() {
       const meta = allCoverMetas.find((row) => row.id === params.recording);
       if (meta) {
         captureTrackDetailsOriginRef.current({
-          tab: (params.tab as typeof activeTab) || activeTabRef.current,
+          tab: (params.tab as typeof activeTab) || activeTab,
           profileTab:
             params.profileTab ??
-            (params.tab === 'profile' ? profileActiveTabRef.current : null),
-          selectedUserProfile: params.user ? selectedUserProfileRef.current : null,
+            (params.tab === 'profile' ? profileActiveTab : null),
+          selectedUserProfile: params.user ? selectedUserProfile : null,
           force: true,
         });
         await openCoverAfterPublish(meta, {
@@ -2398,11 +1912,11 @@ export function KaraokeScreen() {
       const song = allUploadSongs.find((row) => row.id === ref.songId);
       if (song) {
         captureTrackDetailsOriginRef.current({
-          tab: (params.tab as typeof activeTab) || activeTabRef.current,
+          tab: (params.tab as typeof activeTab) || activeTab,
           profileTab:
             params.profileTab ??
-            (params.tab === 'profile' ? profileActiveTabRef.current : null),
-          selectedUserProfile: params.user ? selectedUserProfileRef.current : null,
+            (params.tab === 'profile' ? profileActiveTab : null),
+          selectedUserProfile: params.user ? selectedUserProfile : null,
           force: true,
         });
         await openUploadedSongListen(song);
@@ -2414,11 +1928,11 @@ export function KaraokeScreen() {
       const meta = allCoverMetas.find((row) => row.id === ref.recordingId);
       if (meta) {
         captureTrackDetailsOriginRef.current({
-          tab: (params.tab as typeof activeTab) || activeTabRef.current,
+          tab: (params.tab as typeof activeTab) || activeTab,
           profileTab:
             params.profileTab ??
-            (params.tab === 'profile' ? profileActiveTabRef.current : null),
-          selectedUserProfile: params.user ? selectedUserProfileRef.current : null,
+            (params.tab === 'profile' ? profileActiveTab : null),
+          selectedUserProfile: params.user ? selectedUserProfile : null,
           force: true,
         });
         await openCoverAfterPublish(meta, {
@@ -2454,20 +1968,21 @@ export function KaraokeScreen() {
       setCoverRecordings(recordings);
       setDetailsTab(recordings.length > 0 ? 'recordings' : 'lyrics');
       captureTrackDetailsOriginRef.current({
-        tab: (params.tab as typeof activeTab) || activeTabRef.current,
+        tab: (params.tab as typeof activeTab) || activeTab,
         profileTab:
           params.profileTab ??
-          (params.tab === 'profile' ? profileActiveTabRef.current : null),
-        selectedUserProfile: params.user ? selectedUserProfileRef.current : null,
+          (params.tab === 'profile' ? profileActiveTab : null),
+        selectedUserProfile: params.user ? selectedUserProfile : null,
         force: true,
       });
       setShowTrackDetails(true);
       setTrackTime(0);
       setTrackMaxSeconds(Math.max(30, Math.floor(catalogSong.durationSec ?? 120)));
-      setIsPlayingTrack(false);
+      setIsPlayingTrack(true);
     }
   }, [appUser.id, openCoverAfterPublish, openUploadedSongListen]);
 
+  const lastAppliedSearchRef = useRef('');
   const isPlayingTrackRef = useRef(isPlayingTrack);
   isPlayingTrackRef.current = isPlayingTrack;
 
@@ -2520,10 +2035,9 @@ export function KaraokeScreen() {
       profileTab: returnProfileTab,
       track: null,
       recording: null,
-      user:
-        returnTab === 'profile' && returnUserProfile?.handle
-          ? returnUserProfile.handle.replace(/^@/, '')
-          : null,
+      user: returnUserProfile?.handle
+        ? returnUserProfile.handle.replace(/^@/, '')
+        : null,
     });
     lastAppliedSearchRef.current = window.location.search;
   }, [
@@ -2539,9 +2053,8 @@ export function KaraokeScreen() {
     const uploadActive = Boolean(playingTrack?.audioUrl && !coverActive);
     if (!coverActive && !uploadActive) return null;
 
-    const coverRecording = coverActive ? activeCoverRecording : null;
-    const isVideo = coverRecording
-      ? isCoverRecordingVideo(coverRecording)
+    const isVideo = coverActive
+      ? isCoverRecordingVideo(activeCoverRecording!)
       : isUploadedVideoTrack(playingTrack);
 
     if (coverActive) {
@@ -2803,10 +2316,6 @@ export function KaraokeScreen() {
   const fallbackCopy = (text: string) => {
     const textArea = document.createElement("textarea");
     textArea.value = text;
-    textArea.setAttribute('readonly', 'readonly');
-    textArea.setAttribute('inputmode', 'none');
-    textArea.setAttribute('aria-hidden', 'true');
-    textArea.tabIndex = -1;
     textArea.style.position = "fixed";
     textArea.style.top = "0";
     textArea.style.left = "0";
@@ -2817,10 +2326,9 @@ export function KaraokeScreen() {
     textArea.style.outline = "none";
     textArea.style.boxShadow = "none";
     textArea.style.background = "transparent";
-    textArea.style.opacity = "0";
     document.body.appendChild(textArea);
+    textArea.focus();
     textArea.select();
-    textArea.setSelectionRange(0, text.length);
     try {
       const successful = document.execCommand('copy');
       if (successful) {
@@ -2831,7 +2339,6 @@ export function KaraokeScreen() {
     } catch (err) {
       prompt("Copy this link:", text);
     }
-    textArea.blur();
     document.body.removeChild(textArea);
   };
 
@@ -2876,13 +2383,11 @@ export function KaraokeScreen() {
 
   if (selectedSong) {
     return (
-      <div data-karaoke-surface="true" className="flex h-full w-full min-h-0">
-        <RecordingStudio
-          song={selectedSong}
-          onClose={() => setSelectedSong(null)}
-          onPublished={(meta) => { void handlePublishedCover(meta); }}
-        />
-      </div>
+      <RecordingStudio
+        song={selectedSong}
+        onClose={() => setSelectedSong(null)}
+        onPublished={(meta) => { void handlePublishedCover(meta); }}
+      />
     );
   }
 
@@ -2892,7 +2397,7 @@ export function KaraokeScreen() {
       className="flex w-full h-full bg-background overflow-hidden relative transition-colors duration-300"
     >
       
-      {/* Left Navigation Rail (tablet/desktop — mobile uses header menu drawer) */}
+      {/* Left Navigation Rail (Tablet/Desktop) */}
       <div className="karaoke-side-nav hidden md:flex flex-col w-16 sm:w-20 lg:w-64 border-r border-border bg-card z-20 shrink-0">
         <div className="p-4 flex items-center justify-center lg:justify-start gap-2 mb-4 mt-2">
            <button
@@ -2907,70 +2412,37 @@ export function KaraokeScreen() {
         </div>
         
         <div className="flex-1 lg:px-3 space-y-2 px-2 overflow-y-auto overscroll-contain">
-           <button type="button" onClick={() => handleKaraokeTabTap('sing')} className={karaokeNavButtonClass('sing', activeTab === 'sing' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
-             <span className="relative">
-               <MicVocal className="w-6 h-6 shrink-0" />
-               {activeTab === 'sing' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
-             </span>
-             <span className="hidden lg:block text-[15px]">Studio</span>
-           </button>
-           <button type="button" onClick={() => handleKaraokeTabTap('party')} className={karaokeNavButtonClass('party', activeTab === 'party' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
-             <span className="relative">
-               <PartyRoomIcon className="w-6 h-6 shrink-0" />
-               {activeTab === 'party' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
-             </span>
-             <span className="hidden lg:block text-[15px]">Party Rooms</span>
-           </button>
-           <button type="button" onClick={() => handleKaraokeTabTap('feed')} className={karaokeNavButtonClass('feed', activeTab === 'feed' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
-             <span className="relative">
-               <Search className="w-6 h-6 shrink-0" />
-               {activeTab === 'feed' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
-             </span>
-             <span className="hidden lg:block text-[15px]">Explore</span>
-           </button>
-           <button type="button" onClick={() => handleKaraokeTabTap('messages')} className={karaokeNavButtonClass('messages', activeTab === 'messages' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
-             <span className="relative">
-               <MessageCircle className="w-6 h-6 shrink-0" />
-               {db.unreadMessagesCount > 0 ? (
-                 <div className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full border border-background flex items-center justify-center">
-                   {db.unreadMessagesCount > 9 ? '9+' : db.unreadMessagesCount}
-                 </div>
-               ) : null}
-               {activeTab === 'messages' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
-             </span>
-             <span className="hidden lg:block text-[15px]">Messages</span>
-           </button>
-           <button type="button" onClick={() => handleKaraokeTabTap('notifications')} className={karaokeNavButtonClass('notifications', activeTab === 'notifications' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
-             <span className="relative">
-               <Bell className="w-6 h-6 shrink-0" />
-               {db.hasUnreadNotifications ? (
-                 <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-background" />
-               ) : null}
-               {activeTab === 'notifications' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
-             </span>
-             <span className="hidden lg:block text-[15px]">Notifications</span>
-           </button>
-           <button type="button" onClick={() => handleKaraokeTabTap('live')} className={karaokeNavButtonClass('live', activeTab === 'live' ? 'bg-red-500 text-white font-bold shadow-[0_0_15px_rgba(239,68,68,0.3)]' : 'text-muted-foreground hover:bg-secondary hover:text-red-500 font-semibold')}>
-             <div className="relative flex items-center justify-center">
-               <Video className="w-6 h-6 shrink-0" />
-               <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border-2 border-background animate-pulse" />
-             </div>
-             <span className="hidden lg:block text-[15px]">Live Concerts</span>
-           </button>
-           <button type="button" onClick={() => handleKaraokeTabTap('challenge')} className={karaokeNavButtonClass('challenge', activeTab === 'challenge' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
-             <span className="relative">
-               <Trophy className="w-6 h-6 shrink-0" />
-               {activeTab === 'challenge' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
-             </span>
-             <span className="hidden lg:block text-[15px]">Challenges</span>
-           </button>
-           <button type="button" onClick={() => handleKaraokeTabTap('leaderboard')} className={karaokeNavButtonClass('leaderboard', activeTab === 'leaderboard' ? 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20' : 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold')}>
-             <span className="relative">
-               <Crown className="w-6 h-6 shrink-0" />
-               {activeTab === 'leaderboard' && <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />}
-             </span>
-             <span className="hidden lg:block text-[15px]">Leaderboard</span>
-           </button>
+           {KARAOKE_PRIMARY_NAV.map((item) => {
+             const Icon = item.icon;
+             const isActive = activeTab === item.id;
+             const activeClass = 'bg-primary text-primary-foreground font-bold shadow-md shadow-primary/20';
+             const idleClass = 'text-muted-foreground hover:bg-secondary hover:text-foreground font-semibold';
+             return (
+               <button
+                 key={item.id}
+                 type="button"
+                 onClick={() => handleKaraokeTabTap(item.id)}
+                 className={karaokeNavButtonClass(item.id, isActive ? activeClass : idleClass)}
+                 aria-label={item.label}
+               >
+                 <span className="relative">
+                   <Icon className="w-6 h-6 shrink-0" />
+                   {item.id === 'messages' && db.unreadMessagesCount > 0 ? (
+                     <div className="absolute -top-1 -right-1 min-w-[16px] h-4 px-1 bg-red-500 text-white text-[9px] font-bold rounded-full border border-background flex items-center justify-center">
+                       {db.unreadMessagesCount > 9 ? '9+' : db.unreadMessagesCount}
+                     </div>
+                   ) : null}
+                   {item.id === 'notifications' && db.hasUnreadNotifications ? (
+                     <div className="absolute -top-1 -right-1 w-2.5 h-2.5 bg-red-500 rounded-full border border-background" />
+                   ) : null}
+                   {isActive ? (
+                     <div className="lg:hidden absolute -bottom-2 left-1/2 -translate-x-1/2 w-1 h-1 bg-primary rounded-full" />
+                   ) : null}
+                 </span>
+                 <span className="hidden lg:block text-[15px]">{item.label}</span>
+               </button>
+             );
+           })}
            <button 
              type="button"
              onClick={() => setIsUploadModalOpen(true)} 
@@ -2986,7 +2458,7 @@ export function KaraokeScreen() {
              onClick={() => { setGiftingDuetId(null); setShowGiftModal(true); }}
              className={`${karaokeNavButtonClass('sing')} bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold text-sm ring-1 ring-amber-500/20`}
            >
-             <CoinIcon className="w-5 h-5 shrink-0" />
+             <Coins className="w-5 h-5 shrink-0" />
              <span className="hidden lg:inline">{userCoins.toLocaleString()}</span>
            </button>
            <button
@@ -3017,7 +2489,7 @@ export function KaraokeScreen() {
         <div className="p-4 mb-4 shrink-0">
            <button type="button" onClick={() => handleKaraokeTabTap('profile')} className={`${navTapButtonClass} w-full flex items-center justify-center lg:justify-start gap-3 p-2 min-h-[44px] rounded-2xl transition border border-transparent ${activeTab === 'profile' ? 'bg-secondary border-border shadow-sm' : 'hover:bg-secondary/50'}`}>
              <div className="w-10 h-10 rounded-full bg-gradient-to-tr from-orange-400 to-pink-500 p-0.5 shrink-0 shadow-sm">
-               <img src={CURRENT_USER.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+               <img src={CURRENT_USER.avatar} alt="Profile" className="w-full h-full bg-card rounded-full" />
              </div>
              <div className="hidden lg:block text-left min-w-0">
                 <div className="font-bold text-sm truncate">{CURRENT_USER.name}</div>
@@ -3029,21 +2501,22 @@ export function KaraokeScreen() {
       </div>
 
       {/* Main Content Layout */}
-      <div className={`flex-1 flex flex-col h-full min-h-0 bg-background md:bg-card/30 shadow-sm relative w-full overflow-hidden transition-colors duration-300 ${
-        showSmuleRoomFlow && activeTab === 'profile' ? 'z-[80]' : 'z-10'
-      }`}>
-        {/* Top Header — hidden in chat thread, smule room flow, etc. */}
-        {(!showSmuleRoomFlow || activeTab === 'profile') &&
-          !(activeTab === 'messages' && messagesChatOpen) && (
-        <div className="karaoke-screen-header px-4 py-3 pt-safe bg-card border-b border-border flex items-center justify-between sticky top-0 z-20 shadow-sm min-h-[64px] shrink-0">
+      <div className="flex-1 flex flex-col h-full min-h-0 bg-background md:bg-card/30 shadow-sm relative z-10 w-full overflow-hidden transition-colors duration-300">
+        {/* Top Header — hidden while smule room flow is open (Create Room / in-room / Sing) */}
+        {!showSmuleRoomFlow && !(activeTab === 'messages' && messagesChatOpen) && (
+        <div className="px-4 py-3 bg-card border-b border-border flex items-center justify-between sticky top-0 z-20 shadow-sm min-h-[64px] shrink-0">
            <div className="flex items-center gap-3">
              {/* Back Button */}
              <button
-               type="button"
-               onClick={exitKaraokeToMainApp}
+               onClick={() => {
+                 if (previousTab) {
+                   setActiveTab(previousTab);
+                 } else {
+                   window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'home' } }));
+                 }
+               }}
                className="flex items-center gap-1.5 px-4 py-1.5 rounded-xl bg-rose-600 dark:bg-rose-500 text-white hover:bg-rose-700 dark:hover:bg-rose-600 font-extrabold text-xs md:text-sm transition-all shadow-md hover:shadow-rose-600/35 hover:-translate-y-0.5 active:translate-y-0 shrink-0 select-none mr-1 cursor-pointer"
-               title="Back to Feed"
-               aria-label="Back to Feed"
+               title="Back To Previous Screen"
              >
                <ArrowLeft className="w-4 h-4 stroke-[3px]" />
                <span className="tracking-widest uppercase font-black text-white">Back</span>
@@ -3060,30 +2533,49 @@ export function KaraokeScreen() {
                <span className="font-extrabold text-lg tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-primary to-indigo-500">K-Star</span>
              </button>
 
-             {/* Dynamic Page Title */}
-             <div className="flex items-center gap-2 min-w-0">
-               {activeTab === 'sing' && <h1 className="font-extrabold text-xl truncate">Studio</h1>}
-               {activeTab === 'feed' && <h1 className="font-extrabold text-xl truncate">Explore</h1>}
-               {activeTab === 'messages' && <h1 className="font-extrabold text-xl truncate">Messages</h1>}
-               {activeTab === 'notifications' && <h1 className="font-extrabold text-xl truncate">Notifications</h1>}
-               {activeTab === 'party' && <h1 className="font-extrabold text-xl truncate">Party Rooms</h1>}
-               {activeTab === 'live' && <h1 className="font-extrabold text-xl truncate">Live Concerts</h1>}
-               {activeTab === 'profile' && (
-                 <h1 className="font-extrabold text-xl truncate">
-                   {selectedUserProfile?.name ?? 'My Profile'}
-                 </h1>
-               )}
-               {activeTab === 'challenge' && <h1 className="font-extrabold text-xl truncate">Contests</h1>}
-               {activeTab === 'leaderboard' && <h1 className="font-extrabold text-xl truncate">Leaderboard</h1>}
-               {activeTab === 'search' && <h1 className="font-extrabold text-xl truncate">Search</h1>}
-               {activeTab === 'genres' && <h1 className="font-extrabold text-xl truncate">Genres</h1>}
-               {activeTab === 'top100' && <h1 className="font-extrabold text-xl truncate">Top 100 Global</h1>}
+             {/* Dynamic Page Title for Desktop */}
+             <div className="hidden md:flex items-center gap-2">
+               {activeTab === 'sing' && <h1 className="font-extrabold text-xl">Studio</h1>}
+               {activeTab === 'feed' && <h1 className="font-extrabold text-xl">Explore</h1>}
+               {activeTab === 'messages' && <h1 className="font-extrabold text-xl">Messages</h1>}
+               {activeTab === 'notifications' && <h1 className="font-extrabold text-xl">Notifications</h1>}
+               {activeTab === 'party' && <h1 className="font-extrabold text-xl">Party Rooms</h1>}
+               {activeTab === 'profile' && <h1 className="font-extrabold text-xl">My Profile</h1>}
+               {activeTab === 'challenge' && <h1 className="font-extrabold text-xl">Contests</h1>}
+               {activeTab === 'leaderboard' && <h1 className="font-extrabold text-xl">Leaderboard</h1>}
+               {activeTab === 'search' && <h1 className="font-extrabold text-xl">Search</h1>}
+               {activeTab === 'genres' && <h1 className="font-extrabold text-xl">Genres</h1>}
+               {activeTab === 'top100' && <h1 className="font-extrabold text-xl">Top 100 Global</h1>}
              </div>
            </div>
 
-           <div className="flex items-center gap-3">
+           <div className="flex items-center gap-1 sm:gap-2">
              <button type="button" onClick={() => handleKaraokeTabTap('search')} className={`${navTapIconButtonClass} text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full bg-secondary/50 transition`} aria-label="Search">
                <Search className="w-5 h-5" />
+             </button>
+             <button
+               type="button"
+               onClick={() => handleKaraokeTabTap('notifications')}
+               className={`${navTapIconButtonClass} relative text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full bg-secondary/50 transition`}
+               aria-label="Notifications"
+             >
+               <Bell className={`w-5 h-5 ${activeTab === 'notifications' ? 'stroke-[2.5px] text-foreground' : 'stroke-[1.5px]'}`} />
+               {db.hasUnreadNotifications ? (
+                 <div className="absolute top-1 right-1 w-2.5 h-2.5 border-2 border-card bg-red-500 rounded-full" />
+               ) : null}
+             </button>
+             <button
+               type="button"
+               onClick={() => handleKaraokeTabTap('messages')}
+               className={`${navTapIconButtonClass} relative text-muted-foreground hover:text-foreground hover:bg-secondary rounded-full bg-secondary/50 transition`}
+               aria-label="Messages"
+             >
+               <MessageCircle className={`w-5 h-5 ${activeTab === 'messages' ? 'stroke-[2.5px] text-foreground' : 'stroke-[1.5px]'}`} />
+               {db.unreadMessagesCount > 0 ? (
+                 <div className="absolute top-0 right-0 bg-red-500 text-white text-[10px] font-bold px-1 rounded-full border-2 border-card">
+                   {db.unreadMessagesCount > 9 ? '9+' : db.unreadMessagesCount}
+                 </div>
+               ) : null}
              </button>
               <button
                 type="button"
@@ -3116,11 +2608,19 @@ export function KaraokeScreen() {
           )}
 
           {activeTab === 'leaderboard' && (
-            <LeaderboardView onSelectProfile={navigateToKaraokeOtherProfile} />
+            <LeaderboardView onSelectProfile={(user) => {
+              setPreviousTab(activeTab);
+              setSelectedUserProfile(user);
+              setActiveTab('profile');
+            }} />
           )}
 
           {activeTab === 'challenge' && (
-             <ChallengeView onSing={() => setActiveTab('sing')} onSelectProfile={navigateToKaraokeOtherProfile} />
+             <ChallengeView onSing={() => setActiveTab('sing')} onSelectProfile={(user) => {
+               setPreviousTab(activeTab);
+               setSelectedUserProfile(user);
+               setActiveTab('profile');
+             }} />
           )}
 
           {activeTab === 'sing' && (
@@ -3190,7 +2690,7 @@ export function KaraokeScreen() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg flex items-center gap-2"><Music className="w-5 h-5 text-primary" /> Browse Genres</h3>
-                  <button onClick={() => pushKaraokeStackTab('genres')} className="text-sm font-medium text-primary hover:underline">View All</button>
+                  <button onClick={() => { setPreviousTab(activeTab); setActiveTab('genres'); }} className="text-sm font-medium text-primary hover:underline">View All</button>
                 </div>
                 <div className="flex gap-3 overflow-x-auto pb-4 scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                   {CATEGORIES.map((cat, i) => (
@@ -3206,7 +2706,7 @@ export function KaraokeScreen() {
               <div>
                 <div className="flex items-center justify-between mb-4">
                   <h3 className="font-bold text-lg flex items-center gap-2"><TrendingUp className="w-5 h-5 text-orange-500" /> Trending Tracks</h3>
-                  <button onClick={() => pushKaraokeStackTab('top100')} className="text-sm font-medium text-primary hover:underline">Top 100</button>
+                  <button onClick={() => { setPreviousTab(activeTab); setActiveTab('top100'); }} className="text-sm font-medium text-primary hover:underline">Top 100</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                   {trendingSongs.map((song, i) => (
@@ -3277,103 +2777,115 @@ export function KaraokeScreen() {
           {activeTab === 'feed' && (
             <div className="space-y-4 bg-secondary/10 p-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
               {duets.map(post => {
-                const duetUser0 = safeString(post.users?.[0], '@unknown');
-                const duetUser1 = safeString(post.users?.[1], '@guest');
-                const feedVideoUrl = safeVideoUrl(post.videoUrl);
-                const feedPosterUrl = safeMediaUrl(post.img);
-                return (
+                 const feedUserA = post.users?.[0] ?? '@you';
+                 const feedUserB = post.users?.[1] ?? feedUserA;
+                 const feedSongTitle = (post.song ?? '').split(' — ')[0] || 'Untitled';
+                 return (
                  <div key={post.id} className="bg-card rounded-3xl overflow-hidden border border-border shadow-sm hover:shadow-md transition-shadow">
                       {/* Post Header */}
                    <div className="p-4 flex items-center justify-between col-span-12">
                      <div className="flex items-center gap-3">
                         <div className="flex -space-x-3">
                           <button 
-                            onClick={() => navigateToKaraokeOtherProfile({
-                                name: duetUser0.replace('@', ''),
-                                handle: duetUser0,
-                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser0}`,
+                            onClick={() => {
+                              setPreviousTab(activeTab);
+                              setSelectedUserProfile({
+                                name: feedUserA.replace('@', ''),
+                                handle: feedUserA,
+                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${feedUserA}`,
                                 followers: '12.4k',
                                 likes: '2.1M',
                                 gifts: '4.5M',
                                 description: 'Singer and performer! Let\'s sing together! 🎤'
-                              })}
+                              });
+                              setActiveTab('profile');
+                            }}
                             className="w-10 h-10 rounded-full border-2 border-card bg-zinc-800 z-10 overflow-hidden shadow-sm cursor-pointer hover:scale-110 transition-transform"
                           >
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser0}`} className="w-full h-full bg-amber-100" />
+                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${feedUserA}`} className="w-full h-full bg-amber-100" />
                           </button>
                           <button 
-                            onClick={() => navigateToKaraokeOtherProfile({
-                                name: duetUser1.replace('@', ''),
-                                handle: duetUser1,
-                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser1}`,
+                            onClick={() => {
+                              setPreviousTab(activeTab);
+                              setSelectedUserProfile({
+                                name: feedUserB.replace('@', ''),
+                                handle: feedUserB,
+                                avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${feedUserB}`,
                                 followers: '8.4k',
                                 likes: '1.2M',
                                 gifts: '2.1M',
                                 description: 'Music lover and Karaoke master! 🎧'
-                              })}
+                              });
+                              setActiveTab('profile');
+                            }}
                             className="w-10 h-10 rounded-full border-2 border-card bg-zinc-700 z-0 overflow-hidden shadow-sm cursor-pointer hover:scale-110 transition-transform"
                           >
-                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser1}`} className="w-full h-full bg-blue-100" />
+                            <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${feedUserB}`} className="w-full h-full bg-blue-100" />
                           </button>
                         </div>
                         <div>
                           <span className="text-sm font-bold block flex items-center gap-1">
                             <span 
-                              onClick={() => navigateToKaraokeOtherProfile({
-                                  name: duetUser0.replace('@', ''),
-                                  handle: duetUser0,
-                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser0}`,
+                              onClick={() => {
+                                setPreviousTab(activeTab);
+                                setSelectedUserProfile({
+                                  name: feedUserA.replace('@', ''),
+                                  handle: feedUserA,
+                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${feedUserA}`,
                                   followers: '12.4k',
                                   likes: '2.1M',
                                   gifts: '4.5M',
                                   description: 'Singer and performer! Let\'s sing together! 🎤'
-                                })}
+                                });
+                                setActiveTab('profile');
+                              }}
                               className="cursor-pointer hover:underline hover:text-primary transition-colors"
                             >
-                              {duetUser0}
+                              {feedUserA}
                             </span>
                             <span className="text-muted-foreground text-xs font-normal">&</span>
                             <span 
-                              onClick={() => navigateToKaraokeOtherProfile({
-                                  name: duetUser1.replace('@', ''),
-                                  handle: duetUser1,
-                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${duetUser1}`,
+                              onClick={() => {
+                                setPreviousTab(activeTab);
+                                setSelectedUserProfile({
+                                  name: feedUserB.replace('@', ''),
+                                  handle: feedUserB,
+                                  avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${feedUserB}`,
                                   followers: '8.4k',
                                   likes: '1.2M',
                                   gifts: '2.1M',
                                   description: 'Music lover and Karaoke master! 🎧'
-                                })}
+                                });
+                                setActiveTab('profile');
+                              }}
                               className="cursor-pointer hover:underline hover:text-primary transition-colors"
                             >
-                              {duetUser1}
+                              {feedUserB}
                             </span>
                           </span>
                           <span className="text-xs text-muted-foreground">Collab • 2h ago</span>
                         </div>
                      </div>
                      <button 
-                       onClick={() => toggleFollowUser(duetUser0)}
+                       onClick={() => toggleFollowUser(feedUserA)}
                        className={`text-sm font-bold px-4 py-1.5 rounded-full transition-all ${
-                         isFollowingUser(duetUser0) 
+                         isFollowingUser(feedUserA) 
                          ? 'bg-secondary text-muted-foreground border border-border' 
                          : 'bg-primary text-primary-foreground hover:bg-primary/95 hover:scale-105'
                        }`}
                      >
-                       {isFollowingUser(duetUser0) ? 'Following' : 'Follow'}
+                       {isFollowingUser(feedUserA) ? 'Following' : 'Follow'}
                      </button>
                    </div>
                    
                    {/* Video/Image Area */}
                    <div className="relative aspect-[4/5] sm:aspect-video bg-black group">
-                     <video 
-                       src={feedVideoUrl} 
-                       poster={feedPosterUrl} 
-                       controls 
+                     <AppNativeVideo 
+                       src={post.videoUrl} 
+                       poster={post.img} 
                        controlsList="nodownload" 
                        className="w-full h-full object-contain bg-black" 
                        preload="metadata"
-                       playsInline
-                       {...nativeVideoControlGuardProps()}
                      />
                                           {/* Song Info Overlay has clickable info button to open Track details (lyrics and recordings) */}
                      <div className="absolute bottom-0 left-0 right-0 p-4 bg-gradient-to-t from-black/95 via-black/40 to-transparent flex items-center justify-between pointer-events-auto">
@@ -3387,7 +2899,7 @@ export function KaraokeScreen() {
                                 const matchedSong = [...trendingSongs, ...librarySongs].find(s => 
                                   s.title.toLowerCase().includes(post.song.toLowerCase()) || 
                                   post.song.toLowerCase().includes(s.title.toLowerCase())
-                                ) || { id: 'temp', title: post.song, artist: [duetUser0, duetUser1].join(' & '), mode: 'join', type: 'duet' };
+                                ) || { id: 'temp', title: post.song, artist: `${feedUserA} & ${feedUserB}`, mode: 'join', type: 'duet' };
                                 setSelectedSong({ ...matchedSong, mode: 'join' });
                               }}
                               className="px-3 py-1 bg-primary text-primary-foreground text-[10px] font-black rounded-full uppercase tracking-widest hover:scale-105 transition-transform"
@@ -3402,13 +2914,13 @@ export function KaraokeScreen() {
                             const matchedSong = post.songId
                               ? allCatalogSongs.find((song) => song.id === post.songId)
                               : allCatalogSongs.find((song) =>
-                                  song.title.toLowerCase().includes(post.song.split(' — ')[0].toLowerCase()) ||
-                                  post.song.toLowerCase().includes(song.title.toLowerCase()),
+                                  song.title.toLowerCase().includes(feedSongTitle.toLowerCase()) ||
+                                  (post.song ?? '').toLowerCase().includes(song.title.toLowerCase()),
                                 );
                             const track = matchedSong || {
                               id: post.songId || 'epic_underworld',
-                              title: post.song.split(' — ')[0],
-                              artist: [duetUser0, duetUser1].join(' & '),
+                              title: feedSongTitle,
+                              artist: `${feedUserA} & ${feedUserB}`,
                               img: post.img,
                             };
                             setPlayingTrack(track);
@@ -3488,78 +3000,10 @@ export function KaraokeScreen() {
             </div>
           )}
 
-          {activeTab === 'live' && (
-             <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
-               {/* Go Live CTA */}
-               <div className="bg-gradient-to-br from-red-600 to-rose-700 rounded-3xl p-8 text-white shadow-xl shadow-red-900/20 mb-10 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-6 relative overflow-hidden ring-1 ring-white/10">
-                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay"></div>
-                 <div className="relative z-10">
-                   <h3 className="font-extrabold text-2xl mb-2 flex items-center justify-center sm:justify-start gap-2">
-                     <Video className="w-6 h-6" /> Host a Live Concert
-                   </h3>
-                   <p className="text-white/80 max-w-sm text-sm">Sing live, accept song requests, interact with fans, and earn Coins from virtual gifts!</p>
-                 </div>
-                 <button
-                   type="button"
-                   onClick={() => {
-                     db.setUserLiveStatus(appUser.id, true, 'solo');
-                     window.dispatchEvent(
-                       new CustomEvent('app-toast', {
-                         detail: 'You are live — others can find you in Live discovery',
-                       }),
-                     );
-                   }}
-                   className="relative z-10 px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 shadow-2xl whitespace-nowrap text-lg"
-                 >
-                   Start Concert
-                 </button>
-               </div>
-
-               <h3 className="font-bold text-lg mb-4 flex items-center gap-2"><div className="w-2 h-2 rounded-full bg-red-500 animate-pulse" /> Popular Live Streams</h3>
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                  {liveStreamsForUi.map(stream => (
-                    <div key={stream.id} onClick={() => openLiveDiscoveryItem(stream)} className="relative aspect-video rounded-2xl overflow-hidden group cursor-pointer border border-border">
-                       <SafeMediaImage src={stream.img} priority className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
-                       <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-black/30" />
-                       
-                       <div className="absolute top-3 left-3 flex items-center gap-2">
-                         <div className="bg-red-500 text-white text-[10px] font-bold px-2 py-1 rounded-md uppercase tracking-wider animate-pulse flex items-center gap-1">
-                           LIVE
-                         </div>
-                         <div className="bg-black/50 backdrop-blur text-white text-[10px] font-bold px-2 py-1 rounded-md flex items-center gap-1 border border-white/10">
-                           <Users className="w-3 h-3" /> {stream.viewers}
-                         </div>
-                       </div>
-                       
-                       <div className="absolute top-3 right-3">
-                         <div className="w-auto px-2 py-1 bg-gradient-to-r from-amber-500 to-orange-500 rounded-md flex items-center gap-1 text-white text-[10px] font-bold shadow-lg">
-                            <Star className="w-3 h-3 fill-current" /> Top Host
-                         </div>
-                       </div>
-
-                       <div className="absolute bottom-3 left-3 right-3 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden shadow-md">
-                              <img src={`https://api.dicebear.com/7.x/avataaars/svg?seed=${stream.user}`} className="bg-indigo-100" />
-                            </div>
-                            <div>
-                               <div className="font-bold text-white text-sm drop-shadow-md">{stream.user}</div>
-                               <div className="flex gap-1 mt-0.5">
-                                 {stream.tags.map(t => <span key={t} className="text-[9px] bg-white/20 text-white px-1.5 py-0.5 rounded backdrop-blur">{t}</span>)}
-                               </div>
-                            </div>
-                          </div>
-                       </div>
-                    </div>
-                  ))}
-               </div>
-             </div>
-          )}
-
           {activeTab === 'search' && (
              <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center gap-2 mb-6 sm:hidden">
-                  <button onClick={popKaraokeStackBack} className="p-2 hover:bg-secondary rounded-full -ml-2">
+                  <button onClick={() => { setActiveTab(previousTab || 'sing'); setPreviousTab(null); }} className="p-2 hover:bg-secondary rounded-full -ml-2">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <h2 className="font-bold text-lg">Search</h2>
@@ -3572,6 +3016,7 @@ export function KaraokeScreen() {
                     onChange={(e) => setSearchQuery(e.target.value)}
                     placeholder="Search catalog, community uploads, and cover recordings..." 
                     className="w-full bg-secondary/80 focus:bg-secondary border-transparent focus:border-primary/50 focus:ring-2 focus:ring-primary/20 rounded-2xl py-4 pl-12 pr-4 transition-all outline-none" 
+                    autoFocus 
                   />
                   {searchQuery && (
                     <button 
@@ -3593,11 +3038,11 @@ export function KaraokeScreen() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-4">
-                       <div onClick={() => pushKaraokeStackTab('top100')} className="aspect-square bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 flex flex-col justify-end text-white relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition">
+                       <div onClick={() => { setPreviousTab(activeTab); setActiveTab('top100'); }} className="aspect-square bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl p-4 flex flex-col justify-end text-white relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition">
                           <div className="absolute top-4 right-4"><Music className="w-8 h-8 opacity-20 group-hover:scale-110 transition-transform" /></div>
                           <h4 className="font-bold text-lg">Top 100 Global</h4>
                        </div>
-                       <div onClick={() => pushKaraokeStackTab('genres')} className="aspect-square bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-4 flex flex-col justify-end text-white relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition">
+                       <div onClick={() => { setPreviousTab(activeTab); setActiveTab('genres'); }} className="aspect-square bg-gradient-to-br from-pink-500 to-rose-600 rounded-2xl p-4 flex flex-col justify-end text-white relative overflow-hidden group cursor-pointer shadow-sm hover:shadow-md transition">
                           <div className="absolute top-4 right-4"><Mic className="w-8 h-8 opacity-20 group-hover:scale-110 transition-transform" /></div>
                           <h4 className="font-bold text-lg">Browse Genres</h4>
                        </div>
@@ -3721,7 +3166,7 @@ export function KaraokeScreen() {
                     {activeTab === 'genres' && (
              <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center gap-2 mb-6">
-                  <button onClick={popKaraokeStackBack} className="p-2 hover:bg-secondary rounded-full -ml-2">
+                  <button onClick={() => { setActiveTab(previousTab || 'sing'); setPreviousTab(null); }} className="p-2 hover:bg-secondary rounded-full -ml-2">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <h2 className="font-bold text-lg text-primary">All Genres</h2>
@@ -3740,7 +3185,7 @@ export function KaraokeScreen() {
           {activeTab === 'top100' && (
              <div className="p-4 sm:p-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
                 <div className="flex items-center gap-2 mb-6">
-                  <button onClick={popKaraokeStackBack} className="p-2 hover:bg-secondary rounded-full -ml-2">
+                  <button onClick={() => { setActiveTab(previousTab || 'sing'); setPreviousTab(null); }} className="p-2 hover:bg-secondary rounded-full -ml-2">
                     <ArrowLeft className="w-5 h-5" />
                   </button>
                   <div>
@@ -3813,7 +3258,7 @@ export function KaraokeScreen() {
                     </p>
                     <button
                       type="button"
-                      onClick={() => openSmuleRoomFlow('/room/create', 'karaoke-party')}
+                      onClick={() => openSmuleRoomFlow('/room/create')}
                       className="relative z-10 flex items-center space-x-2 rounded-full bg-white px-5 py-2 text-xs font-bold text-purple-900 shadow-lg transition hover:bg-purple-50 dark:hover:bg-gray-100"
                     >
                       <Plus size={16} /> <span>Start Room</span>
@@ -3983,7 +3428,7 @@ export function KaraokeScreen() {
              const handleEditProfileClick = () => {
                setEditProfileName(appUser.username || appUser.displayName || '');
                setEditProfileBio(appUser.bio || '');
-               setEditProfileAvatar(karaokeAvatarSrc(appUser.avatarUrl, appUser.id));
+               setEditProfileAvatar(safeAvatarUrl(appUser.avatarUrl));
                const background = getKaraokeProfileBackground(appUser.id);
                setEditProfileBackgroundUrl(background?.url ?? null);
                setEditProfileBackgroundMediaId(background?.mediaId ?? null);
@@ -4011,13 +3456,6 @@ export function KaraokeScreen() {
                setKaraokeFollowList({ userId: karaokeViewedProfileUserId, mode });
              };
 
-             const showProfileBackButton = Boolean(
-               !openedKaraokeProfileFromMainApp(profileReturnContext) &&
-               (karaokeProfileStack.length > 0 ||
-                 selectedUserProfile ||
-                 profileReturnContext?.surface === 'karaoke-party-room'),
-             );
-
              return (
              <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
                 {/* Profile Header */}
@@ -4027,15 +3465,21 @@ export function KaraokeScreen() {
                   mimeType={profileUser.backgroundMimeType}
                   mediaKind={profileUser.backgroundMediaKind}
                   focus={profileUser.backgroundFocus}
-                  className="relative h-56 sm:h-64 md:h-72 lg:h-80 overflow-hidden"
+                  className="relative aspect-[2.4/1] w-full overflow-hidden"
                   overlayClassName="absolute inset-0 bg-gradient-to-t from-background/90 via-background/25 to-black/20"
                 >
-                  {showProfileBackButton && (
+                  {selectedUserProfile && (
                     <button 
-                      onClick={closeOtherUserProfileView}
+                      onClick={() => {
+                        setSelectedUserProfile(null);
+                        if (previousTab) {
+                          setActiveTab(previousTab);
+                          setPreviousTab(null);
+                        }
+                      }} 
                       className="absolute top-4 left-4 p-2 bg-black/40 text-white rounded-full hover:bg-black/60 transition shadow-sm z-10 flex items-center gap-1 text-sm font-bold pl-3 pr-4"
                     >
-                      <ArrowLeft className="w-5 h-5" /> Back to {karaokeProfileBackLabel(previousTab, profileReturnContext)}
+                      <ArrowLeft className="w-5 h-5" /> Back to {previousTab === 'feed' ? 'Explore' : previousTab === 'leaderboard' ? 'Leaderboard' : previousTab === 'challenge' ? 'Contests' : previousTab || 'Profile'}
                     </button>
                   )}
                   {!selectedUserProfile && (
@@ -4059,45 +3503,14 @@ export function KaraokeScreen() {
                   )}
                 </KaraokeProfileBackground>
                 
-                <div className="px-6 relative -mt-20 sm:-mt-24 md:-mt-28 lg:-mt-32 flex flex-col gap-4 pb-6 border-b border-border sm:grid sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-end sm:gap-x-4">
-                   <div className="w-32 h-32 rounded-full border-4 border-background bg-muted overflow-hidden shadow-xl shrink-0 relative sm:col-start-1 sm:row-start-1">
-                     {!selectedUserProfile ? (
-                       <label
-                         className="group relative block h-full w-full cursor-pointer"
-                         aria-label="Change profile photo"
-                         title="Change profile photo"
-                       >
-                         <img
-                           src={karaokeAvatarSrc(profileUser.avatar, appUser.id)}
-                           alt="Profile"
-                           className="block h-full w-full object-cover relative z-10"
-                           onError={handleAvatarError}
-                         />
-                         <span className="pointer-events-none absolute inset-0 z-20 flex items-center justify-center rounded-full bg-black/45 text-[10px] font-bold uppercase tracking-wide text-white opacity-0 transition-opacity group-hover:opacity-100">
-                           Photo
-                         </span>
-                         <input
-                           type="file"
-                           className="sr-only"
-                           accept="image/*,image/svg+xml,.svg,.webp"
-                           onChange={(event) => {
-                             const file = event.target.files?.[0];
-                             event.target.value = '';
-                             if (file) void applySelfProfileAvatarFile(file);
-                           }}
-                         />
-                       </label>
-                     ) : (
-                       <img
-                         src={karaokeAvatarSrc(
-                           profileUser.avatar,
-                           karaokeViewedProfileUserId || profileUser.handle.replace(/^@/, ''),
-                         )}
-                         alt="Profile"
-                         className="block h-full w-full object-cover relative z-10"
-                         onError={handleAvatarError}
-                       />
-                     )}
+                <div className="px-6 relative -mt-16 sm:-mt-20 md:-mt-24 flex flex-col gap-4 pb-6 border-b border-border sm:grid sm:grid-cols-[8rem_minmax(0,1fr)_auto] sm:items-end sm:gap-x-4">
+                   <div className="w-32 h-32 rounded-full border-4 border-background bg-zinc-800 overflow-hidden shadow-xl shrink-0 bg-yellow-100 relative sm:col-start-1 sm:row-start-1">
+                     <img
+                       src={profileUser.avatar}
+                       alt="Profile"
+                       className="w-full h-full object-cover relative z-10"
+                       onError={handleAvatarError}
+                     />
                    </div>
                    <div className="flex-1 pb-2 sm:col-start-2 sm:row-start-1 min-w-0">
                      <h2 className="text-2xl font-extrabold flex items-center gap-2">{profileUser.name} {profileUser.vip || profileUser.name.toLowerCase().includes('master') ? <Crown className="w-5 h-5 text-amber-500" /> : null}</h2>
@@ -4178,8 +3591,8 @@ export function KaraokeScreen() {
                            });
                          }}
                          className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                         aria-label={`Open ${APP_DISPLAY_NAME} profile`}
-                         title={APP_DISPLAY_NAME}
+                         aria-label="Open main profile"
+                         title="Main profile"
                        >
                          <UserRound className="w-[18px] h-[18px]" />
                        </button>
@@ -4201,28 +3614,19 @@ export function KaraokeScreen() {
                        <>
                        <button
                          type="button"
-                         onClick={() => setShowAccountSwitcher(true)}
-                         className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                         aria-label="Switch account"
-                         title="Switch account"
-                       >
-                         <Users className="w-[18px] h-[18px]" />
-                       </button>
-                       <button
-                         type="button"
                          onClick={handleEditProfileClick}
                          className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                         aria-label="Settings"
-                         title="Settings"
+                         aria-label="Edit profile"
+                         title="Edit profile"
                        >
-                         <Settings className="w-[18px] h-[18px] shrink-0" />
+                         <UserPen className="w-[18px] h-[18px]" />
                        </button>
                        <button
                          type="button"
                          onClick={() => openAppProfileSurface({ userId: null, isSelf: true })}
                          className="p-2 border border-border rounded-full hover:bg-secondary transition bg-card"
-                         aria-label={`Open ${APP_DISPLAY_NAME} profile`}
-                         title={APP_DISPLAY_NAME}
+                         aria-label="Open main profile"
+                         title="Main profile"
                        >
                          <UserRound className="w-[18px] h-[18px]" />
                        </button>
@@ -4260,12 +3664,6 @@ export function KaraokeScreen() {
                    </div>
                 </div>
 
-                {isKaraokeProfileBlocked ? (
-                  <div className="mx-6 mb-4 w-[calc(100%-3rem)] rounded-xl border border-red-500/20 bg-red-500/10 px-4 py-3 text-center text-sm font-semibold text-red-600 dark:text-red-400">
-                    You blocked @{profileLabel}
-                  </div>
-                ) : null}
-
                 {/* Stats */}
                 <div className="grid grid-cols-4 divide-x divide-border border-b border-border bg-card/50">
                    <div className="p-4 text-center">
@@ -4299,11 +3697,6 @@ export function KaraokeScreen() {
                 </div>
 
                 {/* Content Tabs */}
-                {isKaraokeProfileBlocked ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    Unblock @{profileLabel} to view their covers and uploads.
-                  </div>
-                ) : (
                 <div className="p-4 sm:p-6">
                    <div className="flex gap-4 border-b border-border mb-6 overflow-x-auto scrollbar-hide -mx-4 px-4 sm:mx-0 sm:px-0">
                      <button 
@@ -4484,7 +3877,7 @@ export function KaraokeScreen() {
                        />
                        <button
                          type="button"
-                         onClick={() => openSmuleRoomFlow('/room/create', 'karaoke-profile-manage')}
+                         onClick={() => openSmuleRoomFlow('/room/create')}
                          className="w-full py-3.5 border-2 border-dashed border-border hover:border-primary/45 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition-all bg-transparent"
                        >
                          <Plus className="w-4 h-4" />
@@ -4500,12 +3893,13 @@ export function KaraokeScreen() {
                        </p>
                        <SavedRoomsList
                          variant="profile"
-                         onOpenRoom={(roomId) => openSmuleRoomFlow(`/room/${roomId}`, 'karaoke-profile-saved')}
+                         onOpenRoom={(roomId) => openSmuleRoomFlow(`/room/${roomId}`)}
                        />
                        <button
                          type="button"
                          onClick={() => {
                            setActiveTab('party');
+                           setProfileActiveTab('covers');
                          }}
                          className="w-full py-3.5 border-2 border-dashed border-border hover:border-primary/45 rounded-2xl flex items-center justify-center gap-2 text-sm font-bold text-muted-foreground hover:text-primary transition-all bg-transparent"
                        >
@@ -4582,7 +3976,6 @@ export function KaraokeScreen() {
                      </div>
                    )}
                 </div>
-                )}
              </div>
              );
           })()}
@@ -4595,17 +3988,16 @@ export function KaraokeScreen() {
               <button
                 type="button"
                 className="karaoke-mobile-menu md:hidden fixed inset-0 z-[99] bg-black/40 pointer-events-auto"
-                data-app-overlay-root
                 aria-label="Close menu"
                 onClick={() => setShowMobileMenu(false)}
               />
-              <div id="karaoke-mobile-menu" className="md:hidden fixed inset-0 z-[100] flex justify-end pointer-events-none">
+              <div className="md:hidden fixed inset-0 z-[100] flex justify-end pointer-events-none">
               <motion.div
                 initial={{ x: '100%' }}
                 animate={{ x: 0 }}
                 exit={{ x: '100%' }}
                 transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-                className="karaoke-mobile-menu pointer-events-auto relative w-[min(300px,88vw)] h-full bg-card/90 backdrop-blur-xl shadow-2xl border-l border-border pt-safe pb-safe flex flex-col"
+                className="karaoke-mobile-menu pointer-events-auto relative w-[300px] h-full bg-card/90 backdrop-blur-xl shadow-2xl border-l border-border pt-safe pb-safe flex flex-col"
               >
                 <div className="px-6 pb-6 border-b border-border mb-4 flex items-center justify-between">
                   <h3 className="font-bold text-xl">K-Star Menu</h3>
@@ -4680,13 +4072,6 @@ export function KaraokeScreen() {
                     onClick={() => {
                       setSelectedUserProfile(null);
                       setActiveTab('profile');
-                      commitKaraokeNavigation({
-                        tab: 'profile',
-                        profileTab: profileActiveTab,
-                        user: null,
-                        track: null,
-                        recording: null,
-                      });
                       setShowMobileMenu(false);
                     }}
                     className={`w-full flex items-center gap-3 p-3 rounded-2xl transition border ${
@@ -4719,7 +4104,6 @@ export function KaraokeScreen() {
           <KaraokeSmuleRoomFlow
             flowKey={smuleRoomFlowKey}
             initialPath={smuleRoomInitialPath}
-            flowEntry={smuleRoomFlowEntry}
             onClose={() => {
               clearActiveRoomSession();
               setShowSmuleRoomFlow(false);
@@ -4756,7 +4140,8 @@ export function KaraokeScreen() {
                 key={leader.seed} 
                 className={`flex items-center gap-3 p-3 rounded-2xl transition-colors hover:bg-secondary/80 cursor-pointer ${leader.isPro ? 'bg-secondary/40 border border-border/50' : ''}`}
                 onClick={() => {
-                  navigateToKaraokeOtherProfile({
+                  setPreviousTab(activeTab);
+                  setSelectedUserProfile({
                     name: leader.name.replace('@', ''),
                     handle: leader.name,
                     avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${leader.seed}`,
@@ -4765,6 +4150,7 @@ export function KaraokeScreen() {
                     likes: leader.isPro ? '5M+' : '1M+',
                     description: 'Singer and performer! Let\'s sing together! 🎤'
                   });
+                  setActiveTab('profile');
                   window.dispatchEvent(new CustomEvent('app-toast', { detail: `Viewing ${leader.name}'s profile` }));
                 }}
               >
@@ -4800,7 +4186,7 @@ export function KaraokeScreen() {
                <div className="font-black text-center w-6 text-sm text-primary z-10">42</div>
                <div className="relative z-10 shrink-0">
                  <div className="w-12 h-12 rounded-full border-2 overflow-hidden bg-background border-primary">
-                    <img src={CURRENT_USER.avatar} alt="Profile" className="w-full h-full rounded-full object-cover" />
+                    <img src={CURRENT_USER.avatar} className="w-full h-full bg-yellow-100" />
                  </div>
                </div>
                <div className="flex-1 min-w-0 z-10">
@@ -4826,20 +4212,18 @@ export function KaraokeScreen() {
                
                <div className="flex items-center justify-between bg-amber-500/10 px-4 py-3 rounded-xl mb-6 border border-amber-500/20">
                   <div className="flex items-center gap-2">
-                     <CoinIcon className="w-5 h-5 shrink-0" />
+                     <Coins className="w-5 h-5 text-amber-500" />
                      <span className="font-black text-amber-500">{userCoins.toLocaleString()} Coins</span>
                   </div>
-                  {import.meta.env.DEV ? (
                   <button 
                     onClick={() => {
-                      addKstarCoins(appUser.id, 500);
+                      setUserCoins(prev => prev + 500);
                       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Added +500 free test Coins! 🪙' }));
                     }}
                     className="text-xs font-black bg-amber-500 text-white px-3 py-1.5 rounded-full hover:bg-amber-600 active:scale-95 transition"
                   >
                     Recharge
                   </button>
-                  ) : null}
                </div>
 
                <div className="grid grid-cols-3 gap-3 mb-6">
@@ -4862,7 +4246,7 @@ export function KaraokeScreen() {
                      >
                         <div className="text-2xl mb-1">{gift.icon}</div>
                         <div className="text-[10px] font-bold uppercase tracking-wider">{gift.name}</div>
-                        <div className="text-[10px] font-black flex items-center gap-0.5 mt-1 opacity-90"><CoinIcon className="w-3 h-3 shrink-0" /> {gift.cost}</div>
+                        <div className="text-[10px] font-black flex items-center gap-0.5 mt-1 opacity-90"><Coins className="w-3 h-3 text-amber-500" /> {gift.cost}</div>
                      </button>
                   ))}
                </div>
@@ -4924,21 +4308,8 @@ export function KaraokeScreen() {
 
                   <button 
                     onClick={() => {
-                      const result = db.purchasePremiumPackage('profile_premium_1m');
                       setShowVipModal(false);
-                      if (result.ok) {
-                        window.dispatchEvent(
-                          new CustomEvent('app-toast', {
-                            detail: 'VIP Premium unlocked — synced across main app and K-Star!',
-                          }),
-                        );
-                      } else {
-                        window.dispatchEvent(
-                          new CustomEvent('app-toast', {
-                            detail: result.reason ?? 'Could not unlock VIP. Check your wallet balance.',
-                          }),
-                        );
-                      }
+                      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'VIP Premium Unlocked! Enjoy exclusive features.' }));
                     }}
                     className="w-full py-4 bg-gradient-to-r from-amber-400 to-orange-500 text-white font-bold rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.02] transition-transform text-lg"
                   >
@@ -5060,15 +4431,6 @@ export function KaraokeScreen() {
         </div>
       )}
 
-{/* Profile background position editor */}
-      {backgroundEditorDraft ? (
-        <KaraokeProfileBackgroundEditor
-          draft={backgroundEditorDraft}
-          onSave={handleBackgroundEditorSave}
-          onCancel={handleBackgroundEditorCancel}
-        />
-      ) : null}
-
 {/* Edit Profile Modal */}
       {showEditProfileModal && (
         <div className="fixed inset-0 z-50 bg-black/70 backdrop-blur-sm flex items-center justify-center p-4">
@@ -5090,26 +4452,15 @@ export function KaraokeScreen() {
               <div>
                 <label className="block text-xs font-bold uppercase tracking-wider text-muted-foreground mb-2">Choose Avatar / Seed</label>
                 <div className="flex items-center gap-4 bg-secondary/40 p-3 rounded-2xl border border-border">
-                  <div className="w-16 h-16 rounded-full overflow-hidden bg-muted shrink-0 border border-border relative">
+                  <div className="w-16 h-16 rounded-full overflow-hidden bg-yellow-100 shrink-0 border border-border relative">
                     <img 
-                      src={karaokeAvatarSrc(editProfileAvatar, appUser.id)} 
+                      src={editProfileAvatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=user`} 
                       alt="Avatar Preview" 
-                      className="block h-full w-full object-cover" 
-                      onError={handleAvatarError}
+                      className="w-full h-full object-cover" 
                     />
-                    <label className="absolute inset-0 flex cursor-pointer items-center justify-center bg-black/25 hover:bg-black/40 transition-colors">
+                    <div className="absolute inset-0 bg-black/20 flex items-center justify-center">
                       <Camera className="w-4 h-4 text-white" />
-                      <input
-                        type="file"
-                        className="sr-only"
-                        accept="image/*,image/svg+xml,.svg,.webp"
-                        onChange={(event) => {
-                          const file = event.target.files?.[0];
-                          event.target.value = '';
-                          if (file) void applySelfProfileAvatarFile(file);
-                        }}
-                      />
-                    </label>
+                    </div>
                   </div>
                   <div className="flex-1 min-w-0">
                     <input 
@@ -5121,7 +4472,7 @@ export function KaraokeScreen() {
                           if (val.startsWith('http://') || val.startsWith('https://')) {
                             setEditProfileAvatar(val);
                           } else {
-                            setEditProfileAvatar(avatarPresetUrl(val));
+                            setEditProfileAvatar(`https://api.dicebear.com/7.x/avataaars/svg?seed=${val}`);
                           }
                         } else {
                           setEditProfileAvatar('');
@@ -5134,10 +4485,25 @@ export function KaraokeScreen() {
                   </div>
                 </div>
 
-                <AvatarQuickPresets
-                  selectedUrl={editProfileAvatar}
-                  onSelect={setEditProfileAvatar}
-                />
+                {/* Predefined Beautiful Seeds Grid */}
+                <div className="mt-3">
+                  <span className="text-[10px] uppercase font-bold text-muted-foreground/70 block mb-1.5">Quick Presets</span>
+                  <div className="flex gap-2 overflow-x-auto pb-1 scrollbar-thin">
+                    {['vocal', 'melody', 'rhythm', 'superstar', 'diva', 'artist', 'legend', 'wave'].map(seed => {
+                      const url = `https://api.dicebear.com/7.x/avataaars/svg?seed=${seed}`;
+                      const isSelected = editProfileAvatar === url;
+                      return (
+                        <button 
+                          key={seed}
+                          onClick={() => setEditProfileAvatar(url)}
+                          className={`w-10 h-10 rounded-full overflow-hidden border-2 shrink-0 bg-secondary hover:scale-105 transition-transform ${isSelected ? 'border-primary shadow-md shadow-primary/25' : 'border-transparent'}`}
+                        >
+                          <img src={url} className="w-full h-full" alt={seed} />
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
               </div>
 
               <div>
@@ -5151,7 +4517,7 @@ export function KaraokeScreen() {
                     mimeType={editProfileBackgroundMimeType}
                     mediaKind={editProfileBackgroundMediaKind}
                     focus={editProfileBackgroundFocus}
-                    className="relative h-40 sm:h-44 overflow-hidden"
+                    className="relative aspect-[2.4/1] w-full overflow-hidden"
                     overlayClassName="absolute inset-0 bg-gradient-to-t from-black/50 via-black/10 to-transparent"
                   />
                   <div className="flex items-center gap-2 p-3">
@@ -5232,20 +4598,23 @@ export function KaraokeScreen() {
               </button>
               <button 
                 onClick={() => {
+                  void (async () => {
                   if (!editProfileName.trim()) {
                     window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Name cannot be empty! ⚠️' }));
                     return;
                   }
 
-                  db.updateUser(appUser.id, (user) => ({
-                    ...user,
-                    username: editProfileName.trim(),
-                    displayName: editProfileName.trim(),
-                    bio: editProfileBio,
-                    avatarUrl: editProfileAvatar || user.avatarUrl,
-                  }));
-                  const next = db.users.find((user) => user.id === appUser.id);
-                  if (next) scheduleCloudProfileSync(next);
+                  const persistedAvatar = await persistAvatarUrl(editProfileAvatar);
+                  const avatarUrl =
+                    persistedAvatar ||
+                    `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(appUser.id)}`;
+                  
+                  const updatedUsers = db.users.map((u: any) => 
+                    u.id === appUser.id 
+                    ? { ...u, username: editProfileName, bio: editProfileBio, avatarUrl } 
+                    : u
+                  );
+                  db.save('users', updatedUsers);
                   setKaraokeProfileBackground(
                     appUser.id,
                     editProfileBackgroundUrl || editProfileBackgroundMediaId
@@ -5259,8 +4628,10 @@ export function KaraokeScreen() {
                         }
                       : null,
                   );
+                  setProfileBackgroundRevision((n) => n + 1);
                   setShowEditProfileModal(false);
                   window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Profile saved successfully! ✨' }));
+                  })();
                 }}
                 className="flex-1 py-3 bg-primary text-primary-foreground font-bold rounded-xl shadow-lg hover:shadow-xl transition-all hover:scale-[1.01] flex items-center justify-center gap-2"
               >
@@ -5271,32 +4642,31 @@ export function KaraokeScreen() {
         </div>
       )}
 
-      {/* Hidden preview media — audio stays here; video moves into track-details stage when visible. */}
+{/* Profile background position editor */}
+      {backgroundEditorDraft ? (
+        <KaraokeProfileBackgroundEditor
+          draft={backgroundEditorDraft}
+          onSave={handleBackgroundEditorSave}
+          onCancel={handleBackgroundEditorCancel}
+        />
+      ) : null}
+
+      {/* Hidden preview media — kept mounted while a track is loaded so mini-player playback works after closing track details. */}
       {playingTrack && (
         <div className="sr-only" aria-hidden="true">
           <audio ref={uploadPreviewAudioRef} preload="auto" playsInline />
           <audio ref={coverPreviewAudioRef} preload="auto" playsInline />
-          {!(
-            showTrackDetails &&
-            (
-              (activeCoverRecording && activeCoverMediaUrl && isCoverRecordingVideo(activeCoverRecording)) ||
-              (playingTrack.isUploaded && isUploadedVideoTrack(playingTrack) && playingTrack.audioUrl && !activeCoverRecording)
-            )
-          ) && (
-            <>
-              <video ref={uploadPreviewVideoRef} preload="auto" playsInline muted={false} controls {...nativeVideoControlGuardProps()} />
-              <video ref={coverPreviewVideoRef} preload="auto" playsInline muted={false} controls {...nativeVideoControlGuardProps()} />
-            </>
-          )}
+          <video ref={uploadPreviewVideoRef} preload="auto" playsInline muted={false} />
+          <video ref={coverPreviewVideoRef} preload="auto" playsInline muted={false} />
         </div>
       )}
 
       {/* Floating Glassmorphic Native Music Player */}
       {playingTrack && !showTrackDetails && (
-        <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-background/90 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 z-40 animate-in slide-in-from-bottom-8 duration-300">
+        <div className="fixed bottom-20 md:bottom-4 left-4 right-4 md:left-auto md:right-4 md:w-96 bg-background/85 dark:bg-zinc-950/90 backdrop-blur-xl border border-border rounded-2xl shadow-2xl p-4 z-40 animate-in slide-in-from-bottom-8 duration-300">
           <div className="flex items-center gap-3">
             <div className="relative">
-              <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-border/80 bg-muted relative shadow-md ${isPlayingTrack ? 'animate-[spin_10s_linear_infinite]' : ''}`}>
+              <div className={`w-14 h-14 rounded-xl overflow-hidden shrink-0 border border-border/80 bg-zinc-800 relative shadow-md ${isPlayingTrack ? 'animate-[spin_10s_linear_infinite]' : ''}`}>
                 <img src={playingTrack.img || 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60'} className="w-full h-full object-cover" alt="Album" />
                 {isPlayingTrack && (
                   <div className="absolute inset-x-0 bottom-0.5 flex justify-center gap-[2px] px-1 h-3 bg-black/45 backdrop-blur-[0.5px] items-end pointer-events-none z-20">
@@ -5405,13 +4775,8 @@ export function KaraokeScreen() {
 
               <button 
                 onClick={() => {
-                  pauseUploadPreviewMedia();
-                  pauseCoverPreviewMedia();
-                  clearActiveCoverPlayback();
                   setPlayingTrack(null);
                   setIsPlayingTrack(false);
-                  setTrackTime(0);
-                  setTrackProgress(0);
                 }} 
                 className="p-2 hover:bg-secondary rounded-full text-muted-foreground hover:text-red-500 transition"
               >
@@ -5422,7 +4787,9 @@ export function KaraokeScreen() {
 
           <div className="mt-4 space-y-1">
             <div className="relative h-1.5 w-full bg-secondary rounded-full overflow-hidden cursor-pointer" onClick={(e) => {
-              seekTrackPreviewFromClientX(e.clientX);
+              const rect = e.currentTarget.getBoundingClientRect();
+              const percent = (e.clientX - rect.left) / rect.width;
+              setTrackTime(Math.floor(percent * trackMaxSeconds));
             }}>
               <div 
                 className="absolute top-0 left-0 h-full bg-primary rounded-full transition-all duration-150"
@@ -5525,12 +4892,12 @@ export function KaraokeScreen() {
 
       {/* Dynamic Song Info / Recordings & Lyrics Modal */}
       {showTrackDetails && playingTrack && (
-        <div className="fixed inset-0 z-50 bg-background text-foreground flex flex-col animate-in slide-in-from-bottom duration-300">
+        <div className="fixed inset-0 z-50 bg-zinc-50 dark:bg-zinc-950 text-foreground flex flex-col animate-in slide-in-from-bottom duration-300">
           {/* Header */}
-          <div className="h-16 shrink-0 border-b border-border flex items-center justify-between px-4 bg-card shadow-sm z-10">
+          <div className="h-16 shrink-0 border-b border-border flex items-center justify-between px-4 bg-white dark:bg-zinc-900 shadow-sm z-10">
             <button 
               onClick={() => { closeTrackDetails(); }}
-              className="p-2 bg-secondary hover:bg-secondary/80 text-foreground rounded-full transition shrink-0 flex items-center justify-center shadow-sm"
+              className="p-2 bg-zinc-100 hover:bg-zinc-200 dark:bg-zinc-800 dark:hover:bg-zinc-700 text-foreground rounded-full transition shrink-0 flex items-center justify-center shadow-sm"
               title="Back"
             >
               <ChevronLeft className="w-6 h-6 stroke-[3]" />
@@ -5556,7 +4923,7 @@ export function KaraokeScreen() {
                   window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Added to Bookmarks! 🔖' }));
                 }
               }}
-              className="p-2 hover:bg-secondary rounded-full transition shrink-0"
+              className="p-2 hover:bg-zinc-100 dark:hover:bg-zinc-800 rounded-full transition shrink-0"
               title="Bookmark Song"
             >
               <Bookmark className={`w-5 h-5 transition-all ${bookmarkedTracks.includes(playingTrack.id) ? 'text-primary fill-primary scale-110' : 'text-muted-foreground hover:text-foreground'}`} />
@@ -5564,7 +4931,7 @@ export function KaraokeScreen() {
           </div>
 
           {/* Scrollable Content Wrapper */}
-          <div className="flex-1 overflow-y-auto pb-24 bg-background">
+          <div className="flex-1 overflow-y-auto pb-24 bg-white dark:bg-zinc-950">
             {/* Banner / playback stage */}
             <div
               className={`relative aspect-[16/10] sm:aspect-[16/7] w-full bg-zinc-950 overflow-hidden group ${
@@ -5586,27 +4953,15 @@ export function KaraokeScreen() {
             >
               {(activeCoverRecording && activeCoverMediaUrl && isCoverRecordingVideo(activeCoverRecording)) ||
               (playingTrack.isUploaded && isUploadedVideoTrack(playingTrack) && playingTrack.audioUrl && !activeCoverRecording) ? (
-                activeCoverRecording && activeCoverMediaUrl && isCoverRecordingVideo(activeCoverRecording) ? (
-                  <video
-                    ref={coverPreviewVideoRef}
-                    preload="auto"
-                    playsInline
-                    muted={false}
-                    controls
-                    className="w-full h-full object-contain bg-black"
-                    {...nativeVideoControlGuardProps()}
-                  />
-                ) : (
-                  <video
-                    ref={uploadPreviewVideoRef}
-                    preload="auto"
-                    playsInline
-                    muted={false}
-                    controls
-                    className="w-full h-full object-contain bg-black"
-                    {...nativeVideoControlGuardProps()}
-                  />
-                )
+                <img
+                  src={
+                    activeCoverRecording?.img ||
+                    playingTrack.img ||
+                    'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=60'
+                  }
+                  className="w-full h-full object-contain bg-black"
+                  alt="Video preview"
+                />
               ) : (
                 <img
                   src={
@@ -5757,9 +5112,9 @@ export function KaraokeScreen() {
             </div>
 
             {/* Tab Body Contents */}
-            <div className="p-4 sm:p-6 min-h-[400px] bg-gradient-to-b from-muted/30 via-background to-muted/20">
+            <div className="p-4 sm:p-6 min-h-[400px] bg-gradient-to-b from-zinc-50/50 via-white to-zinc-100/30 dark:from-zinc-950/40 dark:via-zinc-950 dark:to-zinc-900/60">
               {detailsTab === 'lyrics' && (
-                <div className="max-w-lg mx-auto py-4 px-6 bg-card/90 backdrop-blur-md rounded-3xl border border-border shadow-lg animate-in fade-in duration-300">
+                <div className="max-w-lg mx-auto py-4 px-6 bg-white/70 dark:bg-zinc-900/60 backdrop-blur-md rounded-3xl border border-zinc-200/60 dark:border-zinc-800/60 shadow-xl shadow-zinc-100/50 dark:shadow-none animate-in fade-in duration-300">
                   <div className="space-y-4">
                     {getLyricsForSong(playingTrack).map((line, idx) => {
                       const isHeader = line.startsWith('[') && line.endsWith(']');
@@ -5832,14 +5187,14 @@ export function KaraokeScreen() {
                     return (
                       <>
                   {trackRecordings.length === 0 && (
-                    <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-card/60">
+                    <div className="text-center py-12 px-4 rounded-2xl border border-dashed border-border bg-white/60 dark:bg-zinc-900/40">
                       <Mic className="w-10 h-10 mx-auto mb-3 text-muted-foreground" />
                       <p className="font-bold text-sm">No covers yet</p>
                       <p className="text-xs text-muted-foreground mt-1">Sing this song solo, as a duet, or in a group — your recording will appear here for others to listen.</p>
                     </div>
                   )}
                   {trackRecordings.map((recording: any) => {
-                    const isPersistedCover = Boolean(recording.performers);
+                    const isPersistedCover = Boolean(recording?.performers || recording?.performanceType);
                     const isActive = activeCoverRecording?.id === recording.id;
 
                     if (isPersistedCover) {
@@ -5847,14 +5202,14 @@ export function KaraokeScreen() {
                       return (
                         <div
                           key={cover.id}
-                          className={`flex items-center p-3.5 bg-card border rounded-2xl transition shadow-sm group hover:shadow-md cursor-pointer animate-in fade-in duration-200 ${
+                          className={`flex items-center p-3.5 bg-white dark:bg-zinc-900 border rounded-2xl transition shadow-sm group hover:shadow-md cursor-pointer animate-in fade-in duration-200 ${
                             isActive
                               ? 'border-primary ring-1 ring-primary/30'
-                              : 'border-border hover:border-primary/45'
+                              : 'border-zinc-200/80 dark:border-zinc-800/80 hover:border-primary/45'
                           }`}
                           onClick={() => { toggleCoverRecordingPlayback(cover); }}
                         >
-                          <div className="w-13 h-13 rounded-xl overflow-hidden shrink-0 border border-border/80 bg-muted relative shadow-md">
+                          <div className="w-13 h-13 rounded-xl overflow-hidden shrink-0 border border-border/80 bg-zinc-800 relative shadow-md">
                             <img
                               src={cover.img || playingTrack.img || 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=200&auto=format&fit=crop&q=60'}
                               className="w-full h-full object-cover"
@@ -5879,7 +5234,7 @@ export function KaraokeScreen() {
                               </span>
                             </div>
                             <p className="text-xs text-muted-foreground truncate leading-relaxed mt-0.5 font-bold">
-                              {cover.performers.map((p) => p.handle).join(' + ')}
+                              {getRecordingPerformers(cover).map((p) => p.handle).join(' + ')}
                             </p>
                             {cover.caption ? (
                               <p className="text-[11px] text-muted-foreground/90 line-clamp-2 leading-snug mt-1">
@@ -5918,21 +5273,22 @@ export function KaraokeScreen() {
                     return (
                     <div 
                       key={recording.id} 
-                      className="flex items-center p-3.5 bg-card border border-border hover:border-primary/45 rounded-2xl transition shadow-sm group hover:shadow-md cursor-pointer animate-in fade-in duration-200"
+                      className="flex items-center p-3.5 bg-white dark:bg-zinc-900 border border-zinc-200/80 dark:border-zinc-800/80 hover:border-primary/45 rounded-2xl transition shadow-sm group hover:shadow-md cursor-pointer animate-in fade-in duration-200"
                       onClick={() => {
+                        const demoUsers = Array.isArray(recording.users) ? recording.users : ['@you'];
                         setPlayingTrack({
                           ...playingTrack,
-                          artist: recording.users.join(' & '),
+                          artist: demoUsers.join(' & '),
                           plays: `${recording.plays} (Duet)`,
                           likes: `${recording.likes} Likes`
                         });
                         setTrackTime(0);
                         setIsPlayingTrack(true);
-                        window.dispatchEvent(new CustomEvent('app-toast', { detail: `Now tuning in to collab cover by ${recording.users.map((u: string) => `@${u}`).join(' + ')}! 🎧` }));
+                        window.dispatchEvent(new CustomEvent('app-toast', { detail: `Now tuning in to collab cover by ${demoUsers.map((u: string) => `@${u}`).join(' + ')}! 🎧` }));
                       }}
                     >
                       {/* Album cover layout */}
-                      <div className="w-13 h-13 rounded-xl overflow-hidden shrink-0 border border-border/80 bg-muted relative shadow-md">
+                      <div className="w-13 h-13 rounded-xl overflow-hidden shrink-0 border border-border/80 bg-zinc-800 relative shadow-md">
                         <img 
                           src="https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=200&auto=format&fit=crop&q=60" 
                           className="w-full h-full object-cover" 
@@ -5947,7 +5303,7 @@ export function KaraokeScreen() {
                       <div className="ml-4 flex-1 min-w-0">
                         <h4 className="font-extrabold text-sm text-foreground truncate leading-normal sm:max-w-[280px] group-hover:text-primary transition-colors">{recording.title}</h4>
                         <p className="text-xs text-muted-foreground truncate leading-relaxed mt-0.5 font-bold">
-                          {recording.users.map((u: string) => `@${u}`).join(' + ')}
+                          {(Array.isArray(recording.users) ? recording.users : ['@you']).map((u: string) => `@${u}`).join(' + ')}
                         </p>
                         
                         {/* Meta row with Play, Heart, GiftBox, Clock */}
@@ -6037,6 +5393,7 @@ export function KaraokeScreen() {
                       if (e.key === 'Enter') handleCreatePlaylist();
                     }}
                     placeholder="E.g. Late Night Chill Vibes 🌙"
+                    autoFocus
                     className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-sm font-bold focus:ring-2 focus:ring-primary focus:outline-none pl-10"
                   />
                   <Music className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
@@ -6082,80 +5439,6 @@ export function KaraokeScreen() {
         shareText={karaokeShareModal?.shareText ?? 'Shared from K-Star'}
         kind={karaokeShareModal?.kind ?? 'karaoke-track'}
         notificationText={karaokeShareModal?.notificationText}
-      />
-      <AccountSwitcherModal
-        open={showAccountSwitcher}
-        accounts={userAccounts}
-        liveUsers={db.users}
-        activeUid={cloudSession?.user?.id ?? db.currentUserId ?? appUser.id}
-        linking={accountLinking}
-        cloudAuthEnabled={isCloudAuthConfigured()}
-        onClose={() => setShowAccountSwitcher(false)}
-        onRefreshAccounts={ensureDeviceAccountsSynced}
-        onSelectAccount={async (uid, password) => {
-          try {
-            const label =
-              userAccounts.find((account) => account.uid === uid)?.displayName || 'account';
-            window.dispatchEvent(
-              new CustomEvent('app-toast', { detail: `Switching to ${label}…` }),
-            );
-            await selectAccount(uid, password);
-            await ensureDeviceAccountsSynced();
-            setShowAccountSwitcher(false);
-            void loadUserUploads();
-          } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to switch account.';
-            window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
-          }
-        }}
-        onRemoveAccount={(uid) => {
-          removeAccount(uid);
-          void ensureDeviceAccountsSynced();
-        }}
-        onSendEmailOtp={async (email, mode, profile) => {
-          try {
-            setAccountLinking(true);
-            await ensureDeviceAccountsSynced();
-            return await sendEmailAuthOtp(email, {
-              createAccount: mode === 'signup',
-              displayName: profile?.displayName,
-              username: profile?.username,
-            });
-          } catch {
-            return { ok: false, reason: 'Failed to send email code.' };
-          } finally {
-            setAccountLinking(false);
-          }
-        }}
-        onVerifyEmailOtp={async (email, code) => {
-          try {
-            setAccountLinking(true);
-            const result = await verifyEmailAuthOtp(email, code, { switchAccount: true });
-            if (result.ok) {
-              await ensureDeviceAccountsSynced();
-              setShowAccountSwitcher(false);
-              void loadUserUploads();
-            }
-            return result;
-          } catch {
-            return { ok: false, reason: 'Failed to verify email code.' };
-          } finally {
-            setAccountLinking(false);
-          }
-        }}
-        onLinkGoogle={async () => {
-          setAccountLinking(true);
-          try {
-            const result = await linkGoogleAccount();
-            if (result.ok) {
-              await ensureDeviceAccountsSynced();
-            } else if (result.reason) {
-              window.dispatchEvent(new CustomEvent('app-toast', { detail: result.reason }));
-            }
-          } finally {
-            setAccountLinking(false);
-          }
-        }}
       />
     </div>
   );

@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useLayoutEffect, useRef, useCallback, useMemo } from "react";
 import { motion } from "motion/react";
-import { useParams, useNavigate } from "react-router-dom";
+import { useParams, useNavigate, useSearchParams } from "react-router-dom";
 import { 
   X, Mic, MicOff, Users, MessageCircle, Gift, Heart, Settings, Plus, Send, 
   Crown, Shield, Pencil, ChevronRight, LayoutGrid,
@@ -14,7 +14,9 @@ import { CoinIcon } from "../../components/common/CoinIcon";
 
 import { ShareModal } from "../../components/feed/ShareModal";
 import { buildPartySharePayload } from "../../lib/shareLinks";
-import { nativeVideoControlGuardProps } from "../../lib/nativeVideoControls";
+import { AppNativeVideo } from "../../components/common/AppNativeVideo";
+import { AppCameraButton } from "../../components/camera/AppCameraButton";
+import { roomBackgroundFromCapture } from "../../lib/camera/cameraCaptureAdapters";
 import { SongSelector } from "../components/SongSelector";
 import { LyricsOverlay } from "../components/LyricsOverlay";
 import { ChorusPerformanceStage } from "../components/ChorusPerformanceStage";
@@ -33,6 +35,8 @@ import {
 import { RoomHeaderYoutubeMiniButton } from "../components/RoomHeaderYoutubeMiniButton";
 import { ChatRoleBadges } from "../components/ChatRoleBadges";
 import { WatchTogetherView } from "../components/WatchTogetherView";
+import { GameLiveView } from "../components/GameLiveView";
+import { GameLivePanel, scoreGameAnswer, startGameRound } from "../components/GameLivePanel";
 import { MultiGuestView } from "../components/MultiGuestView";
 import { SoloLiveView } from "../components/SoloLiveView";
 import { RoomFooterTrayActions } from "../components/RoomFooterTrayActions";
@@ -80,7 +84,10 @@ import {
   buildRoomProfilePreview,
   resolveRoomViewerUserId,
 } from "../utils/roomProfilePreview";
-import { useDbRevision } from "../../lib/useDB";
+import { settlePartyGiftSend } from "../../lib/partyGiftPayments";
+import { mergeRemotePartySeats } from "../../lib/party/partySeatCloudSync";
+import { getLiveCoinsBalance } from "../../lib/walletKstarSync";
+import { useDbRevision, useDB } from "../../lib/useDB";
 import { getChorusPanelSongs, CHORUS_SONG_TABS, type ChorusSongTab } from "../utils/songCatalog";
 import { isKaraokeUploadSongId } from "../utils/karaokeUploadBridge";
 import { initSongLibrary } from "../utils/songLibrary";
@@ -133,10 +140,9 @@ import {
   type RoomExpProgress,
 } from "../utils/roomExp";
 import {
+  initRoomGifts,
   getReceiverGiftStars,
   getRoomGiftSummary,
-  initRoomGifts,
-  PARTY_GIFT_CATALOG,
   recordRoomGift,
   syncSeatsReceiverStars,
   type PartyGiftDefinition,
@@ -186,13 +192,31 @@ import {
 import { SeatSpeakingLevelBars, SeatVoiceGlowEffect } from "../components/SeatVoiceVisuals";
 import { useMicVoiceActivity } from "../hooks/useMicVoiceActivity";
 import { usePartyRoomLiveKit } from "../hooks/usePartyRoomLiveKit";
+import { useLiveRoomBus } from "../hooks/useLiveRoomBus";
+import { giftFromDefinition, DEFAULT_COMMERCE_CATALOG, DEFAULT_COMMERCE_CARD_POSITION, DEFAULT_GAME_STATE, clampCommerceCardPosition, createCommerceOrderId, findCommerceProduct, mergeCommerceCatalog, normalizeCommerceProduct, type CommerceCardPosition, type CommerceOrder, type CommerceProduct, type GameLiveState } from "../utils/liveRoomTypes";
+import type { CommerceCheckoutResult } from "../components/CommerceLiveCheckoutModal";
+import {
+  applyPendingHostCashEarnings,
+  completeStripeCommerceReturn,
+  creditHostStripeSale,
+  settleCommerceCashBalanceSale,
+  settleCommerceCoinSale,
+} from "../../lib/commercePayments";
+import { PartyGiftPickerPanel } from "../components/PartyGiftPickerPanel";
 import { buildLiveViewMediaProps, RoomLiveMediaSession } from "../components/RoomLiveMediaSession";
+import {
+  LiveSeatFullscreenOverlay,
+  type LiveSeatFullscreenTarget,
+} from "../components/LiveSeatFullscreenOverlay";
+import { useSeatTileTap } from "../hooks/useSeatTileTap";
+import { buildLiveSeatFullscreenTarget } from "../utils/liveSeatFullscreenTarget";
 import type { BeautyPresetId } from "../../lib/ar/beautyFilters";
 import {
   deeparSelectionActive,
   EMPTY_DEEPAR_EFFECT_SELECTION,
   type DeepAREffectSelection,
 } from "../../lib/deepar/deeparEffectSelection";
+import { DEEPAR_ENABLED } from "../../lib/deepar/deeparEnabled";
 import { EMPTY_BODY_SHAPE, type TencentBodyShapeParams } from "../../lib/webar/webarTypes";
 import { useSongPerformanceTimer } from "../hooks/useSongPerformanceTimer";
 import { useSingingSession } from "../hooks/useSingingSession";
@@ -201,6 +225,14 @@ import { useUploadSongPlayback } from "../hooks/useUploadSongPlayback";
 import { safeAvatarUrl } from "../../lib/safe";
 import { getActiveLyricIndex, resolveActiveSong, DEFAULT_TRACK_DURATION_SEC, type ActiveSong } from "../utils/songPerformance";
 import type { VoiceChangerEffectId } from "../utils/voiceEffects";
+import { getVoiceChangerEffect } from "../utils/voiceEffects";
+import { useRoomVoiceChanger } from "../hooks/useRoomVoiceChanger";
+import { VoiceChangerSheet } from "../components/VoiceChangerSheet";
+import { PKInviteSheet, type PKConnectOptions } from "../components/PKInviteSheet";
+import { buildPkInvitePayload, pkScoreFromGift } from "../components/PKBattleStage";
+import { buildSoloLivePkTeams, isPkEligibleRoomMode } from "../utils/pkBattleLayout";
+import { usePkLiveHosts } from "../hooks/usePkLiveHosts";
+import type { PKFighter, PKPayload } from "../utils/liveRoomTypes";
 
 interface Guest extends RoomGuest {}
 
@@ -229,7 +261,9 @@ const PARTY_HEARTBEAT_ROW2: SeatHeartbeatLink[] = [
 export function Room() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const self = useRoomSelf();
+  const db = useDB();
   const dbRevision = useDbRevision();
   const exitRoomFlow = useRoomFlowExit();
   const roomDisplayId = id ?? "1181033";
@@ -324,7 +358,7 @@ export function Room() {
   const [isFullPartyMode, setIsFullPartyMode] = useState<boolean>(() =>
     resolveRoomLayoutFromSettings(ensureRoomSettingsSeeded(roomDisplayId).roomMode).isFullPartyMode,
   );
-  const [roomMode, setRoomMode] = useState<'Party' | 'Chorus' | 'WatchTogether' | 'MultiGuest' | 'SoloLive'>(() =>
+  const [roomMode, setRoomMode] = useState<'Party' | 'Chorus' | 'WatchTogether' | 'GameLive' | 'MultiGuest' | 'SoloLive'>(() =>
     resolveRoomLayoutFromSettings(ensureRoomSettingsSeeded(roomDisplayId).roomMode).layout,
   );
   const roomLayoutConfig = useMemo(
@@ -341,7 +375,10 @@ export function Room() {
     [roomLayoutConfig.guestSeatKeys],
   );
   const usesLivePartyFeed =
-    isFullPartyMode || roomMode === 'WatchTogether' || roomMode === 'MultiGuest' || roomMode === 'SoloLive';
+    isFullPartyMode || roomMode === 'WatchTogether' || roomMode === 'GameLive' || roomMode === 'MultiGuest' || roomMode === 'SoloLive';
+  const isCommerceLive = String(liveSettings.roomMode || '') === 'Commerce-Live';
+  const isPkEligibleStream = isPkEligibleRoomMode(liveSettings.roomMode);
+  const commerceHostUserId = liveSettings.ownerUserId?.trim() || self.id;
 
   const partyRoomChat = usePartyRoomChat({
     roomId: roomDisplayId,
@@ -349,8 +386,26 @@ export function Room() {
     senderId: self.id,
     senderName: self.chatLabel,
   });
+  const liveRoomBus = useLiveRoomBus({
+    roomId: roomDisplayId,
+    userId: self.id,
+    userName: self.roomName || self.chatLabel,
+    enabled: usesLivePartyFeed,
+  });
+  const processedGiftPlayIdsRef = useRef<Set<string>>(new Set());
   const liveChatMsgs = partyRoomChat.messages;
   const appendLiveChatMsg = partyRoomChat.appendMessage;
+
+  const showToast = useCallback(
+    (message: string) => {
+      if (roomMode === 'WatchTogether' || roomMode === 'GameLive') {
+        appendLiveChatMsg({ id: Date.now(), isSystem: true, text: message });
+        return;
+      }
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
+    },
+    [appendLiveChatMsg, roomMode],
+  );
   
   // Custom states
   const [customGreeting, setCustomGreeting] = useState("Show your enthusiasm");
@@ -360,6 +415,8 @@ export function Room() {
   const [likes, setLikes] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [chatInput, setChatInput] = useState("");
+  const [gameLiveState, setGameLiveState] = useState<GameLiveState>(DEFAULT_GAME_STATE);
+  const [gamePanelOpen, setGamePanelOpen] = useState(false);
   
   // Dynamic audio frequency simulation for active speaking wave animation
   const [audioPulse, setAudioPulse] = useState(0);
@@ -382,6 +439,7 @@ export function Room() {
     getRoomGiftSummary(roomDisplayId),
   );
   const [isGiftPickerOpen, setIsGiftPickerOpen] = useState(false);
+  const [giftPickerReceiver, setGiftPickerReceiver] = useState<Guest | null>(null);
   const activeSeatsRef = useRef<PartySeatMap>({} as PartySeatMap);
   const applyRoomGiftRef = useRef<
     ((
@@ -600,12 +658,39 @@ export function Room() {
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
   const [isLyricsOverlayOpen, setIsLyricsOverlayOpen] = useState(false);
   const [singingVoiceEffect, setSingingVoiceEffect] = useState<VoiceChangerEffectId>('studio');
+  const [roomVoiceEffect, setRoomVoiceEffect] = useState<VoiceChangerEffectId>('studio');
+  const [isRoomVoiceChangerOpen, setIsRoomVoiceChangerOpen] = useState(false);
+  const [roomVoiceMonitorEnabled, setRoomVoiceMonitorEnabled] = useState(() => {
+    try {
+      return sessionStorage.getItem('room-voice-monitor') === '1';
+    } catch {
+      return false;
+    }
+  });
   const [isGuestManagementOpen, setIsGuestManagementOpen] = useState(false);
   const [isRoomViewersOpen, setIsRoomViewersOpen] = useState(false);
   const [giftSendersTarget, setGiftSendersTarget] = useState<{
     name: string;
     userId?: string;
   } | null>(null);
+  const openGiftSendersForGuest = useCallback((receiver: { name: string; userId?: string }) => {
+    setGiftSendersTarget({ name: receiver.name, userId: receiver.userId });
+  }, []);
+
+  const setGiftPickerOpen = useCallback((open: boolean) => {
+    if (!open) {
+      setGiftPickerReceiver(null);
+      setIsGiftPickerOpen(false);
+      return;
+    }
+    setGiftPickerReceiver(null);
+    setIsGiftPickerOpen(true);
+  }, []);
+
+  const openGiftPickerForGuest = useCallback((guest: Guest) => {
+    setGiftPickerReceiver(guest);
+    setIsGiftPickerOpen(true);
+  }, []);
   const [userCameraOn, setUserCameraOn] = useState(true);
   const [multiGuestDeeparSelection, setMultiGuestDeeparSelection] =
     useState<DeepAREffectSelection>(EMPTY_DEEPAR_EFFECT_SELECTION);
@@ -619,6 +704,19 @@ export function Room() {
   }));
   const [liveBodyShape, setLiveBodyShape] = useState<TencentBodyShapeParams>(EMPTY_BODY_SHAPE);
   const [isLiveBeautyOpen, setIsLiveBeautyOpen] = useState(false);
+  const [isCommerceShopOpen, setIsCommerceShopOpen] = useState(false);
+  const [commerceCatalog, setCommerceCatalog] = useState<CommerceProduct[]>(() => [...DEFAULT_COMMERCE_CATALOG]);
+  const [commercePinnedId, setCommercePinnedId] = useState<string | null>(null);
+  const [commerceSalesCount, setCommerceSalesCount] = useState(0);
+  const [commerceCardPosition, setCommerceCardPosition] = useState<CommerceCardPosition>(
+    () => ({ ...DEFAULT_COMMERCE_CARD_POSITION }),
+  );
+  const [commerceOrders, setCommerceOrders] = useState<CommerceOrder[]>([]);
+  const [commerceCheckoutProduct, setCommerceCheckoutProduct] = useState<CommerceProduct | null>(null);
+  const [commerceSelectedOrder, setCommerceSelectedOrder] = useState<CommerceOrder | null>(null);
+  const commerceHostSyncedRef = useRef(false);
+  const commerceCatalogRef = useRef(commerceCatalog);
+  commerceCatalogRef.current = commerceCatalog;
   const [userMicPrefOn, setUserMicPrefOn] = useState(true);
   const [isShareRoomOpen, setIsShareRoomOpen] = useState(false);
   const [isQueueSheetOpen, setIsQueueSheetOpen] = useState(false);
@@ -626,6 +724,8 @@ export function Room() {
   const [chorusSongSearch, setChorusSongSearch] = useState('');
   const [karaokeUploadsVersion, setKaraokeUploadsVersion] = useState(0);
   const [selectedSeatAction, setSelectedSeatAction] = useState<string | null>(null);
+  const [liveSeatFullscreen, setLiveSeatFullscreen] = useState<LiveSeatFullscreenTarget | null>(null);
+  const handleSeatTileTap = useSeatTileTap();
   const [currentUserRole, setCurrentUserRole] = useState<RoomMemberRole>(() =>
     normalizeRoomRole(localStorage.getItem('currentUserRole') || 'user')
   );
@@ -637,7 +737,7 @@ export function Room() {
   }, []);
 
   useEffect(() => {
-    if (roomMode === 'SoloLive' || roomMode === 'MultiGuest') {
+    if (roomMode === 'SoloLive' || roomMode === 'MultiGuest' || roomMode === 'GameLive') {
       void import('../../lib/preloadAppSurfaces').then((m) => m.preloadHeavyAppSurfaces());
     }
   }, [roomMode]);
@@ -916,25 +1016,356 @@ export function Room() {
     applyRoomGiftRef.current = applyRoomGift;
   }, [applyRoomGift]);
 
+  useEffect(() => {
+    const gift = liveRoomBus.lastGiftPlay;
+    if (!gift?.playId || processedGiftPlayIdsRef.current.has(gift.playId)) return;
+    if (gift.senderId && gift.senderId === self.id) return;
+    processedGiftPlayIdsRef.current.add(gift.playId);
+    applyRoomGiftRef.current?.(
+      {
+        senderName: gift.senderName,
+        receiverName: gift.receiverName,
+        receiverUserId: gift.receiverUserId,
+        giftName: gift.giftName,
+        giftIcon: gift.giftIcon,
+        starValue: gift.starValue,
+      },
+      { creditSeat: true, showChat: true },
+    );
+  }, [liveRoomBus.lastGiftPlay, self.id]);
+
+  useEffect(() => {
+    commerceHostSyncedRef.current = false;
+    setCommerceCatalog([...DEFAULT_COMMERCE_CATALOG]);
+    setCommercePinnedId(null);
+    setCommerceSalesCount(0);
+    setCommerceCardPosition({ ...DEFAULT_COMMERCE_CARD_POSITION });
+    setCommerceOrders([]);
+    setCommerceCheckoutProduct(null);
+    setCommerceSelectedOrder(null);
+    setIsCommerceShopOpen(false);
+  }, [roomDisplayId, isCommerceLive]);
+
+  const resolveCommerceProduct = useCallback(
+    (productId: string | null | undefined) => findCommerceProduct(commerceCatalog, productId),
+    [commerceCatalog],
+  );
+
+  useEffect(() => {
+    if (!isCommerceLive) return;
+    applyPendingHostCashEarnings(self.id);
+  }, [isCommerceLive, self.id]);
+
+  const finalizeCommerceOrder = useCallback(
+    (order: CommerceOrder) => {
+      void liveRoomBus.emitCommerce({ action: 'purchase', order });
+    },
+    [liveRoomBus],
+  );
+
+  useEffect(() => {
+    if (!isCommerceLive) return;
+    const checkoutState = searchParams.get('commerce_checkout');
+    const sessionId = searchParams.get('session_id');
+    if (checkoutState !== 'success' || !sessionId) return;
+
+    let cancelled = false;
+    void (async () => {
+      try {
+        const result = await completeStripeCommerceReturn(sessionId);
+        if (cancelled || !result.paid || !result.pendingOrder) return;
+
+        const pending = result.pendingOrder as {
+          product: CommerceProduct;
+          shipping: CommerceOrder['shipping'];
+          hostUserId: string;
+          orderId: string;
+          buyerUserId: string;
+          buyerDisplayName: string;
+          paymentMethod: 'card';
+        };
+        const normalized = normalizeCommerceProduct(pending.product);
+        creditHostStripeSale(pending.hostUserId, normalized.priceUsd ?? 0);
+
+        const order: CommerceOrder = {
+          id: pending.orderId,
+          productId: normalized.id,
+          productTitle: normalized.title,
+          productImageUrl: normalized.imageUrl,
+          productDescription: normalized.description,
+          priceType: normalized.priceType,
+          priceCoins: normalized.priceCoins,
+          priceUsd: normalized.priceUsd,
+          buyerUserId: pending.buyerUserId,
+          buyerName: pending.buyerDisplayName,
+          paid: true,
+          paymentMethod: 'card',
+          shipping: pending.shipping,
+          createdAt: Date.now(),
+        };
+        finalizeCommerceOrder(order);
+        showToast(`Purchased ${normalized.title}`);
+      } catch {
+        if (!cancelled) showToast('Could not verify secure payment');
+      } finally {
+        if (!cancelled) {
+          const next = new URLSearchParams(searchParams);
+          next.delete('commerce_checkout');
+          next.delete('session_id');
+          setSearchParams(next, { replace: true });
+        }
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    finalizeCommerceOrder,
+    isCommerceLive,
+    searchParams,
+    setSearchParams,
+    showToast,
+  ]);
+
+  useEffect(() => {
+    if (!isCommerceLive) return;
+    const evt = liveRoomBus.lastCommerce;
+    if (!evt) return;
+
+    switch (evt.action) {
+      case 'pin':
+        setCommercePinnedId(evt.product.id);
+        setCommerceCatalog((prev) => mergeCommerceCatalog(prev, [evt.product]));
+        break;
+      case 'unpin':
+        setCommercePinnedId(null);
+        break;
+      case 'add_product':
+        setCommerceCatalog((prev) => mergeCommerceCatalog(prev, [evt.product]));
+        setCommercePinnedId(evt.product.id);
+        break;
+      case 'catalog':
+        setCommerceCatalog((prev) => mergeCommerceCatalog(prev, evt.products));
+        break;
+      case 'card_position':
+        setCommerceCardPosition(clampCommerceCardPosition({ x: evt.x, y: evt.y }));
+        break;
+      case 'sync':
+        setCommercePinnedId(evt.pinnedProductId);
+        setCommerceSalesCount(evt.salesCount);
+        if (evt.catalog?.length) {
+          setCommerceCatalog((prev) => mergeCommerceCatalog(prev, evt.catalog!));
+        }
+        if (evt.cardPosition) {
+          setCommerceCardPosition(clampCommerceCardPosition(evt.cardPosition));
+        }
+        if (evt.orders?.length) {
+          setCommerceOrders(evt.orders);
+        }
+        break;
+      case 'purchase': {
+        setCommerceSalesCount((count) => count + 1);
+        setCommerceOrders((prev) => {
+          if (prev.some((order) => order.id === evt.order.id)) return prev;
+          return [evt.order, ...prev];
+        });
+        appendLiveChatMsg({
+          id: `commerce-${Date.now()}`,
+          isSystem: true,
+          text: `${evt.order.buyerName} purchased ${evt.order.productTitle}`,
+        });
+        if (isRoomOwner(currentUserRole) && evt.order.paid) {
+          if (evt.order.priceType === 'coins' && evt.order.priceCoins) {
+            showToast(`+${evt.order.priceCoins} coins added to your wallet from ${evt.order.buyerName}`);
+          } else if (evt.order.priceType === 'cash' && evt.order.priceUsd) {
+            showToast(`+$${evt.order.priceUsd.toFixed(2)} added to your earnings from ${evt.order.buyerName}`);
+          }
+        }
+        break;
+      }
+      default:
+        break;
+    }
+  }, [appendLiveChatMsg, currentUserRole, isCommerceLive, liveRoomBus.lastCommerce, showToast]);
+
+  useEffect(() => {
+    if (!isCommerceLive || !isRoomOwner(currentUserRole)) return;
+    if (commerceHostSyncedRef.current) return;
+    commerceHostSyncedRef.current = true;
+    void liveRoomBus.emitCommerce({
+      action: 'sync',
+      pinnedProductId: commercePinnedId,
+      salesCount: commerceSalesCount,
+      catalog: commerceCatalog,
+      cardPosition: commerceCardPosition,
+      orders: commerceOrders,
+    });
+  }, [
+    commerceCardPosition,
+    commerceCatalog,
+    commerceOrders,
+    commercePinnedId,
+    commerceSalesCount,
+    currentUserRole,
+    isCommerceLive,
+    liveRoomBus,
+  ]);
+
+  const toggleCommerceShop = useCallback(() => {
+    setIsCommerceShopOpen((open) => !open);
+  }, []);
+
+  const handleCommercePin = useCallback(
+    (product: CommerceProduct) => {
+      setCommercePinnedId(product.id);
+      setCommerceCatalog((prev) => mergeCommerceCatalog(prev, [product]));
+      void liveRoomBus.emitCommerce({ action: 'pin', product });
+      showToast(`Pinned ${product.title}`);
+    },
+    [liveRoomBus, showToast],
+  );
+
+  const handleCommerceCreateProduct = useCallback(
+    (product: CommerceProduct) => {
+      setCommerceCatalog((prev) => mergeCommerceCatalog(prev, [product]));
+      setCommercePinnedId(product.id);
+      void liveRoomBus.emitCommerce({ action: 'add_product', product });
+      showToast(`${product.title} is live on stage`);
+    },
+    [liveRoomBus, showToast],
+  );
+
+  const handleCommerceUnpin = useCallback(() => {
+    setCommercePinnedId(null);
+    void liveRoomBus.emitCommerce({ action: 'unpin' });
+  }, [liveRoomBus]);
+
+  const handleCommerceCardPosition = useCallback(
+    (position: CommerceCardPosition) => {
+      const clamped = clampCommerceCardPosition(position);
+      setCommerceCardPosition(clamped);
+      void liveRoomBus.emitCommerce({ action: 'card_position', x: clamped.x, y: clamped.y });
+    },
+    [liveRoomBus],
+  );
+
+  const handleCommerceStartCheckout = useCallback((product: CommerceProduct) => {
+    setCommerceCheckoutProduct(normalizeCommerceProduct(product));
+  }, []);
+
+  const handleCommerceCheckoutClose = useCallback(() => {
+    setCommerceCheckoutProduct(null);
+  }, []);
+
+  const handleCommerceCheckoutComplete = useCallback(
+    async (result: CommerceCheckoutResult) => {
+      const product = commerceCheckoutProduct;
+      if (!product) return;
+
+      const normalized = normalizeCommerceProduct(product);
+
+      if (normalized.priceType === 'coins') {
+        const settlement = await settleCommerceCoinSale(
+          self.id,
+          commerceHostUserId,
+          normalized.priceCoins ?? 0,
+        );
+        if (!settlement.ok) {
+          showToast(settlement.reason ?? 'Coin payment failed');
+          return;
+        }
+      } else if (result.paymentMethod === 'cash_balance') {
+        const settlement = settleCommerceCashBalanceSale(
+          self.id,
+          commerceHostUserId,
+          normalized.priceUsd ?? 0,
+        );
+        if (!settlement.ok) {
+          showToast(settlement.reason ?? 'Cash payment failed');
+          return;
+        }
+      } else {
+        showToast('Use secure card checkout for this product');
+        return;
+      }
+
+      const order: CommerceOrder = {
+        id: createCommerceOrderId(),
+        productId: normalized.id,
+        productTitle: normalized.title,
+        productImageUrl: normalized.imageUrl,
+        productDescription: normalized.description,
+        priceType: normalized.priceType,
+        priceCoins: normalized.priceCoins,
+        priceUsd: normalized.priceUsd,
+        buyerUserId: self.id,
+        buyerName: self.roomName || self.chatLabel,
+        paid: result.paid,
+        paymentMethod: result.paymentMethod,
+        shipping: result.shipping,
+        createdAt: Date.now(),
+      };
+
+      setCommerceCheckoutProduct(null);
+      finalizeCommerceOrder(order);
+      showToast(`Purchased ${normalized.title}`);
+    },
+    [
+      commerceCheckoutProduct,
+      commerceHostUserId,
+      finalizeCommerceOrder,
+      self.chatLabel,
+      self.id,
+      self.roomName,
+      showToast,
+    ],
+  );
+
+  const handleCommerceSelectOrder = useCallback((order: CommerceOrder) => {
+    setCommerceSelectedOrder(order);
+  }, []);
+
+  const handleCommerceCloseOrderDetail = useCallback(() => {
+    setCommerceSelectedOrder(null);
+  }, []);
+
+  const handleCommercePurchase = handleCommerceStartCheckout;
+
   const handleSendPartyGift = useCallback(
     (gift: PartyGiftDefinition, receiver?: Guest | null) => {
-      const target = receiver ?? defaultGiftReceiver();
+      const target = receiver ?? giftPickerReceiver ?? defaultGiftReceiver();
       if (!target) {
         showToast('No seated guest to receive a gift right now');
         return;
       }
-      applyRoomGift({
-        senderName: self.roomName,
-        receiverName: target.name,
-        receiverUserId: target.userId,
-        giftName: gift.name,
-        giftIcon: gift.icon,
-        starValue: gift.stars,
-      });
-      setIsGiftPickerOpen(false);
-      showToast(`Sent ${gift.icon} ${gift.name} to ${target.name} (+${gift.stars} coins)`);
+      void (async () => {
+        const settled = await settlePartyGiftSend(self.id, target.userId, gift.stars);
+        if (!settled.ok) {
+          showToast(settled.reason ?? 'Not enough coins');
+          return;
+        }
+        applyRoomGift({
+          senderName: self.roomName,
+          receiverName: target.name,
+          receiverUserId: target.userId,
+          giftName: gift.name,
+          giftIcon: gift.icon,
+          starValue: gift.stars,
+        });
+        void liveRoomBus.emitGiftPlay(
+          giftFromDefinition(
+            gift,
+            { id: self.id, name: self.roomName || self.chatLabel },
+            { name: target.name, userId: target.userId },
+          ),
+        );
+        setGiftPickerReceiver(null);
+        setIsGiftPickerOpen(false);
+        showToast(`Sent ${gift.icon} ${gift.name} to ${target.name} (+${gift.stars} coins)`);
+      })();
     },
-    [applyRoomGift, defaultGiftReceiver],
+    [applyRoomGift, defaultGiftReceiver, giftPickerReceiver, liveRoomBus, self.chatLabel, self.id, self.roomName, showToast],
   );
 
   const selfCanTakeAdminSeat = canTakeAdminSeat(liveSettings, self.id, {
@@ -961,29 +1392,74 @@ export function Room() {
   const userSeatKey = selfSeatEntry?.[0] ?? null;
   const userMicOn = userSeatKey ? Boolean(activeSeats[userSeatKey]?.isSpeaking) : false;
   const userMicAdminMuted = userSeatKey ? Boolean(activeSeats[userSeatKey]?.isAdminMuted) : false;
-  const { isVoiceActive: userVoiceActive, audioLevel: userMicLevel } = useMicVoiceActivity(
-    Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
+
+  const isSelfGameHost =
+    roomMode === 'GameLive' &&
+    (liveSettings.ownerUserId === self.id ||
+      Boolean(userSeatKey === 'host' && activeSeats.host && isRoomSelfGuest(activeSeats.host, self)));
+
+  const voiceSeatKey =
+    userSeatKey ?? (roomMode === 'GameLive' && isSelfGameHost ? 'host' : null);
+  const voiceMicEligible = Boolean(voiceSeatKey && !(userSeatKey && userMicAdminMuted));
+  const voiceMicPublishing =
+    Boolean(userSeatKey && userMicOn && !userMicAdminMuted) ||
+    Boolean(roomMode === 'GameLive' && isSelfGameHost && userMicOn && !userMicAdminMuted);
+
+  const {
+    processedTrack: roomVoiceProcessedTrack,
+    isVoiceActive: roomVoiceActive,
+    audioLevel: roomVoiceLevel,
+  } = useRoomVoiceChanger({
+    enabled: voiceMicEligible,
+    effectId: roomVoiceEffect,
+    monitorEnabled: roomVoiceMonitorEnabled,
+  });
+
+  const { isVoiceActive: micDetectorActive, audioLevel: micDetectorLevel } = useMicVoiceActivity(
+    Boolean(userSeatKey && userMicOn && !userMicAdminMuted && !voiceMicEligible),
   );
+  const userVoiceActive = voiceMicEligible ? roomVoiceActive : micDetectorActive;
+  const userMicLevel = voiceMicEligible ? roomVoiceLevel : micDetectorLevel;
+
+  const roomVoiceChangerFooterProps = {
+    showVoiceChanger: true,
+    voiceChangerEligible: voiceMicEligible,
+    voiceChangerOpen: isRoomVoiceChangerOpen,
+    voiceEffectActive: roomVoiceEffect !== 'studio',
+    voiceEffectEmoji: getVoiceChangerEffect(roomVoiceEffect).emoji,
+    onToggleVoiceChanger: () => setIsRoomVoiceChangerOpen((open) => !open),
+  };
 
   // All non-camera room modes (Chat, Radio, Karaoke, Party, Chorus, WatchTogether):
   // everyone joins LiveKit as subscriber instantly in background; only seated users publish mic.
   usePartyRoomLiveKit({
     roomId: roomDisplayId,
-    enabled: roomMode !== 'MultiGuest' && roomMode !== 'SoloLive',
-    publishMic: Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
+    enabled: roomMode !== 'MultiGuest' && roomMode !== 'SoloLive' && roomMode !== 'GameLive',
+    canPublish: isUserSeated,
+    publishMic: voiceMicPublishing,
+    processedAudioTrack: voiceMicPublishing ? roomVoiceProcessedTrack : null,
   });
 
   const isSelfSoloHost =
     roomMode === 'SoloLive' &&
     Boolean(userSeatKey === 'host' && activeSeats.host && isRoomSelfGuest(activeSeats.host, self));
 
+  const [pkInviteRefreshKey, setPkInviteRefreshKey] = useState(0);
+
+  const pkLiveHosts = usePkLiveHosts({
+    enabled: isPkEligibleStream && roomMode === 'SoloLive' && isSelfSoloHost,
+    selfUserId: self.id,
+    selfRoomId: roomDisplayId,
+    refreshKey: pkInviteRefreshKey,
+  });
+
   const prevRoomModeRef = useRef(roomMode);
   useEffect(() => {
     const prev = prevRoomModeRef.current;
     if (prev === roomMode) return;
     prevRoomModeRef.current = roomMode;
-    const prevLive = prev === 'SoloLive' || prev === 'MultiGuest';
-    const nextLive = roomMode === 'SoloLive' || roomMode === 'MultiGuest';
+    const prevLive = prev === 'SoloLive' || prev === 'MultiGuest' || prev === 'GameLive';
+    const nextLive = roomMode === 'SoloLive' || roomMode === 'MultiGuest' || roomMode === 'GameLive';
     if (prevLive || nextLive) {
       setIsMultiGuestEffectsOpen(false);
       setIsLiveBeautyOpen(false);
@@ -1042,6 +1518,15 @@ export function Room() {
     },
     [],
   );
+
+  const liveDeepArViewProps = DEEPAR_ENABLED
+    ? {
+        effectsPanelOpen: isMultiGuestEffectsOpen,
+        onToggleEffectsPanel: toggleLiveEffectsPanel,
+        activeDeeparSelection: multiGuestDeeparSelection,
+        onDeeparSelectionChange: handleDeeparSelectionChange,
+      }
+    : {};
 
   useEffect(() => {
     const isOwnerHost =
@@ -1125,6 +1610,14 @@ export function Room() {
   };
 
   const [isPKActive, setIsPKActive] = useState(false);
+  const [pkBattleStarted, setPkBattleStarted] = useState(false);
+  const [isPkInviteOpen, setIsPkInviteOpen] = useState(false);
+  const [pkConnecting, setPkConnecting] = useState(false);
+  const [pkConnectedOpponentName, setPkConnectedOpponentName] = useState<string | null>(null);
+  const [pkTeams, setPkTeams] = useState<{ teamA: PKFighter[]; teamB: PKFighter[] }>({
+    teamA: [],
+    teamB: [],
+  });
   const [backgroundMode, setBackgroundMode] = useState<RoomBackgroundMode>(() =>
     parseRoomBackground(ensureRoomSettingsSeeded(roomDisplayId).background),
   );
@@ -1190,6 +1683,7 @@ export function Room() {
     roomMode === 'Party' ||
     roomMode === 'MultiGuest' ||
     roomMode === 'WatchTogether' ||
+    roomMode === 'GameLive' ||
     roomMode === 'SoloLive';
 
   const handleOpenSing = useCallback(() => {
@@ -2156,14 +2650,6 @@ export function Room() {
     });
   };
 
-  const showToast = (message: string) => {
-    if (roomMode === 'WatchTogether') {
-      appendLiveChatMsg({ id: Date.now(), isSystem: true, text: message });
-      return;
-    }
-    window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
-  };
-
   const ownerSocial = useRoomOwnerSocial(roomDisplayId, liveSettings, self.id, {
     onToast: showToast,
   });
@@ -2252,6 +2738,7 @@ export function Room() {
       const identity = resolveRoomMemberIdentity(id, name, roomDisplayId, 80);
       appendLiveChatMsg({
         id: `welcome_${id}_${Date.now()}`,
+        text: '',
         isAnnouncementWelcome: true,
         targetViewerId: id,
         targetViewerName: name,
@@ -2699,7 +3186,52 @@ export function Room() {
     savePartySeats(roomDisplayId, activeSeats);
   }, [activeSeats, roomDisplayId, usesLivePartyFeed]);
 
-  // Handle seat clicks
+  const seatSyncRevisionRef = useRef(0);
+  const lastAppliedSeatRevisionRef = useRef(0);
+  const applyingRemoteSeatsRef = useRef(false);
+
+  // Cross-device seat sync — broadcast snapshot to other clients in this room.
+  useEffect(() => {
+    if (!usesLivePartyFeed || !isCloudAuthUserId(self.id)) return undefined;
+    const timer = window.setTimeout(() => {
+      if (applyingRemoteSeatsRef.current) return;
+      const revision = seatSyncRevisionRef.current + 1;
+      seatSyncRevisionRef.current = revision;
+      void liveRoomBus.emitSeats({
+        action: 'snapshot',
+        seats: activeSeatsRef.current,
+        revision,
+        senderId: self.id,
+      });
+    }, 400);
+    return () => window.clearTimeout(timer);
+  }, [activeSeats, usesLivePartyFeed, self.id, liveRoomBus]);
+
+  // Apply seat snapshots from other devices / viewers in the same room.
+  useEffect(() => {
+    const remote = liveRoomBus.lastSeats;
+    if (!remote?.seats || !usesLivePartyFeed) return;
+    if (remote.revision <= lastAppliedSeatRevisionRef.current) return;
+    if (remote.senderId === self.id) {
+      lastAppliedSeatRevisionRef.current = remote.revision;
+      return;
+    }
+
+    applyingRemoteSeatsRef.current = true;
+    setActiveSeats((prev) => {
+      const merged = mergeRemotePartySeats(prev, remote.seats, {
+        senderId: remote.senderId ?? '',
+        ownerUserId: resolveOwnerUserId(liveSettings) ?? '',
+      });
+      return hydratePartySeatsWithStars(roomDisplayId, liveSettings, merged);
+    });
+    lastAppliedSeatRevisionRef.current = remote.revision;
+    queueMicrotask(() => {
+      applyingRemoteSeatsRef.current = false;
+    });
+  }, [liveRoomBus.lastSeats, usesLivePartyFeed, liveSettings, roomDisplayId, self.id]);
+
+  // Handle seat clicks (join empty seats; gift / seat menu for occupied).
   const handleSeatClick = (seatKey: string) => {
     if (roomMode === 'SoloLive' && !isSoloLiveActiveSeat(seatKey)) {
       showToast('That seat is not available in Solo Live.');
@@ -2859,9 +3391,31 @@ export function Room() {
       
       showToast("You are now seated!");
     } else {
-      // Open action menu for occupied seat
-      setSelectedSeatAction(seatKey);
+      openGiftPickerForGuest(occupant);
     }
+  };
+
+  /** Occupied seat tap → gift picker for that guest (including yourself); empty → join. */
+  const handleGuestSeatTap = (seatKey: string) => {
+    const occupant = activeSeats[seatKey as keyof PartySeatMap];
+    if (occupant) {
+      openGiftPickerForGuest(occupant);
+      return;
+    }
+    handleSeatClick(seatKey);
+  };
+
+  const handleOccupiedSeatTap = (seatKey: string, guest: Guest) => {
+    handleSeatTileTap(
+      () => handleGuestSeatTap(seatKey),
+      () =>
+        setLiveSeatFullscreen(
+          buildLiveSeatFullscreenTarget(seatKey, guest, roomDisplayId, {
+            userSeatKey,
+            selfUserId: self.id,
+          }),
+        ),
+    );
   };
 
   const handleToggleSeatParticipation = () => {
@@ -2911,7 +3465,7 @@ export function Room() {
       return;
     }
 
-    handleSeatClick(openSeat);
+    handleGuestSeatTap(openSeat);
   };
 
   const handleFooterMyMicClick = () => {
@@ -2926,13 +3480,215 @@ export function Room() {
     setIsGuestManagementOpen(true);
   };
 
-  const handlePkComingSoon = useCallback(() => {
-    showToast('PK battles — coming soon!');
-  }, [showToast]);
+  const handleOpenPkPanel = useCallback(() => {
+    if (!isPkEligibleStream || roomMode !== 'SoloLive') return;
+    if (!isSelfSoloHost) {
+      showToast('Only the host can start PK');
+      return;
+    }
+    setIsPkInviteOpen(true);
+    setPkInviteRefreshKey((key) => key + 1);
+  }, [isPkEligibleStream, isSelfSoloHost, roomMode, showToast]);
 
-  const handleGameComingSoon = useCallback(() => {
+  const handleConnectPk = useCallback(
+    async (options: PKConnectOptions) => {
+      setPkConnecting(true);
+      try {
+        const hostFighter: PKFighter = {
+          userId: self.id,
+          name: self.roomName ?? self.chatLabel ?? 'Host',
+          score: 0,
+          avatarUrl: activeSeats.host?.avatar,
+        };
+        const opponentFighter: PKFighter = {
+          userId: options.opponentUserId,
+          name: options.opponentName,
+          score: 0,
+          avatarUrl: options.opponentAvatar,
+        };
+        const teams = buildSoloLivePkTeams(activeSeats, hostFighter, opponentFighter, options.mode);
+        setPkTeams(teams);
+        setPkConnectedOpponentName(options.opponentName);
+        await liveRoomBus.emitPk(
+          buildPkInvitePayload(options.opponentUserId, options.opponentName, {
+            mode: options.mode,
+            teamA: teams.teamA,
+            teamB: teams.teamB,
+          }),
+        );
+        setIsPKActive(true);
+        setPkBattleStarted(false);
+        setIsPkInviteOpen(false);
+        showToast(
+          options.matchType === 'random'
+            ? `Connected to ${options.opponentName}`
+            : `Invite sent to ${options.opponentName}`,
+        );
+      } finally {
+        setPkConnecting(false);
+      }
+    },
+    [activeSeats, liveRoomBus, self.chatLabel, self.id, self.roomName, showToast],
+  );
+
+  const handleStartPkBattle = useCallback(async () => {
+    await liveRoomBus.emitPk({ action: 'accept' });
+    setPkBattleStarted(true);
+    setIsPkInviteOpen(false);
+    showToast('PK battle started');
+  }, [liveRoomBus, showToast]);
+
+  const handleDisconnectPk = useCallback(async () => {
+    await liveRoomBus.emitPk({ action: 'decline' });
+    setIsPKActive(false);
+    setPkBattleStarted(false);
+    setPkConnectedOpponentName(null);
+    setPkTeams({ teamA: [], teamB: [] });
+    setIsPkInviteOpen(false);
+    showToast('PK disconnected');
+  }, [liveRoomBus, showToast]);
+
+  const handleEmitPk = useCallback(
+    (payload: PKPayload) => {
+      void liveRoomBus.emitPk(payload);
+      if (payload.action === 'accept') {
+        setPkBattleStarted(true);
+      }
+      if (payload.action === 'end' || payload.action === 'decline') {
+        setIsPKActive(false);
+        setPkBattleStarted(false);
+        setPkConnectedOpponentName(null);
+        setPkTeams({ teamA: [], teamB: [] });
+      }
+    },
+    [liveRoomBus],
+  );
+
+  useEffect(() => {
+    const pk = liveRoomBus.lastPk;
+    if (!pk) return;
+    if (pk.action === 'decline' || pk.action === 'end') {
+      setIsPKActive(false);
+      setPkBattleStarted(false);
+      setPkConnectedOpponentName(null);
+      return;
+    }
+    if (pk.action === 'accept') {
+      setPkBattleStarted(true);
+    }
+    if (pk.action === 'invite' || pk.action === 'accept' || pk.action === 'sync') {
+      setIsPKActive(true);
+      if (pk.action === 'invite') {
+        if (pk.teamA && pk.teamB) {
+          setPkTeams({ teamA: pk.teamA, teamB: pk.teamB });
+          setPkConnectedOpponentName(pk.opponentName ?? pk.teamB[0]?.name ?? null);
+        }
+      } else if (pk.action === 'sync') {
+        setPkTeams({ teamA: pk.state.teamA, teamB: pk.state.teamB });
+        setPkConnectedOpponentName(pk.state.teamB[0]?.name ?? null);
+      }
+    }
+  }, [liveRoomBus.lastPk]);
+
+  const processedPkGiftPlayIdsRef = useRef(new Set<string>());
+
+  useEffect(() => {
+    if (isPkEligibleStream) return;
+    setIsPkInviteOpen(false);
+    setIsPKActive(false);
+    setPkBattleStarted(false);
+    setPkConnecting(false);
+    setPkConnectedOpponentName(null);
+    setPkTeams({ teamA: [], teamB: [] });
+  }, [isPkEligibleStream]);
+
+  useEffect(() => {
+    if (!pkBattleStarted || !isPkEligibleStream) return;
+    const gift = liveRoomBus.lastGiftPlay;
+    if (!gift?.playId || processedPkGiftPlayIdsRef.current.has(gift.playId)) return;
+    if (!gift.receiverUserId) return;
+    processedPkGiftPlayIdsRef.current.add(gift.playId);
+    void liveRoomBus.emitPk({
+      action: 'score',
+      userId: gift.receiverUserId,
+      delta: pkScoreFromGift(gift.starValue),
+    });
+  }, [isPkEligibleStream, pkBattleStarted, liveRoomBus, liveRoomBus.lastGiftPlay]);
+
+  const handleGameClick = useCallback(() => {
+    if (roomMode === 'GameLive') {
+      setGamePanelOpen(true);
+      return;
+    }
     showToast('Games — coming soon!');
-  }, [showToast]);
+  }, [roomMode, showToast]);
+
+  const broadcastGameState = useCallback(
+    (next: GameLiveState) => {
+      setGameLiveState(next);
+      void liveRoomBus.emitGame({ action: 'sync', state: next });
+    },
+    [liveRoomBus],
+  );
+
+  const handleGameStart = useCallback(() => {
+    if (!isSelfGameHost) return;
+    const next = startGameRound(gameLiveState.round);
+    broadcastGameState({ ...next, scores: gameLiveState.scores });
+  }, [broadcastGameState, gameLiveState.round, gameLiveState.scores, isSelfGameHost]);
+
+  const handleGameNextRound = useCallback(() => {
+    if (!isSelfGameHost) return;
+    const next = startGameRound(gameLiveState.round);
+    broadcastGameState({ ...next, scores: gameLiveState.scores });
+  }, [broadcastGameState, gameLiveState.round, gameLiveState.scores, isSelfGameHost]);
+
+  const handleGameEnd = useCallback(() => {
+    if (!isSelfGameHost) return;
+    broadcastGameState({ ...gameLiveState, phase: 'results', endsAt: null });
+  }, [broadcastGameState, gameLiveState, isSelfGameHost]);
+
+  const handleGameAnswer = useCallback(
+    (optionIndex: number) => {
+      if (gameLiveState.phase !== 'active') return;
+      if (isSelfGameHost) {
+        const next = scoreGameAnswer(gameLiveState, optionIndex, self.id, self.roomName);
+        broadcastGameState(next);
+        return;
+      }
+      void liveRoomBus.emitGame({
+        action: 'answer',
+        optionIndex,
+        playerName: self.roomName || self.chatLabel,
+        playerUserId: self.id,
+      });
+    },
+    [broadcastGameState, gameLiveState, isSelfGameHost, liveRoomBus, self.chatLabel, self.id, self.roomName],
+  );
+
+  const lastProcessedGameAnswerRef = useRef('');
+
+  useEffect(() => {
+    const evt = liveRoomBus.lastGame;
+    if (!evt || roomMode !== 'GameLive') return;
+
+    if (evt.action === 'sync' && 'state' in evt) {
+      setGameLiveState(evt.state);
+      return;
+    }
+
+    if (evt.action !== 'answer' || !isSelfGameHost || evt.playerUserId === self.id) return;
+    const signature = `${evt.playerUserId}:${evt.optionIndex}:${gameLiveState.round}`;
+    if (lastProcessedGameAnswerRef.current === signature) return;
+    lastProcessedGameAnswerRef.current = signature;
+
+    setGameLiveState((prev) => {
+      if (prev.phase !== 'active') return prev;
+      const next = scoreGameAnswer(prev, evt.optionIndex, evt.playerUserId, evt.playerName);
+      void liveRoomBus.emitGame({ action: 'sync', state: next });
+      return next;
+    });
+  }, [gameLiveState.round, isSelfGameHost, liveRoomBus, liveRoomBus.lastGame, roomMode, self.id]);
 
   const handleLeaveRoom = useCallback(() => {
     cancelCurrentSong();
@@ -3355,7 +4111,7 @@ export function Room() {
         lockedSeats={lockedSeats}
         onToggleSeatLock={handleToggleSeatLock}
         isUserSeated={isUserSeated}
-        onJoinSeat={handleSeatClick}
+        onJoinSeat={handleGuestSeatTap}
         hasPendingJoinRequest={guestRequests.some((request) => request.name === self.roomName)}
         whoCanJoin={liveSettings.whoCanJoin}
         whoCanBeSeated={liveSettings.whoCanBeSeated}
@@ -3514,7 +4270,7 @@ export function Room() {
             <div className="relative mb-6 h-56 w-full overflow-hidden rounded-2xl border border-white/20 shadow-inner sm:h-64 md:h-72">
               <div className={`absolute inset-0 z-0 ${ (pendingBackgroundMode || backgroundMode).type === 'css' ? (pendingBackgroundMode || backgroundMode).value : ''}`}>
                 {(pendingBackgroundMode || backgroundMode).type === 'video' && (
-                  <video src={(pendingBackgroundMode || backgroundMode).value} autoPlay loop muted playsInline controls className="absolute inset-0 w-full h-full object-cover pointer-events-auto" {...nativeVideoControlGuardProps()} />
+                  <AppNativeVideo src={(pendingBackgroundMode || backgroundMode).value} autoPlay loop muted className="absolute inset-0 w-full h-full object-cover pointer-events-auto" />
                 )}
                 {(pendingBackgroundMode || backgroundMode).type === 'image' && (
                   <div className="absolute inset-0 w-full h-full" style={{ backgroundImage: `url(${(pendingBackgroundMode || backgroundMode).value})`, backgroundSize: 'cover', backgroundPosition: 'center' }} />
@@ -3534,7 +4290,7 @@ export function Room() {
                   {bg.label}
                 </button>
               ))}
-              <label className="p-4 rounded-xl text-center border border-dashed border-white/20 bg-white/5 transition hover:bg-white/10 text-white font-medium cursor-pointer flex flex-col items-center">
+              <label className="p-4 rounded-xl text-center border border-dashed border-white/20 bg-white/5 transition hover:bg-white/10 text-white font-medium cursor-pointer flex flex-col items-center justify-center gap-2">
                 <span className="text-xs">Upload BG</span>
                 <input
                   type="file"
@@ -3554,6 +4310,20 @@ export function Room() {
                   }}
                 />
               </label>
+              <AppCameraButton
+                title="Room background"
+                label="Camera"
+                onCaptured={async (payload) => {
+                  try {
+                    const next = await roomBackgroundFromCapture(payload);
+                    setPendingBackgroundMode(next);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+                className="p-4 rounded-xl text-center border border-dashed border-fuchsia-400/40 bg-fuchsia-500/10 transition hover:bg-fuchsia-500/20 text-white font-medium flex flex-col items-center justify-center gap-2"
+                iconClassName="w-5 h-5"
+              />
             </div>
             <div className="mt-6 flex gap-3">
               <button onClick={() => { setPendingBackgroundMode(null); setIsRoomBackgroundMenuOpen(false); }} className="flex-1 py-2 rounded-xl text-white font-medium border border-white/10 hover:bg-white/5">Cancel</button>
@@ -3593,10 +4363,11 @@ export function Room() {
           viewers={viewers}
           roomExpProgress={roomExpProgress}
           roomGiftSummary={roomGiftSummary}
-          handleSeatClick={handleSeatClick}
+          handleSeatClick={handleGuestSeatTap}
           handleToggleSeatMic={handleToggleSeatMic}
           buildViewerFromGuest={buildViewerFromGuest}
           handleSelectViewer={handleSelectViewer}
+          onOpenGiftSenders={openGiftSendersForGuest}
           setIsRoomBackgroundMenuOpen={(open) => {
             if (open) handleOpenRoomBackgroundMenu();
             else {
@@ -3605,7 +4376,7 @@ export function Room() {
             }
           }}
           setIsRoomViewersOpen={setIsRoomViewersOpen}
-          setIsGiftPickerOpen={setIsGiftPickerOpen}
+          setIsGiftPickerOpen={setGiftPickerOpen}
           setIsGuestManagementOpen={setIsGuestManagementOpen}
           liveChatMsgs={liveChatMsgs}
           chatInput={chatInput}
@@ -3648,29 +4419,133 @@ export function Room() {
           hasActiveSong={Boolean(currentlySinging)}
           songQueueLength={songQueue.length}
           hideSingMenu={isLyricsOverlayOpen}
-          onPkClick={handlePkComingSoon}
-          onGameClick={handleGameComingSoon}
+          onGameClick={handleGameClick}
+          {...roomVoiceChangerFooterProps}
         />
+      )}
+
+      {roomMode === 'GameLive' && (
+        <>
+        <GameLiveView
+          key={`game-live:${roomDisplayId}:tools-dock`}
+          roomDisplayId={roomDisplayId}
+          roomTitle={roomTitle}
+          announcement={roomAnnouncement}
+          isRoomSaved={isRoomSaved}
+          roomIdCopied={roomIdCopied}
+          onCopyRoomId={handleCopyRoomId}
+          onToggleSaveRoom={handleToggleSaveRoom}
+          hostUserId={liveSettings.ownerUserId?.trim() || self.id}
+          isSelfHost={isSelfGameHost}
+          onLeaveRoom={handleLeaveRoom}
+          onShareRoom={() => setIsShareRoomOpen(true)}
+          onOpenRoomDetails={openRoomDetails}
+          onOpenRoomEdit={openRoomEdit}
+          activeSeats={activeSeats}
+          handleSeatClick={handleGuestSeatTap}
+          buildViewerFromGuest={buildViewerFromGuest}
+          handleSelectViewer={handleSelectViewer}
+          ownerSocial={ownerSocial}
+          viewers={viewers}
+          roomExpProgress={roomExpProgress}
+          roomGiftSummary={roomGiftSummary}
+          setIsRoomBackgroundMenuOpen={(open) => {
+            if (open) handleOpenRoomBackgroundMenu();
+            else {
+              setIsRoomBackgroundMenuOpen(false);
+              setPendingBackgroundMode(null);
+            }
+          }}
+          setIsRoomViewersOpen={setIsRoomViewersOpen}
+          onSelectViewer={handleSelectViewer}
+          setIsGiftPickerOpen={setGiftPickerOpen}
+          setIsGuestManagementOpen={setIsGuestManagementOpen}
+          liveChatMsgs={liveChatMsgs}
+          chatInput={chatInput}
+          handleChatInputChange={handleChatInputChange}
+          handleSendMessage={handleSendMessage}
+          handleChatScroll={handleChatScroll}
+          chatScrollRef={chatScrollRef}
+          getMentionSuggestions={getMentionSuggestions}
+          selectMention={selectMention}
+          renderJoinChatEvent={renderJoinChatEvent}
+          renderSingChatEvent={renderSingChatEvent}
+          renderGiftChatEvent={renderGiftChatEvent}
+          renderAnnouncementWelcome={renderAnnouncementWelcome}
+          renderStandardChatMessage={renderStandardChatMessage}
+          mentionSearch={mentionSearch}
+          onToggleUserMic={handleFooterMyMicClick}
+          onToggleSeatParticipation={handleToggleSeatParticipation}
+          guestManagementOpen={isGuestManagementOpen}
+          userSeatKey={userSeatKey}
+          userMicOn={userMicOn}
+          userVoiceActive={userVoiceActive}
+          canChangeRoomBackground={canChangeRoomBackground}
+          backgroundMode={backgroundMode}
+          pendingBackgroundMode={pendingBackgroundMode}
+          arenaParticipants={arenaParticipants}
+          onOpenArenaRankings={() => setIsArenaRankingsOpen(true)}
+          showToast={showToast}
+          canEditAnnouncement={canEditRoomAnnouncement}
+          onEditAnnouncement={handleOpenAnnouncementEditor}
+          canChangeRoomMode={canEditRoomAnnouncement}
+          onOpenRoomModePicker={handleOpenRoomModePicker}
+          onOpenSing={handleOpenSing}
+          hasActiveSong={Boolean(currentlySinging)}
+          songQueueLength={songQueue.length}
+          hideSingMenu={isLyricsOverlayOpen}
+          onOpenGiftSenders={openGiftSendersForGuest}
+          onOpenGame={() => setGamePanelOpen(true)}
+          gamePhase={gameLiveState.phase}
+          beautyEffectId={liveBeautyEffectId}
+          beautyEffects={liveBeautyEffects}
+          beautyBodyShape={liveBodyShape}
+          beautyPanelOpen={isLiveBeautyOpen}
+          onToggleBeautyPanel={toggleLiveBeautyPanel}
+          onSelectBeauty={handleSelectLiveBeauty}
+          onBeautyEffectsChange={handleLiveBeautyEffectsChange}
+          onBeautyBodyShapeChange={setLiveBodyShape}
+          processedAudioTrack={voiceMicPublishing ? roomVoiceProcessedTrack : null}
+          voiceMicPublishing={voiceMicPublishing}
+          {...roomVoiceChangerFooterProps}
+        />
+        <GameLivePanel
+          open={gamePanelOpen}
+          isHost={isSelfGameHost}
+          state={gameLiveState}
+          lastGame={liveRoomBus.lastGame}
+          selfUserId={self.id}
+          selfName={self.roomName || self.chatLabel}
+          onClose={() => setGamePanelOpen(false)}
+          onStart={handleGameStart}
+          onAnswer={handleGameAnswer}
+          onNextRound={handleGameNextRound}
+          onEnd={handleGameEnd}
+        />
+        </>
       )}
 
       {roomMode === 'SoloLive' && (
         <RoomLiveMediaSession
-          key="SoloLive"
+          key={`solo-live:${roomDisplayId}`}
           sessionMode="SoloLive"
           roomId={roomDisplayId}
           userSeatKey={userSeatKey}
           userCameraOn={userCameraOn}
           userMicOn={userMicOn}
           userMicAdminMuted={userMicAdminMuted}
-          effectSelection={multiGuestDeeparSelection}
+          publishMic={voiceMicPublishing}
+          processedAudioTrack={voiceMicPublishing ? roomVoiceProcessedTrack : null}
+          effectSelection={DEEPAR_ENABLED ? multiGuestDeeparSelection : EMPTY_DEEPAR_EFFECT_SELECTION}
           beautyId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
           bodyShape={liveBodyShape}
           beautyPanelOpen={isLiveBeautyOpen}
-          effectsPanelOpen={isMultiGuestEffectsOpen}
+          effectsPanelOpen={DEEPAR_ENABLED && isMultiGuestEffectsOpen}
         >
           {(media) => (
         <SoloLiveView
+          key={`solo-live-view:${roomDisplayId}`}
           {...buildLiveViewMediaProps(media)}
           roomDisplayId={roomDisplayId}
           roomTitle={roomTitle}
@@ -3686,10 +4561,11 @@ export function Room() {
           viewers={viewers}
           roomExpProgress={roomExpProgress}
           roomGiftSummary={roomGiftSummary}
-          handleSeatClick={handleSeatClick}
+          handleSeatClick={handleGuestSeatTap}
           handleToggleSeatMic={handleToggleSeatMic}
           handleSelectViewer={handleSelectViewer}
           buildViewerFromGuest={buildViewerFromGuest}
+          onOpenGiftSenders={openGiftSendersForGuest}
           lockedSeats={lockedSeats}
           setIsRoomBackgroundMenuOpen={(open) => {
             if (open) handleOpenRoomBackgroundMenu();
@@ -3699,7 +4575,7 @@ export function Room() {
             }
           }}
           setIsRoomViewersOpen={setIsRoomViewersOpen}
-          setIsGiftPickerOpen={setIsGiftPickerOpen}
+          setIsGiftPickerOpen={setGiftPickerOpen}
           setIsGuestManagementOpen={setIsGuestManagementOpen}
           liveChatMsgs={liveChatMsgs}
           chatInput={chatInput}
@@ -3733,10 +4609,7 @@ export function Room() {
           canChangeRoomMode={canEditRoomAnnouncement}
           onOpenRoomModePicker={handleOpenRoomModePicker}
           ownerSocial={ownerSocial}
-          effectsPanelOpen={isMultiGuestEffectsOpen}
-          onToggleEffectsPanel={toggleLiveEffectsPanel}
-          activeDeeparSelection={multiGuestDeeparSelection}
-          onDeeparSelectionChange={handleDeeparSelectionChange}
+          {...liveDeepArViewProps}
           beautyEffectId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
           beautyBodyShape={liveBodyShape}
@@ -3749,8 +4622,43 @@ export function Room() {
           hasActiveSong={Boolean(currentlySinging)}
           songQueueLength={songQueue.length}
           hideSingMenu={isLyricsOverlayOpen}
-          onPkClick={handlePkComingSoon}
-          onGameClick={handleGameComingSoon}
+          onPkClick={
+            isPkEligibleStream && isSelfSoloHost ? handleOpenPkPanel : undefined
+          }
+          onGameClick={handleGameClick}
+          pkEnabled={isPkEligibleStream}
+          pkTeamA={pkTeams.teamA}
+          pkTeamB={pkTeams.teamB}
+          lastPk={isPkEligibleStream ? liveRoomBus.lastPk : null}
+          onEmitPk={isPkEligibleStream ? handleEmitPk : undefined}
+          onStartPk={isPkEligibleStream && isSelfSoloHost ? handleStartPkBattle : undefined}
+          onDisconnectPk={isPkEligibleStream && isSelfSoloHost ? handleDisconnectPk : undefined}
+          pkSelfUserId={self.id}
+          pkIsOwner={isSelfSoloHost}
+          {...roomVoiceChangerFooterProps}
+          isCommerceLive={isCommerceLive}
+          commerceShopOpen={isCommerceShopOpen}
+          commerceCatalog={commerceCatalog}
+          commercePinnedProduct={resolveCommerceProduct(commercePinnedId)}
+          commerceSalesCount={commerceSalesCount}
+          commerceCardPosition={commerceCardPosition}
+          commerceOrders={commerceOrders}
+          commerceCheckoutProduct={commerceCheckoutProduct}
+          commerceSelectedOrder={commerceSelectedOrder}
+          commerceLastEvent={liveRoomBus.lastCommerce}
+          onToggleCommerceShop={toggleCommerceShop}
+          onCommercePin={handleCommercePin}
+          onCommerceUnpin={handleCommerceUnpin}
+          onCommercePurchase={handleCommercePurchase}
+          onCommerceCreateProduct={handleCommerceCreateProduct}
+          onCommerceCardPositionChange={handleCommerceCardPosition}
+          onCommerceCheckoutClose={handleCommerceCheckoutClose}
+          onCommerceCheckoutComplete={handleCommerceCheckoutComplete}
+          onCommerceSelectOrder={handleCommerceSelectOrder}
+          onCommerceCloseOrderDetail={handleCommerceCloseOrderDetail}
+          buyerUserId={self.id}
+          buyerDisplayName={self.roomName || self.chatLabel}
+          commerceHostUserId={commerceHostUserId}
           isSelfHost={isSelfSoloHost}
         />
           )}
@@ -3766,12 +4674,14 @@ export function Room() {
           userCameraOn={userCameraOn}
           userMicOn={userMicOn}
           userMicAdminMuted={userMicAdminMuted}
-          effectSelection={multiGuestDeeparSelection}
+          publishMic={voiceMicPublishing}
+          processedAudioTrack={voiceMicPublishing ? roomVoiceProcessedTrack : null}
+          effectSelection={DEEPAR_ENABLED ? multiGuestDeeparSelection : EMPTY_DEEPAR_EFFECT_SELECTION}
           beautyId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
           bodyShape={liveBodyShape}
           beautyPanelOpen={isLiveBeautyOpen}
-          effectsPanelOpen={isMultiGuestEffectsOpen}
+          effectsPanelOpen={DEEPAR_ENABLED && isMultiGuestEffectsOpen}
         >
           {(media) => (
         <MultiGuestView
@@ -3791,11 +4701,11 @@ export function Room() {
           viewers={viewers}
           roomExpProgress={roomExpProgress}
           roomGiftSummary={roomGiftSummary}
-          handleSeatClick={handleSeatClick}
+          handleSeatClick={handleGuestSeatTap}
           handleToggleSeatMic={handleToggleSeatMic}
           buildViewerFromGuest={buildViewerFromGuest}
           handleSelectViewer={handleSelectViewer}
-          onOpenGiftSenders={setGiftSendersTarget}
+          onOpenGiftSenders={openGiftSendersForGuest}
           setIsRoomBackgroundMenuOpen={(open) => {
             if (open) handleOpenRoomBackgroundMenu();
             else {
@@ -3804,7 +4714,7 @@ export function Room() {
             }
           }}
           setIsRoomViewersOpen={setIsRoomViewersOpen}
-          setIsGiftPickerOpen={setIsGiftPickerOpen}
+          setIsGiftPickerOpen={setGiftPickerOpen}
           setIsGuestManagementOpen={setIsGuestManagementOpen}
           liveChatMsgs={liveChatMsgs}
           chatInput={chatInput}
@@ -3842,10 +4752,7 @@ export function Room() {
           onOpenRoomModePicker={handleOpenRoomModePicker}
           ownerSocial={ownerSocial}
           multiGuestSeatCount={multiGuestSeatCount}
-          effectsPanelOpen={isMultiGuestEffectsOpen}
-          onToggleEffectsPanel={toggleLiveEffectsPanel}
-          activeDeeparSelection={multiGuestDeeparSelection}
-          onDeeparSelectionChange={handleDeeparSelectionChange}
+          {...liveDeepArViewProps}
           beautyEffectId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
           beautyBodyShape={liveBodyShape}
@@ -3858,8 +4765,8 @@ export function Room() {
           hasActiveSong={Boolean(currentlySinging)}
           songQueueLength={songQueue.length}
           hideSingMenu={isLyricsOverlayOpen}
-          onPkClick={handlePkComingSoon}
-          onGameClick={handleGameComingSoon}
+          onGameClick={handleGameClick}
+          {...roomVoiceChangerFooterProps}
         />
           )}
         </RoomLiveMediaSession>
@@ -3950,7 +4857,7 @@ export function Room() {
                 </div>
                 <div
                   className="bg-[#240c1e]/80 backdrop-blur border border-pink-500/20 rounded-full px-2 py-0.5 text-[8.5px] font-bold text-pink-400 flex items-center cursor-pointer hover:bg-pink-950/20 active:scale-95 transition shrink-0"
-                  onClick={() => setIsGiftPickerOpen(true)}
+                  onClick={() => setGiftPickerOpen(true)}
                   title={`${roomGiftSummary.giftCount.toLocaleString()} gifts received in this room`}
                 >
                   <CoinIcon className="mr-0.5 h-2 w-2 shrink-0" />
@@ -4083,7 +4990,11 @@ export function Room() {
                         <div key={key} className="flex flex-col items-center min-w-0">
                             <button 
                               type="button"
-                              onClick={() => handleSeatClick(key)} 
+                              onClick={() =>
+                                guest
+                                  ? handleOccupiedSeatTap(key, guest)
+                                  : handleGuestSeatTap(key)
+                              } 
                               className={`chorus-guest-seat relative flex flex-col items-center rounded-full transition-all duration-200 ${
                                 guest 
                                   ? `p-[1.5px] ${getAvatarFrameStyles(guest.frameStyle).border} ${getAvatarFrameStyles(guest.frameStyle).shadow}` 
@@ -4115,6 +5026,28 @@ export function Room() {
                                 )}
                             </button>
                             <span className="party-guest-seat-number text-[8px] font-black mt-1.5 uppercase tracking-tighter">NO.{sNum}</span>
+                            {guest ? (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() => handleSelectViewer(buildViewerFromGuest(guest, key))}
+                                  className="mt-0.5 max-w-full truncate text-[8px] font-bold text-gray-200 hover:text-pink-300 hover:underline"
+                                >
+                                  {guest.name}
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => openGiftSendersForGuest(guest)}
+                                  className="mt-0.5 flex items-center space-x-0.5 rounded-full border border-white/10 bg-black/75 px-1.5 py-[2px] transition hover:brightness-110 active:scale-95"
+                                  aria-label={`View who sent coins to ${guest.name}`}
+                                >
+                                  <CoinIcon className="h-[7px] w-[7px] shrink-0" />
+                                  <span className="text-[8px] font-black text-yellow-300 font-mono leading-none">
+                                    {guest.stars.toLocaleString()}
+                                  </span>
+                                </button>
+                              </>
+                            ) : null}
                         </div>
                     );
                     })}
@@ -4252,7 +5185,7 @@ export function Room() {
               </div>
               <div
                 className="bg-[#240c1e]/80 backdrop-blur border border-pink-500/20 rounded-full px-2 py-0.5 text-[8.5px] font-bold text-pink-400 flex items-center cursor-pointer hover:bg-pink-950/20 active:scale-95 transition shrink-0"
-                onClick={() => setIsGiftPickerOpen(true)}
+                onClick={() => setGiftPickerOpen(true)}
                 title={`${roomGiftSummary.giftCount.toLocaleString()} gifts received in this room`}
               >
                 <CoinIcon className="mr-0.5 h-2 w-2 shrink-0" />
@@ -4312,7 +5245,7 @@ export function Room() {
             // Seated Host
             <div className="party-staff-seat-cell">
               <div 
-                onClick={() => handleSeatClick("host")}
+                onClick={() => handleOccupiedSeatTap("host", activeSeats.host!)}
                 className="relative overflow-visible cursor-pointer transition transform hover:scale-105"
               >
                 <SeatSpeakingLevelBars
@@ -4359,16 +5292,21 @@ export function Room() {
                 {activeSeats.host.name}
               </span>
               {/* Coin badge rating */}
-              <div className="flex items-center space-x-0.5 bg-cyan-950/80 px-1.5 py-[2px] rounded-full border border-cyan-400/40 mt-1 shadow-sm shadow-cyan-950/50">
+              <button
+                type="button"
+                onClick={() => openGiftSendersForGuest(activeSeats.host!)}
+                className="mt-1 flex items-center space-x-0.5 rounded-full border border-cyan-400/40 bg-cyan-950/80 px-1.5 py-[2px] shadow-sm shadow-cyan-950/50 transition hover:brightness-110 active:scale-95"
+                aria-label={`View who sent coins to ${activeSeats.host.name}`}
+              >
                 <CoinIcon className="h-2 w-2 shrink-0 sm:h-[9px] sm:w-[9px]" />
                 <span className="text-[8px] sm:text-[9.5px] font-black text-yellow-300 font-mono leading-none">{activeSeats.host.stars}</span>
-              </div>
+              </button>
             </div>
           ) : (
             // Empty Host Seat
             <div className="party-staff-seat-cell">
               <button 
-                onClick={() => handleSeatClick("host")}
+                onClick={() => handleGuestSeatTap("host")}
                 className="party-empty-seat party-glass-tap rounded-full hover:border-[#FF3B70]/50 flex items-center justify-center transform active:scale-95 cursor-pointer"
               >
                 <User size={18} className="sm:w-6 sm:h-6" />
@@ -4382,7 +5320,7 @@ export function Room() {
           {activeSeats.coowner ? (
             <div className="party-staff-seat-cell">
               <div
-                onClick={() => handleSeatClick("coowner")}
+                onClick={() => handleOccupiedSeatTap("coowner", activeSeats.coowner!)}
                 className="relative overflow-visible cursor-pointer transition transform hover:scale-105"
               >
                 <SeatSpeakingLevelBars
@@ -4426,15 +5364,20 @@ export function Room() {
               >
                 {activeSeats.coowner.name}
               </span>
-              <div className="flex items-center space-x-0.5 bg-amber-950/80 px-1.5 py-[2px] rounded-full border border-amber-400/40 mt-1 shadow-sm shadow-amber-950/50">
+              <button
+                type="button"
+                onClick={() => openGiftSendersForGuest(activeSeats.coowner!)}
+                className="mt-1 flex items-center space-x-0.5 rounded-full border border-amber-400/40 bg-amber-950/80 px-1.5 py-[2px] shadow-sm shadow-amber-950/50 transition hover:brightness-110 active:scale-95"
+                aria-label={`View who sent coins to ${activeSeats.coowner.name}`}
+              >
                 <CoinIcon className="h-2 w-2 shrink-0 sm:h-[9px] sm:w-[9px]" />
                 <span className="text-[8px] sm:text-[9.5px] font-black text-yellow-300 font-mono leading-none">{activeSeats.coowner.stars}</span>
-              </div>
+              </button>
             </div>
           ) : (
             <div className="party-staff-seat-cell">
               <button
-                onClick={() => handleSeatClick("coowner")}
+                onClick={() => handleGuestSeatTap("coowner")}
                 className="party-empty-seat party-glass-tap rounded-full hover:border-amber-400/50 flex items-center justify-center transform active:scale-95 cursor-pointer"
               >
                 <User size={18} className="sm:w-6 sm:h-6" />
@@ -4448,7 +5391,7 @@ export function Room() {
           {activeSeats.admin ? (
             <div className="party-staff-seat-cell">
               <div
-                onClick={() => handleSeatClick("admin")}
+                onClick={() => handleOccupiedSeatTap("admin", activeSeats.admin!)}
                 className="relative overflow-visible cursor-pointer transition transform hover:scale-105"
               >
                 <SeatSpeakingLevelBars
@@ -4492,15 +5435,20 @@ export function Room() {
               >
                 {activeSeats.admin.name}
               </span>
-              <div className="flex items-center space-x-0.5 bg-violet-950/80 px-1.5 py-[2px] rounded-full border border-violet-400/40 mt-1 shadow-sm shadow-violet-950/50">
+              <button
+                type="button"
+                onClick={() => openGiftSendersForGuest(activeSeats.admin!)}
+                className="mt-1 flex items-center space-x-0.5 rounded-full border border-violet-400/40 bg-violet-950/80 px-1.5 py-[2px] shadow-sm shadow-violet-950/50 transition hover:brightness-110 active:scale-95"
+                aria-label={`View who sent coins to ${activeSeats.admin.name}`}
+              >
                 <CoinIcon className="h-2 w-2 shrink-0 sm:h-[9px] sm:w-[9px]" />
                 <span className="text-[8px] sm:text-[9.5px] font-black text-yellow-300 font-mono leading-none">{activeSeats.admin.stars}</span>
-              </div>
+              </button>
             </div>
           ) : (
             <div className="party-staff-seat-cell">
               <button
-                onClick={() => handleSeatClick("admin")}
+                onClick={() => handleGuestSeatTap("admin")}
                 className="party-empty-seat party-glass-tap rounded-full hover:border-violet-400/50 flex items-center justify-center transform active:scale-95 cursor-pointer"
               >
                 <User size={18} className="sm:w-6 sm:h-6" />
@@ -4565,7 +5513,7 @@ export function Room() {
                             audioPulse={seatVoicePulse(key)}
                           />
                           <div 
-                            onClick={() => handleSeatClick(key)}
+                            onClick={() => handleOccupiedSeatTap(key, seatValue)}
                             className={`party-guest-avatar relative rounded-full p-[2px] cursor-pointer hover:scale-105 transition-transform ${getAvatarFrameStyles(seatValue.frameStyle).border} ${getAvatarFrameStyles(seatValue.frameStyle).shadow}`}
                           >
                             <img 
@@ -4608,16 +5556,21 @@ export function Room() {
                         </span>
 
                         {/* Coins pill rating */}
-                        <div className="flex items-center space-x-0.5 bg-black/75 px-1.5 py-[2px] rounded-full border border-white/10 mt-1 shadow-sm">
+                        <button
+                          type="button"
+                          onClick={() => openGiftSendersForGuest(seatValue)}
+                          className="mt-1 flex items-center space-x-0.5 rounded-full border border-white/10 bg-black/75 px-1.5 py-[2px] shadow-sm transition hover:brightness-110 active:scale-95"
+                          aria-label={`View who sent coins to ${seatValue.name}`}
+                        >
                           <CoinIcon className="h-[7px] w-[7px] shrink-0 sm:h-2 sm:w-2" />
                           <span className="text-[8px] sm:text-[9px] font-black text-yellow-300 font-mono leading-none">{seatValue.stars}</span>
-                        </div>
+                        </button>
                       </div>
                     ) : (
                       /* Empty Sofa Chaired Seat (Styled exactly matching screenshot 1!) */
                       <div className="flex flex-col items-center relative">
                         <button 
-                          onClick={() => handleSeatClick(key)}
+                          onClick={() => handleGuestSeatTap(key)}
                           className={`party-empty-seat party-glass-tap rounded-full flex items-center justify-center transform active:scale-95 cursor-pointer ${
                             lockedSeats[key]
                               ? "party-glass-seat-locked text-red-400 hover:border-red-500/50"
@@ -4756,14 +5709,14 @@ export function Room() {
       )}
 
       {/* FIXED DOWNMOST INTERACTIVE FOOTER BAR CONTROL SHEET */}
-      {roomMode !== 'WatchTogether' && roomMode !== 'MultiGuest' && roomMode !== 'SoloLive' && (
+      {roomMode !== 'WatchTogether' && roomMode !== 'GameLive' && roomMode !== 'MultiGuest' && roomMode !== 'SoloLive' && (
         <div
           id="party-room-footer"
           className="relative z-30 shrink-0 border-t border-white/5 bg-[#07010a]/95 backdrop-blur-md pt-[10px] pb-[max(10px,env(safe-area-inset-bottom))] px-3 sm:px-4"
         >
-        <div className="party-room-footer-row flex w-full min-w-0 items-center gap-2">
+        <div className="party-room-footer-row flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
           {/* Rounded "Let's talk" Input Box wrapper */}
-          <form onSubmit={handleSendMessage} className="flex-1 min-w-0 relative">
+          <form onSubmit={handleSendMessage} className="relative min-w-0 w-full sm:flex-1">
             {/* Mention Suggestions Popup */}
             {mentionSearch !== null && (
               <div className="absolute bottom-full left-0 mb-4 w-48 bg-[#1a0f2e]/95 backdrop-blur-xl border border-purple-500/30 rounded-2xl shadow-[0_8px_32px_rgba(0,0,0,0.5)] overflow-hidden z-[100] animate-in fade-in slide-in-from-bottom-4">
@@ -4808,55 +5761,66 @@ export function Room() {
             onToggleSeatParticipation={handleToggleSeatParticipation}
             onOpenGuestManagement={handleFooterSeatManagementClick}
             guestManagementOpen={isGuestManagementOpen}
-            onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
-            onPkClick={handlePkComingSoon}
-            onGameClick={handleGameComingSoon}
+            onOpenGiftPicker={() => setGiftPickerOpen(true)}
+            onGameClick={handleGameClick}
             micAccent="cyan"
             className="party-room-footer-actions shrink-0"
+            {...roomVoiceChangerFooterProps}
           />
         </div>
       </div>
       )}
 
-      {isGiftPickerOpen && (
-        <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[190] flex items-end justify-center p-4 pb-[max(1rem,env(safe-area-inset-bottom))]">
-          <div className="pointer-events-auto w-full max-w-sm rounded-[24px] border border-pink-500/30 bg-[#1c1130] p-4 shadow-2xl">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="text-sm font-black text-white">Send Gift</h3>
-              <button type="button" onClick={() => setIsGiftPickerOpen(false)} className="text-gray-400 hover:text-white">
-                <X size={18} />
-              </button>
-            </div>
-            <p className="text-[10px] text-gray-400 mb-3">
-              To:{' '}
-              <span className="text-pink-300 font-bold">{defaultGiftReceiver()?.name ?? 'No seated guest'}</span>
-              {' · '}
-              Room total:{' '}
-              <span className="inline-flex items-center gap-1 text-yellow-300 font-bold">
-                {roomGiftSummary.totalStars.toLocaleString()}
-                <CoinIcon className="h-2.5 w-2.5 shrink-0" />
-              </span>
-            </p>
-            <div className="grid grid-cols-3 gap-2">
-              {PARTY_GIFT_CATALOG.map((gift) => (
-                <button
-                  key={gift.name}
-                  type="button"
-                  onClick={() => handleSendPartyGift(gift)}
-                  className="flex flex-col items-center gap-1 rounded-xl border border-white/10 bg-black/30 p-2 hover:border-pink-500/40 hover:bg-pink-950/20 active:scale-95 transition"
-                >
-                  <span className="text-2xl">{gift.icon}</span>
-                  <span className="text-[9px] font-bold text-gray-200">{gift.name}</span>
-                  <span className="inline-flex items-center gap-0.5 text-[8px] font-black text-yellow-300">
-                    {gift.stars}
-                    <CoinIcon className="h-2 w-2 shrink-0" />
-                  </span>
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
+      <VoiceChangerSheet
+        open={isRoomVoiceChangerOpen}
+        effectId={roomVoiceEffect}
+        onEffectChange={setRoomVoiceEffect}
+        onClose={() => setIsRoomVoiceChangerOpen(false)}
+        monitorEnabled={roomVoiceMonitorEnabled}
+        onMonitorEnabledChange={(enabled) => {
+          setRoomVoiceMonitorEnabled(enabled);
+          try {
+            sessionStorage.setItem('room-voice-monitor', enabled ? '1' : '0');
+          } catch {
+            /* ignore */
+          }
+        }}
+      />
+
+      {isPkEligibleStream ? (
+        <PKInviteSheet
+          open={isPkInviteOpen}
+          onClose={() => setIsPkInviteOpen(false)}
+          liveHosts={pkLiveHosts.hosts}
+          liveHostsLoading={pkLiveHosts.loading}
+          liveHostsError={pkLiveHosts.error}
+          onRefreshHosts={() => setPkInviteRefreshKey((key) => key + 1)}
+          selfUserId={self.id}
+          connecting={pkConnecting}
+          connectedOpponentName={pkConnectedOpponentName}
+          onConnect={handleConnectPk}
+          onDisconnect={handleDisconnectPk}
+        />
+      ) : null}
+
+      {liveSeatFullscreen ? (
+        <LiveSeatFullscreenOverlay
+          target={liveSeatFullscreen}
+          onClose={() => setLiveSeatFullscreen(null)}
+        />
+      ) : null}
+
+      {isGiftPickerOpen ? (
+        <PartyGiftPickerPanel
+          open={isGiftPickerOpen}
+          onClose={() => setGiftPickerOpen(false)}
+          receiverName={(giftPickerReceiver ?? defaultGiftReceiver())?.name ?? 'No seated guest'}
+          balance={getLiveCoinsBalance(self.id)}
+          roomTotalStars={roomGiftSummary.totalStars}
+          isPlatformAdmin={db.currentUser?.role === 'admin'}
+          onSendGift={handleSendPartyGift}
+        />
+      ) : null}
 
       {profilePreviewUser ? (
         <RoomProfilePreviewModal

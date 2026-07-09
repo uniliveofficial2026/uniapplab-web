@@ -13,9 +13,10 @@ import { fileURLToPath } from 'node:url';
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LOG = path.join(ROOT, '.local/ux-agent.log');
 const PID_FILE = path.join(ROOT, '.local/ux-agent.pid');
-const CYCLE_MS = Number(process.env.UX_AGENT_CYCLE_MS ?? '120000');
-const SILENT = process.env.UX_AGENT_SILENT !== '0';
+const CYCLE_MS = Number(process.env.UX_AGENT_CYCLE_MS ?? '600000');
+const SILENT = process.env.UX_AGENT_SILENT === '1';
 const VERBOSE = process.env.UX_AGENT_VERBOSE === '1';
+const CYCLE_LOCK = path.join(ROOT, '.local/handoff-cycle.lock');
 
 function agentLog(msg) {
   const line = `[${new Date().toISOString()}] ${msg}\n`;
@@ -24,18 +25,42 @@ function agentLog(msg) {
   if (VERBOSE || !SILENT) console.log(`[handoff-agent] ${msg}`);
 }
 
-let handoffCycle = 0;
+function cycleLockHeld() {
+  try {
+    const raw = fs.readFileSync(CYCLE_LOCK, 'utf8').trim();
+    const pid = Number(raw);
+    if (!Number.isFinite(pid) || pid <= 0) return false;
+    process.kill(pid, 0);
+    return true;
+  } catch {
+    return false;
+  }
+}
 
 function runCycle() {
-  handoffCycle += 1;
+  if (cycleLockHeld()) {
+    agentLog('skip cycle — previous handoff still running');
+    return;
+  }
   const logFd = fs.openSync(LOG, 'a');
-  const child = spawn('node', ['scripts/app-handoff.mjs', 'cycle', String(handoffCycle)], {
+  const child = spawn('node', ['scripts/app-handoff.mjs', 'cycle'], {
     cwd: ROOT,
     stdio: ['ignore', logFd, logFd],
     env: { ...process.env, UX_AGENT_SILENT: '1', HANDOFF_VERBOSE: VERBOSE ? '1' : '0' },
   });
+  try {
+    fs.mkdirSync(path.dirname(CYCLE_LOCK), { recursive: true });
+    fs.writeFileSync(CYCLE_LOCK, String(child.pid));
+  } catch {
+    /* ignore */
+  }
   child.on('close', (code) => {
     fs.closeSync(logFd);
+    try {
+      fs.unlinkSync(CYCLE_LOCK);
+    } catch {
+      /* ignore */
+    }
     agentLog(code === 0 ? 'handoff cycle OK' : `handoff cycle exit ${code}`);
   });
 }

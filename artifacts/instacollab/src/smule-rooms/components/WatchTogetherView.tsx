@@ -28,7 +28,7 @@ import { resolveSeatGuestDisplay } from '../utils/roomSeats';
 import type { RoomViewerEntry } from '../utils/roomViewers';
 import type { RoomSettings } from '../utils/storage';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../../components/common/AppNativeVideo';
 import { safeAvatarUrl, safeMediaUrl, safeVideoUrl } from '../../lib/safe';
 import { SafeMediaImage } from '../../components/common/SafeMediaImage';
 import { warmMediaUrl } from '../../lib/mediaInstant';
@@ -45,6 +45,9 @@ import { RoomFooterTrayActions } from './RoomFooterTrayActions';
 import { RoomHeaderActionsMenu, createRoomBackgroundHeaderMenuItem, createSingHeaderMenuItem, createYoutubeMiniHeaderMenuItem, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
 import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
 import { ShareIcon } from '../../components/common/ShareIcon';
+import { LiveSeatFullscreenOverlay, type LiveSeatFullscreenTarget } from './LiveSeatFullscreenOverlay';
+import { useSeatTileTap } from '../hooks/useSeatTileTap';
+import { buildLiveSeatFullscreenTarget } from '../utils/liveSeatFullscreenTarget';
 import {
   SeatHeartbeatRowOverlay,
   type SeatHeartbeatLink,
@@ -110,6 +113,7 @@ interface WatchTogetherViewProps {
   handleToggleSeatMic: (key: string) => void;
   buildViewerFromGuest: (guest: RoomGuest, seatKey: string) => ChatViewerPayload;
   handleSelectViewer: (viewer: ChatViewerPayload) => void;
+  onOpenGiftSenders: (receiver: { name: string; userId?: string }) => void;
   setIsRoomBackgroundMenuOpen: (open: boolean) => void;
   setIsRoomViewersOpen: (open: boolean) => void;
   setIsGiftPickerOpen: (open: boolean) => void;
@@ -158,8 +162,13 @@ interface WatchTogetherViewProps {
   hasActiveSong?: boolean;
   songQueueLength?: number;
   hideSingMenu?: boolean;
-  onPkClick?: () => void;
   onGameClick?: () => void;
+  showVoiceChanger?: boolean;
+  voiceChangerEligible?: boolean;
+  voiceChangerOpen?: boolean;
+  voiceEffectActive?: boolean;
+  voiceEffectEmoji?: string;
+  onToggleVoiceChanger?: () => void;
 }
 
 function truncateName(name: string, max = 12): string {
@@ -212,6 +221,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   onCopyRoomId,
   onToggleSaveRoom,
   watchTogetherMedia: media,
+  viewerUserId,
   onLeaveRoom,
   onShareRoom,
   onOpenRoomDetails,
@@ -224,6 +234,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   handleToggleSeatMic,
   buildViewerFromGuest,
   handleSelectViewer,
+  onOpenGiftSenders,
   setIsRoomBackgroundMenuOpen,
   setIsRoomViewersOpen,
   setIsGiftPickerOpen,
@@ -269,8 +280,13 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   hasActiveSong = false,
   songQueueLength = 0,
   hideSingMenu = false,
-  onPkClick,
   onGameClick,
+  showVoiceChanger = false,
+  voiceChangerEligible = false,
+  voiceChangerOpen = false,
+  voiceEffectActive = false,
+  voiceEffectEmoji,
+  onToggleVoiceChanger,
 }) => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -281,6 +297,10 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   const [playbackMedia, setPlaybackMedia] = useState(media);
   const [playbackError, setPlaybackError] = useState<string | null>(null);
   const [isMediaLoading, setIsMediaLoading] = useState(false);
+  const handleSeatTileTap = useSeatTileTap();
+  const [seatFullscreenTarget, setSeatFullscreenTarget] = useState<LiveSeatFullscreenTarget | null>(
+    null,
+  );
 
   const canPlayMedia = Boolean(playbackMedia.streamUrl) && !playbackMedia.isHydrating;
   const isYoutubePlayback =
@@ -464,24 +484,48 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
     return (
       <div key={key} className="watch-together-seat-cell relative z-10 flex min-w-0 flex-col items-center">
         {occupant ? (
-          <div className="flex flex-col items-center w-full">
+          <div className="relative flex w-full flex-col items-center">
+            <div className="flex flex-col items-center w-full">
             <div className="relative overflow-visible">
               <SeatSpeakingLevelBars active={voiceVisualActive} audioPulse={voicePulse} />
-              <button
-                type="button"
-                onClick={() => handleSeatClick(key)}
+              <div
+                role="button"
+                tabIndex={0}
+                onClick={() => {
+                  if (!rawOccupant) {
+                    handleSeatClick(key);
+                    return;
+                  }
+                  handleSeatTileTap(
+                    () => handleSeatClick(key),
+                    () =>
+                      setSeatFullscreenTarget(
+                        buildLiveSeatFullscreenTarget(key, rawOccupant, roomDisplayId, {
+                          userSeatKey,
+                          selfUserId: viewerUserId,
+                        }),
+                      ),
+                  );
+                }}
+                onKeyDown={(event) => {
+                  if (event.key === 'Enter' || event.key === ' ') {
+                    event.preventDefault();
+                    handleSeatClick(key);
+                  }
+                }}
                 className={
                   isHost
                     ? 'party-host-avatar relative rounded-full p-[2px] cursor-pointer hover:scale-105 transition-transform bg-gradient-to-tr from-cyan-400 via-purple-600 to-pink-500 shadow-[0_0_12px_rgba(34,211,238,0.4)]'
                     : `party-guest-avatar relative rounded-full p-[2px] cursor-pointer hover:scale-105 transition-transform ${getSeatFrameClasses(occupant.frameStyle)}`
                 }
+                aria-label={isSelfSeat ? `Your ${isHost ? 'host' : 'guest'} seat` : `Send gift to ${occupant.name}`}
               >
                 <img
                   src={safeAvatarUrl(occupant.avatar)}
                   className="w-full h-full rounded-full object-cover border-2 border-[#050510]"
                   alt={occupant.name}
                 />
-              </button>
+              </div>
               <SeatVoiceGlowEffect
                 active={voiceVisualActive}
                 audioPulse={voicePulse}
@@ -524,17 +568,27 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
               {truncateName(occupant.name, isHost ? 12 : 10)}
             </button>
 
-            <div
-              className={`party-seat-stars flex items-center space-x-0.5 px-1.5 py-[2px] rounded-full border mt-1 shadow-sm ${
+            <button
+              type="button"
+              onClick={(event) => {
+                event.stopPropagation();
+                onOpenGiftSenders({
+                  name: occupant.name,
+                  userId: rawOccupant?.userId,
+                });
+              }}
+              className={`party-seat-stars flex items-center space-x-0.5 px-1.5 py-[2px] rounded-full border mt-1 shadow-sm cursor-pointer transition hover:brightness-110 active:scale-95 ${
                 isHost
                   ? 'bg-cyan-950/80 border-cyan-400/40'
                   : 'bg-black/75 border-white/10'
               }`}
+              aria-label={`View who sent coins to ${occupant.name}`}
             >
               <CoinIcon className="h-2 w-2 shrink-0" />
               <span className="text-[9px] font-black text-yellow-300 font-mono leading-none">
                 {occupant.stars.toLocaleString()}
               </span>
+            </button>
             </div>
           </div>
         ) : (
@@ -738,20 +792,17 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                 }`}
               />
               {canPlayMedia ? (
-                <video
+                <AppNativeVideo
                   ref={videoRef}
                   key={playbackMedia.streamUrl}
                   src={safeVideoUrl(playbackMedia.streamUrl)}
                   poster={safeMediaUrl(playbackMedia.posterUrl)}
-                  controls
                   controlsList="nodownload"
-                  playsInline
                   preload="metadata"
                   onLoadedData={handlePlaybackReady}
                   onCanPlay={handlePlaybackReady}
                   onError={handlePlaybackError}
                   className="watch-together-native-media relative z-[1] h-full w-full bg-black object-contain"
-                  {...nativeVideoControlGuardProps()}
                 />
               ) : null}
               <div className="pointer-events-none absolute left-3 top-3 z-10 flex items-center gap-2">
@@ -937,9 +988,14 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
             onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
             guestManagementOpen={guestManagementOpen}
             onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
-            onPkClick={onPkClick}
             onGameClick={onGameClick}
             micAccent="cyan"
+            showVoiceChanger={showVoiceChanger}
+            voiceChangerEligible={voiceChangerEligible}
+            voiceChangerOpen={voiceChangerOpen}
+            voiceEffectActive={voiceEffectActive}
+            voiceEffectEmoji={voiceEffectEmoji}
+            onToggleVoiceChanger={onToggleVoiceChanger}
           />
         </div>
       </div>
@@ -957,6 +1013,11 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
         onMediaUpdated={handleMediaUpdated}
         initialPanel={mediaSourcePanel}
         autoPickFileOnOpen={mediaSourceAutoPick}
+      />
+
+      <LiveSeatFullscreenOverlay
+        target={seatFullscreenTarget}
+        onClose={() => setSeatFullscreenTarget(null)}
       />
       </div>
     </div>

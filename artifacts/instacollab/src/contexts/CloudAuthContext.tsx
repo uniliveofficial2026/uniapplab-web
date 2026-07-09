@@ -12,7 +12,7 @@ import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
 import { db } from '../lib/db/localDb';
 import { isCloudAuthConfigured } from '../lib/auth/config';
 import type { AuthBackend } from '../lib/auth/types';
-import { authSignOut } from '../lib/auth/authService';
+import { signOutFast } from '../lib/auth/authHandoff';
 import { isSupabaseConfigured } from '../lib/supabase/config';
 import { isFirebaseConfigured } from '../lib/firebase/config';
 import { getFirebaseAuth } from '../lib/firebase/app';
@@ -45,7 +45,7 @@ import {
   applyDevSessionOverrideFromUrl,
   shouldApplyDevSessionOverride,
 } from '../lib/devSessionUser';
-import { clearActiveDeviceUid, syncDeviceAccountForAppUser } from '../lib/auth/deviceAccounts';
+import { syncDeviceAccountForAppUser } from '../lib/auth/deviceAccounts';
 import { bootstrapCloudSystemsAfterAuth } from '../lib/appCloudSystems';
 
 const SESSION_MS = 2_500;
@@ -300,18 +300,10 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
 
   const signOut = useCallback(async () => {
     applyGeneration.current += 1;
-    if (configured) {
-      try {
-        await authSignOut();
-      } catch (err) {
-        console.warn('[auth] signOut failed:', err);
-      }
-    }
-    clearActiveDeviceUid();
-    teardownCloudSession();
-    db.logoutSession();
+    const uid = session?.user?.id ?? db.currentUserId;
     setSession(null);
-  }, [configured]);
+    signOutFast({ clearStoredSession: true, userId: uid });
+  }, [session]);
 
   const value = useMemo(
     () => ({

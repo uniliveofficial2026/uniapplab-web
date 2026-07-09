@@ -7,7 +7,7 @@ import {
 
 export type CameraDualBeautyButtonsProps = {
   /** Large glass buttons for fullscreen capture overlays. */
-  variant?: 'capture' | 'inline';
+  variant?: 'capture' | 'inline' | 'call';
   disabled?: boolean;
   deeparPanelOpen: boolean;
   beautyPanelOpen: boolean;
@@ -41,6 +41,47 @@ export function CameraDualBeautyButtons({
   showBeauty = true,
   className = '',
 }: CameraDualBeautyButtonsProps) {
+  if (variant === 'call') {
+    const callBtn = 'h-14 w-14';
+    const callIcon = 'h-6 w-6';
+    return (
+      <div className={`flex items-center gap-2 ${className}`}>
+        {showDeepAR ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onToggleDeepAR}
+            className={`flex ${callBtn} items-center justify-center rounded-full transition-colors ${
+              deeparPanelOpen || deeparActive
+                ? 'bg-fuchsia-500/90 text-white'
+                : 'bg-white/15 text-white hover:bg-white/25'
+            }`}
+            aria-label="AR effects"
+            aria-pressed={deeparPanelOpen || deeparActive}
+          >
+            <Sparkles className={callIcon} />
+          </button>
+        ) : null}
+        {showBeauty ? (
+          <button
+            type="button"
+            disabled={disabled}
+            onClick={onToggleBeauty}
+            className={`flex ${callBtn} items-center justify-center rounded-full transition-colors ${
+              beautyPanelOpen || beautyActive
+                ? 'bg-rose-500/90 text-white'
+                : 'bg-white/15 text-white hover:bg-white/25'
+            }`}
+            aria-label="Beauty effects"
+            aria-pressed={beautyPanelOpen || beautyActive}
+          >
+            <ScanFace className={callIcon} />
+          </button>
+        ) : null}
+      </div>
+    );
+  }
+
   if (variant === 'inline') {
     return (
       <div className={`flex items-center gap-2 ${className}`}>

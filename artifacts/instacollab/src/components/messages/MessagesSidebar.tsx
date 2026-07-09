@@ -4,9 +4,8 @@ import { handleAvatarError } from '../../lib/utils';
 import { formatLastSeenLabel } from './messages/messageTime';
 import {
   getEffectivePeerReadAt,
-  getIncomingReadLabelWatermark,
-  isIncomingMessageReadForDisplay,
-  isOutgoingMessageSeen,
+  isIncomingReadInList,
+  isOutgoingSeenInList,
 } from './messages/chatReadReceipts';
 import { getChatMessagePreviewText } from './messages/chatFileUtils';
 
@@ -30,6 +29,7 @@ export type MessagesSidebarProps = {
   readLabelCapByChatId: Record<string, number>;
   getBothParticipantsInChat: (chatId: string) => boolean;
   getUserTyping: (userId: string) => boolean;
+  getGroupTyping?: (groupId: string) => boolean;
   getPersistedPeerReadAt: (chatId: string) => number;
   onlineStatusByUserId: Record<string, boolean>;
   lastSeenByUserId: Record<string, number>;
@@ -56,6 +56,7 @@ export function MessagesSidebar({
   readLabelCapByChatId,
   getBothParticipantsInChat,
   getUserTyping,
+  getGroupTyping,
   getPersistedPeerReadAt,
   onlineStatusByUserId,
   lastSeenByUserId,
@@ -64,23 +65,16 @@ export function MessagesSidebar({
   const sidebarReceiptLabel = (
     chatId: string,
     lastMessage: ChatMessage | null,
-    unreadCount: number
+    unreadCount: number,
+    isGroup = false,
   ): string | null => {
     if (unreadCount > 0 || !lastMessage) return null;
-    const bothInChat = getBothParticipantsInChat(chatId);
-    const incomingWatermark = getIncomingReadLabelWatermark(
-      chatId,
-      chatLastReadAt,
-      readLabelCapByChatId,
-      bothInChat
-    );
+    const readAt = chatLastReadAt[chatId] || 0;
     const peerReadAt = getEffectivePeerReadAt(chatId, chatPeerReadAt, getPersistedPeerReadAt(chatId));
     if (lastMessage.isAuthor) {
-      return isOutgoingMessageSeen(lastMessage.timestamp, peerReadAt, bothInChat) ? 'Seen' : 'Sent';
+      return isOutgoingSeenInList(lastMessage.timestamp, peerReadAt) ? 'Seen' : 'Sent';
     }
-    return isIncomingMessageReadForDisplay(lastMessage.timestamp, incomingWatermark, bothInChat)
-      ? 'Read'
-      : 'Unread';
+    return isIncomingReadInList(lastMessage.timestamp, readAt) ? 'Read' : 'Unread';
   };
   return (
     <div
@@ -100,30 +94,30 @@ export function MessagesSidebar({
           ) : null}
           <span className="font-black text-[20px] tracking-tight truncate">Messages</span>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-3">
           <button
             type="button"
             onClick={onToggleSidebarSearch}
-            className="hover:bg-secondary p-2.5 rounded-full transition-colors group"
+            className="hover:bg-secondary p-3 rounded-full transition-colors group"
             title="Search"
           >
-            <Search className="w-5 h-5 group-hover:text-primary transition-colors" />
+            <Search className="w-6 h-6 group-hover:text-primary transition-colors" />
           </button>
           <button
             type="button"
             onClick={onNewGroup}
-            className="hover:bg-secondary p-2.5 rounded-full transition-colors group"
+            className="hover:bg-secondary p-3 rounded-full transition-colors group"
             title="New Group"
           >
-            <Users className="w-5 h-5 group-hover:text-primary transition-colors" />
+            <Users className="w-6 h-6 group-hover:text-primary transition-colors" />
           </button>
           <button
             type="button"
             onClick={onNewMessage}
-            className="hover:bg-secondary p-2.5 rounded-full transition-colors group"
+            className="hover:bg-secondary p-3 rounded-full transition-colors group"
             title="New Message"
           >
-            <Edit className="w-5 h-5 group-hover:text-primary transition-colors" />
+            <Edit className="w-6 h-6 group-hover:text-primary transition-colors" />
           </button>
         </div>
       </div>
@@ -147,6 +141,10 @@ export function MessagesSidebar({
           const groupMessages = Array.isArray(messages[group.id]) ? messages[group.id] : [];
           const lastMessage = groupMessages.length > 0 ? groupMessages[groupMessages.length - 1] : null;
           const unreadCount = getChatUnreadCount(group.id);
+          const isGroupTyping = getGroupTyping?.(group.id) ?? false;
+          const groupSubtitle = isGroupTyping
+            ? 'Someone is typing...'
+            : getChatMessagePreviewText(lastMessage) || 'Start chatting';
           return (
             <div
               key={group.id}
@@ -163,8 +161,12 @@ export function MessagesSidebar({
               </div>
               <div className="flex flex-col flex-1 overflow-hidden">
                 <span className="text-[15px] font-bold truncate">{group.displayName}</span>
-                <span className="text-[13px] text-muted-foreground truncate font-medium">
-                  {getChatMessagePreviewText(lastMessage) || 'Start chatting'}
+                <span
+                  className={`text-[13px] truncate font-medium ${
+                    isGroupTyping ? 'text-blue-500' : 'text-muted-foreground'
+                  }`}
+                >
+                  {groupSubtitle}
                 </span>
               </div>
               <div className="flex flex-col items-end shrink-0 min-w-[44px]">
@@ -173,7 +175,7 @@ export function MessagesSidebar({
                     {unreadCount}
                   </span>
                 ) : (() => {
-                  const label = sidebarReceiptLabel(group.id, lastMessage, unreadCount);
+                  const label = sidebarReceiptLabel(group.id, lastMessage, unreadCount, true);
                   return label ? (
                     <span className="text-[10px] font-semibold text-muted-foreground">{label}</span>
                   ) : null;

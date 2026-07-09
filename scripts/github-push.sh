@@ -28,6 +28,14 @@ fi
 branch="${1:-$(git branch --show-current)}"
 echo "[github-push] Pushing branch: $branch → origin"
 
+# Fetch uses HTTPS but push was sometimes set to git@github.com — fails without SSH keys.
+push_url="$(git remote get-url --push origin 2>/dev/null || true)"
+if [[ "$push_url" == git@github.com:* ]]; then
+  https_url="${push_url/git@github.com:/https://github.com/}"
+  echo "[github-push] Switching origin push URL to HTTPS (no SSH key on this machine)…"
+  git remote set-url --push origin "$https_url"
+fi
+
 push_log="$(mktemp)"
 set +e
 GIT_TERMINAL_PROMPT=1 git push -u origin "$branch" 2>&1 | tee "$push_log"
@@ -77,7 +85,39 @@ EOF
   exit 1
 fi
 
-if grep -q 'Authentication failed\|403\|401\|could not read Username' "$push_log" 2>/dev/null; then
+if grep -q 'GH001\|exceeds GitHub'\''s file size limit\|Large files detected' "$push_log" 2>/dev/null; then
+  cat <<'EOF'
+
+GitHub blocked the push — a file in git history exceeds 100 MB (GH001).
+
+Fix:
+  bash scripts/fix-git-large-files.sh
+  bash scripts/github-push.sh
+
+Large assets belong in CDN / build download, not git.
+
+EOF
+  rm -f "$push_log"
+  exit 1
+fi
+
+if grep -q 'Permission denied (publickey)' "$push_log" 2>/dev/null; then
+  cat <<'EOF'
+
+Git push failed — SSH key not configured on this Mac.
+
+Fix (use HTTPS instead of git@github.com):
+  git remote set-url --push origin https://github.com/uniliveofficial2026/uniapplab-web.git
+  bash scripts/github-push.sh
+
+Or install an SSH key: https://docs.github.com/en/authentication/connecting-to-github-with-ssh
+
+EOF
+  rm -f "$push_log"
+  exit 1
+fi
+
+if grep -qE 'Authentication failed|403|401|could not read Username' "$push_log" 2>/dev/null; then
   cat <<'EOF'
 
 GitHub push failed — authentication required.

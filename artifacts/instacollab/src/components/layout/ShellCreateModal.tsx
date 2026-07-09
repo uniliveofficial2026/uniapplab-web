@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { useEffect, useRef, useState } from 'react';
-import { Wand2, ArrowLeft, CheckCircle2, X, Circle, Sparkles } from 'lucide-react';
+import { Camera, Wand2, ArrowLeft, CheckCircle2, X, Circle } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
 import { User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
@@ -27,12 +27,8 @@ import { dispatchOpenStoryCreate } from '../../lib/storyCreateEvents';
 import { useDB } from '../../lib/useDB';
 import { ShellCreatePostEditor } from './ShellCreatePostEditor';
 import { ShellCreateCrossPostModal } from './ShellCreateCrossPostModal';
-import { DeepARCameraCapture } from '../deepar/DeepARCameraCapture';
+import { useAppCamera } from '../../contexts/AppCameraContext';
 import { ALL_MEDIA_ACCEPT, PHOTO_VIDEO_ACCEPT } from '../../lib/mediaAccept';
-import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
-import { ARCameraCapture } from '../ar/ARCameraCapture';
-import { isFaceARAvailable } from '../../lib/ar/arConfig';
-import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
 
 export type CreateLaunch = {
   type: 'post' | 'reel' | 'text' | 'story';
@@ -92,9 +88,7 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
 
   const suggestedHashtags = ['#fyp', '#viral', '#trending', '#explore', '#photography', '#art', '#daily'];
   const [filter, setFilter] = useState('none');
-  const [showARCamera, setShowARCamera] = useState(false);
-  const advancedCamera = isDeepARConfigured() || isTencentWebARConfigured();
-  const hasARCamera = advancedCamera || isFaceARAvailable();
+  const { isAvailable: hasARCamera, openCamera } = useAppCamera();
   const [mediaAdjust, setMediaAdjust] = useState<MediaEditorAdjustments>(DEFAULT_MEDIA_EDITOR_ADJUSTMENTS);
   const [videoAdjust, setVideoAdjust] = useState<VideoEditorAdjustments>(DEFAULT_VIDEO_EDITOR_ADJUSTMENTS);
   const [textExtras, setTextExtras] = useState<TextEditorExtras>(DEFAULT_TEXT_EDITOR_EXTRAS);
@@ -303,6 +297,10 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
         size: textPostSize,
         bg: textPostBg,
       });
+      showToast('Reel published');
+      window.dispatchEvent(
+        new CustomEvent('navigate', { detail: { tab: 'reels', reelId: newId } }),
+      );
     } else {
       db.addPost({
         id: newId,
@@ -525,11 +523,30 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
               {hasARCamera && (
                 <button
                   type="button"
-                  onClick={() => setShowARCamera(true)}
+                  onClick={() =>
+                    openCamera({
+                      title: 'Create with camera',
+                      onCaptured: ({ kind, url }) => {
+                        const isVideo = kind === 'video';
+                        setUploadedImage(url);
+                        setUploadedIsVideo(isVideo);
+                        setUploadedMediaList([
+                          {
+                            url,
+                            type: isVideo ? 'video' : 'image',
+                            name: isVideo ? 'camera-video.webm' : 'camera-photo.png',
+                          },
+                        ]);
+                        setActiveMediaIndex(0);
+                        setCreateStep('edit');
+                        showToast(isVideo ? 'Video ready to edit' : 'Photo ready to edit');
+                      },
+                    })
+                  }
                   className="mt-3 px-5 py-2 bg-gradient-to-r from-pink-500 to-violet-600 text-white font-bold rounded-xl hover:opacity-90 transition-opacity active:scale-95 inline-flex items-center gap-2"
                 >
-                  <Sparkles className="w-4 h-4" />
-                  Record with AR camera
+                  <Camera className="w-4 h-4" />
+                  Camera
                 </button>
               )}
 
@@ -632,48 +649,6 @@ export function ShellCreateModal({ open, onOpenChange, currentUser, launch }: Sh
       </div>
     )}
     </AnimatePresence>
-      <ARCameraCapture
-        open={showARCamera && !advancedCamera && isFaceARAvailable()}
-        onClose={() => setShowARCamera(false)}
-        title="Create with AR"
-        onCaptured={({ kind, url }) => {
-          const isVideo = kind === 'video';
-          setUploadedImage(url);
-          setUploadedIsVideo(isVideo);
-          setUploadedMediaList([
-            {
-              url,
-              type: isVideo ? 'video' : 'image',
-              name: isVideo ? 'ar-video.webm' : 'ar-photo.png',
-            },
-          ]);
-          setActiveMediaIndex(0);
-          setCreateStep('edit');
-          setShowARCamera(false);
-          showToast(isVideo ? 'AR video ready to edit' : 'AR photo ready to edit');
-        }}
-      />
-      <DeepARCameraCapture
-        open={showARCamera && advancedCamera}
-        onClose={() => setShowARCamera(false)}
-        title="Create with AR"
-        onCaptured={({ kind, url }) => {
-          const isVideo = kind === 'video';
-          setUploadedImage(url);
-          setUploadedIsVideo(isVideo);
-          setUploadedMediaList([
-            {
-              url,
-              type: isVideo ? 'video' : 'image',
-              name: isVideo ? 'ar-video.webm' : 'ar-photo.png',
-            },
-          ]);
-          setActiveMediaIndex(0);
-          setCreateStep('edit');
-          setShowARCamera(false);
-          showToast(isVideo ? 'AR video ready to edit' : 'AR photo ready to edit');
-        }}
-      />
       <ShellCreateCrossPostModal
         open={isCrossPostModalOpen}
         onOpenChange={setIsCrossPostModalOpen}

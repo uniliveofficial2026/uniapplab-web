@@ -39,7 +39,7 @@ export function SafeMediaImage({
   useEffect(() => {
     const initial = instantMediaSrc(src, fallback);
     setDisplay(initial);
-    if (priority) warmMediaUrl(src);
+    warmMediaUrl(src);
 
     if (!src) return;
 
@@ -50,29 +50,21 @@ export function SafeMediaImage({
         return;
       }
       let cancelled = false;
-    const unsub = subscribeAppMediaCache(() => {
-      const next = resolveAppMediaUrlSync(src);
-      if (next && !isAppMediaRef(next) && !cancelled) setDisplay(next);
-    });
-    void hydrateAppMediaUrl(src).then((next) => {
-      if (!cancelled && next && !isAppMediaRef(next)) setDisplay(next);
-    });
-    return () => {
-      cancelled = true;
-      unsub();
-    };
-  }
+      const unsub = subscribeAppMediaCache(() => {
+        const next = resolveAppMediaUrlSync(src);
+        if (next && !isAppMediaRef(next) && !cancelled) setDisplay(next);
+      });
+      void hydrateAppMediaUrl(src).then((next) => {
+        if (!cancelled && next && !isAppMediaRef(next)) setDisplay(next);
+      });
+      return () => {
+        cancelled = true;
+        unsub();
+      };
+    }
 
-  if (src.startsWith('http')) {
-    if (priority) warmMediaUrl(src);
-    const unsub = subscribeAppMediaCache(() => {
-      setDisplay(instantMediaSrc(src, fallback));
-    });
-    return unsub;
-  }
-
-  setDisplay(instantMediaSrc(src, fallback));
-  return undefined;
+    setDisplay(src);
+    return undefined;
   }, [src, fallback]);
 
   return (
@@ -82,7 +74,7 @@ export function SafeMediaImage({
       className={className}
       loading={priority ? 'eager' : loading}
       decoding={priority ? 'sync' : 'async'}
-      {...(priority ? { fetchPriority: 'high' as const } : {})}
+      fetchPriority={priority ? 'high' : undefined}
       onError={(e) => {
         const el = e.currentTarget;
         if (el.src === fallback || el.getAttribute('data-media-fallback') === '1') {

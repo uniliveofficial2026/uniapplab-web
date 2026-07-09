@@ -1,25 +1,34 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import { useCameraStream, type CameraFacingMode } from '../../lib/deepar/useCameraStream';
+import { useCameraStream, type CameraFacingMode } from '../../lib/camera/useCameraStream';
+import {
+  getStableCameraIdeal,
+  shouldPreloadTrtcModule,
+  shouldRunTrtcEngine,
+  shouldRunTrtcProcessing,
+  WEBAR_CAMERA_FRAME_RATE,
+} from '../../lib/camera/cameraPipelinePolicy';
 import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
 import {
   deeparSelectionActive,
   deeparSelectionFromEffectId,
-  EMPTY_DEEPAR_EFFECT_SELECTION,
   type DeepAREffectSelection,
 } from '../../lib/deepar/deeparEffectSelection';
 import { useDeepAR } from '../../lib/deepar/useDeepAR';
 import {
   getBeautyVideoFilter,
-  getTencentBeautifyParams,
+  resolveTencentBeautifyParams,
   type BeautyPresetId,
 } from '../../lib/ar/beautyFilters';
-import { isBodyShapeActive, type BodyShapeParams } from '../../lib/ar/bodyShape';
+import { isBodyShapeActive, BODY_SHAPE_COMING_SOON, type BodyShapeParams } from '../../lib/ar/bodyShape';
 import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
-import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
-import { useTencentWebAR } from '../../lib/webar/useTencentWebAR';
+import {
+  isTencentWebARConfigured,
+  preloadTencentWebARModule,
+  useTencentWebAR,
+  warmTencentWebARForVideoCall,
+} from '../../lib/webar/useTencentWebAR';
 import type { TencentEffectItem, TencentEffectSelection } from '../../lib/webar/webarTypes';
 import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../../lib/webar/webarTypes';
-import { LIVE_VIDEO_HEIGHT, LIVE_VIDEO_WIDTH, WEBAR_CAMERA_FRAME_RATE, WEBAR_CAMERA_IDEAL } from './liveVideoConstants';
 import { prepareProcessedVideoTrackForLiveKit } from '../../lib/livekit/liveKitVideoPublish';
 
 /** LiveKit publish rate — 30fps keeps CPU lower than capture-every-paint (0). */
@@ -58,18 +67,23 @@ export type MultiGuestCameraEffectsState = {
   /** Beauty output has decoded frames (avoids black flash). */
   beautyVideoReady: boolean;
   /** CSS fallback when WebAR credentials are missing. */
-  beautyCssFilter: string | null;
+    beautyCssFilter: string | null;
   beautyCatalogs: {
     makeups: TencentEffectItem[];
     stickers: TencentEffectItem[];
     filters: TencentEffectItem[];
     backgrounds: string[];
+    beautyCovers: Record<string, string>;
+    shapeCovers: Record<string, string>;
+    bodyShapes: TencentEffectItem[];
+    shapeEffectByPreset: Record<string, string>;
   };
+  readyEffectIds: string[];
 };
 
 /**
- * Live camera + DeepAR + Tencent WebAR beauty for Multi-Guest / Solo Live.
- * Publish priority: DeepAR canvas → Tencent beauty output → raw camera.
+ * Live camera + optional DeepAR + Tencent WebAR (TRTC) beauty for Multi-Guest / Solo Live.
+ * When `DEEPAR_ENABLED` is false, publish priority is Tencent beauty output → raw camera.
  */
 export function useMultiGuestCameraEffects({
   enabled,
@@ -89,14 +103,37 @@ export function useMultiGuestCameraEffects({
     beautyEffects.makeupId ||
       beautyEffects.stickerId ||
       beautyEffects.filterId ||
-      beautyEffects.backgroundUrl,
+      beautyEffects.backgroundUrl ||
+      beautyEffects.shapeEffectId,
   );
-  const shapeActive = isBodyShapeActive(bodyShape);
+  const shapeActive = !BODY_SHAPE_COMING_SOON && isBodyShapeActive(bodyShape);
   const beautySelected = beautyId !== 'none' || beautyEffectsActive || shapeActive;
-  const webarWarm = beautySelected || beautyPanelOpen;
-  const deeparWarm = effectSelected || effectsPanelOpen;
-  /** DeepAR effects use native capture resolution — avoid 720p bump (prevents zoom mismatch). */
-  const useBeautyCapture = webarWarm && !deeparWarm;
+  const deeparWarm = configured && (effectSelected || effectsPanelOpen);
+  const trtcWarm = enabled && beautyConfigured;
+  const trtcEngine =
+    trtcWarm ||
+    shouldRunTrtcEngine({
+      trtcCapable: beautyConfigured,
+      beautySelected,
+      beautyPanelOpen,
+    });
+  const trtcProcessing =
+    trtcWarm ||
+    shouldRunTrtcProcessing({
+      trtcCapable: beautyConfigured,
+      beautySelected,
+    });
+
+  useEffect(() => {
+    if (enabled && beautyConfigured) warmTencentWebARForVideoCall();
+  }, [beautyConfigured, enabled]);
+
+  /** Fixed for this mount — toggling beauty must not restart getUserMedia. */
+  const captureIdealRef = useRef(getStableCameraIdeal(beautyConfigured));
+
+  useEffect(() => {
+    if (enabled && shouldPreloadTrtcModule()) preloadTencentWebARModule();
+  }, [enabled]);
 
   const previewRef = useRef<HTMLDivElement>(null);
   const publishTrackRef = useRef<MediaStreamTrack | null>(null);
@@ -115,7 +152,7 @@ export function useMultiGuestCameraEffects({
     enabled,
     audio: false,
     facingMode,
-    videoIdeal: useBeautyCapture ? WEBAR_CAMERA_IDEAL : { width: LIVE_VIDEO_WIDTH, height: LIVE_VIDEO_HEIGHT },
+    videoIdeal: captureIdealRef.current,
     frameRate: WEBAR_CAMERA_FRAME_RATE,
   });
 
@@ -130,23 +167,23 @@ export function useMultiGuestCameraEffects({
   }, [camera.streamRef, cameraReady, enabled, facingMode]);
 
   const beautifyParams = useMemo(
-    () => getTencentBeautifyParams(beautyId, bodyShape),
+    () => resolveTencentBeautifyParams(beautyId, bodyShape),
     [beautyId, JSON.stringify(bodyShape)],
   );
   const webar = useTencentWebAR({
-    /** Raw camera stays native until beauty is selected or panel opens. */
-    enabled: enabled && cameraReady && beautyConfigured && webarWarm,
+    enabled: enabled && cameraReady && trtcEngine,
     inputStream,
     mirror: mirrorSelf,
     beautify: beautifyParams,
     effects: beautyEffects,
-    loadCatalogs: beautyPanelOpen || beautySelected,
+    loadCatalogs: beautyPanelOpen && beautyConfigured,
+    persistent: trtcWarm,
   });
 
   const deepar = useDeepAR({
     previewRef,
     videoElementRef: camera.videoRef,
-    enabled: enabled && cameraReady && configured && deeparWarm,
+    enabled: enabled && cameraReady && deeparWarm,
     processingActive: effectSelected,
     effectSelection: selection,
     initialEffectId: effectId,
@@ -156,15 +193,15 @@ export function useMultiGuestCameraEffects({
 
   const beautyVideoReady = useVideoFrameReady(
     webar.outputVideoRef,
-    enabled && cameraReady && beautyConfigured,
+    enabled && cameraReady && trtcProcessing,
   );
 
   const showDeeparPreview = effectSelected && deepar.ready;
   const showBeautyPreview =
     beautySelected &&
     !showDeeparPreview &&
-    beautyVideoReady &&
-    (webar.beautyActive || (!beautyConfigured && Boolean(getBeautyVideoFilter(beautyId))));
+    ((beautyConfigured && webar.ready && beautyVideoReady) ||
+      (!beautyConfigured && Boolean(getBeautyVideoFilter(beautyId))));
   const beautyCssFilter =
     beautySelected && !beautyConfigured && !showDeeparPreview
       ? getBeautyVideoFilter(beautyId)
@@ -235,9 +272,9 @@ export function useMultiGuestCameraEffects({
       };
     }
 
-    if (beautySelected && webar.ready) {
+    if (beautySelected && webar.ready && beautyConfigured && beautyVideoReady) {
       const beautyTrack = webar.outputStreamRef.current?.getVideoTracks()[0] ?? null;
-      if (beautyTrack && webar.beautyActive && beautyVideoReady) {
+      if (beautyTrack) {
         publishBeauty(beautyTrack);
         return undefined;
       }
@@ -257,6 +294,7 @@ export function useMultiGuestCameraEffects({
     effectId,
     facingMode,
     selection,
+    trtcProcessing,
     webar.beautyActive,
     webar.ready,
     webar.outputStreamRef,
@@ -287,5 +325,6 @@ export function useMultiGuestCameraEffects({
     beautyVideoReady,
     beautyCssFilter,
     beautyCatalogs: webar.catalogs,
+    readyEffectIds: webar.readyEffectIds,
   };
 }

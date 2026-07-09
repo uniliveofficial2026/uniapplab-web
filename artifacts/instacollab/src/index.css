@@ -329,7 +329,19 @@ body:has(#messages-screen[data-chat-open='true']) main {
 .vibe-gradient-text {
   background-image: linear-gradient(to right, #f9ce34, #ee2a7b, #6228d7);
   -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
   color: transparent;
+}
+
+/* Logo wordmark — gradient clip needs slack for italic serif glyphs */
+.logo-font {
+  display: inline-block;
+  flex-shrink: 0;
+  overflow: visible;
+  line-height: 1.15;
+  padding-inline-end: 0.12em;
+  padding-block: 0.06em;
 }
 
 /* Instant interactions app-wide — no 300ms tap delay, no grey flash */
@@ -474,11 +486,6 @@ body:has(#messages-screen[data-chat-open="true"]) .mobile-top-nav,
 body:has(#messages-screen[data-chat-open="true"]) .mobile-bottom-nav,
 body[data-chat-open="true"] .mobile-top-nav,
 body[data-chat-open="true"] .mobile-bottom-nav {
-  display: none !important;
-}
-
-/* Hide mobile bottom nav while messages inbox / users list is open */
-body:has(#messages-screen[data-embedded="false"]) .mobile-bottom-nav {
   display: none !important;
 }
 

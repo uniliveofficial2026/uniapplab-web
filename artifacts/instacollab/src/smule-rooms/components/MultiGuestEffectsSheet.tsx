@@ -4,7 +4,7 @@ import { BodyShapeTray } from '../../components/camera/BodyShapeTray';
 import { CameraBeautyBottomShell } from '../../components/camera/CameraBeautyBottomShell';
 import { DeepARFilterCarousel } from '../../components/deepar/DeepARFilterCarousel';
 import { CAMERA_AR_PANEL_TITLE } from '../../lib/camera/cameraBeautyLabels';
-import { EMPTY_BODY_SHAPE, type BodyShapeParams } from '../../lib/ar/bodyShape';
+import { EMPTY_BODY_SHAPE, BODY_SHAPE_COMING_SOON, type BodyShapeParams } from '../../lib/ar/bodyShape';
 import type { DeepAREffectSelection } from '../../lib/deepar/deeparEffectSelection';
 import { EMPTY_DEEPAR_EFFECT_SELECTION } from '../../lib/deepar/deeparEffectSelection';
 
@@ -23,9 +23,8 @@ type MultiGuestEffectsSheetProps = {
   onBodyShapeChange?: (shape: BodyShapeParams) => void;
   loading?: boolean;
   cameraReady?: boolean;
-  /** Pixels from bottom edge — matches footer height so panel sits above footer. */
+  /** Pixels from viewport bottom — matches footer height so panel sits above footer. */
   anchorBottom?: number;
-  anchorMode?: 'fixed' | 'container';
 };
 
 const AR_TABS: Array<{ id: ArTab; label: string }> = [
@@ -45,7 +44,6 @@ export function MultiGuestEffectsSheet({
   loading = false,
   cameraReady = false,
   anchorBottom = 0,
-  anchorMode = 'fixed',
 }: MultiGuestEffectsSheetProps) {
   const multiSelect = Boolean(onSelectionChange);
   const [tab, setTab] = useState<ArTab>('effects');
@@ -58,7 +56,6 @@ export function MultiGuestEffectsSheet({
       titleIcon={<Sparkles size={12} aria-hidden />}
       accent="fuchsia"
       anchorBottom={anchorBottom}
-      anchorMode={anchorMode}
       loading={loading}
       loadingLabel="Loading AR…"
     >
@@ -77,6 +74,11 @@ export function MultiGuestEffectsSheet({
               }`}
             >
               {entry.label}
+              {entry.id === 'shape' && BODY_SHAPE_COMING_SOON ? (
+                <span className="ml-1 rounded bg-amber-500/25 px-1 py-0.5 text-[8px] font-black text-amber-100">
+                  Soon
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -99,6 +101,7 @@ export function MultiGuestEffectsSheet({
           bodyShape={bodyShape}
           onBodyShapeChange={onBodyShapeChange ?? (() => undefined)}
           accent="fuchsia"
+          comingSoon={BODY_SHAPE_COMING_SOON}
         />
       ) : null}
     </CameraBeautyBottomShell>

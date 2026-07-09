@@ -41,3 +41,6 @@ export async function resolveSupabaseSessionUserId(
   const linked = await migrateInflight;
   return linked ?? fbUid;
 }
+
+/** @deprecated Use resolveSupabaseSessionUserId — kept for party-room chat hooks. */
+export const resolveCloudAuthUserId = resolveSupabaseSessionUserId;

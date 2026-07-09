@@ -1,15 +1,21 @@
 import { useEffect, useRef, useState } from 'react';
 import { ConnectionState, Room, RoomEvent, Track } from 'livekit-client';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
+import { registerLiveKitRoom, unregisterLiveKitRoom } from '../../lib/livekit/liveRoomBus';
 import { canAttemptLiveKit, connectWithTokenFetcher } from '../../lib/livekit/liveKitInstant';
+import { updateLiveKitLocalAudioTrack } from '../../lib/livekit/liveKitAudioPublish';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
 
 type PartyLiveKitOptions = {
   roomId: string;
   /** User is seated in the party room */
   enabled: boolean;
+  /** May publish mic when seated (token grant — reconnects when this flips) */
+  canPublish: boolean;
   /** Mic unmuted and not admin-muted */
   publishMic: boolean;
+  /** Processed mic from Web Audio voice changer — remote listeners hear the effect */
+  processedAudioTrack?: MediaStreamTrack | null;
 };
 
 function attachRemoteAudio(room: Room) {
@@ -26,9 +32,15 @@ function attachRemoteAudio(room: Room) {
  * Chat, Radio, Karaoke, Party, Chorus, WatchTogether.
  * Room UI is instant; LiveKit subscribe/publish is timed + retried in background.
  */
-export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKitOptions) {
+export function usePartyRoomLiveKit({
+  roomId,
+  enabled,
+  canPublish,
+  publishMic,
+  processedAudioTrack = null,
+}: PartyLiveKitOptions) {
   const roomRef = useRef<Room | null>(null);
-  const micTrackRef = useRef<MediaStreamTrack | null>(null);
+  const publishedTrackIdRef = useRef<string | null>(null);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
@@ -42,13 +54,14 @@ export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKi
 
     const bindRoom = (room: Room) => {
       roomRef.current = room;
+      registerLiveKitRoom(roomId, room);
       attachRemoteAudio(room);
       setConnected(true);
     };
 
     const connect = async () => {
       const result = await connectWithTokenFetcher(
-        () => fetchPartyLiveKitToken(roomId, true),
+        () => fetchPartyLiveKitToken(roomId, canPublish),
         {
           onDisconnected: () => {
             if (!cancelled) setConnected(false);
@@ -74,14 +87,17 @@ export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKi
     return () => {
       cancelled = true;
       if (retryTimer != null) window.clearTimeout(retryTimer);
-      micTrackRef.current?.stop();
-      micTrackRef.current = null;
+      publishedTrackIdRef.current = null;
       const room = roomRef.current;
       roomRef.current = null;
+      if (room) unregisterLiveKitRoom(roomId, room);
       room?.disconnect();
       setConnected(false);
     };
-  }, [roomId, enabled]);
+  }, [roomId, enabled, canPublish]);
+
+  const processedTrackRef = useRef(processedAudioTrack);
+  processedTrackRef.current = processedAudioTrack;
 
   useEffect(() => {
     const room = roomRef.current;
@@ -92,20 +108,14 @@ export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKi
     void (async () => {
       try {
         if (publishMic) {
-          if (room.localParticipant.audioTrackPublications.size > 0) return;
-          const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-          const audioTrack = stream.getAudioTracks()[0];
-          if (!audioTrack || cancelled) return;
-          micTrackRef.current = audioTrack;
-          await room.localParticipant.publishTrack(audioTrack);
+          const track = processedTrackRef.current;
+          if (!track || track.readyState === 'ended' || cancelled) return;
+          if (publishedTrackIdRef.current === track.id) return;
+          await updateLiveKitLocalAudioTrack(room.localParticipant, track);
+          publishedTrackIdRef.current = track.id;
         } else {
-          for (const pub of room.localParticipant.audioTrackPublications.values()) {
-            if (pub.track) {
-              await room.localParticipant.unpublishTrack(pub.track);
-            }
-          }
-          micTrackRef.current?.stop();
-          micTrackRef.current = null;
+          await updateLiveKitLocalAudioTrack(room.localParticipant, null);
+          publishedTrackIdRef.current = null;
         }
       } catch {
         /* room UI stays up without mic */
@@ -115,7 +125,7 @@ export function usePartyRoomLiveKit({ roomId, enabled, publishMic }: PartyLiveKi
     return () => {
       cancelled = true;
     };
-  }, [publishMic, enabled, connected]);
+  }, [publishMic, enabled, connected, processedAudioTrack?.id]);
 
   return { connected };
 }

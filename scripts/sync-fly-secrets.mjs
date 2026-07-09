@@ -26,7 +26,7 @@ function readEnv() {
       out[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
     }
   }
-  return out;
+  return { ...out, ...process.env };
 }
 
 const env = readEnv();
@@ -79,24 +79,12 @@ const pairs = SECRETS.filter(([, value]) => value).map(([name, value]) => `${nam
 const fly = flySpawn(['secrets', 'import', '-a', flyApp], {
   cwd: ROOT,
   input: pairs.join('\n'),
-  stdio: ['pipe', 'pipe', 'pipe'],
+  stdio: ['pipe', 'inherit', 'inherit'],
 });
 
 if (fly.status !== 0) {
-  const errText = `${fly.stderr || ''}\n${fly.stdout || ''}`;
   console.error('');
-  if (/payment information|credit card|buy credit/i.test(errText)) {
-    console.error('[fly] Billing required — add a card at https://fly.io/dashboard/billing');
-    console.error('[fly] Fly is optional; API runs on Vercel after: pnpm run vercel:fix-root');
-    process.exit(2);
-  }
-  if (/Could not find App|app not found/i.test(errText)) {
-    console.error(`[fly] App "${flyApp}" does not exist — run after billing:`);
-    console.error(`  flyctl apps create ${flyApp} --org personal`);
-    process.exit(2);
-  }
   console.error('[fly] secrets import failed — run: flyctl auth login');
-  if (fly.stderr?.trim()) console.error(fly.stderr.trim());
   process.exit(fly.status ?? 1);
 }
 

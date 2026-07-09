@@ -29,28 +29,9 @@
       }, 120000);
 
       function isGreenFoliage(r, g, b) {
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        const delta = max - min;
-        if (max < 36) return false;
-        if (delta < 10 && max < 90) return false;
-        let hue = 0;
-        if (delta > 0) {
-          if (max === g) hue = 60 * (2 + (b - r) / delta);
-          else if (max === r) hue = 60 * (((g - b) / delta + 6) % 6);
-          else hue = 60 * ((r - g) / delta + 4);
-          if (hue < 0) hue += 360;
-        }
-        const saturation = max === 0 ? 0 : delta / max;
-        return saturation > 0.1 && hue >= 48 && hue <= 165;
-      }
-
-      function isPersonTone(r, g, b) {
-        const max = Math.max(r, g, b);
-        const min = Math.min(r, g, b);
-        if (min > 185) return true;
-        if (max < 105 && max - min < 35) return true;
-        if (r > 75 && r >= g - 10 && r > b - 12) return true;
+        if (g < 45) return false;
+        if (g >= r - 2 && g >= b - 4 && g - Math.min(r, b) > 6) return true;
+        if (g > 70 && g > r + 8 && g > b + 4) return true;
         return false;
       }
 
@@ -116,9 +97,6 @@
           outData.data[i + 3] = 255;
         }
 
-        const cx = size / 2;
-        const cy = size * 0.53;
-
         for (let y = 0; y < size; y++) {
           for (let x = 0; x < size; x++) {
             const mx = Math.min(maskW - 1, Math.floor((x * maskW) / size));
@@ -128,14 +106,8 @@
             const r = sourceData.data[si];
             const g = sourceData.data[si + 1];
             const b = sourceData.data[si + 2];
-            const dx = x - cx;
-            const dy = y - cy;
-            const dist = Math.sqrt(dx * dx + dy * dy);
-            const inOuterField = dist > size * 0.34;
 
-            if (confidence < 0.5 || isGreenFoliage(r, g, b) || (inOuterField && !isPersonTone(r, g, b))) {
-              continue;
-            }
+            if (confidence < 0.45 || isGreenFoliage(r, g, b)) continue;
 
             outData.data[si] = r;
             outData.data[si + 1] = g;

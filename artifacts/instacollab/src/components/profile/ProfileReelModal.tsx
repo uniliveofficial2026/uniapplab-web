@@ -3,7 +3,7 @@ import { PlaySquare, X } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { formatMentionsAndTags } from '../../lib/utils';
 import { resolveReel } from '../../lib/entityResolve';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 
 export function ProfileReelModal({ reelId, onClose }: { reelId: string; onClose: () => void }) {
   const db = useDB();
@@ -30,15 +30,12 @@ export function ProfileReelModal({ reelId, onClose }: { reelId: string; onClose:
         </button>
         <div className="relative aspect-[9/16] w-full bg-zinc-900">
           {reel.videoUrl ? (
-            <video
+            <AppNativeVideo
               src={reel.videoUrl}
               className="w-full h-full object-cover"
-              controls
               autoPlay
-              playsInline
               muted={db.globalMuted}
-              onVolumeChange={(e) => db.setGlobalMuted(e.currentTarget.muted)}
-              {...nativeVideoControlGuardProps()}
+              onGlobalMutedChange={(muted) => db.setGlobalMuted(muted)}
             />
           ) : (
             <div className="w-full h-full flex items-center justify-center text-muted-foreground">

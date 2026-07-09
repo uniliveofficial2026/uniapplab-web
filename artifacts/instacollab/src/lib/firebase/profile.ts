@@ -4,9 +4,11 @@ import {
   getDoc,
   getDocs,
   limit,
+  onSnapshot,
   query,
   setDoc,
   where,
+  type Unsubscribe,
 } from 'firebase/firestore';
 import type { User } from '../../types';
 import {
@@ -75,6 +77,44 @@ export async function isFirebaseUsernameAvailable(
   if (snap.empty) return true;
   const found = snap.docs[0].id;
   return exceptUserId ? found === exceptUserId : false;
+}
+
+export async function fetchFirebaseProfilesByIds(userIds: string[]): Promise<ProfileRow[]> {
+  const db = getFirebaseFirestore();
+  if (!db || !userIds.length) return [];
+  const unique = [...new Set(userIds.filter(Boolean))].slice(0, 40);
+  const rows = await Promise.all(unique.map((id) => fetchFirebaseProfile(id)));
+  return rows.filter((row): row is ProfileRow => row !== null);
+}
+
+let profileThoughtListenerStop: Unsubscribe | null = null;
+
+export function subscribeFirebaseProfileThoughtUpdates(
+  onRow: (row: ProfileRow) => void,
+): () => void {
+  const db = getFirebaseFirestore();
+  if (!db) return () => undefined;
+
+  profileThoughtListenerStop?.();
+  const primed = { ready: false };
+  profileThoughtListenerStop = onSnapshot(collection(db, 'profiles'), (snap) => {
+    if (!primed.ready) {
+      primed.ready = true;
+      return;
+    }
+    snap.docChanges().forEach((change) => {
+      if (change.type !== 'modified' && change.type !== 'added') return;
+      const data = change.doc.data() as ProfileRow;
+      if (data?.id || change.doc.id) {
+        onRow({ ...data, id: data.id || change.doc.id });
+      }
+    });
+  });
+
+  return () => {
+    profileThoughtListenerStop?.();
+    profileThoughtListenerStop = null;
+  };
 }
 
 export function userFromFirebaseUser(firebaseUser: FirebaseUser, profile: ProfileRow | null): User {

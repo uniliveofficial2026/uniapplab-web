@@ -4,24 +4,30 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
-  getTencentBeautifyParams,
+  resolveTencentBeautifyParams,
   type BeautyPresetId,
 } from './beautyFilters';
-import { isBodyShapeActive, type BodyShapeParams } from './bodyShape';
+import { isBodyShapeActive, BODY_SHAPE_COMING_SOON } from './bodyShape';
+import {
+  shouldRunTrtcEngine,
+  shouldRunTrtcProcessing,
+} from '../camera/cameraPipelinePolicy';
 import { isTencentWebARConfigured } from '../webar/webarConfig';
 import { useTencentWebAR } from '../webar/useTencentWebAR';
-import { tencentWebAROutputTrack } from '../livekit/tencentBeautyLiveKit';
-import { WEBAR_OUTPUT_FPS } from '../webar/webarCameraConfig';
 import type { TencentEffectSelection } from '../webar/webarTypes';
-import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../webar/webarTypes';
+import { EMPTY_TENCENT_EFFECT_SELECTION } from '../webar/webarTypes';
 
 export type UseStreamBeautyOptions = {
   enabled: boolean;
   inputStream: MediaStream | null;
   beautyId?: BeautyPresetId;
   effects?: TencentEffectSelection;
-  bodyShape?: Partial<BodyShapeParams>;
+  bodyShape?: import('./bodyShape').BodyShapeParams;
   mirror?: boolean;
+  keepWarm?: boolean;
+  loadCatalogs?: boolean;
+  persistent?: boolean;
+  beautyPanelOpen?: boolean;
 };
 
 /** Map legacy karaoke CSS filter names → TRTC beauty presets. */
@@ -47,31 +53,51 @@ export function useStreamBeauty({
   inputStream,
   beautyId = 'none',
   effects = EMPTY_TENCENT_EFFECT_SELECTION,
-  bodyShape = EMPTY_BODY_SHAPE,
+  bodyShape,
   mirror = true,
+  keepWarm,
+  loadCatalogs: loadCatalogsOption,
+  persistent,
+  beautyPanelOpen = false,
 }: UseStreamBeautyOptions) {
   const configured = isTencentWebARConfigured();
   const activeId = beautyId === 'none' ? 'none' : beautyId;
-  const mergedShape = { ...EMPTY_BODY_SHAPE, ...bodyShape };
-  const shapeSignature = JSON.stringify(mergedShape);
   const beautify = useMemo(
-    () => getTencentBeautifyParams(activeId, mergedShape),
-    [activeId, shapeSignature],
+    () => resolveTencentBeautifyParams(activeId, bodyShape),
+    [activeId, bodyShape, JSON.stringify(bodyShape)],
   );
   const effectsActive = Boolean(
-    effects.makeupId || effects.stickerId || effects.filterId || effects.backgroundUrl,
+    effects.makeupId ||
+      effects.stickerId ||
+      effects.filterId ||
+      effects.backgroundUrl ||
+      effects.shapeEffectId,
   );
-  const beautyOn =
-    activeId !== 'none' || effectsActive || isBodyShapeActive(mergedShape);
+  const shapeActive = !BODY_SHAPE_COMING_SOON && bodyShape ? isBodyShapeActive(bodyShape) : false;
+  const beautySelected = activeId !== 'none' || effectsActive || shapeActive;
+  const warm = keepWarm ?? enabled;
+  const trtcEngine = warm
+    ? configured && Boolean(inputStream)
+    : shouldRunTrtcEngine({
+        trtcCapable: configured,
+        beautySelected,
+        beautyPanelOpen,
+      });
+  const trtcProcessing =
+    persistent ??
+    shouldRunTrtcProcessing({
+      trtcCapable: configured,
+      beautySelected,
+    });
 
   const webar = useTencentWebAR({
-    enabled: enabled && configured && beautyOn,
+    enabled: warm && trtcEngine,
     inputStream,
     mirror,
     beautify,
     effects,
-    loadCatalogs: beautyOn,
-    outputFps: WEBAR_OUTPUT_FPS,
+    loadCatalogs: loadCatalogsOption ?? beautyPanelOpen,
+    persistent: trtcProcessing,
   });
 
   const [outputStream, setOutputStream] = useState<MediaStream | null>(null);
@@ -79,21 +105,24 @@ export function useStreamBeauty({
   useEffect(() => {
     if (!webar.ready) {
       setOutputStream(null);
-      return;
+      return undefined;
     }
-    setOutputStream(webar.outputStreamRef.current);
-  }, [webar.ready, webar.outputStreamRef]);
+    const next = webar.outputStreamRef.current;
+    setOutputStream((prev) => (prev === next ? prev : next));
+    return undefined;
+  }, [webar.ready, webar.outputStreamRef, webar.beautyActive, beautify, effects]);
 
   return {
     configured,
     ready: webar.ready,
     loading: webar.loading,
     error: webar.error,
-    active: webar.ready && beautyOn,
+    /** SDK is processing and a beauty preset / TRTC effect / shape is selected. */
+    active: webar.ready && beautySelected,
     outputVideoRef: webar.outputVideoRef,
-    /** Processed track for LiveKit publish — same as ar.getOutput().getVideoTracks()[0]. */
+    outputStreamRef: webar.outputStreamRef,
     outputStream,
-    publishVideoTrack: tencentWebAROutputTrack(outputStream),
     catalogs: webar.catalogs,
+    readyEffectIds: webar.readyEffectIds,
   };
 }

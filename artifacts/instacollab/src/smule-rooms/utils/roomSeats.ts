@@ -95,6 +95,9 @@ export const GUEST_SEAT_KEYS: RoomSeatKey[] = [
 /** Party room stage — 8 guest sofas (no1–no8). */
 export const PARTY_GUEST_SEAT_KEYS: RoomSeatKey[] = GUEST_SEAT_KEYS.slice(0, 8);
 
+/** PK split-room side — 5 guest seats per team. */
+export const PK_SIDE_GUEST_KEYS: RoomSeatKey[] = GUEST_SEAT_KEYS.slice(0, 5);
+
 /** Chorus / Karaoke stage — 12 guest seats (no1–no12), shown as 2×6. */
 export const CHORUS_GUEST_SEAT_KEYS: RoomSeatKey[] = GUEST_SEAT_KEYS.slice(0, 12);
 
@@ -369,13 +372,20 @@ export function resolveMergedHostTileSeats(
   return { primaryKey: primary.seatKey, primaryGuest: primary.guest, extraGuests };
 }
 
-export type RoomLayoutMode = 'Party' | 'Chorus' | 'WatchTogether' | 'MultiGuest' | 'SoloLive';
+export type RoomLayoutMode =
+  | 'Party'
+  | 'Chorus'
+  | 'WatchTogether'
+  | 'GameLive'
+  | 'MultiGuest'
+  | 'SoloLive';
 
 export function getGuestSeatKeysForRoomMode(mode: RoomLayoutMode): RoomSeatKey[] {
   switch (mode) {
     case 'Chorus':
       return CHORUS_GUEST_SEAT_KEYS;
     case 'WatchTogether':
+    case 'GameLive':
       return WATCH_TOGETHER_GUEST_SEAT_KEYS;
     case 'MultiGuest':
       return MULTI_GUEST_GUEST_SEAT_KEYS;
@@ -395,6 +405,8 @@ export function getGuestSeatKeysForSettingsMode(
     case 'Karaoke':
       return CHORUS_GUEST_SEAT_KEYS;
     case 'Radio':
+      return WATCH_TOGETHER_GUEST_SEAT_KEYS;
+    case 'Game-Live':
       return WATCH_TOGETHER_GUEST_SEAT_KEYS;
     case 'Multi-Guest':
       return MULTI_GUEST_GUEST_SEAT_KEYS;

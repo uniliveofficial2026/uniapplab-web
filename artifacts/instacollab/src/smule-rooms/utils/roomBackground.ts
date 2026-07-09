@@ -68,7 +68,7 @@ export function formatRoomBackgroundLabel(stored: string | undefined | null): st
   return 'Default theme';
 }
 
-export type RoomLayoutMode = 'Party' | 'Chorus' | 'WatchTogether' | 'MultiGuest' | 'SoloLive';
+export type RoomLayoutMode = 'Party' | 'Chorus' | 'WatchTogether' | 'GameLive' | 'MultiGuest' | 'SoloLive';
 
 export type RoomLayoutConfig = {
   layout: RoomLayoutMode;
@@ -83,8 +83,9 @@ export function mapSettingsModeToRoomMode(
 ): RoomLayoutMode {
   if (roomMode === 'Karaoke') return 'Chorus';
   if (roomMode === 'Radio') return 'WatchTogether';
+  if (roomMode === 'Game-Live') return 'GameLive';
   if (roomMode === 'Multi-Guest') return 'MultiGuest';
-  if (roomMode === 'Solo-Live') return 'SoloLive';
+  if (roomMode === 'Solo-Live' || roomMode === 'Commerce-Live') return 'SoloLive';
   return 'Party';
 }
 
@@ -98,7 +99,9 @@ export function resolveRoomLayoutFromSettings(
     settingsMode === 'Party' ||
     settingsMode === 'Karaoke' ||
     settingsMode === 'Radio' ||
-    settingsMode === 'Solo-Live';
+    settingsMode === 'Game-Live' ||
+    settingsMode === 'Solo-Live' ||
+    settingsMode === 'Commerce-Live';
 
   return {
     layout,
@@ -116,6 +119,7 @@ export function mapRoomModeToSettingsMode(
 ): string {
   if (roomMode === 'Chorus') return 'Karaoke';
   if (roomMode === 'WatchTogether') return 'Radio';
+  if (roomMode === 'GameLive') return 'Game-Live';
   if (roomMode === 'MultiGuest') return 'Multi-Guest';
   if (roomMode === 'SoloLive') return 'Solo-Live';
   return 'Chat';

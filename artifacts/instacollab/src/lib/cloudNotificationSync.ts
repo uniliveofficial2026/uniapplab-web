@@ -1,25 +1,20 @@
 /**
- * Cross-user notification delivery via public.user_notifications + Realtime.
+ * Cross-user notification delivery via user_notifications + realtime.
  * Local inbox stays the UI source of truth; cloud is the internet transport.
  */
-import type { RealtimeChannel } from '@supabase/supabase-js';
 import type { AppNotification, AppNotificationType, LiveKind, Tab } from '../types';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { db } from './db/localDb';
-import { getSupabaseClient } from './supabase/client';
-import { isSupabaseConfigured } from './supabase/config';
 import { fetchProfile, profileRowToUser } from './supabase/profile';
-import { insertUserNotification } from './supabase/follows';
-
-type CloudNotificationRow = {
-  id: string;
-  user_id: string;
-  type: string;
-  actor_id: string | null;
-  body: string | null;
-  read_at: string | null;
-  created_at: string;
-};
+import {
+  fetchCloudNotifications,
+  insertUserNotification,
+  isNotificationsCloudAvailable,
+  markAllCloudNotificationsRead as markAllCloudNotificationsReadRemote,
+  markCloudNotificationRead as markCloudNotificationReadRemote,
+  subscribeCloudNotifications,
+  type CloudNotificationRow,
+} from './cloudSocial/notificationsCloud';
 
 type NotificationBodyPayload = {
   text?: string;
@@ -48,12 +43,8 @@ const NOTIFICATION_TYPES = new Set<AppNotificationType>([
   'live',
 ]);
 
-let realtimeChannel: RealtimeChannel | null = null;
+let unsubscribe: (() => void) | null = null;
 let subscribedUserId: string | null = null;
-
-function isUuid(id: string): boolean {
-  return /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
-}
 
 function parseBody(raw: string | null): NotificationBodyPayload & { text?: string } {
   if (!raw) return {};
@@ -119,7 +110,7 @@ export function queueCloudNotificationDelivery(
     type: AppNotificationType;
   },
 ): void {
-  if (!isSupabaseConfigured()) return;
+  if (!isNotificationsCloudAvailable()) return;
   const ownerId = String(ownerUserId || '').trim();
   const actorId = String(payload.actorUserId || '').trim();
   if (!isCloudAuthUserId(ownerId) || !isCloudAuthUserId(actorId)) return;
@@ -147,121 +138,63 @@ export function queueCloudNotificationDelivery(
 }
 
 export async function syncCloudNotifications(): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!isNotificationsCloudAvailable()) return;
   const meId = db.currentUserId;
   if (!meId || !isCloudAuthUserId(meId)) return;
 
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  const { data, error } = await supabase
-    .from('user_notifications')
-    .select('id, user_id, type, actor_id, body, read_at, created_at')
-    .eq('user_id', meId)
-    .order('created_at', { ascending: false })
-    .limit(100);
-
-  if (error || !data?.length) {
-    if (error) console.warn('[notifications] sync failed:', error.message);
-    return;
-  }
+  const data = await fetchCloudNotifications(meId);
+  if (!data.length) return;
 
   const actorIds = [
     ...new Set(
       data
-        .map((row) => (row as CloudNotificationRow).actor_id)
+        .map((row) => row.actor_id)
         .filter((id): id is string => !!id && isCloudAuthUserId(id)),
     ),
   ];
   await Promise.all(actorIds.map((id) => ensureActorCached(id)));
 
-  for (const row of data as CloudNotificationRow[]) {
+  for (const row of data) {
     db.mergeInboundCloudNotification(meId, rowToInbound(row));
   }
 }
 
 export function startCloudNotificationRealtime(userId: string): void {
   stopCloudNotificationRealtime();
-  if (!isSupabaseConfigured() || !isCloudAuthUserId(userId)) return;
-
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
+  if (!isNotificationsCloudAvailable() || !isCloudAuthUserId(userId)) return;
 
   subscribedUserId = userId;
-  realtimeChannel = supabase
-    .channel(`user-notifications:${userId}`)
-    .on(
-      'postgres_changes',
-      {
-        event: 'INSERT',
-        schema: 'public',
-        table: 'user_notifications',
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload: { new: Record<string, unknown> }) => {
-        void applyCloudNotificationRow(payload.new as CloudNotificationRow);
-      },
-    )
-    .on(
-      'postgres_changes',
-      {
-        event: 'UPDATE',
-        schema: 'public',
-        table: 'user_notifications',
-        filter: `user_id=eq.${userId}`,
-      },
-      (payload: { new: Record<string, unknown> }) => {
-        void applyCloudNotificationRow(payload.new as CloudNotificationRow);
-      },
-    )
-    .subscribe();
+  unsubscribe = subscribeCloudNotifications(userId, (row) => {
+    void applyCloudNotificationRow(row);
+  });
 
   void syncCloudNotifications();
 }
 
 export function stopCloudNotificationRealtime(): void {
-  const supabase = getSupabaseClient();
-  if (realtimeChannel && supabase) {
-    void supabase.removeChannel(realtimeChannel);
-  }
-  realtimeChannel = null;
+  unsubscribe?.();
+  unsubscribe = null;
   subscribedUserId = null;
 }
 
 export async function markCloudNotificationRead(notificationId: string): Promise<void> {
-  if (!isSupabaseConfigured() || !isUuid(notificationId)) return;
   const meId = db.currentUserId;
   if (!meId || !isCloudAuthUserId(meId)) return;
+  if (!isNotificationsCloudAvailable() || !notificationId) return;
 
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  const { error } = await supabase
-    .from('user_notifications')
-    .update({ read_at: new Date().toISOString() })
-    .eq('id', notificationId)
-    .eq('user_id', meId);
-
-  if (error) console.warn('[notifications] mark read failed:', error.message);
+  await markCloudNotificationReadRemote(notificationId, meId).catch((err) => {
+    console.warn('[notifications] mark read failed:', err);
+  });
 }
 
 export async function markAllCloudNotificationsRead(): Promise<void> {
-  if (!isSupabaseConfigured()) return;
   const meId = db.currentUserId;
-  if (!meId || !isCloudAuthUserId(meId)) return;
-
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  const { error } = await supabase
-    .from('user_notifications')
-    .update({ read_at: new Date().toISOString() })
-    .eq('user_id', meId)
-    .is('read_at', null);
-
-  if (error) console.warn('[notifications] mark all read failed:', error.message);
+  if (!meId || !isCloudAuthUserId(meId) || !isNotificationsCloudAvailable()) return;
+  await markAllCloudNotificationsReadRemote(meId).catch((err) => {
+    console.warn('[notifications] mark all read failed:', err);
+  });
 }
 
 export function isCloudNotificationRealtimeActive(userId: string): boolean {
-  return subscribedUserId === userId && !!realtimeChannel;
+  return subscribedUserId === userId && !!unsubscribe;
 }

@@ -53,7 +53,12 @@ router.post("/threads", auth, requireNotBanned, async (req, res, next) => {
 router.post("/messages", auth, requireNotBanned, async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    const { threadId, body } = req.body as { threadId?: string; body?: string };
+    const { threadId, body, payload, clientId } = req.body as {
+      threadId?: string;
+      body?: string;
+      payload?: Record<string, unknown>;
+      clientId?: string;
+    };
     const text = body?.trim();
     if (!threadId || !text) {
       res.status(400).json({ error: "threadId and body required" });
@@ -76,7 +81,13 @@ router.post("/messages", auth, requireNotBanned, async (req, res, next) => {
 
     const { data, error } = await getSupabaseService()
       .from("chat_messages")
-      .insert({ thread_id: threadId, sender_id: userId, body: text })
+      .insert({
+        thread_id: threadId,
+        sender_id: userId,
+        body: text,
+        payload: payload && typeof payload === "object" ? payload : {},
+        client_id: typeof clientId === "string" && clientId.trim() ? clientId.trim() : null,
+      })
       .select("id, thread_id, sender_id, body, created_at")
       .single();
     if (error) {

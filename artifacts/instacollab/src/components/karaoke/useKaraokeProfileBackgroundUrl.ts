@@ -8,8 +8,10 @@ export function useKaraokeProfileBackgroundUrl(options: {
   mediaKind?: KaraokeProfileBackgroundMediaKind;
   mimeType?: string;
 }) {
-  const [playableUrl, setPlayableUrl] = useState<string | null>(options.url ?? null);
-  const [loading, setLoading] = useState(Boolean(options.mediaId && !options.url));
+  const [playableUrl, setPlayableUrl] = useState<string | null>(options.url || null);
+  const [loading, setLoading] = useState(
+    Boolean(options.mediaId && (!options.url || options.mediaKind === 'video')),
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -18,6 +20,27 @@ export function useKaraokeProfileBackgroundUrl(options: {
       if (!options.url && !options.mediaId) {
         setPlayableUrl(null);
         setLoading(false);
+        return;
+      }
+
+      // Persisted videos clear their blob URL on save — always reload from IndexedDB.
+      if (options.mediaKind === 'video' && options.mediaId) {
+        setLoading(true);
+        try {
+          const resolved = await resolveKaraokeProfileBackgroundPlayableUrl({
+            url: '',
+            mediaId: options.mediaId,
+            mediaKind: 'video',
+            mimeType: options.mimeType,
+          });
+          if (!cancelled) {
+            setPlayableUrl(resolved || options.url || null);
+          }
+        } catch {
+          if (!cancelled) setPlayableUrl(options.url || null);
+        } finally {
+          if (!cancelled) setLoading(false);
+        }
         return;
       }
 
@@ -32,7 +55,7 @@ export function useKaraokeProfileBackgroundUrl(options: {
         const resolved = await resolveKaraokeProfileBackgroundPlayableUrl({
           url: '',
           mediaId: options.mediaId ?? undefined,
-          mediaKind: options.mediaKind ?? 'video',
+          mediaKind: options.mediaKind ?? 'image',
           mimeType: options.mimeType,
         });
         if (!cancelled) setPlayableUrl(resolved);

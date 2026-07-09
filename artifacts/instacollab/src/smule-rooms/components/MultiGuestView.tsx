@@ -25,11 +25,15 @@ import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
 import { RoomLiveHeaderInfo } from './RoomLiveHeaderInfo';
 import { RoomOwnerSocialControls } from './RoomOwnerSocialControls';
 import { CoinIcon } from '../../components/common/CoinIcon';
+import { DEEPAR_ENABLED } from '../../lib/deepar/deeparEnabled';
 import { MultiGuestSeatMedia } from './MultiGuestSeatMedia';
 import { MultiGuestSelfMediaHost } from './MultiGuestSelfMediaHost';
 import { MultiGuestEffectsSheet } from './MultiGuestEffectsSheet';
 import { LiveBeautySheet } from './LiveBeautySheet';
+import { LiveSeatFullscreenOverlay, type LiveSeatFullscreenTarget } from './LiveSeatFullscreenOverlay';
 import { SeatSpeakingLevelBars } from './SeatVoiceVisuals';
+import { useSeatTileTap } from '../hooks/useSeatTileTap';
+import { buildLiveSeatFullscreenTarget } from '../utils/liveSeatFullscreenTarget';
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
 import { deeparSelectionActive, type DeepAREffectSelection } from '../../lib/deepar/deeparEffectSelection';
 import type {
@@ -206,8 +210,13 @@ type MultiGuestViewProps = {
   hasActiveSong?: boolean;
   songQueueLength?: number;
   hideSingMenu?: boolean;
-  onPkClick?: () => void;
   onGameClick?: () => void;
+  showVoiceChanger?: boolean;
+  voiceChangerEligible?: boolean;
+  voiceChangerOpen?: boolean;
+  voiceEffectActive?: boolean;
+  voiceEffectEmoji?: string;
+  onToggleVoiceChanger?: () => void;
 };
 
 
@@ -312,8 +321,13 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   hasActiveSong = false,
   songQueueLength = 0,
   hideSingMenu = false,
-  onPkClick,
   onGameClick,
+  showVoiceChanger = false,
+  voiceChangerEligible = false,
+  voiceChangerOpen = false,
+  voiceEffectActive = false,
+  voiceEffectEmoji,
+  onToggleVoiceChanger,
 }) => {
   const deeparEffectActive = effectsConfigured && (
     activeDeeparSelection
@@ -323,7 +337,7 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   const selfUsesCssMirror =
     cameraFacingMode === 'user' &&
     !(effectsConfigured && deeparEffectActive && effectsArReady);
-  const showDeepARControls = Boolean(
+  const showDeepARControls = DEEPAR_ENABLED && Boolean(
     effectsConfigured &&
       onToggleEffectsPanel &&
       (onDeeparSelectionChange || onSelectEffect),
@@ -341,6 +355,16 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   const stageRef = useRef<HTMLDivElement>(null);
   const selfTileAnchorRef = useRef<HTMLDivElement>(null);
   const [footerHeight, setFooterHeight] = useState(0);
+  const handleSeatTileTap = useSeatTileTap();
+  const [seatFullscreenTarget, setSeatFullscreenTarget] = useState<LiveSeatFullscreenTarget | null>(
+    null,
+  );
+
+  const openSeatFullscreen = (seatKey: RoomSeatKey, guest: RoomGuest) => {
+    setSeatFullscreenTarget(
+      buildLiveSeatFullscreenTarget(seatKey, guest, roomDisplayId, { userSeatKey }),
+    );
+  };
 
   useLayoutEffect(() => {
     const footer = footerRef.current;
@@ -464,14 +488,32 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
           }
         : undefined;
 
+    const handleTileActivate = () => {
+      if (!guest || !rawGuest) {
+        handleSeatClick(displayKey);
+        return;
+      }
+      handleSeatTileTap(
+        () => handleSeatClick(displayKey),
+        () => openSeatFullscreen(displayKey, rawGuest),
+      );
+    };
+
     return (
-      <button
+      <div
         key={foldedSeatKeys ? `${key}-mega` : key}
-        type="button"
-        onClick={() => handleSeatClick(displayKey)}
-        className={tileClassName}
+        role="button"
+        tabIndex={0}
+        onClick={handleTileActivate}
+        onKeyDown={(event) => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleTileActivate();
+          }
+        }}
+        className={`${tileClassName} cursor-pointer`}
         style={tilePlacementStyle}
-        aria-label={guest ? `${guest.name} video tile` : `Join ${label}`}
+        aria-label={guest ? `Send gift to ${guest.name}` : `Join ${label}`}
       >
         {guest ? (
           <>
@@ -540,9 +582,17 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
               </button>
             </div>
             <div className="multi-guest-video-tile-meta">
-              <span className="multi-guest-video-tile-name">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleSelectViewer(buildViewerFromGuest(guest, interactionKey));
+                }}
+                className="multi-guest-video-tile-name text-left hover:underline"
+                aria-label={`View ${guest.name} profile`}
+              >
                 {truncateName(guest.name, slotIndex >= 3 ? 7 : 10)}
-              </span>
+              </button>
               <div className="relative z-[5] shrink-0">
                 <SeatSpeakingLevelBars
                   active={voiceVisualActive}
@@ -568,15 +618,6 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
                 </button>
               </div>
             </div>
-            <button
-              type="button"
-              onClick={(event) => {
-                event.stopPropagation();
-                handleSelectViewer(buildViewerFromGuest(guest, interactionKey));
-              }}
-              className="absolute inset-0 z-[1]"
-              aria-label={`View ${guest.name} profile`}
-            />
           </>
         ) : foldedSeatKeys ? (
           <div className="multi-guest-video-tile-empty multi-guest-video-tile-empty--merged">
@@ -639,7 +680,7 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
             </div>
           </div>
         )}
-      </button>
+      </div>
     );
   };
 
@@ -757,12 +798,10 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
               stageRef={stageRef}
               anchorRef={selfTileAnchorRef}
               seatKey={userSeatKey}
-              mounted={Boolean(userSeatKey)}
-              visible={Boolean(userSeatKey && userCameraOn)}
+              active={Boolean(userSeatKey && userCameraOn)}
               rawVideoRef={rawVideoRef}
               deeparPreviewRef={deeparPreviewRef}
               showDeeparPreview={showDeeparPreview}
-              deeparWarm={effectsConfigured && Boolean(userSeatKey)}
               mirrorSelf={selfUsesCssMirror}
               beautyVideoRef={beautyVideoRef}
               showBeautyPreview={showBeautyPreview}
@@ -890,8 +929,6 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
                 showCamera
                 userCameraOn={userCameraOn}
                 onToggleUserCamera={onToggleUserCamera}
-                cameraFacingMode={cameraFacingMode}
-                onToggleCameraFacing={onToggleCameraFacing}
                 showDeepAR={showDeepARControls}
                 effectsPanelOpen={effectsPanelOpen}
                 deeparEffectActive={deeparEffectActive}
@@ -900,8 +937,13 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
                 beautyPanelOpen={beautyPanelOpen}
                 beautyActive={beautyActive}
                 onToggleBeautyPanel={onToggleBeautyPanel}
-                onPkClick={onPkClick}
                 onGameClick={onGameClick}
+                showVoiceChanger={showVoiceChanger}
+                voiceChangerEligible={voiceChangerEligible}
+                voiceChangerOpen={voiceChangerOpen}
+                voiceEffectActive={voiceEffectActive}
+                voiceEffectEmoji={voiceEffectEmoji}
+                onToggleVoiceChanger={onToggleVoiceChanger}
                 micAccent="purple"
               />
             </div>
@@ -941,9 +983,20 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
           loading={effectsLoading}
           cameraReady={effectsCameraReady}
           anchorBottom={panelAnchorBottom}
-          anchorMode="container"
         />
       ) : null}
+
+      <LiveSeatFullscreenOverlay
+        target={seatFullscreenTarget}
+        onClose={() => setSeatFullscreenTarget(null)}
+        remoteVideoByUserId={multiGuestLiveKit.remoteVideoByUserId}
+        rawVideoRef={rawVideoRef}
+        beautyVideoRef={beautyVideoRef}
+        showBeautyPreview={showBeautyPreview}
+        showDeeparPreview={showDeeparPreview}
+        deeparPreviewRef={deeparPreviewRef}
+        mirrorSelf={selfUsesCssMirror}
+      />
     </div>
   );
 };

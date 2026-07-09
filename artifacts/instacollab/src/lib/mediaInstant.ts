@@ -12,11 +12,9 @@ import {
   resolveAppMediaUrlSync,
   resolveRemoteMediaUrlSync,
 } from './appMediaStore';
+import { FALLBACK_MEDIA } from './safe';
 import { isNetworkOnline } from './networkStatus';
 import { fetchWithTimeout, NET_FEED_MS } from './networkPolicy';
-
-const DEFAULT_FALLBACK =
-  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&fit=crop&q=85&auto=format';
 
 const warming = new Set<string>();
 
@@ -24,15 +22,14 @@ const warming = new Set<string>();
  * Prefer clear resolution for CDN thumbs (upgrade tiny w= params).
  * Keeps images sharp when shown from network or when caching.
  */
-export function preferClearMediaUrl(url: string, highRes = false): string {
+export function preferClearMediaUrl(url: string): string {
   if (!url.startsWith('http')) return url;
-  const targetWidth = highRes ? 1080 : 400;
   try {
     const u = new URL(url);
     const host = u.hostname;
     if (host.includes('unsplash.com') || host.includes('images.unsplash')) {
       const w = Number(u.searchParams.get('w') || 0);
-      if (!w || w < targetWidth) u.searchParams.set('w', String(targetWidth));
+      if (!w || w < 1080) u.searchParams.set('w', '1080');
       if (!u.searchParams.get('q')) u.searchParams.set('q', '85');
       u.searchParams.set('fit', 'crop');
       u.searchParams.set('auto', 'format');
@@ -42,8 +39,8 @@ export function preferClearMediaUrl(url: string, highRes = false): string {
     // Generic: bump common width query params used by CDNs.
     for (const key of ['w', 'width', 'w_', 'sz']) {
       const v = Number(u.searchParams.get(key) || 0);
-      if (v > 0 && v < targetWidth) {
-        u.searchParams.set(key, String(targetWidth));
+      if (v > 0 && v < 720) {
+        u.searchParams.set(key, '1080');
       }
     }
     return u.toString();
@@ -55,7 +52,7 @@ export function preferClearMediaUrl(url: string, highRes = false): string {
 /** Sync URL for DOM — cached full-res blob when available, else network URL / fallback. */
 export function instantMediaSrc(
   url: string | null | undefined,
-  fallback: string = DEFAULT_FALLBACK,
+  fallback: string = FALLBACK_MEDIA,
 ): string {
   if (!url) return fallback;
   if (isAppMediaRef(url)) {
@@ -134,13 +131,13 @@ export function warmMediaFromLocalStorageMirrors(): void {
 
   let appN = 0;
   for (const ref of refs) {
-    if (appN++ > 16) break;
+    if (appN++ > 48) break;
     void hydrateAppMediaUrl(ref).catch(() => undefined);
   }
 
   let httpN = 0;
   for (const http of httpUrls) {
-    if (httpN++ > 10) break;
+    if (httpN++ > 32) break;
     warmMediaUrl(http);
   }
 }

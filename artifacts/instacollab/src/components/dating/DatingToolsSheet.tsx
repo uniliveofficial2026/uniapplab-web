@@ -17,7 +17,10 @@ import {
 } from 'lucide-react';
 import type { LocalDB } from '../../lib/db/localDbType';
 import { useDB, useDbRevision } from '../../lib/useDB';
+import { instantSuspenseFallback } from '../../lib/instantCachePolicy';
 import { useToast } from '../../lib/ToastContext';
+import { AppCameraButton } from '../camera/AppCameraButton';
+import { cameraCaptureToDataUrl } from '../../lib/camera/cameraCaptureAdapters';
 import { handleAvatarError, openProfilePreview } from '../../lib/utils';
 import { HorizontalScrollRail } from './HorizontalScrollRail';
 
@@ -303,7 +306,7 @@ export function DatingToolsSheet({ onClose, onDeckReset, onPreferencesChange }: 
             <span className="text-xs text-muted-foreground">{showExperimentPanel ? 'Hide' : 'Show'}</span>
           </button>
           {showExperimentPanel ? (
-            <Suspense fallback={<p className="mt-3 text-xs text-muted-foreground">Loading experiment tools…</p>}>
+            <Suspense fallback={instantSuspenseFallback()}>
               <div className="mt-3">
                 <DatingExperimentPanel db={db as LocalDB} showToast={showToast} />
               </div>
@@ -375,7 +378,26 @@ export function DatingToolsSheet({ onClose, onDeckReset, onPreferencesChange }: 
               className="rounded-lg border border-border bg-background px-3 py-2 text-sm md:col-span-2"
             />
           </div>
-          <div className="mt-2 flex gap-2">
+          <div className="mt-2 flex flex-wrap items-center gap-2">
+            <AppCameraButton
+              title="Dating photo"
+              label="Camera"
+              onCaptured={async (payload) => {
+                try {
+                  const url = await cameraCaptureToDataUrl(payload);
+                  setMediaUrl(url);
+                  showToast(
+                    payload.kind === 'video'
+                      ? 'Video added — tap Save profile'
+                      : 'Photo added — tap Save profile',
+                  );
+                } catch {
+                  showToast('Could not add camera capture');
+                }
+              }}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-border bg-background px-3 py-1.5 text-xs font-bold hover:bg-secondary"
+              iconClassName="h-4 w-4 text-fuchsia-600"
+            />
             <button
               type="button"
               onClick={() => {

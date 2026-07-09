@@ -1,4 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { attachMediaStreamToVideo } from '../../lib/camera/bindMediaStreamToVideo';
+import {
+  useCameraStream,
+  WEBAR_CAMERA_FRAME_RATE,
+  WEBAR_CAMERA_IDEAL,
+} from '../../lib/camera/useAppCameraPipeline';
 
 type MultiGuestCameraState = {
   setVideoElement: (element: HTMLVideoElement | null) => void;
@@ -9,74 +15,35 @@ type MultiGuestCameraState = {
 /** One camera stream for local preview + LiveKit publish (avoids double getUserMedia). */
 export function useMultiGuestCamera(enabled: boolean): MultiGuestCameraState {
   const videoRef = useRef<HTMLVideoElement | null>(null);
-  const streamRef = useRef<MediaStream | null>(null);
   const [videoTrack, setVideoTrack] = useState<MediaStreamTrack | null>(null);
   const [active, setActive] = useState(false);
 
+  const camera = useCameraStream({
+    enabled,
+    audio: false,
+    facingMode: 'user',
+    videoIdeal: WEBAR_CAMERA_IDEAL,
+    frameRate: WEBAR_CAMERA_FRAME_RATE,
+  });
+
   const bindStreamToVideo = useCallback((element: HTMLVideoElement | null) => {
     videoRef.current = element;
-    const stream = streamRef.current;
-    if (!element || !stream) return;
-    if (element.srcObject !== stream) {
-      element.srcObject = stream;
-    }
-    element.muted = true;
-    element.playsInline = true;
-    void element.play().catch(() => {});
-  }, []);
+    attachMediaStreamToVideo(element, camera.streamRef.current, { muted: true });
+  }, [camera.streamRef]);
 
   useEffect(() => {
-    if (!enabled) {
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
+    if (!enabled || !camera.ready) {
       setVideoTrack(null);
       setActive(false);
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
-      }
-      return undefined;
+      attachMediaStreamToVideo(videoRef.current, null);
+      return;
     }
-
-    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-      return undefined;
-    }
-
-    let cancelled = false;
-
-    void navigator.mediaDevices
-      .getUserMedia({
-        video: {
-          facingMode: 'user',
-          width: { ideal: 640 },
-          height: { ideal: 640 },
-          aspectRatio: { ideal: 1 },
-        },
-        audio: false,
-      })
-      .then((stream) => {
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-        streamRef.current = stream;
-        const track = stream.getVideoTracks()[0] ?? null;
-        setVideoTrack(track);
-        setActive(Boolean(track));
-        bindStreamToVideo(videoRef.current);
-      })
-      .catch(() => {
-        if (!cancelled) {
-          setVideoTrack(null);
-          setActive(false);
-        }
-      });
-
-    return () => {
-      cancelled = true;
-      streamRef.current?.getTracks().forEach((track) => track.stop());
-      streamRef.current = null;
-    };
-  }, [bindStreamToVideo, enabled]);
+    const stream = camera.streamRef.current;
+    const track = stream?.getVideoTracks()[0] ?? null;
+    setVideoTrack(track);
+    setActive(Boolean(track));
+    bindStreamToVideo(videoRef.current);
+  }, [bindStreamToVideo, camera.ready, camera.streamRef, enabled]);
 
   const setVideoElement = useCallback(
     (element: HTMLVideoElement | null) => {

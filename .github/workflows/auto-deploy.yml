@@ -1,13 +1,9 @@
 name: Auto deploy
 
-# Push to main or fix/vercel-api-root-now triggers production deploy when secrets are set.
-# config/auto-deploy.json → githubActionsDeploy should be true while testing.
+# Paused by default (config/auto-deploy.json → githubActionsDeploy: false).
+# Run manually from GitHub Actions when you want a production deploy.
 on:
   workflow_dispatch:
-  push:
-    branches:
-      - main
-      - fix/vercel-api-root-now
 
 concurrency:
   group: production-deploy
@@ -31,7 +27,6 @@ jobs:
         continue-on-error: true
       - name: Health scan
         run: node artifacts/instacollab/scripts/check-health.mjs
-        continue-on-error: true
       - name: Typecheck api-server
         run: pnpm --filter @workspace/api-server run typecheck
       - name: Build api-server
@@ -39,6 +34,7 @@ jobs:
 
   deploy:
     needs: verify
+    if: secrets.VERCEL_TOKEN != ''
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

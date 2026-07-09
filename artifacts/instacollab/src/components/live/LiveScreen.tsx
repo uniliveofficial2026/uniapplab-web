@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Radio } from 'lucide-react';
+import { Video } from 'lucide-react';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import {
   LIVE_KIND_LABELS,
@@ -18,8 +18,8 @@ import {
   openLiveUserRoom,
   preloadKaraokeScreen,
 } from '../../lib/live/openLiveRoom';
-import { preloadLiveTabSurfaces } from '../../lib/preloadAppSurfaces';
-import { isSupabaseConfigured } from '../../lib/supabase/config';
+import { isPartyCloudAvailable } from '../../lib/party/partyCloud';
+import { isPlatformApiAvailable } from '../../lib/platformApi';
 import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
 import { LiveDiscoveryVideoPreview } from './LiveDiscoveryVideoPreview';
 import {
@@ -63,7 +63,7 @@ function resolveCardLiveKind(
 export function LiveScreen() {
   const db = useDB();
   const me = resolveUser(db.users, db.currentUser);
-  const cloudLive = useCloudLiveDiscovery(isSupabaseConfigured());
+  const cloudLive = useCloudLiveDiscovery(isPartyCloudAvailable() || isPlatformApiAvailable());
   const localLiveUsers = db.users.filter(
     (u: User) => u.status === 'live' && u.id !== me.id
   );
@@ -75,7 +75,7 @@ export function LiveScreen() {
   const dbRevision = useDbRevision();
 
   useEffect(() => {
-    preloadLiveTabSurfaces();
+    // Instant karaoke warm — Go Live has 0 chunk wait.
     void preloadKaraokeScreen();
   }, []);
 
@@ -246,10 +246,16 @@ export function LiveScreen() {
 
   return (
     <div className="flex flex-col h-full w-full max-w-[600px] mx-auto px-4 py-6 md:py-10 gap-6">
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <h2 className="text-3xl font-bold text-foreground mb-1">Live</h2>
-          <p className="text-sm text-muted-foreground">
+      <div className="bg-gradient-to-br from-red-600 to-rose-700 rounded-3xl p-8 text-white shadow-xl shadow-red-900/20 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-6 relative overflow-hidden ring-1 ring-white/10">
+        <div
+          className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay"
+          aria-hidden
+        />
+        <div className="relative z-10">
+          <h2 className="font-extrabold text-2xl mb-2 flex items-center justify-center sm:justify-start gap-2">
+            <Video className="w-6 h-6" /> Host a Live Concert
+          </h2>
+          <p className="text-white/80 max-w-sm text-sm">
             Go live or watch creators streaming now. Followers get notified when you start.
           </p>
         </div>
@@ -258,9 +264,8 @@ export function LiveScreen() {
           onClick={() => {
             openGoLiveCreateRoom();
           }}
-          className="shrink-0 inline-flex items-center gap-1.5 rounded-full bg-red-500 hover:bg-red-600 text-white px-4 py-2.5 text-sm font-bold shadow-md shadow-red-500/25 transition-colors"
+          className="relative z-10 px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 shadow-2xl whitespace-nowrap text-lg"
         >
-          <Radio className="w-4 h-4" />
           Go Live
         </button>
       </div>

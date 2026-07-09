@@ -1,10 +1,11 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { ImagePlus } from 'lucide-react';
+import { Camera } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { resolveUser } from '../../lib/safe';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { handleAvatarError, fileToBase64 } from '../../lib/utils';
+import { useAppCamera } from '../../contexts/AppCameraContext';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
 import {
   getSupabaseSqlEditorUrl,
@@ -32,6 +33,7 @@ export function ProfileSetupScreen() {
   const avatarInputId = useId();
   const publicUserIdInputId = useId();
   const avatarInputRef = useRef<HTMLInputElement>(null);
+  const { isAvailable: cameraAvailable, openCamera } = useAppCamera();
   const [displayName, setDisplayName] = useState(me.displayName || '');
   const [username, setUsername] = useState(me.username || '');
   const [publicUserId, setPublicUserId] = useState(
@@ -200,7 +202,18 @@ export function ProfileSetupScreen() {
             <div className="flex flex-col items-center gap-3">
               <button
                 type="button"
-                onClick={() => avatarInputRef.current?.click()}
+                onClick={() => {
+                  if (cameraAvailable) {
+                    openCamera({
+                      title: 'Profile photo',
+                      onCaptured: ({ kind, url }) => {
+                        if (kind === 'photo') setAvatarUrl(url);
+                      },
+                    });
+                    return;
+                  }
+                  avatarInputRef.current?.click();
+                }}
                 className="relative h-28 w-28 rounded-full overflow-hidden border-2 border-border shadow-lg group"
               >
                 <img
@@ -210,7 +223,7 @@ export function ProfileSetupScreen() {
                   onError={handleAvatarError}
                 />
                 <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/35 transition-colors">
-                  <ImagePlus className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 drop-shadow" />
+                  <Camera className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 drop-shadow" />
                 </span>
               </button>
               <input
@@ -221,12 +234,13 @@ export function ProfileSetupScreen() {
                 accept="image/*,image/svg+xml,.svg,.webp"
                 onChange={(e) => void onPickAvatar(e)}
               />
-              <label
-                htmlFor={avatarInputId}
+              <button
+                type="button"
+                onClick={() => avatarInputRef.current?.click()}
                 className="text-xs font-semibold text-primary cursor-pointer hover:underline"
               >
                 Upload profile photo
-              </label>
+              </button>
             </div>
 
             <LaunchField label="Display name">

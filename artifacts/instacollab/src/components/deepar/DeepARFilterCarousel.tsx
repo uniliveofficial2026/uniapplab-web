@@ -1,71 +1,33 @@
-import React, { memo, startTransition, useEffect, useMemo, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Search, X } from 'lucide-react';
 import {
   DEEPAR_EFFECT_CATEGORIES,
-  getDeepAREffectPreviewCandidates,
+  getDeepAREffectPreviewUrl,
   getEffectCategoryId,
   getEffectPresetsForCategory,
   searchEffectPresets,
   type DeepAREffectCategoryId,
   type DeepAREffectPreset,
 } from '../../lib/deepar/deeparConfig';
-import {
-  EMPTY_DEEPAR_EFFECT_SELECTION,
-  patchDeepARSelection,
-  selectedIdForCategory,
-  type DeepAREffectSelection,
-} from '../../lib/deepar/deeparEffectSelection';
 
 const CATEGORY_TABS = DEEPAR_EFFECT_CATEGORIES.filter((category) =>
   category.id === 'clear' || getEffectPresetsForCategory(category.id).length > 0,
 );
 
-/** Live AR carousel: free-pack effects + Beauty plugin makeup / body-shaping looks. */
-const DEEPAR_ONLY_CATEGORY_IDS = new Set<DeepAREffectCategoryId>([
-  'clear',
-  'makeup',
-  'beauty',
-  'mask',
-  'glasses',
-  'background',
-  'animation',
-]);
-
-function isDeepAROnlyPreset(preset: DeepAREffectPreset): boolean {
-  return DEEPAR_ONLY_CATEGORY_IDS.has(preset.category);
-}
-
-const EffectDemoThumb = memo(function EffectDemoThumb({
-  effectId,
-  label,
-}: {
-  effectId: string;
-  label: string;
-}) {
-  const candidates = useMemo(
-    () => getDeepAREffectPreviewCandidates(effectId),
-    [effectId],
-  );
-  const [index, setIndex] = useState(0);
-  const src = candidates[Math.min(index, candidates.length - 1)] ?? candidates[0];
-
+function EffectDemoThumb({ effectId, label }: { effectId: string; label: string }) {
   return (
     <img
-      key={src}
-      src={src}
+      src={getDeepAREffectPreviewUrl(effectId)}
       alt={label}
-      className="absolute inset-0 h-full w-full object-cover bg-gradient-to-br from-fuchsia-500/40 to-purple-900/60"
+      className="absolute inset-0 h-full w-full object-cover"
       loading="lazy"
       decoding="async"
       draggable={false}
-      onError={() => {
-        setIndex((prev) => (prev + 1 < candidates.length ? prev + 1 : prev));
-      }}
     />
   );
-});
+}
 
-const EffectButton = memo(function EffectButton({
+function EffectButton({
   preset,
   isSelected,
   disabled,
@@ -83,10 +45,7 @@ const EffectButton = memo(function EffectButton({
       ref={itemRef}
       type="button"
       disabled={disabled}
-      onClick={() => {
-        // Keep the live camera UI responsive while the effect loads.
-        startTransition(() => onSelect(preset.id));
-      }}
+      onClick={() => onSelect(preset.id)}
       aria-pressed={isSelected}
       aria-label={preset.label}
       className="group shrink-0 snap-center flex flex-col items-center gap-1.5 disabled:opacity-50"
@@ -94,14 +53,10 @@ const EffectButton = memo(function EffectButton({
       <span
         className={`relative block h-[4.25rem] w-[4.25rem] overflow-hidden rounded-full border-[3px] shadow-lg transition-transform duration-200 ${
           isSelected
-            ? 'border-white scale-110 bg-white/35 shadow-[inset_0_1px_0_rgba(255,255,255,0.45),0_0_14px_rgba(255,255,255,0.28)]'
-            : 'border-white/55 bg-white/25 shadow-[inset_0_1px_0_rgba(255,255,255,0.35)] group-hover:border-white/75 group-hover:bg-white/30 group-hover:scale-105'
-        } backdrop-blur-md`}
+            ? 'border-white scale-110 shadow-white/20'
+            : 'border-white/35 group-hover:border-white/60 group-hover:scale-105'
+        }`}
       >
-        <span
-          className="pointer-events-none absolute inset-0 rounded-full bg-gradient-to-b from-white/45 via-white/15 to-white/5"
-          aria-hidden
-        />
         <EffectDemoThumb effectId={preset.id} label={preset.label} />
       </span>
       <span
@@ -113,18 +68,16 @@ const EffectButton = memo(function EffectButton({
       </span>
     </button>
   );
-});
+}
 
 function CategoryTabs({
   activeCategoryId,
   disabled,
   onSelect,
-  categories,
 }: {
   activeCategoryId: DeepAREffectCategoryId;
   disabled: boolean;
   onSelect: (categoryId: DeepAREffectCategoryId) => void;
-  categories: typeof CATEGORY_TABS;
 }) {
   return (
     <div
@@ -132,7 +85,7 @@ function CategoryTabs({
       role="tablist"
       aria-label="Effect categories"
     >
-      {categories.map((category) => {
+      {CATEGORY_TABS.map((category) => {
         const isActive = activeCategoryId === category.id;
         return (
           <button
@@ -157,26 +110,23 @@ function CategoryTabs({
 }
 
 export type DeepARFilterCarouselProps = {
-  activeEffectId?: string;
-  onSelect?: (effectId: string) => void;
-  activeSelection?: DeepAREffectSelection;
-  onSelectionChange?: (selection: DeepAREffectSelection) => void;
-  multiSelect?: boolean;
+  activeEffectId: string;
+  onSelect: (effectId: string) => void;
   disabled?: boolean;
   className?: string;
-  /** Hide CSS-only beauty presets (multi-guest live AR button). */
   deepAROnly?: boolean;
+  activeSelection?: import('../../lib/deepar/deeparEffectSelection').DeepAREffectSelection;
+  onSelectionChange?: (
+    selection: import('../../lib/deepar/deeparEffectSelection').DeepAREffectSelection,
+  ) => void;
+  multiSelect?: boolean;
 };
 
 export function DeepARFilterCarousel({
-  activeEffectId = 'none',
-  onSelect = () => undefined,
-  activeSelection = EMPTY_DEEPAR_EFFECT_SELECTION,
-  onSelectionChange,
-  multiSelect = false,
+  activeEffectId,
+  onSelect,
   disabled = false,
   className = '',
-  deepAROnly = false,
 }: DeepARFilterCarouselProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -186,23 +136,13 @@ export function DeepARFilterCarousel({
     getEffectCategoryId(activeEffectId),
   );
 
-  const categoryTabs = useMemo(
-    () =>
-      deepAROnly
-        ? CATEGORY_TABS.filter((category) => DEEPAR_ONLY_CATEGORY_IDS.has(category.id))
-        : CATEGORY_TABS,
-    [deepAROnly],
-  );
-
   const trimmedQuery = searchQuery.trim();
   const isSearching = trimmedQuery.length > 0;
 
   const visiblePresets = useMemo(() => {
-    const presets = isSearching
-      ? searchEffectPresets(searchQuery)
-      : getEffectPresetsForCategory(activeCategoryId);
-    return deepAROnly ? presets.filter(isDeepAROnlyPreset) : presets;
-  }, [activeCategoryId, deepAROnly, isSearching, searchQuery]);
+    if (isSearching) return searchEffectPresets(searchQuery);
+    return getEffectPresetsForCategory(activeCategoryId);
+  }, [activeCategoryId, isSearching, searchQuery]);
 
   useEffect(() => {
     setActiveCategoryId(getEffectCategoryId(activeEffectId));
@@ -211,34 +151,12 @@ export function DeepARFilterCarousel({
   useEffect(() => {
     const el = itemRefs.current[activeEffectId];
     if (!el || isSearching) return;
-    // Instant scroll — smooth scroll janks the live camera thread.
-    el.scrollIntoView({ behavior: 'auto', inline: 'center', block: 'nearest' });
-  }, [activeEffectId, activeCategoryId, isSearching]);
+    el.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
+  }, [activeEffectId, activeCategoryId, isSearching, visiblePresets]);
 
   const handleCategorySelect = (categoryId: DeepAREffectCategoryId) => {
     setActiveCategoryId(categoryId);
     scrollRef.current?.scrollTo({ left: 0, behavior: 'smooth' });
-  };
-
-  const handlePresetSelect = (effectId: string) => {
-    if (multiSelect && onSelectionChange) {
-      const categoryId = getEffectCategoryId(effectId);
-      const current = selectedIdForCategory(activeSelection, categoryId);
-      const nextId = current === effectId || effectId === 'none' ? null : effectId;
-      onSelectionChange(patchDeepARSelection(activeSelection, categoryId, nextId));
-      return;
-    }
-    onSelect(effectId);
-  };
-
-  const isPresetSelected = (preset: DeepAREffectPreset) => {
-    if (multiSelect) {
-      if (preset.id === 'none') {
-        return !selectedIdForCategory(activeSelection, activeCategoryId);
-      }
-      return selectedIdForCategory(activeSelection, preset.category) === preset.id;
-    }
-    return activeEffectId === preset.id;
   };
 
   return (
@@ -263,6 +181,7 @@ export function DeepARFilterCarousel({
             type="button"
             onClick={() => {
               setSearchQuery('');
+              searchInputRef.current?.focus();
             }}
             className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white"
             aria-label="Clear search"
@@ -277,7 +196,6 @@ export function DeepARFilterCarousel({
           activeCategoryId={activeCategoryId}
           disabled={disabled}
           onSelect={handleCategorySelect}
-          categories={categoryTabs}
         />
       ) : (
         <p className="px-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-white/45">
@@ -295,9 +213,9 @@ export function DeepARFilterCarousel({
             <EffectButton
               key={preset.id}
               preset={preset}
-              isSelected={isPresetSelected(preset)}
+              isSelected={activeEffectId === preset.id}
               disabled={disabled}
-              onSelect={handlePresetSelect}
+              onSelect={onSelect}
               itemRef={(el) => {
                 itemRefs.current[preset.id] = el;
               }}

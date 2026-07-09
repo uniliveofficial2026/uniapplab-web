@@ -6,7 +6,7 @@ import {
   type MediaFilterId,
   buildMediaFilterStyle,
 } from '../../lib/mediaFilters';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from './AppNativeVideo';
 
 type PreviewMedia = {
   url: string;
@@ -137,17 +137,14 @@ export function MediaFilterPicker({
                   >
                     {hasVisualPreview ? (
                       previewMedia!.type === 'video' ? (
-                        <video
+                        <AppNativeVideo
                           src={resolvedPreviewUrl || undefined}
                           muted
                           autoPlay
                           loop
-                          playsInline
-                          controls
                           preload="auto"
                           className="absolute inset-0 h-full w-full object-cover"
                           style={chipStyle}
-                          {...nativeVideoControlGuardProps()}
                         />
                       ) : (
                         <img

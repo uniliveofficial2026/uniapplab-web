@@ -8,30 +8,56 @@ import {
   mapSupabaseAuthServiceError,
 } from '../auth/googleSignInErrorHints';
 import type { AuthResult } from '../auth/types';
-import { NET_API_MS } from '../networkPolicy';
+import { fetchWithTimeout, NET_API_MS } from '../networkPolicy';
 import { getSupabaseUrl } from './config';
 import {
-  invalidateSupabaseHealthCache,
-  probeSupabaseOAuthReady,
+  isSupabaseOAuthReadyStatus,
+  isSupabaseReachableStatus,
 } from '../auth/health';
 import { markSupabaseOAuthDegraded } from '../auth/providerState';
-import { isInfrastructureAuthFailure } from '../auth/failover';
-import { SUPABASE_OAUTH_DOWN_MESSAGE } from '../auth/oauthLane';
 
 async function assertSupabaseReachable(): Promise<AuthResult | null> {
-  if (!getSupabaseUrl().replace(/\/$/, '')) {
+  const base = getSupabaseUrl().replace(/\/$/, '');
+  if (!base) {
     return { ok: false, reason: 'Supabase is not configured.' };
   }
 
-  invalidateSupabaseHealthCache();
-  const oauthOk = await probeSupabaseOAuthReady(Math.min(NET_API_MS, 8_000));
-  if (oauthOk) return null;
+  const infraMessage =
+    'Supabase sign-in is temporarily unavailable. Wait a few minutes, or use email login if enabled.';
 
-  markSupabaseOAuthDegraded();
-  return {
-    ok: false,
-    reason: SUPABASE_OAUTH_DOWN_MESSAGE,
-  };
+  try {
+    const health = await fetchWithTimeout(
+      `${base}/auth/v1/health`,
+      { method: 'GET', headers: { accept: 'application/json' } },
+      NET_API_MS,
+      'supabase.auth.health',
+    );
+    if (!isSupabaseReachableStatus(health.status)) {
+      markSupabaseOAuthDegraded();
+      return { ok: false, reason: infraMessage };
+    }
+
+    const redirectTo =
+      typeof window !== 'undefined' ? window.location.origin : 'https://app.uniapplab.com';
+    const authorize = await fetchWithTimeout(
+      `${base}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`,
+      { method: 'GET', redirect: 'manual', headers: { accept: 'text/html' } },
+      Math.min(NET_API_MS, 6_000),
+      'supabase.auth.authorize',
+    );
+    if (!isSupabaseOAuthReadyStatus(authorize.status)) {
+      markSupabaseOAuthDegraded();
+      return { ok: false, reason: infraMessage };
+    }
+  } catch {
+    markSupabaseOAuthDegraded();
+    return {
+      ok: false,
+      reason:
+        'Cannot reach Supabase auth right now (connection timed out). Check your network or try again in a few minutes.',
+    };
+  }
+  return null;
 }
 
 function mapAuthError(message: string, code?: string): string {
@@ -85,13 +111,7 @@ export async function supabaseSignIn(email: string, password: string): Promise<A
     email: email.trim(),
     password,
   });
-  if (error) {
-    const reason = mapAuthError(error.message, error.code);
-    if (isInfrastructureAuthFailure(reason) || isInfrastructureAuthFailure(error.message)) {
-      markSupabaseOAuthDegraded();
-    }
-    return { ok: false, reason };
-  }
+  if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
   return { ok: true };
 }
 
@@ -115,13 +135,7 @@ export async function supabaseSignUp(payload: {
       },
     },
   });
-  if (error) {
-    const reason = mapAuthError(error.message, error.code);
-    if (isInfrastructureAuthFailure(reason) || isInfrastructureAuthFailure(error.message)) {
-      markSupabaseOAuthDegraded();
-    }
-    return { ok: false, reason };
-  }
+  if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
   const needsEmailConfirmation = !data.session;
   if (data.session?.user) {
     const displayName = payload.displayName.trim() || username;

@@ -1,6 +1,10 @@
 /** DeepAR Web SDK — https://developer.deepar.ai */
 /** DeepAR Beauty — https://docs.deepar.ai/deepar-beauty */
 
+import { DEEPAR_ENABLED } from './deeparEnabled';
+
+export { DEEPAR_ENABLED };
+
 export const DEEPAR_VERSION = '5.6.22';
 
 export type DeepAREffectCategoryId =
@@ -198,6 +202,7 @@ export function getDeepARLicenseKey(): string {
 }
 
 export function isDeepARConfigured(): boolean {
+  if (!DEEPAR_ENABLED) return false;
   const key = getDeepARLicenseKey();
   return Boolean(key && !/your|xxxx|placeholder/i.test(key));
 }
@@ -265,7 +270,7 @@ function previewUrlForId(id: string): string {
   return `${normalizedBaseUrl()}effects/previews/${id}.png?v=${PREVIEW_ASSET_VERSION}`;
 }
 
-/** Primary demo thumbnail for carousel buttons. */
+/** Official demo thumbnail for carousel (preview.png per effect). */
 export function getDeepAREffectPreviewUrl(effectId: string): string {
   return previewUrlForId(effectId);
 }

@@ -1,10 +1,7 @@
 /**
  * Silent UX telemetry — batches signals for background ML (no UI, no handoff flood).
  */
-import { isNoiseSignal } from './mlGuard';
-import { reactToMlIssue } from './mlReact';
-import { platformMetaForTelemetry } from './platformDetect';
-import { getCloudAuthHeaders } from './security/apiAuth';
+import { handoffForIssue } from './handoff';
 
 export type UxSignalType =
   | 'screen_view'
@@ -28,12 +25,11 @@ export type UxSignal = {
 const BUFFER_KEY = 'instacollab-ux-buffer';
 const SESSION_KEY = 'instacollab-ux-session';
 const MAX_BUFFER = 100;
-const FLUSH_MS = 25_000;
-const FLUSH_MIN_BUFFER = 3;
+const FLUSH_MS = 120_000;
 
 let currentScreen = 'boot';
 let screenEnteredAt = Date.now();
-let flushTimer: number | null = null;
+let flushTimer: number | ReturnType<typeof setInterval> | null = null;
 let lastTapTarget = '';
 let lastTapTimes: number[] = [];
 
@@ -66,10 +62,6 @@ function writeBuffer(signals: UxSignal[]): void {
   }
 }
 
-export function getCurrentScreen(): string {
-  return currentScreen;
-}
-
 export function trackUx(
   type: UxSignalType,
   detail?: string,
@@ -78,14 +70,13 @@ export function trackUx(
 ): void {
   if (typeof window === 'undefined') return;
   if (import.meta.env.VITE_UX_TELEMETRY === 'false') return;
-  if (detail && (type === 'error' || type === 'warning') && isNoiseSignal(detail)) return;
 
   const signal: UxSignal = {
     t: Date.now(),
     type,
     screen,
     detail,
-    meta: { session: sessionId(), ...platformMetaForTelemetry(), ...meta },
+    meta: { session: sessionId(), ...meta },
   };
 
   const buf = readBuffer();
@@ -104,6 +95,10 @@ export function trackScreen(screen: string): void {
   trackUx('screen_view', screen, undefined, screen);
 }
 
+export function getCurrentScreen(): string {
+  return currentScreen;
+}
+
 function ingestUrl(): string {
   if (import.meta.env.DEV) return '/__ux/signal';
   return '/api/ux/signals';
@@ -113,13 +108,12 @@ export async function flushUxSignals(force = false): Promise<void> {
   if (typeof window === 'undefined') return;
   const buf = readBuffer();
   if (!buf.length) return;
-  if (!force && buf.length < FLUSH_MIN_BUFFER) return;
+  if (!force && buf.length < 15) return;
 
   try {
-    const authHeaders = await getCloudAuthHeaders();
     const res = await fetch(ingestUrl(), {
       method: 'POST',
-      headers: authHeaders,
+      headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ signals: buf }),
       keepalive: true,
     });
@@ -143,18 +137,12 @@ function onClick(event: MouseEvent): void {
     lastTapTimes.push(now);
     if (lastTapTimes.length >= 4) {
       trackUx('rage_tap', label, { count: lastTapTimes.length });
-      reactToMlIssue('rage_tap', label, currentScreen);
+      handoffForIssue('rage_tap', label, currentScreen);
       lastTapTimes = [];
     }
   } else {
     lastTapTarget = label;
     lastTapTimes = [now];
-  }
-}
-
-function onCriticalSignal(type: UxSignalType, msg: string, screen: string): void {
-  if (type === 'error' || type === 'warning' || type === 'media_fail') {
-    reactToMlIssue(type === 'media_fail' ? 'media_fail' : type, msg, screen);
   }
 }
 
@@ -165,14 +153,18 @@ function hookErrors(): void {
       file: (event.filename || '').slice(-80),
       line: event.lineno ?? 0,
     });
-    onCriticalSignal('error', msg, currentScreen);
+    if (/posts|cloud|supabase|relation.*posts/i.test(msg)) {
+      handoffForIssue('error', msg, currentScreen);
+    }
   });
 
   window.addEventListener('unhandledrejection', (event) => {
     const reason = event.reason;
     const msg = reason instanceof Error ? reason.message : String(reason);
     trackUx('error', msg.slice(0, 300), { unhandled: true });
-    onCriticalSignal('error', msg, currentScreen);
+    if (/posts|cloud|supabase/i.test(msg)) {
+      handoffForIssue('error', msg, currentScreen);
+    }
   });
 }
 

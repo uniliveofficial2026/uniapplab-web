@@ -14,15 +14,7 @@ const TIMEOUT_MS = Number(process.env.VERIFY_TIMEOUT_MS ?? '15000');
 const { probeProdApi } = await import('./probe-prod-api.mjs');
 
 const STATIC_CHECKS = [
-  {
-    name: 'App shell',
-    url: `${ORIGIN}/`,
-    expect: (r, t) =>
-      r.ok &&
-      (t.includes('UniLive') || t.includes('InstaCollab')) &&
-      t.includes('id="root"') &&
-      /\/assets\/index-[^"]+\.js/.test(t),
-  },
+  { name: 'App shell', url: `${ORIGIN}/`, expect: (r, t) => r.ok && t.includes('InstaCollab') },
   { name: 'Live version', url: `${ORIGIN}/live-version.json`, expect: (r) => r.ok },
   {
     name: 'Supabase config',
@@ -43,19 +35,9 @@ const STATIC_CHECKS = [
 ];
 
 const API_CHECKS = [
-  { name: 'API health', path: '/api/healthz', validate: (b) => b?.status === 'ok', required: true },
-  {
-    name: 'Upstash health',
-    path: '/api/upstash/health',
-    validate: (b) => b?.ok === true,
-    required: false,
-  },
-  {
-    name: 'LiveKit health',
-    path: '/api/livekit/health',
-    validate: (b) => b?.ok === true,
-    required: false,
-  },
+  { name: 'API health', path: '/api/healthz', validate: (b) => b?.status === 'ok' },
+  { name: 'Upstash health', path: '/api/upstash/health', validate: (b) => b?.ok === true },
+  { name: 'LiveKit health', path: '/api/livekit/health', validate: (b) => b?.ok === true },
 ];
 
 async function fetchText(url) {
@@ -99,18 +81,10 @@ for (const check of API_CHECKS) {
     if (result.ok && check.validate(result.body)) {
       passes.push(check.name);
       console.log(`[verify] ✓ ${check.name}`);
-    } else if (check.required === false) {
-      console.warn(
-        `[verify] ⚠ ${check.name} (optional) — ${result.reason || JSON.stringify(result.body)}`,
-      );
     } else {
       failures.push(check.name);
-      const hint =
-        result.status === 404 || /page could not be found|NOT_FOUND/i.test(result.reason || '')
-          ? ' — merge latest main + redeploy, or pnpm run vercel:deploy-api'
-          : '';
       console.error(
-        `[verify] ✗ ${check.name} — ${result.reason || JSON.stringify(result.body)}${hint}`,
+        `[verify] ✗ ${check.name} — ${result.reason || JSON.stringify(result.body)}`,
       );
     }
   } catch (err) {

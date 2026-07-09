@@ -1,9 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { Suspense, useState, useEffect } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { Post } from './Post';
-import { PostModal } from './PostModal';
 import { StoryStrip } from './StoryStrip';
+import { lazyWithRetry as lazy } from '../../lib/lazyWithRetry';
+import { instantSuspenseFallback } from '../../lib/instantCachePolicy';
 import { ArrowLeft } from 'lucide-react';
 import { useToast } from '../../lib/ToastContext';
 import { AnimatePresence } from 'motion/react';
@@ -14,7 +15,9 @@ import { resolveUser } from '../../lib/safe';
 import { isPostActive } from '../../lib/entityResolve';
 import { TAP_REFRESH_EVENT } from '../../lib/appRefresh';
 import { syncCloudSocialFeed } from '../../lib/cloudSocial/cloudSocialContent';
-import { subscribeLiveCloudSurfaceRefresh } from '../../lib/liveCloudSurfaces';
+import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
+
+const PostModal = lazy(() => import('./PostModal').then((m) => ({ default: m.PostModal })));
 
 export function Feed() {
   const db = useDB();
@@ -28,21 +31,13 @@ export function Feed() {
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
   // Cache-first: render db.posts immediately; cloud merge updates via useDB() only.
-  useEffect(() => {
-    const sync = () => {
+  useLiveCloudSurface('home', {
+    onSync: () => {
       void syncCloudSocialFeed();
-    };
-    // Defer cloud until after first paint of cached posts.
-    const idle = window.setTimeout(sync, 0);
-    const unsub = subscribeLiveCloudSurfaceRefresh(
-      ['home', 'feed', 'reels', 'stories', 'comments', 'all'],
-      sync,
-    );
-    return () => {
-      window.clearTimeout(idle);
-      unsub();
-    };
-  }, []);
+    },
+    listen: ['home', 'feed', 'reels', 'stories', 'comments', 'all'],
+    poll: false,
+  });
 
   useEffect(() => {
     const onRefresh = (event: Event) => {
@@ -192,7 +187,11 @@ export function Feed() {
         )}
       </AnimatePresence>
       
-      {selectedPostId && <PostModal postId={selectedPostId} onClose={() => setSelectedPostId(null)} />}
+      {selectedPostId ? (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <PostModal postId={selectedPostId} onClose={() => setSelectedPostId(null)} />
+        </Suspense>
+      ) : null}
     </div>
   );
 }

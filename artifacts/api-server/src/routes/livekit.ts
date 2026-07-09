@@ -99,63 +99,6 @@ router.post("/livekit/token", auth, requireNotBanned, async (req, res, next) => 
   }
 });
 
-router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, next) => {
-  try {
-    if (!isLiveKitConfigured()) {
-      res.status(503).json({ error: "livekit_not_configured" });
-      return;
-    }
-
-    const { roomId, publish = true } = req.body as {
-      roomId?: string;
-      publish?: boolean;
-    };
-    if (!roomId?.trim()) {
-      res.status(400).json({ error: "roomId required" });
-      return;
-    }
-
-    const userId = req.authUser!.id;
-    const normalizedRoomId = roomId.trim();
-    const { data: room, error: roomError } = await getSupabaseService()
-      .from("party_rooms")
-      .select("id, owner_id, status, privacy")
-      .eq("id", normalizedRoomId)
-      .maybeSingle();
-
-    if (roomError || !room || room.status !== "active") {
-      res.status(404).json({ error: "party_room_not_found" });
-      return;
-    }
-
-    const wantsPublish = Boolean(publish);
-    if (wantsPublish && room.owner_id !== userId && room.privacy !== "Public") {
-      res.status(403).json({ error: "publish_not_allowed" });
-      return;
-    }
-
-    const roomName = partyRoomName(normalizedRoomId);
-    await ensureLiveKitRoom(roomName);
-
-    const token = await createLiveKitToken({
-      identity: userId,
-      name: req.profile?.display_name || req.profile?.username || userId,
-      room: roomName,
-      canPublish: Boolean(publish),
-    });
-
-    res.json({
-      token,
-      url: getLiveKitUrl(),
-      roomName,
-      roomId: normalizedRoomId,
-      publish: Boolean(publish),
-    });
-  } catch (err) {
-    next(err);
-  }
-});
-
 /** 1:1 / group chat audio+video calls — any thread member may publish. */
 router.post("/livekit/chat/token", auth, requireNotBanned, async (req, res, next) => {
   try {
@@ -194,7 +137,6 @@ router.post("/livekit/chat/token", auth, requireNotBanned, async (req, res, next
       identity: userId,
       name: req.profile?.display_name || req.profile?.username || userId,
       room: roomName,
-      // Both call types publish audio; only video calls publish camera.
       canPublish: true,
     });
 
@@ -205,6 +147,63 @@ router.post("/livekit/chat/token", auth, requireNotBanned, async (req, res, next
       threadId: tid,
       callKind: kind,
       publish: true,
+    });
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Party / smule-room voice + data bus — `ic-party-{roomId}`. */
+router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, next) => {
+  try {
+    if (!isLiveKitConfigured()) {
+      res.status(503).json({ error: "livekit_not_configured" });
+      return;
+    }
+
+    const { roomId, publish = false } = req.body as {
+      roomId?: string;
+      publish?: boolean;
+    };
+    const trimmedRoomId = roomId?.trim();
+    if (!trimmedRoomId) {
+      res.status(400).json({ error: "roomId required" });
+      return;
+    }
+
+    const { data: partyRoom, error } = await getSupabaseService()
+      .from("party_rooms")
+      .select("id, status")
+      .eq("id", trimmedRoomId)
+      .maybeSingle();
+
+    if (error) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    if (partyRoom && partyRoom.status !== "active") {
+      res.status(400).json({ error: "party_room_ended" });
+      return;
+    }
+
+    const userId = req.authUser!.id;
+    const roomName = partyRoomName(trimmedRoomId);
+    await ensureLiveKitRoom(roomName);
+
+    const canPublish = Boolean(publish);
+    const token = await createLiveKitToken({
+      identity: userId,
+      name: req.profile?.display_name || req.profile?.username || userId,
+      room: roomName,
+      canPublish,
+    });
+
+    res.json({
+      token,
+      url: getLiveKitUrl(),
+      roomName,
+      roomId: trimmedRoomId,
+      publish: canPublish,
     });
   } catch (err) {
     next(err);

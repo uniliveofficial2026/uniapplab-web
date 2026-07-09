@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link2, Upload, X, Youtube } from 'lucide-react';
+import { AppCameraButton } from '../../components/camera/AppCameraButton';
+import { cameraCaptureToFile } from '../../lib/camera/cameraCaptureAdapters';
+import type { AppCameraCapturePayload } from '../../contexts/AppCameraContext';
 import {
   clearWatchTogetherMediaUrl,
   describeWatchTogetherMediaSource,
@@ -95,6 +98,10 @@ export function WatchTogetherMediaSourceSheet({
     event.target.value = '';
     if (!file) return;
 
+    await applyUploadedFile(file);
+  };
+
+  const applyUploadedFile = async (file: File) => {
     setIsBusy(true);
     setInlineError(null);
     try {
@@ -109,6 +116,17 @@ export function WatchTogetherMediaSourceSheet({
       showToast(message);
     } finally {
       setIsBusy(false);
+    }
+  };
+
+  const handleCameraCaptured = async (payload: AppCameraCapturePayload) => {
+    try {
+      const file = await cameraCaptureToFile(payload);
+      await applyUploadedFile(file);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Camera capture failed';
+      setInlineError(message);
+      showToast(message);
     }
   };
 
@@ -281,6 +299,14 @@ export function WatchTogetherMediaSourceSheet({
               <Upload size={16} />
               {isBusy ? 'Uploading…' : 'Choose video or audio file'}
             </button>
+            <AppCameraButton
+              title="Watch together camera"
+              label="Record video"
+              onCaptured={handleCameraCaptured}
+              disabled={isBusy}
+              className="mt-2 flex w-full items-center justify-center gap-2 rounded-xl border border-white/15 bg-white/5 py-3 text-sm font-bold text-white hover:bg-white/10 disabled:opacity-50"
+              iconClassName="h-4 w-4"
+            />
             <p className="mt-2 text-center text-[10px] text-white/35">
               Or drag and drop a file onto this panel
             </p>

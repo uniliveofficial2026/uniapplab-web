@@ -56,10 +56,15 @@ export function saveWalletCoinsBalance(userId: string, nextBalance: number): voi
 }
 
 export function addWalletCoins(userId: string, amount: number): number {
-  const prev = loadWalletCoinsBalance();
+  const prev = getLiveCoinsBalance(userId);
   const next = prev + Math.max(0, Math.floor(amount));
   setUnifiedCoinsForUser(userId, next);
   return next;
+}
+
+/** Credit coins to any user (host payouts, commerce sales, etc.). */
+export function creditUserCoins(userId: string, amount: number): number {
+  return addWalletCoins(userId, amount);
 }
 
 export function spendWalletCoins(userId: string, amount: number): boolean {

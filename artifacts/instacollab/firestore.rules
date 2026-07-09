@@ -39,6 +39,24 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    function profileIdForAuth() {
+      return request.auth.token.supabase_uid != null
+        ? request.auth.token.supabase_uid
+        : request.auth.uid;
+    }
+
+    function isPlatformAdmin() {
+      return isAuthed()
+        && exists(/databases/$(database)/documents/profiles/$(profileIdForAuth()))
+        && get(/databases/$(database)/documents/profiles/$(profileIdForAuth())).data.get('role', '') == 'admin';
+    }
+
+    match /platform_app_brand/{docId} {
+      allow read: if true;
+      allow create, update: if docId == 'default' && isPlatformAdmin();
+      allow delete: if false;
+    }
+
     match /user_app_state/{userId} {
       allow read, create, update: if ownsCloudUser(userId);
       allow delete: if false;

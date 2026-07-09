@@ -18,7 +18,10 @@ type UsePartyRoomPresenceOptions = {
   };
 };
 
-function presenceToViewer(member: PartyRoomPresencePayload): RoomViewerEntry {
+function presenceToViewer(
+  member: PartyRoomPresencePayload,
+  roomId: string,
+): RoomViewerEntry {
   return {
     id: member.user_id,
     name: member.name,
@@ -50,7 +53,7 @@ export function usePartyRoomPresence({ roomId, enabled, self }: UsePartyRoomPres
         joined_at: Date.now(),
       },
       (members) => {
-        setRemoteViewers(members.map((member) => presenceToViewer(member)));
+        setRemoteViewers(members.map((member) => presenceToViewer(member, roomId)));
       },
     );
 

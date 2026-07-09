@@ -1,9 +1,12 @@
 import React from 'react';
-import { chunkLoadUserMessage, isChunkLoadError } from '../../lib/lazyWithRetry';
-import { reactToMlIssue } from '../../lib/mlReact';
+import {
+  chunkLoadUserMessage,
+  invalidHookUserMessage,
+  isChunkLoadError,
+  isRecoverableRenderError,
+} from '../../lib/lazyWithRetry';
+import { refreshCloudSystemsInPlace } from '../../lib/appCloudSystems';
 import { stageAppUpdate } from '../../lib/invisibleReload';
-import { checkForPwaUpdate } from '../../lib/pwaAutoUpdate';
-import { trackUx } from '../../lib/uxTelemetry';
 
 interface ErrorBoundaryProps {
   children: React.ReactNode;
@@ -14,65 +17,75 @@ interface ErrorBoundaryProps {
 interface ErrorBoundaryState {
   hasError: boolean;
   message: string;
+  recovering: boolean;
+}
+
+const RENDER_RECOVERY_KEY = 'instacollab-render-recovery';
+
+function recoverFromStaleRender(): boolean {
+  if (typeof window === 'undefined') return false;
+  try {
+    const last = Number(sessionStorage.getItem(RENDER_RECOVERY_KEY) || '0');
+    if (Date.now() - last < 15_000) return false;
+    sessionStorage.setItem(RENDER_RECOVERY_KEY, String(Date.now()));
+  } catch {
+    /* ignore */
+  }
+  window.location.reload();
+  return true;
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  state: ErrorBoundaryState = { hasError: false, message: '' };
+  state: ErrorBoundaryState = { hasError: false, message: '', recovering: false };
 
   static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
     const raw = error instanceof Error ? error.message : 'Something went wrong';
+    if (isRecoverableRenderError(error) || isRecoverableRenderError(raw)) {
+      return { hasError: true, message: invalidHookUserMessage(), recovering: true };
+    }
     const message = isChunkLoadError(error) || isChunkLoadError(raw) ? chunkLoadUserMessage() : raw;
-    return { hasError: true, message };
+    return { hasError: true, message, recovering: false };
   }
 
   private handleRetry = () => {
-    if (isChunkLoadError(this.state.message)) {
-      void checkForPwaUpdate();
-      stageAppUpdate('boundary_chunk');
+    if (isChunkLoadError(this.state.message) || this.state.recovering) {
+      stageAppUpdate(this.state.recovering ? 'render-retry' : 'chunk-retry');
+      refreshCloudSystemsInPlace(this.state.recovering ? 'render-retry' : 'chunk-retry');
+      if (this.state.recovering) {
+        recoverFromStaleRender();
+        return;
+      }
+      this.setState({ hasError: false, message: '', recovering: false });
+      return;
     }
-    this.setState({ hasError: false, message: '' });
+    this.setState({ hasError: false, message: '', recovering: false });
   };
 
   componentDidCatch(error: unknown, info: React.ErrorInfo) {
     const label = this.props.screen ? `[${this.props.screen}]` : '';
     console.error(`UI error boundary${label}:`, error, info.componentStack);
 
-    const msg = error instanceof Error ? error.message : String(error);
-    trackUx('error', msg.slice(0, 300), { boundary: true, stack: info.componentStack?.slice(0, 120) ?? '' });
-    reactToMlIssue('boundary_error', msg, this.props.screen);
-
-    if (isChunkLoadError(error)) {
-      void checkForPwaUpdate();
-      stageAppUpdate('boundary_chunk');
+    if (isRecoverableRenderError(error) || this.state.recovering) {
+      recoverFromStaleRender();
     }
   }
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
-      const offline =
-        typeof navigator !== 'undefined' && navigator.onLine === false;
-      const chunkError = isChunkLoadError(this.state.message);
       return (
-        <div className="flex min-h-[40vh] flex-1 flex-col items-center justify-center gap-3 p-6 text-center bg-background text-foreground">
-          <p className="text-lg font-bold text-foreground">
-            {offline && chunkError ? 'Saved layout only' : 'Something went wrong'}
-          </p>
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center">
+          <p className="text-lg font-bold text-foreground">Something went wrong</p>
           {this.props.screen ? (
             <p className="text-xs text-muted-foreground">Screen: {this.props.screen}</p>
           ) : null}
           <p className="max-w-md text-sm text-muted-foreground">{this.state.message}</p>
-          {offline ? (
-            <p className="max-w-md text-xs text-muted-foreground">
-              Navigation, profile, and any screens you opened online stay available. Reconnect to load this tab.
-            </p>
-          ) : null}
           <button
             type="button"
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
             onClick={this.handleRetry}
           >
-            {offline ? 'Stay on app' : 'Try again'}
+            {isChunkLoadError(this.state.message) || this.state.recovering ? 'Reload app' : 'Try again'}
           </button>
         </div>
       );

@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useState, useRef, useSyncExternalStore, type RefObject } from 'react';
+import React, { useCallback, useLayoutEffect, useState, useRef, useSyncExternalStore, type RefObject } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, useReducedMotion } from 'motion/react';
 import { Pencil } from 'lucide-react';
@@ -26,11 +26,10 @@ const BODY_DELAY_S = 0.48;
 
 type ThoughtBubbleShellProps = {
   noteText: string;
-  /** Bumps when the thought was saved — replays pop/typing on cross-device sync. */
-  animationEpoch?: number;
   onOpen: () => void;
   className?: string;
   style?: React.CSSProperties;
+  animationEpoch?: number;
 };
 
 function noteTypography(noteLength: number) {
@@ -43,33 +42,15 @@ function noteTypography(noteLength: number) {
 /** Shared thought bubble — pops from avatar, then types the thought letter by letter. */
 export function ThoughtBubbleShell({
   noteText,
-  animationEpoch = 0,
   onOpen,
   className = '',
   style,
 }: ThoughtBubbleShellProps) {
   const reduceMotion = useReducedMotion();
-  /** Pop + typing always run — core “thinking” UX (incl. cross-device cloud sync on phones). */
-  const instant = false;
-  const loopTyping = !reduceMotion;
+  const instant = !!reduceMotion;
   const [introDone, setIntroDone] = useState(instant);
   const [cycleKey, setCycleKey] = useState(0);
   const fontSizeClass = noteTypography(noteText.length);
-
-  useEffect(() => {
-    setIntroDone(instant);
-    setCycleKey((key) => key + 1);
-  }, [noteText, animationEpoch, instant]);
-
-  useEffect(() => {
-    if (instant) {
-      setIntroDone(true);
-      return;
-    }
-    const ms = (BODY_DELAY_S + 0.4) * 1000;
-    const timer = window.setTimeout(() => setIntroDone(true), ms);
-    return () => window.clearTimeout(timer);
-  }, [cycleKey, instant]);
 
   const handleLoopRestart = useCallback(() => {
     if (instant) return;
@@ -87,28 +68,27 @@ export function ThoughtBubbleShell({
 
   return (
     <div
-      className={`${introDone && !reduceMotion ? 'thought-bubble-living' : ''} ${className}`}
-      style={style}
-    >
-      <div
-        role="button"
-        tabIndex={0}
-        aria-label={`View thought: ${noteText}`}
-        onPointerDown={(e) => e.stopPropagation()}
-        onClick={(e) => {
+      role="button"
+      tabIndex={0}
+      aria-label={`View thought: ${noteText}`}
+      onPointerDown={(e) => e.stopPropagation()}
+      onClick={(e) => {
+        e.stopPropagation();
+        e.preventDefault();
+        onOpen();
+      }}
+      onKeyDown={(e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
           e.stopPropagation();
           e.preventDefault();
           onOpen();
-        }}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.stopPropagation();
-            e.preventDefault();
-            onOpen();
-          }
-        }}
-        className="thought-bubble-interactive relative h-[42px] w-[64px] origin-bottom-left cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100"
-      >
+        }
+      }}
+      className={`w-[64px] h-[42px] origin-bottom-left cursor-pointer transition-transform duration-200 hover:scale-105 active:scale-95 motion-reduce:transition-none motion-reduce:hover:scale-100 ${
+        introDone ? 'thought-bubble-living' : ''
+      } ${className}`}
+      style={style}
+    >
       {/* Tail nearest avatar — emerges first */}
       <motion.div
         key={`thought-tail-2-${cycleKey}`}
@@ -146,15 +126,17 @@ export function ThoughtBubbleShell({
           key={`thought-text-${cycleKey}`}
           text={noteText}
           instant={instant}
-          loop={loopTyping}
+          loop={!instant}
           startDelay={instant ? 0 : TYPING_START_DELAY_MS}
           pauseAfterTypeMs={3400}
           pauseBeforeRestartMs={650}
+          onComplete={() => {
+            if (!instant) setIntroDone(true);
+          }}
           onLoopRestart={handleLoopRestart}
           className={`relative z-10 px-1 whitespace-normal break-words drop-shadow-md dark:drop-shadow-none text-center w-full leading-[1.05] font-black ${fontSizeClass}`}
         />
       </motion.div>
-      </div>
     </div>
   );
 }
@@ -162,17 +144,16 @@ export function ThoughtBubbleShell({
 /** Inline bubble anchored to avatar — scrolls with carousel rows and feed post headers. */
 export function InlineAvatarThoughtBubble({
   noteText,
-  animationEpoch,
   onOpen,
+  animationEpoch: _animationEpoch,
 }: {
   noteText: string;
-  animationEpoch?: number;
   onOpen: () => void;
+  animationEpoch?: number;
 }) {
   return (
     <ThoughtBubbleShell
       noteText={noteText}
-      animationEpoch={animationEpoch}
       onOpen={onOpen}
       className="absolute bottom-[85%] left-[70%] mb-[10px] z-30 pointer-events-auto"
     />
@@ -182,17 +163,17 @@ export function InlineAvatarThoughtBubble({
 type AvatarThoughtBubbleProps = {
   anchorRef: RefObject<HTMLElement | null>;
   noteText: string;
-  animationEpoch?: number;
   userId: string;
   onOpen: () => void;
+  animationEpoch?: number;
 };
 
 export function AvatarThoughtBubble({
   anchorRef,
   noteText,
-  animationEpoch,
   userId,
   onOpen,
+  animationEpoch: _animationEpoch,
 }: AvatarThoughtBubbleProps) {
   const instanceIdRef = useRef<number | null>(null);
   const onOpenRef = useRef(onOpen);
@@ -275,9 +256,6 @@ export function AvatarThoughtBubble({
     intersectionObserver.observe(anchor);
 
     window.addEventListener('resize', updatePosition);
-    const vv = window.visualViewport;
-    vv?.addEventListener('scroll', updatePosition, { passive: true });
-    vv?.addEventListener('resize', updatePosition, { passive: true });
 
     return () => {
       resizeObserver.disconnect();
@@ -287,8 +265,6 @@ export function AvatarThoughtBubble({
         parent.removeEventListener('scroll', updatePosition);
       }
       window.removeEventListener('resize', updatePosition);
-      vv?.removeEventListener('scroll', updatePosition);
-      vv?.removeEventListener('resize', updatePosition);
     };
   }, [anchorRef, noteText, userId]);
 
@@ -307,7 +283,6 @@ export function AvatarThoughtBubble({
     >
       <ThoughtBubbleShell
         noteText={noteText}
-        animationEpoch={animationEpoch}
         onOpen={onOpen}
         className="pointer-events-auto"
       />
@@ -397,9 +372,6 @@ export function ThoughtComposerBubblePortal({
     }
 
     window.addEventListener('resize', updatePosition);
-    const vv = window.visualViewport;
-    vv?.addEventListener('scroll', updatePosition, { passive: true });
-    vv?.addEventListener('resize', updatePosition, { passive: true });
 
     return () => {
       resizeObserver.disconnect();
@@ -407,8 +379,6 @@ export function ThoughtComposerBubblePortal({
         parent.removeEventListener('scroll', updatePosition);
       }
       window.removeEventListener('resize', updatePosition);
-      vv?.removeEventListener('scroll', updatePosition);
-      vv?.removeEventListener('resize', updatePosition);
     };
   }, [anchorRef, showBubble, mode, variant]);
 

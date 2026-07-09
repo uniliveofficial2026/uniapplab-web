@@ -4,7 +4,6 @@ import type {
   KaraokeProfileBackgroundMediaKind,
 } from '../../lib/karaokeProfileBackground';
 import { layoutKaraokeProfileBackgroundMedia } from '../../lib/karaokeProfileBackground';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { useKaraokeProfileBackgroundUrl } from './useKaraokeProfileBackgroundUrl';
 
 type KaraokeProfileBackgroundProps = {
@@ -63,6 +62,8 @@ function KaraokeProfileBackgroundMedia({
     const video = videoRef.current;
     if (!video || mediaKind !== 'video' || !playableUrl) return;
     video.muted = true;
+    video.defaultMuted = true;
+    video.playsInline = true;
     const play = () => {
       void video.play().catch(() => {
         /* autoplay policy */
@@ -70,7 +71,28 @@ function KaraokeProfileBackgroundMedia({
     };
     play();
     video.addEventListener('loadeddata', play);
-    return () => video.removeEventListener('loadeddata', play);
+    video.addEventListener('canplay', play);
+
+    // KeepAliveTab pauses videos while the karaoke tab is hidden — resume when visible again.
+    const root = containerRef.current;
+    const visibilityObserver =
+      typeof IntersectionObserver !== 'undefined' && root
+        ? new IntersectionObserver(
+            (entries) => {
+              if (entries.some((entry) => entry.isIntersecting && entry.intersectionRatio > 0)) {
+                play();
+              }
+            },
+            { threshold: 0.05 },
+          )
+        : null;
+    if (root && visibilityObserver) visibilityObserver.observe(root);
+
+    return () => {
+      video.removeEventListener('loadeddata', play);
+      video.removeEventListener('canplay', play);
+      visibilityObserver?.disconnect();
+    };
   }, [playableUrl, mediaKind]);
 
   const layout = layoutKaraokeProfileBackgroundMedia(
@@ -104,8 +126,8 @@ function KaraokeProfileBackgroundMedia({
           src={playableUrl}
           className={
             useFocusLayout
-              ? 'absolute left-1/2 top-1/2 max-w-none pointer-events-auto'
-              : 'absolute inset-0 h-full w-full object-cover pointer-events-auto'
+              ? 'absolute left-1/2 top-1/2 max-w-none'
+              : 'absolute inset-0 h-full w-full object-cover'
           }
           style={
             useFocusLayout
@@ -120,14 +142,12 @@ function KaraokeProfileBackgroundMedia({
           muted
           loop
           playsInline
-          controls
           preload="auto"
           aria-hidden
           onLoadedMetadata={(event) => {
             const video = event.currentTarget;
             setMediaSize({ w: video.videoWidth, h: video.videoHeight });
           }}
-          {...nativeVideoControlGuardProps()}
         />
       ) : (
         <img
@@ -164,14 +184,14 @@ export function KaraokeProfileBackground({
   mimeType,
   mediaKind = 'image',
   focus = null,
-  className = 'relative h-48 overflow-hidden',
+  className = 'relative aspect-[2.4/1] w-full overflow-hidden',
   overlayClassName = 'absolute inset-0 bg-gradient-to-t from-background/80 via-background/20 to-black/25',
   children,
 }: KaraokeProfileBackgroundProps) {
   const hasMedia = Boolean(url || mediaId);
 
   return (
-    <div className={className}>
+    <div className={className} style={{ aspectRatio: '2.4 / 1' }}>
       {hasMedia ? (
         <KaraokeProfileBackgroundMedia
           url={url ?? ''}

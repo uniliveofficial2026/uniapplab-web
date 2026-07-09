@@ -9,7 +9,7 @@ import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
 
 const INFRA_PATTERNS =
-  /not configured|network|fetch|timeout|timed out|failed to fetch|service unavailable|522|524|503|502|504|econnrefused|health|unavailable|connection|database error|postgres|pgrst|internal server error|could not connect|relation.*does not exist/i;
+  /not configured|network|fetch|timeout|timed out|failed to fetch|service unavailable|522|524|503|502|504|econnrefused|health|unavailable|connection/i;
 
 export function isInfrastructureAuthFailure(reason: string): boolean {
   return INFRA_PATTERNS.test(reason);

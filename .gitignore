@@ -28,7 +28,6 @@ node_modules
 !.vscode/extensions.json
 
 # misc
-scripts/.tools/
 /.sass-cache
 /connect.lock
 /coverage
@@ -42,10 +41,6 @@ testem.log
 .env
 .env.*
 !.env.example
-**/firebase.web.config.json
-**/google-services.json
-**/firebase-applet-config.json
-attached_assets/extracted/remix_-instacollab/.env.example
 
 # System Files
 .DS_Store
@@ -57,13 +52,11 @@ Thumbs.db
 # Replit
 .cache/
 .local/
-.vercel
-.env*
 
-# DeepAR generated assets (run pnpm --filter @workspace/instacollab run deepar:install)
-artifacts/instacollab/public/deepar-resources/
-artifacts/instacollab/public/effects/
-artifacts/instacollab/public/.deepar-assets-installed.json
+# Vercel staging mirror (local deploy prep — never push)
+.vercel/
+
+# Large vendor archives / media (CDN or download at build — not in git)
+**/vendor/archives/*.zip
 artifacts/instacollab/vendor/archives/
-artifacts/instacollab/api/_bundle/
-artifacts/instacollab/api/index.js
+artifacts/instacollab/public/trtc-webar/backgrounds/video-bg-2.mp4

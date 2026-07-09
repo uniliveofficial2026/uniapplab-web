@@ -1,26 +1,26 @@
-import {
-  fetchOwnerActivePartyRoom,
-  fetchPartyRoomById,
-} from '../supabase/partyRooms';
-import {
-  findOwnedManagedRoomId,
-  getStoredOwnerPartyRoomId,
-} from '../../smule-rooms/utils/ownerPartyRoomId';
-import type { RoomFlowEntry } from '../../smule-rooms/context/RoomFlowContext';
-import type { RoomMode } from '../../smule-rooms/utils/storage';
-import { getRoomSettings } from '../../smule-rooms/utils/storage';
-import { roomModeFromLiveKind } from '../liveRing';
 import type { LiveKind } from '../../types';
+import type { RoomFlowEntry } from '../../smule-rooms/context/RoomFlowContext';
+import type { PendingCrossRoomPk } from '../../smule-rooms/utils/pkPendingChallenge';
+import type { PendingLiveRoomOpen } from './pendingLiveRoomOpen';
 
 export type OpenKaraokeRoomDetail = {
   path?: string;
   roomId?: string;
   entry?: RoomFlowEntry;
   roomName?: string;
-  roomMode?: RoomMode | string;
+  roomMode?: string;
   hostUserId?: string;
   hostName?: string;
   asViewer?: boolean;
+};
+
+export type OpenLiveUserRoomOptions = {
+  partyRoomId?: string | null;
+  roomName?: string;
+  roomMode?: string;
+  hostName?: string;
+  liveKind?: LiveKind;
+  streamId?: string | null;
 };
 
 let pendingKaraokeRoomOpen: OpenKaraokeRoomDetail | null = null;
@@ -61,18 +61,17 @@ export function openKaraokeRoomFlow(detail: OpenKaraokeRoomDetail): void {
     entry: detail.entry ?? 'karaoke-party',
   };
 
-  // Persist until KaraokeScreen mounts and consumes — tab switch is async.
   pendingKaraokeRoomOpen = payload;
 
   window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'karaoke' } }));
 
   const dispatch = () => dispatchKaraokeRoomOpen(payload);
-  // Instant open — no artificial delay; rAF only for mount timing.
   dispatch();
   requestAnimationFrame(dispatch);
 }
 
 let karaokePreload: Promise<unknown> | null = null;
+let roomsPreload: Promise<unknown> | null = null;
 
 /** Warm the karaoke chunk so Go Live does not wait on a cold lazy import. */
 export function preloadKaraokeScreen(): Promise<unknown> {
@@ -84,56 +83,140 @@ export function preloadKaraokeScreen(): Promise<unknown> {
   return karaokePreload;
 }
 
-/** Open Create Room (Go Live / party) from the main Live tab — never blocks on network. */
-export function openGoLiveCreateRoom(): void {
-  void preloadKaraokeScreen();
-  openKaraokeRoomFlow({ path: '/room/create', entry: 'karaoke-party', asViewer: false });
+/** Warm the rooms shell for Live discovery joins. */
+export function preloadRoomsHost(): Promise<unknown> {
+  if (!roomsPreload) {
+    roomsPreload = import('../../smule-rooms/RoomsHost').catch(() => {
+      roomsPreload = null;
+    });
+  }
+  return roomsPreload;
 }
 
-export type OpenLiveUserRoomOptions = {
-  partyRoomId?: string | null;
-  roomName?: string;
-  roomMode?: string;
-  hostName?: string;
-  liveKind?: LiveKind;
-  streamId?: string | null;
-};
+/** Open Create Room (Go Live) from the Live tab — karaoke embed → CreateRoom. */
+export function openGoLiveCreateRoom(): void {
+  void preloadKaraokeScreen();
+  openKaraokeRoomFlow({
+    path: '/room/create',
+    entry: 'karaoke-party',
+  });
+}
 
-function openViewerRoom(options: {
+async function seedRoomSettingsForJoin(options: {
+  roomId: string;
+  roomName: string;
+  roomMode: string;
+  hostUserId: string;
+  hostName: string;
+  asViewer: boolean;
+}): Promise<void> {
+  const [
+    { ensureRoomSettingsSeeded, saveRoomSettings },
+    { ensureRoomRoleUserIds },
+  ] = await Promise.all([
+    import('../../smule-rooms/utils/storage'),
+    import('../../smule-rooms/utils/roomRoleUsers'),
+  ]);
+
+  ensureRoomSettingsSeeded(options.roomId, {
+    roomId: options.roomId,
+    roomName: options.roomName,
+    roomMode: options.roomMode,
+    owner: options.hostName,
+    ownerUserId: options.hostUserId,
+    hostUserId: options.hostUserId,
+    host: options.hostName,
+  });
+
+  if (options.asViewer) {
+    saveRoomSettings(options.roomId, {
+      roomId: options.roomId,
+      roomName: options.roomName,
+      roomMode: options.roomMode,
+      owner: options.hostName,
+      ownerUserId: options.hostUserId,
+      hostUserId: options.hostUserId,
+      host: options.hostName,
+    });
+    localStorage.setItem('currentUserRole', 'user');
+  }
+
+  ensureRoomRoleUserIds(options.roomId);
+  localStorage.setItem('activeRoomId', options.roomId);
+}
+
+async function resolveViewerRoomMode(
+  roomId: string,
+  roomMode?: string,
+  liveKind?: LiveKind,
+): Promise<string> {
+  if (roomMode?.trim()) return roomMode.trim();
+  if (liveKind) {
+    const { roomModeFromLiveKind } = await import('../liveRing');
+    return roomModeFromLiveKind(liveKind);
+  }
+  const { getRoomSettings } = await import('../../smule-rooms/utils/storage');
+  const settings = getRoomSettings(roomId);
+  return String(settings.roomMode || '') || 'Solo-Live';
+}
+
+async function openDiscoveryViewerRoom(options: {
   roomId: string;
   roomName?: string;
   roomMode?: string;
   hostUserId: string;
   hostName?: string;
   liveKind?: LiveKind;
-}): void {
-  const settings = getRoomSettings(options.roomId);
-  const roomMode =
-    options.roomMode ||
-    (options.liveKind ? roomModeFromLiveKind(options.liveKind) : '') ||
-    String(settings.roomMode || '') ||
-    'Solo-Live';
-  const roomName =
-    options.roomName ||
-    settings.roomName ||
-    `${options.hostName || 'Live'} room`;
-  const hostUserId = settings.ownerUserId || options.hostUserId;
+}): Promise<void> {
+  void preloadRoomsHost();
 
-  openKaraokeRoomFlow({
-    path: `/room/${options.roomId}`,
+  const { getRoomSettings } = await import('../../smule-rooms/utils/storage');
+  const { dispatchRoomsLiveOpen, stashPendingLiveRoomOpen } = await import('./pendingLiveRoomOpen');
+
+  const roomMode = await resolveViewerRoomMode(options.roomId, options.roomMode, options.liveKind);
+  const roomName =
+    options.roomName?.trim() ||
+    getRoomSettings(options.roomId).roomName?.trim() ||
+    `${options.hostName || 'Live'} room`;
+  const hostUserId = getRoomSettings(options.roomId).ownerUserId || options.hostUserId;
+  const hostName = options.hostName?.trim() || roomName || 'Host';
+  const path = `/room/${options.roomId}`;
+
+  await seedRoomSettingsForJoin({
     roomId: options.roomId,
-    entry: 'karaoke-party',
     roomName,
     roomMode,
     hostUserId,
-    hostName: options.hostName || roomName || 'Host',
+    hostName,
     asViewer: true,
   });
+
+  const payload: PendingLiveRoomOpen = {
+    path,
+    roomId: options.roomId,
+    entry: 'live-discovery',
+    asViewer: true,
+    hostUserId,
+    hostName,
+    roomName,
+    roomMode,
+    liveKind: options.liveKind,
+  };
+
+  stashPendingLiveRoomOpen(payload);
+
+  window.dispatchEvent(
+    new CustomEvent('navigate', {
+      detail: { tab: 'rooms', roomsPath: path },
+    }),
+  );
+
+  dispatchRoomsLiveOpen(payload);
 }
 
 /**
- * Open a live host's party room from the live ring / Live cards.
- * Card/local metadata opens instantly; cloud is only used when no room id is known.
+ * Open a live host's party room from the Live discovery feed.
+ * Card/local metadata opens instantly; cloud resolves room id when missing.
  */
 export async function openLiveUserRoom(
   hostUserId: string,
@@ -144,11 +227,11 @@ export async function openLiveUserRoom(
 
   const hostName = options?.hostName?.trim() || '';
   let roomId = options?.partyRoomId?.trim() || '';
-  let roomName = options?.roomName?.trim() || '';
-  let roomMode = options?.roomMode?.trim() || '';
+  const roomName = options?.roomName?.trim() || '';
+  const roomMode = options?.roomMode?.trim() || '';
 
   if (roomId) {
-    openViewerRoom({
+    await openDiscoveryViewerRoom({
       roomId,
       roomName,
       roomMode,
@@ -156,14 +239,16 @@ export async function openLiveUserRoom(
       hostName,
       liveKind: options?.liveKind,
     });
-    // Silent enrich — does not block join.
-    void fetchPartyRoomById(roomId).catch(() => {});
+    void import('../supabase/partyRooms').then((m) => m.fetchPartyRoomById(roomId)).catch(() => {});
     return true;
   }
 
+  const { getStoredOwnerPartyRoomId, findOwnedManagedRoomId } = await import(
+    '../../smule-rooms/utils/ownerPartyRoomId'
+  );
   const localId = getStoredOwnerPartyRoomId(hostId) ?? findOwnedManagedRoomId(hostId);
   if (localId) {
-    openViewerRoom({
+    await openDiscoveryViewerRoom({
       roomId: localId,
       roomName,
       roomMode,
@@ -175,9 +260,10 @@ export async function openLiveUserRoom(
   }
 
   try {
+    const { fetchOwnerActivePartyRoom } = await import('../party/partyRoomsCloud');
     const cloud = await fetchOwnerActivePartyRoom(hostId);
     if (cloud?.id) {
-      openViewerRoom({
+      await openDiscoveryViewerRoom({
         roomId: cloud.id,
         roomName: roomName || cloud.room_name || '',
         roomMode: roomMode || cloud.room_mode || '',
@@ -191,7 +277,43 @@ export async function openLiveUserRoom(
     /* stay on Live */
   }
 
-  // No joinable room yet — keep user on Live rather than a dead navigation.
   window.dispatchEvent(new CustomEvent('navigate', { detail: { tab: 'live' } }));
   return false;
+}
+
+/** Return to your party room and start a cross-room PK against a live discovery target. */
+export async function openOwnPartyRoomForPkChallenge(
+  challenge: PendingCrossRoomPk,
+  ownerUserId: string,
+): Promise<void> {
+  const { CROSS_ROOM_PK_ENABLED } = await import('../../smule-rooms/utils/pkCrossRoom');
+  if (!CROSS_ROOM_PK_ENABLED) return;
+
+  const { getStoredOwnerPartyRoomId, resolveLocalOwnerPartyRoomId } = await import(
+    '../../smule-rooms/utils/ownerPartyRoomId'
+  );
+  const { setPendingCrossRoomPk } = await import('../../smule-rooms/utils/pkPendingChallenge');
+  const { dispatchRoomsLiveOpen, stashPendingLiveRoomOpen } = await import('./pendingLiveRoomOpen');
+
+  const roomId =
+    getStoredOwnerPartyRoomId(ownerUserId) ??
+    resolveLocalOwnerPartyRoomId(ownerUserId, { createIfMissing: true });
+  if (!roomId) return;
+
+  setPendingCrossRoomPk(challenge);
+  void preloadRoomsHost();
+  const path = `/room/${roomId}`;
+  const payload: PendingLiveRoomOpen = {
+    path,
+    roomId,
+    entry: 'live-discovery',
+    asViewer: false,
+  };
+  stashPendingLiveRoomOpen(payload);
+  window.dispatchEvent(
+    new CustomEvent('navigate', {
+      detail: { tab: 'rooms', roomsPath: path },
+    }),
+  );
+  dispatchRoomsLiveOpen(payload);
 }

@@ -42,24 +42,46 @@ import { getMessageTimestampMs } from './messages/messageTime';
 import {
   areBothParticipantsInChat,
   getIncomingReadLabelWatermark,
+  isChatReceiptLive,
   newestMessageTimestampMs,
 } from './messages/chatReadReceipts';
+import { isMessageDeleted, isMessageHiddenForMe, countThreadDeliveryStates } from './messages/messageState';
 import { resolveUserTyping, TYPING_IDLE_MS } from './messages/chatTyping';
 import { stopAllChatMedia } from '../../lib/chatMediaPlayback';
 import { MessagesSidebar } from './MessagesSidebar';
 import { MessagesEmptyChat } from './MessagesEmptyChat';
 import { MessagesChatHeader } from './MessagesChatHeader';
-import { MessagesActiveCallOverlay } from './MessagesActiveCallOverlay';
 import { MessagesChatThread } from './MessagesChatThread';
 import { MessagesComposeBar } from './MessagesComposeBar';
 import { MessagesScreenOverlays } from './MessagesScreenOverlays';
+import { attachCameraCaptureMedia } from '../../lib/camera/attachCameraCaptureMedia';
+import { cameraCaptureToDataUrl } from '../../lib/camera/cameraCaptureAdapters';
+import type { AppCameraCapturePayload } from '../../contexts/AppCameraContext';
 import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
 import {
+  ensureCloudThreadForChat,
+  ensureCloudThreadForGroup,
   ensureCloudThreadForPeer,
-  startCloudChatRealtime,
+  healOutboundDeliveryForChat,
+  isGroupChatId,
+  refreshCloudChatInboxList,
+  retryCloudMessageSend,
   syncCloudChatHistory,
   syncCloudChatInbox,
 } from '../../lib/chat/cloudChatSync';
+import {
+  requestChatPopoutPermission,
+  setActiveChatViewId,
+} from '../../lib/chat/chatNotificationBridge';
+import {
+  collectThreadMapPeerIds,
+  mergeGroupsFromThreadMap,
+  sortChatsByLastActivity,
+} from './messages/chatInboxUtils';
+import {
+  refreshLiveCloudSurface,
+  subscribeLiveCloudSurfaceRefresh,
+} from '../../lib/liveCloudSurfaces';
 import {
   fetchOnlinePresence,
   isPlatformApiAvailable,
@@ -67,8 +89,9 @@ import {
   postPresenceHeartbeat,
 } from '../../lib/platformApi';
 import { useDiscoverableUserSearch } from '../../hooks/useDiscoverableUserSearch';
-import { useChatCall } from '../../lib/chat/useChatCall';
-import { ensureCloudThreadForGroup } from '../../lib/chat/cloudChatSync';
+import { useChatCallContext } from '../../contexts/ChatCallContext';
+import { resolveActiveGroupCall } from '../../lib/chat/chatCallKit';
+import { GroupActiveCallBanner } from './GroupActiveCallBanner';
 
 const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
 
@@ -111,7 +134,15 @@ export function MessagesScreen({
     }
   }, [initialChatId, onClearInitialChatId]);
 
-  const chatCall = useChatCall(currentUser.id);
+  useEffect(() => {
+    setActiveChatViewId(selectedChatId);
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    void requestChatPopoutPermission();
+  }, []);
+
+  const chatCall = useChatCallContext();
   const [messageText, setMessageText] = useState('');
   const [openReactionPickerKey, setOpenReactionPickerKey] = useState<string | null>(null);
   const [reactionPickerDirection, setReactionPickerDirection] = useState<'up' | 'down'>('up');
@@ -194,10 +225,11 @@ export function MessagesScreen({
   };
 
   const handleMediaUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
-      if (e.target.files && e.target.files.length > 0) {
-        try {
-          const files = Array.from(e.target.files);
-          const newMedia = await Promise.all(files.map(async (file) => {
+    if (e.target.files && e.target.files.length > 0) {
+      try {
+        const files = Array.from(e.target.files);
+        const newMedia = await Promise.all(
+          files.map(async (file) => {
             const uploaded = await processUploadFile(file);
             const kind = detectMediaKind(file);
             return {
@@ -207,15 +239,35 @@ export function MessagesScreen({
               name: uploaded.name,
               mimeType: file.type || undefined,
             };
-          }));
-          setChatMedia((prev) => [...prev, ...newMedia]);
-          setShowAttachmentMenu(false);
-        } catch {
-          showToast('Error processing media');
-        } finally {
-          e.target.value = '';
-        }
+          }),
+        );
+        setChatMedia((prev) => [...prev, ...newMedia]);
+        setShowAttachmentMenu(false);
+      } catch {
+        showToast('Error processing media');
+      } finally {
+        e.target.value = '';
       }
+    }
+  };
+
+  const handleCameraCaptured = async (payload: {
+    kind: 'photo' | 'video';
+    url: string;
+    blob?: Blob;
+  }) => {
+    try {
+      const item = await attachCameraCaptureMedia(payload);
+      setChatMedia((prev) => [...prev, item]);
+      setShowAttachmentMenu(false);
+      showToast(
+        payload.kind === 'video'
+          ? 'Video attached — tap Send'
+          : 'Photo attached — tap Send',
+      );
+    } catch {
+      showToast('Could not attach camera capture');
+    }
   };
 
   const resetNewGroupForm = () => {
@@ -247,6 +299,14 @@ export function MessagesScreen({
     } finally {
       event.target.value = '';
     }
+  };
+
+  const handleNewGroupAvatarCamera = async (payload: AppCameraCapturePayload) => {
+    if (payload.kind !== 'photo') {
+      showToast('Group profile must be a photo.');
+      return;
+    }
+    setNewGroupAvatar(payload.url);
   };
 
   const handleCreateGroup = () => {
@@ -341,7 +401,12 @@ export function MessagesScreen({
     }
   };
 
-  const groups = db.chatGroups;
+  const groups = React.useMemo(() => {
+    const threadMap = db.load<Record<string, string>>('chat_cloud_thread_map', {}) || {};
+    return mergeGroupsFromThreadMap(db.chatGroups, threadMap);
+  }, [db, db.chatGroups]);
+
+  const cloudThreadMap = db.load<Record<string, string>>('chat_cloud_thread_map', {}) || {};
 
   const [newGroupName, setNewGroupName] = useState('');
   const [groupManageSearchQuery, setGroupManageSearchQuery] = useState('');
@@ -360,8 +425,15 @@ export function MessagesScreen({
       if (byId.has(chatId)) continue;
       byId.set(chatId, resolveUser(USERS, findUserById(USERS, chatId)));
     }
-    return Array.from(byId.values());
-  }, [USERS, currentUser.id, groupIds, messages]);
+    for (const chatId of collectThreadMapPeerIds(cloudThreadMap, {
+      currentUserId: currentUser.id,
+      groupIds,
+    })) {
+      if (byId.has(chatId)) continue;
+      byId.set(chatId, resolveUser(USERS, findUserById(USERS, chatId)));
+    }
+    return sortChatsByLastActivity(Array.from(byId.values()), messages);
+  }, [USERS, currentUser.id, groupIds, messages, cloudThreadMap]);
 
   const cloudPeerIds = React.useMemo(
     () => directMessageUsers.map((user) => user.id).filter((id) => isCloudAuthUserId(id)),
@@ -398,6 +470,7 @@ export function MessagesScreen({
   const [typingByUserId, setTypingByUserId] = useState<Record<string, boolean>>(
     () => Object.fromEntries(USERS.map((user) => [user.id, !!db.getUserPresence(user.id).typing]))
   );
+  const [groupTypingByChatId, setGroupTypingByChatId] = useState<Record<string, boolean>>({});
   const typingTimeoutsRef = React.useRef<Record<string, number>>({});
   const peerMirrorTypingRef = React.useRef(false);
   const presenceMapDebounceRef = React.useRef<number | null>(null);
@@ -458,7 +531,7 @@ export function MessagesScreen({
   }, []);
 
   const setUserTypingState = React.useCallback(
-    (userId: string, value: boolean, autoClearMs = 0) => {
+    (userId: string, value: boolean, autoClearMs = 0, options?: { skipDb?: boolean }) => {
       if (!userId) return;
       const previousTimeout = typingTimeoutsRef.current[userId];
       if (previousTimeout) {
@@ -466,11 +539,15 @@ export function MessagesScreen({
         delete typingTimeoutsRef.current[userId];
       }
       setTypingByUserId((prev) => ({ ...prev, [userId]: value }));
-      db.setUserTyping(userId, value);
+      if (!options?.skipDb) {
+        db.setUserTyping(userId, value);
+      }
       if (value && autoClearMs > 0) {
         typingTimeoutsRef.current[userId] = window.setTimeout(() => {
           setTypingByUserId((prev) => ({ ...prev, [userId]: false }));
-          db.setUserTyping(userId, false);
+          if (!options?.skipDb) {
+            db.setUserTyping(userId, false);
+          }
           delete typingTimeoutsRef.current[userId];
         }, autoClearMs);
       }
@@ -647,8 +724,29 @@ export function MessagesScreen({
   }, [persistedPeerReadState]);
 
   useEffect(() => {
-    db.setUserPresence(currentUser.id, { activeChatId: selectedChatId || null });
+    const onReadState = (event: Event) => {
+      const detail = (event as CustomEvent<{ chatId?: string; peerReadAt?: number }>).detail;
+      if (!detail?.chatId || typeof detail.peerReadAt !== 'number') return;
+      setChatPeerReadAt((prev) => {
+        const previous = prev[detail.chatId!] || 0;
+        if (detail.peerReadAt! <= previous) return prev;
+        return { ...prev, [detail.chatId!]: detail.peerReadAt! };
+      });
+    };
+    window.addEventListener('chat-read-state-updated', onReadState);
+    return () => window.removeEventListener('chat-read-state-updated', onReadState);
+  }, []);
+
+  useEffect(() => {
+    db.setUserPresence(
+      currentUser.id,
+      { activeChatId: selectedChatId || null },
+      { ephemeral: true },
+    );
   }, [db, currentUser.id, selectedChatId]);
+
+  const liveCloudChat =
+    isPlatformApiAvailable() && isCloudAuthUserId(currentUser.id);
 
   const selectedPeerId =
     selectedUser && !('isGroup' in selectedUser) ? selectedUser.id : null;
@@ -667,6 +765,7 @@ export function MessagesScreen({
   }, []);
 
   useEffect(() => {
+    if (liveCloudChat) return;
     if (presenceMapDebounceRef.current) {
       window.clearTimeout(presenceMapDebounceRef.current);
     }
@@ -695,7 +794,7 @@ export function MessagesScreen({
       });
       const persisted = persistedPresence || {};
       if (JSON.stringify(persisted) !== JSON.stringify(nextPresenceMap)) {
-        db.setChatPresenceMap(nextPresenceMap);
+        db.setChatPresenceMap(nextPresenceMap, { ephemeral: true });
       }
     }, 120);
     return () => {
@@ -705,6 +804,7 @@ export function MessagesScreen({
       }
     };
   }, [
+    liveCloudChat,
     db,
     USERS,
     currentUser.id,
@@ -716,20 +816,30 @@ export function MessagesScreen({
     persistedPresence,
   ]);
 
+  const readPersistDebounceRef = React.useRef<number | null>(null);
   const lastPersistedReadSnapshotRef = React.useRef('');
   useEffect(() => {
     const snapshot = JSON.stringify(chatLastReadAt);
     if (snapshot === lastPersistedReadSnapshotRef.current) return;
-    lastPersistedReadSnapshotRef.current = snapshot;
-    Object.entries(chatLastReadAt).forEach(([chatId, timestamp]) => {
-      if (typeof timestamp !== 'number') return;
-      const persisted = db.getChatReadAt(chatId);
-      if (timestamp < persisted) {
-        db.setChatReadAt(chatId, timestamp, { allowDecrease: true });
-      } else {
-        db.setChatReadAt(chatId, timestamp);
+    if (readPersistDebounceRef.current) window.clearTimeout(readPersistDebounceRef.current);
+    readPersistDebounceRef.current = window.setTimeout(() => {
+      readPersistDebounceRef.current = null;
+      lastPersistedReadSnapshotRef.current = snapshot;
+      Object.entries(chatLastReadAt).forEach(([chatId, timestamp]) => {
+        if (typeof timestamp !== 'number') return;
+        const persisted = db.getChatReadAt(chatId);
+        if (timestamp < persisted) {
+          db.setChatReadAt(chatId, timestamp, { allowDecrease: true });
+        } else if (timestamp > persisted) {
+          db.setChatReadAt(chatId, timestamp);
+        }
+      });
+    }, 300);
+    return () => {
+      if (readPersistDebounceRef.current) {
+        window.clearTimeout(readPersistDebounceRef.current);
       }
-    });
+    };
   }, [db, chatLastReadAt]);
 
   const lastPersistedPeerReadSnapshotRef = React.useRef('');
@@ -799,18 +909,37 @@ export function MessagesScreen({
     };
   }, [selectedUser]);
 
-  // Keep cloud DMs live for both Shell and Karaoke Messages entries.
+  // Cloud chat: instant inbox list + debounced history sync.
+  const inboxSyncDebounceRef = React.useRef<number | null>(null);
   useEffect(() => {
     if (!isPlatformApiAvailable() || !isCloudAuthUserId(currentUser.id)) return;
-    void startCloudChatRealtime(currentUser.id);
-    void syncCloudChatInbox();
-    const inboxTimer = window.setInterval(() => {
-      void syncCloudChatInbox();
-    }, 20_000);
-    return () => {
-      window.clearInterval(inboxTimer);
+    void refreshCloudChatInboxList();
+    refreshLiveCloudSurface('messages', { force: true });
+    const scheduleInboxSync = () => {
+      if (inboxSyncDebounceRef.current) window.clearTimeout(inboxSyncDebounceRef.current);
+      inboxSyncDebounceRef.current = window.setTimeout(() => {
+        void syncCloudChatInbox(
+          selectedChatId ? { chatIds: [selectedChatId] } : undefined,
+        );
+      }, 400);
     };
-  }, [currentUser.id]);
+    const onInboxActivity = () => {
+      void refreshCloudChatInboxList();
+      scheduleInboxSync();
+    };
+    window.addEventListener('chat-inbox-activity', onInboxActivity);
+    const unsub = subscribeLiveCloudSurfaceRefresh(['messages', 'all'], scheduleInboxSync);
+    return () => {
+      unsub();
+      window.removeEventListener('chat-inbox-activity', onInboxActivity);
+      if (inboxSyncDebounceRef.current) window.clearTimeout(inboxSyncDebounceRef.current);
+    };
+  }, [currentUser.id, selectedChatId]);
+
+  useEffect(() => {
+    if (!selectedChatId || !liveCloudChat) return;
+    void ensureCloudThreadForChat(selectedChatId);
+  }, [selectedChatId, liveCloudChat]);
 
   // Real online presence for DM peers across the internet.
   useEffect(() => {
@@ -858,9 +987,14 @@ export function MessagesScreen({
 
     void refreshPresence();
     const timer = window.setInterval(refreshPresence, 12_000);
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') void refreshPresence();
+    };
+    document.addEventListener('visibilitychange', onVisible);
     return () => {
       cancelled = true;
       window.clearInterval(timer);
+      document.removeEventListener('visibilitychange', onVisible);
     };
   }, [currentUser.id, cloudPeerIds]);
 
@@ -881,8 +1015,12 @@ export function MessagesScreen({
 
   useEffect(() => {
     if (!selectedChatId || !isPlatformApiAvailable()) return;
-    if (!isCloudAuthUserId(currentUser.id) || !isCloudAuthUserId(selectedChatId)) return;
-    void syncCloudChatHistory(selectedChatId);
+    if (!isCloudAuthUserId(currentUser.id)) return;
+    if (!isGroupChatId(selectedChatId) && !isCloudAuthUserId(selectedChatId)) return;
+    const timer = window.setTimeout(() => {
+      void syncCloudChatHistory(selectedChatId);
+    }, 400);
+    return () => window.clearTimeout(timer);
   }, [currentUser.id, selectedChatId]);
 
   useEffect(() => {
@@ -1017,7 +1155,8 @@ export function MessagesScreen({
       markUserActive(currentUser.id);
       db.addMessage(selectedUser.id, { 
         text: messageText, 
-        isAuthor: true, 
+        isAuthor: true,
+        from: currentUser.id,
         timestamp: sentTimestamp,
         replyTo: replyToMessage ? { ...replyToMessage } : undefined,
         replyToMany: replyToMessages.length > 0 ? replyToMessages.map((reply) => ({ ...reply })) : undefined,
@@ -1026,7 +1165,12 @@ export function MessagesScreen({
     }
     
     setMessageText('');
-    setUserTypingState(currentUser.id, false);
+    const skipDbTyping =
+      liveCloudChat &&
+      selectedUser &&
+      !('isGroup' in selectedUser) &&
+      isLiveCloudDm(selectedUser.id);
+    setUserTypingState(currentUser.id, false, 0, { skipDb: skipDbTyping });
     setTokenSuggestion(null);
     setActiveTokenIndex(0);
     setOpenReactionPickerKey(null);
@@ -1037,7 +1181,7 @@ export function MessagesScreen({
     setChatMedia([]);
     clearRecording();
     stickToBottomRef.current = true;
-    requestAnimationFrame(() => scrollToBottom('smooth'));
+    requestAnimationFrame(() => scrollToBottom('auto'));
 
     // Simulated replies for local/demo peers only — real cloud DMs use Supabase sync.
     if (!wasEditing && !('isGroup' in selectedUser)) {
@@ -1207,6 +1351,7 @@ export function MessagesScreen({
     });
     setShowLocationShareSheet(false);
     stickToBottomRef.current = true;
+    requestAnimationFrame(() => scrollToBottom('auto'));
     showToast(`Shared ${getLocationPreviewLabel(location)}`);
   };
 
@@ -1272,6 +1417,24 @@ export function MessagesScreen({
     } finally {
       event.target.value = '';
     }
+  };
+
+  const handleGroupSettingsAvatarCamera = async (payload: AppCameraCapturePayload) => {
+    if (!selectedGroup) return;
+    const ownerId = selectedGroup.createdBy || currentUser.id;
+    if (ownerId !== currentUser.id) {
+      showToast('Only the group owner can change group profile.');
+      return;
+    }
+    if (payload.kind !== 'photo') {
+      showToast('Group profile must be a photo.');
+      return;
+    }
+    updateGroupById(selectedGroup.id, (group: ChatGroup) => ({
+      ...group,
+      avatarUrl: payload.url,
+    }));
+    showToast('Group profile updated');
   };
 
   const handleAddGroupMember = (userId: string) => {
@@ -1407,8 +1570,38 @@ export function MessagesScreen({
     ? (Array.isArray(messages[selectedUser.id]) ? messages[selectedUser.id]! : EMPTY_CHAT_MESSAGES)
     : EMPTY_CHAT_MESSAGES;
 
+  const [deliveryTick, setDeliveryTick] = useState(0);
+  const outboundDelivery = React.useMemo(
+    () => countThreadDeliveryStates(currentMessages),
+    [currentMessages, deliveryTick],
+  );
+
+  useEffect(() => {
+    if (!selectedChatId) return;
+    healOutboundDeliveryForChat(selectedChatId);
+  }, [selectedChatId]);
+
+  useEffect(() => {
+    if (outboundDelivery.sending === 0) return;
+    const id = window.setInterval(() => setDeliveryTick((t) => t + 1), 500);
+    return () => window.clearInterval(id);
+  }, [outboundDelivery.sending, selectedChatId]);
+
+  const handleRetryFailedMessages = React.useCallback(() => {
+    if (!selectedChatId) return;
+    for (const msg of currentMessages) {
+      if (msg.isAuthor && msg.deliveryStatus === 'failed' && msg.id) {
+        retryCloudMessageSend(selectedChatId, msg);
+      }
+    }
+  }, [selectedChatId, currentMessages]);
+
   const viewerInDirectChat =
     !!selectedChatId && !!selectedUser && !('isGroup' in selectedUser);
+
+  const viewerInActiveChat = !!selectedChatId && !!selectedUser;
+
+  const isGroupChat = !!(selectedUser && 'isGroup' in selectedUser);
 
   const bothParticipantsInChat = React.useMemo(() => {
     if (!viewerInDirectChat || !selectedChatId || !selectedUser || 'isGroup' in selectedUser) {
@@ -1431,7 +1624,7 @@ export function MessagesScreen({
   }, [selectedChatId]);
 
   useEffect(() => {
-    if (!selectedChatId || !viewerInDirectChat) return;
+    if (!selectedChatId || !viewerInDirectChat || isGroupChat) return;
     if (bothParticipantsInChat) {
       delete soloReadLabelCapRef.current[selectedChatId];
       setReadLabelCapByChatId((prev) => {
@@ -1446,7 +1639,141 @@ export function MessagesScreen({
     const cap = chatLastReadAt[selectedChatId] || 0;
     soloReadLabelCapRef.current[selectedChatId] = cap;
     setReadLabelCapByChatId((prev) => ({ ...prev, [selectedChatId]: cap }));
-  }, [selectedChatId, viewerInDirectChat, bothParticipantsInChat, chatLastReadAt]);
+  }, [selectedChatId, viewerInDirectChat, isGroupChat, bothParticipantsInChat, chatLastReadAt]);
+
+  const receiptLive = isChatReceiptLive(viewerInActiveChat);
+
+  const groupOnlineLabel = React.useMemo(() => {
+    if (!selectedGroup?.memberIds?.length) return '';
+    const members = selectedGroup.memberIds.filter((id) => id && id !== currentUser.id);
+    const onlineCount = members.filter((id) => !!onlineStatusByUserId[id]).length;
+    if (onlineCount > 0) return `${onlineCount} online · ${selectedGroup.memberIds.length} members`;
+    return `${selectedGroup.memberIds.length} members`;
+  }, [selectedGroup, currentUser.id, onlineStatusByUserId]);
+
+  const callSessionActive =
+    chatCall.phase === 'outgoing' || chatCall.phase === 'connected';
+  const callInSelectedChat =
+    callSessionActive && !!selectedChatId && chatCall.activeChatId === selectedChatId;
+  const headerAudioCallActive = callInSelectedChat && chatCall.callKind === 'audio';
+  const headerVideoCallActive = callInSelectedChat && chatCall.callKind === 'video';
+  const headerCallsBusyElsewhere =
+    callSessionActive && !!selectedChatId && chatCall.activeChatId !== selectedChatId;
+
+  const activeGroupCall = React.useMemo(() => {
+    if (!isGroupChat || currentMessages.length === 0) return null;
+    return resolveActiveGroupCall(currentMessages);
+  }, [isGroupChat, currentMessages]);
+
+  const canJoinActiveGroupCall =
+    !!activeGroupCall &&
+    !!selectedChatId &&
+    !callInSelectedChat &&
+    !headerCallsBusyElsewhere &&
+    chatCall.phase !== 'incoming';
+
+  const handleJoinActiveGroupCall = React.useCallback(() => {
+    if (!selectedChatId || !activeGroupCall) return;
+    if (!chatCall.isLiveKitConfigured) {
+      showToast('Calls are not configured on this server.');
+      return;
+    }
+    if (headerCallsBusyElsewhere) {
+      showToast('You are already in a call. End it first.');
+      return;
+    }
+    void chatCall.joinGroupCall(selectedChatId, activeGroupCall.callKind);
+  }, [
+    selectedChatId,
+    activeGroupCall,
+    chatCall,
+    headerCallsBusyElsewhere,
+    showToast,
+  ]);
+
+  const handleHeaderAudioCall = React.useCallback(() => {
+    if (!selectedChatId) return;
+    if (!chatCall.isLiveKitConfigured) {
+      showToast('Audio calls are not configured on this server.');
+      return;
+    }
+    if (headerCallsBusyElsewhere) {
+      showToast('You are already in a call. End it first.');
+      return;
+    }
+    if (headerAudioCallActive) {
+      if (chatCall.presentation === 'pip') {
+        chatCall.expandCall();
+      } else {
+        void chatCall.endCall();
+      }
+      return;
+    }
+    if (headerVideoCallActive) {
+      showToast('End the video call first.');
+      return;
+    }
+    if (activeGroupCall?.callKind === 'audio' && !callInSelectedChat) {
+      void chatCall.joinGroupCall(selectedChatId, 'audio');
+      return;
+    }
+    if (activeGroupCall?.callKind === 'video') {
+      showToast('A group video call is already in progress. Join it or wait for it to end.');
+      return;
+    }
+    void chatCall.startAudioCall(selectedChatId);
+  }, [
+    selectedChatId,
+    chatCall,
+    headerAudioCallActive,
+    headerVideoCallActive,
+    headerCallsBusyElsewhere,
+    activeGroupCall,
+    callInSelectedChat,
+    showToast,
+  ]);
+
+  const handleHeaderVideoCall = React.useCallback(() => {
+    if (!selectedChatId) return;
+    if (!chatCall.isLiveKitConfigured) {
+      showToast('Video calls are not configured on this server.');
+      return;
+    }
+    if (headerCallsBusyElsewhere) {
+      showToast('You are already in a call. End it first.');
+      return;
+    }
+    if (headerVideoCallActive) {
+      if (chatCall.presentation === 'pip') {
+        chatCall.expandCall();
+      } else {
+        void chatCall.endCall();
+      }
+      return;
+    }
+    if (headerAudioCallActive) {
+      showToast('End the audio call first.');
+      return;
+    }
+    if (activeGroupCall?.callKind === 'video' && !callInSelectedChat) {
+      void chatCall.joinGroupCall(selectedChatId, 'video');
+      return;
+    }
+    if (activeGroupCall?.callKind === 'audio') {
+      showToast('A group audio call is already in progress. Join it or wait for it to end.');
+      return;
+    }
+    void chatCall.startVideoCall(selectedChatId);
+  }, [
+    selectedChatId,
+    chatCall,
+    headerAudioCallActive,
+    headerVideoCallActive,
+    headerCallsBusyElsewhere,
+    activeGroupCall,
+    callInSelectedChat,
+    showToast,
+  ]);
 
   const incomingReadLabelWatermark = React.useMemo(
     () =>
@@ -1454,9 +1781,19 @@ export function MessagesScreen({
         selectedChatId,
         chatLastReadAt,
         readLabelCapByChatId,
-        bothParticipantsInChat
+        bothParticipantsInChat,
+        { viewerInActiveChat, isGroup: isGroupChat },
       ),
-    [selectedChatId, chatLastReadAt, readLabelCapByChatId, bothParticipantsInChat]
+    [selectedChatId, chatLastReadAt, readLabelCapByChatId, bothParticipantsInChat, viewerInActiveChat, isGroupChat]
+  );
+
+  const resolveMessageAuthor = React.useCallback(
+    (msg: ChatMessage) => {
+      const authorId = typeof msg.from === 'string' ? msg.from : '';
+      if (!authorId) return null;
+      return findUserById(USERS, authorId);
+    },
+    [USERS],
   );
 
   const getUserTyping = React.useCallback(
@@ -1467,52 +1804,63 @@ export function MessagesScreen({
 
   const getBothParticipantsInChat = React.useCallback(
     (chatId: string) => {
-      if (!chatId) return false;
+      if (!chatId || selectedChatId !== chatId) return false;
+      if (groupIds.has(chatId)) return viewerInActiveChat;
       const myPresence = db.getUserPresence(currentUser.id);
       const peerPresence = db.getUserPresence(chatId);
-      const viewerHasThisChat = selectedChatId === chatId && viewerInDirectChat;
-      return viewerHasThisChat && areBothParticipantsInChat(chatId, myPresence, peerPresence);
+      return viewerInDirectChat && areBothParticipantsInChat(chatId, myPresence, peerPresence);
     },
-    [db, currentUser.id, selectedChatId, viewerInDirectChat, persistedPresence]
+    [db, currentUser.id, selectedChatId, viewerInDirectChat, viewerInActiveChat, groupIds, persistedPresence]
   );
 
   const isComposeTyping = messageText.trim().length > 0;
 
   const handleComposeTypingChange = React.useCallback(
     (hasDraft: boolean) => {
-      if (!viewerInDirectChat || !selectedUser || 'isGroup' in selectedUser) return;
+      if (!viewerInActiveChat || !selectedUser) return;
       markUserActive(currentUser.id);
-      setUserTypingState(currentUser.id, hasDraft, hasDraft ? TYPING_IDLE_MS : 0);
+      const skipDb =
+        liveCloudChat &&
+        ('isGroup' in selectedUser || isLiveCloudDm(selectedUser.id));
+      setUserTypingState(currentUser.id, hasDraft, hasDraft ? TYPING_IDLE_MS : 0, { skipDb });
     },
-    [viewerInDirectChat, selectedUser, currentUser.id, markUserActive, setUserTypingState]
+    [viewerInActiveChat, selectedUser, currentUser.id, markUserActive, setUserTypingState, liveCloudChat, isLiveCloudDm]
   );
 
   useEffect(() => {
-    if (!viewerInDirectChat || !selectedUser || 'isGroup' in selectedUser) return;
+    if (!viewerInActiveChat || !selectedUser) return;
     const hasDraft = isComposeTyping;
     markUserActive(currentUser.id);
-    setUserTypingState(currentUser.id, hasDraft, hasDraft ? TYPING_IDLE_MS : 0);
+    const skipDb =
+      liveCloudChat &&
+      ('isGroup' in selectedUser || isLiveCloudDm(selectedUser.id));
+    setUserTypingState(currentUser.id, hasDraft, hasDraft ? TYPING_IDLE_MS : 0, { skipDb });
     return () => {
-      setUserTypingState(currentUser.id, false);
+      setUserTypingState(currentUser.id, false, 0, { skipDb });
     };
   }, [
     isComposeTyping,
-    viewerInDirectChat,
+    viewerInActiveChat,
     selectedUser,
     currentUser.id,
     markUserActive,
     setUserTypingState,
+    liveCloudChat,
+    isLiveCloudDm,
   ]);
 
-  // Push/poll typing indicators over the platform API for real cloud DMs.
+  // Push/poll typing indicators over the platform API (1:1 + group cloud threads).
   useEffect(() => {
-    if (!viewerInDirectChat || !selectedPeerId || !isLiveCloudDm(selectedPeerId)) return;
+    if (!viewerInActiveChat || !selectedChatId || !selectedUser) return;
+    const isGroup = 'isGroup' in selectedUser;
+    if (!liveCloudChat) return;
+    if (!isGroup && (!selectedPeerId || !isLiveCloudDm(selectedPeerId))) return;
 
     let cancelled = false;
     let threadId: string | null = null;
 
     const resolveThread = async () => {
-      if (!threadId) threadId = await ensureCloudThreadForPeer(selectedPeerId);
+      if (!threadId) threadId = await ensureCloudThreadForChat(selectedChatId);
       return threadId;
     };
 
@@ -1524,13 +1872,20 @@ export function MessagesScreen({
         if (cancelled) return;
         const typers = new Set(res.userIds ?? []);
         typers.delete(currentUser.id);
-        const peerTyping = typers.has(selectedPeerId);
+        if (isGroup) {
+          const groupTyping = typers.size > 0;
+          setGroupTypingByChatId((prev) => {
+            if (prev[selectedChatId] === groupTyping) return prev;
+            return { ...prev, [selectedChatId]: groupTyping };
+          });
+          return;
+        }
+        const peerTyping = selectedPeerId ? typers.has(selectedPeerId) : false;
         setTypingByUserId((prev) => {
-          if (prev[selectedPeerId] === peerTyping) return prev;
+          if (!selectedPeerId || prev[selectedPeerId] === peerTyping) return prev;
           return { ...prev, [selectedPeerId]: peerTyping };
         });
-        db.setUserTyping(selectedPeerId, peerTyping);
-        if (peerTyping) markUserActive(selectedPeerId);
+        if (peerTyping && selectedPeerId) markUserActive(selectedPeerId);
       } catch {
         /* typing is best-effort */
       }
@@ -1539,32 +1894,38 @@ export function MessagesScreen({
     void pushAndPoll(isComposeTyping);
     const pollId = window.setInterval(() => {
       void pushAndPoll(isComposeTyping);
-    }, 2_000);
+    }, 800);
 
     return () => {
       cancelled = true;
       window.clearInterval(pollId);
       void (async () => {
-        const tid = threadId ?? (await ensureCloudThreadForPeer(selectedPeerId).catch(() => null));
+        const tid = threadId ?? (await ensureCloudThreadForChat(selectedChatId).catch(() => null));
         if (tid) await postChatTyping(tid, false).catch(() => {});
       })();
-      setTypingByUserId((prev) => ({ ...prev, [selectedPeerId]: false }));
-      db.setUserTyping(selectedPeerId, false);
+      if (isGroup) {
+        setGroupTypingByChatId((prev) => ({ ...prev, [selectedChatId]: false }));
+      } else if (selectedPeerId) {
+        setTypingByUserId((prev) => ({ ...prev, [selectedPeerId]: false }));
+      }
     };
   }, [
-    viewerInDirectChat,
+    viewerInActiveChat,
+    selectedChatId,
+    selectedUser,
     selectedPeerId,
     currentUser.id,
     isComposeTyping,
     isLiveCloudDm,
+    liveCloudChat,
     markUserActive,
-    db,
   ]);
 
   const isPeerTyping = React.useMemo(() => {
-    if (!selectedUser || 'isGroup' in selectedUser) return false;
+    if (!selectedUser || !selectedChatId) return false;
+    if ('isGroup' in selectedUser) return !!groupTypingByChatId[selectedChatId];
     return getUserTyping(selectedUser.id);
-  }, [selectedUser, getUserTyping]);
+  }, [selectedUser, selectedChatId, groupTypingByChatId, getUserTyping]);
 
   // Local/demo only: mirror typing when both participants share one device session.
   useEffect(() => {
@@ -1628,7 +1989,7 @@ export function MessagesScreen({
 
   React.useEffect(() => {
     if (!selectedChatId || !stickToBottomRef.current) return;
-    requestAnimationFrame(() => scrollToBottom('smooth'));
+    requestAnimationFrame(() => scrollToBottom('auto'));
   }, [lastThreadActivityKey, selectedChatId]);
 
   const markChatReadUpToLatest = React.useCallback((chatId: string, thread: ChatMessage[]) => {
@@ -1646,7 +2007,7 @@ export function MessagesScreen({
 
   const handleToggleIncomingReadStatus = React.useCallback(
     (msg: ChatMessage) => {
-      if (!selectedChatId || msg.isAuthor || !bothParticipantsInChat) return;
+      if (!selectedChatId || msg.isAuthor || !viewerInActiveChat) return;
       const messageTimestamp = getMessageTimestampMs(msg.timestamp);
       if (messageTimestamp <= 0) return;
       const isRead =
@@ -1668,20 +2029,20 @@ export function MessagesScreen({
       });
       db.setChatReadAt(selectedChatId, messageTimestamp);
     },
-    [db, selectedChatId, chatLastReadAt, bothParticipantsInChat, incomingReadLabelWatermark]
+    [db, selectedChatId, viewerInActiveChat, incomingReadLabelWatermark]
   );
 
   useEffect(() => {
-    if (!selectedChatId || !viewerInDirectChat) return;
+    if (!selectedChatId || !viewerInActiveChat) return;
     markChatReadUpToLatest(selectedChatId, currentMessages);
-  }, [selectedChatId, viewerInDirectChat, markChatReadUpToLatest, currentMessages]);
+  }, [selectedChatId, viewerInActiveChat, markChatReadUpToLatest, currentMessages]);
 
   useEffect(() => {
-    if (!selectedChatId || !stickToBottomRef.current || !viewerInDirectChat) return;
+    if (!selectedChatId || !stickToBottomRef.current || !viewerInActiveChat) return;
     markChatReadUpToLatest(selectedChatId, currentMessages);
   }, [
     selectedChatId,
-    viewerInDirectChat,
+    viewerInActiveChat,
     lastThreadActivityKey,
     currentMessages,
     markChatReadUpToLatest,
@@ -1707,7 +2068,8 @@ export function MessagesScreen({
   );
 
   useEffect(() => {
-    if (!selectedUser || 'isGroup' in selectedUser || !selectedChatId) return;
+    if (!selectedUser || !selectedChatId) return;
+    if (isGroupChat) return;
     if (!bothParticipantsInChat) return;
     advancePeerReadUpToLatest(selectedChatId, currentMessages);
     const timerId = window.setTimeout(() => {
@@ -1717,6 +2079,7 @@ export function MessagesScreen({
   }, [
     selectedUser,
     selectedChatId,
+    isGroupChat,
     bothParticipantsInChat,
     lastThreadActivityKey,
     advancePeerReadUpToLatest,
@@ -1855,6 +2218,24 @@ export function MessagesScreen({
     event.target.value = '';
   };
 
+  const handleWallpaperCamera = async (payload: AppCameraCapturePayload) => {
+    try {
+      const value = await cameraCaptureToDataUrl(payload);
+      const kind = payload.kind === 'video' ? 'video' : 'image';
+      const entry = {
+        id: `custom-wallpaper-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+        kind,
+        value,
+        label: kind === 'video' ? 'Camera video' : 'Camera photo',
+      } as const;
+      setCustomWallpapers((prev) => [entry, ...prev].slice(0, 24));
+      setChatWallpaper(entry.id);
+      showToast('Wallpaper added from camera');
+    } catch {
+      showToast('Could not add wallpaper from camera');
+    }
+  };
+
   const removeCustomWallpaper = (wallpaperId: string) => {
     setCustomWallpapers((prev) => prev.filter((item) => item.id !== wallpaperId));
     if (chatWallpaper === wallpaperId) {
@@ -1933,10 +2314,16 @@ export function MessagesScreen({
   );
 
   const filteredGroups = React.useMemo(() => {
-    if (!sidebarSearchQuery.trim()) return groups;
-    const { term } = parseSearchQuery(sidebarSearchQuery);
-    return groups.filter((group) => (`${group.displayName} ${group.username} ${group.id}`).toLowerCase().includes(term));
-  }, [groups, sidebarSearchQuery]);
+    const base = !sidebarSearchQuery.trim()
+      ? groups
+      : (() => {
+          const { term } = parseSearchQuery(sidebarSearchQuery);
+          return groups.filter((group) =>
+            (`${group.displayName} ${group.username} ${group.id}`).toLowerCase().includes(term),
+          );
+        })();
+    return sortChatsByLastActivity(base, messages);
+  }, [groups, sidebarSearchQuery, messages]);
 
   const filteredUsers = React.useMemo(() => {
     if (!sidebarSearchQuery.trim()) return directMessageUsers;
@@ -2013,12 +2400,11 @@ export function MessagesScreen({
   const parsedGallerySearchQuery = React.useMemo(() => parseSearchQuery(gallerySearchQuery), [gallerySearchQuery]);
 
   const visibleMessageEntries = React.useMemo(() => {
-    if (!chatSearchQuery.trim()) {
-      return currentMessages.map((msg: ChatMessage, index: number) => ({ msg, index }));
-    }
-    return currentMessages
+    const base = currentMessages
       .map((msg: ChatMessage, index: number) => ({ msg, index }))
-      .filter(({ msg }: { msg: ChatMessage; index: number }) => {
+      .filter(({ msg }) => !isMessageHiddenForMe(msg));
+    if (!chatSearchQuery.trim()) return base;
+    return base.filter(({ msg }: { msg: ChatMessage; index: number }) => {
         const conversationText = getMessageConversationText(msg);
         const author = getMessageAuthorLabel(msg);
         if (matchByQuery(conversationText, chatSearchQuery)) return true;
@@ -2103,20 +2489,57 @@ export function MessagesScreen({
 
   const handleForwardMessage = (msg: ChatMessage) => {
     if (!selectedChatId) return;
-    const sourceText = typeof msg?.text === 'string' ? msg.text : '';
+    const media = Array.isArray(msg?.media) ? (msg.media as MessageMediaAttachment[]) : [];
+    const label = getReplyPreviewLabel(
+      typeof msg?.text === 'string' ? msg.text : undefined,
+      media,
+      msg,
+    );
     db.addMessage(selectedChatId, {
-      text: sourceText ? `Forwarded: ${sourceText}` : 'Forwarded message',
+      text: `Forwarded: ${label}`,
+      forwardedBundle: [
+        {
+          text: label,
+          hasMedia: media.length > 0,
+          media,
+          hasShareLink: typeof msg?.text === 'string' && isShareLinkMessage(msg.text),
+          sourceMessageId: typeof msg?.id === 'string' ? msg.id : undefined,
+        },
+      ],
       isAuthor: true,
       timestamp: Date.now(),
-      media: Array.isArray(msg?.media) ? msg.media : undefined,
+      media: media.length > 0 ? msg.media : undefined,
     });
     setOpenMessageMenuKey(null);
+    stickToBottomRef.current = true;
     showToast('Message forwarded');
+  };
+
+  const handleShareMessage = async (msg: ChatMessage) => {
+    const media = Array.isArray(msg?.media) ? (msg.media as MessageMediaAttachment[]) : [];
+    const label = getReplyPreviewLabel(
+      typeof msg?.text === 'string' ? msg.text : undefined,
+      media,
+      msg,
+    );
+    const text = label || 'Shared message';
+    try {
+      if (typeof navigator.share === 'function') {
+        await navigator.share({ title: 'Message', text });
+      } else {
+        await navigator.clipboard.writeText(text);
+      }
+      showToast('Message shared');
+    } catch {
+      showToast('Unable to share message');
+    } finally {
+      setOpenMessageMenuKey(null);
+    }
   };
 
   const handleDeleteForMe = (messageIndex: number) => {
     if (!selectedChatId) return;
-    db.deleteMessage(selectedChatId, messageIndex);
+    db.hideMessageForMe(selectedChatId, messageIndex);
     setOpenMessageMenuKey(null);
     if (editingMessageIndex === messageIndex) {
       setEditingMessageIndex(null);
@@ -2134,11 +2557,11 @@ export function MessagesScreen({
       setOpenMessageMenuKey(null);
       return;
     }
-    if (msg?.isDeleted) {
+    if (isMessageDeleted(msg)) {
       setOpenMessageMenuKey(null);
       return;
     }
-    db.deleteMessage(selectedChatId, messageIndex);
+    db.deleteMessageForEveryone(selectedChatId, messageIndex);
     setOpenMessageMenuKey(null);
     if (editingMessageIndex === messageIndex) {
       setEditingMessageIndex(null);
@@ -2280,7 +2703,7 @@ export function MessagesScreen({
 
     [...selected]
       .sort((a, b) => b.index - a.index)
-      .forEach((entry) => db.deleteMessage(selectedChatId, entry.index));
+      .forEach((entry) => db.hideMessageForMe(selectedChatId, entry.index));
     setSelectedMessageKeys([]);
     setOpenMessageMenuKey(null);
   };
@@ -2298,7 +2721,7 @@ export function MessagesScreen({
 
     [...own]
       .sort((a, b) => b.index - a.index)
-      .forEach((entry) => db.deleteMessage(selectedChatId, entry.index));
+      .forEach((entry) => db.deleteMessageForEveryone(selectedChatId, entry.index));
 
     if (own.length < selected.length) {
       showToast('Some selected messages were skipped (not yours).');
@@ -2555,6 +2978,7 @@ export function MessagesScreen({
         readLabelCapByChatId={readLabelCapByChatId}
         getBothParticipantsInChat={getBothParticipantsInChat}
         getUserTyping={getUserTyping}
+        getGroupTyping={(groupId) => !!groupTypingByChatId[groupId]}
         getPersistedPeerReadAt={(chatId) => db.getChatPeerReadAt(chatId)}
         onlineStatusByUserId={onlineStatusByUserId}
         lastSeenByUserId={lastSeenByUserId}
@@ -2576,25 +3000,22 @@ export function MessagesScreen({
             onBack={() => setSelectedChatId(null)}
             onToggleChatSearch={() => setShowChatSearch((prev) => !prev)}
             onChatSearchQueryChange={setChatSearchQuery}
-            onAudioCall={() => {
-              if (!chatCall.isLiveKitConfigured) {
-                showToast('Audio calls are not configured on this server.');
-                return;
-              }
-              void chatCall.startAudioCall(selectedUser.id);
-            }}
-            onVideoCall={() => {
-              if (!chatCall.isLiveKitConfigured) {
-                showToast('Video calls are not configured on this server.');
-                return;
-              }
-              void chatCall.startVideoCall(selectedUser.id);
-            }}
+            callConfigured={chatCall.isLiveKitConfigured}
+            audioCallActive={headerAudioCallActive}
+            videoCallActive={headerVideoCallActive}
+            callsBusyElsewhere={headerCallsBusyElsewhere}
+            callPresentation={chatCall.presentation}
+            onAudioCall={handleHeaderAudioCall}
+            onVideoCall={handleHeaderVideoCall}
+            groupOnlineLabel={groupOnlineLabel}
             onOpenInfo={() => setShowInfoPanel(true)}
           />
 
           <MessagesChatThread
             selectedUser={selectedUser}
+            isGroupChat={isGroupChat}
+            receiptLive={receiptLive}
+            resolveMessageAuthor={resolveMessageAuthor}
             activeCustomWallpaper={activeCustomWallpaper}
             videoWallpaperSequence={videoWallpaperSequence}
             playNextVideoWallpaper={playNextVideoWallpaper}
@@ -2638,6 +3059,7 @@ export function MessagesScreen({
             toggleMessageReaction={toggleMessageReaction}
             handleReplyMessage={handleReplyMessage}
             handleForwardMessage={handleForwardMessage}
+            handleShareMessage={handleShareMessage}
             handleCopyMessage={handleCopyMessage}
             handleTogglePinMessage={handleTogglePinMessage}
             handleDeleteForMe={handleDeleteForMe}
@@ -2649,6 +3071,18 @@ export function MessagesScreen({
             onDownloadFile={handleDownloadFile}
             onOpenLocationMap={handleOpenLocationMap}
           />
+
+          {canJoinActiveGroupCall && activeGroupCall && selectedUser ? (
+            <GroupActiveCallBanner
+              callKind={activeGroupCall.callKind}
+              groupName={
+                'isGroup' in selectedUser
+                  ? selectedUser.displayName || 'this group'
+                  : 'this group'
+              }
+              onJoin={handleJoinActiveGroupCall}
+            />
+          ) : null}
 
           <MessagesComposeBar
             chatMedia={chatMedia}
@@ -2690,6 +3124,7 @@ export function MessagesScreen({
             onFileUploadMenu={handleFileUploadMenu}
             onMusicUpload={handleMusicUpload}
             onLocationShare={handleLocationShare}
+            onCameraCaptured={handleCameraCaptured}
             onOpenFilePreview={handleOpenFilePreview}
             tryOpenMediaFullscreen={tryOpenMediaFullscreen}
             setFullscreenMedia={setFullscreenMedia}
@@ -2700,43 +3135,12 @@ export function MessagesScreen({
             updateTokenSuggestion={updateTokenSuggestion}
             insertTokenSuggestion={insertTokenSuggestion}
             setTokenSuggestion={setTokenSuggestion}
+            outboundSlowSendingCount={outboundDelivery.slowSending}
+            outboundFailedCount={outboundDelivery.failed}
+            onRetryFailedMessages={handleRetryFailedMessages}
           />
         </div>
       )}
-
-      <AnimatePresence>
-        {chatCall.phase !== 'idle' && (() => {
-          const callChatId = chatCall.activeChatId || chatCall.incoming?.chatId || selectedChatId;
-          const callPeer =
-            (callChatId &&
-              (groups.find((g) => g.id === callChatId) ||
-                directMessageUsers.find((u) => u.id === callChatId) ||
-                (chatCall.incoming
-                  ? findUserById(USERS, chatCall.incoming.fromUserId)
-                  : null))) ||
-            selectedUser;
-          if (!callPeer) return null;
-          return (
-            <MessagesActiveCallOverlay
-              activeCall={chatCall.callKind}
-              phase={chatCall.phase}
-              selectedUser={callPeer}
-              currentUserAvatarUrl={currentUser.avatarUrl}
-              error={chatCall.error}
-              remoteVideoReady={chatCall.remoteVideoReady}
-              localVideoRef={chatCall.localVideoRef}
-              remoteVideoRef={chatCall.remoteVideoRef}
-              remoteAudioRef={chatCall.remoteAudioRef}
-              localStreamRef={chatCall.localStreamRef}
-              onReplaceVideoTrack={(track) => {
-                void chatCall.replacePublishedVideoTrack(track);
-              }}
-              onAccept={chatCall.phase === 'incoming' ? () => void chatCall.acceptCall() : undefined}
-              onEndCall={() => void chatCall.endCall()}
-            />
-          );
-        })()}
-      </AnimatePresence>
 
       {/* Modals & Panels */}
       {fullscreenMedia && (
@@ -2795,6 +3199,7 @@ export function MessagesScreen({
         newGroupAvatar={newGroupAvatar}
         groupAvatarInputRef={groupAvatarInputRef}
         handleGroupAvatarUpload={handleGroupAvatarUpload}
+        onCaptureNewGroupAvatar={handleNewGroupAvatarCamera}
         selectedGroupMemberIds={selectedGroupMemberIds}
         filteredNewGroupUsers={filteredNewGroupUsers}
         toggleGroupMemberSelection={toggleGroupMemberSelection}
@@ -2811,6 +3216,7 @@ export function MessagesScreen({
         customWallpapers={customWallpapers}
         wallpaperInputRef={wallpaperInputRef}
         handleWallpaperUpload={handleWallpaperUpload}
+        onCaptureWallpaper={handleWallpaperCamera}
         removeCustomWallpaper={removeCustomWallpaper}
         galleryItems={galleryItems}
         setShowGalleryScreen={setShowGalleryScreen}
@@ -2823,6 +3229,7 @@ export function MessagesScreen({
         setShowGroupAddUsersScreen={setShowGroupAddUsersScreen}
         groupSettingsAvatarInputRef={groupSettingsAvatarInputRef}
         handleGroupSettingsAvatarUpload={handleGroupSettingsAvatarUpload}
+        onCaptureGroupSettingsAvatar={handleGroupSettingsAvatarCamera}
         groupNameDraft={groupNameDraft}
         setGroupNameDraft={setGroupNameDraft}
         handleSaveGroupName={handleSaveGroupName}

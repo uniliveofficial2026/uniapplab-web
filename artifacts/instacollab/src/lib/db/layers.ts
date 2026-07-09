@@ -274,9 +274,10 @@ export interface MessagesLayer {
       lastSeenAt?: number;
       lastActiveAt?: number;
       activeChatId?: string | null;
-    }
+    },
+    options?: { ephemeral?: boolean },
   ): void;
-  setChatPresenceMap(nextPresence: ChatPresenceStore): void;
+  setChatPresenceMap(nextPresence: ChatPresenceStore, options?: { ephemeral?: boolean }): void;
   setUserTyping(userId: string, typing: boolean): void;
   setUserOnline(userId: string, online: boolean, at?: number): void;
   touchUserActive(userId: string, at?: number): void;
@@ -301,6 +302,12 @@ export interface MessagesLayer {
     options?: { bumpUnread?: boolean },
   ): void;
   attachCloudMessageId(chatId: string, localId: string, cloudId: string): void;
+  markMessageDeliveryStatus(
+    chatId: string,
+    localId: string,
+    status: 'sending' | 'sent' | 'failed',
+  ): void;
+  patchMessageMedia(chatId: string, localId: string, media: unknown[]): void;
   markCloudMessageDeleted(chatId: string, cloudId: string): void;
   applyInboundMessageReaction(
     chatId: string,
@@ -314,6 +321,8 @@ export interface MessagesLayer {
     updater: (message: ChatMessage) => ChatMessage
   ): void;
   deleteMessage(chatId: string, messageIndex: number): void;
+  hideMessageForMe(chatId: string, messageIndex: number): void;
+  deleteMessageForEveryone(chatId: string, messageIndex: number): void;
   ensureDemoMessagesIfEmpty(): void;
 }
 

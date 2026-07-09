@@ -2,6 +2,7 @@ import type React from 'react';
 import type { ChatMessage } from '../../../types';
 import type { FullscreenMediaState, MessageMediaAttachment, ReplyPreviewItem } from './types';
 import type { ComposeMediaItem } from './chatThreadProps';
+import type { AppCameraCapturePayload } from '../../../contexts/AppCameraContext';
 
 export type TokenSuggestionState = {
   type: 'mention' | 'hashtag';
@@ -27,6 +28,9 @@ export type MessagesComposeBarProps = {
   messageText: string;
   setMessageText: React.Dispatch<React.SetStateAction<string>>;
   onComposeTypingChange?: (hasDraft: boolean) => void;
+  outboundSlowSendingCount?: number;
+  outboundFailedCount?: number;
+  onRetryFailedMessages?: () => void;
   showEmojiPicker: boolean;
   setShowEmojiPicker: React.Dispatch<React.SetStateAction<boolean>>;
   isRecording: boolean;
@@ -50,6 +54,11 @@ export type MessagesComposeBarProps = {
   onFileUploadMenu: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onMusicUpload: (e: React.ChangeEvent<HTMLInputElement>) => void;
   onLocationShare: () => void;
+  onCameraCaptured?: (payload: AppCameraCapturePayload) => void | Promise<void>;
+  /** @deprecated use onCameraCaptured — compose bar opens the global app camera itself */
+  onOpenCameraCapture?: () => void;
+  /** @deprecated compose bar reads availability from AppCameraProvider */
+  cameraCaptureAvailable?: boolean;
   onOpenFilePreview: (media: MessageMediaAttachment) => void;
   tryOpenMediaFullscreen: (
     items: FullscreenMediaState['items'],

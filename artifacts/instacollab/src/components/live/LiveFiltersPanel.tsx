@@ -159,7 +159,7 @@ export function matchesLiveSearch(card: LiveSearchableCard, textQuery: string): 
 export function liveFollowFilterLabel(filter: LiveFollowFilter): string {
   if (filter === 'following') return 'Following';
   if (filter === 'followers') return 'Followers';
-  return 'Everyone';
+  return 'All';
 }
 
 export function resolveLiveRoomType(
@@ -289,7 +289,7 @@ export function LiveFiltersPanel({
       <div className="flex flex-wrap items-center gap-2 px-0.5">
         <FilterChip
           active={followFilter === 'all'}
-          label="Everyone"
+          label="All"
           onClick={() => onFollowFilterChange('all')}
         />
         <FilterChip
@@ -367,7 +367,7 @@ export function LiveFiltersPanel({
             <div className="flex flex-wrap gap-2">
               <FilterChip
                 active={followFilter === 'all'}
-                label="Everyone"
+                label="All"
                 onClick={() => onFollowFilterChange('all')}
               />
               <FilterChip

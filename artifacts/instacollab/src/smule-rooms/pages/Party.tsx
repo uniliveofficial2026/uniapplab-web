@@ -5,16 +5,12 @@ import Webcam from "react-webcam";
 import { Link, useNavigate } from "react-router-dom";
 import { SavedRoomsList } from "../components/SavedRoomsList";
 import { RoomHostLabel } from "../components/RoomHostLabel";
+import { useCloudPartyRooms } from "../../hooks/useCloudPartyRooms";
 
 export function Party() {
   const [activeTab, setActiveTab] = useState<"rooms" | "concerts">("rooms");
   const navigate = useNavigate();
-
-  const rooms = [
-    { id: 1, name: "K-Pop Fridays 🎶", host: "melody_star", participants: 12, max: 20, tags: ["K-Pop", "Duets"] },
-    { id: 2, name: "Weekend Chill Vibes", host: "jazzmaster_p", participants: 5, max: 10, tags: ["Jazz", "Acoustic"] },
-    { id: 3, name: "90s Rock Anthems", host: "rocker_01", participants: 18, max: 50, tags: ["Rock", "Classic"] },
-  ];
+  const { rooms: cloudRooms } = useCloudPartyRooms(true);
 
   const concerts = [
     { id: 1, artist: "The Midnight Singers", date: "Tonight, 8:00 PM", tickets: "500+", cover: "https://images.unsplash.com/photo-1540039155732-68c8c08bca07?w=500" },
@@ -65,21 +61,30 @@ export function Party() {
 
             <div>
               <h3 className="text-sm font-bold text-gray-400 mb-3 uppercase tracking-widest pl-1">Active Rooms</h3>
+              {cloudRooms.length === 0 ? (
+                <p className="text-xs text-gray-500 pl-1">No active rooms right now. Start one above.</p>
+              ) : (
               <div className="grid grid-cols-1 gap-3">
-                {rooms.map((room) => (
+                {cloudRooms.map((room) => (
                   <Link to={`/room/${room.id}`} key={room.id} className="bg-gray-900 border border-gray-800 p-4 rounded-3xl flex justify-between items-center hover:bg-gray-800 transition cursor-pointer block">
                     <div>
                       <h4 className="font-bold text-white mb-1 text-sm">{room.name}</h4>
                       <p className="text-[10px] text-gray-500 flex items-center space-x-1 mb-2">
                         <RoomHostLabel
-                          roomId={String(room.id)}
+                          roomId={room.id}
                           storedHostName={room.host}
                           className="font-medium text-gray-300"
                         />
                         <span>•</span>
                         <Users size={10} className="inline mr-0.5" /> {room.participants}/{room.max}
+                        {room.roomMode ? (
+                          <>
+                            <span>•</span>
+                            <span>{room.roomMode}</span>
+                          </>
+                        ) : null}
                       </p>
-                      <div className="flex space-x-1">
+                      <div className="flex space-x-1 flex-wrap gap-1">
                         {room.tags.map(tag => (
                           <span key={tag} className="text-[9px] bg-gray-800 text-purple-400 px-2 py-0.5 rounded-full border border-gray-700">{tag}</span>
                         ))}
@@ -91,6 +96,7 @@ export function Party() {
                   </Link>
                 ))}
               </div>
+              )}
             </div>
           </div>
         )}

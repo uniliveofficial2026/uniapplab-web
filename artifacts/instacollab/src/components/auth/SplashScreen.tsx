@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { AppLogo } from '../common/AppLogo';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { useDB } from '../../lib/useDB';
 
 export function SplashScreen({ onComplete, isLoading = false }: { onComplete?: () => void, isLoading?: boolean }) {
@@ -74,15 +74,12 @@ export function SplashScreen({ onComplete, isLoading = false }: { onComplete?: (
            {isAdEnabled && adUrl ? (
              <div className="absolute inset-0 w-full h-full flex flex-col items-center justify-center bg-black">
                  {isVideo ? (
-                    <video 
+                    <AppNativeVideo 
                       src={adUrl} 
                       className="w-full h-full object-contain" 
                       autoPlay 
                       muted 
                       loop 
-                      playsInline
-                      controls
-                    {...nativeVideoControlGuardProps()}
                     />
                  ) : (
                     <img 

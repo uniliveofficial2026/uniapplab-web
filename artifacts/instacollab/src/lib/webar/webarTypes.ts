@@ -7,6 +7,21 @@ export type TencentBeautifyParams = {
   shave?: number;
   eye?: number;
   chin?: number;
+  cheekbone?: number;
+  head?: number;
+  forehead?: number;
+  nose?: number;
+  lip?: number;
+  eyeBrightness?: number;
+  usm?: number;
+  distort1?: number;
+  distort2?: number;
+  distortCenter1?: string;
+  distortCenter2?: string;
+  distortMajorRadius1?: number;
+  distortMinorRadius1?: number;
+  distortMajorRadius2?: number;
+  distortMinorRadius2?: number;
 };
 
 /** Unified body / face sculpt sliders (50 = neutral). */
@@ -22,7 +37,7 @@ export type TencentWebARInitOptions = {
   module?: {
     beautify?: boolean;
     segmentation?: boolean;
-    segmentationLevel?: 0 | 1 | 2 | 'auto';
+    segmentationLevel?: string;
   };
   auth: {
     authFunc: () => TencentWebARAuthResult | Promise<TencentWebARAuthResult>;
@@ -31,10 +46,9 @@ export type TencentWebARInitOptions = {
   };
   input?: MediaStream | HTMLVideoElement | HTMLCanvasElement;
   camera?: {
-    width: number;
-    height: number;
-    mirror: boolean;
-    frameRate: number;
+    width?: number;
+    height?: number;
+    mirror?: boolean;
   };
   beautify?: TencentBeautifyParams;
   language?: string;
@@ -42,8 +56,6 @@ export type TencentWebARInitOptions = {
     enable?: boolean;
     lineWidth?: number;
   };
-  mirror?: boolean;
-  fps?: number;
 };
 
 /** Built-in preset from getEffectList / getCommonFilter (quick-start shape). */
@@ -56,39 +68,26 @@ export type TencentEffectItem = {
   type?: string;
 };
 
+export type TencentBackgroundMediaType = 'image' | 'video';
+
 export type TencentEffectSelection = {
   makeupId: string | null;
   stickerId: string | null;
   filterId: string | null;
-  /** Background image URL or null. */
+  /** Background image/video URL or null. */
   backgroundUrl: string | null;
+  /** TRTC setBackground media type — defaults to image when null. */
+  backgroundType?: TencentBackgroundMediaType | null;
+  /** TRTC BeautyKit body-shape preset EffectId. */
+  shapeEffectId?: string | null;
 };
 
 export type TencentWebARInstance = {
   on: (event: string, handler: (payload?: unknown) => void) => void;
   off?: (event: string, handler?: (payload?: unknown) => void) => void;
   setBeautify: (params: TencentBeautifyParams) => void;
-  getOutput: (fps?: number) => Promise<MediaStream>;
-  updateInputStream?: (
-    src: MediaStream,
-    stopOldTracks?: boolean,
-    updateOutputDestination?: boolean,
-  ) => Promise<void>;
-  setDetectModuleConfig?: (data: {
-    beautify?: boolean;
-    segmentation?: boolean;
-    segmentationLevel?: 0 | 1 | 2 | 'auto';
-  }) => void;
-  setSegmentationLevel?: (level: 0 | 1 | 2 | 'auto') => Promise<void>;
-  disable?: () => void;
-  enable?: () => void;
-  camera?: unknown;
-  getEffectList?: (opts: {
-    Type?: string;
-    Label?: string | string[];
-    PageNumber?: number;
-    PageSize?: number;
-  }) => Promise<
+  getOutput: () => Promise<MediaStream>;
+  getEffectList?: (opts: { Type: string; Label?: string; PageSize?: number }) => Promise<
     Array<{
       Name?: string;
       EffectId?: string;
@@ -112,16 +111,28 @@ export type TencentWebARInstance = {
     effects:
       | Array<string | { id: string; intensity?: number; filterIntensity?: number }>
       | null,
-    callback?: (...args: unknown[]) => void,
-    errCallback?: (...args: unknown[]) => void,
-  ) => void;
-  preloadEffectByIds?: (
-    ids: string | string[],
-    callback?: (...args: unknown[]) => void,
-    errCallback?: (...args: unknown[]) => void,
   ) => void;
   setFilter?: (id: string | null, intensity?: number) => void;
   setBackground?: (opts: { type: string; src: string } | null) => void;
+  preloadEffectByIds?: (
+    ids: string[],
+    onSuccess?: () => void,
+    onError?: () => void,
+  ) => void;
+  setDetectModuleConfig?: (config: {
+    beautify?: boolean;
+    segmentation?: boolean;
+    segmentationLevel?: number | 'auto';
+  }) => void;
+  setCommonConfig?: (config: { mirror?: boolean }) => void;
+  setSegmentationLevel?: (level: number | 'auto') => void | Promise<void>;
+  updateInputStream?: (
+    stream: MediaStream,
+    stopOld?: boolean,
+    resetEffects?: boolean,
+  ) => Promise<void>;
+  enable?: () => void;
+  disable?: () => void;
   destroy?: (opts?: { stopInputStream?: boolean }) => void;
   stop?: () => void;
 };
@@ -131,6 +142,8 @@ export const TRTC_DEFAULT_BACKGROUNDS = [
   'https://webar-static.tencent-cloud.com/assets/background/2.jpg',
   'https://webar-static.tencent-cloud.com/assets/background/3.jpg',
   'https://webar-static.tencent-cloud.com/assets/background/4.jpg',
+  '/trtc-webar/backgrounds/video-bg-1.mp4',
+  '/trtc-webar/backgrounds/video-bg-2.mp4',
 ] as const;
 
 export const EMPTY_TENCENT_EFFECT_SELECTION: TencentEffectSelection = {
@@ -138,4 +151,6 @@ export const EMPTY_TENCENT_EFFECT_SELECTION: TencentEffectSelection = {
   stickerId: null,
   filterId: null,
   backgroundUrl: null,
+  backgroundType: null,
+  shapeEffectId: null,
 };

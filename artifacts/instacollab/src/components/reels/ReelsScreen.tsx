@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { Heart, MessageCircle, MoreHorizontal, FileVideo, Bookmark, Play, VolumeX, Volume2, Maximize2, ChevronLeft, ChevronRight, Music } from 'lucide-react';
+import { Heart, MessageCircle, MoreHorizontal, FileVideo, Bookmark, VolumeX, Volume2, Maximize2, ChevronLeft, ChevronRight, Music } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
 import { useDB } from '../../lib/useDB';
 import { motion, AnimatePresence } from 'motion/react';
@@ -22,6 +22,12 @@ import {
   openNativeVideoFullscreen,
   useNativeVideoFullscreen,
 } from '../../lib/useNativeVideoFullscreen';
+import {
+  applyMobileInlineVideoAttrs,
+  setNativeVideoMuted,
+  toggleNativeVideoMuted,
+  tryEnterVideoFullscreen,
+} from '../../lib/nativeVideoPlatform';
 import { FullscreenPostMediaContent } from '../common/FullscreenPostMediaContent';
 import { resolveEditorSoundtrackUrl } from '../../lib/audioMedia';
 import { resolveReelDiscCoverUrl } from '../../lib/mediaCoverArt';
@@ -37,15 +43,22 @@ import {
   IMAGE_CAROUSEL_MS,
 } from '../../lib/mediaPlayback';
 import { MediaWithSoundtrack } from '../common/MediaWithSoundtrack';
-import { PLAYBACK_PRIORITY, resetPlaybackMedia } from '../../lib/playbackAudio';
-import { reelPlaybackId, resetReelPlayback } from '../../lib/reelPlayback';
+import { PLAYBACK_PRIORITY, requestPlaybackReconcile, resetPlaybackMedia } from '../../lib/playbackAudio';
+import { reelPlaybackId } from '../../lib/reelPlayback';
+import { useReelsActiveIndex } from '../../lib/reels/reelsActiveIndex';
+import {
+  computeReelInlineWantsPlay,
+} from '../../lib/reels/reelPlayRules';
+import { useReelDirectVideoPlayback } from '../../lib/reels/useReelDirectVideoPlayback';
 import { buildMediaFilterStyle } from '../../lib/mediaFilters';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { useResolvedMediaUrl } from '../../hooks/useResolvedMediaUrl';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { useExclusivePlayback } from '../../lib/useExclusivePlayback';
 import {
   useFullscreenOpenGuard,
   useMediaOverlayAcquire,
   useMediaOverlayLocked,
+  resetMediaOverlayLocks,
 } from '../../lib/mediaOverlayLock';
 import { resolveReel, buildCommentPayload } from '../../lib/entityResolve';
 import {
@@ -57,16 +70,52 @@ import {
 import { refreshLiveCloudSurface, subscribeLiveCloudSurfaceRefresh } from '../../lib/liveCloudSurfaces';
 import { syncCloudSocialFeed } from '../../lib/cloudSocial/cloudSocialContent';
 
-export function ReelsScreen() {
+export function ReelsScreen({ initialReelId }: { initialReelId?: string | null }) {
   const db = useDB();
   const USERS = db.users;
   const { showToast } = useToast();
 
   const REELS = db.reels;
 
-  const [activeReelIndex, setActiveReelIndex] = useState(0);
-  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const [activeReelIndex, setActiveReelIndex] = useReelsActiveIndex(scrollRef, REELS.length);
+  const [isCommentsOpen, setIsCommentsOpen] = useState(false);
+
+  const scrollToNextReel = useCallback(() => {
+    const node = scrollRef.current;
+    if (!node || REELS.length <= 1) return;
+    const next = activeReelIndex + 1;
+    if (next >= REELS.length) return;
+    setActiveReelIndex(next);
+    node.scrollTo({ top: next * node.clientHeight, behavior: 'smooth' });
+  }, [activeReelIndex, REELS.length, setActiveReelIndex]);
+
+  useEffect(() => {
+    requestPlaybackReconcile();
+  }, [activeReelIndex]);
+
+  useEffect(() => {
+    resetMediaOverlayLocks();
+  }, []);
+
+  useEffect(() => {
+    const onAutoplayMuted = () => {
+      if (!db.globalMuted) db.setGlobalMuted(true);
+    };
+    window.addEventListener('playback-autoplay-muted', onAutoplayMuted);
+    return () => window.removeEventListener('playback-autoplay-muted', onAutoplayMuted);
+  }, [db]);
+
+  useEffect(() => {
+    if (!initialReelId || !scrollRef.current) return;
+    const idx = REELS.findIndex((reel) => reel.id === initialReelId);
+    if (idx < 0) return;
+    setActiveReelIndex(idx);
+    const node = scrollRef.current;
+    requestAnimationFrame(() => {
+      node.scrollTop = idx * node.clientHeight;
+    });
+  }, [initialReelId, REELS, setActiveReelIndex]);
 
   useEffect(() => {
     const sync = () => {
@@ -79,23 +128,6 @@ export function ReelsScreen() {
     );
     return unsub;
   }, []);
-  
-  useEffect(() => {
-    const handleScroll = () => {
-      if (document.getElementById('reel-full-screen-modal')) return;
-      if (!scrollRef.current) return;
-      const index = Math.round(scrollRef.current.scrollTop / scrollRef.current.clientHeight);
-      if (index !== activeReelIndex) {
-        setActiveReelIndex(index);
-      }
-    };
-    
-    const node = scrollRef.current;
-    if (node) {
-      node.addEventListener('scroll', handleScroll);
-      return () => node.removeEventListener('scroll', handleScroll);
-    }
-  }, [activeReelIndex]);
 
   return (
     <div className="w-full h-full flex flex-col items-center bg-background overflow-hidden relative">
@@ -106,8 +138,11 @@ export function ReelsScreen() {
           {REELS.map((reel, index) => (
             <ReelItem 
               key={reel.id} 
-              reel={reel} 
+              reel={reel}
+              reelIndex={index}
               isActive={index === activeReelIndex} 
+              isLastReel={index === REELS.length - 1}
+              scrollToNextReel={scrollToNextReel}
               db={db} 
               USERS={USERS} 
               isCommentsOpen={index === activeReelIndex && isCommentsOpen}
@@ -129,7 +164,7 @@ const REEL_CAROUSEL_INSET = {
   left: '0.75rem',
 } as const;
 
-function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen, showToast, onUserClick: _onUserClick }: { reel: Reel, isActive: boolean, db: typeof localDb, USERS: User[], isCommentsOpen: boolean, setIsCommentsOpen: (open: boolean) => void, showToast: (msg: string) => void, onUserClick: (user: User) => void }) {
+function ReelItem({ reel, reelIndex, isActive, isLastReel, scrollToNextReel, db, USERS, isCommentsOpen, setIsCommentsOpen, showToast, onUserClick: _onUserClick }: { reel: Reel, reelIndex: number, isActive: boolean, isLastReel: boolean, scrollToNextReel: () => void, db: typeof localDb, USERS: User[], isCommentsOpen: boolean, setIsCommentsOpen: (open: boolean) => void, showToast: (msg: string) => void, onUserClick: (user: User) => void }) {
   const [isPlaying, setIsPlaying] = useState(true);
   const [videoError, setVideoError] = useState(false);
   const [currentMediaIdx, setCurrentMediaIdx] = useState(0);
@@ -165,17 +200,21 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
   useMediaOverlayAcquire(isContentFullscreen);
   const canOpenFullscreen = hasMedia;
   const minSwipeDistance = 50;
+  const wasReelActiveRef = useRef(isActive);
 
-  const reelVideoPlaybackId = reelPlaybackId(liveReel.id, 'video');
   const reelSoundtrackPlaybackId = reelPlaybackId(liveReel.id, 'soundtrack');
+  const resolvedVideoUrl = useResolvedMediaUrl(
+    showVideoSlide ? displayMedia.url : undefined,
+  );
+  const resolvedPosterUrl = useResolvedMediaUrl(displayMedia.posterUrl);
 
-  const { wrapCarouselAdvance, isVideoSlideTransitionRef } =
+  const { wrapCarouselAdvance } =
     useCarouselNativeVideoAdvance(
       videoRef,
       currentMediaIdx,
-      showVideoSlide ? displayMedia.url : undefined,
-      showVideoSlide,
-      { coordinatorOwnsPlay: true }
+      showVideoSlide ? resolvedVideoUrl || displayMedia.url : undefined,
+      showVideoSlide && isActive,
+      { externalPlayback: true },
     );
 
   const goToPrevCarouselItem = useCallback(() => {
@@ -191,6 +230,23 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
       setCurrentMediaIdx((prev) => nextCarouselIndex(prev, carouselItemCount));
     });
   }, [carouselItemCount, wrapCarouselAdvance]);
+
+  const handleInlineVideoEnded = useCallback(() => {
+    if (hasCarousel && currentMediaIdx < carouselItemCount - 1) {
+      goToNextCarouselItem();
+      return;
+    }
+    if (!isLastReel) {
+      scrollToNextReel();
+    }
+  }, [
+    hasCarousel,
+    currentMediaIdx,
+    carouselItemCount,
+    goToNextCarouselItem,
+    isLastReel,
+    scrollToNextReel,
+  ]);
 
   useHorizontalCarouselSwipe(
     mediaSwipeRef,
@@ -213,19 +269,16 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
   }, [isActive, isContentFullscreen]);
 
   useEffect(() => {
-    setCurrentMediaIdx(0);
+    if (!isActive) {
+      setCurrentMediaIdx(0);
+      setVideoError(false);
+      setIsPlaying(true);
+      tryExitVideoFullscreen(videoRef.current);
+      setIsContentFullscreen(false);
+      return;
+    }
     setVideoError(false);
-    tryExitVideoFullscreen(videoRef.current);
-    setIsContentFullscreen(false);
-    resetReelPlayback(liveReel.id);
-  }, [liveReel?.id]);
-
-  useEffect(() => {
-    setVideoError(false);
-    if (showVideoSlide) return;
-    if (isVideoSlideTransitionRef.current) return;
-    resetPlaybackMedia(reelVideoPlaybackId);
-  }, [currentMediaIdx, showVideoSlide, reelVideoPlaybackId]);
+  }, [isActive, liveReel?.id]);
 
   useEffect(() => {
     if (loopCarouselItem || !isActive) return;
@@ -244,8 +297,6 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
   const reelAuthor = resolveUser(db.users, liveReel?.user);
   const me = resolveUser(db.users, db.currentUser);
   const isFollowing = !!reelAuthor.isFollowing;
-
-  const wasReelActiveRef = useRef(isActive);
 
   const handleFollowToggle = (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -327,17 +378,19 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
     isActive &&
     isPlaying &&
     !isContentFullscreen &&
+    !isNativeVideoFullscreen &&
     !mediaOverlayLocked &&
     !db.isCreatorEditingActive;
-  const reelInlineVideoWantsPlay =
-    isActive &&
-    isPlaying &&
-    showVideoSlide &&
-    !isContentFullscreen &&
-    !mediaOverlayLocked &&
-    !soundtrackUrl &&
-    !db.isCreatorEditingActive &&
-    !isCommentsOpen;
+  const reelInlineVideoWantsPlay = computeReelInlineWantsPlay({
+    isActive,
+    isPlaying,
+    showVideoSlide,
+    isContentFullscreen: isContentFullscreen && !isNativeVideoFullscreen,
+    mediaOverlayLocked,
+    hasSoundtrack: !!soundtrackUrl,
+    isCreatorEditingActive: !!db.isCreatorEditingActive,
+    isCommentsOpen,
+  });
 
   const reelFsVideoWantsPlay =
     isContentFullscreen &&
@@ -345,13 +398,24 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
     !soundtrackUrl &&
     !db.isCreatorEditingActive;
 
-  useExclusivePlayback(
-    reelVideoPlaybackId,
-    PLAYBACK_PRIORITY.REEL,
-    reelInlineVideoWantsPlay,
+  useReelDirectVideoPlayback({
     videoRef,
-    'reel-inline'
-  );
+    wantsPlay: reelInlineVideoWantsPlay,
+    mediaUrl: resolvedVideoUrl || displayMedia.url,
+    muted: soundtrackUrl ? true : db.globalMuted,
+  });
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || soundtrackUrl) return;
+    setNativeVideoMuted(video, db.globalMuted);
+  }, [db.globalMuted, soundtrackUrl]);
+
+  useEffect(() => {
+    const video = videoRef.current;
+    if (!video || !showVideoSlide) return;
+    applyMobileInlineVideoAttrs(video);
+  }, [showVideoSlide, resolvedVideoUrl, isActive]);
 
   useExclusivePlayback(
     reelPlaybackId(liveReel.id, 'video-fs'),
@@ -373,7 +437,8 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
 
   useEffect(() => {
     if (wasReelActiveRef.current && !isActive) {
-      resetReelPlayback(liveReel.id);
+      resetPlaybackMedia(reelPlaybackId(liveReel.id, 'soundtrack'));
+      resetPlaybackMedia(reelPlaybackId(liveReel.id, 'carousel-audio'));
       setIsPlaying(true);
       setCurrentMediaIdx(0);
     }
@@ -399,17 +464,31 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
     setCommentText('');
   };
 
-  const handleReelClick = (e: React.MouseEvent) => {
+  const handleToggleNativeMute = (e: React.SyntheticEvent) => {
     e.stopPropagation();
-    if (showVideoSlide) {
-      setIsPlaying(!isPlaying);
+    if (soundtrackUrl || !showVideoSlide) {
+      db.setGlobalMuted(!db.globalMuted);
+      return;
     }
+    const video = videoRef.current;
+    const nextMuted = video ? toggleNativeVideoMuted(video) : !db.globalMuted;
+    db.setGlobalMuted(nextMuted);
   };
 
-  const handleOpenReelFullscreen = (e: React.MouseEvent) => {
+  const handleOpenReelFullscreen = (e: React.SyntheticEvent) => {
     e.stopPropagation();
     if (!canOpenFullscreen) return;
-    if (showVideoSlide) setIsPlaying(true);
+    if (showVideoSlide) {
+      setIsPlaying(true);
+      const video = videoRef.current;
+      if (video) {
+        applyMobileInlineVideoAttrs(video);
+        tryEnterVideoFullscreen(video);
+      } else {
+        openNativeVideoFullscreen(null);
+      }
+      return;
+    }
     markReelFsOpened();
     setIsContentFullscreen(true);
   };
@@ -507,29 +586,24 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
 
     if (showVideoSlide) {
       return (
-        <video
-          data-playback-scope={PLAYBACK_SCOPE.MANAGED}
+        <AppNativeVideo
+          playbackScope={PLAYBACK_SCOPE.MANAGED}
           ref={videoRef}
-          src={displayMedia.url}
-          poster={displayMedia.posterUrl}
-          preload="metadata"
-          loop={loopCarouselItem}
-          playsInline
-          controls
+          src={resolvedVideoUrl || displayMedia.url}
+          poster={resolvedPosterUrl || displayMedia.posterUrl}
+          preload={isActive ? 'auto' : 'metadata'}
+          loop={false}
           muted={soundtrackUrl ? true : db.globalMuted}
-          onEnded={loopCarouselItem ? undefined : goToNextCarouselItem}
-          onVolumeChange={(e) => {
-            if (!soundtrackUrl) {
-              db.setGlobalMuted(e.currentTarget.muted);
-            }
-          }}
+          onPlay={() => setIsPlaying(true)}
+          onPause={() => setIsPlaying(false)}
+          onEnded={handleInlineVideoEnded}
+          onGlobalMutedChange={soundtrackUrl ? undefined : (muted) => db.setGlobalMuted(muted)}
           onError={(e) => {
             setVideoError(true);
             handleMediaError(e);
           }}
           style={filterStyle}
           className="absolute inset-0 w-full h-full object-cover z-10"
-          {...nativeVideoControlGuardProps()}
         />
       );
     }
@@ -576,7 +650,11 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
   );
   
   return (
-    <div className="w-full h-full relative snap-start snap-always overflow-hidden group">
+    <div
+      className="w-full h-full relative snap-start snap-always overflow-hidden group"
+      data-reel-snap-item
+      data-reel-index={reelIndex}
+    >
         {/* Backdrop: video, photo, audio, or text reel */}
         {hasMedia ? (
           <MediaWithSoundtrack
@@ -589,8 +667,8 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
           >
             <div
               ref={mediaSwipeRef}
-              className={`absolute inset-0 w-full h-full ${hasCarousel ? 'touch-pan-y' : ''}`}
-              onClick={handleReelClick}
+              className={`absolute inset-0 w-full h-full ${hasCarousel ? 'touch-pan-x' : ''}`}
+              style={{ touchAction: hasCarousel ? 'pan-x pan-y' : 'pan-y' }}
             >
               {renderInlineReelBody()}
             </div>
@@ -761,10 +839,9 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
                 </div>
             </button>
             <button 
-                onClick={(e) => {
-                  e.stopPropagation();
-                  db.setGlobalMuted(!db.globalMuted);
-                }}
+                type="button"
+                onClick={handleToggleNativeMute}
+                onPointerUp={handleToggleNativeMute}
                 className="flex flex-col items-center gap-1 hover:opacity-80 transition-transform active:scale-90"
                 title={db.globalMuted ? "Unmute" : "Mute"}
             >
@@ -778,9 +855,11 @@ function ReelItem({ reel, isActive, db, USERS, isCommentsOpen, setIsCommentsOpen
             </button>
             {canOpenFullscreen && (
               <button
+                type="button"
                 onClick={handleOpenReelFullscreen}
+                onPointerUp={handleOpenReelFullscreen}
                 className="flex flex-col items-center gap-1 hover:opacity-80 transition-transform active:scale-90"
-                title="Fullscreen"
+                title={showVideoSlide ? 'Native fullscreen' : 'Fullscreen'}
               >
                 <div className="p-2.5 bg-black/20 rounded-full backdrop-blur-sm">
                   <Maximize2 className="w-6 h-6 stroke-[2px] stroke-white" />

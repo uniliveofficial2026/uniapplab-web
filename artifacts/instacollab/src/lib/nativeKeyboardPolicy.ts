@@ -3,6 +3,9 @@
  * Blocks autoFocus / programmatic .focus() from pulling up the device keyboard.
  */
 
+const TEXT_ENTRY_SELECTOR =
+  'input:not([type="button"]):not([type="checkbox"]):not([type="radio"]):not([type="file"]):not([type="submit"]):not([type="reset"]):not([type="image"]):not([type="hidden"]):not([type="range"]):not([type="color"]),textarea,[contenteditable=""],[contenteditable="true"]';
+
 let lastPointerTarget: EventTarget | null = null;
 let lastPointerAt = 0;
 let allowTabFocus = false;

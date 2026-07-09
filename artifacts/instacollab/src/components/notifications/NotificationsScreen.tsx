@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { useDB, useDbRevision } from '../../lib/useDB';
+import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import {
   Heart,
@@ -30,8 +30,8 @@ import {
 } from '../../lib/notifications';
 import type { AppNotification, AppNotificationType } from '../../types';
 import { PostModal } from '../feed/PostModal';
-import { refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
 import { syncCloudNotifications } from '../../lib/cloudNotificationSync';
+import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
 
 const TYPE_FILTER_ICONS: Partial<
   Record<AppNotificationType, React.ComponentType<{ className?: string }>>
@@ -95,7 +95,6 @@ function FilterPill({
 export function NotificationsScreen({ embedded = false }: { embedded?: boolean }) {
   const db = useDB();
   const { showToast } = useToast();
-  useDbRevision();
   const USERS = db.users;
 
   const [activeTab, setActiveTab] = useState<NotificationFeedTab>('all');
@@ -107,12 +106,11 @@ export function NotificationsScreen({ embedded = false }: { embedded?: boolean }
   const searchMenuRef = useRef<HTMLDivElement>(null);
   const typeFilterScrollRef = useRef<HTMLDivElement>(null);
 
-  useEffect(() => {
-    refreshLiveCloudSurface('notifications');
+  useLiveCloudSurface('notifications', () => {
     void syncCloudNotifications().finally(() => {
       db.markAllNotificationsRead();
     });
-  }, []);
+  });
 
   useEffect(() => {
     const id = window.setInterval(() => setNow(Date.now()), 1000);

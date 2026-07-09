@@ -16,7 +16,7 @@ import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
 import { storyDraftFilterStyle, type StoryDraftMedia } from '../stories/storyDraft';
 import { isPlayableAudioUrl } from '../../lib/audioMedia';
 import { BackgroundAudioPlayer } from '../common/BackgroundAudioPlayer';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import type { User } from '../../types';
 import {
   formatProfileHandle,
@@ -311,24 +311,20 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                       </p>
                     </div>
                   ) : currentSegment.isVideo ? (
-                    <video 
+                    <AppNativeVideo
                       ref={storyVideoRef}
-                      src={currentSegment.url || undefined} 
-                      className="absolute inset-0 h-full w-full object-cover" 
+                      src={currentSegment.url || undefined}
+                      className="absolute inset-0 h-full w-full object-cover"
                       style={storyDraftFilterStyle(currentSegment)}
-                      autoPlay 
-                      playsInline 
+                      autoPlay
                       muted={
                         db.globalMuted ||
                         !!(currentSegment.backgroundAudio?.url &&
                           isPlayableAudioUrl(currentSegment.backgroundAudio.url))
                       }
-                      onVolumeChange={(e) => {
-                        db.setGlobalMuted(e.currentTarget.muted);
-                      }}
+                      onGlobalMutedChange={(muted) => db.setGlobalMuted(muted)}
                       onPlay={() => setIsPaused(false)}
                       onPause={() => setIsPaused(true)}
-                      controls
                       preload="metadata"
                       onTimeUpdate={(e) => {
                         const video = e.currentTarget;
@@ -341,7 +337,6 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                           video.currentTime = startTime;
                         }
                         if (video.currentTime >= endTime - 0.05) {
-                          // Finish segment → parent advances to next segment or next user.
                           video.pause();
                           setProgress(100);
                           return;
@@ -361,7 +356,6 @@ export function StoryRingPortals(props: StoryRingPortalsProps) {
                             video.duration * ((currentSegment.trimStart ?? 0) / 100);
                         }
                       }}
-                      {...nativeVideoControlGuardProps()}
                     />
                   ) : (
                     <img

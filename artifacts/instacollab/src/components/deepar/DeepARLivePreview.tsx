@@ -5,13 +5,14 @@ import { DEEPAR_DEFAULT_EFFECT_ID, isDeepARConfigured } from '../../lib/deepar/d
 import { useCameraStream } from '../../lib/deepar/useCameraStream';
 import { useDeepAR } from '../../lib/deepar/useDeepAR';
 import {
-  getTencentBeautifyParams,
+  resolveTencentBeautifyParams,
   type BeautyPresetId,
 } from '../../lib/ar/beautyFilters';
+import { EMPTY_BODY_SHAPE, isBodyShapeActive, type BodyShapeParams } from '../../lib/ar/bodyShape';
 import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
 import { useTencentWebAR } from '../../lib/webar/useTencentWebAR';
+import { DeepARFilterCarousel } from './DeepARFilterCarousel';
 import { LiveBeautySheet } from '../../smule-rooms/components/LiveBeautySheet';
-import { MultiGuestEffectsSheet } from '../../smule-rooms/components/MultiGuestEffectsSheet';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
   type TencentEffectSelection,
@@ -37,18 +38,21 @@ export function DeepARLivePreview({
   const [beautyEffects, setBeautyEffects] = useState<TencentEffectSelection>(
     EMPTY_TENCENT_EFFECT_SELECTION,
   );
+  const [bodyShape, setBodyShape] = useState<BodyShapeParams>(EMPTY_BODY_SHAPE);
   const [deeparPanelOpen, setDeeparPanelOpen] = useState(false);
   const [beautyPanelOpen, setBeautyPanelOpen] = useState(false);
   const configured = isDeepARConfigured();
   const webarConfigured = isTencentWebARConfigured();
-  const deeparActive = configured && deeparEffectId !== 'none';
+  const deeparActive = configured && !webarConfigured && deeparEffectId !== 'none';
   const beautyEffectsActive = Boolean(
     beautyEffects.makeupId ||
       beautyEffects.stickerId ||
       beautyEffects.filterId ||
-      beautyEffects.backgroundUrl,
+      beautyEffects.backgroundUrl ||
+      beautyEffects.shapeEffectId,
   );
-  const beautyActive = beautyId !== 'none' || beautyEffectsActive;
+  const shapeActive = isBodyShapeActive(bodyShape);
+  const beautyActive = beautyId !== 'none' || beautyEffectsActive || shapeActive;
 
   const handleSelectDeepAR = useCallback((effectId: string) => {
     setDeeparEffectId(effectId);
@@ -91,15 +95,14 @@ export function DeepARLivePreview({
     enabled: enabled && camera.ready && beautyActive && !deeparActive,
     inputStream,
     mirror: true,
-    beautify: getTencentBeautifyParams(beautyId),
+    beautify: resolveTencentBeautifyParams(beautyId, bodyShape),
     effects: beautyEffects,
   });
 
   const deepar = useDeepAR({
     previewRef,
     videoElementRef: camera.videoRef,
-    enabled: enabled && configured && camera.ready,
-    processingActive: deeparActive,
+    enabled: enabled && configured && camera.ready && deeparActive,
     initialEffectId: deeparEffectId,
   });
 
@@ -177,8 +180,7 @@ export function DeepARLivePreview({
         </div>
       )}
       {(camera.ready || deepar.ready || webar.beautyActive) && (
-        <div className="absolute bottom-0 inset-x-0 p-2 space-y-2 pointer-events-none">
-          <div className="pointer-events-auto">
+        <div className="absolute bottom-0 inset-x-0 p-2 bg-gradient-to-t from-black/80 to-transparent space-y-2">
           <CameraDualBeautyButtons
             variant="inline"
             deeparPanelOpen={deeparPanelOpen}
@@ -199,33 +201,36 @@ export function DeepARLivePreview({
                 return next;
               });
             }}
-            showDeepAR={configured}
+            showDeepAR={configured && !webarConfigured}
             showBeauty
             className="justify-center"
           />
-          </div>
-          <MultiGuestEffectsSheet
-            isOpen={deeparPanelOpen}
-            onClose={() => setDeeparPanelOpen(false)}
-            activeEffectId={deeparEffectId}
-            onSelectEffect={handleSelectDeepAR}
-            loading={deeparActive && deepar.loading}
-            cameraReady={camera.ready}
-            anchorBottom={72}
-          />
-          <LiveBeautySheet
-            isOpen={beautyPanelOpen}
-            onClose={() => setBeautyPanelOpen(false)}
-            activeBeautyId={beautyId}
-            onSelectBeauty={handleSelectBeauty}
-            effects={beautyEffects}
-            onEffectsChange={handleBeautyEffectsChange}
-            catalogs={webar.catalogs}
-            anchorBottom={72}
-            webarConfigured={webarConfigured}
-            webarLoading={webar.loading}
-            webarError={webar.error}
-          />
+          {deeparPanelOpen ? (
+            <DeepARFilterCarousel
+              activeEffectId={deeparEffectId}
+              onSelect={handleSelectDeepAR}
+              deepAROnly
+              className="max-w-full"
+            />
+          ) : null}
+          {beautyPanelOpen ? (
+            <LiveBeautySheet
+              isOpen
+              onClose={() => setBeautyPanelOpen(false)}
+              activeBeautyId={beautyId}
+              onSelectBeauty={handleSelectBeauty}
+              effects={beautyEffects}
+              onEffectsChange={handleBeautyEffectsChange}
+              bodyShape={bodyShape}
+              onBodyShapeChange={setBodyShape}
+              catalogs={webar.catalogs}
+              readyEffectIds={webar.readyEffectIds}
+              anchorBottom={0}
+              webarConfigured={webarConfigured}
+              webarLoading={webar.loading}
+              webarError={webar.error}
+            />
+          ) : null}
         </div>
       )}
     </div>

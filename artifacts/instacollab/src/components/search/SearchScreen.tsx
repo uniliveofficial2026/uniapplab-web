@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { Search, MapPin, Music, Hash, UserCircle2, Loader2, Play } from 'lucide-react';
-import { useDB, useDbRevision } from '../../lib/useDB';
+import { Search, MapPin, Music, Hash, UserCircle2, Play } from 'lucide-react';
+import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { handleAvatarError } from '../../lib/utils';
 import { useDiscoverableUserSearch } from '../../hooks/useDiscoverableUserSearch';
@@ -17,6 +17,8 @@ import { SafeMediaImage } from '../common/SafeMediaImage';
 import { safeAvatarUrl } from '../../lib/safe';
 import type { User } from '../../types';
 import { snapshotPostPlayback } from '../../lib/postPlayback';
+import { syncCloudSocialFeed } from '../../lib/cloudSocial/cloudSocialContent';
+import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
 
 export type SearchTab = 'top' | 'accounts' | 'audio' | 'tags' | 'places';
 
@@ -42,11 +44,14 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
 
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
   const db = useDB();
-  const dbRevision = useDbRevision();
   const POSTS = db.posts;
-  const { results: searchUsers, loading: searchUsersLoading } = useDiscoverableUserSearch(query);
+  const { results: searchUsers } = useDiscoverableUserSearch(query);
   const cloudSearchEnabled = isPrimarySupabaseCloud() || isCloudAuthConfigured();
   const { showToast } = useToast();
+
+  useLiveCloudSurface('search', () => {
+    void syncCloudSocialFeed();
+  });
 
   const explorePosts = useMemo(
     () =>
@@ -54,7 +59,7 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
         resolveProfileGridPost(raw, db),
       ),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [POSTS, db.posts, db.users, db.postComments, dbRevision],
+    [POSTS, db.posts, db.users, db.postComments],
   );
 
   const toggleFollow = (user: User, e: React.MouseEvent) => {
@@ -142,13 +147,8 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
             {activeTab === 'top' && (
               <div className="space-y-6">
                 <div className="space-y-4">
-                  <div className="flex items-center justify-between gap-2">
-                    <h3 className="font-black text-lg">Top Accounts</h3>
-                    {searchUsersLoading ? (
-                      <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" aria-hidden />
-                    ) : null}
-                  </div>
-                  {searchUsers.length === 0 && !searchUsersLoading ? (
+                  <h3 className="font-black text-lg">Top Accounts</h3>
+                  {searchUsers.length === 0 ? (
                     <p className="text-sm text-muted-foreground px-2">
                       {isPrimarySupabaseCloud()
                         ? 'No accounts match that search. Users appear here after they finish profile setup (Continue on the setup screen).'
@@ -197,12 +197,7 @@ export function SearchScreen({ initialContext, onClearContext }: { initialContex
             
              {activeTab === 'accounts' && (
               <div className="space-y-2">
-                 {searchUsersLoading && searchUsers.length === 0 ? (
-                   <p className="text-sm text-muted-foreground px-3 py-2 flex items-center gap-2">
-                     <Loader2 className="w-4 h-4 animate-spin" /> Searching accounts…
-                   </p>
-                 ) : null}
-                 {!searchUsersLoading && searchUsers.length === 0 ? (
+                 {searchUsers.length === 0 ? (
                    <p className="text-sm text-muted-foreground px-3 py-2">No matching accounts.</p>
                  ) : null}
                  {searchUsers.map((user, i) => (

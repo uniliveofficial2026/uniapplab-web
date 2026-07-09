@@ -1,18 +1,21 @@
 import React, { useEffect } from 'react';
 import { motion } from 'motion/react';
 import { useDB } from '../../lib/useDB';
+import { hasInstantSessionCache } from '../../lib/instantCachePolicy';
 import { LaunchBrandMark, LaunchShell } from './launchUi';
 import { APP_DISPLAY_NAME, APP_TAGLINE } from '../../lib/appBrand';
 
 export function SplashScreen() {
   const db = useDB();
+  const fastPath = hasInstantSessionCache() || db.getLaunchProgress().hasSeenSplash;
 
   useEffect(() => {
+    const delayMs = fastPath ? 0 : 800;
     const timer = window.setTimeout(() => {
       db.markSplashSeen();
-    }, 2200);
+    }, delayMs);
     return () => window.clearTimeout(timer);
-  }, [db]);
+  }, [db, fastPath]);
 
   return (
     <LaunchShell className="items-center justify-center p-8 overflow-y-auto">

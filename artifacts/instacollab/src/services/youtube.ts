@@ -1,6 +1,5 @@
 import { getSupabaseClient } from '../lib/supabase/client';
 import { isSupabaseConfigured } from '../lib/supabase/config';
-import { getCloudAuthHeaders } from '../lib/security/apiAuth';
 
 export type YoutubeVideoSummary = {
   videoId: string;
@@ -94,8 +93,9 @@ export function toWatchTogetherYoutubeRef(videoId: string): string {
 async function apiFetch<T>(path: string): Promise<T> {
   const origin =
     typeof window !== 'undefined' ? window.location.origin.replace(/\/$/, '') : '';
-  const headers = await getCloudAuthHeaders();
-  const res = await fetch(`${origin}${path}`, { headers });
+  const res = await fetch(`${origin}${path}`, {
+    headers: { accept: 'application/json' },
+  });
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     throw new Error(body || `YouTube API ${res.status}`);

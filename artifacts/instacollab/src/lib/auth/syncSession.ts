@@ -4,7 +4,7 @@ import { applySupabaseSessionToLocalDb, restoreSupabaseSession } from './session
 import { isFirebaseConfigured } from '../firebase/config';
 import { getFirebaseAuth } from '../firebase/app';
 import { withTimeout } from '../supabase/withTimeout';
-import { writeStoredAuthBackend, isSupabaseOAuthDegraded } from './providerState';
+import { writeStoredAuthBackend } from './providerState';
 import { applyFirebaseOAuthSessionToLocalDb } from './applyFirebaseBackupSession';
 
 const STORAGE_READY_MS = 30_000;
@@ -27,7 +27,7 @@ export async function syncCloudSessionNow(): Promise<{ ok: true } | { ok: false;
     return { ok: false, reason: 'Local storage is still loading. Try again in a moment.' };
   }
 
-  if (isSupabaseConfigured() && !isSupabaseOAuthDegraded()) {
+  if (isSupabaseConfigured()) {
     try {
       const session = await restoreSupabaseSession();
       if (session?.user) {

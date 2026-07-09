@@ -17,10 +17,20 @@ type DemoAccountConfig = {
 };
 
 const DEMO_ACCOUNTS: Record<string, DemoAccountConfig> = {
+  'demo@unilive.app': {
+    legacyUserId: 'u1',
+    username: 'designer_dude',
+    displayName: 'Designer Dude',
+  },
   'demo@instacollab.app': {
     legacyUserId: 'u1',
     username: 'designer_dude',
     displayName: 'Designer Dude',
+  },
+  'sarah@unilive.app': {
+    legacyUserId: 'u2',
+    username: 'creative_sarah',
+    displayName: 'Creative Sarah',
   },
   'sarah@instacollab.app': {
     legacyUserId: 'u2',
@@ -49,7 +59,7 @@ export async function signInDemoWithCloudSync(
   if (password !== DEMO_PASSWORD) {
     return {
       ok: false,
-      reason: 'Demo password is demo123 for demo@instacollab.app and sarah@instacollab.app.',
+      reason: `Demo password is ${DEMO_PASSWORD}.`,
     };
   }
 

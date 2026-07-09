@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useGoogleWorkspacePoll } from '../../hooks/useGoogleWorkspacePoll';
 import { useAuth } from '../../lib/AuthContext';
 import { useDB } from '../../lib/useDB';
 import { 
@@ -22,8 +23,38 @@ export function GoogleCalendarTab() {
   const db = useDB();
   
   const [subTab, setSubTab] = useState<'calendar' | 'meet'>('calendar');
-  const [events, setEvents] = useState<CalendarEvent[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [events, setEvents] = useState<CalendarEvent[]>([
+    {
+      id: 'e1',
+      summary: 'Project unilive-ryz8n6 Review',
+      description: 'Review database schemas, authentication variables, and secure Firestore rule locks.',
+      start: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
+      end: new Date(Date.now() + 1000 * 60 * 60 * 3).toISOString(),
+      location: 'Google Meet Video Session',
+      hangoutLink: 'https://meet.google.com/ais-pre-unilive',
+      attendeesCount: 4,
+    },
+    {
+      id: 'e2',
+      summary: 'Sarah & Alan 1on1 Deliverables Sync',
+      description: 'Discuss custom UI typography pairings (Inter / JetBrains Mono) and dark mode contrast ratios.',
+      start: new Date(Date.now() + 100 * 60 * 60 * 1000).toISOString(),
+      end: new Date(Date.now() + 101 * 60 * 60 * 1000).toISOString(),
+      location: 'Virtual workspace',
+      hangoutLink: 'https://meet.google.com/qzw-rfgh-abc',
+      attendeesCount: 2,
+    },
+    {
+      id: 'e3',
+      summary: 'Firestore Rule ESLint & Sec Audit',
+      description: 'Reviewing Zero-trust attribute policies and making sure we prevent shadowed updates on database records.',
+      start: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
+      end: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
+      location: 'Main Conference Room 4B',
+      attendeesCount: 5,
+    },
+  ]);
+  const [manualRefresh, setManualRefresh] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
 
   // Event creation form state
@@ -41,45 +72,10 @@ export function GoogleCalendarTab() {
   const [generatedMeetLink, setGeneratedMeetLink] = useState<string | null>(null);
   const [meetCreating, setMeetCreating] = useState(false);
 
-  // Fallback beautiful seed events
-  const seedEvents: CalendarEvent[] = [
-    {
-      id: 'e1',
-      summary: 'Project unilive-ryz8n6 Review',
-      description: 'Review database schemas, authentication variables, and secure Firestore rule locks.',
-      start: new Date(Date.now() + 1000 * 60 * 60 * 2).toISOString(),
-      end: new Date(Date.now() + 1000 * 60 * 60 * 3).toISOString(),
-      location: 'Google Meet Video Session',
-      hangoutLink: 'https://meet.google.com/ais-pre-unilive',
-      attendeesCount: 4
-    },
-    {
-      id: 'e2',
-      summary: 'Sarah & Alan 1on1 Deliverables Sync',
-      description: 'Discuss custom UI typography pairings (Inter / JetBrains Mono) and dark mode contrast ratios.',
-      start: new Date(Date.now() + 100 * 60 * 60 * 1000).toISOString(),
-      end: new Date(Date.now() + 101 * 60 * 60 * 1000).toISOString(),
-      location: 'Virtual workspace',
-      hangoutLink: 'https://meet.google.com/qzw-rfgh-abc',
-      attendeesCount: 2
-    },
-    {
-      id: 'e3',
-      summary: 'Firestore Rule ESLint & Sec Audit',
-      description: 'Reviewing Zero-trust attribute policies and making sure we prevent shadowed updates on database records.',
-      start: new Date(Date.now() - 3 * 3600 * 1000).toISOString(),
-      end: new Date(Date.now() - 2 * 3600 * 1000).toISOString(),
-      location: 'Main Conference Room 4B',
-      attendeesCount: 5
-    }
-  ];
-
   const fetchCalendarEvents = async () => {
     if (!googleAccessToken) {
-      setEvents(seedEvents);
       return;
     }
-    setLoading(true);
     try {
       // Fetch calendar events via verified live Google Calendar API
       const timeMin = new Date().toISOString();
@@ -91,7 +87,6 @@ export function GoogleCalendarTab() {
       
       if (!data.items || data.items.length === 0) {
         setEvents([]);
-        setLoading(false);
         return;
       }
 
@@ -113,15 +108,16 @@ export function GoogleCalendarTab() {
       setEvents(mapped);
     } catch (e) {
       console.error('Error fetching Calendar', e);
-      setEvents([]);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchCalendarEvents();
+    if (!googleAccessToken) {
+      fetchCalendarEvents();
+    }
   }, [googleAccessToken]);
+
+  useGoogleWorkspacePoll(fetchCalendarEvents, Boolean(googleAccessToken));
 
   const handleCreateEvent = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -373,6 +369,17 @@ export function GoogleCalendarTab() {
               >
                 <Plus className="w-4 h-4" /> Book Event
               </button>
+              <button
+                onClick={() => {
+                  setManualRefresh(true);
+                  void fetchCalendarEvents().finally(() => setManualRefresh(false));
+                }}
+                disabled={manualRefresh}
+                className="p-2 border border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground rounded-xl self-stretch sm:self-auto"
+                title="Refresh calendar"
+              >
+                <RefreshCw className={`w-3.5 h-3.5 ${manualRefresh ? 'animate-spin' : ''}`} />
+              </button>
             </div>
           </div>
 
@@ -390,12 +397,7 @@ export function GoogleCalendarTab() {
           )}
 
           {/* Timetable Items */}
-          {loading ? (
-            <div className="text-center py-20 text-xs text-muted-foreground font-medium">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary mb-3" />
-              Parsing schedule matrix...
-            </div>
-          ) : filteredEvents.length === 0 ? (
+          {filteredEvents.length === 0 ? (
             <div className="text-center py-20 border border-dashed border-border rounded-2xl bg-card">
               <CalendarIcon className="w-9 h-9 stroke-1 text-muted-foreground/50 mx-auto mb-2" />
               <p className="text-xs font-bold text-foreground">Agenda is entirely empty</p>

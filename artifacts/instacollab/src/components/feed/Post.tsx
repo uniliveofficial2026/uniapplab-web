@@ -316,7 +316,8 @@ export function Post({
     feedPlaybackEligible &&
     feedShowVideo &&
     !isContentFullscreen &&
-    !postSoundtrackUrl;
+    !postSoundtrackUrl &&
+    !db.globalMuted;
 
   const postFsVideoWantsPlay =
     isContentFullscreen && feedShowVideo && !postSoundtrackUrl;
@@ -363,7 +364,7 @@ export function Post({
     if (!commentText.trim()) return;
     db.addPostComment(
       livePost.id,
-      buildCommentPayload(resolveUser(db.users, db.currentUser), commentText)
+      buildCommentPayload(db.currentUser, commentText)
     );
     setCommentText('');
   };

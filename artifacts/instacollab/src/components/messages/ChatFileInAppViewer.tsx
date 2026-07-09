@@ -6,7 +6,7 @@ import {
   getChatFileKind,
   type ChatFileKind,
 } from './messages/chatFileUtils';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 
 const TEXT_PREVIEW_MAX_CHARS = 512_000;
 
@@ -88,12 +88,9 @@ function ViewerBody({ kind, src, name }: { kind: ChatFileKind; src: string; name
       );
     case 'video':
       return (
-        <video
+        <AppNativeVideo
           src={src}
-          controls
-          playsInline
           className="block h-auto w-auto max-h-full max-w-full object-contain bg-black"
-          {...nativeVideoControlGuardProps()}
         />
       );
     case 'audio':

@@ -1,15 +1,10 @@
 import { YoutubeMiniPlayerFloating } from './YoutubeMiniPlayerFloating';
 import { YoutubeMiniPlayerPicker } from './YoutubeMiniPlayerPicker';
 import { useYoutubeMiniPlayer } from '../../hooks/useYoutubeMiniPlayer';
-import { initYoutubeMiniPlayerState, patchYoutubeMiniPlayerState } from '../../lib/youtubeMiniPlayer';
-import { useEffect } from 'react';
+import { patchYoutubeMiniPlayerState } from '../../lib/youtubeMiniPlayer';
 
 export function YoutubeMiniPlayerHost() {
   const state = useYoutubeMiniPlayer();
-
-  useEffect(() => {
-    initYoutubeMiniPlayerState();
-  }, []);
 
   return (
     <>

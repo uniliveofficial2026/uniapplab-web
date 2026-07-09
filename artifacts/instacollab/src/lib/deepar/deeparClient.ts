@@ -1,12 +1,9 @@
 /**
- * DeepAR Web SDK client — matches official quickstart import pattern.
+ * DeepAR Web SDK client — lazy-loaded only when DeepAR is enabled.
  * @see https://github.com/DeepARSDK/quickstart-web-js-npm/blob/main/src/index.js
  */
-import * as deepar from 'deepar';
 import type { DeepAR, DeepARParams } from 'deepar';
-
-export { deepar };
-export const deeparVersion = deepar.version;
+import { DEEPAR_ENABLED } from './deeparEnabled';
 
 export type InitializeDeepARParams = {
   previewElement: HTMLElement;
@@ -42,6 +39,12 @@ export async function initializeDeepAR({
   useExternalVideo = false,
   onProgress,
 }: InitializeDeepARParams): Promise<DeepAR> {
+  if (!DEEPAR_ENABLED) {
+    throw new Error('DeepAR is disabled (DEEPAR_ENABLED=false)');
+  }
+
+  const deepar = await import('deepar');
+
   return deepar.initialize({
     licenseKey,
     previewElement,

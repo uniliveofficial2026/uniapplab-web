@@ -12,9 +12,8 @@ export function shouldKeepLocalSessionDuringAuthSwitch(): boolean {
   return shouldIgnoreSupabaseSignedOut();
 }
 
-/** Ignore Supabase SIGNED_OUT while Firebase backup lane is active during an outage. */
+/** Ignore Supabase SIGNED_OUT while Firebase OAuth backup lane holds the same user. */
 export function shouldIgnoreSupabaseSignedOut(): boolean {
-  if (!isSupabaseOAuthDegraded()) return false;
   if (!db.isLoggedIn || !db.currentUserId) return false;
   const userId = db.currentUserId;
   if (!isSupabaseAuthUserId(userId)) return false;

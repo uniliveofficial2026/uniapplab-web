@@ -4,7 +4,7 @@ import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
 import { useInlineVideoVisibility } from '../../lib/useInlineVideoVisibility';
 import { useChatMediaVideo } from '../../lib/useChatMediaVideo';
 import { safeMediaUrl } from '../../lib/safe';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import {
   mediaReachedEnd,
   useMessageMediaPlaylist,
@@ -99,8 +99,8 @@ export function ChatInlineVideo({
 
   return (
     <div ref={containerRef} className={className}>
-      <video
-        data-playback-scope={PLAYBACK_SCOPE.INLINE}
+      <AppNativeVideo
+        playbackScope={PLAYBACK_SCOPE.INLINE}
         ref={(el) => {
           videoRef.current = el;
           onRegisterRef?.(el);
@@ -109,9 +109,7 @@ export function ChatInlineVideo({
         className={videoClassName}
         loop={inPlaylist ? false : loop}
         muted={db.globalMuted}
-        playsInline
         preload="metadata"
-        controls
         poster={poster}
         onError={onError}
         onPlay={handlePlay}
@@ -121,8 +119,7 @@ export function ChatInlineVideo({
           playlist.notifyPaused(playlistTrackId);
         }}
         onEnded={handleEnded}
-        onVolumeChange={(e) => db.setGlobalMuted(e.currentTarget.muted)}
-        {...nativeVideoControlGuardProps()}
+        onGlobalMutedChange={(muted) => db.setGlobalMuted(muted)}
       />
       {overlay}
     </div>

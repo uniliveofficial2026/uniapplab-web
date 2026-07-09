@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 import {
   fetchLiveStreams,
   fetchStreamViewers,
@@ -10,10 +11,12 @@ import {
   isLiveDiscoveryCloudAvailable,
   type CloudLiveStream,
 } from '../lib/supabase/liveDiscovery';
-import { fetchActivePartyRooms } from '../lib/supabase/partyRooms';
+import { fetchActivePartyRooms } from '../lib/party/partyRoomsCloud';
+import { isPartyCloudAvailable } from '../lib/party/partyCloud';
 import { fetchProfile } from '../lib/supabase/profile';
 import { getSupabaseClient } from '../lib/supabase/client';
 import { isSupabaseConfigured } from '../lib/supabase/config';
+import { removeSupabaseChannelsContaining } from '../lib/supabase/realtimeChannelUtils';
 import {
   formatViewerCount,
   parseViewerCount,
@@ -200,6 +203,53 @@ async function buildDiscoveryItems(): Promise<LiveDiscoveryItem[]> {
     }
   }
 
+  if (!isSupabaseConfigured() && isPartyCloudAvailable()) {
+    const partyRows = await fetchActivePartyRooms(30).catch(() => []);
+    const seenPartyIds = new Set(
+      items.map((entry) => entry.partyRoomId).filter(Boolean) as string[],
+    );
+    const liveRooms = partyRows.filter(
+      (room) => isLiveRingRoomMode(room.room_mode) && !seenPartyIds.has(room.id),
+    );
+    const ownerIds = [...new Set(liveRooms.map((room) => room.owner_id).filter(Boolean))];
+    const ownerProfiles = await Promise.all(
+      ownerIds.map(async (ownerId) => {
+        try {
+          const profile = await fetchProfile(ownerId);
+          return [ownerId, profile] as const;
+        } catch {
+          return [ownerId, null] as const;
+        }
+      }),
+    );
+    const profileByOwner = new Map(ownerProfiles);
+
+    for (const room of liveRooms) {
+      seenPartyIds.add(room.id);
+      const profile = profileByOwner.get(room.owner_id);
+      const host = profile?.display_name || profile?.username || 'Host';
+      const hostAvatar = profile?.avatar_url ?? null;
+      const participantCount = Math.max(0, room.participant_count ?? 0);
+      const liveKind = liveKindFromRoomMode(room.room_mode);
+      items = items.filter(
+        (entry) =>
+          !(entry.userId === room.owner_id && !entry.partyRoomId && !entry.streamId),
+      );
+      items.push(
+        withViewerCount({
+          id: `party-live-${room.id}`,
+          userId: room.owner_id,
+          user: host,
+          title: room.room_name,
+          img: room.cover_url || hostAvatar || FALLBACK_IMG,
+          tags: [liveKind, room.room_mode, ...(room.tags ?? [])],
+          partyRoomId: room.id,
+          viewerCount: participantCount,
+        }),
+      );
+    }
+  }
+
   return attachStreamViewerCounts(items);
 }
 
@@ -208,6 +258,7 @@ export function useCloudLiveDiscovery(enabled = true) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const refreshingRef = useRef(false);
+  const refreshRef = useRef<(opts?: { silent?: boolean }) => Promise<void>>(async () => {});
 
   const refresh = useCallback(async (opts?: { silent?: boolean }) => {
     if (!enabled) {
@@ -236,52 +287,68 @@ export function useCloudLiveDiscovery(enabled = true) {
     }
   }, [enabled]);
 
+  refreshRef.current = refresh;
+
   useEffect(() => {
-    void refresh();
-    const timer = window.setInterval(() => void refresh({ silent: true }), POLL_MS);
+    void refreshRef.current();
+    const timer = window.setInterval(() => void refreshRef.current({ silent: true }), POLL_MS);
     const unsubSurface = subscribeLiveCloudSurfaceRefresh(['live', 'party', 'all'], () => {
-      void refresh({ silent: true });
+      void refreshRef.current({ silent: true });
     });
     return () => {
       window.clearInterval(timer);
       unsubSurface();
     };
-  }, [refresh]);
+  }, [enabled]);
 
   useEffect(() => {
     if (!enabled || !isSupabaseConfigured()) return undefined;
     const supabase = getSupabaseClient();
     if (!supabase) return undefined;
 
+    let cancelled = false;
+    let channel: RealtimeChannel | null = null;
+    const instanceId =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+
     const scheduleRefresh = () => {
       scheduleInstant('live-discovery-refresh', () => {
-        void refresh({ silent: true });
+        void refreshRef.current({ silent: true });
       });
     };
 
-    const channel = supabase
-      .channel('live-discovery-feed')
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'party_rooms' },
-        scheduleRefresh,
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'profiles' },
-        scheduleRefresh,
-      )
-      .on(
-        'postgres_changes',
-        { event: '*', schema: 'public', table: 'streams' },
-        scheduleRefresh,
-      )
-      .subscribe();
+    void (async () => {
+      await removeSupabaseChannelsContaining(supabase, 'live-discovery-feed');
+      if (cancelled) return;
+
+      channel = supabase
+        .channel(`live-discovery-feed:${instanceId}`)
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'party_rooms' },
+          scheduleRefresh,
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'profiles' },
+          scheduleRefresh,
+        )
+        .on(
+          'postgres_changes',
+          { event: '*', schema: 'public', table: 'streams' },
+          scheduleRefresh,
+        )
+        .subscribe();
+    })();
 
     return () => {
-      void supabase.removeChannel(channel);
+      cancelled = true;
+      if (channel) void supabase.removeChannel(channel);
+      channel = null;
     };
-  }, [enabled, refresh]);
+  }, [enabled]);
 
   return { streams, loading, error, refresh };
 }

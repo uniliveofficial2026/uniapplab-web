@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from 'react';
+import { useGoogleWorkspacePoll } from '../../hooks/useGoogleWorkspacePoll';
 import { useAuth } from '../../lib/AuthContext';
 import { getAppUserId } from '../../lib/appUserId';
 import { 
@@ -18,11 +19,58 @@ interface ContactItem {
   notes?: string;
 }
 
+const CONTACT_SEED: ContactItem[] = [
+  {
+    id: 'c_1',
+    name: 'Sarah Lin',
+    firstName: 'Sarah',
+    lastName: 'Lin',
+    email: 'sarah.lin@unilive.co',
+    phone: '+1 (555) 304-9483',
+    photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces',
+    starred: true,
+    notes: 'Lead UI Craft Architect on workspace layout.',
+  },
+  {
+    id: 'c_2',
+    name: 'Michael Chen',
+    firstName: 'Michael',
+    lastName: 'Chen',
+    email: 'michael.c@unilive.co',
+    phone: '+1 (555) 723-1129',
+    photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
+    starred: true,
+    notes: 'Senior Security Architect for firebase.rules database hardening.',
+  },
+  {
+    id: 'c_3',
+    name: 'David Kojo',
+    firstName: 'David',
+    lastName: 'Kojo',
+    email: 'david.kojo@unilive.co',
+    phone: '+1 (555) 894-3329',
+    photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces',
+    starred: false,
+    notes: 'DevOps / Cloud Run cluster deployment manager.',
+  },
+  {
+    id: 'c_4',
+    name: 'Alice Johnson',
+    firstName: 'Alice',
+    lastName: 'Johnson',
+    email: 'alice.j@unilive.co',
+    phone: '+1 (555) 124-9087',
+    photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces',
+    starred: false,
+    notes: 'Database developer',
+  },
+];
+
 export function GoogleContactsTab() {
   const { googleAccessToken, loginWithGoogle } = useAuth();
   const contactsStorageKey = `google_contacts_cache_${getAppUserId()}`;
-  const [contacts, setContacts] = useState<ContactItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [contacts, setContacts] = useState<ContactItem[]>(CONTACT_SEED);
+  const [manualRefresh, setManualRefresh] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   
   // Create / Edit modal state
@@ -35,54 +83,6 @@ export function GoogleContactsTab() {
   const [notesInput, setNotesInput] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
-
-  // Fallback / seed contacts
-  const seedContacts: ContactItem[] = [
-    {
-      id: 'c_1',
-      name: 'Sarah Lin',
-      firstName: 'Sarah',
-      lastName: 'Lin',
-      email: 'sarah.lin@unilive.co',
-      phone: '+1 (555) 304-9483',
-      photoUrl: 'https://images.unsplash.com/photo-1494790108377-be9c29b29330?w=100&h=100&fit=crop&crop=faces',
-      starred: true,
-      notes: 'Lead UI Craft Architect on workspace layout.'
-    },
-    {
-      id: 'c_2',
-      name: 'Michael Chen',
-      firstName: 'Michael',
-      lastName: 'Chen',
-      email: 'michael.c@unilive.co',
-      phone: '+1 (555) 723-1129',
-      photoUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=100&h=100&fit=crop&crop=faces',
-      starred: true,
-      notes: 'Senior Security Architect for firebase.rules database hardening.'
-    },
-    {
-      id: 'c_3',
-      name: 'David Kojo',
-      firstName: 'David',
-      lastName: 'Kojo',
-      email: 'david.kojo@unilive.co',
-      phone: '+1 (555) 894-3329',
-      photoUrl: 'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=100&h=100&fit=crop&crop=faces',
-      starred: false,
-      notes: 'DevOps / Cloud Run cluster deployment manager.'
-    },
-    {
-      id: 'c_4',
-      name: 'Alice Johnson',
-      firstName: 'Alice',
-      lastName: 'Johnson',
-      email: 'alice.j@unilive.co',
-      phone: '+1 (555) 124-9087',
-      photoUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=100&h=100&fit=crop&crop=faces',
-      starred: false,
-      notes: 'Database developer'
-    }
-  ];
 
   const persistLocalContacts = useCallback((nextContacts: ContactItem[]) => {
     if (googleAccessToken) return;
@@ -109,12 +109,10 @@ export function GoogleContactsTab() {
 
   const fetchContacts = async () => {
     if (!googleAccessToken) {
-      setContacts(seedContacts);
+      setContacts(CONTACT_SEED);
       return;
     }
-    setLoading(true);
     try {
-      // Fetch connections via verified Google People API
       const res = await fetch('https://www.googleapis.com/people/v1/people/me/connections?personFields=names,emailAddresses,photos,phoneNumbers&pageSize=50', {
         headers: { Authorization: `Bearer ${googleAccessToken}` }
       });
@@ -123,7 +121,6 @@ export function GoogleContactsTab() {
       
       if (!data.connections || data.connections.length === 0) {
         setContacts([]);
-        setLoading(false);
         return;
       }
 
@@ -149,15 +146,16 @@ export function GoogleContactsTab() {
       setContacts(mapped);
     } catch (e) {
       console.error('Error fetching Contacts', e);
-      setContacts([]);
-    } finally {
-      setLoading(false);
     }
   };
 
   useEffect(() => {
-    fetchContacts();
+    if (!googleAccessToken) {
+      fetchContacts();
+    }
   }, [googleAccessToken]);
+
+  useGoogleWorkspacePoll(fetchContacts, Boolean(googleAccessToken));
 
   const handleOpenAdd = () => {
     setEditingId(null);
@@ -375,6 +373,17 @@ export function GoogleContactsTab() {
           >
             <UserPlus className="w-4 h-4" /> Add Connection
           </button>
+          <button
+            onClick={() => {
+              setManualRefresh(true);
+              void fetchContacts().finally(() => setManualRefresh(false));
+            }}
+            disabled={manualRefresh}
+            className="p-2 border border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground rounded-xl self-stretch sm:self-auto"
+            title="Refresh contacts"
+          >
+            <RefreshCw className={`w-3.5 h-3.5 ${manualRefresh ? 'animate-spin' : ''}`} />
+          </button>
         </div>
       </div>
 
@@ -392,12 +401,7 @@ export function GoogleContactsTab() {
       )}
 
       {/* Grid displays */}
-      {loading ? (
-        <div className="text-center py-20 text-xs text-muted-foreground font-medium">
-          <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary mb-3" />
-          Mapping direct connections list...
-        </div>
-      ) : filtered.length === 0 ? (
+      {filtered.length === 0 ? (
         <div className="text-center py-16 border border-dashed border-border rounded-xl text-muted-foreground bg-card">
           <Users className="w-8 h-8 mx-auto stroke-1 text-muted-foreground/50 mb-2" />
           <p className="text-xs font-bold">No contacts found.</p>

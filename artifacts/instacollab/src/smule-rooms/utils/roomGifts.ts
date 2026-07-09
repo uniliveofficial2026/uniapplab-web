@@ -27,9 +27,14 @@ export type RoomGiftSummary = {
 };
 
 export type PartyGiftDefinition = {
+  id?: string;
   name: string;
   icon: string;
   stars: number;
+  tier?: import('../../lib/live/giftEffectCatalogTypes').GiftEffectTier;
+  effectVideoUrl?: string;
+  effectSvgaUrl?: string;
+  particleColor?: string;
 };
 
 export const PARTY_GIFT_CATALOG: PartyGiftDefinition[] = [
@@ -40,6 +45,17 @@ export const PARTY_GIFT_CATALOG: PartyGiftDefinition[] = [
   { name: 'Crown', icon: '👑', stars: 100 },
   { name: 'Rocket', icon: '🚀', stars: 250 },
 ];
+
+/** Includes admin-published gifts when available. */
+export function getActivePartyGiftCatalog(): PartyGiftDefinition[] {
+  try {
+    // Lazy import avoids circular dependency with adminCatalogStore.
+    const { getMergedPartyGiftCatalog } = require('../../lib/adminCatalogStore') as typeof import('../../lib/adminCatalogStore');
+    return getMergedPartyGiftCatalog();
+  } catch {
+    return PARTY_GIFT_CATALOG;
+  }
+}
 
 const ROOM_GIFTS_PREFIX = 'roomGifts:';
 const GLOBAL_RECEIVER_STARS_KEY = 'roomGifts:globalReceiverStars';

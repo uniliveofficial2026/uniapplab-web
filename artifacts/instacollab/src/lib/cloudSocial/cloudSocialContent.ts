@@ -8,17 +8,28 @@ import type { Post, Reel, User } from '../../types';
 import { isCloudAuthUserId } from '../auth/cloudProfile';
 import { db } from '../db/localDb';
 import type { CommentLike } from '../entityResolve';
-import { scheduleInstant } from '../instantTask';
-import { NET_FEED_MS, withTimeout } from '../networkPolicy';
-import { postUserId, reelUserId, resolveUser } from '../safe';
+import { postUserId, reelUserId, resolveUser, safeUserId } from '../safe';
 import { getSupabaseClient } from '../supabase/client';
-import { isSupabaseConfigured } from '../supabase/config';
 import {
   deleteCloudPost,
   fetchCloudFeedPosts,
   fetchCloudUserPosts,
-} from '../supabase/cloudPosts';
+} from './postsCloud';
 import { fetchProfile, profileRowToUser } from '../supabase/profile';
+import type { ProfileRow } from '../supabase/types';
+import { isSocialCloudAvailable, shouldUseFirebaseForSocialCloud } from '../social/socialCloud';
+import {
+  deleteFirebaseComment,
+  deleteFirebaseEngagement,
+  fetchFirebaseActiveStories,
+  fetchFirebaseCommentsForTargets,
+  fetchFirebaseEngagementForTargets,
+  isFirebaseSocialContentAvailable,
+  subscribeFirebaseSocialContent,
+  upsertFirebaseComment,
+  upsertFirebaseEngagement,
+  upsertFirebaseStory,
+} from '../firebase/socialContent';
 
 export type SocialTargetKind = 'post' | 'reel' | 'comment';
 export type SocialEngagementKind = 'like' | 'save';
@@ -78,21 +89,21 @@ async function ensureAuthor(userId: string): Promise<User | null> {
 
 export function scheduleCloudPostMutation(post: Post): void {
   const authorId = postUserId(post);
-  if (!authorId || !isCloudAuthUserId(authorId) || !isSupabaseConfigured()) return;
+  if (!authorId || !isCloudAuthUserId(authorId) || !isSocialCloudAvailable()) return;
   void import('../cloudPostSync').then((m) => m.scheduleCloudPostPublish(post));
 }
 
 export function scheduleCloudPostDelete(postId: string, authorId?: string | null): void {
   const me = authorId || meCloudId();
-  if (!me || !isCloudAuthUserId(me) || !isSupabaseConfigured()) return;
-  void deleteCloudPost(postId).catch((err) => {
+  if (!me || !isCloudAuthUserId(me) || !isSocialCloudAvailable()) return;
+  void deleteCloudPost(postId, me).catch((err) => {
     console.warn('[social] post delete failed:', err);
   });
 }
 
 export function scheduleCloudReelPublish(reel: Reel): void {
   const authorId = reelUserId(reel);
-  if (!authorId || !isCloudAuthUserId(authorId) || !isSupabaseConfigured()) return;
+  if (!authorId || !isCloudAuthUserId(authorId) || !isSocialCloudAvailable()) return;
   const asPost: Post = {
     id: reel.id,
     user: reel.user,
@@ -124,12 +135,9 @@ export function queueCloudCommentPublish(input: {
   parentId?: string | null;
 }): void {
   const me = meCloudId();
-  if (!me || !isSupabaseConfigured()) return;
+  if (!me || !isSocialCloudAvailable()) return;
   const id = String(input.comment.id || '').trim();
   if (!id) return;
-
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
 
   const body = String(input.comment.text ?? '').trim();
   const payload = {
@@ -137,6 +145,26 @@ export function queueCloudCommentPublish(input: {
     likes: input.comment.likes ?? 0,
     timestamp: input.comment.timestamp ?? Date.now(),
   };
+  const row: CommentRow = {
+    id,
+    target_kind: input.targetKind,
+    target_id: input.targetId,
+    parent_id: input.parentId ?? null,
+    author_id: me,
+    body,
+    payload,
+    created_at: new Date(payload.timestamp).toISOString(),
+  };
+
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+    void upsertFirebaseComment(row).catch((err) => {
+      console.warn('[social] comment publish failed:', err);
+    });
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
 
   void supabase
     .from('social_comments')
@@ -149,7 +177,7 @@ export function queueCloudCommentPublish(input: {
         author_id: me,
         body,
         payload,
-        created_at: new Date(payload.timestamp).toISOString(),
+        created_at: row.created_at,
       },
       { onConflict: 'id' },
     )
@@ -241,7 +269,15 @@ async function applyCommentRows(rows: CommentRow[]): Promise<void> {
 export async function syncCloudCommentsForTargets(
   targets: Array<{ kind: 'post' | 'reel'; id: string }>,
 ): Promise<void> {
-  if (!isSupabaseConfigured() || !targets.length) return;
+  if (!isSocialCloudAvailable() || !targets.length) return;
+  const me = meCloudId();
+
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+    const rows = await fetchFirebaseCommentsForTargets(targets);
+    await applyCommentRows(rows);
+    return;
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -284,7 +320,27 @@ export function queueCloudEngagement(input: {
   active: boolean;
 }): void {
   const me = meCloudId();
-  if (!me || !isSupabaseConfigured()) return;
+  if (!me || !isSocialCloudAvailable()) return;
+
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+    const row = {
+      target_kind: input.targetKind,
+      target_id: input.targetId,
+      user_id: me,
+      kind: input.kind,
+    };
+    if (input.active) {
+      void upsertFirebaseEngagement(row).catch((err) => {
+        console.warn('[social] engagement upsert failed:', err);
+      });
+    } else {
+      void deleteFirebaseEngagement(row).catch((err) => {
+        console.warn('[social] engagement delete failed:', err);
+      });
+    }
+    return;
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -334,16 +390,31 @@ async function applyEngagementRows(rows: EngagementRow[]): Promise<void> {
     }
   }
 
+  for (const post of db.posts) {
+    const key = `post:${post.id}`;
+    if (!likeCounts.has(key) && !myLikes.has(key) && !mySaves.has(key)) continue;
+    const likes = likeCounts.get(key);
+    db.updatePost(post.id, (p) => ({
+      ...p,
+      likes: likes ?? p.likes,
+      isLiked: myLikes.has(key),
+      isSaved: mySaves.has(key) ? true : p.isSaved && mySaves.has(key) ? true : mySaves.has(key),
+    }));
+    // Fix isSaved logic - should be: isSaved: mySaves.has(key) when we have engagement data for this post
+  }
+
+  // Re-apply cleanly for posts we have engagement for
   const postIds = new Set(
     rows.filter((r) => r.target_kind === 'post').map((r) => r.target_id),
   );
   for (const postId of postIds) {
     const key = `post:${postId}`;
-    db.applyInboundPostEngagement(postId, {
-      likes: likeCounts.get(key) ?? 0,
+    db.updatePost(postId, (p) => ({
+      ...p,
+      likes: likeCounts.get(key) ?? p.likes,
       isLiked: myLikes.has(key),
       isSaved: mySaves.has(key),
-    });
+    }));
   }
 
   const reelIds = new Set(
@@ -351,18 +422,28 @@ async function applyEngagementRows(rows: EngagementRow[]): Promise<void> {
   );
   for (const reelId of reelIds) {
     const key = `reel:${reelId}`;
-    db.applyInboundReelEngagement(reelId, {
-      likes: likeCounts.get(key) ?? 0,
+    if (!db.reels.some((r) => r.id === reelId)) continue;
+    db.updateReel(reelId, (r) => ({
+      ...r,
+      likes: likeCounts.get(key) ?? r.likes,
       isLiked: myLikes.has(key),
       isSaved: mySaves.has(key),
-    });
+    }));
   }
 }
 
 export async function syncCloudEngagementForTargets(
   targets: Array<{ kind: SocialTargetKind; id: string }>,
 ): Promise<void> {
-  if (!isSupabaseConfigured() || !targets.length) return;
+  if (!isSocialCloudAvailable() || !targets.length) return;
+  const me = meCloudId();
+
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+    const rows = await fetchFirebaseEngagementForTargets(targets);
+    await applyEngagementRows(rows);
+    return;
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -395,25 +476,32 @@ export async function syncCloudEngagementForTargets(
 // ─── stories ─────────────────────────────────────────────────────────────────
 
 export function queueCloudStoryPublish(authorId: string, segment: StoryDraftMedia): void {
-  if (!isCloudAuthUserId(authorId) || !isSupabaseConfigured()) return;
+  if (!isCloudAuthUserId(authorId) || !isSocialCloudAvailable()) return;
   const me = meCloudId();
   if (!me || me !== authorId) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
 
-  const createdAtMs = (() => {
-    const raw = segment.createdAt;
-    if (typeof raw === 'number' && Number.isFinite(raw)) return raw;
-    if (typeof raw === 'string') {
-      const parsed = Date.parse(raw);
-      if (Number.isFinite(parsed)) return parsed;
-    }
-    return Date.now();
-  })();
   const id =
     String((segment as { id?: string }).id || '').trim() ||
-    `story_${authorId}_${createdAtMs}`;
-  const expiresAt = new Date(createdAtMs + STORY_TTL_MS).toISOString();
+    `story_${authorId}_${segment.createdAt ?? Date.now()}`;
+  const createdAt = Number(segment.createdAt ?? Date.now());
+  const expiresAt = new Date(createdAt + STORY_TTL_MS).toISOString();
+  const row: StoryRow = {
+    id,
+    author_id: authorId,
+    payload: { ...segment, id, createdAt },
+    expires_at: expiresAt,
+    created_at: new Date(createdAt).toISOString(),
+  };
+
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+    void upsertFirebaseStory(row).catch((err) => {
+      console.warn('[social] story publish failed:', err);
+    });
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
 
   void supabase
     .from('social_stories')
@@ -421,9 +509,9 @@ export function queueCloudStoryPublish(authorId: string, segment: StoryDraftMedi
       {
         id,
         author_id: authorId,
-        payload: { ...segment, id, createdAt: createdAtMs },
+        payload: row.payload,
         expires_at: expiresAt,
-        created_at: new Date(createdAtMs).toISOString(),
+        created_at: row.created_at,
       },
       { onConflict: 'id' },
     )
@@ -443,7 +531,15 @@ function mergeStoryRow(row: StoryRow): void {
 }
 
 export async function syncCloudStories(): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!isSocialCloudAvailable()) return;
+  const me = meCloudId();
+
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+    const rows = await fetchFirebaseActiveStories();
+    for (const row of rows) mergeStoryRow(row);
+    return;
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) return;
 
@@ -468,12 +564,12 @@ export async function syncCloudStories(): Promise<void> {
 // ─── feed split (posts vs reels) ──────────────────────────────────────────────
 
 export async function syncCloudSocialFeed(): Promise<void> {
-  if (!isSupabaseConfigured()) return;
+  if (!isSocialCloudAvailable()) return;
   if (syncInflight) return syncInflight;
 
   syncInflight = (async () => {
     try {
-      const remote = await withTimeout(fetchCloudFeedPosts(80), NET_FEED_MS, 'social-feed');
+      const remote = await fetchCloudFeedPosts(80);
       const posts: Post[] = [];
       const reels: Reel[] = [];
 
@@ -503,14 +599,11 @@ export async function syncCloudSocialFeed(): Promise<void> {
         ...posts.map((p) => ({ kind: 'post' as const, id: p.id })),
         ...reels.map((r) => ({ kind: 'reel' as const, id: r.id })),
       ];
-      // Best-effort extras — don't let a slow comments/engagement call hang the feed merge.
-      void Promise.allSettled([
+      await Promise.all([
         syncCloudCommentsForTargets(targets),
         syncCloudEngagementForTargets(targets),
         syncCloudStories(),
       ]);
-    } catch {
-      /* slow network — keep local cache visible */
     } finally {
       syncInflight = null;
     }
@@ -520,7 +613,7 @@ export async function syncCloudSocialFeed(): Promise<void> {
 }
 
 export async function syncCloudUserSocial(userId: string): Promise<void> {
-  if (!isSupabaseConfigured() || !isCloudAuthUserId(userId)) return;
+  if (!isSocialCloudAvailable() || !isCloudAuthUserId(userId)) return;
   const remote = await fetchCloudUserPosts(userId, 80);
   const posts: Post[] = [];
   const reels: Reel[] = [];
@@ -556,19 +649,29 @@ export async function syncCloudUserSocial(userId: string): Promise<void> {
 
 // ─── realtime ────────────────────────────────────────────────────────────────
 
+let firebaseSocialRealtimeStop: (() => void) | null = null;
+
 export function startCloudSocialRealtime(): () => void {
   stopCloudSocialRealtime();
-  if (!isSupabaseConfigured()) return () => {};
+  if (!isSocialCloudAvailable()) return () => {};
+
+  let timer: number | null = null;
+  const schedule = () => {
+    if (timer != null) window.clearTimeout(timer);
+    timer = window.setTimeout(() => {
+      timer = null;
+      void syncCloudSocialFeed();
+    }, 700);
+  };
+
+  const me = meCloudId();
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+    firebaseSocialRealtimeStop = subscribeFirebaseSocialContent(schedule);
+    return stopCloudSocialRealtime;
+  }
 
   const supabase = getSupabaseClient();
   if (!supabase) return () => {};
-
-  const schedule = () => {
-    // Zero-delay coalesce — no 700ms lag on comments/likes/stories.
-    scheduleInstant('social-realtime-sync', () => {
-      void syncCloudSocialFeed();
-    });
-  };
 
   socialRealtime = supabase
     .channel(`social-content:${Date.now()}`)
@@ -581,6 +684,8 @@ export function startCloudSocialRealtime(): () => void {
 }
 
 export function stopCloudSocialRealtime(): void {
+  firebaseSocialRealtimeStop?.();
+  firebaseSocialRealtimeStop = null;
   const supabase = getSupabaseClient();
   if (socialRealtime && supabase) {
     void supabase.removeChannel(socialRealtime);

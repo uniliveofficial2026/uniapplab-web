@@ -3,10 +3,26 @@
  * Print LiveKit setup steps for InstaCollab live streaming.
  * Usage: pnpm run livekit:setup
  */
-import { readMergedEnv, findEnvFile } from './resolveProjectEnv.mjs';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
 
-const env = readMergedEnv(import.meta.dirname);
-const envPath = findEnvFile(import.meta.dirname);
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
+const envPath = [path.join(ROOT, '.env'), path.join(ROOT, 'artifacts/instacollab/.env')].find((p) =>
+  fs.existsSync(p),
+);
+
+function readEnv() {
+  const out = {};
+  if (!envPath) return out;
+  for (const line of fs.readFileSync(envPath, 'utf8').split('\n')) {
+    const m = line.match(/^([A-Z0-9_]+)=(.*)$/);
+    if (m) out[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+  }
+  return out;
+}
+
+const env = readEnv();
 const origin = (env.PUBLIC_APP_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');
 
 console.log('');

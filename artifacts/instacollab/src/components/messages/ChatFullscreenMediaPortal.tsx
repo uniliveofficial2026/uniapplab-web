@@ -9,7 +9,7 @@ import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { formatMentionsAndTags, handleMediaError } from '../../lib/utils';
 import { safeMediaUrl } from '../../lib/safe';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { pauseAllChatMediaPlayers } from '../../lib/chatMediaPlayback';
 import { useChatMediaVideo } from '../../lib/useChatMediaVideo';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
@@ -136,8 +136,8 @@ export function ChatFullscreenMediaPortal({
               )}
             </div>
           ) : currentItem.isVideo ? (
-            <video
-              data-playback-scope={PLAYBACK_SCOPE.INLINE}
+            <AppNativeVideo
+              playbackScope={PLAYBACK_SCOPE.INLINE}
               key={`vid-${fullscreenMedia.mediaIndex}-${mediaUrl.slice(0, 32)}`}
               ref={(el) => {
                 portalVideoRef.current = el;
@@ -148,14 +148,11 @@ export function ChatFullscreenMediaPortal({
               src={mediaUrl}
               className={`${FULLSCREEN_MEDIA_CLASS} bg-black`}
               onError={handleMediaError}
-              controls
               autoPlay
-              playsInline
               muted={globalMuted}
               preload="auto"
               onPlay={onPortalVideoPlay}
-              onVolumeChange={(e) => onGlobalMutedChange(e.currentTarget.muted)}
-              {...nativeVideoControlGuardProps()}
+              onGlobalMutedChange={onGlobalMutedChange}
             />
           ) : (
             <img

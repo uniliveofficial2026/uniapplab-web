@@ -4,6 +4,7 @@ import { Ban, Heart, Menu, ShieldAlert, Undo2, X } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useDatingCandidates, useDatingLikesYou, useDatingMatches } from '../../lib/useDatingDeck';
 import { useToast } from '../../lib/ToastContext';
+import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
 import { handleAvatarError, openProfilePreview } from '../../lib/utils';
 
 const DatingToolsSheet = lazy(() =>
@@ -12,6 +13,7 @@ const DatingToolsSheet = lazy(() =>
 
 export function DatingScreen() {
   const db = useDB();
+  useLiveCloudSurface('dating');
   const { showToast } = useToast();
   const [mode, setMode] = useState<'discover' | 'likes-you' | 'matches'>('discover');
   const [lastAction, setLastAction] = useState<{ type: 'like' | 'pass'; userId: string; username: string } | null>(null);

@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { db } from '../lib/db/localDb';
 import { isSupabaseConfigured } from '../lib/supabase/config';
 import { isFirebaseConfigured } from '../lib/firebase/config';
@@ -33,6 +33,7 @@ export function useDiscoverableUserSearch(query: string): {
 
   const [cloudUsers, setCloudUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(false);
+  const refreshingRef = useRef(false);
 
   const localMatches = useMemo(
     () => filterLocalUsers(db.users, query),
@@ -48,8 +49,10 @@ export function useDiscoverableUserSearch(query: string): {
     }
 
     let cancelled = false;
-    setLoading(true);
     const timer = window.setTimeout(() => {
+      if (refreshingRef.current) return;
+      refreshingRef.current = true;
+      setLoading(true);
       void searchCloudProfiles(term)
         .then((found) => {
           if (cancelled) return;
@@ -61,10 +64,10 @@ export function useDiscoverableUserSearch(query: string): {
         .catch((err) => {
           if (!cancelled) {
             console.warn('[search] cloud profile search failed:', err);
-            setCloudUsers([]);
           }
         })
         .finally(() => {
+          refreshingRef.current = false;
           if (!cancelled) setLoading(false);
         });
     }, DEBOUNCE_MS);

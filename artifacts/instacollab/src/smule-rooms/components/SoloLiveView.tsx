@@ -15,6 +15,8 @@ import {
   Video,
   VideoOff,
 } from 'lucide-react';
+import { CoinIcon } from '../../components/common/CoinIcon';
+import { DEEPAR_ENABLED } from '../../lib/deepar/deeparEnabled';
 import { RoomBackgroundLayer } from './RoomBackgroundLayer';
 import { RoomFooterTrayActions } from './RoomFooterTrayActions';
 import { RoomHeaderActionsMenu, createSingHeaderMenuItem, createYoutubeMiniHeaderMenuItem, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
@@ -26,7 +28,11 @@ import { MultiGuestEffectsSheet } from './MultiGuestEffectsSheet';
 import { LiveBeautySheet } from './LiveBeautySheet';
 import { MultiGuestSeatMedia } from './MultiGuestSeatMedia';
 import { MultiGuestSelfMediaHost } from './MultiGuestSelfMediaHost';
+import { PKBattleStage } from './PKBattleStage';
+import { LiveSeatFullscreenOverlay, type LiveSeatFullscreenTarget } from './LiveSeatFullscreenOverlay';
 import { SeatSpeakingLevelBars } from './SeatVoiceVisuals';
+import { useSeatTileTap } from '../hooks/useSeatTileTap';
+import { buildLiveSeatFullscreenTarget } from '../utils/liveSeatFullscreenTarget';
 import type { CameraFacingMode } from '../../lib/camera/useCameraStream';
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
 import { deeparSelectionActive, type DeepAREffectSelection } from '../../lib/deepar/deeparEffectSelection';
@@ -41,6 +47,12 @@ import {
   type MultiGuestLiveKitState,
 } from '../hooks/useMultiGuestLiveKit';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
+import { EMPTY_PK_AUDIO_SEATS } from '../utils/pkBattleLayout';
+import {
+  readSoloLiveGuestRailBottom,
+  writeSoloLiveGuestRailBottom,
+} from '../utils/soloLiveGuestRailLayout';
+import type { PKFighter, PKPayload } from '../utils/liveRoomTypes';
 import type { RoomExpProgress } from '../utils/roomExp';
 import type { RoomGiftSummary } from '../utils/roomGifts';
 import {
@@ -54,6 +66,12 @@ import {
 } from '../utils/roomSeats';
 import type { RoomViewerEntry } from '../utils/roomViewers';
 import { safeAvatarUrl } from '../../lib/safe';
+import { CommerceLivePanel } from './CommerceLivePanel';
+import { CommerceLiveProductCard } from './CommerceLiveProductCard';
+import { CommerceLiveCheckoutModal } from './CommerceLiveCheckoutModal';
+import type { CommerceCheckoutResult } from './CommerceLiveCheckoutModal';
+import { CommerceLiveOrderDetailSheet } from './CommerceLiveOrderDetailSheet';
+import type { CommerceCardPosition, CommerceOrder, CommercePayload, CommerceProduct } from '../utils/liveRoomTypes';
 
 type ChatViewerPayload = {
   id: string;
@@ -101,6 +119,7 @@ export type SoloLiveViewProps = {
   handleToggleSeatMic: (seatKey: string) => void;
   handleSelectViewer: (viewer: ChatViewerPayload) => void;
   buildViewerFromGuest: (guest: RoomGuest, seatKey: string) => ChatViewerPayload;
+  onOpenGiftSenders: (receiver: { name: string; userId?: string }) => void;
   lockedSeats: Record<string, boolean>;
   setIsRoomBackgroundMenuOpen: (open: boolean) => void;
   setIsRoomViewersOpen: (open: boolean) => void;
@@ -190,7 +209,45 @@ export type SoloLiveViewProps = {
   hideSingMenu?: boolean;
   onPkClick?: () => void;
   onGameClick?: () => void;
+  pkEnabled?: boolean;
+  pkTeamA?: PKFighter[];
+  pkTeamB?: PKFighter[];
+  lastPk?: PKPayload | null;
+  onEmitPk?: (payload: PKPayload) => void;
+  onStartPk?: () => void;
+  onDisconnectPk?: () => void;
+  pkSelfUserId?: string;
+  pkIsOwner?: boolean;
+  showVoiceChanger?: boolean;
+  voiceChangerEligible?: boolean;
+  voiceChangerOpen?: boolean;
+  voiceEffectActive?: boolean;
+  voiceEffectEmoji?: string;
+  onToggleVoiceChanger?: () => void;
   isSelfHost: boolean;
+  isCommerceLive?: boolean;
+  commerceShopOpen?: boolean;
+  commerceCatalog?: CommerceProduct[];
+  commercePinnedProduct?: CommerceProduct | null;
+  commerceCardPosition?: CommerceCardPosition;
+  commerceOrders?: CommerceOrder[];
+  commerceCheckoutProduct?: CommerceProduct | null;
+  commerceSelectedOrder?: CommerceOrder | null;
+  commerceSalesCount?: number;
+  commerceLastEvent?: CommercePayload | null;
+  onToggleCommerceShop?: () => void;
+  onCommercePin?: (product: CommerceProduct) => void;
+  onCommerceUnpin?: () => void;
+  onCommercePurchase?: (product: CommerceProduct) => void;
+  onCommerceCreateProduct?: (product: CommerceProduct) => void;
+  onCommerceCardPositionChange?: (position: CommerceCardPosition) => void;
+  onCommerceCheckoutClose?: () => void;
+  onCommerceCheckoutComplete?: (result: CommerceCheckoutResult) => void;
+  onCommerceSelectOrder?: (order: CommerceOrder) => void;
+  onCommerceCloseOrderDetail?: () => void;
+  buyerUserId?: string;
+  buyerDisplayName?: string;
+  commerceHostUserId?: string;
 };
 
 function playVideoElement(element: HTMLVideoElement) {
@@ -218,6 +275,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   handleToggleSeatMic,
   handleSelectViewer,
   buildViewerFromGuest,
+  onOpenGiftSenders,
   lockedSeats,
   setIsRoomBackgroundMenuOpen,
   setIsRoomViewersOpen,
@@ -277,7 +335,45 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   hideSingMenu = false,
   onPkClick,
   onGameClick,
+  pkEnabled = false,
+  pkTeamA = [],
+  pkTeamB = [],
+  lastPk = null,
+  onEmitPk,
+  onStartPk,
+  onDisconnectPk,
+  pkSelfUserId = '',
+  pkIsOwner = false,
+  showVoiceChanger = false,
+  voiceChangerEligible = false,
+  voiceChangerOpen = false,
+  voiceEffectActive = false,
+  voiceEffectEmoji,
+  onToggleVoiceChanger,
   isSelfHost,
+  isCommerceLive = false,
+  commerceShopOpen = false,
+  commerceCatalog = [],
+  commercePinnedProduct = null,
+  commerceCardPosition = { x: 50, y: 72 },
+  commerceOrders = [],
+  commerceCheckoutProduct = null,
+  commerceSelectedOrder = null,
+  commerceSalesCount = 0,
+  commerceLastEvent = null,
+  onToggleCommerceShop,
+  onCommercePin,
+  onCommerceUnpin,
+  onCommercePurchase,
+  onCommerceCreateProduct,
+  onCommerceCardPositionChange,
+  onCommerceCheckoutClose,
+  onCommerceCheckoutComplete,
+  onCommerceSelectOrder,
+  onCommerceCloseOrderDetail,
+  buyerUserId = '',
+  buyerDisplayName = '',
+  commerceHostUserId = '',
   effectsLoading = false,
   effectsCameraReady = false,
   effectsArReady = false,
@@ -295,14 +391,16 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   onSelectEffect,
 }) => {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
+  const shellRef = useRef<HTMLDivElement>(null);
   const guestStageRef = useRef<HTMLDivElement>(null);
+  const arenaSlotRef = useRef<HTMLDivElement>(null);
   const selfGuestAnchorRef = useRef<HTMLDivElement>(null);
   const deeparEffectActive = effectsConfigured && (
     activeDeeparSelection
       ? deeparSelectionActive(activeDeeparSelection)
       : activeEffectId !== 'none'
   );
-  const showDeepARControls = Boolean(
+  const showDeepARControls = DEEPAR_ENABLED && Boolean(
     effectsConfigured &&
       onToggleEffectsPanel &&
       (onDeeparSelectionChange || onSelectEffect),
@@ -326,6 +424,14 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
 
   const hostGuest = activeSeats.host;
   const hostUserId = hostGuest ? resolveSeatVideoUserId(hostGuest, roomDisplayId) : null;
+  const openSeatFullscreen = (seatKey: RoomSeatKey, guest: RoomGuest) => {
+    setSeatFullscreenTarget(
+      buildLiveSeatFullscreenTarget(seatKey, guest, roomDisplayId, {
+        userSeatKey,
+        selfUserId: pkSelfUserId,
+      }),
+    );
+  };
   const hostRemoteTrack =
     !isSelfHost && hostUserId ? multiGuestLiveKit.remoteVideoByUserId.get(hostUserId) ?? null : null;
 
@@ -417,6 +523,51 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   );
   const footerRef = useRef<HTMLDivElement>(null);
   const [footerHeight, setFooterHeight] = useState(0);
+  const [guestRailBottom, setGuestRailBottom] = useState(() =>
+    readSoloLiveGuestRailBottom(roomDisplayId),
+  );
+  const handleSeatTileTap = useSeatTileTap();
+  const [seatFullscreenTarget, setSeatFullscreenTarget] = useState<LiveSeatFullscreenTarget | null>(
+    null,
+  );
+
+  useEffect(() => {
+    const stored = readSoloLiveGuestRailBottom(roomDisplayId);
+    setGuestRailBottom(stored);
+    shellRef.current?.style.setProperty('--solo-live-guest-rail-bottom', `${stored}px`);
+  }, [roomDisplayId]);
+
+  useLayoutEffect(() => {
+    const shell = shellRef.current;
+    const arena = arenaSlotRef.current;
+    if (!shell) return undefined;
+
+    const syncGuestRailBottom = () => {
+      const shellRect = shell.getBoundingClientRect();
+      const arenaRect = arena?.getBoundingClientRect();
+      const stored = readSoloLiveGuestRailBottom(roomDisplayId);
+      const next =
+        arenaRect && arenaRect.height > 0
+          ? Math.max(112, shellRect.bottom - arenaRect.top + 8)
+          : stored;
+      writeSoloLiveGuestRailBottom(roomDisplayId, next);
+      shell.style.setProperty('--solo-live-guest-rail-bottom', `${next}px`);
+      setGuestRailBottom(next);
+    };
+
+    syncGuestRailBottom();
+    const observer = new ResizeObserver(syncGuestRailBottom);
+    observer.observe(shell);
+    if (arena) observer.observe(arena);
+    const footer = footerRef.current;
+    if (footer) observer.observe(footer);
+    window.addEventListener('resize', syncGuestRailBottom);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', syncGuestRailBottom);
+    };
+  }, [footerHeight, roomDisplayId]);
 
   useLayoutEffect(() => {
     const footer = footerRef.current;
@@ -462,23 +613,40 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
 
     const hostCannotTakeGuestSeat = isSelfHost && !guest;
 
+    const handleTileActivate = () => {
+      if (hostCannotTakeGuestSeat) return;
+      if (!guest || !rawGuest) {
+        handleSeatClick(seatKey);
+        return;
+      }
+      handleSeatTileTap(
+        () => handleSeatClick(seatKey),
+        () => openSeatFullscreen(seatKey, rawGuest),
+      );
+    };
+
     return (
-      <button
+      <div
         key={seatKey}
-        type="button"
-        onClick={() => {
+        role="button"
+        tabIndex={hostCannotTakeGuestSeat ? -1 : 0}
+        onClick={handleTileActivate}
+        onKeyDown={(event) => {
           if (hostCannotTakeGuestSeat) return;
-          handleSeatClick(seatKey);
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            handleTileActivate();
+          }
         }}
-        disabled={hostCannotTakeGuestSeat}
-        className={`solo-live-guest-tile group text-left${
+        aria-disabled={hostCannotTakeGuestSeat}
+        className={`solo-live-guest-tile group text-left cursor-pointer${
           hostCannotTakeGuestSeat ? ' solo-live-guest-tile--host-locked' : ''
         }`}
         aria-label={
           hostCannotTakeGuestSeat
             ? `${label} — guest co-host seat`
             : guest
-              ? `${guest.name} guest seat`
+              ? `Send gift to ${guest.name}`
               : `Join ${label}`
         }
       >
@@ -495,6 +663,21 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
             />
             <div className="solo-live-guest-tile-overlay" />
             <div className="solo-live-guest-tile-chrome">
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  onOpenGiftSenders({
+                    name: guest.name,
+                    userId: guest.userId,
+                  });
+                }}
+                className="multi-guest-video-tile-coins"
+                aria-label={`View who sent coins to ${guest.name}`}
+              >
+                <CoinIcon className="multi-guest-video-tile-coins-icon shrink-0" />
+                <span className="multi-guest-video-tile-coins-value">{guest.stars.toLocaleString()}</span>
+              </button>
               <button
                 type="button"
                 onClick={(event) => {
@@ -519,7 +702,17 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
               </button>
             </div>
             <div className="solo-live-guest-tile-meta">
-              <span className="solo-live-guest-tile-name">{guest.name}</span>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation();
+                  handleSelectViewer(buildViewerFromGuest(guest, seatKey));
+                }}
+                className="solo-live-guest-tile-name text-left hover:underline"
+                aria-label={`View ${guest.name} profile`}
+              >
+                {guest.name}
+              </button>
               <div className="relative z-[5] shrink-0">
                 <SeatSpeakingLevelBars
                   active={voiceVisualActive}
@@ -558,7 +751,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
             </span>
           </div>
         )}
-      </button>
+      </div>
     );
   };
 
@@ -570,9 +763,15 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
     >
       <RoomBackgroundLayer mode={backgroundMode} />
       <div
+        ref={shellRef}
         className={`solo-live-shell relative h-full min-h-0 w-full flex-1 ${
           effectsPanelOpen || beautyPanelOpen ? 'overflow-visible' : 'overflow-hidden'
         }`}
+        style={
+          {
+            '--solo-live-guest-rail-bottom': `${guestRailBottom}px`,
+          } as React.CSSProperties
+        }
       >
         <SoloLiveVideoStage
           {...videoStageProps}
@@ -580,11 +779,41 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           deeparPreviewRef={deeparPreviewRef}
           remoteVideoRef={remoteVideoRef}
         />
+        {hostGuest ? (
+          <button
+            type="button"
+            className="absolute inset-0 z-[2] cursor-default border-none bg-transparent p-0"
+            aria-label={`${hostGuest.name} live camera — double tap for fullscreen`}
+            onClick={() =>
+              handleSeatTileTap(
+                () => {},
+                () => openSeatFullscreen('host', hostGuest),
+              )
+            }
+          />
+        ) : null}
 
-        <header className="solo-live-header absolute inset-x-0 top-0 z-50 flex flex-col gap-1 bg-gradient-to-b from-black/85 via-black/55 to-transparent px-3 pb-2 pt-2 sm:px-4 sm:pt-3">
-          <div className="flex items-start justify-between gap-2">
-            <div className="flex min-w-0 flex-col gap-1 overflow-hidden">
-              <div className="flex min-w-0 items-center gap-2">
+        <div className="pointer-events-none absolute inset-0 z-[35]">
+          {isCommerceLive &&
+          commercePinnedProduct &&
+          onCommercePurchase &&
+          onCommerceCardPositionChange ? (
+            <CommerceLiveProductCard
+              product={commercePinnedProduct}
+              salesCount={commerceSalesCount}
+              isHost={isSelfHost}
+              position={commerceCardPosition}
+              onBuy={() => onCommercePurchase(commercePinnedProduct)}
+              onUnpin={isSelfHost ? onCommerceUnpin : undefined}
+              onPositionChange={onCommerceCardPositionChange}
+            />
+          ) : null}
+        </div>
+
+        <header className="solo-live-header absolute inset-x-0 top-0 z-50 flex flex-col gap-1 overflow-visible bg-gradient-to-b from-black/85 via-black/55 to-transparent px-3 pb-2 pt-2 sm:px-4 sm:pt-3">
+          <div className="flex min-w-0 items-start justify-between gap-2">
+            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
+              <div className="flex min-w-0 items-center gap-1.5 overflow-visible pr-0.5">
                 <RoomOwnerSocialControls
                   name={hostGuest?.name ?? ownerSocial.ownerIdentity.name}
                   avatarUrl={hostGuest?.avatar ?? ownerSocial.ownerIdentity.avatarUrl}
@@ -600,31 +829,33 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                         : ownerSocial.ownerViewerPayload,
                     )
                   }
-                  className="min-w-0 shrink"
+                  className="min-w-0 flex-1 overflow-hidden"
                 />
-                <span className="solo-live-badge shrink-0 inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/20 px-2 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-red-200">
-                  <span className="solo-live-badge-dot" aria-hidden />
-                  Live
-                </span>
               </div>
-              <div className="solo-live-caption flex min-w-0 max-w-[min(100%,18rem)] items-start gap-1 pl-0.5 sm:max-w-[22rem]">
+              <div className="solo-live-caption inline-flex w-fit max-w-full min-w-0 items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2 py-0.5 pl-0.5 backdrop-blur-sm">
                 <p
-                  className="min-w-0 flex-1 text-left text-[11px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
+                  className="min-w-0 max-w-[9.5rem] truncate text-left text-[11px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:max-w-[12rem]"
                   title={announcement}
                 >
                   {announcement.trim() || 'Welcome to the live room'}
                 </p>
-                {isSelfHost && onEditAnnouncement ? (
-                  <button
-                    type="button"
-                    onClick={onEditAnnouncement}
-                    className="shrink-0 rounded-md p-0.5 text-pink-300/90 transition hover:bg-white/10 hover:text-pink-200"
-                    title="Edit live caption"
-                    aria-label="Edit live caption"
-                  >
-                    <Pencil size={12} />
-                  </button>
-                ) : null}
+                <div className="flex shrink-0 items-center gap-0.5 border-l border-white/10 pl-1">
+                  {isSelfHost && onEditAnnouncement ? (
+                    <button
+                      type="button"
+                      onClick={onEditAnnouncement}
+                      className="shrink-0 rounded-md p-0.5 text-pink-300/90 transition hover:bg-white/10 hover:text-pink-200"
+                      title="Edit live caption"
+                      aria-label="Edit live caption"
+                    >
+                      <Pencil size={12} />
+                    </button>
+                  ) : null}
+                  <span className="solo-live-badge shrink-0 whitespace-nowrap leading-none inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/20 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-red-200">
+                    <span className="solo-live-badge-dot" aria-hidden />
+                    {isCommerceLive ? 'Shop Live' : 'Live'}
+                  </span>
+                </div>
               </div>
               <div className="flex min-w-0 items-center gap-1 pl-0.5">
                 <span
@@ -683,9 +914,27 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           </div>
         </header>
 
+        {pkEnabled && onEmitPk ? (
+          <div className="pointer-events-auto absolute inset-x-2 top-[5.25rem] z-[28] max-h-[38%] sm:inset-x-4">
+            <PKBattleStage
+              selfUserId={pkSelfUserId}
+              teamA={pkTeamA}
+              teamB={pkTeamB}
+              audioSeats={EMPTY_PK_AUDIO_SEATS}
+              lastPk={lastPk}
+              isOwner={pkIsOwner}
+              onEmitPk={onEmitPk}
+              onStartPk={onStartPk}
+              onDisconnectPk={onDisconnectPk}
+              variant="stage"
+              className="overflow-hidden rounded-2xl border border-blue-400/25 bg-black/75 shadow-xl backdrop-blur-md"
+            />
+          </div>
+        ) : null}
+
         <div
           ref={guestStageRef}
-          className="solo-live-guest-rail absolute right-2 top-1/2 z-20 -translate-y-1/2 sm:right-3"
+          className="solo-live-guest-rail absolute right-2 z-20 sm:right-3"
         >
           <div className="solo-live-guest-grid">
             {SOLO_LIVE_GUEST_SEAT_KEYS.map((seatKey) => renderGuestSeat(seatKey))}
@@ -695,12 +944,10 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
               stageRef={guestStageRef}
               anchorRef={selfGuestAnchorRef}
               seatKey={userSeatKey}
-              mounted={isSelfGuest}
-              visible={Boolean(isSelfGuest && userCameraOn)}
+              active={Boolean(isSelfGuest && userCameraOn)}
               rawVideoRef={rawVideoRef}
               deeparPreviewRef={deeparPreviewRef}
               showDeeparPreview={showDeeparPreview}
-              deeparWarm={effectsConfigured && isSelfGuest}
               mirrorSelf={selfUsesCssMirror}
               beautyVideoRef={beautyVideoRef}
               showBeautyPreview={showBeautyPreview}
@@ -762,6 +1009,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
               </div>
             </div>
             <div
+              ref={arenaSlotRef}
               className="solo-live-arena-slot flex shrink-0 flex-col items-center justify-end self-stretch pb-1"
               id="gameday-widgets-column"
             >
@@ -821,15 +1069,12 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                 userVoiceActive={userVoiceActive}
                 onToggleUserMic={onToggleUserMic}
                 onToggleSeatParticipation={onToggleSeatParticipation}
-                showSeatToggle={!isSelfHost}
                 onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
                 guestManagementOpen={guestManagementOpen}
                 onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
                 showCamera={isSelfSeated}
                 userCameraOn={userCameraOn}
                 onToggleUserCamera={onToggleUserCamera}
-                cameraFacingMode={cameraFacingMode}
-                onToggleCameraFacing={onToggleCameraFacing}
                 showDeepAR={showDeepARControls}
                 effectsPanelOpen={effectsPanelOpen}
                 deeparEffectActive={deeparEffectActive}
@@ -838,8 +1083,18 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                 beautyPanelOpen={beautyPanelOpen}
                 beautyActive={beautyActive}
                 onToggleBeautyPanel={onToggleBeautyPanel}
-                onPkClick={onPkClick}
+                showShop={isCommerceLive && isSelfHost}
+                shopPanelOpen={commerceShopOpen}
+                shopActive={Boolean(commercePinnedProduct)}
+                onToggleShopPanel={isSelfHost ? onToggleCommerceShop : undefined}
+                onPkClick={pkEnabled && isSelfHost ? onPkClick : undefined}
                 onGameClick={onGameClick}
+                showVoiceChanger={showVoiceChanger}
+                voiceChangerEligible={voiceChangerEligible}
+                voiceChangerOpen={voiceChangerOpen}
+                voiceEffectActive={voiceEffectActive}
+                voiceEffectEmoji={voiceEffectEmoji}
+                onToggleVoiceChanger={onToggleVoiceChanger}
                 micAccent="purple"
               />
             </div>
@@ -879,9 +1134,67 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           loading={effectsLoading}
           cameraReady={effectsCameraReady}
           anchorBottom={panelAnchorBottom}
-          anchorMode="container"
         />
       ) : null}
+
+      {isSelfHost &&
+      isCommerceLive &&
+      onCommercePin &&
+      onCommerceUnpin &&
+      onToggleCommerceShop &&
+      onCommerceCreateProduct &&
+      onCommerceSelectOrder ? (
+        <CommerceLivePanel
+          open={commerceShopOpen}
+          isHost={isSelfHost}
+          catalog={commerceCatalog}
+          pinnedProductId={commercePinnedProduct?.id ?? null}
+          salesCount={commerceSalesCount}
+          orders={commerceOrders}
+          lastCommerce={commerceLastEvent}
+          onClose={onToggleCommerceShop}
+          onPin={onCommercePin}
+          onUnpin={onCommerceUnpin}
+          onCreateProduct={onCommerceCreateProduct}
+          onSelectOrder={onCommerceSelectOrder}
+        />
+      ) : null}
+
+      {isCommerceLive &&
+      commerceCheckoutProduct &&
+      onCommerceCheckoutClose &&
+      onCommerceCheckoutComplete &&
+      buyerUserId ? (
+        <CommerceLiveCheckoutModal
+          open
+          product={commerceCheckoutProduct}
+          roomId={roomDisplayId}
+          hostUserId={commerceHostUserId}
+          buyerUserId={buyerUserId}
+          buyerDisplayName={buyerDisplayName}
+          onClose={onCommerceCheckoutClose}
+          onComplete={onCommerceCheckoutComplete}
+        />
+      ) : null}
+
+      {isSelfHost && isCommerceLive && commerceSelectedOrder && onCommerceCloseOrderDetail ? (
+        <CommerceLiveOrderDetailSheet
+          order={commerceSelectedOrder}
+          onClose={onCommerceCloseOrderDetail}
+        />
+      ) : null}
+
+      <LiveSeatFullscreenOverlay
+        target={seatFullscreenTarget}
+        onClose={() => setSeatFullscreenTarget(null)}
+        remoteVideoByUserId={multiGuestLiveKit.remoteVideoByUserId}
+        rawVideoRef={rawVideoRef}
+        beautyVideoRef={beautyVideoRef}
+        showBeautyPreview={showBeautyPreview}
+        showDeeparPreview={showDeeparPreview}
+        deeparPreviewRef={deeparPreviewRef}
+        mirrorSelf={selfUsesCssMirror}
+      />
     </div>
   );
 };

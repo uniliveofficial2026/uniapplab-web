@@ -1,3 +1,5 @@
 <svg width="180" height="180" viewBox="0 0 180 180" fill="none" xmlns="http://www.w3.org/2000/svg">
-<rect width="180" height="180" rx="36" fill="#FF3C00"/>
+  <rect width="180" height="180" rx="36" fill="#020617"/>
+  <rect x="36" y="36" width="108" height="108" rx="24" fill="#0f172a" stroke="#334155" stroke-width="2"/>
+  <text x="90" y="108" text-anchor="middle" fill="#e2e8f0" font-family="Inter, system-ui, sans-serif" font-size="52" font-weight="800">UL</text>
 </svg>

@@ -5,11 +5,7 @@
 import { isChunkLoadError } from './lazyWithRetry';
 import { hydrateAppMediaUrl, isAppMediaRef } from './appMediaStore';
 import { safeAvatarUrl, safeMediaUrl } from './safe';
-import { stageAppUpdate } from './invisibleReload';
-import { checkForPwaUpdate } from './pwaAutoUpdate';
-import { isNoiseSignal, verifyHealOutcome } from './mlGuard';
-import { reactToMlIssue } from './mlReact';
-import { trackUx } from './uxTelemetry';
+import { queueInvisibleReload } from './invisibleReload';
 
 const FALLBACK_IMAGE =
   'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=800&fit=crop';
@@ -21,12 +17,9 @@ function healBrokenMedia(el: HTMLImageElement | HTMLVideoElement | HTMLAudioElem
   if (!src) return;
 
   if (isAppMediaRef(src) || src.startsWith('app-media:')) {
-    trackUx('media_fail', src.slice(0, 120), { tag: el.tagName, kind: 'app_media' });
     void hydrateAppMediaUrl(src).then((resolved) => {
       if (resolved && resolved !== src && !isAppMediaRef(resolved)) {
         el.src = resolved;
-        verifyHealOutcome('app_media_hydrated', () => !isAppMediaRef(el.src));
-        trackUx('heal', 'app_media_hydrated', { tag: el.tagName, verified: true });
       }
     });
     return;
@@ -46,9 +39,6 @@ function healBrokenMedia(el: HTMLImageElement | HTMLVideoElement | HTMLAudioElem
     if (fallback && el.src !== fallback) {
       el.src = fallback;
       el.dataset.selfHealFallback = '1';
-      verifyHealOutcome('media_fallback', () => Boolean(el.src && el.src !== src));
-      trackUx('heal', 'media_fallback', { tag: el.tagName, verified: true });
-      if (!isNoiseSignal(src)) reactToMlIssue('media_fail', src.slice(0, 200));
     }
   }
 }
@@ -76,8 +66,7 @@ function installChunkErrorHealing(): void {
   if (typeof window === 'undefined') return;
 
   const onChunkIssue = () => {
-    void checkForPwaUpdate();
-    stageAppUpdate('chunk_stale');
+    queueInvisibleReload('chunk_stale');
   };
 
   window.addEventListener('unhandledrejection', (event) => {
@@ -96,7 +85,6 @@ function installLayoutHealing(): void {
     if (root.scrollWidth > window.innerWidth + 8) {
       root.style.overflowX = 'clip';
       document.body.style.overflowX = 'clip';
-      trackUx('heal', 'layout_overflow');
     }
   };
 

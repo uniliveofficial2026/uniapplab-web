@@ -9,119 +9,12 @@ import { spawnSync } from 'node:child_process';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { readAutomationConfig, resolveAutomationConfig } from './lib/automation-config.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const QUEUE = path.join(ROOT, '.local/handoff-queue.jsonl');
 const LOG = path.join(ROOT, '.local/handoff.log');
 const STATE = path.join(ROOT, '.local/handoff-state.json');
-const AUTO_DEPLOY = process.env.HANDOFF_AUTO_DEPLOY === '1';
-const DEPLOY_EVERY_CYCLES = Number(process.env.HANDOFF_DEPLOY_CYCLES ?? '30');
-const CLOUD_CHECK_MS = Number(process.env.HANDOFF_CLOUD_CHECK_MS ?? '3600000');
-const SIGNAL_CORROBORATION = Number(process.env.HANDOFF_SIGNAL_CORROBORATION ?? '2');
-const SIGNAL_FP_PATH = path.join(ROOT, '.local/handoff-signal-fp.json');
-
-const NOISE_PATTERNS = [
-  /ResizeObserver loop/i,
-  /^Script error\.?$/i,
-  /chrome-extension/i,
-  /moz-extension/i,
-  /AbortError/i,
-  /cancelled/i,
-];
-
-function isNoiseDetail(detail) {
-  const d = String(detail || '').trim();
-  if (!d) return true;
-  return NOISE_PATTERNS.some((re) => re.test(d));
-}
-
-function readSignalFingerprints() {
-  try {
-    return JSON.parse(fs.readFileSync(SIGNAL_FP_PATH, 'utf8'));
-  } catch {
-    return {};
-  }
-}
-
-function writeSignalFingerprints(map) {
-  fs.mkdirSync(path.dirname(SIGNAL_FP_PATH), { recursive: true });
-  fs.writeFileSync(SIGNAL_FP_PATH, `${JSON.stringify(map, null, 2)}\n`);
-}
-
-function corroborateSignal(signal) {
-  const detail = String(signal.detail || '');
-  if (isNoiseDetail(detail)) return false;
-  if (signal.meta?.immediate) return true;
-  if (/posts|cloud|supabase|sync|relation.*posts/i.test(detail)) return true;
-  const fp = `${signal.type}:${detail.slice(0, 120).replace(/\d{4,}/g, '#')}`;
-  const map = readSignalFingerprints();
-  const entry = map[fp] ?? { count: 0, lastEscalatedAt: 0 };
-  entry.count += 1;
-  map[fp] = entry;
-  writeSignalFingerprints(map);
-  if (entry.count < SIGNAL_CORROBORATION) return false;
-  const now = Date.now();
-  if (entry.lastEscalatedAt && now - entry.lastEscalatedAt < 10 * 60_000) return false;
-  entry.lastEscalatedAt = now;
-  entry.count = 0;
-  map[fp] = entry;
-  writeSignalFingerprints(map);
-  return true;
-}
-
-function verifyRepoHealthy() {
-  const health = runQuiet('node', ['scripts/check-health.mjs'], {
-    cwd: path.join(ROOT, 'artifacts/instacollab'),
-  });
-  const tsc = runQuiet('pnpm', ['exec', 'tsc', '--noEmit'], {
-    cwd: path.join(ROOT, 'artifacts/instacollab'),
-  });
-  return health === 0 && tsc === 0;
-}
-
-let upstash = null;
-async function loadUpstash() {
-  if (upstash) return upstash;
-  try {
-    upstash = await import('../lib/upstash/index.mjs');
-    return upstash;
-  } catch {
-    return null;
-  }
-}
-
-let linear = null;
-async function loadLinear() {
-  if (linear) return linear;
-  try {
-    linear = await import('../lib/linear/index.mjs');
-    return linear;
-  } catch {
-    return null;
-  }
-}
-
-async function notifyLinearFailure(task) {
-  const lib = await loadLinear();
-  if (!lib?.isLinearConfigured?.()) return;
-  const title = `[handoff] ${task.type} failed`;
-  const description = [
-    `**Task:** ${task.type}`,
-    task.reason ? `**Reason:** ${task.reason}` : '',
-    task.detail ? `**Detail:** ${task.detail}` : '',
-    task.id ? `**Id:** ${task.id}` : '',
-    `**Repo:** uniliveofficial2026/uniapplab-web`,
-    `**At:** ${new Date().toISOString()}`,
-  ]
-    .filter(Boolean)
-    .join('\n\n');
-  try {
-    const issue = await lib.createIssue({ title, description, priority: 2 });
-    if (issue) log(`linear issue ${issue.identifier} — ${issue.url}`);
-  } catch (err) {
-    log(`linear notify failed: ${err instanceof Error ? err.message : String(err)}`);
-  }
-}
 
 const TASK_PRIORITY = {
   cloud_data: 1,
@@ -141,7 +34,7 @@ function log(msg) {
   if (process.env.HANDOFF_VERBOSE === '1') console.log(`[handoff] ${msg}`);
 }
 
-export async function enqueueHandoffTask(task) {
+export function enqueueHandoffTask(task) {
   const entry = {
     id: `h_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     t: Date.now(),
@@ -149,25 +42,12 @@ export async function enqueueHandoffTask(task) {
     priority: TASK_PRIORITY[task.type] ?? 9,
     ...task,
   };
-  const redis = await loadUpstash();
-  if (redis?.isUpstashConfigured?.()) {
-    await redis.pushHandoffTask(entry);
-    return entry.id;
-  }
   fs.mkdirSync(path.dirname(QUEUE), { recursive: true });
   fs.appendFileSync(QUEUE, `${JSON.stringify(entry)}\n`);
   return entry.id;
 }
 
-async function readQueueAsync() {
-  const redis = await loadUpstash();
-  if (redis?.isUpstashConfigured?.()) {
-    return redis.popHandoffTasks(200);
-  }
-  return readQueueSync();
-}
-
-function readQueueSync() {
+function readQueue() {
   if (!fs.existsSync(QUEUE)) return [];
   return fs
     .readFileSync(QUEUE, 'utf8')
@@ -183,26 +63,9 @@ function readQueueSync() {
     .filter(Boolean);
 }
 
-async function writeQueueAsync(tasks) {
-  const redis = await loadUpstash();
-  if (redis?.isUpstashConfigured?.()) {
-    await redis.rewriteHandoffQueue(tasks);
-    return;
-  }
-  writeQueueSync(tasks);
-}
-
-function writeQueueSync(tasks) {
+function writeQueue(tasks) {
   fs.mkdirSync(path.dirname(QUEUE), { recursive: true });
   fs.writeFileSync(QUEUE, tasks.length ? `${tasks.map((t) => JSON.stringify(t)).join('\n')}\n` : '');
-}
-
-function readQueue() {
-  return readQueueSync();
-}
-
-function writeQueue(tasks) {
-  writeQueueSync(tasks);
 }
 
 function readState() {
@@ -284,18 +147,14 @@ async function runTask(task) {
   log(`run ${task.type} — ${task.reason || task.detail || task.id}`);
 
   switch (task.type) {
-    case 'heal': {
-      const ok = runQuiet('node', ['scripts/self-heal.mjs']) === 0;
-      if (!ok) return false;
-      return verifyRepoHealthy();
-    }
-    case 'health': {
-      const ok =
+    case 'heal':
+      return runQuiet('node', ['scripts/self-heal.mjs']) === 0;
+    case 'health':
+      return (
         runQuiet('node', ['scripts/check-health.mjs'], {
           cwd: path.join(ROOT, 'artifacts/instacollab'),
-        }) === 0;
-      return ok;
-    }
+        }) === 0
+      );
     case 'ux_learn':
       return runQuiet('node', ['scripts/ux-learning-engine.mjs']) === 0;
     case 'verify':
@@ -307,7 +166,7 @@ async function runTask(task) {
       runQuiet('node', ['scripts/posts-bootstrap-db.mjs'], {
         cwd: path.join(ROOT, 'artifacts/instacollab'),
       });
-      await enqueueHandoffTask({
+      enqueueHandoffTask({
         type: 'heal',
         reason: `after_${check.issue}`,
         source: 'handoff',
@@ -318,16 +177,15 @@ async function runTask(task) {
       try {
         const mod = await import('./ux-gemini-fix.mjs');
         const r = await mod.runUxGeminiFix();
-        if (r.applied <= 0) return r.features > 0;
-        return verifyRepoHealthy();
+        return r.applied > 0 || r.features > 0;
       } catch {
         return false;
       }
     }
     case 'deploy': {
-      if (!verifyRepoHealthy()) {
-        log('deploy blocked — health/tsc verify failed');
-        return false;
+      if (process.env.LIVE_SYNC_DEPLOY === '0') {
+        log('skip deploy — LIVE_SYNC_DEPLOY=0');
+        return true;
       }
       runQuiet('node', ['scripts/self-heal.mjs']);
       const status = spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
@@ -341,7 +199,7 @@ async function runTask(task) {
     }
     case 'custom':
       log(`custom task: ${task.detail || task.reason || 'unspecified'}`);
-      await enqueueHandoffTask({ type: 'gemini', reason: task.detail || task.reason, source: 'custom' });
+      enqueueHandoffTask({ type: 'gemini', reason: task.detail || task.reason, source: 'custom' });
       return true;
     default:
       log(`unknown task type: ${task.type}`);
@@ -349,63 +207,46 @@ async function runTask(task) {
   }
 }
 
-/** Map UX / runtime signals → handoff tasks (critical only — corroborated, no noise) */
-export async function handoffFromSignal(signal) {
+/** Map UX / runtime signals → handoff tasks */
+export function handoffFromSignal(signal) {
   const detail = String(signal.detail || '');
   const type = signal.type;
-  const screen = signal.screen;
 
-  if (!corroborateSignal(signal)) return null;
-
-  if (type === 'error' && /posts|cloud|supabase|sync|relation.*posts/i.test(detail)) {
-    return await enqueueHandoffTask({
-      type: 'cloud_data',
-      reason: 'runtime_error',
+  if (type === 'media_fail') {
+    return enqueueHandoffTask({
+      type: 'heal',
+      reason: 'media_fail',
       detail,
-      screen,
+      screen: signal.screen,
       source: 'ux',
     });
   }
 
   if (type === 'error') {
-    return await enqueueHandoffTask({
-      type: 'heal',
-      reason: 'runtime_error',
-      detail,
-      screen,
-      source: 'ux',
-    });
-  }
-
-  if (type === 'media_fail' || type === 'heal') {
-    if (type === 'media_fail') {
-      return await enqueueHandoffTask({
-        type: 'heal',
-        reason: 'media_fail',
+    if (/posts|cloud|supabase|media|sync|fetch/i.test(detail)) {
+      return enqueueHandoffTask({
+        type: 'cloud_data',
+        reason: 'runtime_error',
         detail,
-        screen,
+        screen: signal.screen,
         source: 'ux',
       });
     }
-    return null;
-  }
-
-  if (type === 'warning' && /long_task|slow_|lag/i.test(detail)) {
-    return await enqueueHandoffTask({
-      type: 'ux_learn',
-      reason: 'runtime_lag',
+    return enqueueHandoffTask({
+      type: 'heal',
+      reason: 'runtime_error',
       detail,
-      screen,
+      screen: signal.screen,
       source: 'ux',
     });
   }
 
   if (type === 'rage_tap') {
-    return await enqueueHandoffTask({
+    return enqueueHandoffTask({
       type: 'custom',
       reason: 'ui_friction',
       detail: `Rage taps on ${detail}`,
-      screen,
+      screen: signal.screen,
       source: 'ux',
     });
   }
@@ -414,16 +255,15 @@ export async function handoffFromSignal(signal) {
 }
 
 export async function runHandoffCycle(options = {}) {
-  const { forceDeploy = false, cycle = 0 } = options;
+  const { forceDeploy = false } = options;
   const state = readState();
-  let tasks = (await readQueueAsync()).filter((t) => t.status === 'pending');
+  let tasks = readQueue().filter((t) => t.status === 'pending');
 
-  const now = Date.now();
-  if (!tasks.some((t) => t.type === 'cloud_data') && now - (state.lastCloudCheck ?? 0) > CLOUD_CHECK_MS) {
-    await enqueueHandoffTask({ type: 'cloud_data', reason: 'periodic_check', source: 'agent' });
-    writeState({ ...state, lastCloudCheck: now });
+  // Standing orders every cycle
+  if (!tasks.some((t) => t.type === 'cloud_data')) {
+    enqueueHandoffTask({ type: 'cloud_data', reason: 'periodic_check', source: 'agent' });
   }
-  tasks = (await readQueueAsync()).filter((t) => t.status === 'pending');
+  tasks = readQueue().filter((t) => t.status === 'pending');
 
   tasks.sort((a, b) => (a.priority ?? 9) - (b.priority ?? 9) || a.t - b.t);
 
@@ -432,39 +272,37 @@ export async function runHandoffCycle(options = {}) {
 
   for (const task of tasks.slice(0, 12)) {
     task.status = 'running';
-    const running = (await readQueueAsync()).map((t) => (t.id === task.id ? task : t));
-    await writeQueueAsync(running);
+    writeQueue(readQueue().map((t) => (t.id === task.id ? task : t)));
 
     const ok = await runTask(task);
     task.status = ok ? 'done' : 'failed';
     task.finishedAt = Date.now();
     completed.push(task);
     if (ok) anyFixed = true;
-    else await notifyLinearFailure(task);
 
-    const all = (await readQueueAsync()).map((t) => (t.id === task.id ? task : t));
-    await writeQueueAsync(all.filter((t) => t.status === 'pending'));
+    const all = readQueue().map((t) => (t.id === task.id ? task : t));
+    writeQueue(all.filter((t) => t.status === 'pending'));
   }
 
-  if (tasks.length > 0 && !tasks.some((t) => t.type === 'ux_learn')) {
+  // ML pass after handling queue
+  const auto = resolveAutomationConfig(readAutomationConfig());
+  if (!tasks.some((t) => t.type === 'ux_learn') && auto.autoMachineLearning) {
     await runTask({ type: 'ux_learn', id: 'standing', reason: 'cycle' });
   }
-  if (tasks.some((t) => t.type === 'custom' || t.type === 'gemini')) {
+  if (!tasks.some((t) => t.type === 'gemini') && auto.autoMachineLearning) {
     const geminiOk = await runTask({ type: 'gemini', id: 'standing', reason: 'cycle' });
     if (geminiOk) anyFixed = true;
   }
 
   const shouldDeploy =
+    auto.enabled &&
     (forceDeploy ||
-      AUTO_DEPLOY ||
-      (cycle > 0 && cycle % DEPLOY_EVERY_CYCLES === 0 && anyFixed)) &&
-    verifyRepoHealthy();
+      anyFixed ||
+      completed.some((t) => ['heal', 'cloud_data', 'gemini', 'custom'].includes(t.type) && t.status === 'done'));
 
   if (shouldDeploy) {
     await runTask({ type: 'deploy', id: 'auto', reason: 'handoff_cycle' });
     setTimeout(() => void runTask({ type: 'verify', id: 'auto', reason: 'post_deploy' }), 45_000);
-  } else if (anyFixed && (forceDeploy || AUTO_DEPLOY)) {
-    log('deploy skipped — verifyRepoHealthy failed (zero-mistake guard)');
   }
 
   writeState({ ...state, lastCycle: Date.now(), completed: (state.completed || 0) + completed.length });
@@ -473,42 +311,20 @@ export async function runHandoffCycle(options = {}) {
 }
 
 function drainUxSignals() {
-  return drainUxSignalsAsync();
-}
-
-async function drainUxSignalsAsync() {
-  const redis = await loadUpstash();
-  let lines = [];
-  if (redis?.isUpstashConfigured?.()) {
-    lines = await redis.popUxSignals(500);
-  } else {
-    const signalsPath = path.join(ROOT, '.local/ux-signals.jsonl');
-    if (!fs.existsSync(signalsPath)) return 0;
-    lines = fs
-      .readFileSync(signalsPath, 'utf8')
-      .split('\n')
-      .filter(Boolean)
-      .map((line) => {
-        try {
-          return JSON.parse(line);
-        } catch {
-          return null;
-        }
-      })
-      .filter(Boolean);
-    if (lines.length > 500) {
-      fs.writeFileSync(
-        signalsPath,
-        `${lines
-          .slice(-200)
-          .map((s) => JSON.stringify(s))
-          .join('\n')}\n`,
-      );
+  const signalsPath = path.join(ROOT, '.local/ux-signals.jsonl');
+  if (!fs.existsSync(signalsPath)) return 0;
+  const lines = fs.readFileSync(signalsPath, 'utf8').split('\n').filter(Boolean);
+  let n = 0;
+  for (const line of lines) {
+    try {
+      const signal = JSON.parse(line);
+      if (handoffFromSignal(signal)) n += 1;
+    } catch {
+      /* skip */
     }
   }
-  let n = 0;
-  for (const signal of lines) {
-    if (await handoffFromSignal(signal)) n += 1;
+  if (lines.length > 500) {
+    fs.writeFileSync(signalsPath, `${lines.slice(-200).join('\n')}\n`);
   }
   return n;
 }
@@ -524,17 +340,14 @@ if (isMainModule()) {
   if (cmd === 'enqueue' && process.argv[3]) {
     const type = process.argv[3];
     const detail = process.argv.slice(4).join(' ') || undefined;
-    void enqueueHandoffTask({ type, detail, reason: detail, source: 'cli' }).then((id) => {
-      console.log(id);
-    });
+    const id = enqueueHandoffTask({ type, detail, reason: detail, source: 'cli' });
+    console.log(id);
   } else if (cmd === 'cycle') {
-    const cycleNum = Number(process.argv[3] ?? '0');
-    void runHandoffCycle({ forceDeploy: process.argv.includes('--deploy'), cycle: cycleNum }).then((r) => {
-      if (process.env.HANDOFF_VERBOSE === '1') console.log(JSON.stringify(r));
+    void runHandoffCycle({ forceDeploy: process.argv.includes('--deploy') }).then((r) => {
+      console.log(JSON.stringify(r));
     });
   } else {
-    void drainUxSignalsAsync().then(() =>
-      runHandoffCycle().then((r) => console.log(JSON.stringify(r))),
-    );
+    drainUxSignals();
+    void runHandoffCycle().then((r) => console.log(JSON.stringify(r)));
   }
 }

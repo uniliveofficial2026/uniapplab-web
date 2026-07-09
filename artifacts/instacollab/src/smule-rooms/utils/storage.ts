@@ -1,5 +1,13 @@
 
-export type RoomMode = 'Chat' | 'Radio' | 'Karaoke' | 'Multi-Guest' | 'Party' | 'Solo-Live';
+export type RoomMode =
+  | 'Chat'
+  | 'Radio'
+  | 'Karaoke'
+  | 'Multi-Guest'
+  | 'Party'
+  | 'Solo-Live'
+  | 'Commerce-Live'
+  | 'Game-Live';
 
 export type RoomSettings = {
     coverPhoto: string;

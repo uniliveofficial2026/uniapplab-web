@@ -14,7 +14,7 @@ import {
 import { BackgroundAudioPlayer } from '../common/BackgroundAudioPlayer';
 import { isPlayableAudioUrl } from '../../lib/audioMedia';
 import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import type { MediaFilterId } from '../../lib/mediaFilters';
 import { editorToolsForMode, type EditorToolTabId } from '../../lib/editorTools';
 import {
@@ -121,17 +121,14 @@ export function StoryDraftPreview({
           )}
         </div>
       ) : draft.isVideo ? (
-        <video
+        <AppNativeVideo
           src={resolvedMediaUrl || undefined}
           className={`${CREATE_EDITOR_PREVIEW_MEDIA} ${cropAspectClass(mediaAdjust.cropAspect)}`}
           style={filterStyle}
           autoPlay
           loop
           muted={!!soundtrackUrl}
-          playsInline
-          controls
           preload="auto"
-          {...nativeVideoControlGuardProps()}
         />
       ) : (
         <img

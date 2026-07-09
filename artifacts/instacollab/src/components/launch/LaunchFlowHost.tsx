@@ -1,6 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useLayoutEffect } from 'react';
 import type { LaunchRoute } from '../../lib/launchRoute';
 import { useDB } from '../../lib/useDB';
+import { signalAppShellReady } from '../../lib/appShellReady';
 import { SplashScreen } from './SplashScreen';
 import { OnboardingScreen } from './OnboardingScreen';
 import { AuthScreen } from './AuthScreen';
@@ -10,6 +11,10 @@ import { BannedScreen } from '../auth/BannedScreen';
 
 export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
   const db = useDB();
+
+  useLayoutEffect(() => {
+    signalAppShellReady();
+  }, [route]);
 
   useEffect(() => {
     void db.whenReady().then(() => db.ensureDemoAuthAccounts());

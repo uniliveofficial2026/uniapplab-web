@@ -11,6 +11,9 @@ export type WallpaperItem = {
 
 export type MessagesChatThreadProps = {
   selectedUser: User | ChatGroup;
+  isGroupChat: boolean;
+  receiptLive: boolean;
+  resolveMessageAuthor: (msg: ChatMessage) => User | null;
   activeCustomWallpaper: WallpaperItem | null;
   videoWallpaperSequence: WallpaperItem[];
   playNextVideoWallpaper: () => void;
@@ -58,6 +61,7 @@ export type MessagesChatThreadProps = {
   toggleMessageReaction: (index: number, emoji: string) => void;
   handleReplyMessage: (msg: ChatMessage, index: number) => void;
   handleForwardMessage: (msg: ChatMessage) => void;
+  handleShareMessage: (msg: ChatMessage) => void;
   handleCopyMessage: (msg: ChatMessage) => void;
   handleTogglePinMessage: (msg: ChatMessage, index: number) => void;
   handleDeleteForMe: (index: number) => void;

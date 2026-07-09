@@ -3,6 +3,7 @@ import { motion } from 'motion/react';
 import { Camera, User as UserIcon, AtSign, Globe, Check } from 'lucide-react';
 import { LanguageSelector } from '../common/LanguageSelector';
 import { useAuth } from '../../lib/AuthContext';
+import { useAppCamera } from '../../contexts/AppCameraContext';
 import { getFirestoreDB } from '../../lib/firebase';
 import { upsertFirebaseProfile } from '../../lib/firebase/profile';
 import { db } from '../../lib/db/localDb';
@@ -17,6 +18,7 @@ export function ProfileSetup() {
   const [loading, setLoading] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>(user?.photoURL || '');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
+  const { isAvailable: cameraAvailable, openCamera } = useAppCamera();
 
   const handleAvatarSelect = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -125,8 +127,21 @@ export function ProfileSetup() {
                 className="hidden"
               />
               <button 
-                onClick={() => fileInputRef.current?.click()}
+                type="button"
+                onClick={() => {
+                  if (cameraAvailable) {
+                    openCamera({
+                      title: 'Profile photo',
+                      onCaptured: ({ kind, url }) => {
+                        if (kind === 'photo') setAvatarUrl(url);
+                      },
+                    });
+                    return;
+                  }
+                  fileInputRef.current?.click();
+                }}
                 className="absolute bottom-0 right-0 w-8 h-8 bg-primary text-primary-foreground rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition-transform"
+                aria-label="Take profile photo"
               >
                 <Camera className="w-4 h-4" />
               </button>

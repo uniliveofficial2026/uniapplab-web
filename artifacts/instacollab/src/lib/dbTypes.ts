@@ -113,6 +113,8 @@ export type AppSettings = {
   githubActionsDeploy?: boolean;
   /** UX learning + Gemini auto-fix pipeline */
   autoMachineLearning?: boolean;
+  /** Master switch — enables deploy, push, ML, and aggressive sync together */
+  autopilotEnabled?: boolean;
   [key: string]: unknown;
 };
 

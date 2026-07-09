@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { Ban, Loader2, ShieldCheck, UserCog } from 'lucide-react';
+import { Ban, ShieldCheck, UserCog } from 'lucide-react';
 import {
   adminBanUser,
   adminListUsers,
@@ -12,6 +12,8 @@ import {
 import { useDB, useDbRevision } from '../../lib/useDB';
 import { handleAvatarError } from '../../lib/utils';
 import { safeAvatarUrl } from '../../lib/safe';
+import { buildAdminUserInsights } from '../../lib/adminUserInsights';
+import { AdminUserProgressCard } from './AdminUserProgressCard';
 import type { PlatformRole, User } from '../../types';
 
 function localUserToAdminRow(user: User): AdminUserRow {
@@ -22,14 +24,12 @@ function localUserToAdminRow(user: User): AdminUserRow {
     role: user.role || 'user',
     banned_at: user.bannedAt ? new Date(user.bannedAt).toISOString() : null,
     ban_reason: user.banReason ?? null,
-    muted_until: user.mutedUntil ? new Date(user.mutedUntil).toISOString() : null,
-  };
+  } as AdminUserRow;
 }
 
 export function AdminPanel() {
   const db = useDB();
   useDbRevision();
-  const [loading, setLoading] = useState(true);
   const [mode, setMode] = useState<'server' | 'local'>('local');
   const [serverUsers, setServerUsers] = useState<AdminUserRow[]>([]);
   const [query, setQuery] = useState('');
@@ -60,7 +60,6 @@ export function AdminPanel() {
   useEffect(() => {
     let cancelled = false;
     void (async () => {
-      setLoading(true);
       setError(null);
       try {
         const me = await fetchMe();
@@ -75,8 +74,6 @@ export function AdminPanel() {
         if (!cancelled) {
           setMode('local');
         }
-      } finally {
-        if (!cancelled) setLoading(false);
       }
     })();
     return () => {
@@ -113,14 +110,6 @@ export function AdminPanel() {
       setBusyId(null);
     }
   };
-
-  if (loading) {
-    return (
-      <div className="flex items-center gap-2 text-sm text-muted-foreground py-8 justify-center">
-        <Loader2 className="w-4 h-4 animate-spin" /> Checking admin access…
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-4">
@@ -163,8 +152,10 @@ export function AdminPanel() {
             return (
             <div
               key={u.id}
-              className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 p-3 border border-border rounded-xl"
+              className="flex flex-col gap-3 p-3 border border-border rounded-xl"
             >
+              <AdminUserProgressCard insights={buildAdminUserInsights(db, u.id)} compact />
+              <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">
                 <img
                   src={safeAvatarUrl(live?.avatarUrl)}
@@ -267,6 +258,7 @@ export function AdminPanel() {
                 >
                   Mute 1h
                 </button>
+              </div>
               </div>
             </div>
             );

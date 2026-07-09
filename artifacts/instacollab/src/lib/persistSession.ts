@@ -33,6 +33,11 @@ export function installPersistenceGuards(): void {
 
   void db.whenStorageReady().then(() => {
     healLaunchProgressForReturningUser(db);
+    if (db.isLoggedIn && db.currentUserId) {
+      void import('./chat/cloudChatSync').then((m) => {
+        void m.refreshCloudChatInboxList();
+      });
+    }
     ensureKaraokeUploadsHydrated();
     ensureKaraokeRecordingsHydrated();
     if (db.isLoggedIn && db.currentUserId) {

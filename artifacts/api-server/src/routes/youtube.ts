@@ -1,6 +1,4 @@
 import { Router, type IRouter } from "express";
-import { auth } from "../middlewares/auth";
-import { requireNotBanned } from "../middlewares/requireNotBanned";
 
 const router: IRouter = Router();
 
@@ -31,7 +29,7 @@ router.get("/youtube/health", (_req, res) => {
   res.status(configured ? 200 : 503).json({ ok: configured, configured });
 });
 
-router.get("/youtube/search", auth, requireNotBanned, async (req, res, next) => {
+router.get("/youtube/search", async (req, res, next) => {
   try {
     const apiKey = youtubeApiKey();
     if (!apiKey) {
@@ -39,7 +37,7 @@ router.get("/youtube/search", auth, requireNotBanned, async (req, res, next) => 
       return;
     }
 
-    const q = String(req.query.q ?? "").trim().slice(0, 120);
+    const q = String(req.query.q ?? "").trim();
     if (!q) {
       res.status(400).json({ error: "q required" });
       return;

@@ -74,57 +74,23 @@ if (deeparKey && !/your|xxxx|placeholder/i.test(deeparKey)) {
   warnings.push('VITE_DEEPAR_LICENSE_KEY missing locally — AR disabled in builds');
 }
 
-// --- Repo-root vercel.json (API + SPA routes for Git deploy) ---
-log('Syncing vercel.json…');
-run('node', ['scripts/sync-vercel-config.mjs'], { silent: true });
-
-// --- Sync app env from workspace root ---
-log('Syncing app env…');
-run('node', ['scripts/sync-app-env.mjs'], { silent: true });
-
-// --- Upstash on Vercel (if Redis URL exists) ---
-const upstashUrl = readEnvKey('UPSTASH_REDIS_REST_URL');
-if (upstashUrl && process.env.HEAL_SKIP_VERCEL_ENV !== '1') {
-  log('Ensuring Upstash env on Vercel…');
-  const upstashSync = run('node', ['scripts/sync-upstash-vercel-env.mjs'], { silent: true });
-  if (upstashSync === 0) fixes.push('Synced Upstash/QStash env to Vercel');
-  else warnings.push('Could not sync Upstash env (run upstash:env-vercel manually)');
+// --- Strip macOS AppleDouble from public (breaks uploads) ---
+function stripAppleDouble(dir) {
+  if (!fs.existsSync(dir)) return 0;
+  let removed = 0;
+  for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    const full = path.join(dir, entry.name);
+    if (entry.name.startsWith('._')) {
+      fs.rmSync(full, { force: true });
+      removed += 1;
+      continue;
+    }
+    if (entry.isDirectory()) removed += stripAppleDouble(full);
+  }
+  return removed;
 }
-
-// --- LiveKit on Vercel (if API key exists) ---
-const livekitKey = readEnvKey('LIVEKIT_API_KEY');
-if (livekitKey && !/your|xxxx|placeholder/i.test(livekitKey) && process.env.HEAL_SKIP_VERCEL_ENV !== '1') {
-  log('Ensuring LiveKit env on Vercel…');
-  const livekitSync = run('node', ['scripts/sync-livekit-vercel-env.mjs'], {
-    cwd: APP,
-    silent: true,
-  });
-  if (livekitSync === 0) fixes.push('Synced LiveKit env to Vercel');
-  else warnings.push('Could not sync LiveKit env (run livekit:env-vercel manually)');
-}
-
-// --- Strip macOS AppleDouble from src + public ---
-run('node', ['scripts/strip-appledouble.mjs', path.join(APP, 'src')], { silent: true });
-const stripPublic = spawnSync('node', ['scripts/strip-appledouble.mjs', path.join(APP, 'public')], {
-  cwd: ROOT,
-  encoding: 'utf8',
-});
-if (stripPublic.stdout?.includes('Removed') && !stripPublic.stdout.includes('Removed 0')) {
-  fixes.push('Stripped macOS ._ junk from src/ and public/');
-}
-
-// --- App-wide health scan ---
-log('Scanning app health…');
-const health = spawnSync('node', ['scripts/check-health.mjs'], {
-  cwd: APP,
-  encoding: 'utf8',
-  env: { ...process.env, CHECK_HEALTH_AUTOFIX: '1' },
-});
-if (health.stdout) process.stdout.write(health.stdout);
-if (health.stderr) process.stderr.write(health.stderr);
-if (health.status !== 0) {
-  warnings.push('App health scan reported issues — see output above');
-}
+const stripped = stripAppleDouble(path.join(APP, 'public'));
+if (stripped > 0) fixes.push(`Removed ${stripped} macOS ._ junk files from public/`);
 
 // --- Vendor archives reminder ---
 if (!deeparZips) {

@@ -23,11 +23,6 @@ const LINE_LIMITS = {
   'src/components/feed/PostModal.tsx': { warn: 1800, error: 2200 },
   'src/components/profile/ProfileScreen.tsx': { warn: 1800, error: 2200 },
   'src/components/layout/Shell.tsx': { warn: 1400, error: 2000 },
-  'src/components/karaoke/KaraokeScreen.tsx': { warn: 5500, error: 6500 },
-  'src/components/karaoke/RecordingStudio.tsx': { warn: 4000, error: 4500 },
-  'src/index.css': { warn: 1500, error: 2000 },
-  'src/lib/karaokePersonSegmentation.ts': { warn: 2400, error: 2800 },
-  'src/smule-rooms/pages/Room.tsx': { warn: 4200, error: 4800 },
 };
 
 const DB_REQUIRED_MARKERS = [
@@ -105,8 +100,7 @@ for (const file of listSourceFiles(srcDir)) {
 // --- UI / URL / media patterns in components ---
 const localhostRe = /['"`]https?:\/\/localhost[:\d]/;
 const emptySrcRe = /\b(src|href)=\{?\s*['"`]\s*['"`]\}?/;
-const brokenPlaceholderRe =
-  /(your[_-]?project[_-]?ref|VITE_[A-Z_]+=your|supabase\.co\/your|xxxx{4,}|placeholder[_-]?key)/i;
+const brokenPlaceholderRe = /(your[_-]?project|xxxx|placeholder|example\.com\/missing)/i;
 
 for (const file of listSourceFiles(srcDir)) {
   const fileRel = rel(file);

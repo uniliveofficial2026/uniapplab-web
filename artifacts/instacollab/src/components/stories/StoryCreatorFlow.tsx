@@ -19,11 +19,7 @@ import {
   normalizeOverlayColorForSave,
 } from '../../lib/themeText';
 import { StoryCreatorEdit, StoryDraftPreview } from './StoryCreatorEdit';
-import { DeepARCameraCapture } from '../deepar/DeepARCameraCapture';
-import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
-import { ARCameraCapture } from '../ar/ARCameraCapture';
-import { isFaceARAvailable } from '../../lib/ar/arConfig';
-import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
+import { useAppCamera } from '../../contexts/AppCameraContext';
 
 export type { StoryCreatorStep, StoryDraftMedia } from './storyDraft';
 
@@ -58,12 +54,9 @@ export function StoryCreatorFlow({
   const { showToast } = useToast();
   const [step, setStep] = useState<StoryCreatorStep>('select');
   const [draftMedia, setDraftMedia] = useState<StoryDraftMedia | null>(null);
-  const [showARCamera, setShowARCamera] = useState(false);
-  const advancedCamera = isDeepARConfigured() || isTencentWebARConfigured();
-  const hasARCamera = advancedCamera || isFaceARAvailable();
+  const { isAvailable: hasAppCamera, openCamera } = useAppCamera();
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const cameraInputRef = useRef<HTMLInputElement>(null);
 
   const setStepAndNotify = useCallback(
     (next: StoryCreatorStep) => {
@@ -231,14 +224,6 @@ export function StoryCreatorFlow({
             <input
               type="file"
               accept={PHOTO_VIDEO_ACCEPT}
-              capture="environment"
-              className="hidden"
-              ref={cameraInputRef}
-              onChange={handleFileChange}
-            />
-            <input
-              type="file"
-              accept={PHOTO_VIDEO_ACCEPT}
               className="hidden"
               ref={fileInputRef}
               onChange={handleFileChange}
@@ -246,13 +231,17 @@ export function StoryCreatorFlow({
             <button
               type="button"
               onClick={() => {
-                if (hasARCamera) {
-                  setShowARCamera(true);
+                if (hasAppCamera) {
+                  openCamera({
+                    title: 'Story camera',
+                    onCaptured: ({ kind, url }) => {
+                      setDraftMedia(DEFAULT_MEDIA_STORY_DRAFT(url, kind === 'video'));
+                      setStepAndNotify('edit');
+                    },
+                  });
                   return;
                 }
-                if (!cameraInputRef.current) return;
-                cameraInputRef.current.value = '';
-                cameraInputRef.current.click();
+                showToast('Camera is not available in this browser');
               }}
               className="flex flex-col items-center gap-3"
             >
@@ -322,25 +311,6 @@ export function StoryCreatorFlow({
         </div>
       )}
 
-      <ARCameraCapture
-        open={showARCamera && !advancedCamera && isFaceARAvailable()}
-        onClose={() => setShowARCamera(false)}
-        title="Story Camera"
-        onCaptured={({ kind, url }) => {
-          setDraftMedia(DEFAULT_MEDIA_STORY_DRAFT(url, kind === 'video'));
-          setStepAndNotify('edit');
-        }}
-      />
-
-      <DeepARCameraCapture
-        open={showARCamera && advancedCamera}
-        onClose={() => setShowARCamera(false)}
-        title="Story AR Camera"
-        onCaptured={({ kind, url }) => {
-          setDraftMedia(DEFAULT_MEDIA_STORY_DRAFT(url, kind === 'video'));
-          setStepAndNotify('edit');
-        }}
-      />
     </div>
   );
 }

@@ -42,11 +42,10 @@ export function formatGoogleSignInCode11Hint(origin?: string): string {
 }
 
 export function isGoogleSignInCode11Message(message: string, code?: string): boolean {
-  if (isSupabaseAuthUpstreamError(message)) return false;
   const text = `${code || ''} ${message}`.toLowerCase();
   return (
     /\bcode\s*['"]?11['"]?\b/.test(text) ||
-    /\bgoogle.*\b11\b/.test(text) ||
+    /\b(error\s*)?11\b/.test(text) ||
     /developer.?error/.test(text) ||
     /statuscode\s*[:=]?\s*11/.test(text)
   );

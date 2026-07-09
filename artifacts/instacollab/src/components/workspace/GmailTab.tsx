@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useGoogleWorkspacePoll } from '../../hooks/useGoogleWorkspacePoll';
 import { useAuth } from '../../lib/AuthContext';
 import { 
   Mail, Send, Search, Trash2, ArrowUpRight, Plus, X, 
@@ -18,10 +19,46 @@ interface GmailMessage {
   body?: string;
 }
 
+const GMAIL_SEED_MESSAGES: GmailMessage[] = [
+  {
+    id: 'g1',
+    threadId: 't1',
+    from: 'Google workspace-alerts@google.com',
+    subject: 'Scope Access Granted: Project unilive-ryz8n6',
+    snippet: 'Google Cloud Platform has successfully completed security authorization of the workspace scopes requested.',
+    date: new Date(Date.now() - 1000 * 60 * 45).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+    unread: true,
+    starred: true,
+    body: 'Hello Team,\n\nWe are pleased to inform you that the security configuration for project "unilive-ryz8n6" has been completed. The scopes for Calendar, Mail, People, and Drive are active.\n\nBest,\nGoogle Cloud Identity Team',
+  },
+  {
+    id: 'g2',
+    threadId: 't2',
+    from: 'Sarah Lin <sarah.lin@unilive.co>',
+    subject: 'Updated Deliverables & Meet Agenda',
+    snippet: 'Please find attached the high-fidelity designs for the database and Firebase.rules audit. Let’s sync via Meet.',
+    date: 'Yesterday',
+    unread: false,
+    starred: false,
+    body: 'Hi Alice,\n\nI’ve uploaded the Figma design files and updated our team backlog. We should do a call on Google Meet to review. Let me know what slot works for you!\n\nBest,\nSarah',
+  },
+  {
+    id: 'g3',
+    threadId: 't3',
+    from: 'Firebase Billing <noreply@firebase.google.com>',
+    subject: 'Security rules successfully deployed - Spark Plan',
+    snippet: 'Your Firestore database security rules have been parsed, validated by ESLint, and compiled to production successfully.',
+    date: 'May 31',
+    unread: false,
+    starred: true,
+    body: 'Hey unilive Developer,\n\nCongratulations! Your Firestore and Firebase security rules are now active on the Spark Plan. Rate limiting and attribute-based security parameters are fully active.\n\n- Project ID: unilive-ryz8n6\n- Database ID: default',
+  },
+];
+
 export function GmailTab() {
   const { googleAccessToken, loginWithGoogle } = useAuth();
-  const [messages, setMessages] = useState<GmailMessage[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [messages, setMessages] = useState<GmailMessage[]>(GMAIL_SEED_MESSAGES);
+  const [manualRefresh, setManualRefresh] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedMsg, setSelectedMsg] = useState<GmailMessage | null>(null);
   
@@ -33,49 +70,11 @@ export function GmailTab() {
   const [sending, setSending] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
 
-  // Fallback / seed messages if not linked to a live account yet
-  const seedMessages: GmailMessage[] = [
-    {
-      id: 'g1',
-      threadId: 't1',
-      from: 'Google workspace-alerts@google.com',
-      subject: 'Scope Access Granted: Project unilive-ryz8n6',
-      snippet: 'Google Cloud Platform has successfully completed security authorization of the workspace scopes requested.',
-      date: new Date(Date.now() - 1000 * 60 * 45).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-      unread: true,
-      starred: true,
-      body: 'Hello Team,\n\nWe are pleased to inform you that the security configuration for project "unilive-ryz8n6" has been completed. The scopes for Calendar, Mail, People, and Drive are active.\n\nBest,\nGoogle Cloud Identity Team'
-    },
-    {
-      id: 'g2',
-      threadId: 't2',
-      from: 'Sarah Lin <sarah.lin@unilive.co>',
-      subject: 'Updated Deliverables & Meet Agenda',
-      snippet: 'Please find attached the high-fidelity designs for the database and Firebase.rules audit. Let’s sync via Meet.',
-      date: 'Yesterday',
-      unread: false,
-      starred: false,
-      body: 'Hi Alice,\n\nI’ve uploaded the Figma design files and updated our team backlog. We should do a call on Google Meet to review. Let me know what slot works for you!\n\nBest,\nSarah'
-    },
-    {
-      id: 'g3',
-      threadId: 't3',
-      from: 'Firebase Billing <noreply@firebase.google.com>',
-      subject: 'Security rules successfully deployed - Spark Plan',
-      snippet: 'Your Firestore database security rules have been parsed, validated by ESLint, and compiled to production successfully.',
-      date: 'May 31',
-      unread: false,
-      starred: true,
-      body: 'Hey unilive Developer,\n\nCongratulations! Your Firestore and Firebase security rules are now active on the Spark Plan. Rate limiting and attribute-based security parameters are fully active.\n\n- Project ID: unilive-ryz8n6\n- Database ID: default'
-    }
-  ];
-
   const fetchEmails = async () => {
     if (!googleAccessToken) {
-      setMessages(seedMessages);
+      setMessages(GMAIL_SEED_MESSAGES);
       return;
     }
-    setLoading(true);
     try {
       // 1. Fetch message list
       const listUrl = searchQuery 
@@ -93,7 +92,6 @@ export function GmailTab() {
       const listData = await res.json();
       if (!listData.messages || listData.messages.length === 0) {
         setMessages([]);
-        setLoading(false);
         return;
       }
 
@@ -144,14 +142,13 @@ export function GmailTab() {
       setMessages(detailedMsgs.filter(m => m !== null) as GmailMessage[]);
     } catch (e) {
       console.error('Error fetching Gmail data', e);
-      setMessages([]);
-    } finally {
-      setLoading(false);
     }
   };
 
+  useGoogleWorkspacePoll(fetchEmails, Boolean(googleAccessToken));
+
   useEffect(() => {
-    fetchEmails();
+    if (!googleAccessToken) fetchEmails();
   }, [googleAccessToken]);
 
   const handleCompose = async (e: React.FormEvent) => {
@@ -320,13 +317,16 @@ export function GmailTab() {
             >
               <Plus className="w-3.5 h-3.5" /> Compose
             </button>
-            <button 
-              onClick={fetchEmails}
-              disabled={loading}
+            <button
+              onClick={() => {
+                setManualRefresh(true);
+                void fetchEmails().finally(() => setManualRefresh(false));
+              }}
+              disabled={manualRefresh}
               className="p-2 border border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground rounded-xl"
               title="Refresh Emails"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${manualRefresh ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -361,12 +361,7 @@ export function GmailTab() {
 
         {/* Messages List */}
         <div className="flex-1 overflow-y-auto divide-y divide-border/60 max-h-[480px]">
-          {loading ? (
-            <div className="text-center py-20 text-xs text-muted-foreground font-medium">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary mb-3" />
-              Fetching message body packages...
-            </div>
-          ) : messages.length === 0 ? (
+          {messages.length === 0 ? (
             <div className="text-center py-24 text-muted-foreground">
               <Inbox className="w-8 h-8 mx-auto stroke-1 mb-3 text-muted-foreground/60" />
               <p className="text-xs font-bold">Mailbox is completely clear.</p>

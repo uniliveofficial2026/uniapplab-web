@@ -5,7 +5,8 @@
 import { getFirebaseAuth } from '../firebase/app';
 import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
-import { hasSupabaseSessionForUser, isSupabaseAuthUserId } from './activeBackend';
+import { hasSupabaseSessionForUser } from './activeBackend';
+import { isFirebaseBackupSessionActive, readFirebaseBackupLink } from './firebaseBackupLink';
 import { isInfrastructureAuthFailure } from './failover';
 import { isSupabaseOAuthDegraded, markSupabaseOAuthDegraded } from './providerState';
 
@@ -14,15 +15,12 @@ export function shouldUseFirebaseForCloudData(userId?: string | null): boolean {
   if (!isFirebaseConfigured()) return false;
   if (!isSupabaseConfigured()) return true;
   if (isSupabaseOAuthDegraded()) return true;
-
-  if (!userId) return false;
-
-  // Supabase healthy — primary lane for all Supabase UUID accounts.
-  if (isSupabaseAuthUserId(userId)) return false;
-
-  // Firebase-only account (created while Supabase was down).
+  if (userId && isFirebaseBackupSessionActive(userId)) return true;
+  const link = readFirebaseBackupLink();
+  if (userId && link?.supabaseUserId === userId) return true;
   const fbUser = getFirebaseAuth()?.currentUser;
-  return fbUser?.uid === userId;
+  if (userId && fbUser && link?.firebaseUid === fbUser.uid) return true;
+  return false;
 }
 
 /** Pick read/write backend for cloud data (profiles, user_app_state, …). */

@@ -10,18 +10,14 @@ import { fetchFirebaseUserAppState } from '../firebase/userAppState';
 import { fetchSupabaseUserAppState, upsertSupabaseUserAppState } from '../supabase/userAppState';
 import {
   applySupabaseSessionToLocalDb,
+  restoreStoredAccountSession,
   restoreSupabaseSession,
 } from './sessionManager';
 import { isSupabaseAuthUserId } from './activeBackend';
 import { restartCloudAppStateSync } from './cloudAppState';
-import { writeStoredAuthBackend, markSupabaseOAuthHealthyLane } from './providerState';
+import { writeStoredAuthBackend } from './providerState';
 import { readFirebaseBackupLink } from './firebaseBackupLink';
-import { loadStoredAccountSession } from './storedAccountSessions';
 import { withTimeout } from '../supabase/withTimeout';
-import { migrateFirebaseNewcomerToSupabase } from './migrateFirebaseNewcomer';
-import { getFirebaseAuth } from '../firebase/app';
-import { startLiveCloudSurfaces } from '../liveCloudSurfaces';
-import { syncCloudChatInbox } from '../chat/cloudChatSync';
 
 const RECOVERY_MS = 8_000;
 let recoveryInFlight = false;
@@ -65,16 +61,12 @@ export async function performSilentSupabaseRecovery(): Promise<boolean> {
     ).catch(() => null);
 
     if ((!session?.user || session.user.id !== userId) && isSupabaseAuthUserId(userId)) {
-      const stored = loadStoredAccountSession(userId);
-      if (stored) {
-        await withTimeout(
-          supabase.auth.setSession({
-            access_token: stored.access_token,
-            refresh_token: stored.refresh_token,
-          }),
-          RECOVERY_MS,
-          'Supabase setSession',
-        ).catch(() => undefined);
+      const restored = await withTimeout(
+        restoreStoredAccountSession(userId),
+        RECOVERY_MS,
+        'Supabase restore stored session',
+      ).catch(() => ({ ok: false as const, reason: 'restore failed' }));
+      if (restored.ok) {
         session = await restoreSupabaseSession().catch(() => null);
       }
     }
@@ -86,24 +78,15 @@ export async function performSilentSupabaseRecovery(): Promise<boolean> {
       (link?.supabaseUserId === userId && sessionUserId === link.supabaseUserId);
 
     if (!session?.user || !matchesCurrent) {
-      if (!isSupabaseAuthUserId(userId)) {
-        const fbUid = getFirebaseAuth()?.currentUser?.uid;
-        if (fbUid === userId) {
-          return migrateFirebaseNewcomerToSupabase(fbUid);
-        }
-      }
       return false;
     }
 
     const silent = db.isLoggedIn && db.currentUserId === session.user.id;
     await applySupabaseSessionToLocalDb(session, { silent });
     writeStoredAuthBackend('supabase');
-    markSupabaseOAuthHealthyLane();
 
     await mergeFirebaseAppStateIntoSupabase(session.user.id);
     await restartCloudAppStateSync(session.user.id);
-    startLiveCloudSurfaces(session.user.id);
-    void syncCloudChatInbox();
 
     if (import.meta.env.DEV) {
       console.info('[auth] silent Supabase recovery complete', session.user.id.slice(0, 8));

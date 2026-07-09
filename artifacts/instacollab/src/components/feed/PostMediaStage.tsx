@@ -16,10 +16,10 @@ import { FALLBACK_MEDIA, resolvePostDisplayMedia } from '../../lib/safe';
 import { isAppMediaRef } from '../../lib/appMediaStore';
 import { resolveEditorSoundtrackUrl } from '../../lib/audioMedia';
 import { MediaWithSoundtrack } from '../common/MediaWithSoundtrack';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
 import { PLAYBACK_PRIORITY } from '../../lib/playbackAudio';
 import { buildMediaFilterStyle } from '../../lib/mediaFilters';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 type ResolvedPost = ReturnType<typeof import('../../lib/entityResolve').resolvePost>;
 
@@ -148,22 +148,16 @@ export function PostMediaStage({
               : undefined
           }
         >
-          <video
-            data-playback-scope={PLAYBACK_SCOPE.MANAGED}
+          <AppNativeVideo
+            playbackScope={PLAYBACK_SCOPE.MANAGED}
             ref={videoRef}
             src={playableUrl || undefined}
             poster={posterSrc}
             data-poster={posterSrc}
             loop={loopCarouselItem}
-            playsInline
-            controls
             muted={soundtrackUrl ? true : globalMuted}
             onEnded={loopCarouselItem ? undefined : onNextCarouselItem}
-            onVolumeChange={(e) => {
-              if (!soundtrackUrl) {
-                onSetGlobalMuted(e.currentTarget.muted);
-              }
-            }}
+            onGlobalMutedChange={soundtrackUrl ? undefined : onSetGlobalMuted}
             onError={(e) => {
               setVideoError(true);
               handleMediaError(e);
@@ -172,7 +166,6 @@ export function PostMediaStage({
               e.stopPropagation();
               onOpenFullscreen();
             }}
-            {...nativeVideoControlGuardProps()}
             preload="metadata"
             style={style}
             className={`w-full h-full ${mediaFitClass} z-10 bg-black/30`}

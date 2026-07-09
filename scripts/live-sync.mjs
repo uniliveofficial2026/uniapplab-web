@@ -9,12 +9,8 @@
  * Env:
  *   LIVE_SYNC_MODE=remote|prebuilt|git  — deploy strategy (default: remote = full Vercel build)
  *   LIVE_SYNC_DEBOUNCE_MS               — ms after last save (default 0; 3000 on /Volumes/)
- *   LIVE_SYNC_SILENT=0               — log to terminal (default: silent → .local/live-sync.log)
- *   LIVE_SYNC_DEPLOY_ON_START=1      — deploy on startup (default: off)
- *   LIVE_SYNC_AUTO_HEAL=0               — skip self-heal before deploy (default: on)
- *   LIVE_SYNC_VERIFY=0                  — skip post-deploy production checks (default: on)
- *   LIVE_SYNC_AUTO_PUSH=1               — git commit+push before deploy (default: off; see config/auto-deploy.json)
- *   LIVE_SYNC_DEPLOY=1                  — enable Vercel deploys on save (default: off; see config/auto-deploy.json)
+ *   LIVE_SYNC_DEPLOY=0                 — local Vite only (default via ensure-live)
+ *   LIVE_SYNC_DEPLOY_ON_START=0         — skip deploy when live starts
  */
 import { spawn, spawnSync } from 'node:child_process';
 import fs from 'node:fs';
@@ -22,44 +18,26 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const AUTO_DEPLOY_CONFIG_PATH = path.join(ROOT, 'config/auto-deploy.json');
-
-function loadAutoDeployConfig() {
-  try {
-    if (!fs.existsSync(AUTO_DEPLOY_CONFIG_PATH)) {
-      return { enabled: false, autoPush: false };
-    }
-    return JSON.parse(fs.readFileSync(AUTO_DEPLOY_CONFIG_PATH, 'utf8'));
-  } catch {
-    return { enabled: false, autoPush: false };
-  }
-}
-
-const autoDeployConfig = loadAutoDeployConfig();
+const ON_EXTERNAL_VOLUME = ROOT.startsWith('/Volumes/');
 const USE_POLL_WATCH =
-  process.env.LIVE_SYNC_POLLING === '1' || ROOT.startsWith('/Volumes/');
+  process.env.LIVE_SYNC_POLLING === '1' || ON_EXTERNAL_VOLUME;
+/** Local dev only — set LIVE_SYNC_DEPLOY=1 to auto-deploy on save (heavy on Mac). */
+const DEPLOY_ENABLED = process.env.LIVE_SYNC_DEPLOY !== '0';
 const DEBOUNCE_MS = Number(
-  process.env.LIVE_SYNC_DEBOUNCE_MS ?? (USE_POLL_WATCH ? '8000' : '5000'),
+  process.env.LIVE_SYNC_DEBOUNCE_MS ??
+    (ON_EXTERNAL_VOLUME ? (DEPLOY_ENABLED ? '120000' : '0') : '1500'),
 );
-const DEPLOY_ON_START = process.env.LIVE_SYNC_DEPLOY_ON_START === '1';
-const SILENT = process.env.LIVE_SYNC_SILENT !== '0';
-const LOG_FILE = path.join(ROOT, '.local/live-sync.log');
+const DEPLOY_ON_START =
+  DEPLOY_ENABLED && process.env.LIVE_SYNC_DEPLOY_ON_START !== '0';
 const DEPLOY_MODE = (process.env.LIVE_SYNC_MODE || 'remote').toLowerCase();
-const POLL_WATCH_MS = Number(process.env.LIVE_SYNC_POLL_MS ?? '800');
-const AUTO_HEAL = process.env.LIVE_SYNC_AUTO_HEAL !== '0';
-const VERIFY_PROD = process.env.LIVE_SYNC_VERIFY !== '0';
-const AUTO_PUSH =
-  process.env.LIVE_SYNC_AUTO_PUSH === '1' ||
-  (process.env.LIVE_SYNC_AUTO_PUSH !== '0' && autoDeployConfig.autoPush === true);
-const DEPLOY_ENABLED =
-  process.env.LIVE_SYNC_DEPLOY === '1' ||
-  (process.env.LIVE_SYNC_DEPLOY !== '0' && autoDeployConfig.enabled === true);
-const VERIFY_WAIT_MS = Number(process.env.LIVE_SYNC_VERIFY_WAIT_MS ?? '45000');
-const MAX_VERIFY_RETRIES = Number(process.env.LIVE_SYNC_VERIFY_RETRIES ?? '2');
+const POLL_WATCH_MS = Number(process.env.LIVE_SYNC_POLL_MS ?? (ON_EXTERNAL_VOLUME ? '5000' : '800'));
 
 const WATCH_ROOTS = [
-  'artifacts/instacollab',
-  'artifacts/api-server',
+  'artifacts/instacollab/src',
+  'artifacts/instacollab/public',
+  'artifacts/instacollab/scripts',
+  'artifacts/instacollab/vendor',
+  'artifacts/api-server/src',
   'lib',
   'scripts',
   'config',
@@ -69,13 +47,10 @@ const WATCH_FILES = [
   'package.json',
   'pnpm-lock.yaml',
   'pnpm-workspace.yaml',
-  '.env',
-  'artifacts/instacollab/.env',
   'artifacts/instacollab/package.json',
   'artifacts/instacollab/vite.config.ts',
   'artifacts/instacollab/vercel.json',
   'artifacts/instacollab/index.html',
-  'artifacts/instacollab/src/index.css',
 ];
 
 const IGNORE = new Set(['.DS_Store', 'node_modules', '.git', 'dist', '.vercel']);
@@ -88,16 +63,6 @@ let viteChild = null;
 const fileSnapshots = new Map();
 
 function log(msg) {
-  if (SILENT) {
-    try {
-      fs.mkdirSync(path.dirname(LOG_FILE), { recursive: true });
-      fs.appendFileSync(LOG_FILE, `[${new Date().toISOString()}] ${msg}\n`);
-    } catch {
-      /* ignore */
-    }
-    if (process.env.LIVE_SYNC_VERBOSE === '1') console.log(`[live] ${msg}`);
-    return;
-  }
   console.log(`[live] ${msg}`);
 }
 
@@ -205,6 +170,7 @@ function writePidFile() {
 }
 
 function scheduleDeploy(reason) {
+  if (!DEPLOY_ENABLED) return;
   pendingReason = reason;
   if (debounceTimer) clearTimeout(debounceTimer);
 
@@ -216,8 +182,8 @@ function scheduleDeploy(reason) {
   }, delay);
 
   if (delay === 0) {
-    if (!SILENT) log(`change (${reason}) → deploying`);
-  } else if (!SILENT) {
+    log(`change (${reason}) → deploying`);
+  } else {
     log(`change (${reason}) → deploy in ${Math.round(delay / 1000)}s if idle`);
   }
 }
@@ -249,111 +215,7 @@ async function aliasDomains(deploymentUrl) {
   }
 }
 
-function runSelfHeal() {
-  if (!AUTO_HEAL) return 0;
-  log('self-heal + auto-fix…');
-  const r = spawnSync('node', ['scripts/auto-fix.mjs'], { cwd: ROOT, stdio: 'inherit' });
-  return r.status ?? 1;
-}
-
-function runAutoPush() {
-  const autoDeployConfig = loadAutoDeployConfig();
-  const autoPush =
-    process.env.LIVE_SYNC_AUTO_PUSH === '1' ||
-    (process.env.LIVE_SYNC_AUTO_PUSH !== '0' && autoDeployConfig.autoPush === true);
-
-  if (!autoPush) return 0;
-
-  const status = spawnSync('git', ['status', '--porcelain'], { cwd: ROOT, encoding: 'utf8' });
-  const dirty = (status.stdout || '').trim();
-  if (!dirty) return 0;
-
-  log('auto-commit + push…');
-  spawnSync('git', ['add', '-A'], { cwd: ROOT, stdio: 'inherit' });
-  const stamp = new Date().toISOString().replace(/\.\d{3}Z$/, 'Z');
-  const commit = spawnSync('git', ['commit', '-m', `auto: live sync ${stamp}`], {
-    cwd: ROOT,
-    stdio: 'inherit',
-  });
-  if (commit.status !== 0) {
-    log('auto-commit skipped (nothing to commit or hook rejected)');
-    return 0;
-  }
-
-  const push = spawnSync('bash', ['scripts/github-push.sh'], { cwd: ROOT, stdio: 'inherit' });
-  return push.status ?? 1;
-}
-
-function sleep(ms) {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
-
-async function verifyProduction(attempt = 1) {
-  if (!VERIFY_PROD) return true;
-  if (attempt > 1) log(`verify production (retry ${attempt})…`);
-  else log(`verify production (waiting ${Math.round(VERIFY_WAIT_MS / 1000)}s for CDN)…`);
-
-  await sleep(VERIFY_WAIT_MS);
-  const r = spawnSync('node', ['scripts/verify-production.mjs'], { cwd: ROOT, stdio: 'inherit' });
-  if (r.status === 0) return true;
-  if (attempt < MAX_VERIFY_RETRIES) return verifyProduction(attempt + 1);
-  return false;
-}
-
-function spawnDeploy(deployEnv) {
-  return new Promise((resolve) => {
-    let child;
-    if (DEPLOY_MODE === 'git') {
-      child = spawn('bash', ['scripts/vercel-deploy-git.sh'], {
-        cwd: ROOT,
-        env: deployEnv,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    } else {
-      if (DEPLOY_MODE === 'prebuilt') {
-        deployEnv.LIVE_SYNC_PREBUILT = '1';
-      }
-      child = spawn('bash', ['scripts/vercel-deploy.sh', '--prod'], {
-        cwd: ROOT,
-        env: deployEnv,
-        stdio: ['ignore', 'pipe', 'pipe'],
-      });
-    }
-
-    let output = '';
-  child.stdout?.on('data', (chunk) => {
-    const text = String(chunk);
-    output += text;
-    if (!SILENT) process.stdout.write(text);
-  });
-  child.stderr?.on('data', (chunk) => {
-    const text = String(chunk);
-    output += text;
-    if (!SILENT) process.stderr.write(text);
-  });
-
-    child.on('close', (code) => {
-      resolve({ code: code ?? 1, output });
-    });
-  });
-}
-
-let deployRateLimitedUntil = 0;
-
-async function runDeploy(reason, verifyAttempt = 0) {
-  const autoDeployConfig = loadAutoDeployConfig();
-  const deployEnabled =
-    process.env.LIVE_SYNC_DEPLOY === '1' ||
-    (process.env.LIVE_SYNC_DEPLOY !== '0' && autoDeployConfig.enabled === true);
-
-  if (!deployEnabled) {
-    log('deploy skipped (auto-deploy paused — set config/auto-deploy.json enabled:true or LIVE_SYNC_DEPLOY=1)');
-    return;
-  }
-  if (Date.now() < deployRateLimitedUntil) {
-    log('deploy skipped — Vercel daily limit (retry after rate limit resets)');
-    return;
-  }
+function runDeploy(reason) {
   if (deployRunning) {
     deployQueued = true;
     pendingReason = reason;
@@ -361,10 +223,6 @@ async function runDeploy(reason, verifyAttempt = 0) {
   }
   deployRunning = true;
   log(`deploying → production (${reason}, mode=${DEPLOY_MODE})…`);
-
-  runSelfHeal();
-  const pushCode = runAutoPush();
-  if (pushCode !== 0) log('auto-push failed — continuing with deploy');
 
   const deployEnv = {
     ...process.env,
@@ -374,77 +232,50 @@ async function runDeploy(reason, verifyAttempt = 0) {
     npm_config_globalconfig: undefined,
   };
 
-  const { code, output } = await spawnDeploy(deployEnv);
-  deployRunning = false;
+  let child;
+  if (DEPLOY_MODE === 'git') {
+    child = spawn('bash', ['scripts/vercel-deploy-git.sh'], {
+      cwd: ROOT,
+      env: deployEnv,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  } else {
+    if (DEPLOY_MODE === 'prebuilt') {
+      deployEnv.LIVE_SYNC_PREBUILT = '1';
+    }
+    child = spawn('bash', ['scripts/vercel-deploy.sh', '--prod'], {
+      cwd: ROOT,
+      env: deployEnv,
+      stdio: ['ignore', 'pipe', 'pipe'],
+    });
+  }
 
-  if (code === 0) {
-    const verified = await verifyProduction(verifyAttempt + 1);
-    if (verified) {
+  let output = '';
+  child.stdout?.on('data', (chunk) => {
+    const text = String(chunk);
+    output += text;
+    process.stdout.write(text);
+  });
+  child.stderr?.on('data', (chunk) => {
+    const text = String(chunk);
+    output += text;
+    process.stderr.write(text);
+  });
+
+  child.on('close', (code) => {
+    deployRunning = false;
+    if (code === 0) {
       log('deploy OK — https://app.uniapplab.com');
     } else {
-      log('deploy finished but production verify failed — re-healing and redeploying once');
-      runSelfHeal();
-      if (!deployQueued) {
-        deployRunning = true;
-        const retry = await spawnDeploy(deployEnv);
-        deployRunning = false;
-        if (retry.code === 0) {
-          const retryOk = await verifyProduction(1);
-          if (retryOk) log('deploy OK after retry — https://app.uniapplab.com');
-          else log('deploy retry still failing verify — check scripts/verify-production.mjs');
-        } else {
-          log(`deploy retry failed (exit ${retry.code})`);
-        }
-      }
+      log(`deploy failed (exit ${code})`);
+      const url = parseDeploymentUrl(output);
+      if (url) void aliasDomains(url);
     }
-  } else {
-    log(`deploy failed (exit ${code})`);
-    if (/api-deployments-free|Resource is limited|rate/i.test(output)) {
-      deployRateLimitedUntil = Date.now() + 24 * 60 * 60 * 1000;
-      log('Vercel deploy quota exhausted — pausing auto-deploy for 24h');
+    if (deployQueued) {
+      deployQueued = false;
+      void runDeploy(pendingReason);
     }
-    const url = parseDeploymentUrl(output);
-    if (url) void aliasDomains(url);
-    runSelfHeal();
-  }
-
-  if (deployQueued) {
-    deployQueued = false;
-    void runDeploy(pendingReason);
-  }
-}
-
-function readUxAgentPid() {
-  try {
-    const pid = Number(fs.readFileSync(path.join(ROOT, '.local/ux-agent.pid'), 'utf8').trim());
-    if (Number.isFinite(pid) && pid > 0) {
-      process.kill(pid, 0);
-      return pid;
-    }
-  } catch {
-    /* not running */
-  }
-  return null;
-}
-
-function startBackgroundUxAgent() {
-  if (process.env.UX_AGENT === '0') return;
-  if (readUxAgentPid()) {
-    log('UX learning agent already running');
-    return;
-  }
-
-  const logPath = path.join(ROOT, '.local/ux-agent.log');
-  fs.mkdirSync(path.dirname(logPath), { recursive: true });
-  const out = fs.openSync(logPath, 'a');
-  const child = spawn('node', ['scripts/background-ux-agent.mjs'], {
-    cwd: ROOT,
-    detached: true,
-    stdio: ['ignore', out, out],
-    env: { ...process.env, UX_AGENT_SILENT: '1' },
   });
-  child.unref();
-  log('UX learning agent started (silent)');
 }
 
 function startVite() {
@@ -466,31 +297,23 @@ function shutdown() {
   log('shutting down…');
   if (debounceTimer) clearTimeout(debounceTimer);
   if (viteChild && !viteChild.killed) viteChild.kill('SIGTERM');
-  const uxPid = readUxAgentPid();
-  if (uxPid) {
-    try {
-      process.kill(uxPid, 'SIGTERM');
-    } catch {
-      /* ignore */
-    }
-  }
   process.exit(0);
 }
 
 process.on('SIGINT', shutdown);
 process.on('SIGTERM', shutdown);
 
-log('Develop mode — local http://localhost:5173 (silent background sync)');
-if (!SILENT) {
-  log(`Deploy: ${DEPLOY_ENABLED ? DEPLOY_MODE : 'paused'}`);
-  log(`Self-heal: ${AUTO_HEAL ? 'on' : 'off'} · Verify: ${VERIFY_PROD ? 'on' : 'off'} · Auto-push: ${AUTO_PUSH ? 'on' : 'off'}`);
-  log(`Handoff agent: ${process.env.UX_AGENT === '0' ? 'off' : 'on (silent)'}`);
+log('Develop mode — local http://localhost:5173' + (DEPLOY_ENABLED ? ' + auto-deploy on save' : ' (deploy off — local only)'));
+log(`Deploy: ${DEPLOY_ENABLED ? `${DEPLOY_MODE} (${DEPLOY_MODE === 'remote' ? 'full Vercel build — all app assets' : DEPLOY_MODE})` : 'disabled (LIVE_SYNC_DEPLOY=0)'}`);
+if (ON_EXTERNAL_VOLUME) {
+  log(`External volume detected — poll=${POLL_WATCH_MS}ms, deploy debounce=${Math.round(DEBOUNCE_MS / 1000)}s`);
 }
+log('Production: app.uniapplab.com · uniapplab.com · www.uniapplab.com');
+log('Tip: LIVE_SYNC_MODE=git pnpm live — push to GitHub instead of CLI upload');
 
 for (const rel of WATCH_ROOTS) watchDir(path.join(ROOT, rel));
 watchFiles();
 
 startVite();
-startBackgroundUxAgent();
 
 if (DEPLOY_ON_START) scheduleDeploy('startup');

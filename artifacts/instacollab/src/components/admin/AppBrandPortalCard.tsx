@@ -2,15 +2,19 @@ import { ImagePlus, RefreshCw, Trash2 } from 'lucide-react';
 import { LaunchBrandMark } from '../launch/LaunchBrandMark';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
-import { APP_DISPLAY_NAME, APP_TAGLINE } from '../../lib/appBrand';
+import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME, APP_TAGLINE } from '../../lib/appBrand';
+import { readAppBrandSnapshot } from '../../lib/appBrandRuntime';
+import { publishPlatformAppBrand } from '../../lib/cloudSocial/platformAppBrandCloud';
 
 export function AppBrandPortalCard() {
   const db = useDB();
   const { showToast } = useToast();
-  const hasLogo = Boolean(db.settings.appLogoUrl);
+  const brand = readAppBrandSnapshot();
+  const hasLogo = Boolean(brand.logoUrl && brand.logoUrl !== APP_BRAND_FALLBACK_ICON);
 
   const clearLogo = () => {
     db.updateSettings({ appLogoUrl: null, appLogoMediaType: 'image' });
+    void publishPlatformAppBrand(null, 'image');
     window.dispatchEvent(new CustomEvent('app-brand:updated'));
     showToast('App logo removed — default mark restored');
   };
@@ -23,8 +27,8 @@ export function AppBrandPortalCard() {
             <ImagePlus className="w-5 h-5 text-primary" /> App Logo & Brand
           </h2>
           <p className="text-xs text-muted-foreground mt-1 max-w-xl">
-            Upload once — applies to splash, auth, shell header, PWA install prompt, launch
-            screens, and every logo access point in {APP_DISPLAY_NAME}.
+            Upload once — publishes to Supabase and Firebase and applies to splash, auth, shell
+            header, PWA install prompt, home-screen icon, and every logo surface in {APP_DISPLAY_NAME}.
           </p>
         </div>
         <div className="text-right shrink-0">
@@ -34,18 +38,18 @@ export function AppBrandPortalCard() {
       </div>
 
       <div className="p-5 flex flex-col md:flex-row gap-6 items-start md:items-center">
-        <LaunchBrandMark size="lg" allowUpload showUploadHint />
+        <LaunchBrandMark size="lg" allowUpload showUploadHint publishToPlatform />
 
         <div className="flex-1 space-y-3 min-w-0">
           <p className="text-sm text-muted-foreground">
-            Tap the mark to pick an image, SVG, or short video (max 8&nbsp;MB). Changes save
-            instantly and sync across this device&apos;s display systems.
+            Tap the mark to pick an image, SVG, or short video (max 8&nbsp;MB). Changes publish to
+            Supabase and Firebase and sync to every user, browser tab icon, and install banner.
           </p>
           <ul className="text-xs text-muted-foreground space-y-1 list-disc pl-4">
             <li>Mobile &amp; tablet shell header</li>
             <li>Launch / splash &amp; sign-in screens</li>
             <li>Workspace admin portal preview</li>
-            <li>PWA install banner &amp; home-screen icon slot</li>
+            <li>PWA install banner &amp; home-screen icon</li>
           </ul>
           <div className="flex flex-wrap gap-2 pt-1">
             {hasLogo && (

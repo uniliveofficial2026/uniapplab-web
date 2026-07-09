@@ -1,13 +1,14 @@
 import type { AuthBackend } from './types';
-import { invalidateSupabaseHealthCache, probeSupabaseOAuthReady } from './health';
+import {
+  invalidateSupabaseHealthCache,
+  probeSupabaseOAuthReady,
+} from './health';
 import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
 import {
   clearSupabaseOAuthDegraded,
-  clearSupabaseOAuthHealthyLane,
   isSupabaseOAuthDegraded,
   markSupabaseOAuthDegraded,
-  markSupabaseOAuthHealthyLane,
   resolveOAuthSignInBackend,
 } from './providerState';
 
@@ -19,23 +20,26 @@ export function resolveLiveOAuthBackendSync(): AuthBackend {
 }
 
 /**
- * Pick OAuth lane before any browser redirect (async probe for recovery checks only).
+ * Pick OAuth lane before any browser redirect.
+ * When Firebase is configured, default to Firebase unless Supabase /authorize is healthy now.
  */
 export async function resolveLiveOAuthBackend(): Promise<AuthBackend> {
-  const syncLane = resolveLiveOAuthBackendSync();
-  if (syncLane === 'firebase' || !isSupabaseConfigured()) {
-    return syncLane;
+  if (!isSupabaseConfigured()) {
+    return isFirebaseConfigured() ? 'firebase' : 'supabase';
+  }
+
+  if (isSupabaseOAuthDegraded() && isFirebaseConfigured()) {
+    return 'firebase';
   }
 
   invalidateSupabaseHealthCache();
   const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
   if (oauthOk) {
-    markSupabaseOAuthHealthyLane();
+    clearSupabaseOAuthDegraded();
     return 'supabase';
   }
 
   markSupabaseOAuthDegraded();
-  clearSupabaseOAuthHealthyLane();
   return isFirebaseConfigured() ? 'firebase' : 'supabase';
 }
 
@@ -47,10 +51,9 @@ export async function isSupabaseOAuthRedirectAllowed(): Promise<boolean> {
   const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
   if (!oauthOk) {
     markSupabaseOAuthDegraded();
-    clearSupabaseOAuthHealthyLane();
     return false;
   }
-  markSupabaseOAuthHealthyLane();
+  clearSupabaseOAuthDegraded();
   return true;
 }
 

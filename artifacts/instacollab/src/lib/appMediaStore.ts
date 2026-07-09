@@ -148,6 +148,12 @@ async function loadBlob(id: string): Promise<Blob | null> {
   });
 }
 
+/** Read persisted bytes for an app-media ref (used before cloud upload). */
+export async function readAppMediaBlob(ref: string): Promise<Blob | null> {
+  if (!isAppMediaRef(ref)) return null;
+  return loadBlob(appMediaIdFromRef(ref));
+}
+
 export function registerAppMediaBlobUrl(id: string, blobUrl: string): void {
   const prev = blobUrlCache.get(id);
   if (prev && prev !== blobUrl) {

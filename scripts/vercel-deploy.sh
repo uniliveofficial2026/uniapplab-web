@@ -9,20 +9,36 @@ set -euo pipefail
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 cd "$ROOT"
 
+filter_vercel_args() {
+  local filtered=()
+  for arg in "$@"; do
+    case "$arg" in
+      --prod|--prebuilt|--yes|-y) filtered+=("$arg") ;;
+    esac
+  done
+  if [[ ${#filtered[@]} -eq 0 ]]; then
+    filtered=(--prod)
+  fi
+  # Bash 3.2 (macOS) has no mapfile — emit a bash array assignment instead.
+  printf 'VERCEL_ARGS=('
+  local first=1
+  for arg in "${filtered[@]}"; do
+    if [[ $first -eq 1 ]]; then
+      first=0
+    else
+      printf ' '
+    fi
+    printf '%q' "$arg"
+  done
+  printf ')\n'
+}
+
 RAW_ARGS=("$@")
 if [[ ${#RAW_ARGS[@]} -eq 0 ]]; then
   RAW_ARGS=(--prod)
 fi
 
-VERCEL_ARGS=()
-for arg in "${RAW_ARGS[@]}"; do
-  case "$arg" in
-    --prod|--prebuilt|--yes|-y) VERCEL_ARGS+=("$arg") ;;
-  esac
-done
-if [[ ${#VERCEL_ARGS[@]} -eq 0 ]]; then
-  VERCEL_ARGS=(--prod)
-fi
+eval "$(filter_vercel_args "${RAW_ARGS[@]}")"
 
 is_prod=false
 for arg in "${VERCEL_ARGS[@]}"; do

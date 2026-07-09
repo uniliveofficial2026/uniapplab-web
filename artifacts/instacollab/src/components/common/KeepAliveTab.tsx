@@ -7,16 +7,11 @@ type KeepAliveTabProps = {
 };
 
 /**
- * Keep screen trees mounted after first visit — tab switches paint instantly
- * from local state instead of remounting lazy chunks.
+ * Keep screen trees mounted — parent only renders tabs in visitedTabs,
+ * so children mount immediately (no lazy-wait on tab switch).
  */
 export function KeepAliveTab({ active, children, className = '' }: KeepAliveTabProps) {
-  const [mounted, setMounted] = React.useState(active);
   const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (active) setMounted(true);
-  }, [active]);
 
   useEffect(() => {
     if (active) return;
@@ -29,14 +24,12 @@ export function KeepAliveTab({ active, children, className = '' }: KeepAliveTabP
     });
   }, [active]);
 
-  if (!mounted) return null;
-
   return (
     <div
       ref={rootRef}
       className={`h-full min-h-0 flex flex-col ${active ? '' : 'hidden'} ${className}`.trim()}
       aria-hidden={!active}
-      {...(!active ? { inert: '' as const } : {})}
+      {...(!active ? { inert: true as const } : {})}
     >
       {children}
     </div>

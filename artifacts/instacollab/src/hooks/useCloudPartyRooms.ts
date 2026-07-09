@@ -1,10 +1,16 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { RealtimeChannel } from '@supabase/supabase-js';
-import { isSupabaseConfigured } from '../lib/supabase/config';
-import { getSupabaseClient } from '../lib/supabase/client';
-import { fetchActivePartyRooms, type PartyRoomRow } from '../lib/supabase/partyRooms';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 import { fetchProfile } from '../lib/supabase/profile';
+import { getFirebaseFirestore } from '../lib/firebase/app';
+import { isFirebaseConfigured } from '../lib/firebase/config';
+import { isPartyCloudAvailable, shouldUseFirebaseForPartyCloud } from '../lib/party/partyCloud';
+import { fetchActivePartyRooms, type PartyRoomRow } from '../lib/party/partyRoomsCloud';
+import { getSupabaseClient } from '../lib/supabase/client';
+import { isSupabaseConfigured } from '../lib/supabase/config';
 import { subscribeLiveCloudSurfaceRefresh } from '../lib/liveCloudSurfaces';
+import { scheduleInstant } from '../lib/instantTask';
+import { isNetworkOnline } from '../lib/networkStatus';
 
 export type CloudPartyLobbyRoom = {
   id: string;
@@ -60,13 +66,24 @@ export function useCloudPartyRooms(enabled = true) {
   const [rooms, setRooms] = useState<CloudPartyLobbyRoom[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const refreshingRef = useRef(false);
+  const refreshRef = useRef<() => Promise<void>>(async () => {});
+  const useFirebase =
+    isFirebaseConfigured() && (!isSupabaseConfigured() || shouldUseFirebaseForPartyCloud());
 
   const refresh = useCallback(async () => {
-    if (!enabled || !isSupabaseConfigured()) {
-      setRooms([]);
+    if (!enabled || !isPartyCloudAvailable()) {
+      if (!enabled) setRooms([]);
       return;
     }
-    setLoading(true);
+    if (!isNetworkOnline()) {
+      setLoading(false);
+      setError(null);
+      return;
+    }
+    if (refreshingRef.current) return;
+    refreshingRef.current = true;
+    setLoading(false);
     setError(null);
     try {
       const rows = await fetchActivePartyRooms(40);
@@ -74,29 +91,45 @@ export function useCloudPartyRooms(enabled = true) {
       setRooms(mapped);
     } catch (err) {
       setError(err instanceof Error ? err.message : String(err));
-      setRooms([]);
     } finally {
+      refreshingRef.current = false;
       setLoading(false);
     }
   }, [enabled]);
 
-  useEffect(() => {
-    void refresh();
-    const onVisible = () => {
-      if (document.visibilityState === 'visible') void refresh();
-    };
-    document.addEventListener('visibilitychange', onVisible);
-    const unsubSurface = subscribeLiveCloudSurfaceRefresh(['party', 'live', 'all'], () => {
-      void refresh();
-    });
-    return () => {
-      document.removeEventListener('visibilitychange', onVisible);
-      unsubSurface();
-    };
-  }, [refresh]);
+  refreshRef.current = refresh;
 
   useEffect(() => {
-    if (!enabled || !isSupabaseConfigured()) return undefined;
+    void refreshRef.current();
+    const unsubSurface = subscribeLiveCloudSurfaceRefresh(['party', 'live', 'all'], () => {
+      scheduleInstant('party-rooms-refresh', () => {
+        void refreshRef.current();
+      });
+    });
+    return () => {
+      unsubSurface();
+    };
+  }, [enabled]);
+
+  useEffect(() => {
+    if (!enabled || !isPartyCloudAvailable()) return undefined;
+
+    if (useFirebase) {
+      const db = getFirebaseFirestore();
+      if (!db) return undefined;
+      const q = query(
+        collection(db, 'party_rooms'),
+        where('status', '==', 'active'),
+        orderBy('updated_at', 'desc'),
+      );
+      return onSnapshot(q, () => {
+        scheduleInstant('party-rooms-firebase', () => {
+          void refreshRef.current();
+        });
+      });
+    }
+
+    if (!isSupabaseConfigured()) return undefined;
     const supabase = getSupabaseClient();
     if (!supabase) return undefined;
 
@@ -111,7 +144,9 @@ export function useCloudPartyRooms(enabled = true) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'party_rooms' },
         () => {
-          void refresh();
+          scheduleInstant('party-rooms-realtime', () => {
+            void refreshRef.current();
+          });
         },
       )
       .subscribe();
@@ -120,7 +155,7 @@ export function useCloudPartyRooms(enabled = true) {
       if (channel) void supabase.removeChannel(channel);
       channel = null;
     };
-  }, [enabled, refresh]);
+  }, [enabled, useFirebase]);
 
   return { rooms, loading, error, refresh };
 }

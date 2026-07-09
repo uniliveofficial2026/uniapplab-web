@@ -6,14 +6,12 @@ import { isCloudAuthConfigured } from '../../lib/auth/config';
 import {
   cloudRequestPasswordReset,
   cloudSignIn,
-  cloudSignInWithApple,
   cloudSignInWithGoogle,
   cloudSignUp,
   cloudUpdatePassword,
 } from '../../lib/auth/cloudAuthApi';
 import { authSendEmailOtp, authVerifyEmailOtp } from '../../lib/auth/authService';
 import { EmailOtpPanel } from '../auth/EmailOtpPanel';
-import { AppleAuthButton } from './AppleAuthButton';
 import { GoogleAuthButton } from './GoogleAuthButton';
 import { isCloudUsernameAvailable } from '../../lib/auth/cloudProfile';
 import { syncCloudSessionNow } from '../../lib/auth/syncSession';
@@ -137,7 +135,7 @@ export function AuthScreen() {
 
       if (useCloudAuth && isKnownLocalDemoEmail(normalizedEmail)) {
         if (loginPassword !== DEMO_PASSWORD) {
-          showToast(`Demo password is ${DEMO_PASSWORD} for ${DEMO_EMAIL} and sarah@instacollab.app.`);
+          showToast(`Demo password is ${DEMO_PASSWORD}.`);
           return;
         }
 
@@ -295,11 +293,10 @@ export function AuthScreen() {
     setMode('reset');
   };
 
-  const onOAuth = async (provider: 'google' | 'apple') => {
+  const onOAuth = async () => {
     setBusy(true);
     try {
-      const result =
-        provider === 'google' ? await cloudSignInWithGoogle() : await cloudSignInWithApple();
+      const result = await cloudSignInWithGoogle();
       if (!result.ok) {
         console.warn('[auth] OAuth failed:', result.reason);
         showToast(result.reason);
@@ -362,8 +359,8 @@ export function AuthScreen() {
     mode === 'login'
       ? useCloudAuth
         ? import.meta.env.DEV
-          ? `Cloud: email, Google, or Apple. Demo: ${DEMO_EMAIL} / ${DEMO_PASSWORD} (or button below).`
-          : 'Sign in with email, Google, or Apple (syncs across devices).'
+          ? `Cloud: email or Google. Demo: ${DEMO_EMAIL} / ${DEMO_PASSWORD} (or button below).`
+          : 'Sign in with email or Google (syncs across devices).'
         : import.meta.env.DEV
           ? 'Demo mode — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to a .env file, then restart npm run dev.'
           : `Sign in with ${DEMO_EMAIL} / ${DEMO_PASSWORD}`
@@ -379,7 +376,7 @@ export function AuthScreen() {
 
   return (
     <LaunchShell className="p-4 sm:p-6 overflow-y-auto">
-      <div className="flex flex-1 w-full min-h-0 flex-col items-center justify-center py-6 sm:py-10">
+      <div className="flex flex-1 w-full min-h-0 flex-col items-center justify-center py-6 sm:py-10 pb-[max(1.5rem,var(--app-safe-bottom))]">
         <div className="w-full max-w-[420px] flex flex-col items-center gap-8">
           <header className="flex w-full flex-col items-center gap-5 text-center">
             <LaunchBrandMark size="xl" allowUpload showUploadHint={false} />
@@ -390,7 +387,7 @@ export function AuthScreen() {
               </p>
               {!useCloudAuth && import.meta.env.DEV ? (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 pt-1 max-w-[320px]">
-                  Local demo only — copy .env.example → .env and restart dev server for Google / Apple
+                  Local demo only — copy .env.example → .env and restart dev server for Google sign-in
                 </span>
               ) : null}
             </div>
@@ -399,15 +396,10 @@ export function AuthScreen() {
           <div className="w-full flex flex-col gap-5">
             {useCloudAuth && (mode === 'login' || mode === 'signup') && (
               <div className="flex flex-col gap-3 w-full">
-                <AppleAuthButton
-                  disabled={busy}
-                  label={mode === 'signup' ? 'Sign up with Apple' : 'Continue with Apple'}
-                  onClick={() => void onOAuth('apple')}
-                />
                 <GoogleAuthButton
                   disabled={busy}
                   label={mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
-                  onClick={() => void onOAuth('google')}
+                  onClick={() => void onOAuth()}
                 />
                 <div className="flex items-center gap-3 py-1">
                   <div className="h-px flex-1 bg-border" />

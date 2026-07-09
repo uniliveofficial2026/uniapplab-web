@@ -1,16 +1,15 @@
 import React, { useEffect, useState } from 'react';
 import { Crown, Pencil, Shield, Users, Zap } from 'lucide-react';
 import { getAppUserId } from '../../lib/appUserId';
+import { useDbRevision } from '../../lib/useDB';
 import { getRoomExpProgress } from '../utils/roomExp';
-import { canEditRoomForUser } from '../utils/roomRoleUsers';
-import { getRoomSettings } from '../utils/storage';
+import { canEditRoomForUser, ensureRoomRoleUserIds } from '../utils/roomRoleUsers';
 import { RoomHostLabel } from './RoomHostLabel';
 import {
   formatManagedRoomRoleLabel,
   formatRoomModeLabel,
   getManagedRooms,
   groupManagedRoomsByRole,
-  hydrateManagedRoomsForUser,
   type ManagedRoom,
   type ManagedRoomRole,
 } from '../utils/managedRooms';
@@ -76,16 +75,9 @@ export function ManagedRoomsList({
   variant = 'profile',
   emptyMessage = 'No managed rooms yet. Create a room or ask an owner to grant you admin or co-owner access.',
 }: ManagedRoomsListProps) {
-  const appUserId = getAppUserId();
+  useDbRevision();
   const [rooms, setRooms] = useState<ManagedRoom[]>(() => getManagedRooms());
   const [, setExpRevision] = useState(0);
-
-  useEffect(() => {
-    queueMicrotask(() => {
-      hydrateManagedRoomsForUser(appUserId);
-      setRooms(getManagedRooms());
-    });
-  }, [appUserId]);
 
   useEffect(() => {
     const refresh = () => {
@@ -165,7 +157,7 @@ export function ManagedRoomsList({
             <div className="space-y-2">
               {sectionRooms.map((room) => {
                 const canEdit = canEditRoomForUser(
-                  getRoomSettings(room.id),
+                  ensureRoomRoleUserIds(room.id),
                   getAppUserId(),
                   { sessionRole: room.role },
                 );

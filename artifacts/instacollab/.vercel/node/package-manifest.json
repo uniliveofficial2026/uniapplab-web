@@ -1,0 +1,6647 @@
+{
+  "version": "20260304",
+  "runtime": "node",
+  "framework": "vite",
+  "runtimeVersion": {
+    "resolved": "24"
+  },
+  "dependencies": [
+    {
+      "name": "@google/genai",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^1.29.0",
+      "resolved": "1.52.0"
+    },
+    {
+      "name": "@replit/vite-plugin-cartographer",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "0.5.5"
+    },
+    {
+      "name": "@replit/vite-plugin-dev-banner",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "0.1.2"
+    },
+    {
+      "name": "@replit/vite-plugin-runtime-error-modal",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "0.0.6"
+    },
+    {
+      "name": "@supabase/supabase-js",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^2.106.2",
+      "resolved": "2.107.0"
+    },
+    {
+      "name": "@tailwindcss/vite",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "@types/node",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "25.6.2"
+    },
+    {
+      "name": "@types/react",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "19.2.14"
+    },
+    {
+      "name": "@types/react-dom",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "19.2.3"
+    },
+    {
+      "name": "@vercel/speed-insights",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^2.0.0",
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "@vitejs/plugin-basic-ssl",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "^2.0.0",
+      "resolved": "2.3.0"
+    },
+    {
+      "name": "@vitejs/plugin-react",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "5.2.0"
+    },
+    {
+      "name": "clsx",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "2.1.1"
+    },
+    {
+      "name": "date-fns",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "^4.2.1",
+      "resolved": "4.4.0"
+    },
+    {
+      "name": "emoji-picker-react",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "^4.19.1",
+      "resolved": "4.19.1"
+    },
+    {
+      "name": "firebase",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^11.10.0",
+      "resolved": "11.10.0"
+    },
+    {
+      "name": "lucide-react",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "0.545.0"
+    },
+    {
+      "name": "motion",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^12.23.24",
+      "resolved": "12.40.0"
+    },
+    {
+      "name": "playwright",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "1.49.1",
+      "resolved": "1.49.1"
+    },
+    {
+      "name": "react",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "19.1.0"
+    },
+    {
+      "name": "react-dom",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "19.1.0"
+    },
+    {
+      "name": "react-router-dom",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^7.17.0",
+      "resolved": "7.18.0"
+    },
+    {
+      "name": "react-webcam",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^7.2.0",
+      "resolved": "7.2.0"
+    },
+    {
+      "name": "recharts",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "^2.15.2",
+      "resolved": "2.15.4"
+    },
+    {
+      "name": "tailwind-merge",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "3.5.0"
+    },
+    {
+      "name": "tailwindcss",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "vite",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "catalog:",
+      "resolved": "7.3.3"
+    },
+    {
+      "name": "vite-plugin-pwa",
+      "type": "direct",
+      "scopes": [
+        "dev"
+      ],
+      "requested": "^1.0.1",
+      "resolved": "1.3.0"
+    },
+    {
+      "name": "workbox-window",
+      "type": "direct",
+      "scopes": [
+        "prod"
+      ],
+      "requested": "^7.3.0",
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "@apideck/better-ajv-errors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.7"
+    },
+    {
+      "name": "@babel/code-frame",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/compat-data",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.0"
+    },
+    {
+      "name": "@babel/generator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-annotate-as-pure",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-compilation-targets",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-create-class-features-plugin",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-create-regexp-features-plugin",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-define-polyfill-provider",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.8"
+    },
+    {
+      "name": "@babel/helper-globals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-member-expression-to-functions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-module-imports",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-module-transforms",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-optimise-call-expression",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-plugin-utils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-remap-async-to-generator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-replace-supers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-skip-transparent-expression-wrappers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-string-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-validator-identifier",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-validator-option",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helper-wrap-function",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/helpers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.2"
+    },
+    {
+      "name": "@babel/parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-bugfix-firefox-class-in-computed-class-key",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-bugfix-safari-class-field-initializer-scope",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-bugfix-safari-id-destructuring-collision-in-function-expression",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-bugfix-safari-rest-destructuring-rhs-array",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-bugfix-v8-spread-parameters-in-optional-chaining",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-bugfix-v8-static-class-fields-redefine-readonly",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-proposal-private-property-in-object",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.21.0-placeholder-for-preset-env.2"
+    },
+    {
+      "name": "@babel/plugin-syntax-import-assertions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-syntax-import-attributes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-syntax-unicode-sets-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.18.6"
+    },
+    {
+      "name": "@babel/plugin-transform-arrow-functions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-async-generator-functions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-async-to-generator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-block-scoped-functions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-block-scoping",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-class-properties",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-class-static-block",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-classes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-computed-properties",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-destructuring",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-dotall-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-duplicate-keys",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-duplicate-named-capturing-groups-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-dynamic-import",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-explicit-resource-management",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-exponentiation-operator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-export-namespace-from",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-for-of",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-function-name",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-json-strings",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-literals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-logical-assignment-operators",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-member-expression-literals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-modules-amd",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-modules-commonjs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-modules-systemjs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-modules-umd",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-named-capturing-groups-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-new-target",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-nullish-coalescing-operator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-numeric-separator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-object-rest-spread",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-object-super",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-optional-catch-binding",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-optional-chaining",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-parameters",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-private-methods",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-private-property-in-object",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-property-literals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-react-jsx-self",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.27.1"
+    },
+    {
+      "name": "@babel/plugin-transform-react-jsx-source",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.27.1"
+    },
+    {
+      "name": "@babel/plugin-transform-regenerator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-regexp-modifiers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-reserved-words",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-shorthand-properties",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-spread",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-sticky-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-template-literals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-typeof-symbol",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-unicode-escapes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-unicode-property-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-unicode-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/plugin-transform-unicode-sets-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/preset-env",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/preset-modules",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.1.6-no-external-plugins"
+    },
+    {
+      "name": "@babel/runtime",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.2"
+    },
+    {
+      "name": "@babel/template",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/traverse",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@babel/types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.29.7"
+    },
+    {
+      "name": "@commander-js/extra-typings",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "14.0.0"
+    },
+    {
+      "name": "@date-fns/tz",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.1"
+    },
+    {
+      "name": "@drizzle-team/brocli",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.10.2"
+    },
+    {
+      "name": "@esbuild/linux-x64",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.27.3"
+    },
+    {
+      "name": "@firebase/ai",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.1"
+    },
+    {
+      "name": "@firebase/analytics",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.10.17"
+    },
+    {
+      "name": "@firebase/analytics-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.23"
+    },
+    {
+      "name": "@firebase/analytics-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.8.3"
+    },
+    {
+      "name": "@firebase/app",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.13.2"
+    },
+    {
+      "name": "@firebase/app-check",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.10.1"
+    },
+    {
+      "name": "@firebase/app-check-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.26"
+    },
+    {
+      "name": "@firebase/app-check-interop-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.3"
+    },
+    {
+      "name": "@firebase/app-check-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.5.3"
+    },
+    {
+      "name": "@firebase/app-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.2"
+    },
+    {
+      "name": "@firebase/app-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.9.3"
+    },
+    {
+      "name": "@firebase/auth",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.10.8"
+    },
+    {
+      "name": "@firebase/auth-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.5.28"
+    },
+    {
+      "name": "@firebase/auth-interop-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.4"
+    },
+    {
+      "name": "@firebase/auth-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.13.0"
+    },
+    {
+      "name": "@firebase/component",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.18"
+    },
+    {
+      "name": "@firebase/data-connect",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.10"
+    },
+    {
+      "name": "@firebase/database",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.20"
+    },
+    {
+      "name": "@firebase/database-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.11"
+    },
+    {
+      "name": "@firebase/database-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.15"
+    },
+    {
+      "name": "@firebase/firestore",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.8.0"
+    },
+    {
+      "name": "@firebase/firestore-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.53"
+    },
+    {
+      "name": "@firebase/firestore-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.3"
+    },
+    {
+      "name": "@firebase/functions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.12.9"
+    },
+    {
+      "name": "@firebase/functions-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.26"
+    },
+    {
+      "name": "@firebase/functions-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.3"
+    },
+    {
+      "name": "@firebase/installations",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.18"
+    },
+    {
+      "name": "@firebase/installations-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.18"
+    },
+    {
+      "name": "@firebase/installations-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.5.3"
+    },
+    {
+      "name": "@firebase/logger",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.4"
+    },
+    {
+      "name": "@firebase/messaging",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.12.22"
+    },
+    {
+      "name": "@firebase/messaging-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.22"
+    },
+    {
+      "name": "@firebase/messaging-interop-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.3"
+    },
+    {
+      "name": "@firebase/performance",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.7.7"
+    },
+    {
+      "name": "@firebase/performance-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.20"
+    },
+    {
+      "name": "@firebase/performance-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.3"
+    },
+    {
+      "name": "@firebase/remote-config",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.5"
+    },
+    {
+      "name": "@firebase/remote-config-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.18"
+    },
+    {
+      "name": "@firebase/remote-config-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.0"
+    },
+    {
+      "name": "@firebase/storage",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.13.14"
+    },
+    {
+      "name": "@firebase/storage-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.24"
+    },
+    {
+      "name": "@firebase/storage-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.8.3"
+    },
+    {
+      "name": "@firebase/util",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.12.1"
+    },
+    {
+      "name": "@firebase/webchannel-wrapper",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.3"
+    },
+    {
+      "name": "@floating-ui/core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.7.5"
+    },
+    {
+      "name": "@floating-ui/dom",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.7.6"
+    },
+    {
+      "name": "@floating-ui/react-dom",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.8"
+    },
+    {
+      "name": "@floating-ui/utils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.11"
+    },
+    {
+      "name": "@gerrit0/mini-shiki",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.23.0"
+    },
+    {
+      "name": "@grpc/grpc-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.9.16"
+    },
+    {
+      "name": "@grpc/proto-loader",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.7.15"
+    },
+    {
+      "name": "@hookform/resolvers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.10.0"
+    },
+    {
+      "name": "@isaacs/cliui",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "9.0.0"
+    },
+    {
+      "name": "@jridgewell/gen-mapping",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.13"
+    },
+    {
+      "name": "@jridgewell/remapping",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.5"
+    },
+    {
+      "name": "@jridgewell/resolve-uri",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.2"
+    },
+    {
+      "name": "@jridgewell/source-map",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.11"
+    },
+    {
+      "name": "@jridgewell/sourcemap-codec",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.5.5"
+    },
+    {
+      "name": "@jridgewell/trace-mapping",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.31"
+    },
+    {
+      "name": "@nodelib/fs.scandir",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.5"
+    },
+    {
+      "name": "@nodelib/fs.stat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.5"
+    },
+    {
+      "name": "@nodelib/fs.walk",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.8"
+    },
+    {
+      "name": "@orval/angular",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/axios",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/fetch",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/hono",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/mcp",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/mock",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/query",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/solid-start",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/swr",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@orval/zod",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "@pinojs/redact",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.0"
+    },
+    {
+      "name": "@protobufjs/aspromise",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "@protobufjs/base64",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "@protobufjs/codegen",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.5"
+    },
+    {
+      "name": "@protobufjs/eventemitter",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@protobufjs/fetch",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@protobufjs/float",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "@protobufjs/inquire",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "@protobufjs/path",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "@protobufjs/pool",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "@protobufjs/utf8",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/number",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/primitive",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.3"
+    },
+    {
+      "name": "@radix-ui/react-accordion",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.12"
+    },
+    {
+      "name": "@radix-ui/react-alert-dialog",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.15"
+    },
+    {
+      "name": "@radix-ui/react-arrow",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.7"
+    },
+    {
+      "name": "@radix-ui/react-aspect-ratio",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.8"
+    },
+    {
+      "name": "@radix-ui/react-avatar",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.11"
+    },
+    {
+      "name": "@radix-ui/react-checkbox",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.3"
+    },
+    {
+      "name": "@radix-ui/react-collapsible",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.12"
+    },
+    {
+      "name": "@radix-ui/react-collection",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.7"
+    },
+    {
+      "name": "@radix-ui/react-compose-refs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "@radix-ui/react-context",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.3"
+    },
+    {
+      "name": "@radix-ui/react-context-menu",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.16"
+    },
+    {
+      "name": "@radix-ui/react-dialog",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.15"
+    },
+    {
+      "name": "@radix-ui/react-direction",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-dismissable-layer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.11"
+    },
+    {
+      "name": "@radix-ui/react-dropdown-menu",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.16"
+    },
+    {
+      "name": "@radix-ui/react-focus-guards",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.3"
+    },
+    {
+      "name": "@radix-ui/react-focus-scope",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.7"
+    },
+    {
+      "name": "@radix-ui/react-hover-card",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.15"
+    },
+    {
+      "name": "@radix-ui/react-id",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-label",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.8"
+    },
+    {
+      "name": "@radix-ui/react-menu",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.16"
+    },
+    {
+      "name": "@radix-ui/react-menubar",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.16"
+    },
+    {
+      "name": "@radix-ui/react-navigation-menu",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.14"
+    },
+    {
+      "name": "@radix-ui/react-popover",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.15"
+    },
+    {
+      "name": "@radix-ui/react-popper",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.8"
+    },
+    {
+      "name": "@radix-ui/react-portal",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.9"
+    },
+    {
+      "name": "@radix-ui/react-presence",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.5"
+    },
+    {
+      "name": "@radix-ui/react-primitive",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.4"
+    },
+    {
+      "name": "@radix-ui/react-progress",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.8"
+    },
+    {
+      "name": "@radix-ui/react-radio-group",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.8"
+    },
+    {
+      "name": "@radix-ui/react-roving-focus",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.11"
+    },
+    {
+      "name": "@radix-ui/react-scroll-area",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.10"
+    },
+    {
+      "name": "@radix-ui/react-select",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.6"
+    },
+    {
+      "name": "@radix-ui/react-separator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.8"
+    },
+    {
+      "name": "@radix-ui/react-slider",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.6"
+    },
+    {
+      "name": "@radix-ui/react-slot",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.4"
+    },
+    {
+      "name": "@radix-ui/react-switch",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.6"
+    },
+    {
+      "name": "@radix-ui/react-tabs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.13"
+    },
+    {
+      "name": "@radix-ui/react-toast",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.15"
+    },
+    {
+      "name": "@radix-ui/react-toggle",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.10"
+    },
+    {
+      "name": "@radix-ui/react-toggle-group",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.11"
+    },
+    {
+      "name": "@radix-ui/react-tooltip",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.8"
+    },
+    {
+      "name": "@radix-ui/react-use-callback-ref",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-use-controllable-state",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.2"
+    },
+    {
+      "name": "@radix-ui/react-use-effect-event",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.0.2"
+    },
+    {
+      "name": "@radix-ui/react-use-escape-keydown",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-use-is-hydrated",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.1.0"
+    },
+    {
+      "name": "@radix-ui/react-use-layout-effect",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-use-previous",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-use-rect",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-use-size",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@radix-ui/react-visually-hidden",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.3"
+    },
+    {
+      "name": "@radix-ui/rect",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "@rolldown/pluginutils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0-rc.3"
+    },
+    {
+      "name": "@rollup/plugin-babel",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.1.0"
+    },
+    {
+      "name": "@rollup/plugin-node-resolve",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "16.0.3"
+    },
+    {
+      "name": "@rollup/plugin-replace",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.0.3"
+    },
+    {
+      "name": "@rollup/plugin-terser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "@rollup/pluginutils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.4.0"
+    },
+    {
+      "name": "@rollup/rollup-darwin-arm64",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.60.3"
+    },
+    {
+      "name": "@rollup/rollup-linux-x64-gnu",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.60.3"
+    },
+    {
+      "name": "@scalar/helpers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.0"
+    },
+    {
+      "name": "@scalar/json-magic",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.12.12"
+    },
+    {
+      "name": "@scalar/openapi-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.25.12"
+    },
+    {
+      "name": "@scalar/openapi-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.8.0"
+    },
+    {
+      "name": "@scalar/openapi-upgrader",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.6"
+    },
+    {
+      "name": "@sec-ant/readable-stream",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.1"
+    },
+    {
+      "name": "@shikijs/engine-oniguruma",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.23.0"
+    },
+    {
+      "name": "@shikijs/langs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.23.0"
+    },
+    {
+      "name": "@shikijs/themes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.23.0"
+    },
+    {
+      "name": "@shikijs/types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.23.0"
+    },
+    {
+      "name": "@shikijs/vscode-textmate",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "10.0.2"
+    },
+    {
+      "name": "@sindresorhus/merge-streams",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "@supabase/auth-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.107.0"
+    },
+    {
+      "name": "@supabase/functions-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.107.0"
+    },
+    {
+      "name": "@supabase/phoenix",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.2"
+    },
+    {
+      "name": "@supabase/postgrest-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.107.0"
+    },
+    {
+      "name": "@supabase/realtime-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.107.0"
+    },
+    {
+      "name": "@supabase/storage-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.107.0"
+    },
+    {
+      "name": "@tabby_ai/hijri-converter",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.5"
+    },
+    {
+      "name": "@tailwindcss/node",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "@tailwindcss/oxide",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "@tailwindcss/oxide-darwin-arm64",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.14"
+    },
+    {
+      "name": "@tailwindcss/oxide-linux-x64-gnu",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "@tailwindcss/oxide-wasm32-wasi",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "@tanstack/query-core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.100.9"
+    },
+    {
+      "name": "@tanstack/react-query",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.100.9"
+    },
+    {
+      "name": "@trickfilm400/rollup-plugin-off-main-thread",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.0-pre1"
+    },
+    {
+      "name": "@types/babel__core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.20.5"
+    },
+    {
+      "name": "@types/babel__generator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.27.0"
+    },
+    {
+      "name": "@types/babel__template",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.4"
+    },
+    {
+      "name": "@types/babel__traverse",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.28.0"
+    },
+    {
+      "name": "@types/body-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.19.6"
+    },
+    {
+      "name": "@types/connect",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.4.38"
+    },
+    {
+      "name": "@types/cookie-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.10"
+    },
+    {
+      "name": "@types/cors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.8.19"
+    },
+    {
+      "name": "@types/d3-array",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.2.2"
+    },
+    {
+      "name": "@types/d3-color",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.3"
+    },
+    {
+      "name": "@types/d3-ease",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.2"
+    },
+    {
+      "name": "@types/d3-interpolate",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.4"
+    },
+    {
+      "name": "@types/d3-path",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.1"
+    },
+    {
+      "name": "@types/d3-scale",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.9"
+    },
+    {
+      "name": "@types/d3-shape",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.8"
+    },
+    {
+      "name": "@types/d3-time",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.4"
+    },
+    {
+      "name": "@types/d3-timer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.2"
+    },
+    {
+      "name": "@types/estree",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.8"
+    },
+    {
+      "name": "@types/express",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.6"
+    },
+    {
+      "name": "@types/express-serve-static-core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.1.1"
+    },
+    {
+      "name": "@types/hast",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.4"
+    },
+    {
+      "name": "@types/http-errors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.5"
+    },
+    {
+      "name": "@types/pg",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.20.0"
+    },
+    {
+      "name": "@types/qs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.15.1"
+    },
+    {
+      "name": "@types/range-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.7"
+    },
+    {
+      "name": "@types/resolve",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.20.2"
+    },
+    {
+      "name": "@types/retry",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.12.0"
+    },
+    {
+      "name": "@types/send",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.1"
+    },
+    {
+      "name": "@types/serve-static",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.0"
+    },
+    {
+      "name": "@types/trusted-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.7"
+    },
+    {
+      "name": "@types/unist",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.3"
+    },
+    {
+      "name": "@types/ws",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.18.1"
+    },
+    {
+      "name": "accepts",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "acorn",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.16.0"
+    },
+    {
+      "name": "adm-zip",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.5.17"
+    },
+    {
+      "name": "agent-base",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.1.4"
+    },
+    {
+      "name": "ajv",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.20.0"
+    },
+    {
+      "name": "ajv-draft-04",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "ajv-formats",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.1"
+    },
+    {
+      "name": "ansi-colors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.3"
+    },
+    {
+      "name": "ansi-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.1"
+    },
+    {
+      "name": "ansi-styles",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "argparse",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "aria-hidden",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.6"
+    },
+    {
+      "name": "array-buffer-byte-length",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "arraybuffer.prototype.slice",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.4"
+    },
+    {
+      "name": "async",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.2.6"
+    },
+    {
+      "name": "async-function",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "at-least-node",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "atomic-sleep",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "available-typed-arrays",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.7"
+    },
+    {
+      "name": "babel-plugin-polyfill-corejs2",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.17"
+    },
+    {
+      "name": "babel-plugin-polyfill-corejs3",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.14.2"
+    },
+    {
+      "name": "babel-plugin-polyfill-regenerator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.8"
+    },
+    {
+      "name": "balanced-match",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.4"
+    },
+    {
+      "name": "base64-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.5.1"
+    },
+    {
+      "name": "baseline-browser-mapping",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.10.28"
+    },
+    {
+      "name": "bignumber.js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "9.3.1"
+    },
+    {
+      "name": "body-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.2"
+    },
+    {
+      "name": "brace-expansion",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.6"
+    },
+    {
+      "name": "braces",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.3"
+    },
+    {
+      "name": "browserslist",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.28.2"
+    },
+    {
+      "name": "buffer-equal-constant-time",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "buffer-from",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "bytes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.2"
+    },
+    {
+      "name": "call-bind",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.9"
+    },
+    {
+      "name": "call-bind-apply-helpers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "call-bound",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.4"
+    },
+    {
+      "name": "caniuse-lite",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.30001792"
+    },
+    {
+      "name": "chokidar",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.0"
+    },
+    {
+      "name": "class-variance-authority",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.7.1"
+    },
+    {
+      "name": "cliui",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.0.1"
+    },
+    {
+      "name": "cmdk",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "color-convert",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "color-name",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.4"
+    },
+    {
+      "name": "colorette",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.20"
+    },
+    {
+      "name": "commander",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "14.0.3"
+    },
+    {
+      "name": "common-tags",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.8.2"
+    },
+    {
+      "name": "compare-versions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.1.1"
+    },
+    {
+      "name": "content-disposition",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "content-type",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.5"
+    },
+    {
+      "name": "convert-source-map",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "cookie",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "cookie-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.7"
+    },
+    {
+      "name": "cookie-signature",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.2"
+    },
+    {
+      "name": "core-js-compat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.49.0"
+    },
+    {
+      "name": "cors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.8.6"
+    },
+    {
+      "name": "cross-spawn",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.0.6"
+    },
+    {
+      "name": "crypto-random-string",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "csstype",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.2.3"
+    },
+    {
+      "name": "d3-array",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.2.4"
+    },
+    {
+      "name": "d3-color",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.0"
+    },
+    {
+      "name": "d3-ease",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.1"
+    },
+    {
+      "name": "d3-format",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.2"
+    },
+    {
+      "name": "d3-interpolate",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.1"
+    },
+    {
+      "name": "d3-path",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.0"
+    },
+    {
+      "name": "d3-scale",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.2"
+    },
+    {
+      "name": "d3-shape",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.2.0"
+    },
+    {
+      "name": "d3-time",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.0"
+    },
+    {
+      "name": "d3-time-format",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.0"
+    },
+    {
+      "name": "d3-timer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.1"
+    },
+    {
+      "name": "data-uri-to-buffer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.1"
+    },
+    {
+      "name": "data-view-buffer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "data-view-byte-length",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "data-view-byte-offset",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "date-fns-jalali",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.0-0"
+    },
+    {
+      "name": "dateformat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.6.3"
+    },
+    {
+      "name": "debug",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.4.3"
+    },
+    {
+      "name": "decimal.js-light",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.5.1"
+    },
+    {
+      "name": "deepmerge",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.3.1"
+    },
+    {
+      "name": "define-data-property",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.4"
+    },
+    {
+      "name": "define-properties",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.1"
+    },
+    {
+      "name": "depd",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "detect-libc",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.2"
+    },
+    {
+      "name": "detect-node-es",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "dom-helpers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.2.1"
+    },
+    {
+      "name": "drizzle-kit",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.31.10"
+    },
+    {
+      "name": "drizzle-orm",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.45.2"
+    },
+    {
+      "name": "drizzle-zod",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.8.3"
+    },
+    {
+      "name": "dunder-proto",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "ecdsa-sig-formatter",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.11"
+    },
+    {
+      "name": "ee-first",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "ejs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.10"
+    },
+    {
+      "name": "electron-to-chromium",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.5.353"
+    },
+    {
+      "name": "embla-carousel",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.6.0"
+    },
+    {
+      "name": "embla-carousel-react",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.6.0"
+    },
+    {
+      "name": "embla-carousel-reactive-utils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.6.0"
+    },
+    {
+      "name": "emoji-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.0.0"
+    },
+    {
+      "name": "encodeurl",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "end-of-stream",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.5"
+    },
+    {
+      "name": "enhanced-resolve",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.21.2"
+    },
+    {
+      "name": "enquirer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.4.1"
+    },
+    {
+      "name": "entities",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.5.0"
+    },
+    {
+      "name": "es-abstract",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.24.2"
+    },
+    {
+      "name": "es-abstract-get",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "es-define-property",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "es-errors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.0"
+    },
+    {
+      "name": "es-object-atoms",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "es-set-tostringtag",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.0"
+    },
+    {
+      "name": "es-to-primitive",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.4"
+    },
+    {
+      "name": "esbuild",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.27.3"
+    },
+    {
+      "name": "esbuild-plugin-pino",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.3"
+    },
+    {
+      "name": "escalade",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.2.0"
+    },
+    {
+      "name": "escape-html",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.3"
+    },
+    {
+      "name": "estree-walker",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.2"
+    },
+    {
+      "name": "esutils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.3"
+    },
+    {
+      "name": "eta",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.6.0"
+    },
+    {
+      "name": "etag",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.8.1"
+    },
+    {
+      "name": "eventemitter3",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.7"
+    },
+    {
+      "name": "execa",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "9.6.1"
+    },
+    {
+      "name": "express",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.2.1"
+    },
+    {
+      "name": "extend",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.2"
+    },
+    {
+      "name": "fast-copy",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.3"
+    },
+    {
+      "name": "fast-deep-equal",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.3"
+    },
+    {
+      "name": "fast-equals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.4.0"
+    },
+    {
+      "name": "fast-glob",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.3.3"
+    },
+    {
+      "name": "fast-json-stable-stringify",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.0"
+    },
+    {
+      "name": "fast-safe-stringify",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.1"
+    },
+    {
+      "name": "fast-uri",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.2"
+    },
+    {
+      "name": "fastq",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.20.1"
+    },
+    {
+      "name": "faye-websocket",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.11.4"
+    },
+    {
+      "name": "fdir",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.5.0"
+    },
+    {
+      "name": "fetch-blob",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.2.0"
+    },
+    {
+      "name": "figures",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.1.0"
+    },
+    {
+      "name": "filelist",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.6"
+    },
+    {
+      "name": "fill-range",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.1.1"
+    },
+    {
+      "name": "finalhandler",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.1"
+    },
+    {
+      "name": "find-up",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.0.0"
+    },
+    {
+      "name": "flairup",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "for-each",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.5"
+    },
+    {
+      "name": "foreground-child",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.3.1"
+    },
+    {
+      "name": "formdata-polyfill",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.10"
+    },
+    {
+      "name": "forwarded",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.0"
+    },
+    {
+      "name": "framer-motion",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "12.40.0"
+    },
+    {
+      "name": "fresh",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "fs-extra",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "11.3.5"
+    },
+    {
+      "name": "fsevents",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.3"
+    },
+    {
+      "name": "function-bind",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "function.prototype.name",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.0"
+    },
+    {
+      "name": "functions-have-names",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.3"
+    },
+    {
+      "name": "gaxios",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.1.5"
+    },
+    {
+      "name": "gcp-metadata",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.1.2"
+    },
+    {
+      "name": "generator-function",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "gensync",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0-beta.2"
+    },
+    {
+      "name": "get-caller-file",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.5"
+    },
+    {
+      "name": "get-intrinsic",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.0"
+    },
+    {
+      "name": "get-nonce",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "get-own-enumerable-property-symbols",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.2"
+    },
+    {
+      "name": "get-proto",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "get-stream",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "9.0.1"
+    },
+    {
+      "name": "get-symbol-description",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "get-tsconfig",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.14.0"
+    },
+    {
+      "name": "glob",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "11.1.0"
+    },
+    {
+      "name": "glob-parent",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.1.2"
+    },
+    {
+      "name": "globalthis",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.4"
+    },
+    {
+      "name": "globby",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "16.1.0"
+    },
+    {
+      "name": "google-auth-library",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "10.7.0"
+    },
+    {
+      "name": "google-logging-utils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.3"
+    },
+    {
+      "name": "gopd",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.0"
+    },
+    {
+      "name": "graceful-fs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.2.11"
+    },
+    {
+      "name": "has-bigints",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "has-property-descriptors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "has-proto",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.0"
+    },
+    {
+      "name": "has-symbols",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "has-tostringtag",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "hasown",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.4"
+    },
+    {
+      "name": "help-me",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.0"
+    },
+    {
+      "name": "http-errors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "http-parser-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.5.10"
+    },
+    {
+      "name": "https-proxy-agent",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.0.6"
+    },
+    {
+      "name": "human-signals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.0.1"
+    },
+    {
+      "name": "iceberg-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.8.1"
+    },
+    {
+      "name": "iconv-lite",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.7.2"
+    },
+    {
+      "name": "idb",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.1.1"
+    },
+    {
+      "name": "ignore",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.0.5"
+    },
+    {
+      "name": "inherits",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.4"
+    },
+    {
+      "name": "input-otp",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.2"
+    },
+    {
+      "name": "internal-slot",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "internmap",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.3"
+    },
+    {
+      "name": "ipaddr.js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.9.1"
+    },
+    {
+      "name": "is-array-buffer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.5"
+    },
+    {
+      "name": "is-async-function",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.1"
+    },
+    {
+      "name": "is-bigint",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "is-boolean-object",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.2"
+    },
+    {
+      "name": "is-callable",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.7"
+    },
+    {
+      "name": "is-core-module",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.16.2"
+    },
+    {
+      "name": "is-data-view",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "is-date-object",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "is-document.all",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "is-extglob",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.1"
+    },
+    {
+      "name": "is-finalizationregistry",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "is-fullwidth-code-point",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.0"
+    },
+    {
+      "name": "is-generator-function",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "is-glob",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.3"
+    },
+    {
+      "name": "is-map",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.3"
+    },
+    {
+      "name": "is-module",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "is-negative-zero",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.3"
+    },
+    {
+      "name": "is-number",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.0.0"
+    },
+    {
+      "name": "is-number-object",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "is-obj",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "is-path-inside",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "is-plain-obj",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.0"
+    },
+    {
+      "name": "is-promise",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "is-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.1"
+    },
+    {
+      "name": "is-regexp",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "is-set",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.3"
+    },
+    {
+      "name": "is-shared-array-buffer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.4"
+    },
+    {
+      "name": "is-stream",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.1"
+    },
+    {
+      "name": "is-string",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "is-symbol",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "is-typed-array",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.15"
+    },
+    {
+      "name": "is-unicode-supported",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.0"
+    },
+    {
+      "name": "is-weakmap",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.2"
+    },
+    {
+      "name": "is-weakref",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "is-weakset",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.4"
+    },
+    {
+      "name": "isarray",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.5"
+    },
+    {
+      "name": "isexe",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "jackspeak",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.2.3"
+    },
+    {
+      "name": "jake",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "10.9.4"
+    },
+    {
+      "name": "jiti",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.7.0"
+    },
+    {
+      "name": "joycon",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.1"
+    },
+    {
+      "name": "js-tokens",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "js-yaml",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.1"
+    },
+    {
+      "name": "jsesc",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.0"
+    },
+    {
+      "name": "json-bigint",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "json-schema-traverse",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "json5",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.3"
+    },
+    {
+      "name": "jsonfile",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.2.1"
+    },
+    {
+      "name": "jsonpointer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.1"
+    },
+    {
+      "name": "jwa",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "jws",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.1"
+    },
+    {
+      "name": "leven",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.0"
+    },
+    {
+      "name": "lightningcss",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.32.0"
+    },
+    {
+      "name": "lightningcss-darwin-arm64",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.32.0"
+    },
+    {
+      "name": "lightningcss-linux-x64-gnu",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.32.0"
+    },
+    {
+      "name": "linkify-it",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.0"
+    },
+    {
+      "name": "locate-path",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.0.0"
+    },
+    {
+      "name": "lodash",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.18.1"
+    },
+    {
+      "name": "lodash.camelcase",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.3.0"
+    },
+    {
+      "name": "lodash.debounce",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.8"
+    },
+    {
+      "name": "lodash.sortby",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.7.0"
+    },
+    {
+      "name": "long",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.3.2"
+    },
+    {
+      "name": "loose-envify",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.0"
+    },
+    {
+      "name": "lru-cache",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "11.5.1"
+    },
+    {
+      "name": "lunr",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.9"
+    },
+    {
+      "name": "magic-string",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.30.21"
+    },
+    {
+      "name": "markdown-it",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "14.1.1"
+    },
+    {
+      "name": "math-intrinsics",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "mdurl",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "media-typer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "merge-descriptors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "merge2",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.1"
+    },
+    {
+      "name": "micromatch",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.8"
+    },
+    {
+      "name": "mime-db",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.54.0"
+    },
+    {
+      "name": "mime-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.2"
+    },
+    {
+      "name": "minimatch",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "10.2.5"
+    },
+    {
+      "name": "minimist",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.8"
+    },
+    {
+      "name": "minipass",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.1.3"
+    },
+    {
+      "name": "modern-screenshot",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.7.0"
+    },
+    {
+      "name": "motion-dom",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "12.40.0"
+    },
+    {
+      "name": "motion-utils",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "12.39.0"
+    },
+    {
+      "name": "ms",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.3"
+    },
+    {
+      "name": "nanoid",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.3.12"
+    },
+    {
+      "name": "negotiator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "next-themes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.6"
+    },
+    {
+      "name": "node-domexception",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "node-fetch",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.3.2"
+    },
+    {
+      "name": "node-releases",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.38"
+    },
+    {
+      "name": "npm-run-path",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.0.0"
+    },
+    {
+      "name": "object-assign",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.1"
+    },
+    {
+      "name": "object-inspect",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.13.4"
+    },
+    {
+      "name": "object-keys",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "object.assign",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.7"
+    },
+    {
+      "name": "on-exit-leak-free",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.2"
+    },
+    {
+      "name": "on-finished",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.4.1"
+    },
+    {
+      "name": "once",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.0"
+    },
+    {
+      "name": "orval",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.9.1"
+    },
+    {
+      "name": "own-keys",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "p-limit",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "p-locate",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.0.0"
+    },
+    {
+      "name": "p-retry",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.6.2"
+    },
+    {
+      "name": "package-json-from-dist",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "parse-ms",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "parseurl",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.3"
+    },
+    {
+      "name": "path-key",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "path-parse",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.7"
+    },
+    {
+      "name": "path-scurry",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.2"
+    },
+    {
+      "name": "path-to-regexp",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.4.2"
+    },
+    {
+      "name": "pathe",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.3"
+    },
+    {
+      "name": "pg",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.20.0"
+    },
+    {
+      "name": "pg-cloudflare",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.0"
+    },
+    {
+      "name": "pg-connection-string",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.12.0"
+    },
+    {
+      "name": "pg-int8",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "pg-pool",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.13.0"
+    },
+    {
+      "name": "pg-protocol",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.13.0"
+    },
+    {
+      "name": "pg-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.0"
+    },
+    {
+      "name": "pgpass",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.5"
+    },
+    {
+      "name": "picocolors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "picomatch",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.4"
+    },
+    {
+      "name": "pino",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "9.14.0"
+    },
+    {
+      "name": "pino-abstract-transport",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.0"
+    },
+    {
+      "name": "pino-http",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "10.5.0"
+    },
+    {
+      "name": "pino-pretty",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "13.1.3"
+    },
+    {
+      "name": "pino-std-serializers",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.1.0"
+    },
+    {
+      "name": "playwright-core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.49.1"
+    },
+    {
+      "name": "possible-typed-array-names",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "postcss",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.5.14"
+    },
+    {
+      "name": "postgres-array",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "postgres-bytea",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "postgres-date",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.7"
+    },
+    {
+      "name": "postgres-interval",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.0"
+    },
+    {
+      "name": "prettier",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.8.3"
+    },
+    {
+      "name": "pretty-bytes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.1.1"
+    },
+    {
+      "name": "pretty-ms",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "9.3.0"
+    },
+    {
+      "name": "process-warning",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.0"
+    },
+    {
+      "name": "prop-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "15.8.1"
+    },
+    {
+      "name": "protobufjs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.6.2"
+    },
+    {
+      "name": "proxy-addr",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.7"
+    },
+    {
+      "name": "pump",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.4"
+    },
+    {
+      "name": "punycode",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.1"
+    },
+    {
+      "name": "punycode.js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.1"
+    },
+    {
+      "name": "qs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.15.1"
+    },
+    {
+      "name": "queue-microtask",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.3"
+    },
+    {
+      "name": "quick-format-unescaped",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.4"
+    },
+    {
+      "name": "range-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.1"
+    },
+    {
+      "name": "raw-body",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.2"
+    },
+    {
+      "name": "react-day-picker",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "9.14.0"
+    },
+    {
+      "name": "react-hook-form",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.75.0"
+    },
+    {
+      "name": "react-is",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "18.3.1"
+    },
+    {
+      "name": "react-refresh",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.18.0"
+    },
+    {
+      "name": "react-remove-scroll",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.7.2"
+    },
+    {
+      "name": "react-remove-scroll-bar",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.8"
+    },
+    {
+      "name": "react-resizable-panels",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.9"
+    },
+    {
+      "name": "react-router",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.18.0"
+    },
+    {
+      "name": "react-smooth",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.4"
+    },
+    {
+      "name": "react-style-singleton",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.3"
+    },
+    {
+      "name": "react-transition-group",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.4.5"
+    },
+    {
+      "name": "readdirp",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.0"
+    },
+    {
+      "name": "real-require",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.0"
+    },
+    {
+      "name": "recharts-scale",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.5"
+    },
+    {
+      "name": "reflect.getprototypeof",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.10"
+    },
+    {
+      "name": "regenerate",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.2"
+    },
+    {
+      "name": "regenerate-unicode-properties",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "10.2.2"
+    },
+    {
+      "name": "regexp.prototype.flags",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.5.4"
+    },
+    {
+      "name": "regexpu-core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.4.0"
+    },
+    {
+      "name": "regjsgen",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.8.0"
+    },
+    {
+      "name": "regjsparser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.13.2"
+    },
+    {
+      "name": "remeda",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.34.0"
+    },
+    {
+      "name": "require-directory",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.1"
+    },
+    {
+      "name": "require-from-string",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.2"
+    },
+    {
+      "name": "resolve",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.22.12"
+    },
+    {
+      "name": "resolve-pkg-maps",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "retry",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.13.1"
+    },
+    {
+      "name": "reusify",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "rollup",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.60.3"
+    },
+    {
+      "name": "router",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.0"
+    },
+    {
+      "name": "run-parallel",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.0"
+    },
+    {
+      "name": "safe-array-concat",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.4"
+    },
+    {
+      "name": "safe-buffer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.2.1"
+    },
+    {
+      "name": "safe-push-apply",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "safe-regex-test",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "safe-stable-stringify",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.5.0"
+    },
+    {
+      "name": "safer-buffer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.2"
+    },
+    {
+      "name": "scheduler",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.26.0"
+    },
+    {
+      "name": "secure-json-parse",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.0"
+    },
+    {
+      "name": "semver",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.3.1"
+    },
+    {
+      "name": "send",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.1"
+    },
+    {
+      "name": "serialize-javascript",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.0.6"
+    },
+    {
+      "name": "serve-static",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.1"
+    },
+    {
+      "name": "set-cookie-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.7.2"
+    },
+    {
+      "name": "set-function-length",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.2"
+    },
+    {
+      "name": "set-function-name",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.2"
+    },
+    {
+      "name": "set-proto",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "setprototypeof",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.0"
+    },
+    {
+      "name": "shebang-command",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "shebang-regex",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.0.0"
+    },
+    {
+      "name": "side-channel",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "side-channel-list",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "side-channel-map",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "side-channel-weakmap",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "signal-exit",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.1.0"
+    },
+    {
+      "name": "slash",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.1.0"
+    },
+    {
+      "name": "smob",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.6.2"
+    },
+    {
+      "name": "sonic-boom",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.2.1"
+    },
+    {
+      "name": "sonner",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.7"
+    },
+    {
+      "name": "source-map",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.8.0-beta.0"
+    },
+    {
+      "name": "source-map-js",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.1"
+    },
+    {
+      "name": "source-map-support",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.5.21"
+    },
+    {
+      "name": "split2",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.2.0"
+    },
+    {
+      "name": "statuses",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.2"
+    },
+    {
+      "name": "stop-iteration-iterator",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "string-argv",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.3.2"
+    },
+    {
+      "name": "string-width",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.2.3"
+    },
+    {
+      "name": "string.prototype.matchall",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.12"
+    },
+    {
+      "name": "string.prototype.trim",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.11"
+    },
+    {
+      "name": "string.prototype.trimend",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.10"
+    },
+    {
+      "name": "string.prototype.trimstart",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.8"
+    },
+    {
+      "name": "stringify-object",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.3.0"
+    },
+    {
+      "name": "strip-ansi",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "6.0.1"
+    },
+    {
+      "name": "strip-comments",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "strip-final-newline",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.0"
+    },
+    {
+      "name": "strip-json-comments",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.3"
+    },
+    {
+      "name": "supports-preserve-symlinks-flag",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "tailwindcss-animate",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.7"
+    },
+    {
+      "name": "tapable",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.3.3"
+    },
+    {
+      "name": "temp-dir",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "tempy",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.6.0"
+    },
+    {
+      "name": "terser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.48.0"
+    },
+    {
+      "name": "thread-stream",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.0"
+    },
+    {
+      "name": "tiny-invariant",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.3"
+    },
+    {
+      "name": "tinyglobby",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.2.16"
+    },
+    {
+      "name": "to-regex-range",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.1"
+    },
+    {
+      "name": "toidentifier",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "tr46",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.1"
+    },
+    {
+      "name": "tsconfck",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.6"
+    },
+    {
+      "name": "tslib",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.8.1"
+    },
+    {
+      "name": "tsx",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.21.0"
+    },
+    {
+      "name": "tw-animate-css",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.4.0"
+    },
+    {
+      "name": "type-fest",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.16.0"
+    },
+    {
+      "name": "type-is",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "typed-array-buffer",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.3"
+    },
+    {
+      "name": "typed-array-byte-length",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.3"
+    },
+    {
+      "name": "typed-array-byte-offset",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.4"
+    },
+    {
+      "name": "typed-array-length",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.8"
+    },
+    {
+      "name": "typedoc",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.28.19"
+    },
+    {
+      "name": "typedoc-plugin-coverage",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.3"
+    },
+    {
+      "name": "typedoc-plugin-markdown",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.11.0"
+    },
+    {
+      "name": "typescript",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.9.3"
+    },
+    {
+      "name": "uc.micro",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.0"
+    },
+    {
+      "name": "unbox-primitive",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.0"
+    },
+    {
+      "name": "undici-types",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.19.2"
+    },
+    {
+      "name": "unicode-canonical-property-names-ecmascript",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "unicode-match-property-ecmascript",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "unicode-match-property-value-ecmascript",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.1"
+    },
+    {
+      "name": "unicode-property-aliases-ecmascript",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.2.0"
+    },
+    {
+      "name": "unicorn-magic",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.4.0"
+    },
+    {
+      "name": "unique-string",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.0"
+    },
+    {
+      "name": "universalify",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.1"
+    },
+    {
+      "name": "unpipe",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.0"
+    },
+    {
+      "name": "upath",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.0"
+    },
+    {
+      "name": "update-browserslist-db",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.3"
+    },
+    {
+      "name": "use-callback-ref",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.3.3"
+    },
+    {
+      "name": "use-sidecar",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.3"
+    },
+    {
+      "name": "use-sync-external-store",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.6.0"
+    },
+    {
+      "name": "vary",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "vaul",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.2"
+    },
+    {
+      "name": "victory-vendor",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "36.9.2"
+    },
+    {
+      "name": "web-streams-polyfill",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.3.3"
+    },
+    {
+      "name": "web-vitals",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.2.4"
+    },
+    {
+      "name": "webidl-conversions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.2"
+    },
+    {
+      "name": "websocket-driver",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.7.5"
+    },
+    {
+      "name": "websocket-extensions",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "0.1.4"
+    },
+    {
+      "name": "whatwg-url",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.1.0"
+    },
+    {
+      "name": "which",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.0.2"
+    },
+    {
+      "name": "which-boxed-primitive",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.1"
+    },
+    {
+      "name": "which-builtin-type",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.1"
+    },
+    {
+      "name": "which-collection",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "which-typed-array",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.1.22"
+    },
+    {
+      "name": "workbox-background-sync",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-broadcast-update",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-build",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-cacheable-response",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-core",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-expiration",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-google-analytics",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-navigation-preload",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-precaching",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-range-requests",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-recipes",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-routing",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-strategies",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-streams",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "workbox-sw",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.4.1"
+    },
+    {
+      "name": "wrap-ansi",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "7.0.0"
+    },
+    {
+      "name": "wrappy",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.0.2"
+    },
+    {
+      "name": "ws",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "8.21.0"
+    },
+    {
+      "name": "xtend",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "4.0.2"
+    },
+    {
+      "name": "y18n",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "5.0.8"
+    },
+    {
+      "name": "yallist",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.1.1"
+    },
+    {
+      "name": "yaml",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.8.4"
+    },
+    {
+      "name": "yargs",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "17.7.2"
+    },
+    {
+      "name": "yargs-parser",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "21.1.1"
+    },
+    {
+      "name": "yocto-queue",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "1.2.2"
+    },
+    {
+      "name": "yoctocolors",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "2.1.2"
+    },
+    {
+      "name": "zod",
+      "type": "transitive",
+      "scopes": [
+        "prod"
+      ],
+      "resolved": "3.25.76"
+    }
+  ]
+}

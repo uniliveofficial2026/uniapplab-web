@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useDB, useDbRevision } from '../../lib/useDB';
+import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { 
   DollarSign, 
@@ -33,17 +33,8 @@ interface OverviewTabProps {
 
 export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   const db = useDB();
-  useDbRevision();
   const appUser = useCurrentUser();
   const chartTheme = useRechartsTheme();
-  const [isLoading, setIsLoading] = React.useState(true);
-  
-  React.useEffect(() => {
-    // Simulate network fetch for wallet data
-    const timer = setTimeout(() => setIsLoading(false), 1200);
-    return () => clearTimeout(timer);
-  }, []);
-  
   const coinsBalance = useLiveCoinsBalance(appUser.id);
   const cashBalance = db.load('cash_balance', 180.50);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
@@ -100,63 +91,6 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
     if (logFilter === 'Cashflows') return t.type.includes('Bought') || t.type.includes('Transferred') || t.type.includes('Withdrawn');
     return true;
   });
-
-  if (isLoading) {
-    return (
-      <div className="space-y-6 text-left animate-in fade-in duration-300">
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-          {[1, 2, 3].map(i => (
-            <div key={i} className="bg-card border border-border rounded-[28px] p-6 h-[160px] animate-pulse flex flex-col justify-between">
-              <div className="flex items-center justify-between">
-                <div className="h-3 bg-secondary rounded w-24"></div>
-                <div className="h-6 w-6 bg-secondary rounded-full"></div>
-              </div>
-              <div>
-                <div className="h-8 bg-secondary rounded w-32 mb-2"></div>
-                <div className="h-2 bg-secondary rounded w-48"></div>
-              </div>
-              <div className="pt-3 border-t border-border flex justify-between">
-                <div className="h-2 bg-secondary rounded w-20"></div>
-                <div className="h-2 bg-secondary rounded w-12"></div>
-              </div>
-            </div>
-          ))}
-        </div>
-        
-        <div className="bg-card border border-border rounded-[32px] p-5 shadow-sm space-y-4 animate-pulse">
-          <div className="h-5 bg-secondary rounded w-48 mb-2"></div>
-          <div className="h-3 bg-secondary rounded w-64 mb-4"></div>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map(i => (
-              <div key={i} className="flex flex-col items-center justify-center p-4 bg-secondary/15 rounded-2xl h-[120px]">
-                <div className="w-12 h-12 rounded-full bg-secondary mb-3"></div>
-                <div className="h-3 bg-secondary rounded w-20"></div>
-              </div>
-            ))}
-          </div>
-        </div>
-        
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 bg-card border border-border rounded-[32px] p-5 shadow-sm h-[320px] animate-pulse flex flex-col">
-            <div className="flex justify-between mb-4">
-               <div>
-                 <div className="h-4 bg-secondary rounded w-40 mb-2"></div>
-                 <div className="h-2 bg-secondary rounded w-56"></div>
-               </div>
-               <div className="h-6 bg-secondary rounded w-24"></div>
-            </div>
-            <div className="flex-1 bg-secondary/20 rounded-xl mt-4"></div>
-          </div>
-          <div className="bg-card border border-border rounded-[32px] p-5 shadow-sm animate-pulse space-y-4">
-             <div className="h-4 bg-secondary rounded w-40 mb-4"></div>
-             {[1, 2, 3, 4, 5].map(i => (
-               <div key={i} className="h-14 bg-secondary/20 rounded-2xl"></div>
-             ))}
-          </div>
-        </div>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-6 text-left animate-in fade-in duration-300">

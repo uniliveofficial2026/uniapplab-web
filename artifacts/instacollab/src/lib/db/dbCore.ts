@@ -27,7 +27,8 @@ import type { Listener } from './types';
 import { isCloudSyncCollectionKey } from '../cloudSync/collectionKeys';
 import type { CloudSyncCollectionKey } from '../cloudSync/collectionKeys';
 import { scheduleCloudAppStateSync } from '../auth/cloudAppState';
-import { writeSessionCache } from '../sessionCache';
+import { writeSessionCache, syncSessionCacheFromLoginMirror } from '../sessionCache';
+import { healLaunchProgressForReturningUser } from '../launchRoute';
 import { normalizeUsersThoughtEpochs } from '../thoughtNoteLiveSync';
 
 /**
@@ -54,6 +55,8 @@ const LOCAL_STORAGE_MIRROR_KEYS = new Set([
   'messages',
   'stories',
   'chat_groups',
+  'chat_cloud_thread_map',
+  'chat_read_state',
   'notification_inbox',
   'coins_balance',
   'karaoke_user_state',
@@ -297,6 +300,8 @@ export class DbCore {
           /* ignore */
         }
       }
+      syncSessionCacheFromLoginMirror(this.cache);
+      healLaunchProgressForReturningUser(this as unknown as LocalDB);
     }
 
     whenReady() {
@@ -376,6 +381,9 @@ export class DbCore {
         case 'coins_balance':
           window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
           break;
+        case 'admin_published_gifts':
+          window.dispatchEvent(new CustomEvent('party-gift-catalog-updated'));
+          break;
         case 'users':
           window.dispatchEvent(
             new CustomEvent('thought-note-live', { detail: { changedUserIds: [] } }),
@@ -453,6 +461,25 @@ export class DbCore {
           ...remoteRow,
           id: remoteRow.id,
         }));
+      }
+
+      if (
+        (key === 'admin_published_gifts' || key === 'admin_published_beauty') &&
+        Array.isArray(remoteValue) &&
+        Array.isArray(localValue)
+      ) {
+        type CatalogRow = { id?: string; updatedAt?: number };
+        return this.mergeRemoteEntityArray(
+          localValue as CatalogRow[],
+          remoteValue as CatalogRow[],
+          (localRow, remoteRow) => {
+            const localAt = localRow.updatedAt ?? 0;
+            const remoteAt = remoteRow.updatedAt ?? 0;
+            return remoteAt >= localAt
+              ? { ...localRow, ...remoteRow }
+              : { ...remoteRow, ...localRow };
+          },
+        );
       }
 
       if (
@@ -548,7 +575,7 @@ export class DbCore {
         app.currentUserId === userId
           ? app.currentUser
           : app.users.find((u) => u?.id === userId);
-      const cleared: Partial<Record<CloudSyncCollectionKey, unknown>> = {
+      const cleared = {
         posts: [],
         reels: [],
         messages: {},
@@ -590,7 +617,7 @@ export class DbCore {
         wallet_transactions: [],
         unreadMessagesCount: 0,
         hasUnreadNotifications: false,
-      };
+      } as Partial<Record<CloudSyncCollectionKey, unknown>>;
       if (me) cleared.users = [me];
       this.applyRemoteCollections(cleared);
       this.save('profile_stories_migrated', true);
@@ -995,6 +1022,8 @@ export class DbCore {
       'launch_progress',
       'account_local_snapshots',
       'user_app_state_local_rev',
+      'platform_app_brand_remote',
+      'platform_gift_catalog_remote',
     ]);
 
     public save(key: string, data: unknown) {
@@ -1010,23 +1039,10 @@ export class DbCore {
 
       // Mirror UI-critical keys to localStorage for seamless refresh/reopen.
       if (LOCAL_STORAGE_MIRROR_KEYS.has(key)) {
-        try {
-          localStorage.setItem(
-            key,
-            JSON.stringify(capValueForLocalStorageMirror(key, data)),
-          );
-        } catch {
-          /* quota — drop largest mirrors first */
-          try {
-            localStorage.removeItem('messages');
-            localStorage.removeItem('posts');
-            localStorage.setItem(
-              key,
-              JSON.stringify(capValueForLocalStorageMirror(key, data)),
-            );
-          } catch {
-            /* give up */
-          }
+        if (key === 'messages') {
+          queueMicrotask(() => this.mirrorKeyToLocalStorage(key, data));
+        } else {
+          this.mirrorKeyToLocalStorage(key, data);
         }
       }
 
@@ -1044,11 +1060,52 @@ export class DbCore {
       }
     }
 
+    /**
+     * Hot-path chat signals (typing, ephemeral presence) — instant cache + UI notify;
+     * async IDB only; never triggers user_app_state or cloud auto-sync.
+     */
+    public saveEphemeral(key: string, data: unknown) {
+      this.cache[key] = data;
+      if (import.meta.env.DEV) recordCollectionSave(key, data);
+      // Ephemeral keys (typing, read receipts) must not fan out to every useDB() subscriber.
+      queueMicrotask(() => {
+        this.saveToIDB(key, data).catch((err) => {
+          console.error(`IDB Ephemeral Save Error for ${key}:`, err);
+        });
+      });
+    }
+
+    protected mirrorKeyToLocalStorage(key: string, data: unknown): void {
+      try {
+        localStorage.setItem(
+          key,
+          JSON.stringify(capValueForLocalStorageMirror(key, data)),
+        );
+      } catch {
+        try {
+          localStorage.removeItem('messages');
+          localStorage.removeItem('posts');
+          localStorage.setItem(
+            key,
+            JSON.stringify(capValueForLocalStorageMirror(key, data)),
+          );
+        } catch {
+          /* give up */
+        }
+      }
+    }
+
     protected scheduleAutoCloudSync(changedKey: string) {
       // Prevent recursion when sync metadata/settings themselves are persisted.
       if (
         changedKey === 'app_settings' ||
         changedKey === 'cloud_meta' ||
+        changedKey === 'messages' ||
+        changedKey === 'chat_presence' ||
+        changedKey === 'chat_read_state' ||
+        changedKey === 'chat_peer_read_state' ||
+        changedKey === 'chat_groups' ||
+        changedKey === 'unreadMessagesCount' ||
         DbCore.LOCAL_ONLY_DB_KEYS.has(changedKey)
       ) {
         return;

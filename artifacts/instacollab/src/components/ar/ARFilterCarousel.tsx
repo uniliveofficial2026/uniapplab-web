@@ -175,6 +175,7 @@ export function ARFilterCarousel({
             type="button"
             onClick={() => {
               setSearchQuery('');
+              searchInputRef.current?.focus();
             }}
             className="absolute right-2 top-1/2 flex h-6 w-6 -translate-y-1/2 items-center justify-center rounded-full text-white/60 transition hover:bg-white/10 hover:text-white"
             aria-label="Clear search"

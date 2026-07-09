@@ -17,30 +17,11 @@ Monorepo for [uniapplab.com](https://uniapplab.com) — social app, API, and ser
 | `cdn.uniapplab.com` | CDN assets |
 | `admin.uniapplab.com` | Admin dashboard |
 
-## Local dev + auto-deploy (recommended while building)
+## Local dev
 
 ```bash
-pnpm develop
-# same as: pnpm live
-```
-
-| What | How |
-|------|-----|
-| Local preview | http://localhost:5173 (instant HMR) |
-| Production | **Auto-deploy on every save** → app.uniapplab.com |
-| Full build | Default `remote` mode — entire app built on Vercel (all components, DeepAR, assets) |
-
-```bash
-LIVE_SYNC_MODE=remote pnpm develop   # full remote build (default)
-LIVE_SYNC_MODE=prebuilt pnpm develop  # faster, local build upload only
-LIVE_SYNC_MODE=git pnpm develop       # commit + push → GitHub → Vercel
-LIVE_SYNC_DEBOUNCE_MS=5000 pnpm develop  # wait 5s after last save
-```
-
-## Local dev only (no auto-deploy)
-
-```bash
-pnpm --filter @workspace/instacollab dev
+pnpm install
+pnpm dev
 # → http://localhost:5173
 ```
 
@@ -48,15 +29,12 @@ pnpm --filter @workspace/instacollab dev
 
 1. Push repo to GitHub
 2. [vercel.com/new](https://vercel.com/new) → Import repo
-3. **Root Directory:** `.` (repo root — **not** `artifacts/instacollab`) so root `vercel.json` serves `/api/*` from `api-server`
-4. Add env vars from `artifacts/instacollab/.env.example` **and** `artifacts/api-server/.env.example` (Supabase service role for API)
+3. **Root Directory:** `artifacts/instacollab`
+4. Add env vars from `artifacts/instacollab/.env.example`
 5. **Domains:** add `app.uniapplab.com`
 6. Connect Supabase (see below)
 
-**Error 111** (`upstream connect error … delayed connect error: 111`) means the browser is calling a dead API host (`api.uniapplab.com`). Fix: redeploy from repo root (above), or deploy `artifacts/api-server/render.yaml` on Render and point DNS `api` → that service.
-
 ```bash
-pnpm run deploy:vercel   # remote Vercel build (staged source, archive upload)
 pnpm run domains:setup   # prints DNS + Supabase + Google OAuth checklist
 pnpm run oauth:setup     # Supabase auth URLs only
 pnpm run auth:check      # verify Supabase tables

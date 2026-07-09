@@ -154,9 +154,9 @@ export function smoothLandmarks(
 ): NormalizedLandmark[] {
   if (!previous || previous.length !== next.length) return next;
   return next.map((lm, i) => ({
+    ...lm,
     x: previous[i].x + (lm.x - previous[i].x) * alpha,
     y: previous[i].y + (lm.y - previous[i].y) * alpha,
     z: (previous[i].z ?? 0) + ((lm.z ?? 0) - (previous[i].z ?? 0)) * alpha,
-    visibility: lm.visibility ?? previous[i].visibility,
   }));
 }

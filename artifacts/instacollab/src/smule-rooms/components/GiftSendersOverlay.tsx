@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { X } from 'lucide-react';
-import { CoinIcon } from '../../components/common/CoinIcon';
+import { Star, X } from 'lucide-react';
 import { safeAvatarUrl } from '../../lib/safe';
 import { resolveRoomMemberIdentity } from '../utils/roomMemberProfile';
 import {
@@ -53,7 +52,7 @@ export function GiftSendersOverlay({
       <div className="bg-[#1a0f2e] w-full max-h-[75vh] rounded-t-3xl border-t border-yellow-500/25 flex flex-col overflow-hidden shadow-[0_-10px_40px_rgba(234,179,8,0.12)] animate-fade-in-up">
         <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-white/5">
           <div className="flex min-w-0 items-center space-x-2.5">
-            <CoinIcon className="h-[22px] w-[22px] shrink-0" />
+            <Star size={22} className="shrink-0 fill-yellow-400 text-yellow-400" />
             <div className="min-w-0">
               <h2 className="text-base sm:text-lg font-bold text-gray-100 uppercase tracking-widest truncate">
                 Gift Supporters
@@ -78,7 +77,7 @@ export function GiftSendersOverlay({
             {senders.length} supporter{senders.length === 1 ? '' : 's'}
           </span>
           <span className="inline-flex items-center gap-1 rounded-full border border-yellow-400/30 bg-yellow-950/40 px-2.5 py-1 text-xs font-black text-yellow-300 font-mono">
-            <CoinIcon className="h-3 w-3 shrink-0" aria-hidden />
+            <Star size={12} className="fill-yellow-400 text-yellow-400" aria-hidden />
             {totalStars.toLocaleString()}
           </span>
         </div>
@@ -128,7 +127,7 @@ export function GiftSendersOverlay({
                     </div>
                   </div>
                   <div className="inline-flex items-center gap-1 rounded-full border border-yellow-400/25 bg-yellow-950/50 px-2 py-1 shrink-0">
-                    <CoinIcon className="h-2.5 w-2.5 shrink-0" aria-hidden />
+                    <Star size={10} className="fill-yellow-400 text-yellow-400" aria-hidden />
                     <span className="text-[11px] sm:text-xs font-black text-yellow-300 font-mono">
                       {sender.totalStars.toLocaleString()}
                     </span>

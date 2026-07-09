@@ -1,12 +1,15 @@
 /**
- * Realtime thought-note sync via public.profiles — so animated bubbles update
- * across devices and for other viewers without a page reload.
+ * Realtime thought-note sync via profiles — Supabase or Firebase.
  */
 import { db } from './db/localDb';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { withCloudAppStateRemoteApply } from './auth/cloudAppStateFlags';
+import { isSocialCloudAvailable, shouldUseFirebaseForSocialCloud } from './social/socialCloud';
+import {
+  fetchFirebaseProfilesByIds,
+  subscribeFirebaseProfileThoughtUpdates,
+} from './firebase/profile';
 import { getSupabaseClient } from './supabase/client';
-import { isSupabaseConfigured } from './supabase/config';
 import { profileRowToUser } from './supabase/profile';
 import type { ProfileRow } from './supabase/types';
 import { isNetworkOnline, subscribeNetworkStatus } from './networkStatus';
@@ -71,7 +74,7 @@ function applyProfileThoughtRow(row: ProfileRow): void {
 
 export function initThoughtNoteCloudSync(): void {
   if (typeof window === 'undefined') return;
-  if (!isSupabaseConfigured()) return;
+  if (!isSocialCloudAvailable()) return;
 
   if (!installed) {
     installed = true;
@@ -92,6 +95,14 @@ export function initThoughtNoteCloudSync(): void {
 
 function startThoughtNoteChannel(): void {
   if (channelUnsub || !isNetworkOnline()) return;
+
+  const meId = db.currentUserId;
+  if (shouldUseFirebaseForSocialCloud(meId) && isSocialCloudAvailable()) {
+    channelUnsub = subscribeFirebaseProfileThoughtUpdates((row) => {
+      applyProfileThoughtRow(row);
+    });
+    return;
+  }
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
@@ -132,13 +143,12 @@ export function teardownThoughtNoteCloudSync(): void {
 
 let profileRefreshInstalled = false;
 
-/** Pull own + followed users' thought notes when app returns to foreground (mobile catch-up). */
 function startThoughtProfileRefresh(): void {
   if (profileRefreshInstalled || typeof document === 'undefined') return;
   profileRefreshInstalled = true;
 
   const refresh = () => {
-    if (!isNetworkOnline() || !isSupabaseConfigured()) return;
+    if (!isNetworkOnline() || !isSocialCloudAvailable()) return;
     void refreshThoughtNotesFromCloud();
   };
 
@@ -155,9 +165,7 @@ function stopThoughtProfileRefresh(): void {
 }
 
 export async function refreshThoughtNotesFromCloud(): Promise<void> {
-  if (!isNetworkOnline() || !isSupabaseConfigured()) return;
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
+  if (!isNetworkOnline() || !isSocialCloudAvailable()) return;
 
   const me = db.currentUser;
   const ids = new Set<string>();
@@ -169,6 +177,18 @@ export async function refreshThoughtNotesFromCloud(): Promise<void> {
 
   const queryIds = [...ids].slice(0, 40);
   if (!queryIds.length) return;
+
+  if (shouldUseFirebaseForSocialCloud(me?.id) && isSocialCloudAvailable()) {
+    const rows = await fetchFirebaseProfilesByIds(queryIds);
+    for (const row of rows) {
+      if (!row?.id) continue;
+      applyProfileThoughtRow(row);
+    }
+    return;
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
 
   const { data, error } = await supabase
     .from('profiles')

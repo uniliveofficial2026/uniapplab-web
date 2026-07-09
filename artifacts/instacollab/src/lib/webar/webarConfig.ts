@@ -9,16 +9,18 @@
  * For production, move signature generation to the API server.
  */
 
+import { readIntegrationEnv } from '../integrationEnv';
+
 export function getTencentWebARAppId(): string {
-  return String(import.meta.env.VITE_TENCENT_WEBAR_APP_ID ?? '').trim();
+  return readIntegrationEnv('VITE_TENCENT_WEBAR_APP_ID');
 }
 
 export function getTencentWebARLicenseKey(): string {
-  return String(import.meta.env.VITE_TENCENT_WEBAR_LICENSE_KEY ?? '').trim();
+  return readIntegrationEnv('VITE_TENCENT_WEBAR_LICENSE_KEY');
 }
 
 export function getTencentWebARToken(): string {
-  return String(import.meta.env.VITE_TENCENT_WEBAR_TOKEN ?? '').trim();
+  return readIntegrationEnv('VITE_TENCENT_WEBAR_TOKEN');
 }
 
 export function isTencentWebARConfigured(): boolean {

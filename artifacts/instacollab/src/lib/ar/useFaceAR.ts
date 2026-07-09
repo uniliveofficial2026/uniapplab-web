@@ -13,25 +13,22 @@ import {
 } from './mediapipeClient';
 import { FaceARRenderer } from './three/FaceARRenderer';
 
-const FACE_DETECT_INTERVAL_MS = 1000 / 24;
-const SEGMENT_DETECT_INTERVAL_MS = 1000 / 12;
+const FACE_DETECT_INTERVAL_MS = 1000 / 30;
+const SEGMENT_DETECT_INTERVAL_MS = 1000 / 15;
 
 export type UseFaceAROptions = {
   previewRef: React.RefObject<HTMLElement | null>;
   videoElementRef: React.RefObject<HTMLVideoElement | null>;
-  /** Mount renderer + render loop (when a filter is active). */
   enabled: boolean;
-  /** Warm MediaPipe models while the raw camera preview is visible. */
-  preload?: boolean;
   initialEffectId?: string;
   mirror?: boolean;
+  preload?: boolean;
 };
 
 export function useFaceAR({
   previewRef,
   videoElementRef,
   enabled,
-  preload = false,
   initialEffectId = 'none',
   mirror = true,
 }: UseFaceAROptions) {
@@ -67,23 +64,6 @@ export function useFaceAR({
   }, [initialEffectId]);
 
   useEffect(() => {
-    if (!preload) return;
-    let cancelled = false;
-    void loadMediaPipeVision((progress) => {
-      if (!cancelled && !enabled) setLoadProgress(progress);
-    })
-      .then((vision) => {
-        if (!cancelled) visionRef.current = vision;
-      })
-      .catch(() => {
-        // Ignore preload errors; enabled init will surface them.
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [preload, enabled]);
-
-  useEffect(() => {
     if (!enabled) {
       setReady(false);
       setLoading(false);
@@ -99,9 +79,9 @@ export function useFaceAR({
       setPermissionDenied(false);
 
       try {
-        const vision = visionRef.current ?? (await loadMediaPipeVision((progress) => {
+        const vision = await loadMediaPipeVision((progress) => {
           if (!cancelled) setLoadProgress(progress);
-        }));
+        });
         if (cancelled) return;
         visionRef.current = vision;
 
@@ -140,9 +120,7 @@ export function useFaceAR({
       }
       faceRendererRef.current?.dispose();
       faceRendererRef.current = null;
-      if (!preload) {
-        visionRef.current = null;
-      }
+      visionRef.current = null;
       mediaPipeTimestampRef.current = 0;
       lastFaceDetectAtRef.current = 0;
       lastSegmentDetectAtRef.current = 0;
@@ -156,7 +134,7 @@ export function useFaceAR({
       setReady(false);
       setLoading(false);
     };
-  }, [enabled, preload, previewRef, videoElementRef, mirror]);
+  }, [enabled, previewRef, videoElementRef, mirror]);
 
   useEffect(() => {
     faceRendererRef.current?.setMirror(mirror);
@@ -181,7 +159,7 @@ export function useFaceAR({
         const now = performance.now();
         const profile = getEffectProfile(effectId);
 
-        if (effectId !== 'none' && profile.kind !== 'beauty') {
+        if (effectId !== 'none') {
           if (now - lastFaceDetectAtRef.current >= FACE_DETECT_INTERVAL_MS) {
             lastFaceDetectAtRef.current = now;
             mediaPipeTimestampRef.current += 33;
@@ -212,19 +190,11 @@ export function useFaceAR({
             );
             const confidenceMask = segmentResult.confidenceMasks?.[0];
             if (confidenceMask) {
-              const maskWidth = confidenceMask.width;
-              const maskHeight = confidenceMask.height;
-              const nextMask = confidenceMask.getAsFloat32Array();
-              const prev = lastMaskRef.current;
-              if (prev && prev.width === maskWidth && prev.height === maskHeight) {
-                prev.mask.set(nextMask);
-              } else {
-                lastMaskRef.current = {
-                  mask: new Float32Array(nextMask),
-                  width: maskWidth,
-                  height: maskHeight,
-                };
-              }
+              lastMaskRef.current = {
+                mask: confidenceMask.getAsFloat32Array(),
+                width: confidenceMask.width,
+                height: confidenceMask.height,
+              };
             }
           } else if (profile.kind !== 'segment-bg') {
             lastMaskRef.current = null;
@@ -270,13 +240,6 @@ export function useFaceAR({
   const switchEffect = useCallback((effectId: string) => {
     setActiveEffectId(effectId);
     activeEffectIdRef.current = effectId;
-    lastFaceDetectAtRef.current = 0;
-    lastSegmentDetectAtRef.current = 0;
-    if (effectId === 'none') {
-      lastLandmarksRef.current = null;
-      lastMatrixRef.current = null;
-      lastMaskRef.current = null;
-    }
   }, []);
 
   useEffect(() => {

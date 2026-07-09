@@ -16,9 +16,11 @@ import {
   Trash2,
   CheckCircle,
   X,
+  Camera,
 } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
+import { useAppCamera } from '../../contexts/AppCameraContext';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { useSupabaseAuth } from '../../contexts/SupabaseAuthContext';
 import {
@@ -83,6 +85,7 @@ export function ProfileEditSettingsModal({
 }: ProfileEditSettingsModalProps) {
   const db = useDB();
   const { showToast } = useToast();
+  const { isAvailable: cameraAvailable, openCamera } = useAppCamera();
   const hasProfilePremium = db.hasProfilePremium();
   const profilePremiumStatus = getProfilePremiumAccessStatus(db.currentUser);
 
@@ -282,13 +285,32 @@ export function ProfileEditSettingsModal({
             onError={handleAvatarError}
           />
           <div className="flex-1 min-w-0 space-y-2">
-            <button
-              type="button"
-              onClick={() => fileInputRef.current?.click()}
-              className="text-primary font-bold text-sm hover:underline"
-            >
-              Change Profile Photo
-            </button>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="text-primary font-bold text-sm hover:underline"
+              >
+                Change Profile Photo
+              </button>
+              {cameraAvailable ? (
+                <button
+                  type="button"
+                  onClick={() =>
+                    openCamera({
+                      title: 'Profile photo',
+                      onCaptured: ({ kind, url }) => {
+                        if (kind === 'photo') applyAvatarUrl(url);
+                      },
+                    })
+                  }
+                  className="inline-flex items-center gap-1.5 text-primary font-bold text-sm hover:underline"
+                >
+                  <Camera className="w-3.5 h-3.5" />
+                  Camera
+                </button>
+              ) : null}
+            </div>
             <input
               type="text"
               value={avatarDraft}
@@ -602,7 +624,7 @@ export function ProfileEditSettingsModal({
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `instacollab_activity_${localUser.username}.json`;
+            a.download = `unilive_activity_${localUser.username}.json`;
             a.click();
             URL.revokeObjectURL(url);
             showToast('Activity report generated and downloaded');

@@ -1,7 +1,7 @@
 /**
  * Cache-first data pipeline:
  * 1) IndexedDB / localStorage drive the UI at all times
- * 2) When online, live cloud syncs in the background — no loaders, no remounts
+ * 2) Supabase Realtime + Firebase listeners keep every surface live in the background
  * 3) When offline, app keeps working from cache; reconnect resumes silent sync
  */
 import { db } from './db/localDb';
@@ -31,7 +31,7 @@ async function paintThen<T>(fn: () => Promise<T>): Promise<T> {
   return fn();
 }
 
-/** Silent background live sync — never throws to UI. */
+/** Start all Realtime lanes + initial hydrate — never throws to UI. */
 export async function runSilentCloudSync(reason: string): Promise<void> {
   if (!canSync()) return;
   const generation = ++syncGeneration;
@@ -45,17 +45,21 @@ export async function runSilentCloudSync(reason: string): Promise<void> {
     if (generation !== syncGeneration) return;
     startLiveCloudSurfaces(userId);
 
-    const { bootstrapCloudPosts } = await import('./cloudPostSync');
+    const [{ bootstrapCloudPosts }, { startCloudAppStateRealtime }] = await Promise.all([
+      import('./cloudPostSync'),
+      import('./auth/cloudAppState'),
+    ]);
     if (generation !== syncGeneration) return;
+
+    void startCloudAppStateRealtime(userId);
     void bootstrapCloudPosts();
 
     if (import.meta.env.DEV) {
-      console.info('[cache-first] silent cloud sync', reason, userId.slice(0, 8));
+      console.info('[cache-first] realtime lanes live', reason, userId.slice(0, 8));
     }
   } catch (err) {
-    // Silent — local cache remains the UI source of truth.
     if (import.meta.env.DEV) {
-      console.warn('[cache-first] silent sync failed:', err);
+      console.warn('[cache-first] realtime start failed:', err);
     }
   }
 }
@@ -68,9 +72,11 @@ export function startCacheFirstCloudSync(): void {
   initNetworkStatus();
 
   const kick = (reason: string) => {
-    const isUrgent = reason === 'storage_ready';
+    const isUrgent =
+      reason === 'storage_ready' || reason === 'online' || reason === 'auth_ready';
     const now = Date.now();
-    if (!isUrgent && now - lastKickAt < cloudKickCooldownMs()) return;
+    const cooldown = cloudKickCooldownMs();
+    if (!isUrgent && cooldown > 0 && now - lastKickAt < cooldown) return;
     lastKickAt = now;
     runInstant(() => {
       void paintThen(() => runSilentCloudSync(reason));
@@ -79,8 +85,17 @@ export function startCacheFirstCloudSync(): void {
 
   void db.whenStorageReady().then(() => kick('storage_ready'));
 
-  // Reconnect after offline: one full live sync.
+  // Inbound updates flow through Supabase Realtime — no pull-on-local-save loop.
+
   subscribeNetworkStatus((status) => {
     if (status === 'online') kick('online');
+  });
+}
+
+/** Re-arm all Realtime channels after auth session is restored. */
+export function kickRealtimeAfterAuth(): void {
+  if (!canSync()) return;
+  runInstant(() => {
+    void paintThen(() => runSilentCloudSync('auth_ready'));
   });
 }

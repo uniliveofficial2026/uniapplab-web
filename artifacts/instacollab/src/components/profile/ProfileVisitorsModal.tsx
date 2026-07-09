@@ -22,8 +22,8 @@ import {
   PROFILE_VISIT_SURFACES,
 } from '../../lib/profileVisits';
 import type { ProfileVisitSurface } from '../../types';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { handleMediaError } from '../../lib/utils';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 import { LIVE_KIND_LABELS } from '../../lib/liveRing';
 
 export function formatVisitTime(ts: number, now = Date.now()): string {
@@ -457,15 +457,13 @@ export function ProfileVisitorsModal({
                       {previewUrl && (row.lastSurface === 'posts' || row.lastSurface === 'reels') ? (
                         <div className="w-11 h-11 rounded-lg overflow-hidden bg-secondary ring-1 ring-border">
                           {row.lastSurface === 'reels' ? (
-                            <video
+                            <AppNativeVideo
                               src={previewUrl}
+                              controls={false}
                               className="w-full h-full object-cover"
                               muted
-                              playsInline
-                              controls
                               preload="metadata"
                               onError={handleMediaError}
-                              {...nativeVideoControlGuardProps()}
                             />
                           ) : (
                             <img

@@ -2,10 +2,11 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   BODY_SHAPE_PRESETS,
   BODY_SHAPE_SLIDER_GROUPS,
+  BODY_SHAPE_COMING_SOON,
   EMPTY_BODY_SHAPE,
-  getBodyShapePreviewCandidates,
   type BodyShapeParams,
 } from '../../lib/ar/bodyShape';
+import { ShapePresetThumb } from './BeautyTrayThumbs';
 import {
   EFFECT_TRAY_BTN,
   EFFECT_TRAY_BTN_ACTIVE,
@@ -18,40 +19,35 @@ const SLIDER_COMMIT_MS = 120;
 type BodyShapeTrayProps = {
   bodyShape: BodyShapeParams;
   onBodyShapeChange: (shape: BodyShapeParams) => void;
+  shapeCovers?: Record<string, string>;
+  shapeEffectByPreset?: Record<string, string>;
+  onShapeEffectChange?: (effectId: string | null) => void;
   accent?: 'rose' | 'fuchsia';
+  /** No outer glass panel — embed in call/capture chrome. */
+  bare?: boolean;
+  /** Show controls but block interaction (coming soon). */
+  comingSoon?: boolean;
 };
-
-function ShapePrelookThumb({ previewId, label }: { previewId: string; label: string }) {
-  const candidates = getBodyShapePreviewCandidates(previewId);
-  const [index, setIndex] = useState(0);
-  const src = candidates[Math.min(index, candidates.length - 1)] ?? candidates[0];
-  return (
-    <img
-      key={src}
-      src={src}
-      alt={label}
-      className="absolute inset-0 h-full w-full object-cover"
-      loading="lazy"
-      decoding="async"
-      draggable={false}
-      onError={() => setIndex((prev) => (prev + 1 < candidates.length ? prev + 1 : prev))}
-    />
-  );
-}
 
 export function BodyShapeTray({
   bodyShape,
   onBodyShapeChange,
+  shapeCovers = {},
+  shapeEffectByPreset = {},
+  onShapeEffectChange,
   accent = 'rose',
+  bare = false,
+  comingSoon = BODY_SHAPE_COMING_SOON,
 }: BodyShapeTrayProps) {
+  const disabled = comingSoon;
   const activeBorder =
     accent === 'fuchsia' ? 'border-fuchsia-200/70' : 'border-rose-200/70';
   const accentClass = accent === 'fuchsia' ? 'accent-fuchsia-400' : 'accent-rose-400';
 
   const [localShape, setLocalShape] = useState(bodyShape);
+  const localShapeRef = useRef(localShape);
   const commitTimerRef = useRef(0);
   const draggingRef = useRef(false);
-  const localShapeRef = useRef(bodyShape);
 
   useEffect(() => {
     localShapeRef.current = localShape;
@@ -64,20 +60,39 @@ export function BodyShapeTray({
     }
   }, [bodyShape]);
 
+  const syncShapeEffect = useCallback(
+    (shape: BodyShapeParams, presetId?: string) => {
+      if (!onShapeEffectChange) return;
+      if (presetId === 'shape-natural') {
+        onShapeEffectChange(null);
+        return;
+      }
+      if (presetId && shapeEffectByPreset[presetId]) {
+        onShapeEffectChange(shapeEffectByPreset[presetId]);
+        return;
+      }
+      onShapeEffectChange(null);
+    },
+    [onShapeEffectChange, shapeEffectByPreset],
+  );
+
   const commitShape = useCallback(
-    (next: BodyShapeParams, immediate = false) => {
+    (next: BodyShapeParams, immediate = false, presetId?: string) => {
+      if (disabled) return;
       setLocalShape(next);
       localShapeRef.current = next;
       window.clearTimeout(commitTimerRef.current);
       if (immediate) {
         onBodyShapeChange(next);
+        syncShapeEffect(next, presetId);
         return;
       }
       commitTimerRef.current = window.setTimeout(() => {
-        onBodyShapeChange(next);
+        onBodyShapeChange(localShapeRef.current);
+        syncShapeEffect(localShapeRef.current, presetId);
       }, SLIDER_COMMIT_MS);
     },
-    [onBodyShapeChange],
+    [disabled, onBodyShapeChange, syncShapeEffect],
   );
 
   useEffect(() => {
@@ -93,34 +108,49 @@ export function BodyShapeTray({
     );
 
   const handleSliderChange = (key: keyof BodyShapeParams, value: number) => {
+    if (disabled) return;
     draggingRef.current = true;
-    const next = { ...localShapeRef.current, [key]: value };
-    commitShape(next);
+    commitShape({ ...localShape, [key]: value });
   };
 
   const handleSliderRelease = () => {
+    if (disabled) return;
     draggingRef.current = false;
     window.clearTimeout(commitTimerRef.current);
     onBodyShapeChange(localShapeRef.current);
+    syncShapeEffect(localShapeRef.current);
   };
 
   return (
     <div
-      className="flex max-h-[30dvh] flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/80 shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+      className={
+        bare
+          ? 'flex max-h-[30dvh] flex-col overflow-hidden'
+          : 'flex max-h-[30dvh] flex-col overflow-hidden rounded-2xl border border-white/15 bg-black/80 shadow-[0_8px_32px_rgba(0,0,0,0.55)] backdrop-blur-xl'
+      }
       style={{ maxHeight: SHAPE_PANEL_MAX_HEIGHT }}
     >
-      <div className="shrink-0 border-b border-white/10 px-2 pb-2 pt-2">
+      {disabled ? (
+        <div className={`shrink-0 ${bare ? 'pb-2' : 'border-b border-white/10 px-3 pb-2 pt-2'}`}>
+          <p className="rounded-full border border-amber-200/35 bg-amber-500/15 px-3 py-1.5 text-center text-[10px] font-black uppercase tracking-wide text-amber-100">
+            Body shape — coming soon
+          </p>
+        </div>
+      ) : null}
+      <div className={`shrink-0 ${bare ? 'pb-2' : 'border-b border-white/10 px-2 pb-2 pt-2'}`}>
         <div className="flex gap-2 overflow-x-auto scrollbar-hide touch-pan-x">
           {BODY_SHAPE_PRESETS.map((preset) => {
             const selected = isPresetActive(preset);
+            const cover = shapeCovers[preset.id];
             return (
               <button
                 key={preset.id}
                 type="button"
-                onClick={() => commitShape({ ...preset.values }, true)}
+                disabled={disabled}
+                onClick={() => commitShape({ ...preset.values }, true, preset.id)}
                 className={`${EFFECT_TRAY_BTN} ${
                   selected ? EFFECT_TRAY_BTN_ACTIVE : EFFECT_TRAY_BTN_IDLE
-                }`}
+                } ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
               >
                 <span
                   className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border ${
@@ -128,7 +158,22 @@ export function BodyShapeTray({
                   }`}
                   style={{ background: preset.swatch }}
                 >
-                  <ShapePrelookThumb previewId={preset.previewId} label={preset.label} />
+                  {cover ? (
+                    <img
+                      src={cover}
+                      alt=""
+                      className="absolute inset-0 h-full w-full object-cover"
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  ) : (
+                    <ShapePresetThumb
+                      presetId={preset.id}
+                      swatch={preset.swatch}
+                      label={preset.label}
+                    />
+                  )}
                 </span>
                 <span className="max-w-[4.5rem] truncate text-[10px] font-black uppercase tracking-wide">
                   {preset.label}
@@ -139,7 +184,9 @@ export function BodyShapeTray({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y scrollbar-hide px-3 py-2">
+      <div
+        className={`min-h-0 flex-1 overflow-y-auto overscroll-contain touch-pan-y scrollbar-hide ${bare ? 'px-0 py-1' : 'px-3 py-2'} ${disabled ? 'pointer-events-none opacity-50' : ''}`}
+      >
         <div className="flex flex-col gap-3 pb-1">
           {BODY_SHAPE_SLIDER_GROUPS.map((group) => (
             <div key={group.title} className="flex flex-col gap-2">
@@ -157,6 +204,7 @@ export function BodyShapeTray({
                     min={0}
                     max={100}
                     step={1}
+                    disabled={disabled}
                     value={localShape[slider.key]}
                     onChange={(event) =>
                       handleSliderChange(slider.key, Number(event.target.value))
@@ -173,11 +221,14 @@ export function BodyShapeTray({
         </div>
       </div>
 
-      <div className="shrink-0 border-t border-white/10 px-3 py-2">
+      <div className={`shrink-0 ${bare ? 'pt-2' : 'border-t border-white/10 px-3 py-2'}`}>
         <button
           type="button"
-          onClick={() => commitShape({ ...EMPTY_BODY_SHAPE }, true)}
-          className="rounded-full border border-white/25 bg-black/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/85 hover:bg-black"
+          disabled={disabled}
+          onClick={() => {
+            commitShape({ ...EMPTY_BODY_SHAPE }, true, 'shape-natural');
+          }}
+          className={`rounded-full border border-white/25 bg-black/90 px-3 py-1.5 text-[10px] font-black uppercase tracking-wide text-white/85 hover:bg-black ${disabled ? 'cursor-not-allowed opacity-50' : ''}`}
         >
           Reset shape
         </button>

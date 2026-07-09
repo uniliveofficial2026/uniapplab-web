@@ -7,12 +7,14 @@ import type {
 import { safeUserId } from '../../safe';
 import {
   ensureCloudThreadForGroup,
+  syncCloudGroupMembers,
   queueCloudMessageDelete,
   queueCloudMessageReaction,
   queueCloudMessageSend,
   queueCloudMessageUpdate,
   queueCloudReadReceipt,
 } from '../../chat/cloudChatSync';
+import { isChatCloudAvailable } from '../../chat/chatCloud';
 import type { ChatGroup, ChatPresenceStore, ChatTimestampStore } from '../../../types';
 import type { MessagesLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
@@ -45,7 +47,7 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       if (!group?.id) return;
       const list = this.chatGroups.filter((g) => g.id !== group.id);
       this.saveChatGroups([group, ...list]);
-      void ensureCloudThreadForGroup(group);
+      void ensureCloudThreadForGroup(group).then(() => syncCloudGroupMembers(group));
     }
 
     mergeInboundChatGroup(group: ChatGroup) {
@@ -111,27 +113,43 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       lastSeenAt?: number;
       lastActiveAt?: number;
       activeChatId?: string | null;
-    }) {
+    }, options?: { ephemeral?: boolean }) {
       if (!userId) return;
       const presence = this.chatPresence;
       const current = this.asLocalDB().getUserPresence(userId);
-      this.save('chat_presence', {
+      const nextEntry = {
+        ...current,
+        ...(patch || {}),
+      };
+      const nextPresence = {
         ...presence,
-        [userId]: {
-          ...current,
-          ...(patch || {}),
-        },
-      });
+        [userId]: nextEntry,
+      };
+      if (JSON.stringify(presence[userId]) === JSON.stringify(nextEntry)) return;
+      const ephemeral =
+        options?.ephemeral ||
+        (Object.keys(patch || {}).length === 1 && patch.typing !== undefined);
+      if (ephemeral) {
+        this.saveEphemeral('chat_presence', nextPresence);
+        return;
+      }
+      this.save('chat_presence', nextPresence);
     }
 
-    setChatPresenceMap(nextPresence: ChatPresenceStore) {
+    setChatPresenceMap(nextPresence: ChatPresenceStore, options?: { ephemeral?: boolean }) {
       if (!nextPresence || typeof nextPresence !== 'object') return;
+      const current = this.chatPresence;
+      if (JSON.stringify(current) === JSON.stringify(nextPresence)) return;
+      if (options?.ephemeral) {
+        this.saveEphemeral('chat_presence', nextPresence);
+        return;
+      }
       this.save('chat_presence', nextPresence);
     }
 
     setUserTyping(userId: string, typing: boolean) {
       if (!userId) return;
-      this.asLocalDB().setUserPresence(userId, { typing: !!typing });
+      this.asLocalDB().setUserPresence(userId, { typing: !!typing }, { ephemeral: true });
     }
 
     setUserOnline(userId: string, online: boolean, at = Date.now()) {
@@ -155,7 +173,7 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       this.asLocalDB().setUserPresence(userId, {
         online: true,
         lastActiveAt: at,
-      });
+      }, { ephemeral: true });
     }
 
     getChatReadAt(chatId: string) {
@@ -176,12 +194,14 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       const nextValue = typeof timestamp === 'number' && Number.isFinite(timestamp) ? timestamp : previous;
       if (!options?.allowDecrease && nextValue <= previous) return;
       if (options?.allowDecrease && nextValue === previous) return;
-      this.save('chat_read_state', {
+      this.saveEphemeral('chat_read_state', {
         ...readState,
         [chatId]: Math.max(0, nextValue),
       });
       if (!options?.skipCloud) {
-        queueCloudReadReceipt(chatId, Math.max(0, nextValue));
+        queueMicrotask(() => {
+          queueCloudReadReceipt(chatId, Math.max(0, nextValue));
+        });
       }
     }
 
@@ -198,10 +218,11 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       const previous = typeof peerReadState[chatId] === 'number' ? peerReadState[chatId] : 0;
       const nextValue = typeof timestamp === 'number' ? timestamp : previous;
       if (nextValue <= previous) return;
-      this.save('chat_peer_read_state', {
+      this.saveEphemeral('chat_peer_read_state', {
         ...peerReadState,
         [chatId]: nextValue,
       });
+      window.dispatchEvent(new CustomEvent('chat-read-state-updated', { detail: { chatId, peerReadAt: nextValue } }));
     }
 
     get chatWallpapers(): Record<string, { selectedId?: string; customWallpapers?: unknown[] }> {
@@ -264,6 +285,17 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         ...msgs,
         [chatId]: this.cappedList([...existing, nextMessage], 'messages'),
       });
+      if (!nextMessage.isAuthor && !nextMessage.isCallEvent) {
+        queueMicrotask(() => {
+          if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+              new CustomEvent('chat-inbound-message', {
+                detail: { chatId, message: nextMessage },
+              }),
+            );
+          }
+        });
+      }
     }
 
     attachCloudMessageId(chatId: string, localId: string, cloudId: string) {
@@ -274,7 +306,39 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       const next = existing.map((m) => {
         if (m.id !== localId && m.cloudId !== cloudId) return m;
         changed = true;
-        return { ...m, id: m.id || localId, cloudId };
+        return { ...m, id: m.id || localId, cloudId, deliveryStatus: 'sent' as const };
+      });
+      if (!changed) return;
+      this.save('messages', { ...msgs, [chatId]: next });
+    }
+
+    markMessageDeliveryStatus(
+      chatId: string,
+      localId: string,
+      status: 'sending' | 'sent' | 'failed',
+    ) {
+      if (!chatId || !localId) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      let changed = false;
+      const next = existing.map((m) => {
+        if (m.id !== localId) return m;
+        changed = true;
+        return { ...m, deliveryStatus: status };
+      });
+      if (!changed) return;
+      this.save('messages', { ...msgs, [chatId]: next });
+    }
+
+    patchMessageMedia(chatId: string, localId: string, media: unknown[]) {
+      if (!chatId || !localId) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      let changed = false;
+      const next = existing.map((m) => {
+        if (m.id !== localId) return m;
+        changed = true;
+        return { ...m, media };
       });
       if (!changed) return;
       this.save('messages', { ...msgs, [chatId]: next });
@@ -286,10 +350,63 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
       const next = existing.map((m) =>
         m.cloudId === cloudId || m.id === cloudId
-          ? { ...m, text: 'Message deleted', media: undefined, location: undefined, deleted: true }
+          ? {
+              ...m,
+              text: 'Message deleted',
+              media: undefined,
+              location: undefined,
+              deleted: true,
+              isDeleted: true,
+            }
           : m,
       );
       this.save('messages', { ...msgs, [chatId]: next });
+    }
+
+    hideMessageForMe(chatId: string, messageIndex: number) {
+      if (!chatId) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      if (messageIndex < 0 || messageIndex >= existing.length) return;
+      existing[messageIndex] = { ...existing[messageIndex], hiddenForMe: true };
+      this.save('messages', { ...msgs, [chatId]: existing });
+      queueMicrotask(() => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('chat-inbox-activity', { detail: { chatId } }));
+        }
+      });
+    }
+
+    deleteMessageForEveryone(chatId: string, messageIndex: number) {
+      if (!chatId) return;
+      const msgs = this.asLocalDB().messages;
+      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      if (messageIndex < 0 || messageIndex >= existing.length) return;
+      const target = existing[messageIndex];
+      if (!target?.isAuthor) return;
+      const next = existing.map((m, idx) =>
+        idx === messageIndex
+          ? {
+              ...m,
+              text: 'Message deleted',
+              media: undefined,
+              location: undefined,
+              deleted: true,
+              isDeleted: true,
+            }
+          : m,
+      );
+      this.save('messages', { ...msgs, [chatId]: next });
+      queueMicrotask(() => {
+        queueCloudMessageDelete(chatId, {
+          ...target,
+          deleted: true,
+          isDeleted: true,
+        });
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('chat-inbox-activity', { detail: { chatId } }));
+        }
+      });
     }
 
     applyInboundMessageReaction(
@@ -312,33 +429,45 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       const msgs = this.asLocalDB().messages;
       const existing = msgs[chatId] || [];
       const nextMessage = this.ensureMessageId(message, chatId);
-      this.asLocalDB().setUnreadMessagesCount(this.asLocalDB().unreadMessagesCount + 1);
+      const cloudChatEnabled = isChatCloudAvailable();
+      const withDelivery =
+        nextMessage.isAuthor && cloudChatEnabled
+          ? { ...nextMessage, deliveryStatus: 'sending' as const }
+          : nextMessage;
+      if (!withDelivery.isAuthor) {
+        this.asLocalDB().setUnreadMessagesCount(this.asLocalDB().unreadMessagesCount + 1);
+      }
       this.save('messages', {
         ...msgs,
-        [chatId]: this.cappedList([...existing, nextMessage], 'messages'),
+        [chatId]: this.cappedList([...existing, withDelivery], 'messages'),
       });
+      if (typeof window !== 'undefined') {
+        queueMicrotask(() => {
+          window.dispatchEvent(new CustomEvent('chat-inbox-activity', { detail: { chatId } }));
+        });
+      }
       queueMicrotask(() => {
         queueCloudMessageSend(chatId, {
-          ...nextMessage,
-          from: nextMessage.from || this.asLocalDB().currentUserId || undefined,
+          ...withDelivery,
+          from: withDelivery.from || this.asLocalDB().currentUserId || undefined,
         });
       });
       const meId = this.asLocalDB().currentUserId;
-      if (!nextMessage?.isAuthor || !meId) return;
+      if (!withDelivery?.isAuthor || !meId) return;
 
       const group = this.getChatGroup(chatId);
       const recipientIds = group
         ? (group.memberIds || []).filter((id) => id && id !== meId)
         : [safeUserId(chatId)].filter((id): id is string => !!id && id !== meId);
 
-      const mediaList = Array.isArray(nextMessage.media) ? nextMessage.media : [];
+      const mediaList = Array.isArray(withDelivery.media) ? withDelivery.media : [];
       const fileAttachment = mediaList.find(
         (item) =>
           item &&
           typeof item === 'object' &&
           (item as { isFile?: boolean }).isFile === true,
       ) as { name?: string } | undefined;
-      const loc = nextMessage.location;
+      const loc = withDelivery.location;
       const hasLocation =
         loc &&
         typeof loc === 'object' &&
@@ -349,14 +478,14 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         hasLocation && typeof (loc as { label?: unknown }).label === 'string'
           ? String((loc as { label: string }).label).trim()
           : '';
-      const preview = String(nextMessage.text ?? '').trim().slice(0, 120);
+      const preview = String(withDelivery.text ?? '').trim().slice(0, 120);
       const fileName =
         typeof fileAttachment?.name === 'string' ? fileAttachment.name.trim() : '';
       const firstMedia = mediaList[0] as
         | { isAudio?: boolean; isVideo?: boolean }
         | undefined;
-      const text = nextMessage.isCallEvent
-        ? nextMessage.callKind === 'video'
+      const text = withDelivery.isCallEvent
+        ? withDelivery.callKind === 'video'
           ? 'Started a video call'
           : 'Started an audio call'
         : preview ||
@@ -374,15 +503,17 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
                     ? 'Sent a photo'
                     : 'Sent you a message');
 
-      for (const recipientId of recipientIds) {
-        this.asLocalDB().pushNotificationForUser(recipientId, {
-          type: nextMessage.isCallEvent ? 'activity' : 'message',
-          actorUserId: meId,
-          text,
-          link: `chat:${chatId}`,
-          targetTab: 'messages',
-        });
-      }
+      queueMicrotask(() => {
+        for (const recipientId of recipientIds) {
+          this.asLocalDB().pushNotificationForUser(recipientId, {
+            type: withDelivery.isCallEvent ? 'activity' : 'message',
+            actorUserId: meId,
+            text,
+            link: `chat:${chatId}`,
+            targetTab: 'messages',
+          });
+        }
+      });
     }
 
     toggleMessageReaction(chatId: string, messageIndex: number, emoji: string) {
@@ -465,101 +596,18 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         ...msgs,
         [chatId]: this.cappedList(existing, 'messages'),
       });
-      if (next?.isAuthor) queueCloudMessageUpdate(chatId, next);
+      if (next?.isAuthor) {
+        queueMicrotask(() => queueCloudMessageUpdate(chatId, next));
+      }
+      queueMicrotask(() => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('chat-inbox-activity', { detail: { chatId } }));
+        }
+      });
     }
 
     deleteMessage(chatId: string, messageIndex: number) {
-      if (!chatId) return;
-      const msgs = this.asLocalDB().messages;
-      const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
-      if (messageIndex < 0 || messageIndex >= existing.length) return;
-      const removed = existing[messageIndex];
-      if (removed?.isAuthor) queueCloudMessageDelete(chatId, removed);
-      existing.splice(messageIndex, 1);
-
-      const normalized = existing.map((message: ChatMessage) => {
-        if (!message || typeof message !== 'object' || !message.replyTo || typeof message.replyTo !== 'object') {
-          if (!message || typeof message !== 'object' || !Array.isArray(message.replyToMany)) {
-            return message;
-          }
-          const nextReplyToMany = message.replyToMany
-            .filter((reply: MessageReplyRef) => typeof reply?.index === 'number' && reply.index !== messageIndex)
-            .map((reply: MessageReplyRef) => ({
-              ...reply,
-              index: reply.index > messageIndex ? reply.index - 1 : reply.index,
-            }));
-          return {
-            ...message,
-            replyToMany: nextReplyToMany,
-          };
-        }
-
-        const replyIndex = typeof message.replyTo.index === 'number' ? message.replyTo.index : null;
-        if (replyIndex === null) {
-          if (!Array.isArray(message.replyToMany)) return message;
-          const nextReplyToMany = message.replyToMany
-            .filter((reply: MessageReplyRef) => typeof reply?.index === 'number' && reply.index !== messageIndex)
-            .map((reply: MessageReplyRef) => ({
-              ...reply,
-              index: reply.index > messageIndex ? reply.index - 1 : reply.index,
-            }));
-          return {
-            ...message,
-            replyToMany: nextReplyToMany,
-          };
-        }
-
-        if (replyIndex === messageIndex) {
-          const { replyTo: _replyTo, ...rest } = message;
-          return Array.isArray(message.replyToMany)
-            ? {
-                ...rest,
-                replyToMany: message.replyToMany
-                  .filter((reply: MessageReplyRef) => typeof reply?.index === 'number' && reply.index !== messageIndex)
-                  .map((reply: MessageReplyRef) => ({
-                    ...reply,
-                    index: reply.index > messageIndex ? reply.index - 1 : reply.index,
-                  })),
-              }
-            : rest;
-        }
-
-        if (replyIndex > messageIndex) {
-          const withReplyTo = {
-            ...message,
-            replyTo: {
-              ...message.replyTo,
-              index: replyIndex - 1,
-            },
-          };
-          if (!Array.isArray(message.replyToMany)) return withReplyTo;
-          return {
-            ...withReplyTo,
-            replyToMany: message.replyToMany
-              .filter((reply: MessageReplyRef) => typeof reply?.index === 'number' && reply.index !== messageIndex)
-              .map((reply: MessageReplyRef) => ({
-                ...reply,
-                index: reply.index > messageIndex ? reply.index - 1 : reply.index,
-              })),
-          };
-        }
-
-        if (!Array.isArray(message.replyToMany)) return message;
-        return {
-          ...message,
-          replyToMany: message.replyToMany
-            .filter((reply: MessageReplyRef) => typeof reply?.index === 'number' && reply.index !== messageIndex)
-            .map((reply: MessageReplyRef) => ({
-              ...reply,
-              index: reply.index > messageIndex ? reply.index - 1 : reply.index,
-            })),
-        };
-      });
-
-      this.save('messages', {
-        ...msgs,
-        [chatId]: this.cappedList(normalized, 'messages'),
-      });
+      this.hideMessageForMe(chatId, messageIndex);
     }
 
     /** Restore DM threads after cloud first-session wipe or empty IDB `messages: {}`. */

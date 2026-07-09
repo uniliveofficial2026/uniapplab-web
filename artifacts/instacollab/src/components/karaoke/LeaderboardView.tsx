@@ -51,7 +51,7 @@ export function LeaderboardView({ onSelectProfile }: { onSelectProfile?: (user: 
           };
           return newLeaders.sort((a, b) => b.score - a.score).map((l, i) => ({ ...l, rank: i + 1 }));
        });
-    }, 2000);
+    }, 30000);
     return () => clearInterval(timer);
   }, []);
 

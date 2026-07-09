@@ -51,16 +51,6 @@ const MEDIA_STORE = 'media';
 
 const mediaUrlCache = new Map<string, string>();
 
-function applyMissingRecordingPerformersInMemory(
-  list: KaraokeCoverRecordingMeta[],
-): KaraokeCoverRecordingMeta[] {
-  const ownerId = getKaraokeUploadOwnerUserId();
-  if (!ownerId) return list;
-  return list.map((row) =>
-    row.performerUserId ? row : { ...row, performerUserId: ownerId },
-  );
-}
-
 function persistMissingRecordingPerformers(list: KaraokeCoverRecordingMeta[]): void {
   const ownerId = getKaraokeUploadOwnerUserId();
   if (!ownerId) return;
@@ -73,16 +63,31 @@ function persistMissingRecordingPerformers(list: KaraokeCoverRecordingMeta[]): v
   if (changed) db.save(DB_KEY, next);
 }
 
-function readMetaList(): KaraokeCoverRecordingMeta[] {
-  return applyMissingRecordingPerformersInMemory(
-    db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []),
-  );
+function normalizeRecordingMeta(row: KaraokeCoverRecordingMeta): KaraokeCoverRecordingMeta {
+  const performers = Array.isArray(row.performers) ? row.performers : [];
+  if (row.performers === performers) return row;
+  return { ...row, performers };
 }
 
-/** One-time performer backfill — call from effects / session bootstrap only. */
+/** Safe performers list — legacy rows may omit `performers`. */
+export function getRecordingPerformers(
+  meta: Pick<KaraokeCoverRecordingMeta, 'performers'>,
+): KaraokeCoverPerformer[] {
+  return Array.isArray(meta.performers) ? meta.performers : [];
+}
+
+function readMetaList(): KaraokeCoverRecordingMeta[] {
+  return db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []).map(normalizeRecordingMeta);
+}
+
+/** One-time performer backfill — call from session bootstrap only. */
 export function ensureKaraokeRecordingsHydrated(): void {
   const fromDb = db.load<KaraokeCoverRecordingMeta[]>(DB_KEY, []);
-  persistMissingRecordingPerformers(fromDb);
+  const normalized = fromDb.map(normalizeRecordingMeta);
+  persistMissingRecordingPerformers(normalized);
+  if (normalized.some((row, idx) => row !== fromDb[idx])) {
+    db.save(DB_KEY, normalized);
+  }
 }
 
 function writeMetaList(
@@ -185,13 +190,14 @@ export type KaraokeUserCoverCard = {
 };
 
 export function coverRecordingToUserCard(meta: KaraokeCoverRecordingMeta): KaraokeUserCoverCard {
+  const performers = getRecordingPerformers(meta);
   return {
     id: meta.id,
     songId: meta.songId,
     recordingId: meta.id,
     kind: 'cover',
     title: meta.songTitle,
-    artist: meta.performers.map((performer) => performer.name).join(' & ') || 'You',
+    artist: performers.map((performer) => performer.name).join(' & ') || 'You',
     caption: meta.caption,
     score: meta.score,
     plays: formatRecordingCount(meta.plays),

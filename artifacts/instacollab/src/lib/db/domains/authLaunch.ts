@@ -1,5 +1,3 @@
-import { cloudSignOut } from '../../auth/cloudAuthApi';
-import { isCloudAuthConfigured } from '../../auth/config';
 import type { LaunchProgress, AuthAccountRecord } from '../../dbTypes';
 import type { User } from '../../../types';
 import type { AuthLaunchLayer } from '../layers';
@@ -194,7 +192,9 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
     ensureDemoAuthAccounts() {
       const accounts = this.getAuthAccounts();
       const demos: AuthAccountRecord[] = [
+        { userId: 'u1', email: 'demo@unilive.app', password: 'demo123' },
         { userId: 'u1', email: 'demo@instacollab.app', password: 'demo123' },
+        { userId: 'u2', email: 'sarah@unilive.app', password: 'demo123' },
         { userId: 'u2', email: 'sarah@instacollab.app', password: 'demo123' },
       ];
       let changed = false;
@@ -303,9 +303,6 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
     }
 
     logoutSession() {
-      if (isCloudAuthConfigured()) {
-        void cloudSignOut();
-      }
       this.asLocalDB().logout();
     }
   } as unknown as MixinCtor<T, AuthLaunchLayer>;

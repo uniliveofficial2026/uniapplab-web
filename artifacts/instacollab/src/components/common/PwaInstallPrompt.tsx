@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
 import { getIosInstallInstructions, isIosDevice, isPwaInstallableHost, isPrivateDevHost, isStandaloneDisplayMode } from '../../lib/pwaRegister';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
+import { AppBrandIcon } from './AppBrandIcon';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -17,6 +18,13 @@ export function PwaInstallPrompt() {
     if (typeof window === 'undefined') return true;
     return window.localStorage.getItem(DISMISS_KEY) === '1';
   });
+  const [brandTick, setBrandTick] = useState(0);
+
+  useEffect(() => {
+    const onBrand = () => setBrandTick((t) => t + 1);
+    window.addEventListener('app-brand:updated', onBrand);
+    return () => window.removeEventListener('app-brand:updated', onBrand);
+  }, []);
 
   useEffect(() => {
     if (isStandaloneDisplayMode()) return;
@@ -48,6 +56,8 @@ export function PwaInstallPrompt() {
 
   if (!visible && !(privateDevHost && isIosDevice())) return null;
 
+  void brandTick;
+
   const dismiss = () => {
     setDismissed(true);
     setShowIosHint(false);
@@ -73,8 +83,12 @@ export function PwaInstallPrompt() {
         <div className="fixed bottom-[calc(58px+var(--app-safe-bottom))] left-3 right-3 z-[120] md:bottom-4 md:left-auto md:right-4 md:max-w-sm">
           <div className="rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
             <div className="flex items-start gap-3">
-              <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-[#FF3C00] text-sm font-black text-white">
-                IC
+              <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
+                <AppBrandIcon
+                  className="h-11 w-11"
+                  roundedClassName="rounded-2xl"
+                  imageFit="cover"
+                />
               </div>
               <div className="min-w-0 flex-1">
                 <p className="text-sm font-bold text-foreground">Install {APP_DISPLAY_NAME}</p>

@@ -108,7 +108,7 @@ async function main() {
     smtp_admin_email: from,
     smtp_sender_name: senderName,
     smtp_host: 'smtp.resend.com',
-    smtp_port: '465',
+    smtp_port: 465,
     smtp_user: 'resend',
     smtp_pass: apiKey,
   });

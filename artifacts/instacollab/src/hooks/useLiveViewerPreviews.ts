@@ -98,12 +98,8 @@ export function useLiveViewerPreviews(
       }
     }
 
-    // Cap realtime presence channels — one per room is expensive at scale.
     if (isPartyRoomPresenceCloudAvailable()) {
-      let watched = 0;
       for (const [roomId, keys] of roomKeys) {
-        if (watched >= 4) break;
-        watched += 1;
         const channel = watchPartyRoomPresence(roomId, (members) => {
           if (cancelled) return;
           const avatars = newestAvatars(members);
@@ -124,7 +120,7 @@ export function useLiveViewerPreviews(
       if (!isPlatformApiAvailable() || streamTargets.length === 0) return;
       const updates: Record<string, LiveViewerPreview> = {};
       await Promise.all(
-        streamTargets.slice(0, 4).map(async (target) => {
+        streamTargets.map(async (target) => {
           if (!target.streamId) return;
           try {
             const data = await fetchStreamViewers(target.streamId);

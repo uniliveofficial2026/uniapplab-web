@@ -1,6 +1,10 @@
-import React, { useState } from 'react';
-import { ScanFace } from 'lucide-react';
+import React, { useCallback, useEffect, useRef, useState } from 'react';
+import { Film, Loader2, ScanFace, Upload } from 'lucide-react';
+import { AppCameraButton } from '../../components/camera/AppCameraButton';
+import { cameraCaptureToFile } from '../../lib/camera/cameraCaptureAdapters';
 import { CameraBeautyBottomShell } from '../../components/camera/CameraBeautyBottomShell';
+import { BeautyPresetThumb } from '../../components/camera/BeautyTrayThumbs';
+import { BodyShapeTray } from '../../components/camera/BodyShapeTray';
 import {
   CAMERA_BEAUTY_PANEL_TITLE,
   EFFECT_TRAY_BTN,
@@ -11,21 +15,14 @@ import {
   LIVE_BEAUTY_PRESETS,
   type BeautyPresetId,
 } from '../../lib/ar/beautyFilters';
-import { BodyShapeTray } from '../../components/camera/BodyShapeTray';
-import { EMPTY_BODY_SHAPE, type BodyShapeParams } from '../../lib/ar/bodyShape';
-import { getDeepAREffectPreviewCandidates } from '../../lib/deepar/deeparConfig';
+import { EMPTY_BODY_SHAPE, BODY_SHAPE_COMING_SOON, isBodyShapeActive, resolveBodyShapePresetId, type BodyShapeParams } from '../../lib/ar/bodyShape';
 import type { TencentEffectItem, TencentEffectSelection } from '../../lib/webar/webarTypes';
 import { EMPTY_TENCENT_EFFECT_SELECTION } from '../../lib/webar/webarTypes';
-
-/** Local pre-look thumbs for TRTC beauty presets (shared with DeepAR preview pack). */
-const TRTC_BEAUTY_PREVIEW_IDS: Record<string, string> = {
-  none: 'none',
-  'beauty-smooth': 'beauty-smooth',
-  'beauty-soft': 'beauty-soft',
-  'beauty-glow': 'beauty-glow',
-  'beauty-natural': 'beauty-soft',
-  'beauty-clear': 'beauty-smooth',
-};
+import {
+  BACKGROUND_UPLOAD_ACCEPT,
+  inferTencentBackgroundType,
+  prepareTencentWebARBackgroundMedia,
+} from '../../lib/webar/webarBackgroundImage';
 
 type BeautyTab = 'beauty' | 'shape' | 'makeup' | 'sticker' | 'filter' | 'background';
 
@@ -43,7 +40,12 @@ type LiveBeautySheetProps = {
     stickers: TencentEffectItem[];
     filters: TencentEffectItem[];
     backgrounds: string[];
+    beautyCovers?: Record<string, string>;
+    shapeCovers?: Record<string, string>;
+    shapeEffectByPreset?: Record<string, string>;
   };
+  /** Effect asset IDs preloaded and ready to apply without lag. */
+  readyEffectIds?: string[];
   /** Pixels from bottom edge (footer / transport clearance). */
   anchorBottom?: number;
   anchorMode?: 'fixed' | 'container';
@@ -51,16 +53,16 @@ type LiveBeautySheetProps = {
   webarLoading?: boolean;
   webarError?: string | null;
   /** Inline embed for settings panels — no fixed bottom shell. */
-  variant?: 'bottom' | 'inline';
+  variant?: 'bottom' | 'inline' | 'call';
 };
 
 const TABS: Array<{ id: BeautyTab; label: string }> = [
   { id: 'beauty', label: 'Beauty' },
-  { id: 'shape', label: 'Shape' },
   { id: 'makeup', label: 'Makeup' },
   { id: 'sticker', label: 'Sticker' },
   { id: 'filter', label: 'Filter' },
   { id: 'background', label: 'Background' },
+  { id: 'shape', label: 'Shape' },
 ];
 
 export function LiveBeautySheet({
@@ -73,6 +75,7 @@ export function LiveBeautySheet({
   bodyShape = EMPTY_BODY_SHAPE,
   onBodyShapeChange,
   catalogs,
+  readyEffectIds = [],
   anchorBottom = 0,
   anchorMode = 'fixed',
   webarConfigured = false,
@@ -81,10 +84,85 @@ export function LiveBeautySheet({
   variant = 'bottom',
 }: LiveBeautySheetProps) {
   const [tab, setTab] = useState<BeautyTab>('beauty');
+  const customBgInputRef = useRef<HTMLInputElement>(null);
+  const [uploadedBackgroundUrl, setUploadedBackgroundUrl] = useState<string | null>(null);
+  const [uploadedBackgroundLabel, setUploadedBackgroundLabel] = useState('My BG');
+  const [uploadingBackground, setUploadingBackground] = useState(false);
+  const readySet = useRef(new Set(readyEffectIds));
+
+  useEffect(() => {
+    readySet.current = new Set(readyEffectIds);
+  }, [readyEffectIds]);
+
+  useEffect(() => {
+    return () => {
+      if (uploadedBackgroundUrl?.startsWith('blob:')) {
+        URL.revokeObjectURL(uploadedBackgroundUrl);
+      }
+    };
+  }, [uploadedBackgroundUrl]);
 
   const patchEffects = (patch: Partial<TencentEffectSelection>) => {
     onEffectsChange?.({ ...effects, ...patch });
   };
+
+  const shapeEffectByPreset = catalogs?.shapeEffectByPreset ?? {};
+
+  const handleBodyShapeChange = useCallback(
+    (shape: BodyShapeParams) => {
+      if (BODY_SHAPE_COMING_SOON) return;
+      onBodyShapeChange?.(shape);
+      if (!onEffectsChange) return;
+      if (!isBodyShapeActive(shape)) {
+        onEffectsChange({ ...effects, shapeEffectId: null });
+        return;
+      }
+      const presetId = resolveBodyShapePresetId(shape);
+      const effectId =
+        presetId && presetId !== 'shape-natural' && shapeEffectByPreset[presetId]
+          ? shapeEffectByPreset[presetId]
+          : null;
+      onEffectsChange({ ...effects, shapeEffectId: effectId });
+    },
+    [effects, onBodyShapeChange, onEffectsChange, shapeEffectByPreset],
+  );
+
+  const handleCustomBackgroundUpload = useCallback(
+    async (file: File) => {
+      setUploadingBackground(true);
+      try {
+        const media = await prepareTencentWebARBackgroundMedia(file);
+        const baseName = file.name.replace(/\.[^.]+$/, '').trim();
+
+        setUploadedBackgroundUrl((prev) => {
+          if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+          return media.url;
+        });
+        setUploadedBackgroundLabel(baseName || 'My BG');
+        onEffectsChange?.({
+          ...effects,
+          backgroundUrl: media.url,
+          backgroundType: media.type,
+        });
+        window.dispatchEvent(
+          new CustomEvent('app-toast', {
+            detail: `${baseName || 'Background'} applied`,
+          }),
+        );
+      } catch (err) {
+        window.dispatchEvent(
+          new CustomEvent('app-toast', {
+            detail: err instanceof Error ? err.message : 'Could not load background',
+          }),
+        );
+      } finally {
+        setUploadingBackground(false);
+      }
+    },
+    [effects, onEffectsChange],
+  );
+
+  const isEffectReady = (id: string | null) => !id || readySet.current.has(id);
 
   const body = (
     <>
@@ -114,6 +192,11 @@ export function LiveBeautySheet({
               }`}
             >
               {entry.label}
+              {entry.id === 'shape' && BODY_SHAPE_COMING_SOON ? (
+                <span className="ml-1 rounded bg-amber-500/25 px-1 py-0.5 text-[8px] font-black text-amber-100">
+                  Soon
+                </span>
+              ) : null}
             </button>
           );
         })}
@@ -129,26 +212,20 @@ export function LiveBeautySheet({
                 type="button"
                 onClick={() => onSelectBeauty(preset.id)}
                 aria-pressed={selected}
-                className={`flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-2.5 py-2 transition touch-manipulation ${
-                  selected
-                    ? 'border-rose-200/70 bg-black/75 text-rose-50'
-                    : 'border-white/20 bg-black/70 text-white/90 hover:border-white/30 hover:bg-black/80'
+                className={`${EFFECT_TRAY_BTN} ${
+                  selected ? EFFECT_TRAY_BTN_ACTIVE : EFFECT_TRAY_BTN_IDLE
                 }`}
               >
                 <span
-                  className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border text-[11px] font-black ${
+                  className={`relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border ${
                     selected ? 'border-rose-200/70' : 'border-white/15'
                   }`}
-                  style={{ background: preset.swatch }}
                 >
-                  {preset.id === 'none' ? (
-                    'Off'
-                  ) : (
-                    <BeautyPrelookThumb
-                      effectId={TRTC_BEAUTY_PREVIEW_IDS[preset.id] ?? 'beauty-soft'}
-                      label={preset.label}
-                    />
-                  )}
+                  <BeautyPresetThumb
+                    presetId={preset.id}
+                    swatch={preset.swatch}
+                    label={preset.label}
+                  />
                 </span>
                 <span className="text-[10px] font-black uppercase tracking-wide">{preset.label}</span>
               </button>
@@ -160,8 +237,12 @@ export function LiveBeautySheet({
       {tab === 'shape' ? (
         <BodyShapeTray
           bodyShape={bodyShape}
-          onBodyShapeChange={onBodyShapeChange ?? (() => undefined)}
+          onBodyShapeChange={handleBodyShapeChange}
+          shapeCovers={catalogs?.shapeCovers}
+          shapeEffectByPreset={shapeEffectByPreset}
+          onShapeEffectChange={(id) => patchEffects({ shapeEffectId: id })}
           accent="rose"
+          bare={variant === 'call'}
         />
       ) : null}
 
@@ -172,6 +253,7 @@ export function LiveBeautySheet({
           items={catalogs?.makeups ?? []}
           onSelect={(id) => patchEffects({ makeupId: id })}
           emptyHint="Makeup presets load when TRTC WebAR is ready."
+          isReady={(id) => variant === 'call' || isEffectReady(id)}
         />
       ) : null}
 
@@ -182,6 +264,7 @@ export function LiveBeautySheet({
           items={catalogs?.stickers ?? []}
           onSelect={(id) => patchEffects({ stickerId: id })}
           emptyHint="Stickers load when TRTC WebAR is ready."
+          isReady={(id) => variant === 'call' || isEffectReady(id)}
         />
       ) : null}
 
@@ -192,18 +275,28 @@ export function LiveBeautySheet({
           items={catalogs?.filters ?? []}
           onSelect={(id) => patchEffects({ filterId: id })}
           emptyHint="Filters load when TRTC WebAR is ready."
+          isReady={() => true}
         />
       ) : null}
 
       {tab === 'background' ? (
         <div className="flex gap-2 overflow-x-auto scrollbar-hide touch-pan-x pb-0.5">
+          <input
+            ref={customBgInputRef}
+            type="file"
+            accept={BACKGROUND_UPLOAD_ACCEPT}
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleCustomBackgroundUpload(file);
+              e.target.value = '';
+            }}
+          />
           <button
             type="button"
-            onClick={() => patchEffects({ backgroundUrl: null })}
-            className={`flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-2.5 py-2 touch-manipulation ${
-              !effects.backgroundUrl
-                ? 'border-rose-200/70 bg-black/75 text-rose-50'
-                : 'border-white/20 bg-black/70 text-white/90'
+            onClick={() => patchEffects({ backgroundUrl: null, backgroundType: null })}
+            className={`${EFFECT_TRAY_BTN} ${
+              !effects.backgroundUrl ? EFFECT_TRAY_BTN_ACTIVE : EFFECT_TRAY_BTN_IDLE
             }`}
           >
             <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 text-[10px] font-black">
@@ -213,26 +306,104 @@ export function LiveBeautySheet({
           </button>
           {(catalogs?.backgrounds ?? []).map((url, index) => {
             const selected = effects.backgroundUrl === url;
+            const isVideo = inferTencentBackgroundType(url) === 'video';
+            const label = isVideo ? `VID ${index + 1}` : `BG ${index + 1}`;
             return (
               <button
                 key={url}
                 type="button"
-                onClick={() => patchEffects({ backgroundUrl: url })}
-                className={`flex min-w-[4.5rem] shrink-0 flex-col items-center gap-1.5 rounded-2xl border px-2.5 py-2 touch-manipulation ${
-                  selected
-                    ? 'border-rose-200/70 bg-black/75 text-rose-50'
-                    : 'border-white/20 bg-black/70 text-white/90 hover:border-white/30 hover:bg-black/80'
+                onClick={() =>
+                  patchEffects({
+                    backgroundUrl: url,
+                    backgroundType: inferTencentBackgroundType(url),
+                  })
+                }
+                className={`${EFFECT_TRAY_BTN} ${
+                  selected ? EFFECT_TRAY_BTN_ACTIVE : EFFECT_TRAY_BTN_IDLE
                 }`}
               >
-                <img
-                  src={url}
-                  alt=""
-                  className="h-10 w-10 rounded-full object-cover border border-white/15"
-                />
-                <span className="text-[10px] font-black uppercase">BG {index + 1}</span>
+                <BackgroundPresetThumb url={url} selected={selected} />
+                <span className="text-[10px] font-black uppercase">{label}</span>
               </button>
             );
           })}
+          <button
+            type="button"
+            disabled={uploadingBackground}
+            onClick={() => {
+              if (uploadedBackgroundUrl) {
+                patchEffects({
+                  backgroundUrl: uploadedBackgroundUrl,
+                  backgroundType: inferTencentBackgroundType(uploadedBackgroundUrl),
+                });
+              } else {
+                customBgInputRef.current?.click();
+              }
+            }}
+            onDoubleClick={() => customBgInputRef.current?.click()}
+            className={`relative ${EFFECT_TRAY_BTN} ${
+              uploadedBackgroundUrl && effects.backgroundUrl === uploadedBackgroundUrl
+                ? EFFECT_TRAY_BTN_ACTIVE
+                : EFFECT_TRAY_BTN_IDLE
+            }`}
+          >
+            {uploadingBackground ? (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70">
+                <Loader2 className="h-4 w-4 animate-spin text-white/80" aria-hidden />
+              </span>
+            ) : uploadedBackgroundUrl ? (
+              <BackgroundPresetThumb url={uploadedBackgroundUrl} selected={effects.backgroundUrl === uploadedBackgroundUrl} />
+            ) : (
+              <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70">
+                <Upload className="h-4 w-4 text-white/80" aria-hidden />
+              </span>
+            )}
+            <span className="max-w-[4.5rem] truncate text-[10px] font-black uppercase">
+              {uploadingBackground ? 'Loading…' : uploadedBackgroundUrl ? uploadedBackgroundLabel : 'Upload'}
+            </span>
+            {uploadedBackgroundUrl && !uploadingBackground ? (
+              <span
+                role="button"
+                tabIndex={0}
+                title="Replace file"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  customBgInputRef.current?.click();
+                }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault();
+                    e.stopPropagation();
+                    customBgInputRef.current?.click();
+                  }
+                }}
+                className="absolute right-1 top-1 z-10 rounded-full bg-black/60 p-1 text-white hover:bg-black/80"
+              >
+                <Upload className="h-3 w-3" aria-hidden />
+              </span>
+            ) : null}
+          </button>
+          <AppCameraButton
+            title="Live background"
+            onCaptured={(payload) => {
+              void (async () => {
+                try {
+                  const file = await cameraCaptureToFile(payload);
+                  await handleCustomBackgroundUpload(file);
+                } catch {
+                  window.dispatchEvent(
+                    new CustomEvent('app-toast', {
+                      detail: 'Could not add camera background',
+                    }),
+                  );
+                }
+              })();
+            }}
+            disabled={uploadingBackground}
+            className={`relative ${EFFECT_TRAY_BTN} ${EFFECT_TRAY_BTN_IDLE}`}
+            iconClassName="h-4 w-4 text-white/80"
+            label="Camera"
+          />
         </div>
       ) : null}
     </>
@@ -261,21 +432,43 @@ export function LiveBeautySheet({
   );
 }
 
-function BeautyPrelookThumb({ effectId, label }: { effectId: string; label: string }) {
-  const candidates = getDeepAREffectPreviewCandidates(effectId);
-  const [index, setIndex] = useState(0);
-  const src = candidates[Math.min(index, candidates.length - 1)] ?? candidates[0];
+/** Tray thumb — only the selected video animates; idle slots stay static to avoid GPU freeze. */
+function BackgroundPresetThumb({ url, selected }: { url: string; selected: boolean }) {
+  const isVideo = inferTencentBackgroundType(url) === 'video';
+
+  if (!isVideo) {
+    return (
+      <img
+        src={url}
+        alt=""
+        className="h-10 w-10 rounded-full object-cover border border-white/15"
+        loading="lazy"
+        decoding="async"
+        draggable={false}
+      />
+    );
+  }
+
+  if (selected) {
+    return (
+      <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-black/70">
+        <video
+          src={url}
+          muted
+          playsInline
+          autoPlay
+          loop
+          preload="auto"
+          className="absolute inset-0 h-full w-full object-cover"
+        />
+      </span>
+    );
+  }
+
   return (
-    <img
-      key={src}
-      src={src}
-      alt={label}
-      className="absolute inset-0 h-full w-full object-cover"
-      loading="lazy"
-      decoding="async"
-      draggable={false}
-      onError={() => setIndex((prev) => (prev + 1 < candidates.length ? prev + 1 : prev))}
-    />
+    <span className="relative flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/15 bg-gradient-to-br from-indigo-900/80 to-violet-900/60">
+      <Film className="h-4 w-4 text-white/85" aria-hidden />
+    </span>
   );
 }
 
@@ -285,12 +478,14 @@ function EffectGrid({
   items,
   onSelect,
   emptyHint,
+  isReady,
 }: {
   noneLabel: string;
   selectedId: string | null;
   items: TencentEffectItem[];
   onSelect: (id: string | null) => void;
   emptyHint: string;
+  isReady: (id: string | null) => boolean;
 }) {
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide touch-pan-x pb-0.5">
@@ -311,26 +506,38 @@ function EffectGrid({
       ) : (
         items.map((item) => {
           const selected = selectedId === item.id;
+          const ready = isReady(item.id);
           return (
             <button
               key={item.id}
               type="button"
+              disabled={!ready}
               onClick={() => onSelect(item.id)}
               className={`${EFFECT_TRAY_BTN} ${
                 selected ? EFFECT_TRAY_BTN_ACTIVE : EFFECT_TRAY_BTN_IDLE
-              }`}
+              } ${!ready ? 'opacity-60' : ''}`}
             >
-              {item.cover ? (
-                <img
-                  src={item.cover}
-                  alt=""
-                  className="h-10 w-10 rounded-full object-cover border border-white/15"
-                />
-              ) : (
-                <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 text-[10px] font-black">
-                  {item.name.slice(0, 1)}
-                </span>
-              )}
+              <span className="relative flex h-10 w-10 items-center justify-center">
+                {item.cover ? (
+                  <img
+                    src={item.cover}
+                    alt=""
+                    className="h-10 w-10 rounded-full object-cover border border-white/15"
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                ) : (
+                  <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 text-[10px] font-black">
+                    {item.name.slice(0, 1)}
+                  </span>
+                )}
+                {!ready ? (
+                  <span className="absolute inset-0 flex items-center justify-center rounded-full bg-black/55">
+                    <Loader2 className="h-4 w-4 animate-spin text-white/90" aria-hidden />
+                  </span>
+                ) : null}
+              </span>
               <span className="max-w-[4.5rem] truncate text-[10px] font-black uppercase tracking-wide">
                 {item.name}
               </span>

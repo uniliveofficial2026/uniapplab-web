@@ -26,8 +26,8 @@ export const LIVE_KIND_ROOM_MODE: Record<LiveKind, RoomMode> = {
   'audio-room': 'Chat',
   'video-multi': 'Multi-Guest',
   pk: 'Party',
-  commerce: 'Solo-Live',
-  game: 'Radio',
+  commerce: 'Commerce-Live',
+  game: 'Game-Live',
 };
 
 export function isLiveKind(value: unknown): value is LiveKind {
@@ -39,6 +39,8 @@ export function liveKindFromRoomMode(roomMode: string | undefined): LiveKind {
   switch (String(roomMode || '').trim()) {
     case 'Solo-Live':
       return 'solo';
+    case 'Commerce-Live':
+      return 'commerce';
     case 'Chat':
       return 'audio-room';
     case 'Multi-Guest':
@@ -46,6 +48,8 @@ export function liveKindFromRoomMode(roomMode: string | undefined): LiveKind {
     case 'Party':
       return 'pk';
     case 'Radio':
+      return 'game';
+    case 'Game-Live':
       return 'game';
     case 'Karaoke':
       return 'audio-room';
@@ -66,7 +70,9 @@ export function isLiveRingRoomMode(roomMode: string | undefined): boolean {
     mode === 'Chat' ||
     mode === 'Multi-Guest' ||
     mode === 'Party' ||
-    mode === 'Radio'
+    mode === 'Radio' ||
+    mode === 'Game-Live' ||
+    mode === 'Commerce-Live'
   );
 }
 

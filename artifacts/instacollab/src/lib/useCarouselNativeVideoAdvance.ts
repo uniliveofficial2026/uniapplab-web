@@ -11,6 +11,8 @@ export type CarouselNativeVideoAdvanceOptions = {
    * and re-enters native FS to avoid play/pause races.
    */
   coordinatorOwnsPlay?: boolean;
+  /** When true, playback is owned elsewhere (e.g. reel inline controller) — FS re-entry only. */
+  externalPlayback?: boolean;
 };
 
 /**
@@ -25,6 +27,7 @@ export function useCarouselNativeVideoAdvance(
   options?: CarouselNativeVideoAdvanceOptions
 ) {
   const coordinatorOwnsPlay = options?.coordinatorOwnsPlay !== false;
+  const externalPlayback = options?.externalPlayback === true;
   const pendingNativeReenterRef = useRef(false);
   const isVideoSlideTransitionRef = useRef(false);
   const prevMediaIdxRef = useRef(currentMediaIdx);
@@ -95,6 +98,11 @@ export function useCarouselNativeVideoAdvance(
       } catch {
         /* not seekable yet */
       }
+      if (externalPlayback) {
+        reenterNativeFsIfNeeded();
+        finishTransition();
+        return;
+      }
       if (coordinatorOwnsPlay) {
         requestPlaybackReconcile();
         reenterNativeFsIfNeeded();
@@ -139,7 +147,7 @@ export function useCarouselNativeVideoAdvance(
       v.removeEventListener('loadeddata', onMediaReady);
       v.removeEventListener('canplay', onMediaReady);
     };
-  }, [currentMediaIdx, mediaUrl, showVideo, videoRef, coordinatorOwnsPlay]);
+  }, [currentMediaIdx, mediaUrl, showVideo, videoRef, coordinatorOwnsPlay, externalPlayback]);
 
   return {
     wrapCarouselAdvance,

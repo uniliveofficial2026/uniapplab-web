@@ -4,10 +4,17 @@ import { isSupabaseConfigured } from '../supabase/config';
 import { isUnifiedLiveMode } from '../unifiedLive';
 import { enableDevLocalAuthBypass } from './devLocalAuth';
 
-export const DEMO_EMAIL = 'demo@instacollab.app';
+export const DEMO_EMAIL = 'demo@unilive.app';
+export const DEMO_EMAIL_LEGACY = 'demo@instacollab.app';
+export const DEMO_EMAIL_SARAH = 'sarah@unilive.app';
 export const DEMO_PASSWORD = 'demo123';
 
-const DEMO_EMAILS = new Set([DEMO_EMAIL, 'sarah@instacollab.app']);
+const DEMO_EMAILS = new Set([
+  DEMO_EMAIL,
+  DEMO_EMAIL_LEGACY,
+  DEMO_EMAIL_SARAH,
+  'sarah@instacollab.app',
+]);
 
 export function isKnownLocalDemoEmail(email: string): boolean {
   return DEMO_EMAILS.has(email.trim().toLowerCase());
@@ -33,7 +40,7 @@ export function loginDemoAccountLocal(
   if (password !== DEMO_PASSWORD) {
     return {
       ok: false,
-      reason: `Demo password is ${DEMO_PASSWORD} for ${DEMO_EMAIL} and sarah@instacollab.app.`,
+      reason: `Demo password is ${DEMO_PASSWORD}.`,
     };
   }
 

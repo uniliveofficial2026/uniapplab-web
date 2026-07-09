@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useGoogleWorkspacePoll } from '../../hooks/useGoogleWorkspacePoll';
 import { useAuth } from '../../lib/AuthContext';
 import { useDB } from '../../lib/useDB';
 import { 
@@ -14,12 +15,29 @@ interface GoogleDocItem {
   bodyContent?: string;
 }
 
+const DOCS_SEED: GoogleDocItem[] = [
+  {
+    id: 'doc_1',
+    name: 'unilive-ryz8n6 Project Manifest',
+    modifiedTime: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
+    snippet: 'This document defines the high-fidelity guidelines, design typography pairings, and security boundaries.',
+    bodyContent: 'unilive-ryz8n6 Project Manifest\n================================\n\nThis document outlines the core specification for the UniLive workspace application.\n\nKey Components:\n1. Firebase provisioning on us-west1 (projectId: unilive-ryz8n6).\n2. Strict Firestore rules locking permissions to authenticated profiles using zero-trust helper parameters.\n3. Complete integration with Google Workspace suite: Calendar scheduler, Gmail inbox, Contacts ledger, Google Picker, and Google Docs.',
+  },
+  {
+    id: 'doc_2',
+    name: 'Firestore Security Audit Plan',
+    modifiedTime: new Date(Date.now() - 360 * 3600000).toISOString(),
+    snippet: 'Zero-trust architecture. Prevent side-channel data leaks and check immutable metadata validation rules.',
+    bodyContent: 'Firestore Security Audit Plan\n============================\n\nObjective: Ensure complete data locking on production collections.\n\nRules specifications:\n- Users table write locks: allow write / update only if resource UID is identical to request.auth.uid.\n- Immutable username: prevent username alterations once the setup steps complete.\n- Custom validators matching strings & formats.',
+  },
+];
+
 export function GoogleDocsTab() {
   const { googleAccessToken, loginWithGoogle } = useAuth();
   const db = useDB();
 
-  const [docs, setDocs] = useState<GoogleDocItem[]>([]);
-  const [loading, setLoading] = useState(false);
+  const [docs, setDocs] = useState<GoogleDocItem[]>(DOCS_SEED);
+  const [manualRefresh, setManualRefresh] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedDoc, setSelectedDoc] = useState<GoogleDocItem | null>(null);
 
@@ -34,32 +52,12 @@ export function GoogleDocsTab() {
   const [newTitle, setNewTitle] = useState('');
   const [creating, setCreating] = useState(false);
 
-  // Rich seed docs
-  const seedDocs: GoogleDocItem[] = [
-    {
-      id: 'doc_1',
-      name: 'unilive-ryz8n6 Project Manifest',
-      modifiedTime: new Date(Date.now() - 3600 * 1000 * 4).toISOString(),
-      snippet: 'This document defines the high-fidelity guidelines, design typography pairings, and security boundaries.',
-      bodyContent: 'unilive-ryz8n6 Project Manifest\n================================\n\nThis document outlines the core specification for the UniLive workspace application.\n\nKey Components:\n1. Firebase provisioning on us-west1 (projectId: unilive-ryz8n6).\n2. Strict Firestore rules locking permissions to authenticated profiles using zero-trust helper parameters.\n3. Complete integration with Google Workspace suite: Calendar scheduler, Gmail inbox, Contacts ledger, Google Picker, and Google Docs.'
-    },
-    {
-      id: 'doc_2',
-      name: 'Firestore Security Audit Plan',
-      modifiedTime: new Date(Date.now() - 360 * 3600000).toISOString(),
-      snippet: 'Zero-trust architecture. Prevent side-channel data leaks and check immutable metadata validation rules.',
-      bodyContent: 'Firestore Security Audit Plan\n============================\n\nObjective: Ensure complete data locking on production collections.\n\nRules specifications:\n- Users table write locks: allow write / update only if resource UID is identical to request.auth.uid.\n- Immutable username: prevent username alterations once the setup steps complete.\n- Custom validators matching strings & formats.'
-    }
-  ];
-
   const fetchDocs = async () => {
     if (!googleAccessToken) {
-      setDocs(seedDocs);
+      setDocs(DOCS_SEED);
       return;
     }
-    setLoading(true);
     try {
-      // Fetch user Google Docs list via verified drive list query parameters
       const driveListUrl = `https://www.googleapis.com/drive/v3/files?q=mimeType='application/vnd.google-apps.document'&fields=files(id,name,modifiedTime)&pageSize=20`;
       const res = await fetch(driveListUrl, {
         headers: { Authorization: `Bearer ${googleAccessToken}` }
@@ -77,20 +75,17 @@ export function GoogleDocsTab() {
       setDocs(mapped);
     } catch (e) {
       console.error('Error fetching Docs', e);
-      setDocs([]);
-    } finally {
-      setLoading(false);
     }
   };
 
   const fetchDocBody = async (doc: GoogleDocItem) => {
+    setEditTitle(doc.name);
+    setEditContent(doc.bodyContent || '');
+    setSelectedDoc(doc);
+
     if (!googleAccessToken) {
-      setEditTitle(doc.name);
-      setEditContent(doc.bodyContent || '');
-      setSelectedDoc(doc);
       return;
     }
-    setLoading(true);
     try {
       const res = await fetch(`https://docs.googleapis.com/v1/documents/${doc.id}`, {
         headers: { Authorization: `Bearer ${googleAccessToken}` }
@@ -116,18 +111,17 @@ export function GoogleDocsTab() {
       setEditContent(fullText || '');
       setSelectedDoc({ ...doc, name: data.title || doc.name, bodyContent: fullText });
     } catch (e: any) {
-      alert(e.message || 'Error pulling document data, showing offline draft.');
-      setEditTitle(doc.name);
-      setEditContent(doc.bodyContent || '');
-      setSelectedDoc(doc);
-    } finally {
-      setLoading(false);
+      console.error('Error pulling document data', e);
     }
   };
 
   useEffect(() => {
-    fetchDocs();
+    if (!googleAccessToken) {
+      fetchDocs();
+    }
   }, [googleAccessToken]);
+
+  useGoogleWorkspacePoll(fetchDocs, Boolean(googleAccessToken));
 
   const handleCreateDocument = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -339,11 +333,14 @@ export function GoogleDocsTab() {
               <Plus className="w-3.5 h-3.5" /> Initialize Doc
             </button>
             <button 
-              onClick={fetchDocs}
-              disabled={loading}
+              onClick={() => {
+                setManualRefresh(true);
+                void fetchDocs().finally(() => setManualRefresh(false));
+              }}
+              disabled={manualRefresh}
               className="p-2 border border-border hover:bg-secondary/40 text-muted-foreground hover:text-foreground rounded-xl"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${loading ? 'animate-spin' : ''}`} />
+              <RefreshCw className={`w-3.5 h-3.5 ${manualRefresh ? 'animate-spin' : ''}`} />
             </button>
           </div>
         </div>
@@ -377,12 +374,7 @@ export function GoogleDocsTab() {
 
         {/* Documents Content list */}
         <div className="flex-1 overflow-y-auto divide-y divide-border/60 max-h-[480px]">
-          {loading && !selectedDoc ? (
-            <div className="text-center py-20 text-xs text-muted-foreground font-medium">
-              <RefreshCw className="w-6 h-6 animate-spin mx-auto text-primary mb-3" />
-              Loading drive resources...
-            </div>
-          ) : filteredDocs.length === 0 ? (
+          {filteredDocs.length === 0 ? (
             <div className="text-center py-20 text-muted-foreground">
               <FileText className="w-8 h-8 mx-auto stroke-1 text-muted-foreground/50 mb-2" />
               <p className="text-xs font-bold">No documents matching</p>

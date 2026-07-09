@@ -1,7 +1,8 @@
+type CanvasRenderingContext2D = globalThis.CanvasRenderingContext2D;
+
 type SegmentationScratch = {
   maskCanvas: HTMLCanvasElement;
   maskCtx: CanvasRenderingContext2D;
-  maskImageData: ImageData | null;
   bgCanvas: HTMLCanvasElement;
   bgCtx: CanvasRenderingContext2D;
   personCanvas: HTMLCanvasElement;
@@ -33,7 +34,6 @@ function getSegmentationScratch(maskWidth: number, maskHeight: number): Segmenta
     segmentationScratch = {
       maskCanvas,
       maskCtx,
-      maskImageData: null,
       bgCanvas,
       bgCtx,
       personCanvas,
@@ -41,14 +41,6 @@ function getSegmentationScratch(maskWidth: number, maskHeight: number): Segmenta
       maskWidth,
       maskHeight,
     };
-  }
-
-  if (
-    !segmentationScratch.maskImageData ||
-    segmentationScratch.maskImageData.width !== maskWidth ||
-    segmentationScratch.maskImageData.height !== maskHeight
-  ) {
-    segmentationScratch.maskImageData = segmentationScratch.maskCtx.createImageData(maskWidth, maskHeight);
   }
 
   return segmentationScratch;
@@ -71,28 +63,22 @@ export function drawVideoFrame(
 }
 
 export function updateMaskCanvas(
-  scratch: SegmentationScratch,
+  maskCtx: CanvasRenderingContext2D,
   mask: Float32Array,
   maskWidth: number,
   maskHeight: number,
-  mirror: boolean,
 ) {
-  const imageData =
-    scratch.maskImageData ?? scratch.maskCtx.createImageData(maskWidth, maskHeight);
-  scratch.maskImageData = imageData;
+  const imageData = maskCtx.createImageData(maskWidth, maskHeight);
   const pixels = maskWidth * maskHeight;
-  for (let y = 0; y < maskHeight; y++) {
-    for (let x = 0; x < maskWidth; x++) {
-      const srcX = mirror ? maskWidth - 1 - x : x;
-      const alpha = Math.round(Math.min(1, Math.max(0, mask[y * maskWidth + srcX] ?? 0)) * 255);
-      const offset = (y * maskWidth + x) * 4;
-      imageData.data[offset] = 255;
-      imageData.data[offset + 1] = 255;
-      imageData.data[offset + 2] = 255;
-      imageData.data[offset + 3] = alpha;
-    }
+  for (let i = 0; i < pixels; i++) {
+    const alpha = Math.round(Math.min(1, Math.max(0, mask[i] ?? 0)) * 255);
+    const offset = i * 4;
+    imageData.data[offset] = 255;
+    imageData.data[offset + 1] = 255;
+    imageData.data[offset + 2] = 255;
+    imageData.data[offset + 3] = alpha;
   }
-  scratch.maskCtx.putImageData(imageData, 0, 0);
+  maskCtx.putImageData(imageData, 0, 0);
 }
 
 export function drawSegmentationComposite(
@@ -112,7 +98,7 @@ export function drawSegmentationComposite(
   }
 
   const scratch = getSegmentationScratch(maskWidth, maskHeight);
-  updateMaskCanvas(scratch, mask, maskWidth, maskHeight, mirror);
+  updateMaskCanvas(scratch.maskCtx, mask, maskWidth, maskHeight);
 
   if (scratch.bgCanvas.width !== width || scratch.bgCanvas.height !== height) {
     scratch.bgCanvas.width = width;

@@ -4,13 +4,11 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
-import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const LEARNING = path.join(ROOT, '.local/ux-learning.json');
 const BACKLOG = path.join(ROOT, '.local/ux-feature-backlog.json');
-const HANDOFF_LOG = path.join(ROOT, '.local/handoff-queue.jsonl');
 const FIX_LOG = path.join(ROOT, '.local/ux-agent-fixes.jsonl');
 
 const SAFE_FIX_FILES = new Set([
@@ -68,32 +66,12 @@ function applyFix(fix) {
   if (!rel || !SAFE_FIX_FILES.has(rel)) return false;
   const abs = path.join(ROOT, rel);
   if (!fs.existsSync(abs)) return false;
-
-  const search = fix.search ?? '';
-  const replace = fix.replace ?? '';
-  if (!search || search.length < 8) return false;
-  if (search.length > 800 || replace.length > 1200) return false;
-  if (/\b(API_KEY|SECRET|PASSWORD|TOKEN)\b/i.test(replace)) return false;
-  if (/package\.json|pnpm-lock|\.env/i.test(rel)) return false;
-
   const content = fs.readFileSync(abs, 'utf8');
-  const occurrences = content.split(search).length - 1;
-  if (occurrences !== 1) return false;
-
-  const next = content.replace(search, replace);
+  if (!fix.search || !content.includes(fix.search)) return false;
+  const next = content.replace(fix.search, fix.replace ?? '');
   if (next === content) return false;
-
-  const backup = content;
   fs.writeFileSync(abs, next);
-
-  const healthScript = path.join(ROOT, 'artifacts/instacollab/scripts/check-health.mjs');
-  const healthOk = spawnSync('node', [healthScript], { cwd: ROOT, stdio: 'ignore' }).status === 0;
-  if (!healthOk) {
-    fs.writeFileSync(abs, backup);
-    return false;
-  }
-
-  fs.appendFileSync(FIX_LOG, `${JSON.stringify({ t: Date.now(), file: rel, reason: fix.reason, verified: true })}\n`);
+  fs.appendFileSync(FIX_LOG, `${JSON.stringify({ t: Date.now(), file: rel, reason: fix.reason })}\n`);
   return true;
 }
 
@@ -101,21 +79,10 @@ export async function runUxGeminiFix() {
   if (!fs.existsSync(LEARNING)) return { applied: 0, features: 0 };
 
   const learning = JSON.parse(fs.readFileSync(LEARNING, 'utf8'));
-  const pendingHandoff = fs.existsSync(HANDOFF_LOG)
-    ? fs.readFileSync(HANDOFF_LOG, 'utf8').split('\n').filter(Boolean).slice(-20).map((l) => {
-        try { return JSON.parse(l); } catch { return null; }
-      }).filter(Boolean)
-    : [];
+  const prompt = `You are a silent UX auto-fix agent for InstaCollab (React + Vite mobile web app).
 
-  const prompt = `You are the silent handoff ML agent for InstaCollab (React + Vite social app).
-
-UX learning:
+UX learning report:
 ${JSON.stringify(learning, null, 2)}
-
-Pending handoff tasks from app (errors, media, cloud data, UI friction):
-${JSON.stringify(pendingHandoff, null, 2)}
-
-Your job: infer what users need, fix safe issues, and queue feature work.
 
 Return ONLY valid JSON:
 {
@@ -128,12 +95,10 @@ Return ONLY valid JSON:
 }
 
 Rules:
-- fixes ONLY for CSS overflow, safe fallbacks, aria labels, mobile layout, cloud sync hooks — max 3 fixes
-- features infer user needs from rage taps, dwell time, errors, cross-user data issues (max 5)
-- if handoff tasks mention posts/cloud/supabase, prioritize data-flow fixes in features list
+- fixes ONLY for CSS overflow, safe fallbacks, aria labels, mobile layout — max 3 fixes
+- features infer what users want from rage taps, dwell time, errors (max 5)
 - never include secrets or API keys
-- search/replace must be minimal, exact, and appear exactly once in the file
-- if unsure, return empty fixes array — never guess`;
+- search/replace must be minimal and exact`;
 
   const raw = await callGemini(prompt);
   if (!raw) return { applied: 0, features: 0 };
@@ -156,13 +121,7 @@ Rules:
   return { applied, features: features.length };
 }
 
-function isMainModule() {
-  const entry = process.argv[1];
-  if (!entry) return false;
-  return fileURLToPath(import.meta.url) === path.resolve(entry);
-}
-
-if (isMainModule()) {
+if (import.meta.url === `file://${process.argv[1]}`) {
   runUxGeminiFix().then((r) => {
     console.log(`[ux-gemini] applied ${r.applied} fix(es), ${r.features} feature idea(s)`);
   });

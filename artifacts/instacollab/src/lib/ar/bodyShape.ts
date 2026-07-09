@@ -1,5 +1,7 @@
-import type { TencentBeautifyParams } from '../webar/webarTypes';
 import { getDeepAREffectPreviewCandidates } from '../deepar/deeparConfig';
+
+/** Body shape sculpt UI is visible but controls stay disabled until TRTC body sculpt ships. */
+export const BODY_SHAPE_COMING_SOON = true;
 
 /** Unified body / face sculpt controls (0–100, 50 = neutral). */
 export type BodyShapeParams = {
@@ -60,49 +62,49 @@ export const BODY_SHAPE_PRESETS: BodyShapePreset[] = [
   {
     id: 'shape-natural',
     label: 'Natural',
-    previewId: 'shape-natural',
+    previewId: 'beauty-natural',
     swatch: '#a8a29e',
     values: { ...EMPTY_BODY_SHAPE },
   },
   {
     id: 'shape-slim-face',
     label: 'Slim Face',
-    previewId: 'shape-slim-face',
+    previewId: 'beauty-smooth',
     swatch: '#f9a8d4',
     values: { ...EMPTY_BODY_SHAPE, faceSlim: 78, jawline: 72, chin: 62 },
   },
   {
     id: 'shape-full-face',
     label: 'Full Face',
-    previewId: 'shape-full-face',
+    previewId: 'beauty-soft',
     swatch: '#fda4af',
     values: { ...EMPTY_BODY_SHAPE, faceFull: 72, lipFull: 58 },
   },
   {
     id: 'shape-vline',
     label: 'V-Line',
-    previewId: 'shape-vline',
+    previewId: 'beauty-clear',
     swatch: '#93c5fd',
     values: { ...EMPTY_BODY_SHAPE, faceSlim: 70, jawline: 80, chin: 68 },
   },
   {
     id: 'shape-big-eyes',
     label: 'Big Eyes',
-    previewId: 'shape-big-eyes',
+    previewId: 'beauty-glow',
     swatch: '#fcd34d',
     values: { ...EMPTY_BODY_SHAPE, eyeSize: 75 },
   },
   {
     id: 'shape-model-waist',
     label: 'Slim Waist',
-    previewId: 'shape-model-waist',
+    previewId: 'beauty-smooth',
     swatch: '#c4b5fd',
     values: { ...EMPTY_BODY_SHAPE, waistSlim: 76, bodySlim: 68, faceSlim: 58 },
   },
   {
     id: 'shape-curvy',
     label: 'Curvy',
-    previewId: 'shape-curvy',
+    previewId: 'beauty-soft',
     swatch: '#fb7185',
     values: {
       ...EMPTY_BODY_SHAPE,
@@ -115,14 +117,14 @@ export const BODY_SHAPE_PRESETS: BodyShapePreset[] = [
   {
     id: 'shape-long-legs',
     label: 'Long Legs',
-    previewId: 'shape-long-legs',
+    previewId: 'beauty-natural',
     swatch: '#86efac',
     values: { ...EMPTY_BODY_SHAPE, longLegs: 78, headBodyRatio: 62, bodySlim: 60 },
   },
   {
     id: 'shape-athletic',
     label: 'Athletic',
-    previewId: 'shape-athletic',
+    previewId: 'beauty-clear',
     swatch: '#67e8f9',
     values: {
       ...EMPTY_BODY_SHAPE,
@@ -136,7 +138,7 @@ export const BODY_SHAPE_PRESETS: BodyShapePreset[] = [
   {
     id: 'shape-glam',
     label: 'Glam',
-    previewId: 'shape-glam',
+    previewId: 'beauty-glow',
     swatch: '#f0abfc',
     values: {
       ...EMPTY_BODY_SHAPE,
@@ -198,29 +200,26 @@ export function sliderToMorph(slider: number, strength = 0.35): number {
   return clamp01(0.5 + ((slider - 50) / 50) * strength);
 }
 
-export function bodyShapeToTencent(shape: BodyShapeParams): Partial<TencentBeautifyParams> {
-  const slim = (shape.faceSlim - 50) / 50;
-  const jaw = (shape.jawline - 50) / 50;
-  const eyes = (shape.eyeSize - 50) / 50;
-  const chin = (shape.chin - 50) / 50;
-  const waist = (shape.waistSlim - shape.waistFull) / 50;
-  const body = (shape.bodySlim - shape.bodyFull) / 50;
-  const legs = (shape.longLegs - 50) / 50;
-
-  return {
-    shave: clamp01(0.5 + slim * 0.45 + jaw * 0.15 + waist * 0.1 + body * 0.08),
-    lift: clamp01(0.5 + (shape.forehead - 50) / 120 + waist * 0.12 + body * 0.06),
-    eye: clamp01(0.5 + eyes * 0.5),
-    chin: clamp01(0.5 + chin * 0.45 - jaw * 0.1 + legs * 0.05),
-  };
-}
-
 export function isBodyShapeActive(shape: BodyShapeParams): boolean {
   return Object.values(shape).some((value) => Math.abs(value - 50) > 2);
 }
 
 export function bodyShapePresetById(id: string): BodyShapePreset | undefined {
   return BODY_SHAPE_PRESETS.find((preset) => preset.id === id);
+}
+
+/** Match slider values to the closest preset (for TRTC shape EffectId lookup). */
+export function resolveBodyShapePresetId(shape: BodyShapeParams): string | null {
+  for (const preset of BODY_SHAPE_PRESETS) {
+    const match = BODY_SHAPE_SLIDER_GROUPS.every((group) =>
+      group.sliders.every(
+        (slider) =>
+          Math.abs((shape[slider.key] ?? 50) - (preset.values[slider.key] ?? 50)) < 4,
+      ),
+    );
+    if (match) return preset.id;
+  }
+  return null;
 }
 
 export type DeepARBeautyMorphApi = {
@@ -257,6 +256,25 @@ export async function applyBodyShapeToDeepAR(
   const legs = (shape.longLegs - 50) / 50;
   const headRatio = (shape.headBodyRatio - 50) / 50;
   const lipBoost = (shape.lipFull - 50 + (shape.chestEnhance - 50) * 0.15) / 50;
+
+  await beauty.disable(false);
+  await beauty.faceMorphing.disable(false);
+
+  await beauty.faceMorphing.faceShape.set(sliderToMorph(shape.faceSlim - full * 20));
+  await beauty.faceMorphing.jawlineShape.set(sliderToMorph(shape.jawline));
+  await beauty.faceMorphing.eyeSize.set(sliderToMorph(shape.eyeSize));
+  await beauty.faceMorphing.chinSize.set(sliderToMorph(shape.chin - legs * 8));
+  await beauty.faceMorphing.foreheadSize.set(sliderToMorph(shape.forehead - headRatio * 12));
+  await beauty.faceMorphing.noseSize.set(sliderToMorph(shape.nose));
+  await beauty.faceMorphing.lipFullness.set(sliderToMorph(50 + lipBoost * 50));
+  await beauty.faceMorphing.lipsWidth.set(sliderToMorph(shape.lipFull));
+  await beauty.faceMorphing.mouthPositionVertical.set(
+    sliderToMorph(50 + (shape.hipEnhance - 50) * 0.12),
+  );
+  await beauty.faceMorphing.eyebrowsThickness.set(
+    sliderToMorph(50 + (shape.shoulderSculpt - 50) * 0.25),
+  );
+
   const smooth = clamp01(
     0.15 +
       Math.abs(slim) * 0.12 +
@@ -264,25 +282,8 @@ export async function applyBodyShapeToDeepAR(
       Math.abs(body) * 0.08 +
       (shape.abdomenDefine - 50) / 200,
   );
+  await beauty.skinSmoothing.set(smooth * 0.45);
 
-  await beauty.disable(false);
-  await beauty.faceMorphing.disable(false);
-
-  await Promise.all([
-    beauty.faceMorphing.faceShape.set(sliderToMorph(shape.faceSlim - full * 20)),
-    beauty.faceMorphing.jawlineShape.set(sliderToMorph(shape.jawline)),
-    beauty.faceMorphing.eyeSize.set(sliderToMorph(shape.eyeSize)),
-    beauty.faceMorphing.chinSize.set(sliderToMorph(shape.chin - legs * 8)),
-    beauty.faceMorphing.foreheadSize.set(sliderToMorph(shape.forehead - headRatio * 12)),
-    beauty.faceMorphing.noseSize.set(sliderToMorph(shape.nose)),
-    beauty.faceMorphing.lipFullness.set(sliderToMorph(50 + lipBoost * 50)),
-    beauty.faceMorphing.lipsWidth.set(sliderToMorph(shape.lipFull)),
-    beauty.faceMorphing.mouthPositionVertical.set(
-      sliderToMorph(50 + (shape.hipEnhance - 50) * 0.12),
-    ),
-    beauty.faceMorphing.eyebrowsThickness.set(
-      sliderToMorph(50 + (shape.shoulderSculpt - 50) * 0.25),
-    ),
-    beauty.skinSmoothing.set(smooth * 0.45),
-  ]);
+  void shape.armSculpt;
+  void shape.clavicleDefine;
 }

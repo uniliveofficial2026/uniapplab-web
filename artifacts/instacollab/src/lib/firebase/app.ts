@@ -8,6 +8,7 @@ import {
   persistentMultipleTabManager,
   type Firestore,
 } from 'firebase/firestore';
+import { getStorage, type FirebaseStorage } from 'firebase/storage';
 import { isFirebaseConfigured } from './config';
 import { ensureBundledFirebaseConfig, getRuntimeFirebaseConfig } from './runtimeAuthConfig';
 import { getFirebaseWebConfig } from './firebaseConfig';
@@ -15,6 +16,7 @@ import { getFirebaseWebConfig } from './firebaseConfig';
 let app: FirebaseApp | null = null;
 let auth: Auth | null = null;
 let firestore: Firestore | null = null;
+let storage: FirebaseStorage | null = null;
 
 /** Single Firebase app — reuse [DEFAULT] if already registered (avoids duplicate-app). */
 export function getFirebaseApp(): FirebaseApp | null {
@@ -82,10 +84,17 @@ export function getFirebaseFirestore(): Firestore | null {
         dbId,
       );
     } catch {
-      firestore = getFirestore(firebaseApp, dbId === 'default' ? undefined : dbId);
+      firestore = dbId === 'default' ? getFirestore(firebaseApp) : getFirestore(firebaseApp, dbId);
     }
   }
   return firestore;
+}
+
+export function getFirebaseStorage(): FirebaseStorage | null {
+  const firebaseApp = getFirebaseApp();
+  if (!firebaseApp) return null;
+  if (!storage) storage = getStorage(firebaseApp);
+  return storage;
 }
 
 /** @deprecated use getFirebaseFirestore */

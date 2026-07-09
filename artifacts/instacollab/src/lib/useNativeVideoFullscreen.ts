@@ -3,7 +3,7 @@ import {
   isVideoElementNativeFullscreen,
   tryEnterVideoFullscreen,
   tryExitVideoFullscreen,
-} from './safe';
+} from './nativeVideoPlatform';
 
 /** Track native `<video>` fullscreen (standard API + iOS webkit). */
 export function useNativeVideoFullscreen(

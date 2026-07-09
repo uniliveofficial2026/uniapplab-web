@@ -13,8 +13,9 @@
         try {
           var raw = localStorage.getItem('app_settings');
           var theme = 'dark';
+          var s = null;
           if (raw && raw !== 'undefined') {
-            var s = JSON.parse(raw);
+            s = JSON.parse(raw);
             if (s && (s.theme === 'light' || s.theme === 'dark')) theme = s.theme;
           }
           var root = document.documentElement;
@@ -23,6 +24,31 @@
           // Instant paint colors before CSS/JS load
           document.documentElement.style.backgroundColor = theme === 'dark' ? '#020617' : '#f8fafc';
           document.documentElement.style.color = theme === 'dark' ? '#ffffff' : '#000000';
+          // Custom app logo → favicon / home-screen icon before React boots
+          var brandHref = null;
+          try {
+            var platformRaw = localStorage.getItem('platform_app_brand_remote');
+            if (platformRaw) {
+              var platform = JSON.parse(platformRaw);
+              if (platform && typeof platform.logoUrl === 'string' && platform.logoUrl && platform.mediaType !== 'video') {
+                brandHref = platform.logoUrl;
+              }
+            }
+          } catch (e) {}
+          if (!brandHref && s && typeof s.appLogoUrl === 'string' && s.appLogoUrl && s.appLogoMediaType !== 'video') {
+            brandHref = s.appLogoUrl;
+          }
+          if (brandHref) {
+            var href = brandHref;
+            var icon = document.createElement('link');
+            icon.rel = 'icon';
+            icon.href = href;
+            document.head.appendChild(icon);
+            var apple = document.createElement('link');
+            apple.rel = 'apple-touch-icon';
+            apple.href = href;
+            document.head.appendChild(apple);
+          }
         } catch (e) {}
       })();
     </script>
@@ -41,13 +67,13 @@
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
     </noscript>
     <title>UniLive</title>
-    <meta name="description" content="UniLive — social platform for creators" />
+    <meta name="description" content="UniLive — create, connect, and collaborate in real time." />
     <meta property="og:title" content="UniLive" />
-    <meta property="og:description" content="UniLive — social platform for creators" />
+    <meta property="og:description" content="UniLive — create, connect, and collaborate in real time." />
     <meta property="og:type" content="website" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="UniLive" />
-    <meta name="twitter:description" content="UniLive — social platform for creators" />
+    <meta name="twitter:description" content="UniLive — create, connect, and collaborate in real time." />
     <style>
       /* Visible before any JS — prevents blank white/black flash */
       html, body {
@@ -68,10 +94,11 @@
         flex-direction: column;
         background: inherit;
         color: inherit;
-        z-index: 0;
+        z-index: 9999;
+        pointer-events: none;
       }
       #boot-shell .boot-top {
-        height: calc(3.25rem + var(--app-safe-top, env(safe-area-inset-top, 0px)));
+        height: calc(3.25rem + env(safe-area-inset-top, 0px));
         border-bottom: 1px solid rgba(148, 163, 184, 0.25);
         flex-shrink: 0;
       }
@@ -94,14 +121,11 @@
         background: rgba(148, 163, 184, 0.15);
       }
       #boot-shell .boot-nav {
-        height: calc(3.25rem + var(--app-safe-bottom, env(safe-area-inset-bottom, 0px)));
+        height: calc(3.25rem + env(safe-area-inset-bottom, 0px));
         border-top: 1px solid rgba(148, 163, 184, 0.25);
         flex-shrink: 0;
       }
-      #root:not(:empty) + #boot-shell,
-      #root:has(*) ~ #boot-shell {
-        display: none;
-      }
+      /* Boot shell stays visible until app signals ready — prevents flash between skeleton and Shell. */
     </style>
   </head>
   <body>

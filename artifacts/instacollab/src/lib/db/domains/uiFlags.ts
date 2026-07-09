@@ -21,12 +21,14 @@ export function WithUiFlags<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
 
     get isFullScreenActive() { return this.load('isFullScreenActive', false); }
     setFullScreenActive = (active: boolean) => {
+      if (this.isFullScreenActive === active) return;
       this.save('isFullScreenActive', active);
     };
 
     /** True while Shell create / edit modal is open — pauses feed, reels, and modals. */
     get isCreatorEditingActive() { return this.load('isCreatorEditingActive', false); }
     setCreatorEditingActive = (active: boolean) => {
+      if (this.isCreatorEditingActive === active) return;
       this.save('isCreatorEditingActive', active);
     };
 

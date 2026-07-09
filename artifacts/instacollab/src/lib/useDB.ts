@@ -9,9 +9,11 @@ export function useDB() {
   const [, setRevision] = useState(0);
 
   useEffect(() => {
-    const unsubscribe = db.subscribe(() => setRevision((r) => r + 1));
+    const unsub = db.subscribe(() => {
+      setRevision((r) => r + 1);
+    });
     return () => {
-      unsubscribe();
+      unsub();
     };
   }, []);
 
@@ -22,9 +24,11 @@ export function useDB() {
 export function useDbRevision(): number {
   const [revision, setRevision] = useState(0);
   useEffect(() => {
-    const unsubscribe = db.subscribe(() => setRevision((r) => r + 1));
+    const unsub = db.subscribe(() => {
+      setRevision((r) => r + 1);
+    });
     return () => {
-      unsubscribe();
+      unsub();
     };
   }, []);
   return revision;

@@ -1,6 +1,5 @@
 import type { NormalizedLandmark } from '@mediapipe/tasks-vision';
 import * as THREE from 'three';
-import { getBeautyVideoFilter } from '../beautyFilters';
 import { drawSegmentationComposite, drawVideoFrame } from '../composite';
 import { getEffectProfile } from '../effectProfiles';
 import { animateEffectObject, buildEffectObject } from './effectObjects';
@@ -31,8 +30,6 @@ export class FaceARRenderer {
   private useCompositeTexture = false;
   private width = 1;
   private height = 1;
-  private lastResizeWidth = 0;
-  private lastResizeHeight = 0;
 
   constructor(video: HTMLVideoElement, options: FaceARRendererOptions = {}) {
     this.mirror = options.mirror ?? true;
@@ -86,9 +83,6 @@ export class FaceARRenderer {
 
   resize(width: number, height: number) {
     if (!width || !height) return;
-    if (width === this.lastResizeWidth && height === this.lastResizeHeight) return;
-    this.lastResizeWidth = width;
-    this.lastResizeHeight = height;
     this.width = width;
     this.height = height;
     this.renderer.setSize(width, height, false);
@@ -128,7 +122,7 @@ export class FaceARRenderer {
 
     const profile = getEffectProfile(effectId);
     this.activeKind = profile.kind;
-    if (profile.kind === 'segment-bg' || profile.kind === 'beauty') return;
+    if (profile.kind === 'segment-bg') return;
 
     this.effectObject = buildEffectObject(effectId, profile.kind);
     this.faceRig.add(this.effectObject);
@@ -150,23 +144,10 @@ export class FaceARRenderer {
 
     const profile = getEffectProfile(effectId);
     const material = this.videoPlane.material as THREE.MeshBasicMaterial;
-    const beautyFilter = getBeautyVideoFilter(effectId);
-    this.domElement.style.filter = beautyFilter ?? 'none';
-
-    if (profile.kind === 'beauty') {
-      material.map = this.videoTexture;
-      this.useCompositeTexture = false;
-      this.faceRig.visible = false;
-      this.videoTexture.needsUpdate = true;
-      this.renderer.render(this.scene, this.camera);
-      return;
-    }
 
     if (profile.kind === 'segment-bg' && mask) {
-      if (this.compositeCanvas.width !== this.width || this.compositeCanvas.height !== this.height) {
-        this.compositeCanvas.width = this.width;
-        this.compositeCanvas.height = this.height;
-      }
+      this.compositeCanvas.width = this.width;
+      this.compositeCanvas.height = this.height;
       drawSegmentationComposite(
         this.compositeCtx,
         video,

@@ -11,11 +11,7 @@ const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const instacollabRoot = path.join(ROOT, 'artifacts/instacollab');
 const applyScript = path.join(instacollabRoot, 'scripts/apply-supabase-sql.mjs');
 
-const sqlArgs = process.argv.slice(2).filter((arg) => arg !== '--').map((arg) =>
-  arg.replace(/^artifacts\/instacollab\//, ''),
-);
-
-const result = spawnSync(process.execPath, [applyScript, ...sqlArgs], {
+const result = spawnSync(process.execPath, [applyScript, ...process.argv.slice(2)], {
   cwd: instacollabRoot,
   stdio: 'inherit',
 });

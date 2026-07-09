@@ -1,390 +1,335 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
-import { Phone, Video, Mic, PhoneOff } from 'lucide-react';
+import { Loader2, Minimize2 } from 'lucide-react';
 import { motion } from 'motion/react';
-import type { MutableRefObject, RefObject } from 'react';
 import type { ChatGroup, User } from '../../types';
 import { handleAvatarError } from '../../lib/utils';
-import type { ChatCallKind, ChatCallPhase } from '../../lib/chat/useChatCall';
-import { useStreamBeauty } from '../../lib/ar/useStreamBeauty';
-import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
-import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
-import { useDeepAR } from '../../lib/deepar/useDeepAR';
+import { useCameraEffectsPanelChrome } from '../../lib/camera/useCameraEffectsPanelChrome';
+import type {
+  ChatCallKind,
+  ChatCallPhase,
+  ChatConnectPhase,
+  RemoteCallParticipant,
+  RemoteCallVideo,
+} from '../../lib/chat/chatCallKit';
+import { useOptionalChatCallVideoEffects } from '../../contexts/ChatCallVideoEffectsHost';
 import { CameraDualBeautyButtons } from '../camera/CameraDualBeautyButtons';
-import { MultiGuestEffectsSheet } from '../../smule-rooms/components/MultiGuestEffectsSheet';
-import { LiveBeautySheet } from '../../smule-rooms/components/LiveBeautySheet';
-import {
-  EMPTY_TENCENT_EFFECT_SELECTION,
-  type TencentEffectSelection,
-} from '../../lib/webar/webarTypes';
+import { CallVideoSurface } from './CallVideoSurface';
+import { ChatCallControls } from './ChatCallControls';
+import { CallControlsChrome } from './CallControlsChrome';
+import { AudioCallStage } from './AudioCallStage';
+import { GroupVideoCallStage } from './GroupVideoCallStage';
 
 type MessagesActiveCallOverlayProps = {
   activeCall: ChatCallKind;
   phase: ChatCallPhase;
+  connectPhase?: ChatConnectPhase;
+  isGroupCall?: boolean;
   selectedUser: User | ChatGroup;
   currentUserAvatarUrl?: string;
   error?: string | null;
   remoteVideoReady?: boolean;
-  localVideoRef?: RefObject<HTMLVideoElement | null>;
-  remoteVideoRef?: RefObject<HTMLVideoElement | null>;
-  remoteAudioRef?: RefObject<HTMLAudioElement | null>;
-  localStreamRef?: MutableRefObject<MediaStream | null>;
-  onReplaceVideoTrack?: (track: MediaStreamTrack | null) => void;
-  onAccept?: () => void;
+  localVideoStream?: MediaStream | null;
+  primaryRemoteStream?: MediaStream | null;
+  remoteVideos?: RemoteCallVideo[];
+  remoteParticipants?: RemoteCallParticipant[];
+  currentUserId?: string | null;
+  isMicMuted?: boolean;
+  isCameraEnabled?: boolean;
+  onToggleMic?: () => void;
+  onToggleCamera?: () => void;
+  onFlipCamera?: () => void;
+  onRetryConnect?: () => void;
+  onMinimize?: () => void;
   onEndCall: () => void;
 };
 
 export function MessagesActiveCallOverlay({
   activeCall,
   phase,
+  connectPhase = 'idle',
+  isGroupCall = false,
   selectedUser,
   currentUserAvatarUrl,
   error,
-  remoteVideoReady,
-  localVideoRef,
-  remoteVideoRef,
-  remoteAudioRef,
-  localStreamRef,
-  onReplaceVideoTrack,
-  onAccept,
+  remoteVideoReady = false,
+  localVideoStream = null,
+  primaryRemoteStream = null,
+  remoteVideos = [],
+  remoteParticipants = [],
+  currentUserId = null,
+  isMicMuted = false,
+  isCameraEnabled = true,
+  onToggleMic,
+  onToggleCamera,
+  onFlipCamera,
+  onRetryConnect,
+  onMinimize,
   onEndCall,
 }: MessagesActiveCallOverlayProps) {
   const videoCall = activeCall === 'video';
-  const inCall = phase === 'outgoing' || phase === 'connected' || phase === 'incoming';
-  const [beautyId, setBeautyId] = useState<BeautyPresetId>('none');
-  const [beautyEffects, setBeautyEffects] = useState<TencentEffectSelection>(
-    EMPTY_TENCENT_EFFECT_SELECTION,
+  const inCall = phase === 'outgoing' || phase === 'connected';
+  const fx = useOptionalChatCallVideoEffects();
+
+  const isGroup = isGroupCall || 'isGroup' in selectedUser;
+  const memberCount = isGroup && 'memberIds' in selectedUser ? selectedUser.memberIds?.length : 0;
+  const hasRemoteVideo = videoCall && remoteVideoReady && !!primaryRemoteStream;
+  const showBeautyPreview = fx?.showBeautyPreview ?? false;
+  const showDeeparPreview = fx?.showDeeparPreview ?? false;
+  const showProcessedPreview = fx?.showProcessedPreview ?? false;
+
+  const localDisplayStream =
+    videoCall && fx
+      ? fx.resolveLocalDisplayStream(isCameraEnabled, localVideoStream)
+      : isCameraEnabled
+        ? localVideoStream
+        : null;
+
+  const localCameraLive = Boolean(
+    isCameraEnabled &&
+      (localDisplayStream ||
+        localVideoStream?.getVideoTracks().some((t) => t.readyState === 'live')),
   );
-  const [deeparEffectId, setDeeparEffectId] = useState('none');
-  const [deeparPanelOpen, setDeeparPanelOpen] = useState(false);
-  const [beautyPanelOpen, setBeautyPanelOpen] = useState(false);
-  const [inputStream, setInputStream] = useState<MediaStream | null>(null);
-  const deeparPreviewRef = useRef<HTMLDivElement>(null);
-  const deeparLicensed = isDeepARConfigured();
-  const deeparActive = deeparLicensed && deeparEffectId !== 'none';
-  const beautyEffectsActive = Boolean(
-    beautyEffects.makeupId ||
-      beautyEffects.stickerId ||
-      beautyEffects.filterId ||
-      beautyEffects.backgroundUrl,
-  );
-  const beautyActive = beautyId !== 'none' || beautyEffectsActive;
 
-  useEffect(() => {
-    if (!videoCall || !inCall) {
-      setInputStream(null);
-      return;
-    }
-    const sync = () => {
-      setInputStream(localStreamRef?.current ?? null);
-    };
-    sync();
-    const timer = window.setInterval(sync, 500);
-    return () => window.clearInterval(timer);
-  }, [videoCall, inCall, localStreamRef, phase]);
+  const showVideoStatusBanner =
+    videoCall &&
+    inCall &&
+    !hasRemoteVideo &&
+    !localCameraLive &&
+    connectPhase !== 'connected';
 
-  const beauty = useStreamBeauty({
-    enabled:
-      videoCall &&
-      inCall &&
-      phase !== 'incoming' &&
-      !deeparActive &&
-      (beautyActive || beautyPanelOpen),
-    inputStream,
-    beautyId,
-    effects: beautyEffects,
-    mirror: true,
+  const { controlsVisible, handleStageTap } = useCameraEffectsPanelChrome({
+    enabled: videoCall && inCall,
+    pinVisible:
+      connectPhase === 'connecting' ||
+      connectPhase === 'slow' ||
+      connectPhase === 'failed' ||
+      Boolean(error) ||
+      showVideoStatusBanner,
+    beautyPanelOpen: fx?.beautyPanelOpen,
+    effectsPanelOpen: fx?.deeparPanelOpen,
   });
-
-  const deepar = useDeepAR({
-    previewRef: deeparPreviewRef,
-    videoElementRef: localVideoRef ?? { current: null },
-    enabled: videoCall && inCall && phase !== 'incoming' && deeparLicensed,
-    processingActive: deeparActive,
-    initialEffectId: deeparEffectId,
-    mirror: true,
-  });
-
-  useEffect(() => {
-    if (!videoCall || !onReplaceVideoTrack || phase === 'incoming') return;
-
-    if (deeparActive && deepar.ready) {
-      let cancelled = false;
-      let rafId = 0;
-      const attach = () => {
-        if (cancelled) return;
-        const canvasStream = deepar.getCanvasStream(30);
-        const track = canvasStream?.getVideoTracks()[0] ?? null;
-        if (track) {
-          void onReplaceVideoTrack(track);
-          return;
-        }
-        rafId = requestAnimationFrame(attach);
-      };
-      attach();
-      return () => {
-        cancelled = true;
-        cancelAnimationFrame(rafId);
-      };
-    }
-
-    if (beauty.active && beauty.outputStream) {
-      const track = beauty.outputStream.getVideoTracks()[0] ?? null;
-      void onReplaceVideoTrack(track);
-      return;
-    }
-
-    const raw = localStreamRef?.current?.getVideoTracks()[0] ?? null;
-    if (raw) void onReplaceVideoTrack(raw);
-  }, [
-    beauty.active,
-    beauty.outputStream,
-    deepar.ready,
-    deepar.getCanvasStream,
-    deeparActive,
-    videoCall,
-    onReplaceVideoTrack,
-    localStreamRef,
-    phase,
-  ]);
-
-  const handleSelectDeepAR = useCallback((effectId: string) => {
-    setDeeparEffectId(effectId);
-    if (effectId !== 'none') {
-      setBeautyId('none');
-      setBeautyEffects(EMPTY_TENCENT_EFFECT_SELECTION);
-    }
-  }, []);
-
-  const handleSelectBeauty = useCallback((nextBeautyId: BeautyPresetId) => {
-    setBeautyId(nextBeautyId);
-    if (nextBeautyId !== 'none') {
-      setDeeparEffectId('none');
-    }
-  }, []);
-
-  const handleBeautyEffectsChange = useCallback((effects: TencentEffectSelection) => {
-    setBeautyEffects(effects);
-    const active = Boolean(
-      effects.makeupId || effects.stickerId || effects.filterId || effects.backgroundUrl,
-    );
-    if (active) setDeeparEffectId('none');
-  }, []);
-
-  const toggleDeeparPanel = useCallback(() => {
-    setDeeparPanelOpen((open) => {
-      const next = !open;
-      if (next) setBeautyPanelOpen(false);
-      return next;
-    });
-  }, []);
-
-  const toggleBeautyPanel = useCallback(() => {
-    setBeautyPanelOpen((open) => {
-      const next = !open;
-      if (next) setDeeparPanelOpen(false);
-      return next;
-    });
-  }, []);
-
-  const showProcessedPreview = (deeparActive && deepar.ready) || beauty.active;
 
   const statusLabel =
-    phase === 'incoming'
-      ? `Incoming ${activeCall} call…`
-      : phase === 'connected'
-        ? activeCall === 'video'
-          ? 'Video connected'
+    phase === 'connected'
+      ? activeCall === 'video'
+        ? isGroup
+          ? 'Group video connected'
+          : 'Video connected'
+        : isGroup
+          ? 'Group audio connected'
           : 'Audio connected'
-        : activeCall === 'video'
-          ? 'Your camera is ready — connecting…'
-          : 'Your mic is ready — connecting…';
+      : connectPhase === 'slow'
+        ? 'Slow connection — still connecting…'
+        : connectPhase === 'failed'
+          ? 'Could not connect — tap Retry'
+          : activeCall === 'video'
+            ? 'Connecting…'
+            : 'Your mic is ready — connecting…';
+
+  const mirrorLocalPreview = fx?.mirrorLocalPreview ?? true;
+  const localTile = (
+    <div className="absolute bottom-28 right-4 z-20 h-40 w-28 overflow-hidden rounded-xl border border-white/30 bg-black/40 shadow-2xl sm:bottom-32 sm:right-6">
+      {localDisplayStream ? (
+        <CallVideoSurface
+          stream={localDisplayStream}
+          layout="fill"
+          framing="wide"
+          mirrored={mirrorLocalPreview && !showProcessedPreview}
+          label="Your camera"
+        />
+      ) : (
+        <img
+          src={currentUserAvatarUrl || undefined}
+          alt="You"
+          className="h-full w-full object-cover opacity-80"
+          onError={handleAvatarError}
+        />
+      )}
+    </div>
+  );
+
+  const beautyControls =
+    videoCall && fx ? (
+      <CameraDualBeautyButtons
+        variant="call"
+        deeparPanelOpen={fx.deeparPanelOpen}
+        beautyPanelOpen={fx.beautyPanelOpen}
+        deeparActive={fx.deeparActive}
+        beautyActive={fx.beautyActive}
+        onToggleDeepAR={fx.toggleDeeparPanel}
+        onToggleBeauty={fx.toggleBeautyPanel}
+        showDeepAR={fx.deeparLicensed && !fx.beautyConfigured}
+        showBeauty={fx.beautyConfigured}
+        disabled={!isCameraEnabled}
+      />
+    ) : null;
 
   return (
-    <div className="fixed inset-0 bg-background/95 backdrop-blur-md z-[200] flex flex-col pt-12 pb-8 px-4 items-center justify-between">
-      <audio ref={remoteAudioRef} autoPlay playsInline className="hidden" />
-
-      {activeCall === 'video' && phase === 'connected' ? (
-        <div className="absolute inset-0 bg-black">
-          <video
-            ref={remoteVideoRef}
-            autoPlay
-            playsInline
-            className={`w-full h-full object-cover ${remoteVideoReady ? 'opacity-100' : 'opacity-0'}`}
-          />
-          {!remoteVideoReady && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
-              <img
-                src={selectedUser.avatarUrl || undefined}
-                alt=""
-                className="w-28 h-28 rounded-full object-cover border-4 border-white/20"
-                onError={handleAvatarError}
-              />
-              <p className="text-sm text-white/80 animate-pulse">Waiting for video…</p>
-            </div>
-          )}
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`absolute bottom-32 right-6 w-28 h-40 rounded-xl border border-white/30 object-cover shadow-2xl bg-secondary ${
-              showProcessedPreview ? 'opacity-0 pointer-events-none' : 'opacity-100'
-            }`}
-          />
-          <video
-            ref={beauty.outputVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`absolute bottom-32 right-6 w-28 h-40 rounded-xl border border-white/30 object-cover shadow-2xl bg-secondary ${
-              beauty.active && !deeparActive ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-          />
+    <div
+      className={`fixed inset-0 z-[200] ${
+        videoCall && inCall && localCameraLive && !hasRemoteVideo ? 'bg-transparent' : 'bg-black'
+      }`}
+    >
+      {videoCall && inCall ? (
+        <>
           <div
-            ref={deeparPreviewRef}
-            className={`absolute bottom-32 right-6 w-28 h-40 rounded-xl border border-white/30 overflow-hidden shadow-2xl ${
-              deeparActive && deepar.ready ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-          />
-        </div>
+            className="absolute inset-0 overflow-hidden"
+            onClick={handleStageTap}
+            role="presentation"
+          >
+            {hasRemoteVideo ? (
+              isGroup && remoteVideos.length > 0 ? (
+                <GroupVideoCallStage
+                  remoteVideos={remoteVideos}
+                  localStream={localDisplayStream}
+                  localLabel="You"
+                  localTile={localTile}
+                />
+              ) : (
+                <CallVideoSurface
+                  stream={primaryRemoteStream}
+                  layout="fullscreen"
+                  framing="cover"
+                  label={`${selectedUser.displayName} camera`}
+                />
+              )
+            ) : localCameraLive ? (
+              <div className="absolute inset-0" aria-hidden />
+            ) : (
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 text-white">
+                <img
+                  src={selectedUser.avatarUrl || undefined}
+                  alt=""
+                  className="h-28 w-28 rounded-full border-4 border-white/20 object-cover"
+                  onError={handleAvatarError}
+                />
+                <p className="animate-pulse text-sm text-white/80">Starting camera…</p>
+              </div>
+            )}
+
+            {showVideoStatusBanner ? (
+              <div className="pointer-events-none absolute inset-x-0 top-[calc(var(--app-safe-top)+3.5rem)] z-20 px-4 text-center">
+                <p className="inline-flex items-center gap-2 rounded-full bg-black/50 px-4 py-2 text-sm font-medium text-white backdrop-blur-md">
+                  {connectPhase === 'connecting' || connectPhase === 'slow' ? (
+                    <Loader2 className="h-4 w-4 animate-spin" />
+                  ) : null}
+                  {statusLabel}
+                </p>
+              </div>
+            ) : null}
+
+            {hasRemoteVideo ? localTile : null}
+
+            {fx?.beautyLoading && fx.beautyPanelOpen ? (
+              <div className="pointer-events-none absolute inset-x-0 bottom-40 z-30 text-center">
+                <p className="text-[10px] font-bold text-white/70">Loading beauty…</p>
+              </div>
+            ) : null}
+          </div>
+
+          {onMinimize ? (
+            <CallControlsChrome
+              visible={controlsVisible}
+              edge="top"
+              className="absolute inset-x-0 top-0 z-40 pt-[var(--app-safe-top)]"
+            >
+              <div className="pointer-events-auto flex justify-end px-4 py-3">
+                <button
+                  type="button"
+                  onClick={onMinimize}
+                  className="flex h-10 w-10 items-center justify-center rounded-full bg-black/50 text-white backdrop-blur-md hover:bg-black/70 transition-colors"
+                  aria-label="Minimize to picture in picture"
+                >
+                  <Minimize2 className="h-5 w-5" />
+                </button>
+              </div>
+            </CallControlsChrome>
+          ) : null}
+
+          <CallControlsChrome
+            visible={controlsVisible}
+            edge="bottom"
+            className="absolute inset-x-0 bottom-0 z-30"
+          >
+            <div className="pointer-events-auto flex justify-center pb-[max(1rem,var(--app-safe-bottom))] pt-3">
+              <ChatCallControls
+                callKind={activeCall}
+                isMicMuted={isMicMuted}
+                isCameraEnabled={isCameraEnabled}
+                onToggleMic={() => void onToggleMic?.()}
+                onToggleCamera={() => void onToggleCamera?.()}
+                onFlipCamera={() => void onFlipCamera?.()}
+                onEndCall={onEndCall}
+                extraBeforeEnd={beautyControls}
+              />
+            </div>
+          </CallControlsChrome>
+        </>
+      ) : inCall ? (
+        <AudioCallStage
+          phase={phase}
+          connectPhase={connectPhase}
+          isGroup={isGroup}
+          selectedUser={selectedUser}
+          currentUserAvatarUrl={currentUserAvatarUrl}
+          currentUserId={currentUserId}
+          remoteParticipants={remoteParticipants}
+          statusLabel={statusLabel}
+          error={error}
+          isMicMuted={isMicMuted}
+          onRetryConnect={onRetryConnect}
+        />
       ) : (
         <motion.div
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           exit={{ opacity: 0, y: -20 }}
-          className="flex flex-col items-center gap-4 text-center mt-12 relative z-10"
+          className="relative z-10 mt-16 flex flex-1 flex-col items-center justify-center gap-4 px-4 text-center"
         >
-          <div className="w-32 h-32 rounded-full overflow-hidden border-4 border-primary shadow-xl">
+          <div className="h-32 w-32 overflow-hidden rounded-full border-4 border-primary shadow-xl">
             <img
               src={selectedUser.avatarUrl || undefined}
               alt="avatar"
-              className="w-full h-full object-cover"
+              className="h-full w-full object-cover"
               onError={handleAvatarError}
             />
           </div>
-          <h2 className="text-2xl font-bold">{selectedUser.displayName}</h2>
-          <p className="text-muted-foreground animate-pulse">{statusLabel}</p>
-          {error ? <p className="text-sm text-red-500 max-w-xs">{error}</p> : null}
-        </motion.div>
-      )}
-
-      {activeCall === 'video' && phase !== 'connected' && phase !== 'incoming' && (
-        <motion.div
-          initial={{ scale: 0 }}
-          animate={{ scale: 1 }}
-          exit={{ scale: 0 }}
-          className="absolute bottom-32 right-8 w-28 h-40 bg-secondary rounded-xl border border-border shadow-2xl overflow-hidden flex items-center justify-center z-10"
-        >
-          <video
-            ref={localVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`w-full h-full object-cover ${showProcessedPreview ? 'opacity-0' : 'opacity-100'}`}
-          />
-          <video
-            ref={beauty.outputVideoRef}
-            autoPlay
-            playsInline
-            muted
-            className={`absolute inset-0 w-full h-full object-cover ${
-              beauty.active && !deeparActive ? 'opacity-100' : 'opacity-0'
-            }`}
-          />
-          <div
-            ref={deeparPreviewRef}
-            className={`absolute inset-0 ${
-              deeparActive && deepar.ready ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
-          />
-          {!localVideoRef?.current?.srcObject && !showProcessedPreview && (
-            <img
-              src={currentUserAvatarUrl || undefined}
-              className="absolute inset-0 w-full h-full object-cover opacity-80"
-              alt="you"
-              onError={handleAvatarError}
-            />
-          )}
-        </motion.div>
-      )}
-
-      {activeCall === 'video' && phase !== 'incoming' ? (
-        <div className="relative z-20 mb-3 flex w-full max-w-md flex-col items-center gap-2">
-          <CameraDualBeautyButtons
-            variant="inline"
-            deeparPanelOpen={deeparPanelOpen}
-            beautyPanelOpen={beautyPanelOpen}
-            deeparActive={deeparActive}
-            beautyActive={beautyActive}
-            onToggleDeepAR={toggleDeeparPanel}
-            onToggleBeauty={toggleBeautyPanel}
-            showDeepAR={deeparLicensed}
-            showBeauty
-          />
-
-          {(beauty.loading || (deeparActive && deepar.loading)) ? (
-            <p className="text-[10px] font-bold text-white/70">Loading effects…</p>
+          <h2 className="text-2xl font-bold text-white">{selectedUser.displayName}</h2>
+          {isGroup && memberCount > 0 ? (
+            <p className="text-sm text-white/60">{memberCount} members</p>
           ) : null}
+          <p className="flex items-center justify-center gap-2 text-white/70">
+            {connectPhase === 'connecting' || connectPhase === 'slow' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : null}
+            {statusLabel}
+          </p>
+          {error ? <p className="max-w-xs text-sm text-red-400">{error}</p> : null}
+          {(connectPhase === 'slow' || connectPhase === 'failed') && onRetryConnect ? (
+            <button
+              type="button"
+              onClick={onRetryConnect}
+              className="mt-1 rounded-full bg-primary px-4 py-2 text-sm font-bold text-primary-foreground hover:opacity-90 transition-opacity"
+            >
+              Retry connection
+            </button>
+          ) : null}
+        </motion.div>
+      )}
+
+      {!videoCall || !inCall ? (
+        <div className="absolute inset-x-0 bottom-0 z-30 flex items-center justify-center pb-[max(1rem,var(--app-safe-bottom))] pt-3">
+          <ChatCallControls
+            callKind={activeCall}
+            isMicMuted={isMicMuted}
+            isCameraEnabled={isCameraEnabled}
+            onToggleMic={() => void onToggleMic?.()}
+            onToggleCamera={() => void onToggleCamera?.()}
+            onFlipCamera={videoCall ? () => void onFlipCamera?.() : undefined}
+            onEndCall={onEndCall}
+            extraBeforeEnd={beautyControls}
+          />
         </div>
       ) : null}
-
-      {activeCall === 'video' && phase !== 'incoming' && deeparLicensed ? (
-        <MultiGuestEffectsSheet
-          isOpen={deeparPanelOpen}
-          onClose={() => setDeeparPanelOpen(false)}
-          activeEffectId={deeparEffectId}
-          onSelectEffect={(id) => {
-            handleSelectDeepAR(id);
-            if (id === deeparEffectId) setDeeparPanelOpen(false);
-          }}
-          loading={deeparActive && deepar.loading}
-          cameraReady={Boolean(localStreamRef?.current)}
-          anchorBottom={120}
-        />
-      ) : null}
-      {activeCall === 'video' && phase !== 'incoming' ? (
-        <LiveBeautySheet
-          isOpen={beautyPanelOpen}
-          onClose={() => setBeautyPanelOpen(false)}
-          activeBeautyId={beautyId}
-          onSelectBeauty={handleSelectBeauty}
-          effects={beautyEffects}
-          onEffectsChange={handleBeautyEffectsChange}
-          catalogs={beauty.catalogs}
-          anchorBottom={120}
-          webarConfigured={beauty.configured}
-          webarLoading={beauty.loading}
-          webarError={beauty.error}
-        />
-      ) : null}
-
-      <div className="relative z-20 flex items-center gap-6">
-        {phase === 'incoming' && onAccept ? (
-          <button
-            type="button"
-            onClick={onAccept}
-            className="flex h-16 w-16 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg"
-            aria-label="Accept call"
-          >
-            {activeCall === 'video' ? <Video className="h-7 w-7" /> : <Phone className="h-7 w-7" />}
-          </button>
-        ) : null}
-        <button
-          type="button"
-          className="flex h-14 w-14 items-center justify-center rounded-full bg-white/10 text-white"
-          aria-label="Microphone"
-        >
-          <Mic className="h-6 w-6" />
-        </button>
-        <button
-          type="button"
-          onClick={onEndCall}
-          className="flex h-16 w-16 items-center justify-center rounded-full bg-red-500 text-white shadow-lg"
-          aria-label="End call"
-        >
-          <PhoneOff className="h-7 w-7" />
-        </button>
-      </div>
     </div>
   );
 }

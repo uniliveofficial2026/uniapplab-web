@@ -223,6 +223,10 @@ export default defineConfig(({ mode }) => {
       output: {
         manualChunks(id) {
           if (!id.includes('node_modules')) return;
+          if (id.includes('livekit-client')) return 'vendor-livekit';
+          if (id.includes('three')) return 'vendor-three';
+          if (id.includes('tencentcloud-webar')) return 'vendor-webar';
+          if (id.includes('svga')) return 'vendor-svga';
           if (id.includes('deepar')) return 'vendor-deepar';
           if (id.includes('motion')) return 'vendor-motion';
           if (id.includes('recharts')) return 'vendor-charts';

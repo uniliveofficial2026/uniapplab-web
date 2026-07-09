@@ -163,19 +163,15 @@ async function pushNow(userId: string): Promise<void> {
   }
 }
 
-/** Keys that always push on the next microtask (wallet / chat presence). */
+/** Keys that always push on the next microtask (wallet / prefs). Chat signals use dedicated Supabase/API lanes. */
 const INSTANT_CLOUD_SYNC_KEYS = new Set([
   'coins_balance',
   'karaoke_user_state',
+  'admin_published_gifts',
+  'admin_published_beauty',
   'game_coins',
   'cash_balance',
   'wallet_transactions',
-  'messages',
-  'chat_read_state',
-  'chat_peer_read_state',
-  'chat_presence',
-  'chat_groups',
-  'unreadMessagesCount',
   'hasUnreadNotifications',
 ]);
 
@@ -197,6 +193,17 @@ function queueCloudPush(userId: string, urgent = false): void {
 export function scheduleCloudAppStateSync(store: LocalDB = db, changedKey?: string): void {
   if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || isCloudAppStateRemoteApply()) return;
   if (!isNetworkOnline()) return;
+  // Chat uses dedicated Supabase/API lanes (TRTC-style), not user_app_state blobs.
+  if (
+    changedKey === 'messages' ||
+    changedKey === 'chat_presence' ||
+    changedKey === 'chat_read_state' ||
+    changedKey === 'chat_peer_read_state' ||
+    changedKey === 'chat_groups' ||
+    changedKey === 'unreadMessagesCount'
+  ) {
+    return;
+  }
   const userId = store.currentUserId;
   if (!isCloudAuthUserId(userId)) return;
 

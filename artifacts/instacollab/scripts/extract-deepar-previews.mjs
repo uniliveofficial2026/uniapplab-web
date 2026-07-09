@@ -11,9 +11,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import os from 'node:os';
-import http from 'node:http';
 import { execSync } from 'node:child_process';
-import { chromium } from 'playwright';
 import { getAppRoot } from './resolveProjectEnv.mjs';
 
 const appRoot = getAppRoot(import.meta.dirname);
@@ -26,7 +24,6 @@ const effectsZip =
 const previewsDir = path.join(appRoot, 'public/effects/previews');
 const sdkEffectsDir = path.join(appRoot, 'public/deepar-resources/effects');
 const packEffectsDir = path.join(appRoot, 'public/effects');
-const vendorThumbsDir = path.join(appRoot, 'vendor/deepar-thumbs');
 
 const QUICKSTART_THUMBS =
   'https://raw.githubusercontent.com/DeepARSDK/quickstart-web-js-npm/main/public/thumbs';
@@ -55,25 +52,20 @@ const EFFECT_ID_BY_FILE = {
 
 /** Copy an existing preview under a different effect id. */
 const PREVIEW_ALIASES = {
-  'beauty-smooth': 'makeup',
-  'beauty-soft': 'none',
-  'beauty-glow': 'hope',
+  background_blur: 'burning',
+  background_replacement: 'galaxy',
 };
 
 /** Official quickstart thumb filename → carousel effect id */
 const QUICKSTART_THUMB_BY_EFFECT = {
   makeup: 'makeup.png',
-  wayfarer: 'ray-ban-wayfarer.png',
+  aviators: 'ray-ban-wayfarer.png',
+  none: 'hope.png',
 };
-
-/** Quickstart thumbs that differ from free-pack preview.png (person + effect demos). */
-const QUICKSTART_OVERRIDE_BY_EFFECT = {};
-
-/** Vendor-rendered demo thumbs (see render-deepar-sdk-previews.mjs). */
-const VENDOR_RENDERED_PREVIEWS = ['none', 'aviators'];
 
 /** SDK effect binary filename → carousel effect id */
 const SDK_EFFECT_FILES = {
+  aviators: 'aviators',
   lion: 'lion',
   dalmatian: 'dalmatian',
   koala: 'koala',
@@ -215,234 +207,6 @@ function extractFromSdkEffects() {
   return count;
 }
 
-function applyQuickstartOverrides() {
-  let count = 0;
-  const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepar-qt-override-'));
-
-  try {
-    for (const [effectId, thumbFile] of Object.entries(QUICKSTART_OVERRIDE_BY_EFFECT)) {
-      const tmp = path.join(tmpDir, thumbFile);
-      try {
-        downloadQuickstartThumb(thumbFile, tmp);
-        copyPreview(tmp, effectId);
-        count += 1;
-      } catch {
-        console.warn(`[deepar] Quickstart override missing: ${thumbFile}`);
-      }
-    }
-  } finally {
-    fs.rmSync(tmpDir, { recursive: true, force: true });
-  }
-
-  return count;
-}
-
-async function scrubPreviewBackgroundToWhite(pngBytes) {
-  const sharp = (await import('sharp')).default;
-  const { data, info } = await sharp(pngBytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-  const pixels = Buffer.from(data);
-  const { width, height, channels } = info;
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const i = (y * width + x) * channels;
-      const r = pixels[i];
-      const g = pixels[i + 1];
-      const b = pixels[i + 2];
-      const isPureWhite = r === 255 && g === 255 && b === 255;
-      const isGreenBg = g > r + 5 && g > b + 3 && g > 42;
-      const isFringe = !isPureWhite && r > 228 && g > 228 && b > 228;
-      if (isGreenBg || isFringe) {
-        pixels[i] = 255;
-        pixels[i + 1] = 255;
-        pixels[i + 2] = 255;
-        if (channels > 3) pixels[i + 3] = 255;
-      }
-    }
-  }
-
-  return sharp(pixels, { raw: { width, height, channels } }).png().toBuffer();
-}
-
-async function renderSegmentPreviewOnWhite(imagePath) {
-  const segmentHtml = path.join(appRoot, 'scripts/templates/segment-preview.html');
-  const server = http.createServer((req, res) => {
-    try {
-      const url = new URL(req.url ?? '/', 'http://localhost');
-      if (url.pathname === '/segment.html') {
-        res.writeHead(200, { 'Content-Type': 'text/html' });
-        fs.createReadStream(segmentHtml).pipe(res);
-        return;
-      }
-      if (url.pathname === '/demo-face.png') {
-        res.writeHead(200, { 'Content-Type': 'image/png' });
-        fs.createReadStream(imagePath).pipe(res);
-        return;
-      }
-      res.writeHead(404);
-      res.end('Not found');
-    } catch (err) {
-      res.writeHead(500);
-      res.end(String(err));
-    }
-  });
-
-  await new Promise((resolve) => server.listen(0, 'localhost', resolve));
-  const { port } = server.address();
-  const baseUrl = `http://localhost:${port}`;
-  const browser = await chromium.launch({
-    headless: process.env.DEEPAR_RENDER_HEADED === '1' ? false : true,
-    args: [
-      '--enable-unsafe-swiftshader',
-      '--use-angle=swiftshader',
-      '--enable-webgl',
-      '--ignore-gpu-blocklist',
-    ],
-  });
-
-  try {
-    const page = await browser.newPage({ viewport: { width: 512, height: 512 } });
-    await page.addInitScript((imageUrl) => {
-      window.__segmentConfig = { imageUrl };
-    }, `${baseUrl}/demo-face.png`);
-    await page.goto(`${baseUrl}/segment.html`, { waitUntil: 'domcontentloaded', timeout: 60_000 });
-    await page.waitForFunction(() => window.__segmentDone === true, null, { timeout: 120_000 });
-    const error = await page.evaluate(() => window.__segmentError);
-    if (error) throw new Error(error);
-    const result = await page.evaluate(() => window.__segmentResult);
-    if (!result || typeof result !== 'string' || !result.startsWith('data:image/')) {
-      throw new Error('Segment preview screenshot missing');
-    }
-    const bytes = Buffer.from(result.replace(/^data:image\/\w+;base64,/, ''), 'base64');
-    if (bytes.length < 20_000) {
-      throw new Error(`Segment preview looks empty (${bytes.length} bytes)`);
-    }
-    return scrubPreviewBackgroundToWhite(bytes);
-  } finally {
-    await browser.close();
-    server.close();
-  }
-}
-
-async function buildFaceSegmentPreview(mode) {
-  fs.mkdirSync(vendorThumbsDir, { recursive: true });
-  const demoFace = path.join(vendorThumbsDir, 'demo-face.png');
-  if (!fs.existsSync(demoFace)) {
-    downloadQuickstartThumb('makeup.png', demoFace);
-  }
-
-  if (mode === 'replace') {
-    throw new Error('Use ensureBackgroundReplacementPreview() for BG Replace thumbs');
-  }
-
-  const sharp = (await import('sharp')).default;
-  const size = 512;
-  const resized = await sharp(demoFace).resize(size, size, { fit: 'cover' }).png().toBuffer();
-  const personMask = Buffer.from(
-    `<svg width="${size}" height="${size}">
-      <defs>
-        <radialGradient id="fade" cx="50%" cy="54%" r="46%">
-          <stop offset="72%" stop-color="white"/>
-          <stop offset="100%" stop-color="rgba(255,255,255,0)"/>
-        </radialGradient>
-      </defs>
-      <ellipse cx="256" cy="300" rx="168" ry="220" fill="url(#fade)"/>
-    </svg>`,
-  );
-  const person = await sharp(resized)
-    .composite([{ input: personMask, blend: 'dest-in' }])
-    .png()
-    .toBuffer();
-  const background = await sharp(resized).blur(14).toBuffer();
-
-  return sharp(background).composite([{ input: person, blend: 'over' }]).png().toBuffer();
-}
-
-function ensureNeutralFace() {
-  fs.mkdirSync(vendorThumbsDir, { recursive: true });
-  const dest = path.join(vendorThumbsDir, 'none-source.png');
-  if (!fs.existsSync(dest)) {
-    execSync(
-      `curl -fsSL "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&h=512&q=80" -o "${dest}"`,
-      { stdio: 'pipe' },
-    );
-    execSync(`sips -s format png "${dest}" --out "${dest}.tmp" >/dev/null 2>&1 && mv "${dest}.tmp" "${dest}"`, {
-      stdio: 'pipe',
-    });
-  }
-  return dest;
-}
-
-function ensureReplacementBackground() {
-  fs.mkdirSync(vendorThumbsDir, { recursive: true });
-  const dest = path.join(vendorThumbsDir, 'replacement-bg.jpg');
-  const beachUrl =
-    'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?auto=format&fit=crop&w=512&h=512&q=80';
-  if (!fs.existsSync(dest) || fs.statSync(dest).size < 30_000) {
-    execSync(`curl -fsSL "${beachUrl}" -o "${dest}"`, { stdio: 'pipe' });
-  }
-  return dest;
-}
-
-async function ensureBackgroundBlurPreview() {
-  const rendered = path.join(vendorThumbsDir, 'background_blur.png');
-  const out = await buildFaceSegmentPreview('blur');
-  fs.writeFileSync(rendered, out);
-  copyPreview(rendered, 'background_blur');
-  return 1;
-}
-
-const BG_REPLACE_THUMB_URL =
-  'https://images.unsplash.com/photo-1580489944761-15a19d654956?auto=format&fit=crop&w=512&h=512&q=85';
-
-function ensureBgReplaceThumbSource() {
-  fs.mkdirSync(vendorThumbsDir, { recursive: true });
-  const dest = path.join(vendorThumbsDir, 'bg-replace-thumb-source.jpg');
-  if (!fs.existsSync(dest)) {
-    execSync(`curl -fsSL "${BG_REPLACE_THUMB_URL}" -o "${dest}"`, { stdio: 'pipe' });
-  }
-  return dest;
-}
-
-async function ensureBackgroundReplacementPreview() {
-  const sharp = (await import('sharp')).default;
-  const rendered = path.join(vendorThumbsDir, 'background_replacement.png');
-  const source = ensureBgReplaceThumbSource();
-  const out = await sharp(source)
-    .resize(512, 512, { fit: 'cover', position: 'centre' })
-    .flatten({ background: { r: 255, g: 255, b: 255 } })
-    .png()
-    .toBuffer();
-  fs.writeFileSync(rendered, out);
-  copyPreview(rendered, 'background_replacement');
-  return 1;
-}
-
-function ensureNonePreview() {
-  if (hasPreview('none')) return 0;
-
-  const rendered = path.join(vendorThumbsDir, 'none.png');
-  if (fs.existsSync(rendered) && fs.statSync(rendered).size >= 20_000) {
-    copyPreview(rendered, 'none');
-    return 1;
-  }
-
-  fs.mkdirSync(vendorThumbsDir, { recursive: true });
-  const neutralFace = path.join(vendorThumbsDir, 'none-source.png');
-  if (!fs.existsSync(neutralFace)) {
-    execSync(
-      `curl -fsSL "https://images.unsplash.com/photo-1534528741775-53994a69daeb?auto=format&fit=crop&w=512&h=512&q=80" -o "${neutralFace}"`,
-      { stdio: 'pipe' },
-    );
-    execSync(`sips -s format png "${neutralFace}" --out "${neutralFace}.tmp" >/dev/null 2>&1 && mv "${neutralFace}.tmp" "${neutralFace}"`, {
-      stdio: 'pipe',
-    });
-  }
-
-  copyPreview(neutralFace, 'none');
-  return 1;
-}
-
 function applyQuickstartThumbs() {
   let count = 0;
   const tmpDir = fs.mkdtempSync(path.join(os.tmpdir(), 'deepar-qt-'));
@@ -465,38 +229,6 @@ function applyQuickstartThumbs() {
   }
 
   return count;
-}
-
-function applyVendorRenderedPreviews() {
-  let count = 0;
-  for (const effectId of VENDOR_RENDERED_PREVIEWS) {
-    const src = path.join(vendorThumbsDir, `${effectId}.png`);
-    if (!fs.existsSync(src) || fs.statSync(src).size < 20_000) continue;
-    copyPreview(src, effectId);
-    count += 1;
-  }
-  return count;
-}
-
-function extractSdkAviatorsPreview() {
-  if (hasPreview('aviators')) return 0;
-
-  const filePath = path.join(sdkEffectsDir, 'aviators');
-  if (!fs.existsSync(filePath)) return 0;
-
-  const chunks = extractEmbeddedPngs(filePath);
-  const best = pickBestDemoPng(chunks);
-  if (!best) return 0;
-
-  const tmp = path.join(os.tmpdir(), 'deepar-aviators-texture.png');
-  fs.writeFileSync(tmp, best);
-  copyPreview(tmp, 'aviators');
-  fs.rmSync(tmp, { force: true });
-  return 1;
-}
-
-function ensureVendorFallbackPreviews() {
-  return 0;
 }
 
 function applyAliases() {
@@ -548,25 +280,14 @@ try {
   const quickstartCount = applyQuickstartThumbs();
   const makeupCount = ensureMakeupPreview();
   const sdkCount = extractFromSdkEffects();
-  const quickstartOverrideCount = applyQuickstartOverrides();
-  const vendorCount = applyVendorRenderedPreviews();
-  const bgBlurCount = await ensureBackgroundBlurPreview();
-  const bgReplaceCount = await ensureBackgroundReplacementPreview();
-  const noneCount = ensureNonePreview();
-  const fallbackCount = ensureVendorFallbackPreviews();
-  const aviatorsTextureCount = extractSdkAviatorsPreview();
   const aliasCount = applyAliases();
 
   const files = fs.readdirSync(previewsDir).filter((f) => f.endsWith('.png'));
   const expected = new Set([
     'none',
-    'wayfarer',
-    'background_blur',
-    'background_replacement',
     ...Object.values(EFFECT_ID_BY_FILE),
     ...Object.keys(PREVIEW_ALIASES),
     ...Object.keys(SDK_EFFECT_FILES),
-    ...VENDOR_RENDERED_PREVIEWS,
   ]);
 
   const missing = [...expected].filter((id) => !hasPreview(id));
@@ -576,7 +297,7 @@ try {
 
   console.log(
     `[deepar] ${files.length} effect demo previews → public/effects/previews/` +
-      ` (pack=${packCount}, quickstart=${quickstartCount}, overrides=${quickstartOverrideCount}, bgBlur=${bgBlurCount}, bgReplace=${bgReplaceCount}, none=${noneCount}, makeup=${makeupCount}, fallback=${fallbackCount}, sdk=${sdkCount}, vendor=${vendorCount}, aviatorsTex=${aviatorsTextureCount}, aliases=${aliasCount})`,
+      ` (pack=${packCount}, quickstart=${quickstartCount}, makeup=${makeupCount}, sdk=${sdkCount}, aliases=${aliasCount})`,
   );
 } finally {
   fs.rmSync(tmp, { recursive: true, force: true });

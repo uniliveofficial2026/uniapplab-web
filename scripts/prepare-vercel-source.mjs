@@ -6,7 +6,6 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { writeVercelConfig } from './sync-vercel-config.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const STAGING = path.join(ROOT, '.vercel', 'source-staging');
@@ -58,30 +57,43 @@ function copyTree(src, dest, relBase = '') {
 
 function writeTrimmedWorkspace() {
   const raw = fs.readFileSync(path.join(ROOT, 'pnpm-workspace.yaml'), 'utf8');
+  const catalogStart = raw.indexOf('catalog:');
+  const catalog = catalogStart >= 0 ? raw.slice(catalogStart) : '';
   const pkgLines = STAGING_PACKAGES.map((p) => `  - ${p}`).join('\n');
-  // Keep catalog, overrides, and pnpm build-policy blocks — only trim workspace packages.
-  const tail = raw.replace(/^[\s\S]*?(?=^catalog:)/m, '');
   const trimmed = `packages:
 ${pkgLines}
 
-${tail}`;
+${catalog}`;
   fs.writeFileSync(path.join(STAGING, 'pnpm-workspace.yaml'), trimmed);
 }
 
-function writeStagingVercelConfig() {
-  writeVercelConfig(STAGING);
+function writeVercelConfig() {
+  const monorepo = JSON.parse(fs.readFileSync(path.join(ROOT, 'vercel.monorepo.json'), 'utf8'));
+  const instacollab = JSON.parse(
+    fs.readFileSync(path.join(ROOT, 'artifacts/instacollab/vercel.json'), 'utf8'),
+  );
+  const headerKeys = new Set((monorepo.headers ?? []).map((h) => h.source));
+  const mergedHeaders = [...(monorepo.headers ?? [])];
+  for (const h of instacollab.headers ?? []) {
+    if (!headerKeys.has(h.source)) mergedHeaders.push(h);
+  }
+  const config = {
+    ...monorepo,
+    headers: mergedHeaders,
+  };
+  fs.writeFileSync(path.join(STAGING, 'vercel.json'), `${JSON.stringify(config, null, 2)}\n`);
 }
 
 function main() {
   fs.rmSync(STAGING, { recursive: true, force: true });
   fs.mkdirSync(STAGING, { recursive: true });
 
-  for (const file of ['package.json', 'pnpm-lock.yaml', '.npmrc', 'tsconfig.base.json']) {
+  for (const file of ['package.json', 'pnpm-lock.yaml', '.npmrc', 'tsconfig.base.json', 'tsconfig.json']) {
     copyTree(path.join(ROOT, file), path.join(STAGING, file));
   }
 
   writeTrimmedWorkspace();
-  writeStagingVercelConfig();
+  writeVercelConfig();
   copyTree(path.join(ROOT, 'config'), path.join(STAGING, 'config'));
 
   const scriptsDest = path.join(STAGING, 'scripts');

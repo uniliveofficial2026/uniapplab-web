@@ -1,8 +1,8 @@
 import type { ReactNode } from 'react';
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
+import type { BodyShapeParams } from '../../lib/ar/bodyShape';
 import type { DeepAREffectSelection } from '../../lib/deepar/deeparEffectSelection';
-import type { TencentBodyShapeParams, TencentEffectSelection } from '../../lib/webar/webarTypes';
-import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../../lib/webar/webarTypes';
+import type { TencentEffectSelection } from '../../lib/webar/webarTypes';
 import { useMultiGuestCameraEffects, type MultiGuestCameraEffectsState } from '../hooks/useMultiGuestCameraEffects';
 import {
   useMultiGuestLiveKit,
@@ -22,25 +22,22 @@ type RoomLiveMediaSessionProps = {
   userCameraOn: boolean;
   userMicOn: boolean;
   userMicAdminMuted: boolean;
+  publishMic?: boolean;
+  processedAudioTrack?: MediaStreamTrack | null;
   effectId?: string;
   effectSelection?: DeepAREffectSelection;
   beautyId?: BeautyPresetId;
   beautyEffects?: TencentEffectSelection;
-  bodyShape?: TencentBodyShapeParams;
+  bodyShape?: BodyShapeParams;
   beautyPanelOpen?: boolean;
   effectsPanelOpen?: boolean;
   children: (media: RoomLiveMediaBundle) => ReactNode;
 };
 
 /**
- * Solo Live + Multi-Guest camera/AR/LiveKit session.
- *
- * Pipeline (Tencent WebAR → LiveKit; TRTC equivalent uses updateLocalVideo):
- *   getUserMedia → ar.getOutput() → updateLiveKitLocalVideoTrack()
- *
- * Local camera paints instantly; LiveKit is a timed background upgrade for
- * remote tiles (viewers subscribe immediately, publishers when seated).
- * Remounting (key={sessionMode}) tears down the previous session cleanly.
+ * Isolated camera + AR + LiveKit session for a single live room layout.
+ * Remounting this component (e.g. key={sessionMode}) destroys the previous
+ * camera stream, DeepAR instance, and LiveKit connection before starting fresh.
  */
 export function RoomLiveMediaSession({
   sessionMode,
@@ -49,13 +46,15 @@ export function RoomLiveMediaSession({
   userCameraOn,
   userMicOn,
   userMicAdminMuted,
+  publishMic,
+  processedAudioTrack = null,
   effectId = 'none',
   effectSelection,
-  beautyId = 'none',
-  beautyEffects = EMPTY_TENCENT_EFFECT_SELECTION,
-  bodyShape = EMPTY_BODY_SHAPE,
-  beautyPanelOpen = false,
-  effectsPanelOpen = false,
+  beautyId,
+  beautyEffects,
+  bodyShape,
+  beautyPanelOpen,
+  effectsPanelOpen,
   children,
 }: RoomLiveMediaSessionProps) {
   const liveCameraEnabled = Boolean(userSeatKey) && userCameraOn;
@@ -77,7 +76,9 @@ export function RoomLiveMediaSession({
     sessionMode,
     canPublish: Boolean(userSeatKey),
     publishVideo: Boolean(userSeatKey && userCameraOn),
-    publishMic: Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
+    publishMic:
+      publishMic ?? Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
+    processedAudioTrack,
     cameraTrack: camera.videoTrack,
   });
 
@@ -93,15 +94,18 @@ export function buildLiveViewMediaProps(media: RoomLiveMediaBundle) {
     beautyVideoRef: media.camera.beautyVideoRef,
     showDeeparPreview: media.camera.showDeeparPreview,
     showBeautyPreview: media.camera.showBeautyPreview,
-    beautyCssFilter: media.camera.beautyCssFilter,
-    beautyConfigured: media.camera.beautyConfigured,
-    beautyLoading: media.camera.beautyLoading,
-    beautyError: media.camera.beautyError,
-    beautyCatalogs: media.camera.beautyCatalogs,
+    beautyVideoReady: media.camera.beautyVideoReady,
     effectsConfigured: media.camera.configured,
     effectsLoading: media.camera.arLoading,
     effectsCameraReady: media.camera.cameraReady,
     effectsArReady: media.camera.arReady,
+    beautyConfigured: media.camera.beautyConfigured,
+    beautyReady: media.camera.beautyReady,
+    beautyLoading: media.camera.beautyLoading,
+    beautyError: media.camera.beautyError,
+    beautyCssFilter: media.camera.beautyCssFilter,
+    beautyCatalogs: media.camera.beautyCatalogs,
+    readyEffectIds: media.camera.readyEffectIds,
     cameraFacingMode: media.camera.cameraFacingMode,
     onToggleCameraFacing: media.camera.toggleCameraFacing,
   };

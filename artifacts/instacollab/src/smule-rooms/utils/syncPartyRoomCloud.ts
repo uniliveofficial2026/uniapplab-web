@@ -1,7 +1,6 @@
 import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
-import { resolveSupabaseSessionUserId } from '../../lib/auth/resolveSupabaseSessionUserId';
-import { isSupabaseConfigured } from '../../lib/supabase/config';
-import { upsertPartyRoom } from '../../lib/supabase/partyRooms';
+import { isPartyCloudAvailable } from '../../lib/party/partyCloud';
+import { upsertPartyRoom } from '../../lib/party/partyRoomsCloud';
 import type { RoomSettings } from './storage';
 import { resolveRoomPrivacy } from './roomPrivacy';
 
@@ -13,15 +12,15 @@ export function syncPartyRoomToCloud(
     'roomName' | 'roomMode' | 'privacy' | 'whoCanJoin' | 'coverPhoto'
   >,
 ): void {
-  if (!roomId || !isSupabaseConfigured()) return;
+  if (!roomId || !ownerId || !isPartyCloudAvailable() || !isCloudAuthUserId(ownerId)) {
+    return;
+  }
 
-  void resolveSupabaseSessionUserId(ownerId, { attemptMigrate: true }).then((authOwnerId) => {
-    if (!authOwnerId || !isCloudAuthUserId(authOwnerId)) return;
-
-    const privacy = resolveRoomPrivacy(settings);
-    void upsertPartyRoom({
+  const privacy = resolveRoomPrivacy(settings);
+  void upsertPartyRoom(
+    {
       id: roomId,
-      owner_id: authOwnerId,
+      owner_id: ownerId,
       room_name: settings.roomName?.trim() || `Room ${roomId}`,
       room_mode: String(settings.roomMode ?? 'Chat'),
       privacy,
@@ -32,8 +31,9 @@ export function syncPartyRoomToCloud(
           : null,
       tags: [String(settings.roomMode ?? 'Chat')],
       status: 'active',
-    }).catch((err) => {
-      console.warn('[party-room] cloud sync failed:', err);
-    });
+    },
+    ownerId,
+  ).catch((err) => {
+    console.warn('[party-room] cloud sync failed:', err);
   });
 }

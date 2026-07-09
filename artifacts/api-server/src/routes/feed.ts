@@ -8,11 +8,7 @@ router.get("/feed/posts", async (_req, res) => {
   try {
     const cached = await getCachedFeedPosts();
     if (cached) {
-      const posts =
-        typeof cached === "string"
-          ? (JSON.parse(cached) as unknown[])
-          : cached;
-      res.json({ posts, cached: true });
+      res.json({ posts: cached, cached: true });
       return;
     }
 

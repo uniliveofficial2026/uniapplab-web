@@ -13,34 +13,14 @@ import {
 } from './resolveProjectEnv.mjs';
 
 const appRoot = getAppRoot(import.meta.dirname);
-const repoRoot = path.resolve(appRoot, '..', '..');
-const rawSqlPath = process.argv.slice(2).find((arg) => arg !== '--');
+const sqlPath = process.argv[2];
 
-if (!rawSqlPath) {
+if (!sqlPath) {
   console.error('Usage: node scripts/apply-supabase-sql.mjs <path-to.sql>');
-  console.error('       pnpm run auth:apply-sql -- supabase/migrations/<file>.sql');
   process.exit(1);
 }
 
-function resolveSqlPath(sqlPath) {
-  if (path.isAbsolute(sqlPath) && fs.existsSync(sqlPath)) return sqlPath;
-
-  const normalized = sqlPath.replace(/^artifacts\/instacollab\//, '');
-  const candidates = [
-    path.join(appRoot, normalized),
-    path.join(appRoot, sqlPath),
-    path.join(repoRoot, sqlPath),
-    path.join(repoRoot, normalized),
-  ];
-
-  for (const candidate of candidates) {
-    if (fs.existsSync(candidate)) return candidate;
-  }
-
-  return path.join(appRoot, normalized);
-}
-
-const resolvedSqlPath = resolveSqlPath(rawSqlPath);
+const resolvedSqlPath = path.isAbsolute(sqlPath) ? sqlPath : path.join(appRoot, sqlPath);
 if (!fs.existsSync(resolvedSqlPath)) {
   console.error('SQL file not found:', resolvedSqlPath);
   process.exit(1);

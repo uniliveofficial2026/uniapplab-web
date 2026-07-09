@@ -120,7 +120,33 @@ function applyPlayback() {
         const isWinner = id === activeId && sourceKey === activeSourceKey;
         if (isWinner && wantsWinner) {
           if (el.paused) {
-            void el.play().catch(() => {});
+            void el.play().catch((err) => {
+              // Browser blocks unmuted autoplay — mute and retry so preview still starts.
+              const blocked =
+                err instanceof DOMException &&
+                (err.name === 'NotAllowedError' || err.name === 'NotSupportedError');
+              if (blocked && el instanceof HTMLMediaElement && !el.muted) {
+                el.muted = true;
+                try {
+                  window.dispatchEvent(new CustomEvent('playback-autoplay-muted'));
+                } catch {
+                  /* ignore */
+                }
+                void el.play().catch(() => {});
+                return;
+              }
+              if (el.readyState < HTMLMediaElement.HAVE_CURRENT_DATA) {
+                const retry = () => {
+                  el.removeEventListener('loadeddata', retry);
+                  el.removeEventListener('canplay', retry);
+                  if (id === activeId && sourceKey === activeSourceKey && el.paused) {
+                    void el.play().catch(() => {});
+                  }
+                };
+                el.addEventListener('loadeddata', retry, { once: true });
+                el.addEventListener('canplay', retry, { once: true });
+              }
+            });
           }
         } else if (!el.paused) {
           el.pause();
@@ -260,6 +286,10 @@ export function resetPlaybackMedia(playbackId: string) {
     activeSourceKey = null;
   }
   notify();
+  // Next frame: intents/effects have settled so the new winner can start.
+  requestAnimationFrame(() => {
+    requestPlaybackReconcile();
+  });
 }
 
 /** Stop everything (e.g. tab backgrounded). */

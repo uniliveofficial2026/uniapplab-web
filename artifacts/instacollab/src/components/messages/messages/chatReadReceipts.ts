@@ -21,15 +21,24 @@ export function areBothParticipantsInChat(
   return isUserActiveInChat(myPresence, chatId) && isUserActiveInChat(peerPresence, chatId);
 }
 
-/** Watermark for incoming Read/Unread labels (frozen while you are alone in the thread). */
+/** Whether read/seen labels should update live for this thread. */
+export function isChatReceiptLive(viewerInActiveChat: boolean): boolean {
+  return viewerInActiveChat;
+}
+
+/** Watermark for incoming Read/Unread labels. */
 export function getIncomingReadLabelWatermark(
   chatId: string | null,
   chatLastReadAt: Record<string, number>,
   readLabelCapByChatId: Record<string, number>,
-  bothInChat: boolean
+  bothInChat: boolean,
+  options?: { viewerInActiveChat?: boolean; isGroup?: boolean },
 ): number {
   if (!chatId) return 0;
   const selfReadAt = chatLastReadAt[chatId] || 0;
+  const viewerInActiveChat = !!options?.viewerInActiveChat;
+  const isGroup = !!options?.isGroup;
+  if (viewerInActiveChat && (isGroup || bothInChat)) return selfReadAt;
   if (bothInChat) return selfReadAt;
   const cap = readLabelCapByChatId[chatId];
   return typeof cap === 'number' ? cap : selfReadAt;
@@ -38,31 +47,20 @@ export function getIncomingReadLabelWatermark(
 export function isIncomingMessageReadForDisplay(
   messageTimestamp: unknown,
   labelWatermark: number,
-  bothInChat: boolean
+  receiptLive: boolean,
 ): boolean {
-  if (labelWatermark <= 0) return false;
+  if (!receiptLive || labelWatermark <= 0) return false;
   const ts = getMessageTimestampMs(messageTimestamp);
   if (ts > 0) return labelWatermark >= ts;
-  return bothInChat;
-}
-
-export function isIncomingMessageRead(
-  messageTimestamp: unknown,
-  selfReadAt: number,
-  bothInChat: boolean
-): boolean {
-  if (!bothInChat || selfReadAt <= 0) return false;
-  const ts = getMessageTimestampMs(messageTimestamp);
-  if (ts > 0) return selfReadAt >= ts;
-  return true;
+  return receiptLive;
 }
 
 export function isOutgoingMessageSeen(
   messageTimestamp: unknown,
   peerReadAt: number,
-  bothInChat: boolean
+  receiptLive: boolean,
 ): boolean {
-  if (!bothInChat || peerReadAt <= 0) return false;
+  if (!receiptLive || peerReadAt <= 0) return false;
   const ts = getMessageTimestampMs(messageTimestamp);
   if (ts > 0) return peerReadAt >= ts;
   return true;
@@ -81,9 +79,21 @@ export function newestMessageTimestampMs(
 export function getEffectivePeerReadAt(
   chatId: string | null,
   chatPeerReadAt: Record<string, number>,
-  persistedPeerReadAt: number
+  persistedPeerReadAt: number,
 ): number {
   if (!chatId) return 0;
   const fromState = typeof chatPeerReadAt[chatId] === 'number' ? chatPeerReadAt[chatId] : 0;
   return Math.max(fromState, persistedPeerReadAt);
+}
+
+export function isOutgoingSeenInList(messageTimestamp: unknown, peerReadAt: number): boolean {
+  if (peerReadAt <= 0) return false;
+  const ts = getMessageTimestampMs(messageTimestamp);
+  return ts > 0 ? peerReadAt >= ts : false;
+}
+
+export function isIncomingReadInList(messageTimestamp: unknown, readAt: number): boolean {
+  if (readAt <= 0) return false;
+  const ts = getMessageTimestampMs(messageTimestamp);
+  return ts > 0 ? readAt >= ts : false;
 }

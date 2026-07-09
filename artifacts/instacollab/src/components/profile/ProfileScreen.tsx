@@ -33,7 +33,7 @@ import {
   getProfileDisplayName,
   shouldShowProfileHandle,
 } from '../../lib/profileDisplay';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { reelUserId } from '../../lib/safe';
 import { SavedRoomsList } from '../../smule-rooms/components/SavedRoomsList';
 import { StoryStrip } from '../feed/StoryStrip';
@@ -50,6 +50,7 @@ import {
 import { navTapButtonClass } from '../../lib/navTap';
 import { openKaraokeProfileSurface } from '../../lib/profileSurface';
 import { syncCloudUserSocial } from '../../lib/cloudSocial/cloudSocialContent';
+import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
 
 export function ProfileScreen({
   userId,
@@ -62,7 +63,7 @@ export function ProfileScreen({
 }) {
   const db = useDB();
   const dbRevision = useDbRevision();
-  const { logout: firebaseLogout, switchAccount, deleteAccount, profile: authProfile, setProfile, userAccounts, selectAccount, removeAccount, ensureDeviceAccountsSynced, sendEmailAuthOtp, verifyEmailAuthOtp } = useAuth();
+  const { logout: firebaseLogout, switchAccount, deleteAccount, profile: authProfile, setProfile, userAccounts, selectAccount, removeAccount, ensureDeviceAccountsSynced, refreshAccountSwitcher, sendEmailAuthOtp, verifyEmailAuthOtp } = useAuth();
   const { signOut: cloudSignOut, session: cloudSession } = useCloudAuth();
   const currentUser = useCurrentUser();
   const { showToast } = useToast();
@@ -93,9 +94,12 @@ export function ProfileScreen({
   const profileDisplayName = getProfileDisplayName(profileUser);
   const profileLabel = getProfileMentionLabel(profileUser);
 
-  useEffect(() => {
-    void syncCloudUserSocial(profileUserId);
-  }, [profileUserId]);
+  useLiveCloudSurface('profile', {
+    onSync: () => {
+      void syncCloudUserSocial(profileUserId);
+    },
+    poll: false,
+  });
   
   const [activeTab, setActiveTab] = useState<'posts' | 'reels' | 'saved' | 'tagged' | 'rooms'>('posts');
   const [showEditProfile, setShowEditProfile] = useState(false);
@@ -909,14 +913,11 @@ export function ProfileScreen({
               className="aspect-[9/16] bg-secondary group cursor-pointer relative rounded-xl overflow-hidden shadow-sm"
             >
               {reel.videoUrl ? (
-                <video
+                <AppNativeVideo
                   src={reel.videoUrl}
                   className="w-full h-full object-cover transition-transform group-hover:scale-105 duration-500"
                   muted
-                  playsInline
-                  controls
                   preload="metadata"
-                  {...nativeVideoControlGuardProps()}
                 />
               ) : (
                 <div className="w-full h-full flex items-center justify-center bg-zinc-900 text-muted-foreground">
@@ -981,14 +982,10 @@ export function ProfileScreen({
         linking={accountLinking}
         cloudAuthEnabled={isCloudAuthConfigured()}
         onClose={() => setShowAccountSwitcher(false)}
-        onRefreshAccounts={ensureDeviceAccountsSynced}
+        onRefreshAccounts={refreshAccountSwitcher}
         onSelectAccount={async (uid, password) => {
           try {
-            const label =
-              userAccounts.find((a) => a.uid === uid)?.displayName || 'selected account';
-            showToast(`Switching to ${label}…`);
             await selectAccount(uid, password);
-            await ensureDeviceAccountsSynced();
             setShowAccountSwitcher(false);
           } catch (err) {
             const message = err instanceof Error ? err.message : 'Failed to switch account.';
@@ -1035,14 +1032,13 @@ export function ProfileScreen({
             setAccountLinking(true);
             setShowAccountSwitcher(false);
             setShowEditProfile(false);
-            await ensureDeviceAccountsSynced();
             const result = await switchAccount();
             if (result.redirecting) {
               showToast('Opening Google sign-in…');
               return;
             }
             if (result.ok) {
-              await ensureDeviceAccountsSynced();
+              void ensureDeviceAccountsSynced();
               showToast('Google account linked!');
             } else if (result.reason) {
               showToast(result.reason);

@@ -56,7 +56,7 @@ export async function loadMediaPipeVision(
         runningMode: 'VIDEO',
         numFaces: 1,
         outputFaceBlendshapes: true,
-        outputFacialTransformationMatrixes: true,
+        outputFacialTransformationMatrixes: false,
       });
       onProgress?.(55);
       const imageSegmenter = await createImageSegmenter(vision);

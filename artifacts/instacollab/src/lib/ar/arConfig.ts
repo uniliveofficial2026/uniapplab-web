@@ -3,7 +3,6 @@
 export type AREffectCategoryId =
   | 'clear'
   | 'makeup'
-  | 'beauty'
   | 'mask'
   | 'glasses'
   | 'background'
@@ -23,7 +22,6 @@ export type AREffectPreset = {
 export const AR_EFFECT_CATEGORIES: AREffectCategory[] = [
   { id: 'clear', label: 'None' },
   { id: 'makeup', label: 'Makeup' },
-  { id: 'beauty', label: 'Beauty' },
   { id: 'mask', label: 'Mask' },
   { id: 'glasses', label: 'Glasses' },
   { id: 'background', label: 'BG' },
@@ -34,9 +32,6 @@ export const AR_EFFECT_PRESETS: AREffectPreset[] = [
   { id: 'none', label: 'None', category: 'clear' },
   { id: 'makeup', label: 'Makeup', category: 'makeup' },
   { id: 'makeup-split', label: 'Split Makeup', category: 'makeup' },
-  { id: 'beauty-smooth', label: 'Smooth', category: 'beauty' },
-  { id: 'beauty-soft', label: 'Soft', category: 'beauty' },
-  { id: 'beauty-glow', label: 'Glow', category: 'beauty' },
   { id: 'viking', label: 'Viking', category: 'mask' },
   { id: 'flowers', label: 'Flowers', category: 'mask' },
   { id: 'humanoid', label: 'Humanoid', category: 'mask' },
@@ -64,8 +59,7 @@ export const AR_EFFECT_PRESETS: AREffectPreset[] = [
 
 const EFFECT_CATEGORY_SEARCH_TERMS: Record<AREffectCategoryId, string> = {
   clear: 'none clear off',
-  makeup: 'makeup lipstick eyeshadow look',
-  beauty: 'beauty smooth soft glow skin filter',
+  makeup: 'makeup beauty look',
   mask: 'mask face filter costume animal',
   glasses: 'glasses sunglasses eyewear wayfarer aviators',
   background: 'bg background blur replace galaxy burning',
@@ -81,11 +75,8 @@ export function isFaceARAvailable(): boolean {
   return typeof window !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
 }
 
-/** Bump when carousel preview PNGs change so clients don't keep stale thumbs. */
-const PREVIEW_ASSET_VERSION = '5';
-
 export function getAREffectPreviewUrl(effectId: string): string {
-  return `${normalizedBaseUrl()}effects/previews/${effectId}.png?v=${PREVIEW_ASSET_VERSION}`;
+  return `${normalizedBaseUrl()}effects/previews/${effectId}.png`;
 }
 
 export function getAREffectOverlayUrl(effectId: string): string {

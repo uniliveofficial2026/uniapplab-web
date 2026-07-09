@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { handleMediaError } from '../../lib/utils';
 import { touchClientX } from '../../lib/safe';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import {
   FULLSCREEN_MEDIA_CLASS,
   FULLSCREEN_MEDIA_CLOSE_CLASS,
@@ -90,17 +90,14 @@ export function WorkspaceMediaFullscreenPortal({
           if (!item) return null;
           if (item.isVideo) {
             return (
-              <video
+              <AppNativeVideo
                 key={`ws-fs-vid-${fullscreenMedia.mediaIndex}`}
                 ref={(el) => {
                   if (el) taskVideoRefs.current.set(fullscreenMedia.mediaIndex, el);
                 }}
                 src={item.url}
                 className={`${FULLSCREEN_MEDIA_CLASS} bg-black`}
-                controls
-                playsInline
                 preload="auto"
-                {...nativeVideoControlGuardProps()}
               />
             );
           }

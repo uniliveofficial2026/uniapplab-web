@@ -1,4 +1,3 @@
-import { getAppOrigin } from './domains/uniapplab';
 import type { KaraokeLibrarySong } from '../components/karaoke/karaokeTypes';
 import { metaToLibrarySong, type KaraokeUploadedSongMeta } from './karaokeUploads';
 import type { KaraokeCoverRecordingMeta } from './karaokeRecordings';
@@ -49,7 +48,6 @@ export type KaraokeUrlParams = {
 const KARAOKE_TABS = new Set([
   'sing',
   'feed',
-  'live',
   'party',
   'profile',
   'search',
@@ -161,15 +159,16 @@ export function searchKaraokeCovers(
   if (!q) return [];
 
   return coverMetas
-    .filter((meta) =>
-      matchesQuery(
+    .filter((meta) => {
+      const performers = Array.isArray(meta.performers) ? meta.performers : [];
+      return matchesQuery(
         q,
         meta.songTitle,
         meta.caption,
-        meta.performers.map((performer) => performer.name).join(' '),
-        meta.performers.map((performer) => performer.handle).join(' '),
-      ),
-    )
+        performers.map((performer) => performer.name).join(' '),
+        performers.map((performer) => performer.handle).join(' '),
+      );
+    })
     .sort((a, b) => {
       const aMine = isOwnedByUser(a.performerUserId, currentUserId) ? 1 : 0;
       const bMine = isOwnedByUser(b.performerUserId, currentUserId) ? 1 : 0;
@@ -178,14 +177,15 @@ export function searchKaraokeCovers(
     })
     .map((meta) => {
       const isMine = isOwnedByUser(meta.performerUserId, currentUserId);
-      const performerHandle = meta.performers[0]?.handle || '@singer';
+      const performers = Array.isArray(meta.performers) ? meta.performers : [];
+      const performerHandle = performers[0]?.handle || '@singer';
       return {
         kind: 'cover' as const,
         id: meta.id,
         songId: meta.songId,
         recordingId: meta.id,
         title: meta.songTitle,
-        artist: meta.performers.map((performer) => performer.name).join(' & ') || 'Singer',
+        artist: performers.map((performer) => performer.name).join(' & ') || 'Singer',
         subtitle: isMine
           ? meta.caption
             ? `Your cover · ${meta.caption}`
@@ -282,7 +282,7 @@ export function syncKaraokeUrl(patch: KaraokeUrlParams, mode: 'replace' | 'push'
 /** Build a shareable karaoke deep link without mutating browser history. */
 export function buildKaraokeShareUrl(
   patch: KaraokeUrlParams,
-  baseHref: string = typeof window !== 'undefined' ? window.location.href : `${getAppOrigin()}/karaoke`,
+  baseHref: string = typeof window !== 'undefined' ? window.location.href : 'https://instacollab.app/',
 ): string {
   const url = new URL(baseHref);
   const entries: [keyof KaraokeUrlParams, string | null | undefined][] = [

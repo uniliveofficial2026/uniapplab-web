@@ -1,5 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Check, X } from 'lucide-react';
+import { AppNativeVideo } from '../../components/common/AppNativeVideo';
+import { AppCameraButton } from '../../components/camera/AppCameraButton';
+import { cameraCaptureToDataUrl, roomBackgroundFromCapture } from '../../lib/camera/cameraCaptureAdapters';
 import {
   ROOM_BACKGROUND_PRESETS,
   formatRoomBackgroundLabel,
@@ -7,7 +10,6 @@ import {
   serializeRoomBackground,
   type RoomBackgroundMode,
 } from '../utils/roomBackground';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
 
 export function RoomSettingsSheet({
   title,
@@ -195,6 +197,17 @@ export function RoomSettingsCoverEditor({
         >
           Upload photo
         </button>
+        <AppCameraButton
+          title="Room cover"
+          label="Camera"
+          onCaptured={async (payload) => {
+            if (payload.kind !== 'photo') return;
+            onSaveFile(payload.url);
+            onClose();
+          }}
+          className="inline-flex items-center gap-2 rounded-full border border-border bg-background/60 px-4 py-2 text-sm font-semibold text-foreground backdrop-blur-md transition hover:bg-secondary/40"
+          iconClassName="h-4 w-4"
+        />
         <input
           ref={fileInputRef}
           type="file"
@@ -282,15 +295,13 @@ export function RoomSettingsBackgroundEditor({
           className={`absolute inset-0 ${active.type === 'css' ? active.value : ''}`}
         >
           {active.type === 'video' ? (
-            <video
+            <AppNativeVideo
               src={active.value}
+              controls={false}
               autoPlay
               loop
               muted
-              controls
-              playsInline
               className="absolute inset-0 h-full w-full object-cover"
-              {...nativeVideoControlGuardProps()}
             />
           ) : null}
           {active.type === 'image' ? (
@@ -328,6 +339,20 @@ export function RoomSettingsBackgroundEditor({
         >
           Upload media
         </button>
+        <AppCameraButton
+          title="Room background"
+          label="Camera"
+          onCaptured={async (payload) => {
+            try {
+              const next = await roomBackgroundFromCapture(payload);
+              setPending(next);
+            } catch {
+              /* ignore */
+            }
+          }}
+          className="rounded-2xl border border-dashed border-primary/40 px-3 py-3 text-sm font-medium text-primary transition hover:bg-primary/10 inline-flex items-center justify-center gap-2"
+          iconClassName="h-4 w-4"
+        />
         <input
           ref={fileInputRef}
           type="file"

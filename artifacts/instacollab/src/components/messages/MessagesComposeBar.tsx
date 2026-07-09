@@ -1,5 +1,5 @@
 import React from 'react';
-import { FileText, Image, MapPin, Mic, Music, Plus, Send, Smile, X } from 'lucide-react';
+import { FileText, Image, Loader2, MapPin, Mic, Music, Plus, Send, Smile, X, Camera } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import EmojiPicker, { Theme } from 'emoji-picker-react';
 import { safeMediaUrl } from '../../lib/safe';
@@ -10,6 +10,7 @@ import { ChatInlineVideo } from './ChatInlineVideo';
 import { VoiceMessagePlayer } from './VoiceMessagePlayer';
 import { Waveform } from './Waveform';
 import type { MessagesComposeBarProps } from './messages/composeBarProps';
+import { useAppCamera } from '../../contexts/AppCameraContext';
 
 export function MessagesComposeBar(props: MessagesComposeBarProps) {
   const {
@@ -52,6 +53,8 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
     onFileUploadMenu,
     onMusicUpload,
     onLocationShare,
+    onCameraCaptured,
+    onOpenCameraCapture,
     onOpenFilePreview,
     tryOpenMediaFullscreen,
     setFullscreenMedia,
@@ -62,7 +65,26 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
     updateTokenSuggestion,
     insertTokenSuggestion,
     setTokenSuggestion,
+    outboundSlowSendingCount = 0,
+    outboundFailedCount = 0,
+    onRetryFailedMessages,
   } = props;
+
+  const { isAvailable: appCameraAvailable, openCamera } = useAppCamera();
+  const cameraCaptureAvailable = appCameraAvailable;
+  const handleOpenCameraCapture = () => {
+    if (onOpenCameraCapture) {
+      onOpenCameraCapture();
+      return;
+    }
+    if (!onCameraCaptured) return;
+    openCamera({
+      title: 'Message camera',
+      onCaptured: (payload) => {
+        void onCameraCaptured(payload);
+      },
+    });
+  };
 
   return (
     <div className="p-3 sm:p-4 pt-2 shrink-0 bg-background w-full z-20 pb-[max(0.5rem,var(--app-safe-bottom))]">
@@ -242,6 +264,35 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
            </button>
          </div>
        )}
+       {(outboundSlowSendingCount > 0 || outboundFailedCount > 0) && (
+         <div className="flex items-center justify-between gap-2 rounded-xl border border-border/50 bg-muted/30 px-3 py-2 text-[12px]">
+           <div className="flex items-center gap-2 min-w-0">
+             {outboundSlowSendingCount > 0 ? (
+               <>
+                 <Loader2 className="w-3.5 h-3.5 shrink-0 animate-spin text-muted-foreground" />
+                 <span className="font-medium text-muted-foreground truncate">
+                   Sending{outboundSlowSendingCount > 1 ? ` ${outboundSlowSendingCount} messages` : ''}…
+                 </span>
+               </>
+             ) : null}
+             {outboundFailedCount > 0 ? (
+               <span className={`font-medium text-red-600 dark:text-red-400 truncate ${outboundSlowSendingCount > 0 ? 'ml-1' : ''}`}>
+                 {outboundSlowSendingCount > 0 ? '· ' : ''}
+                 Failed to send{outboundFailedCount > 1 ? ` (${outboundFailedCount})` : ''}
+               </span>
+             ) : null}
+           </div>
+           {outboundFailedCount > 0 && onRetryFailedMessages ? (
+             <button
+               type="button"
+               onClick={onRetryFailedMessages}
+               className="shrink-0 px-2.5 py-1 rounded-full text-[11px] font-bold bg-primary text-primary-foreground hover:opacity-90 transition-opacity"
+             >
+               Retry
+             </button>
+           ) : null}
+         </div>
+       )}
        <form onSubmit={onSendMessage} className="flex items-center border border-border/60 rounded-full px-4 py-2.5 sm:px-5 sm:py-3.5 gap-2 sm:gap-4 bg-background/80 backdrop-blur-md focus-within:bg-card focus-within:border-primary focus-within:ring-4 focus-within:ring-primary/20 transition-all shadow-[0_-4px_20_rgba(0,0,0,0.03)] relative">
             <div className="relative shrink-0">
               <button 
@@ -251,7 +302,7 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                   setShowAttachmentMenu(!showAttachmentMenu);
                 }}
                 data-attachment-menu-button="true"
-                className={`cursor-pointer text-foreground hover:scale-110 transition-transform w-8 h-8 flex items-center justify-center shrink-0 bg-secondary/50 rounded-full hover:bg-secondary ${showAttachmentMenu ? 'bg-primary text-primary-foreground' : ''}`}
+                className={`cursor-pointer text-foreground hover:scale-110 transition-transform w-10 h-10 flex items-center justify-center shrink-0 bg-secondary/50 rounded-full hover:bg-secondary ${showAttachmentMenu ? 'bg-primary text-primary-foreground' : ''}`}
               >
                 <Plus className={`w-5 h-5 sm:w-5 sm:h-5 transition-transform ${showAttachmentMenu ? 'rotate-45' : ''}`} />
               </button>
@@ -268,6 +319,21 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                       className="absolute bottom-full left-0 mb-3 w-[min(13rem,72vw)] max-h-[min(16rem,40dvh)] overflow-y-auto bg-white/75 dark:bg-zinc-900/75 backdrop-blur-xl border border-black/10 dark:border-white/15 rounded-3xl shadow-2xl z-20 sm:mb-4"
                     >
                       <div className="p-2 flex flex-col gap-1">
+                        {cameraCaptureAvailable && (onCameraCaptured || onOpenCameraCapture) ? (
+                          <button
+                            type="button"
+                            onClick={() => {
+                              setShowAttachmentMenu(false);
+                              handleOpenCameraCapture();
+                            }}
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-secondary rounded-2xl transition-colors text-sm font-bold w-full text-left"
+                          >
+                            <div className="w-8 h-8 rounded-full bg-gradient-to-br from-pink-500/20 to-violet-500/25 flex items-center justify-center">
+                              <Camera className="w-4 h-4 text-fuchsia-600" />
+                            </div>
+                            Camera
+                          </button>
+                        ) : null}
                         <button 
                           type="button" 
                           onClick={() => { document.getElementById('chat-media-photo')?.click(); setShowAttachmentMenu(false); }}
@@ -409,7 +475,7 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                 />
               </div>
             )}
-           <div className="flex items-center shrink-0">
+           <div className="flex items-center shrink-0 gap-3 sm:gap-4">
              <div className="relative">
                <button
                  type="button"
@@ -418,11 +484,11 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                    setShowEmojiPicker(!showEmojiPicker);
                  }}
                 data-main-emoji-button="true"
-                 className={`text-foreground hover:scale-110 transition-transform flex items-center justify-center w-8 h-8 rounded-full hover:bg-secondary shrink-0 cursor-pointer ${
+                 className={`text-foreground hover:scale-110 transition-transform flex items-center justify-center w-10 h-10 rounded-full hover:bg-secondary shrink-0 cursor-pointer ${
                    showEmojiPicker ? 'bg-primary text-primary-foreground' : ''
                  }`}
                >
-                 <Smile className="w-5 h-5" />
+                 <Smile className="w-6 h-6" />
                </button>
 
                {showEmojiPicker && (
@@ -487,15 +553,15 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
               onTouchStart={handleMicDown}
               onTouchEnd={handleMicUp}
               onTouchCancel={handleMicUp}
-               className={`text-foreground hover:scale-110 transition-transform flex items-center justify-center w-8 h-8 rounded-full hover:bg-secondary shrink-0 cursor-pointer ${
+               className={`text-foreground hover:scale-110 transition-transform flex items-center justify-center w-10 h-10 rounded-full hover:bg-secondary shrink-0 cursor-pointer ${
                  isRecording ? 'bg-red-500 text-white animate-pulse' : isListening ? 'bg-primary text-primary-foreground animate-pulse' : ''
                }`}
              >
-               <Mic className="w-5 h-5" />
+               <Mic className="w-6 h-6" />
              </button>
              {messageText.trim() || chatMedia.length > 0 || recordedVoice ? (
-               <button type="submit" className="text-primary font-bold hover:scale-110 transition-transform flex items-center justify-center bg-primary text-primary-foreground p-2 rounded-full shrink-0 shadow-md ml-2">
-                 <Send className="w-4 h-4 sm:w-4 sm:h-4 text-primary-foreground" />
+               <button type="submit" className="text-primary font-bold hover:scale-110 transition-transform flex items-center justify-center bg-primary text-primary-foreground w-11 h-11 rounded-full shrink-0 shadow-md">
+                 <Send className="w-5 h-5 text-primary-foreground" />
                </button>
              ) : null}
            </div>

@@ -2,6 +2,11 @@
  * Authoritative map of real-time cloud data paths for the entire app.
  * Every social surface must use one of these transports — never invent a parallel path.
  *
+ * Dual backend: Supabase is primary; Firebase mirrors the same payloads when Supabase is
+ * unreachable or the account is on Firebase backup (`shouldUseFirebaseForCloudData`).
+ * Party live bus, chat, posts, blocks, notifications, and profile visits all route through
+ * the unified *Cloud facades — never call provider SDKs directly from UI.
+ *
  * CU = cross-user shared table / Realtime / platform API
  * AS = same-user multi-device via user_app_state (correct for personal prefs only)
  * N  = notification delivery (user_notifications)
@@ -9,80 +14,81 @@
 export const LIVE_DATA_FLOW_MAP = {
   messages: {
     write:
-      'queueCloudMessageSend (text + photo/video/audio/file/pdf/location) via chat-media upload → chat_messages.payload; groups → chat_threads.meta; reactions/reads/edit/delete; calls → call events + LiveKit /api/livekit/chat/token',
-    read: 'startCloudChatRealtime + syncCloudChatInbox (1:1 + group threads, reactions, receipts, call invites)',
-    users: 'resolveUser / ensurePeerProfileCached / message.from in groups',
+      'queueCloudMessageSend → Supabase chat_messages / Firestore chat_threads/.../messages; reactions + reads + edit/delete on same lane',
+    read: 'startCloudChatRealtime (Supabase postgres_changes or Firestore listeners) + syncCloudChatInbox',
+    users: 'resolveUser / ensurePeerProfileCached',
     transport: 'CU',
   },
   notifications: {
-    write: 'queueCloudNotificationDelivery → user_notifications',
+    write: 'queueCloudNotificationDelivery → notificationsCloud (Supabase or Firestore user_notifications)',
     read: 'startCloudNotificationRealtime + syncCloudNotifications',
     users: 'resolveUser / ensureActorCached',
     transport: 'CU',
   },
   posts: {
-    write: 'scheduleCloudPostPublish / scheduleCloudPostMutation / scheduleCloudPostDelete → posts',
-    read: 'syncCloudSocialFeed + posts realtime',
+    write: 'scheduleCloudPostPublish / postsCloud → Supabase posts + post-media OR Firestore posts + Firebase Storage',
+    read: 'syncCloudSocialFeed + postsCloud realtime (Supabase postgres_changes or Firestore listeners)',
     users: 'resolveUser on author',
     transport: 'CU',
   },
   reels: {
-    write: 'scheduleCloudReelPublish → posts (payload.contentKind=reel)',
-    read: 'syncCloudSocialFeed (split reels) + posts realtime',
+    write: 'scheduleCloudReelPublish → posts (payload.contentKind=reel) via postsCloud',
+    read: 'syncCloudSocialFeed (split reels) + postsCloud realtime',
     users: 'resolveUser on author',
     transport: 'CU',
   },
   comments: {
-    write: 'queueCloudCommentPublish → social_comments',
-    read: 'syncCloudCommentsForTargets + social_comments realtime',
+    write: 'queueCloudCommentPublish → social_comments (Supabase or Firestore)',
+    read: 'syncCloudCommentsForTargets + social realtime',
     users: 'resolveUser on author',
     transport: 'CU',
   },
   engagement: {
-    write: 'queueCloudEngagement → social_engagement',
-    read: 'syncCloudEngagementForTargets + social_engagement realtime',
+    write: 'queueCloudEngagement → social_engagement (Supabase or Firestore)',
+    read: 'syncCloudEngagementForTargets + social realtime',
     users: 'current user like/save state',
     transport: 'CU',
   },
   stories: {
-    write: 'queueCloudStoryPublish → social_stories',
-    read: 'syncCloudStories + social_stories realtime',
+    write: 'queueCloudStoryPublish → social_stories (Supabase or Firestore)',
+    read: 'syncCloudStories + social realtime',
     users: 'ensureAuthor on author_id',
     transport: 'CU',
   },
   follows: {
-    write: 'cloudFollowToggle / cloudFollowRequestToggle → follows + user_notifications',
-    read: 'hydrateCloudFollowsForUser',
+    write: 'cloudFollowToggle / cloudFollowRequestToggle → followsCloud + notificationsCloud',
+    read: 'hydrateCloudFollowsForUser (followsCloud)',
     users: 'resolveUser / useUserById',
     transport: 'CU',
   },
   blocks: {
-    write: 'queueCloudBlock → user_blocks',
-    read: 'startCloudBlocksRealtime + syncCloudBlocks (both directions)',
+    write: 'queueCloudBlock → blocksCloud (Supabase or Firestore user_blocks)',
+    read: 'startCloudBlocksRealtime + syncCloudBlocks',
     users: 'isUserBlocked filters feeds/messages',
     transport: 'CU',
   },
   profileVisits: {
-    write: 'queueCloudProfileVisit → profile_visits',
-    read: 'startCloudProfileVisitsRealtime + syncCloudProfileVisits (owner inbox)',
+    write: 'queueCloudProfileVisit → profileVisitsCloud',
+    read: 'startCloudProfileVisitsRealtime + syncCloudProfileVisits',
     users: 'visitor profiles cached',
     transport: 'CU',
   },
   thoughts: {
-    write: 'updateUser → profiles.note',
-    read: 'thoughtNoteCloudSync profiles realtime',
+    write: 'updateUser → profiles.note (Supabase or Firestore profiles)',
+    read: 'thoughtNoteCloudSync profiles realtime (Supabase or Firestore)',
     users: 'resolveUser / useUserById',
     transport: 'CU',
   },
   live: {
     write: 'setUserLiveStatus → profiles live_* + notifyLiveStarted',
-    read: 'useCloudLiveDiscovery streams/party_rooms/profiles realtime',
+    read: 'useCloudLiveDiscovery streams/party_rooms/profiles realtime (Supabase + Firebase partyRoomsCloud)',
     users: 'resolveUser on host',
     transport: 'CU',
   },
   party: {
-    write: 'insertPartyRoomMessage / upsertPartyRoom / presence channel',
-    read: 'usePartyRoomChat / usePartyRoomPresence / useCloudPartyRooms',
+    write:
+      'partyRoomsCloud: insertPartyRoomMessage / upsertPartyRoom / presence / party_room_sync_events (gifts, PK, commerce, game, seats) — Supabase or Firestore',
+    read: 'partyRoomsCloud: usePartyRoomChat / usePartyRoomPresence / useCloudPartyRooms / useLiveRoomBus (incl. seats snapshot)',
     users: 'room host profile fetch',
     transport: 'CU',
   },
@@ -100,8 +106,22 @@ export const LIVE_DATA_FLOW_MAP = {
   },
   wallet: {
     write: 'platform wallet APIs / transferCoins',
-    read: 'hydratePlatformSession + syncServerWalletBalance',
+    read: 'hydratePlatformSession + syncServerWalletBalance (visibility + inbox poll)',
     users: 'self account',
+    transport: 'CU',
+  },
+  gifts: {
+    write:
+      'adminCatalogStore upsert/delete → platform_gift_catalog (Supabase realtime) + admin_published_gifts user_app_state',
+    read: 'usePartyGiftCatalog + platformGiftCatalogCloud realtime + getMergedPartyGiftCatalog',
+    users: 'all viewers in live rooms; admin edits from Creation Studio or in-room gift panel',
+    transport: 'CU+AS',
+  },
+  appBrand: {
+    write:
+      'AppBrandPortalCard → publishPlatformAppBrand → platform_app_brand (Supabase + Firestore platform_app_brand/default)',
+    read: 'platformAppBrandCloud fetch/realtime (Supabase postgres_changes + Firestore onSnapshot) → appBrandRuntime',
+    users: 'all users + logged-out install/PWA surfaces',
     transport: 'CU',
   },
   karaoke: {

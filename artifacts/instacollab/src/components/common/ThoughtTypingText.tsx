@@ -42,7 +42,10 @@ export function ThoughtTypingText({
   const [started, setStarted] = useState(instant);
   const [visibleCount, setVisibleCount] = useState(instant ? text.length : 0);
   const [isErasing, setIsErasing] = useState(false);
+  const [wakeTick, setWakeTick] = useState(0);
   const completedOnceRef = useRef(false);
+  const onLoopRestartRef = useRef(onLoopRestart);
+  onLoopRestartRef.current = onLoopRestart;
 
   useEffect(() => {
     completedOnceRef.current = false;
@@ -56,6 +59,18 @@ export function ThoughtTypingText({
     const timer = window.setTimeout(() => setStarted(true), startDelay);
     return () => window.clearTimeout(timer);
   }, [instant, startDelay, text]);
+
+  // iOS Safari throttles timer chains in background tabs — nudge the loop when visible again.
+  useEffect(() => {
+    if (!loop || instant || typeof document === 'undefined') return;
+    const onVisibility = () => {
+      if (document.visibilityState === 'visible') {
+        setWakeTick((tick) => tick + 1);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisibility);
+    return () => document.removeEventListener('visibilitychange', onVisibility);
+  }, [instant, loop]);
 
   useEffect(() => {
     if (!started || instant) return;
@@ -77,8 +92,9 @@ export function ThoughtTypingText({
 
     if (isErasing && visibleCount === 0) {
       const timer = window.setTimeout(() => {
+        completedOnceRef.current = false;
         setIsErasing(false);
-        onLoopRestart?.();
+        onLoopRestartRef.current?.();
       }, pauseBeforeRestartMs);
       return () => window.clearTimeout(timer);
     }
@@ -87,7 +103,7 @@ export function ThoughtTypingText({
       const nextChar = text[visibleCount] ?? '';
       const timer = window.setTimeout(
         () => setVisibleCount((count) => count + 1),
-        typingDelayForChar(nextChar, visibleCount)
+        typingDelayForChar(nextChar, visibleCount),
       );
       return () => window.clearTimeout(timer);
     }
@@ -97,11 +113,11 @@ export function ThoughtTypingText({
     isErasing,
     loop,
     onComplete,
-    onLoopRestart,
     pauseAfterTypeMs,
     pauseBeforeRestartMs,
     text,
     visibleCount,
+    wakeTick,
   ]);
 
   const isTyping = started && !isErasing && visibleCount < text.length;

@@ -1,4 +1,5 @@
 import React, { useEffect, useLayoutEffect, useRef, useState, type RefObject } from 'react';
+import { LIVE_VIDEO_HEIGHT, LIVE_VIDEO_WIDTH } from '../hooks/liveVideoConstants';
 
 type SelfMediaBounds = {
   left: number;
@@ -11,24 +12,27 @@ type MultiGuestSelfMediaHostProps = {
   stageRef: RefObject<HTMLElement | null>;
   anchorRef: RefObject<HTMLElement | null>;
   seatKey: string | null;
-  /** Keep camera + DeepAR DOM mounted while seated (survives camera toggle). */
-  mounted: boolean;
-  /** Show preview when camera is on. */
-  visible: boolean;
+  active: boolean;
   rawVideoRef: RefObject<HTMLVideoElement | null>;
   deeparPreviewRef: RefObject<HTMLDivElement | null>;
   showDeeparPreview: boolean;
-  deeparWarm?: boolean;
   mirrorSelf: boolean;
-  /** Tencent WebAR processed output video. */
   beautyVideoRef?: RefObject<HTMLVideoElement | null>;
   showBeautyPreview?: boolean;
-  /** CSS fallback when WebAR credentials are missing. */
   beautyFilter?: string | null;
 };
 
-function assignRef<T>(ref: RefObject<T | null>, value: T | null) {
-  ref.current = value;
+function coverScale(containerWidth: number, containerHeight: number): number {
+  if (containerWidth < 1 || containerHeight < 1) return 1;
+  return Math.max(containerWidth / LIVE_VIDEO_WIDTH, containerHeight / LIVE_VIDEO_HEIGHT);
+}
+
+function setRef<T>(ref: RefObject<T | null> | ((instance: T | null) => void), value: T | null) {
+  if (typeof ref === 'function') {
+    ref(value);
+  } else {
+    ref.current = value;
+  }
 }
 
 /**
@@ -39,12 +43,10 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
   stageRef,
   anchorRef,
   seatKey,
-  mounted,
-  visible,
+  active,
   rawVideoRef,
   deeparPreviewRef,
   showDeeparPreview,
-  deeparWarm = false,
   mirrorSelf,
   beautyVideoRef,
   showBeautyPreview = false,
@@ -56,11 +58,11 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
 
   const mergeProcessRef = (node: HTMLDivElement | null) => {
     processRef.current = node;
-    assignRef(deeparPreviewRef, node);
+    setRef(deeparPreviewRef, node);
   };
 
   useEffect(() => {
-    if (!mounted) {
+    if (!active) {
       setBounds(null);
       return undefined;
     }
@@ -113,10 +115,33 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
       observer?.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [mounted, anchorRef, seatKey, stageRef]);
+  }, [active, anchorRef, seatKey, stageRef]);
 
   useLayoutEffect(() => {
-    if (!mounted || !visible) return undefined;
+    if (!active) return undefined;
+    const tile = tileRef.current;
+    const process = processRef.current;
+    if (!tile || !process) return undefined;
+
+    const syncScale = () => {
+      const { width, height } = tile.getBoundingClientRect();
+      const scale = coverScale(width, height);
+      process.style.transform = `translate(-50%, -50%) scale(${scale})`;
+    };
+
+    syncScale();
+    const observer = new ResizeObserver(syncScale);
+    observer.observe(tile);
+    window.addEventListener('resize', syncScale);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener('resize', syncScale);
+    };
+  }, [active, bounds?.width, bounds?.height]);
+
+  useLayoutEffect(() => {
+    if (!active) return undefined;
     const video = rawVideoRef.current;
     if (!video) return undefined;
 
@@ -133,24 +158,23 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
       window.clearInterval(id);
       video.removeEventListener('pause', keepPlaying);
     };
-  }, [mounted, rawVideoRef, visible]);
+  }, [active, rawVideoRef]);
 
-  if (!mounted) return null;
+  if (!active) return null;
 
   return (
     <div
       className="multi-guest-self-media-host"
-      style={{
-        ...(bounds
+      style={
+        bounds
           ? {
               left: bounds.left,
               top: bounds.top,
               width: bounds.width,
               height: bounds.height,
             }
-          : { opacity: 0, pointerEvents: 'none' }),
-        visibility: visible ? 'visible' : 'hidden',
-      }}
+          : { opacity: 0, pointerEvents: 'none' }
+      }
       aria-hidden
     >
       <div ref={tileRef} className="multi-guest-video-tile-self-media">
@@ -159,13 +183,16 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
           muted
           playsInline
           autoPlay
-          className={`multi-guest-video-tile-media ${mirrorSelf && !showDeeparPreview && !showBeautyPreview ? 'multi-guest-video-tile-media--self' : 'multi-guest-video-tile-media--self-ar'}`}
-          style={{
-            zIndex: 0,
-            ...(beautyFilter && !showDeeparPreview && !showBeautyPreview
+          className={`multi-guest-video-tile-media ${
+            mirrorSelf && !showDeeparPreview && !showBeautyPreview
+              ? 'multi-guest-video-tile-media--self'
+              : 'multi-guest-video-tile-media--self-ar'
+          }`}
+          style={
+            beautyFilter && !showDeeparPreview && !showBeautyPreview
               ? { filter: beautyFilter }
-              : undefined),
-          }}
+              : undefined
+          }
         />
         {beautyVideoRef ? (
           <video
@@ -175,24 +202,21 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
             autoPlay
             className="multi-guest-video-tile-media multi-guest-video-tile-media--self-ar"
             style={{
-              zIndex: 1,
               opacity: showBeautyPreview ? 1 : 0,
               pointerEvents: 'none',
             }}
           />
         ) : null}
         <div
-          className={`multi-guest-video-tile-deepar${
-            showDeeparPreview
-              ? ' multi-guest-video-tile-deepar--live'
-              : deeparWarm
-                ? ' multi-guest-video-tile-deepar--warm'
-                : ''
-          }`}
+          className={`multi-guest-video-tile-deepar${showDeeparPreview ? ' multi-guest-video-tile-deepar--live' : ''}`}
         >
           <div
             ref={mergeProcessRef}
-            className={`multi-guest-deepar-process${showDeeparPreview ? ' multi-guest-deepar-process--live' : ''}`}
+            className="multi-guest-deepar-process"
+            style={{
+              width: LIVE_VIDEO_WIDTH,
+              height: LIVE_VIDEO_HEIGHT,
+            }}
           />
         </div>
       </div>

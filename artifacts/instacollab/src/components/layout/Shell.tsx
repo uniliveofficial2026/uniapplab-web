@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'motion/react';
-import React, { ReactNode, useEffect, useRef, useState } from 'react';
+import React, { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Gamepad2, Globe, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings } from 'lucide-react';
 import { Tab, User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
@@ -8,6 +8,7 @@ import { safeAvatarUrl } from '../../lib/safe';
 import { SafeMediaImage } from '../common/SafeMediaImage';
 import { getProfileDisplayName } from '../../lib/profileDisplay';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
+import { requestWorkspaceAdminTab } from '../../lib/appBrandRuntime';
 
 /** Stable marketplace images (no fragile query params). */
 const MARKETPLACE_PRESET_IMAGES = [
@@ -44,6 +45,9 @@ import { useCloudAuth } from '../../contexts/CloudAuthContext';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
 import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
 import { liveSurfaceFromTab, refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
+import { activeSurfacePollIntervalMs } from '../../lib/liveCloudSyncMode';
+import { isNetworkOnline } from '../../lib/networkStatus';
+import { signalAppShellReady } from '../../lib/appShellReady';
 
 interface ShellProps {
   currentTab: Tab;
@@ -62,6 +66,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     selectAccount,
     removeAccount,
     ensureDeviceAccountsSynced,
+    refreshAccountSwitcher,
     sendEmailAuthOtp,
     verifyEmailAuthOtp,
   } = useAuth();
@@ -79,9 +84,41 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   const settingsFileInputRef = useRef<HTMLInputElement | null>(null);
   const { showToast } = useToast();
 
+  useLayoutEffect(() => {
+    signalAppShellReady();
+  }, []);
+
   useEffect(() => {
     setLocalUser(resolveUser(db.users, currentUser));
   }, [db.users, currentUser]);
+
+  // Real-time: keep the visible tab's cloud lane warm while the shell is open.
+  useEffect(() => {
+    const surface = liveSurfaceFromTab(currentTab);
+    refreshLiveCloudSurface(surface, { force: true });
+
+    let timer: number | null = null;
+    const armPoll = () => {
+      if (timer != null) window.clearInterval(timer);
+      timer = null;
+      if (document.visibilityState !== 'visible' || !isNetworkOnline()) return;
+      const ms = activeSurfacePollIntervalMs();
+      if (ms <= 0) return;
+      timer = window.setInterval(() => {
+        if (document.visibilityState !== 'visible' || !isNetworkOnline()) return;
+        refreshLiveCloudSurface(surface);
+      }, ms);
+    };
+
+    armPoll();
+    document.addEventListener('visibilitychange', armPoll);
+    window.addEventListener('focus', armPoll);
+    return () => {
+      document.removeEventListener('visibilitychange', armPoll);
+      window.removeEventListener('focus', armPoll);
+      if (timer != null) window.clearInterval(timer);
+    };
+  }, [currentTab]);
 
   const openAccountSwitcher = () => {
     void ensureDeviceAccountsSynced().then(() => setShowAccountSwitcher(true));
@@ -136,21 +173,20 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   };
 
   const navigateToTab = (tab: Tab) => {
-    // Paint tab change first — cloud refresh is deferred inside refreshLiveCloudSurface.
+    // Paint tab change first — cloud refresh is deferred and coalesced silently.
     if (tab === 'notifications') db.setHasUnreadNotifications(false);
     if (tab === 'messages') db.setUnreadMessagesCount(0);
     if (tab === 'karaoke') {
       requestKaraokeStudioOpen();
     }
     setCurrentTab(tab);
-    refreshLiveCloudSurface(liveSurfaceFromTab(tab), { force: true });
+    requestAnimationFrame(() => refreshLiveCloudSurface(liveSurfaceFromTab(tab)));
   };
 
   const handleHomeTap = () => {
     if (currentTab === 'home') {
       dispatchTapRefresh('home');
       scrollAppMainToTop();
-      showToast('Feed refreshed');
       return;
     }
     navigateToTab('home');
@@ -160,7 +196,6 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     if (tab === 'home' && currentTab === 'home') {
       dispatchTapRefresh('home');
       scrollAppMainToTop();
-      showToast('Feed refreshed');
       return;
     }
     navigateToTab(tab);
@@ -221,7 +256,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     { id: 'karaoke', icon: MicVocal, label: 'Karaoke' },
     { id: 'messages', icon: MessageCircle, label: 'Messages' },
     { id: 'notifications', icon: Bell, label: 'Notifications' },
-    { id: 'workspace', icon: LayoutDashboard, label: 'Workspace' },
+    { id: 'workspace', icon: LayoutDashboard, label: 'Admin Panel' },
     { id: 'dating', icon: Heart, label: 'Dating' },
     { id: 'live', icon: Radio, label: 'Live' },
     { id: 'local-games', icon: Gamepad2, label: 'Local Games' },
@@ -240,7 +275,8 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     currentTab !== 'rooms';
 
   const isFullHeightTab =
-    currentTab === 'messages' || currentTab === 'karaoke' || currentTab === 'rooms';
+    currentTab === 'messages' || currentTab === 'karaoke' || currentTab === 'rooms' || currentTab === 'reels';
+  const isReelsTab = currentTab === 'reels';
 
   return (
     <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden font-sans">
@@ -394,26 +430,26 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
 
       {/* Desktop Sidebar */}
       {currentTab !== 'karaoke' && currentTab !== 'rooms' && (
-      <div className="hidden md:flex flex-col w-[72px] lg:w-[244px] h-full border-r border-border bg-background pt-[calc(2rem+var(--app-safe-top))] pb-[calc(1rem+var(--app-safe-bottom))] px-3 lg:px-4 shrink-0 transition-all relative z-40 overflow-y-auto no-scrollbar">
-        {/* Logo */}
-        <div className="mb-10 px-2 flex items-center justify-center lg:justify-start">
+      <div className="hidden md:flex flex-col w-[72px] lg:w-[244px] h-full border-r border-border bg-background pt-[calc(2rem+var(--app-safe-top))] pb-[calc(1rem+var(--app-safe-bottom))] px-3 lg:px-4 shrink-0 transition-all relative z-40 overflow-hidden min-h-0">
+        {/* Logo — keep outside scroll region so italic wordmark is not clipped */}
+        <div className="mb-10 px-2 shrink-0 overflow-visible flex items-center justify-center lg:justify-start">
           <button
             type="button"
             onClick={handleHomeTap}
-            className={`${navTapButtonClass} flex items-center justify-center lg:justify-start min-h-[44px]`}
+            className={`${navTapButtonClass} flex items-center justify-center lg:justify-start min-h-[44px] overflow-visible`}
             aria-label={currentTab === 'home' ? 'Refresh feed' : 'Go to home'}
           >
-            <span className="lg:hidden flex">
+            <span className="lg:hidden flex overflow-visible">
               <AppLogo showText={false} iconClassName="w-8 h-8" />
             </span>
-            <span className="hidden lg:flex">
+            <span className="hidden lg:flex overflow-visible">
               <AppLogo iconClassName="w-8 h-8" textClassName="text-2xl" />
             </span>
           </button>
         </div>
 
         {/* Desktop Nav Items */}
-        <nav className="flex-1 space-y-2">
+        <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
             const isActive = currentTab === item.id;
@@ -425,6 +461,9 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                   if (item.id === 'home') {
                     handleHomeTap();
                     return;
+                  }
+                  if (item.id === 'workspace') {
+                    requestWorkspaceAdminTab();
                   }
                   navigateToTab(item.id as Tab);
                 }}
@@ -477,10 +516,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
             </div>
             <span className="hidden lg:block text-[15px]">Profile</span>
           </button>
-        </nav>
 
-        {/* Bottom Menu Button */}
-        <div className="mt-auto space-y-2">
           <button type="button" onClick={() => setShowMarketplace(true)} className={`${navTapRowButtonClass} p-2 hover:text-foreground text-muted-foreground font-medium transition-colors group`}>
             <div className="p-2 rounded-xl bg-muted group-hover:bg-foreground group-hover:text-background transition-colors">
               <Store className="w-5 h-5 stroke-[2px]" />
@@ -529,7 +565,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
             </div>
             <span className="hidden lg:block text-[15px]">Log out</span>
           </button>
-        </div>
+        </nav>
       </div>
       )}
 
@@ -549,7 +585,15 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                  <AppLogo showText iconClassName="w-8 h-8" textClassName="text-2xl" />
                </button>
                <div className={`flex items-center gap-1 ${currentTab === 'reels' ? 'text-white' : 'text-foreground'}`}>
-                  <button type="button" onClick={() => navigateToTab('workspace')} className={navTapIconButtonClass} aria-label="Workspace">
+                  <button
+                    type="button"
+                    onClick={() => {
+                      requestWorkspaceAdminTab();
+                      navigateToTab('workspace');
+                    }}
+                    className={navTapIconButtonClass}
+                    aria-label="Admin Panel"
+                  >
                     <LayoutDashboard className={`w-6 h-6 stroke-[1.5px] ${currentTab === 'workspace' ? 'stroke-[2.5px]' : ''}`} />
                   </button>
                   <button type="button" onClick={() => navigateToTab('notifications')} className={`${navTapIconButtonClass} relative`} aria-label="Notifications">
@@ -572,7 +616,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
           </div>
         )}
 
-        <main className={`flex-1 flex flex-col relative w-full min-h-0 ${!isFullHeightTab && hideShellMobileTopNav ? 'pt-[var(--app-safe-top)]' : ''} bg-transparent ${isFullHeightTab ? 'overflow-hidden h-full pb-0' : currentTab === 'reels' ? 'overflow-y-auto overflow-x-hidden no-scrollbar pb-0 bg-black' : 'overflow-y-auto overflow-x-hidden no-scrollbar pb-shell-nav md:pb-[max(1.5rem,var(--app-safe-bottom))]'}`}>
+        <main className={`flex-1 flex flex-col relative w-full min-h-0 ${!isFullHeightTab && hideShellMobileTopNav ? 'pt-[var(--app-safe-top)]' : ''} bg-transparent ${isFullHeightTab ? 'overflow-hidden h-full pb-0' : isReelsTab ? 'overflow-y-auto overflow-x-hidden no-scrollbar pb-0 bg-black' : 'overflow-y-auto overflow-x-hidden no-scrollbar pb-shell-nav md:pb-[max(1.5rem,var(--app-safe-bottom))]'}`}>
           <div
             className={`w-full flex flex-col bg-transparent ${
               isFullHeightTab
@@ -762,14 +806,10 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
         linking={accountLinking}
         cloudAuthEnabled={isCloudAuthConfigured()}
         onClose={() => setShowAccountSwitcher(false)}
-        onRefreshAccounts={ensureDeviceAccountsSynced}
+        onRefreshAccounts={refreshAccountSwitcher}
         onSelectAccount={async (uid, password) => {
           try {
-            const label =
-              userAccounts.find((a) => a.uid === uid)?.displayName || 'selected account';
-            showToast(`Switching to ${label}…`);
             await selectAccount(uid, password);
-            await ensureDeviceAccountsSynced();
             setLocalUser(resolveUser(db.users, db.currentUser));
             setShowAccountSwitcher(false);
           } catch (err) {
@@ -816,14 +856,13 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
           try {
             setAccountLinking(true);
             setShowAccountSwitcher(false);
-            await ensureDeviceAccountsSynced();
             const result = await switchAccount();
             if (result.redirecting) {
               showToast('Opening Google sign-in…');
               return;
             }
             if (result.ok) {
-              await ensureDeviceAccountsSynced();
+              void ensureDeviceAccountsSynced();
               setLocalUser(resolveUser(db.users, db.currentUser));
               showToast('Google account linked!');
             } else if (result.reason) {

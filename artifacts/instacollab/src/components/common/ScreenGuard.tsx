@@ -1,6 +1,6 @@
 import React, { Suspense } from 'react';
 import { ErrorBoundary } from './ErrorBoundary';
-import { ScreenFallback } from './ScreenFallback';
+import { instantSuspenseFallback } from '../../lib/instantCachePolicy';
 
 type ScreenGuardProps = {
   /** Screen id for logging and isolated error recovery */
@@ -13,7 +13,7 @@ type ScreenGuardProps = {
 export function ScreenGuard({ screen, children, fallback }: ScreenGuardProps) {
   return (
     <ErrorBoundary screen={screen}>
-      <Suspense fallback={fallback ?? <ScreenFallback />}>{children}</Suspense>
+      <Suspense fallback={fallback ?? instantSuspenseFallback()}>{children}</Suspense>
     </ErrorBoundary>
   );
 }

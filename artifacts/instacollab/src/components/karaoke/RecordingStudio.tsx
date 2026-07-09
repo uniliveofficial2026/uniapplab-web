@@ -4221,6 +4221,9 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                         effects={trtcBeautyEffects}
                         onEffectsChange={handleKaraokeBeautyEffectsChange}
                         catalogs={streamBeauty.catalogs}
+                        readyEffectIds={streamBeauty.readyEffectIds}
+                        bodyShape={trtcBodyShape}
+                        onBodyShapeChange={setTrtcBodyShape}
                         anchorBottom={0}
                         webarConfigured={streamBeauty.configured}
                         webarLoading={streamBeauty.loading}
@@ -4234,6 +4237,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                       </h3>
                       <DeepARFilterCarousel
                         activeEffectId={deeparEffectId}
+                        onSelect={handleSelectKaraokeDeepAR}
                         activeSelection={deeparSelection}
                         onSelectionChange={handleDeeparSelectionChange}
                         multiSelect
@@ -4436,6 +4440,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
           bodyShape={trtcBodyShape}
           onBodyShapeChange={setTrtcBodyShape}
           catalogs={streamBeauty.catalogs}
+          readyEffectIds={streamBeauty.readyEffectIds}
           anchorBottom={0}
           webarConfigured={streamBeauty.configured}
           webarLoading={streamBeauty.loading}

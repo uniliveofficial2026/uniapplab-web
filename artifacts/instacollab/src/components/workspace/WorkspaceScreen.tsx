@@ -6,9 +6,14 @@ import {
   Moon, Sun, MessageSquare, Link as LinkIcon, FileText, History, ShieldAlert, Ban, Zap, Star, Activity, Plus, FileUp, X, Filter, Trash2, ArrowUpRight, Image,
   ChevronLeft, ChevronRight, Mail
 } from 'lucide-react';
+import { AppCameraButton } from '../camera/AppCameraButton';
+import { cameraCaptureToFile } from '../../lib/camera/cameraCaptureAdapters';
+import type { AppCameraCapturePayload } from '../../contexts/AppCameraContext';
+import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
+import { presenceBeatIntervalMs } from '../../lib/liveCloudSyncMode';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import { handleAvatarError, handleMediaError, fileToBase64 } from '../../lib/utils';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from '../common/AppNativeVideo';
 import { resolveUser, safeAvatarUrl } from '../../lib/safe';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
@@ -16,15 +21,21 @@ import { useAuth } from '../../lib/AuthContext';
 import { GoogleChatTab } from './GoogleChatTab';
 import { GoogleKeepTab } from './GoogleKeepTab';
 import { GmailTab } from './GmailTab';
-import { AdminPanel } from '../admin/AdminPanel';
-import { AppBrandPortalCard } from '../admin/AppBrandPortalCard';
+import { AdminControlCenter, useModerationFlagCount } from '../admin/AdminControlCenter';
 import { AutomationControlToggles } from './AutomationControlToggles';
 import { WORKSPACE_DISPLAY_NAME } from '../../lib/appBrand';
+import { consumeWorkspaceAdminTabHint } from '../../lib/appBrandRuntime';
 import { GoogleContactsTab } from './GoogleContactsTab';
 import { GoogleCalendarTab } from './GoogleCalendarTab';
 import { GoogleDocsTab } from './GoogleDocsTab';
 import { WorkspaceMediaFullscreenPortal } from './WorkspaceMediaFullscreenPortal';
 import type { User } from '../../types';
+
+function formatWorkspaceFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 type TabType = 'dashboard' | 'calendar' | 'files' | 'docs' | 'gmail' | 'contacts' | 'chat' | 'keep' | 'admin';
 
@@ -157,6 +168,7 @@ function buildWeeklyActivityChart(
 export function WorkspaceScreen() {
     const db = useDB();
     const dbRevision = useDbRevision();
+    useLiveCloudSurface('workspace', { poll: false });
     const USERS = db.users;
     const FILES = db.files;
     const me = resolveUser(db.users, db.currentUser);
@@ -166,7 +178,9 @@ export function WorkspaceScreen() {
     const performanceChartTheme = useRechartsTheme();
     const performanceTooltipProps = rechartsTooltipProps(performanceChartTheme);
 
-    const [activeTab, setActiveTab ] = useState<TabType>('dashboard');
+    const [activeTab, setActiveTab ] = useState<TabType>(() =>
+      consumeWorkspaceAdminTabHint() ? 'admin' : 'dashboard',
+    );
     const workspaceTabsScrollRef = useRef<HTMLDivElement | null>(null);
     const [presenceTick, setPresenceTick] = useState(0);
 
@@ -237,59 +251,7 @@ export function WorkspaceScreen() {
 
     const liveChartData = useMemo(() => buildWeeklyActivityChart(posts), [posts]);
 
-    const moderationFlags = useMemo(() => {
-      return posts
-        .filter((post) => post.isReported && !post.isArchived)
-        .slice()
-        .sort((a, b) => postTimeMs(b) - postTimeMs(a))
-        .map((post) => {
-          const author = resolveUser(USERS, post.user);
-          const thumb =
-            post.imageUrl ||
-            post.mediaList?.find((m) => m.type === 'image' || m.type === 'video')?.url ||
-            author.avatarUrl;
-          return {
-            id: post.id,
-            text: `Review requested on post "${String(post.id).slice(0, 14)}"`,
-            reason: post.caption?.trim()
-              ? `Caption: ${post.caption.trim().slice(0, 64)}`
-              : 'Community Guidelines review',
-            userId: author.id,
-            userName: author.displayName || author.username,
-            username: author.username,
-            avatarUrl: author.avatarUrl,
-            thumbUrl: thumb,
-            isVideo: Boolean(post.videoUrl || post.mediaList?.some((m) => m.type === 'video')),
-            createdAt: postTimeMs(post),
-          };
-        });
-    }, [posts, USERS, dbRevision]);
-
-    const approveReportedPost = (postId: string) => {
-      const post = posts.find((p) => p.id === postId);
-      const author = post ? resolveUser(USERS, post.user) : null;
-      db.updatePost(postId, (p) => ({ ...p, isReported: false }));
-      db.addAuditLog({
-        id: Date.now(),
-        text: `Approved post ${postId}${author ? ` by @${author.username}` : ''}`,
-        time: 'Just now',
-      });
-    };
-
-    const rejectReportedPost = (postId: string) => {
-      const post = posts.find((p) => p.id === postId);
-      const author = post ? resolveUser(USERS, post.user) : null;
-      db.updatePost(postId, (p) => ({
-        ...p,
-        isReported: false,
-        isArchived: true,
-      }));
-      db.addAuditLog({
-        id: Date.now(),
-        text: `Rejected & archived post ${postId}${author ? ` by @${author.username}` : ''}`,
-        time: 'Just now',
-      });
-    };
+    const moderationCount = useModerationFlagCount();
 
     // Live update toggle
     const [liveMode, setLiveMode] = useState(true);
@@ -332,14 +294,13 @@ export function WorkspaceScreen() {
     
     const auditLogs = db.auditLogs;
 
-    // Refresh presence-derived collaborator status while live mode is on.
+    // Live collaborator presence — refresh status labels in real time.
     useEffect(() => {
-        if (!liveMode) return undefined;
         const timer = window.setInterval(() => {
             setPresenceTick((tick) => tick + 1);
-        }, 15_000);
+        }, presenceBeatIntervalMs());
         return () => window.clearInterval(timer);
-    }, [liveMode]);
+    }, []);
 
 
     // --- CALENDAR & TASKS ---
@@ -380,15 +341,21 @@ export function WorkspaceScreen() {
     const filesLocal = db.files;
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const workspaceUploadInputRef = useRef<HTMLInputElement>(null);
 
     const [isPickerOpen, setIsPickerOpen] = useState(false);
     const [driveFiles, setDriveFiles] = useState<any[]>([]);
-    const [loadingDrive, setLoadingDrive] = useState(false);
     const [pickerSearch, setPickerSearch] = useState('');
+
+    const DRIVE_SEED = [
+        { id: 'dr1', name: 'Website_Wireframes_Ver3.fig', mimeType: 'application/vnd.google-apps.drawing', size: '4200000', modifiedTime: new Date(Date.now() - 36000000 * 2).toISOString() },
+        { id: 'dr2', name: 'Product_Backlog_unilive.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', size: '1500000', modifiedTime: new Date(Date.now() - 36000000 * 10).toISOString() },
+        { id: 'dr3', name: 'Venture_Pitch_Deck.pptx', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', size: '12400000', modifiedTime: new Date(Date.now() - 36000000 * 50).toISOString() },
+        { id: 'dr4', name: 'Firestore_Security_Audit_Report.pdf', mimeType: 'application/pdf', size: '890000', modifiedTime: new Date(Date.now() - 36000000 * 1).toISOString() },
+    ];
 
     const fetchDriveFiles = async () => {
         if (!googleAccessToken) return;
-        setLoadingDrive(true);
         try {
             const res = await fetch('https://www.googleapis.com/drive/v3/files?pageSize=15&fields=files(id,name,mimeType,size,modifiedTime)', {
                 headers: {
@@ -399,28 +366,19 @@ export function WorkspaceScreen() {
             if (res.ok) {
                 const data = await res.json();
                 setDriveFiles(data.files || []);
-            } else {
-                setDriveFiles([]);
             }
         } catch (e) {
             console.error('Error fetching drive files', e);
-            setDriveFiles([]);
-        } finally {
-            setLoadingDrive(false);
         }
     };
 
     useEffect(() => {
-        if (isPickerOpen && googleAccessToken) {
-            fetchDriveFiles();
-        } else if (isPickerOpen && !googleAccessToken) {
-            // Seed beautiful mockup Drive files so they can import immediately
-            setDriveFiles([
-                { id: 'dr1', name: 'Website_Wireframes_Ver3.fig', mimeType: 'application/vnd.google-apps.drawing', size: '4200000', modifiedTime: new Date(Date.now() - 36000000 * 2).toISOString() },
-                { id: 'dr2', name: 'Product_Backlog_unilive.xlsx', mimeType: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', size: '1500000', modifiedTime: new Date(Date.now() - 36000000 * 10).toISOString() },
-                { id: 'dr3', name: 'Venture_Pitch_Deck.pptx', mimeType: 'application/vnd.openxmlformats-officedocument.presentationml.presentation', size: '12400000', modifiedTime: new Date(Date.now() - 36000000 * 50).toISOString() },
-                { id: 'dr4', name: 'Firestore_Security_Audit_Report.pdf', mimeType: 'application/pdf', size: '890000', modifiedTime: new Date(Date.now() - 36000000 * 1).toISOString() },
-            ]);
+        if (!isPickerOpen) return;
+        if (driveFiles.length === 0) {
+            setDriveFiles(DRIVE_SEED);
+        }
+        if (googleAccessToken) {
+            void fetchDriveFiles();
         }
     }, [isPickerOpen, googleAccessToken]);
 
@@ -450,75 +408,57 @@ export function WorkspaceScreen() {
         setIsPickerOpen(false);
     };
 
-    const handleFileUpload = () => {
-        if(uploading) return;
+    const addWorkspaceFileEntry = (file: File) => {
+        db.addFile({
+            id: Date.now().toString() + Math.random().toString(36).slice(2, 6),
+            name: file.name,
+            date: 'Just now',
+            size: formatWorkspaceFileSize(file.size),
+            author: 0,
+        });
+    };
+
+    const handleWorkspaceFileInput = (event: React.ChangeEvent<HTMLInputElement>) => {
+        const picked = event.target.files ? Array.from(event.target.files) : [];
+        event.target.value = '';
+        if (picked.length === 0) return;
         setUploading(true);
         setUploadProgress(0);
-        const interval = setInterval(() => {
-            setUploadProgress(p => {
-                const next = p + 15 + Math.random() * 10;
-                if (next >= 100) {
-                    clearInterval(interval);
-                    setUploading(false);
-                    db.addFile({ id: Date.now().toString(), name: 'New_Dataset_Export.csv', date: 'Just now', size: '1.2 MB', author: 0 });
-                    return 100;
+        picked.forEach((file, index) => {
+            window.setTimeout(() => {
+                addWorkspaceFileEntry(file);
+                const progress = ((index + 1) / picked.length) * 100;
+                setUploadProgress(progress);
+                if (index === picked.length - 1) {
+                    window.setTimeout(() => setUploading(false), 250);
                 }
-                return next;
-            });
-        }, 300);
+            }, index * 180);
+        });
+    };
+
+    const handleWorkspaceCameraCapture = async (payload: AppCameraCapturePayload) => {
+        try {
+            const file = await cameraCaptureToFile(payload);
+            setUploading(true);
+            setUploadProgress(35);
+            addWorkspaceFileEntry(file);
+            setUploadProgress(100);
+            window.setTimeout(() => setUploading(false), 300);
+        } catch (err) {
+            console.error('Workspace camera upload failed', err);
+            setUploading(false);
+        }
+    };
+
+    const handleFileUpload = () => {
+        if (uploading) return;
+        workspaceUploadInputRef.current?.click();
     };
 
     const deleteFile = (id: string) => {
         db.deleteFile(id);
     };
 
-
-    // --- ADMIN & INTEGRATIONS ---
-    const cloudConnections = Array.isArray(db.settings.cloudConnections)
-      ? db.settings.cloudConnections
-      : [];
-    const [integrations, setIntegrations] = useState<Record<string, boolean>>(() => ({
-      slack: cloudConnections.some((c) => /slack/i.test(String(c?.id ?? c?.provider ?? ''))),
-      trello: cloudConnections.some((c) => /trello/i.test(String(c?.id ?? c?.provider ?? ''))),
-      github: cloudConnections.some((c) => /github|git/i.test(String(c?.id ?? c?.provider ?? ''))),
-    }));
-    
-    // --- SPLASH AD SETTINGS ---
-    const [splashAdUrl, setSplashAdUrl] = useState<string>((db.settings.splashAdUrl as string) || '');
-    const [splashAdDuration, setSplashAdDuration] = useState<number>((db.settings.splashAdDuration as number) || 2);
-    const [splashAdEnabled, setSplashAdEnabled] = useState<boolean>((db.settings.splashAdEnabled as boolean) || false);
-
-    const handleSaveSplashSettings = () => {
-        db.updateSettings({
-            splashAdUrl,
-            splashAdDuration,
-            splashAdEnabled
-        });
-        window.dispatchEvent(new CustomEvent('app-toast', { 
-            detail: 'Splash ad settings saved successfully!' 
-        }));
-    };
-    const activeFlags = moderationFlags;
-
-    const toggleIntegration = (key: string) => {
-        const newVal = !integrations[key];
-        db.addAuditLog({ id: Date.now(), text: `Integration ${key} was ${newVal ? 'connected' : 'disconnected'}.`, time: 'Just now' });
-        setIntegrations(prev => ({...prev, [key]: newVal}));
-    };
-
-    // Simulated latency pings for integrations
-    const [pings, setPings] = useState({ slack: 45, trello: 0, github: 120 });
-    useEffect(() => {
-        if (!liveMode) return;
-        const pingInterval = setInterval(() => {
-            setPings(prev => ({
-                slack: integrations.slack ? Math.max(10, prev.slack + Math.floor(Math.random() * 21 - 10)) : 0,
-                trello: integrations.trello ? Math.max(10, prev.trello + Math.floor(Math.random() * 21 - 10)) : 0,
-                github: integrations.github ? Math.max(20, prev.github + Math.floor(Math.random() * 41 - 20)) : 0,
-            }));
-        }, 2000);
-        return () => clearInterval(pingInterval);
-    }, [integrations, liveMode]);
 
     return (
         <div className="w-full flex flex-col pt-6 md:pt-10 px-4 md:px-8 max-w-[1200px] mx-auto min-h-0 pb-6 overflow-x-hidden">
@@ -552,6 +492,26 @@ export function WorkspaceScreen() {
                         title="Toggle Dark Mode"
                     >
                         {isDark ? <Sun className="w-5 h-5" /> : <Moon className="w-5 h-5" />}
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setActiveTab('admin')}
+                        className={`relative p-2.5 border rounded-xl transition-colors flex items-center justify-center gap-2 min-h-[40px] ${
+                          activeTab === 'admin'
+                            ? 'border-primary/50 text-primary bg-primary/10 shadow-sm'
+                            : 'border-border bg-secondary/50 hover:bg-secondary text-foreground'
+                        }`}
+                        title="Admin & Portal"
+                        aria-label="Admin & Portal"
+                        id="btn-workspace-admin-portal"
+                    >
+                        <ShieldCheck className="w-5 h-5 shrink-0" />
+                        <span className="hidden lg:inline text-sm font-bold whitespace-nowrap">Admin & Portal</span>
+                        {moderationCount > 0 ? (
+                          <span className="absolute -top-1 -right-1 min-w-[18px] h-[18px] px-1 rounded-full bg-destructive text-destructive-foreground text-[10px] font-black flex items-center justify-center">
+                            {moderationCount > 9 ? '9+' : moderationCount}
+                          </span>
+                        ) : null}
                     </button>
                     <button 
                         onClick={() => setIsNewProjectModalOpen(true)}
@@ -612,7 +572,7 @@ export function WorkspaceScreen() {
                                 >
                                     <Icon className={`w-4 h-4 transition-transform duration-300 ${activeTab === tabId ? 'scale-110' : 'group-hover:scale-110'}`} /> 
                                     {Label}
-                                    {tabId === 'admin' && activeFlags.length > 0 && (
+                                    {tabId === 'admin' && moderationCount > 0 && (
                                         <span className="ml-1 w-2 h-2 rounded-full bg-destructive animate-pulse" />
                                     )}
                                 </button>
@@ -877,16 +837,13 @@ export function WorkspaceScreen() {
                                       className="relative inline-block border border-border rounded-lg max-w-[100px] h-20 group shrink-0 overflow-hidden"
                                     >
                                       {media.isVideo ? (
-                                        <video
+                                        <AppNativeVideo
                                           src={media.url || undefined}
                                           className="w-full h-full object-cover"
                                           muted
-                                          playsInline
-                                          controls
                                           preload="auto"
                                           autoPlay
                                           loop
-                                          {...nativeVideoControlGuardProps()}
                                         />
                                       ) : (
                                         <img
@@ -987,7 +944,23 @@ export function WorkspaceScreen() {
                                     className="w-full bg-secondary/50 border border-border rounded-lg pl-9 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
                                 />
                             </div>
-                            <button onClick={() => setIsPickerOpen(true)} className="bg-secondary text-foreground hover:bg-secondary/80 border border-border px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap transition-all shadow-sm mr-2"><LinkIcon className="w-4 h-4 text-primary" /> Import from Drive</button><button onClick={handleFileUpload} disabled={uploading} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm shadow flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-70 whitespace-nowrap">
+                            <button onClick={() => setIsPickerOpen(true)} className="bg-secondary text-foreground hover:bg-secondary/80 border border-border px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap transition-all shadow-sm mr-2"><LinkIcon className="w-4 h-4 text-primary" /> Import from Drive</button>
+                            <input
+                              ref={workspaceUploadInputRef}
+                              type="file"
+                              multiple
+                              className="hidden"
+                              onChange={handleWorkspaceFileInput}
+                            />
+                            <AppCameraButton
+                              title="Workspace camera"
+                              onCaptured={handleWorkspaceCameraCapture}
+                              disabled={uploading}
+                              className="bg-secondary text-foreground hover:bg-secondary/80 border border-border px-4 py-2 rounded-lg font-bold text-sm flex items-center justify-center gap-2 whitespace-nowrap transition-all shadow-sm disabled:opacity-70"
+                              iconClassName="w-4 h-4 text-fuchsia-600"
+                              aria-label="Camera"
+                            />
+                            <button onClick={handleFileUpload} disabled={uploading} className="bg-primary text-primary-foreground px-4 py-2 rounded-lg font-bold text-sm shadow flex items-center justify-center gap-2 hover:bg-primary/90 transition-colors disabled:opacity-70 whitespace-nowrap">
                                 {uploading ? <Activity className="w-4 h-4 animate-spin"/> : <FileUp className="w-4 h-4"/>}
                                 {uploading ? 'Uploading...' : 'Upload File'}
                             </button>
@@ -997,14 +970,129 @@ export function WorkspaceScreen() {
                      {uploading && (
                          <div className="mb-6 p-4 rounded-xl bg-secondary/50 border border-border flex flex-col gap-3">
                              <div className="flex justify-between items-center text-sm font-bold">
-                                 <span>Uploading new dataset...</span>
-                                 <span>{Math.floor(uploadProgress)}%</span>
+                                 <span>Uploading {Math.floor(uploadProgress)}%</span>
                              </div>
                              <div className="w-full bg-secondary rounded-full h-2 overflow-hidden border border-border/50 relative">
                                  <div className="bg-primary h-full transition-all duration-[300ms] ease-out absolute left-0 top-0" style={{ width: `${uploadProgress}%` }}></div>
                              </div>
                          </div>
-                     )}                      {isPickerOpen && ( <div className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4" onClick={(e) => { if(e.target === e.currentTarget) setIsPickerOpen(false); }}><div className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col h-[500px]" onClick={e => e.stopPropagation()}><div className="p-4 border-b border-border bg-secondary/5 flex justify-between items-center"><div className="flex items-center gap-2"><div className="bg-blue-600 rounded px-1.5 py-0.5 text-white font-bold text-[10px]">GD</div><span className="font-bold text-sm text-foreground">Google Picker</span></div><button onClick={() => setIsPickerOpen(false)} className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"><X className="w-4 h-4" /></button></div><div className="flex-1 flex overflow-hidden"><div className="w-40 border-r border-border bg-secondary/15 p-3 hidden sm:flex flex-col gap-1 text-[11px] font-bold text-foreground"><button className="flex items-center gap-2 p-2 bg-primary/10 text-primary rounded-xl text-left"><FileText className="w-3.5 h-3.5" /> My Drive</button><button className="flex items-center gap-2 p-2 text-muted-foreground hover:bg-secondary/40 rounded-xl text-left"><Users className="w-3.5 h-3.5" /> Shared with me</button><button className="flex items-center gap-2 p-2 text-muted-foreground hover:bg-secondary/40 rounded-xl text-left"><Star className="w-3.5 h-3.5" /> Starred</button></div><div className="flex-1 flex flex-col overflow-hidden p-4 bg-card"><div className="relative mb-3"><Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" /><input type="text" value={pickerSearch} onChange={e => setPickerSearch(e.target.value)} placeholder="Search team documents, spreadsheets..." className="w-full bg-secondary/50 border border-border rounded-xl pl-9 p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground font-semibold" /></div>{!googleAccessToken && ( <div className="mb-3 p-3 bg-primary/5 rounded-xl border border-primary/15 text-[11px] font-bold text-foreground flex justify-between items-center gap-3"><span>Link Google Drive to browse live documents.</span><button onClick={loginWithGoogle} className="bg-primary hover:bg-primary/95 text-primary-foreground text-[10px] py-1 px-3 rounded-lg shadow-sm whitespace-nowrap">Link Account</button></div> )}<div className="flex-1 overflow-y-auto space-y-1">{loadingDrive ? ( <div className="text-center py-12 text-xs text-muted-foreground">Loading file repository...</div> ) : driveFiles.filter(f => f.name.toLowerCase().includes(pickerSearch.toLowerCase())).length === 0 ? ( <div className="text-center py-12 text-xs text-muted-foreground">No drive resources found.</div> ) : ( driveFiles.filter(f => f.name.toLowerCase().includes(pickerSearch.toLowerCase())).map(file => ( <button key={file.id} onClick={() => handleImportDriveFile(file)} className="w-full flex items-center justify-between p-3 rounded-xl border border-border/50 hover:border-primary/45 bg-card hover:bg-secondary/25 transition-all text-left group" ><div className="flex items-center gap-3 text-foreground truncate max-w-[70%]"><div className="p-2 rounded-lg bg-secondary text-primary group-hover:bg-primary/10 transition-colors"><FileText className="w-3.5 h-3.5" /></div><span className="truncate text-foreground font-bold text-xs">{file.name}</span></div><div className="text-[10px] text-muted-foreground text-right shrink-0 font-semibold mb-0.5"><p className="text-foreground font-bold">{(Number(file.size || 1500000) / (1024 * 1024)).toFixed(1)} MB</p><p className="text-[9px] text-muted-foreground/75 mt-0.5">{new Date(file.modifiedTime || Date.now()).toLocaleDateString()}</p></div></button> )) )}</div></div></div></div></div> )}
+                     )}
+
+                     {isPickerOpen ? (
+                       <div
+                         className="fixed inset-0 z-[200] bg-black/60 backdrop-blur-sm flex items-center justify-center p-4"
+                         onClick={(e) => {
+                           if (e.target === e.currentTarget) setIsPickerOpen(false);
+                         }}
+                       >
+                         <div
+                           className="bg-card border border-border w-full max-w-2xl rounded-2xl shadow-xl overflow-hidden flex flex-col h-[500px]"
+                           onClick={(e) => e.stopPropagation()}
+                         >
+                           <div className="p-4 border-b border-border bg-secondary/5 flex justify-between items-center">
+                             <div className="flex items-center gap-2">
+                               <div className="bg-blue-600 rounded px-1.5 py-0.5 text-white font-bold text-[10px]">
+                                 GD
+                               </div>
+                               <span className="font-bold text-sm text-foreground">Google Picker</span>
+                             </div>
+                             <button
+                               type="button"
+                               onClick={() => setIsPickerOpen(false)}
+                               className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground"
+                             >
+                               <X className="w-4 h-4" />
+                             </button>
+                           </div>
+                           <div className="flex-1 flex overflow-hidden">
+                             <div className="w-40 border-r border-border bg-secondary/15 p-3 hidden sm:flex flex-col gap-1 text-[11px] font-bold text-foreground">
+                               <button
+                                 type="button"
+                                 className="flex items-center gap-2 p-2 bg-primary/10 text-primary rounded-xl text-left"
+                               >
+                                 <FileText className="w-3.5 h-3.5" /> My Drive
+                               </button>
+                               <button
+                                 type="button"
+                                 className="flex items-center gap-2 p-2 text-muted-foreground hover:bg-secondary/40 rounded-xl text-left"
+                               >
+                                 <Users className="w-3.5 h-3.5" /> Shared with me
+                               </button>
+                               <button
+                                 type="button"
+                                 className="flex items-center gap-2 p-2 text-muted-foreground hover:bg-secondary/40 rounded-xl text-left"
+                               >
+                                 <Star className="w-3.5 h-3.5" /> Starred
+                               </button>
+                             </div>
+                             <div className="flex-1 flex flex-col overflow-hidden p-4 bg-card">
+                               <div className="relative mb-3">
+                                 <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground" />
+                                 <input
+                                   type="text"
+                                   value={pickerSearch}
+                                   onChange={(e) => setPickerSearch(e.target.value)}
+                                   placeholder="Search team documents, spreadsheets..."
+                                   className="w-full bg-secondary/50 border border-border rounded-xl pl-9 p-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/50 text-foreground font-semibold"
+                                 />
+                               </div>
+                               {!googleAccessToken ? (
+                                 <div className="mb-3 p-3 bg-primary/5 rounded-xl border border-primary/15 text-[11px] font-bold text-foreground flex justify-between items-center gap-3">
+                                   <span>Link Google Drive to browse live documents.</span>
+                                   <button
+                                     type="button"
+                                     onClick={loginWithGoogle}
+                                     className="bg-primary hover:bg-primary/95 text-primary-foreground text-[10px] py-1 px-3 rounded-lg shadow-sm whitespace-nowrap"
+                                   >
+                                     Link Account
+                                   </button>
+                                 </div>
+                               ) : null}
+                               <div className="flex-1 overflow-y-auto space-y-1">
+                                 {driveFiles.filter((f) =>
+                                   f.name.toLowerCase().includes(pickerSearch.toLowerCase()),
+                                 ).length === 0 ? (
+                                   <div className="text-center py-12 text-xs text-muted-foreground">
+                                     No drive resources found.
+                                   </div>
+                                 ) : (
+                                   driveFiles
+                                     .filter((f) =>
+                                       f.name.toLowerCase().includes(pickerSearch.toLowerCase()),
+                                     )
+                                     .map((file) => (
+                                       <button
+                                         key={file.id}
+                                         type="button"
+                                         onClick={() => handleImportDriveFile(file)}
+                                         className="w-full flex items-center justify-between p-3 rounded-xl border border-border/50 hover:border-primary/45 bg-card hover:bg-secondary/25 transition-all text-left group"
+                                       >
+                                         <div className="flex items-center gap-3 text-foreground truncate max-w-[70%]">
+                                           <div className="p-2 rounded-lg bg-secondary text-primary group-hover:bg-primary/10 transition-colors">
+                                             <FileText className="w-3.5 h-3.5" />
+                                           </div>
+                                           <span className="truncate text-foreground font-bold text-xs">
+                                             {file.name}
+                                           </span>
+                                         </div>
+                                         <div className="text-[10px] text-muted-foreground text-right shrink-0 font-semibold mb-0.5">
+                                           <p className="text-foreground font-bold">
+                                             {(Number(file.size || 1500000) / (1024 * 1024)).toFixed(1)} MB
+                                           </p>
+                                           <p className="text-[9px] text-muted-foreground/75 mt-0.5">
+                                             {new Date(file.modifiedTime || Date.now()).toLocaleDateString()}
+                                           </p>
+                                         </div>
+                                       </button>
+                                     ))
+                                 )}
+                               </div>
+                             </div>
+                           </div>
+                         </div>
+                       </div>
+                     ) : null}
+
                       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                         {filesLocal.filter(f => (f.name as string | undefined)?.toLowerCase().includes(fileQuery.toLowerCase())).length === 0 ? (
                            <div className="col-span-1 md:col-span-2 lg:col-span-3 text-center p-12 border border-dashed border-border rounded-xl text-muted-foreground font-medium">
@@ -1079,215 +1167,8 @@ export function WorkspaceScreen() {
 
                 {/* Admin & Integrations View */}
                 {activeTab === 'admin' && (
-                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500 space-y-6">
-                     <AppBrandPortalCard />
-                     <AdminPanel />
-                     
-                     <div className="border border-border bg-card rounded-2xl overflow-hidden shadow-sm">
-                        <div className="p-5 border-b border-border bg-destructive/5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-                           <div>
-                               <h2 className="text-lg font-bold flex items-center gap-2 text-destructive"><ShieldAlert className="w-5 h-5" /> Content Moderation</h2>
-                               <p className="text-xs text-muted-foreground mt-1">Review flagged content and system security alerts.</p>
-                           </div>
-                           <span className="text-xs font-bold bg-destructive/10 text-destructive px-3 py-1 rounded-full whitespace-nowrap">
-                             {activeFlags.length} Items Flagged
-                           </span>
-                        </div>
-                        <div className="p-5">
-                           {activeFlags.map((flag) => {
-                               const author = resolveUser(USERS, { id: flag.userId });
-                               return (
-                               <div key={flag.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 border border-destructive/20 rounded-xl bg-destructive/5 mb-3 gap-4">
-                                  <div className="flex items-center gap-3 min-w-0">
-                                    <div className="relative shrink-0">
-                                      <img
-                                        src={safeAvatarUrl(flag.thumbUrl || author.avatarUrl)}
-                                        className="w-12 h-12 rounded-lg object-cover border border-border"
-                                        alt=""
-                                        onError={handleAvatarError}
-                                      />
-                                      <img
-                                        src={safeAvatarUrl(author.avatarUrl)}
-                                        className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full object-cover border-2 border-card"
-                                        alt=""
-                                        onError={handleAvatarError}
-                                      />
-                                    </div>
-                                    <div className="min-w-0">
-                                       <div className="font-bold text-[14px] truncate">{flag.text}</div>
-                                       <div className="text-xs text-muted-foreground mt-0.5 truncate">
-                                         {author.displayName || flag.userName} · @{author.username || flag.username}
-                                         {flag.createdAt ? ` · ${getRelativeTimeString(flag.createdAt)}` : ''}
-                                       </div>
-                                       <div className="text-xs text-destructive flex items-center gap-1 mt-0.5"><Zap className="w-3 h-3 shrink-0"/> Reason: {flag.reason}</div>
-                                    </div>
-                                  </div>
-                                  <div className="flex gap-2 self-end sm:self-auto shrink-0">
-                                     <button
-                                       type="button"
-                                       onClick={() => rejectReportedPost(flag.id)}
-                                       className="px-3 py-1.5 border border-border rounded-lg hover:bg-secondary text-sm font-bold flex items-center gap-1"
-                                     >
-                                       <Ban className="w-4 h-4 text-destructive" /> Reject
-                                     </button>
-                                     <button
-                                       type="button"
-                                       onClick={() => approveReportedPost(flag.id)}
-                                       className="px-3 py-1.5 border border-border rounded-lg hover:bg-secondary text-sm font-bold flex items-center gap-1"
-                                     >
-                                       <CheckCircle2 className="w-4 h-4 text-green-500" /> Approve
-                                     </button>
-                                  </div>
-                               </div>
-                           );
-                           })}
-                           {activeFlags.length === 0 && (
-                             <div className="text-center text-sm font-medium text-muted-foreground py-8 flex flex-col items-center justify-center gap-2">
-                               <ShieldCheck className="w-10 h-10 text-green-500 opacity-50" />
-                               All clear! No reported posts pending review.
-                             </div>
-                           )}
-                        </div>
-                     </div>
-
-                     <div className="border border-border bg-card rounded-2xl overflow-hidden shadow-sm">
-                        <div className="p-5 border-b border-border bg-secondary/10">
-                            <h2 className="text-lg font-bold flex items-center gap-2"><Image className="w-5 h-5 text-primary" /> Splash Screen Ads</h2>
-                            <p className="text-xs text-muted-foreground mt-1">Configure ads displayed during app launch.</p>
-                        </div>
-                        <div className="p-5 space-y-4">
-                            <div className="flex items-center gap-2 mb-4">
-                              <input 
-                                type="checkbox" 
-                                id="splashAdEnabled"
-                                checked={splashAdEnabled}
-                                onChange={(e) => setSplashAdEnabled(e.target.checked)}
-                                className="w-4 h-4"
-                              />
-                              <label htmlFor="splashAdEnabled" className="font-bold text-sm">Enable Splash Screen Ad</label>
-                            </div>
-                            
-                            {splashAdEnabled && (
-                              <>
-                                <div>
-                                  <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">Ad Media (Image/Video)</label>
-                                  <div className="flex flex-col gap-3">
-                                    <div className="flex gap-2">
-                                      <input 
-                                        type="file" 
-                                        accept="image/*,video/*"
-                                        onChange={(e) => {
-                                          if (e.target.files && e.target.files[0]) {
-                                            const file = e.target.files[0];
-                                            const reader = new FileReader();
-                                            reader.onload = (event) => {
-                                              if (event.target?.result) {
-                                                setSplashAdUrl(event.target.result as string);
-                                              }
-                                            };
-                                            reader.readAsDataURL(file);
-                                          }
-                                        }}
-                                        className="hidden" 
-                                        id="splash-media-upload"
-                                      />
-                                      <input 
-                                        type="text" 
-                                        value={splashAdUrl}
-                                        onChange={(e) => setSplashAdUrl(e.target.value)}
-                                        placeholder="https://example.com/ad.mp4" 
-                                        className="w-full bg-secondary/50 border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all font-mono" 
-                                      />
-                                      <label htmlFor="splash-media-upload" className="shrink-0 px-4 py-2.5 bg-secondary hover:bg-secondary/80 font-bold rounded-lg cursor-pointer text-sm whitespace-nowrap overflow-hidden transition-colors border border-border flex items-center justify-center">
-                                        Upload File
-                                      </label>
-                                    </div>
-                                    {splashAdUrl && (
-                                      <div className="w-full max-w-sm bg-black/10 rounded-xl border border-border overflow-hidden flex items-center justify-center mt-2 mx-auto sm:mx-0 relative group shadow-inner" style={{ aspectRatio: '16/9' }}>
-                                         {(splashAdUrl.includes('video') || splashAdUrl.endsWith('.mp4') || splashAdUrl.endsWith('.mov') || splashAdUrl.endsWith('.webm') || splashAdUrl.startsWith('data:video/')) ? (
-                                           <video src={splashAdUrl} className="w-full h-full object-cover" controls {...nativeVideoControlGuardProps()} />
-                                         ) : (
-                                           <img src={splashAdUrl} alt="Ad preview" className="w-full h-full object-cover" />
-                                         )}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                                <div>
-                                  <label className="text-xs font-bold text-muted-foreground uppercase mb-1 block">Display Duration (Seconds)</label>
-                                  <input 
-                                    type="number" 
-                                    min="1"
-                                    max="15"
-                                    value={splashAdDuration}
-                                    onChange={(e) => setSplashAdDuration(Number(e.target.value))}
-                                    className="w-full bg-secondary/50 border border-border rounded-lg p-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50 transition-all" 
-                                  />
-                                </div>
-                              </>
-                            )}
-                            
-                            <button 
-                              onClick={handleSaveSplashSettings}
-                              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-bold text-sm shadow hover:bg-primary/90 transition-colors mt-2"
-                            >
-                              Save Ad Settings
-                            </button>
-                        </div>
-                     </div>
-
-                     <div className="border border-border bg-card rounded-2xl overflow-hidden shadow-sm">
-                        <div className="p-5 border-b border-border bg-secondary/10 flex justify-between items-center">
-                           <div>
-                               <h2 className="text-lg font-bold flex items-center gap-2"><LinkIcon className="w-5 h-5 text-primary" /> App Integrations</h2>
-                               <p className="text-xs text-muted-foreground mt-1">Manage connected third-party services.</p>
-                           </div>
-                           <button onClick={() => setIsAddIntegrationModalOpen(true)} className="text-sm font-bold text-primary flex items-center gap-1"><Plus className="w-4 h-4"/> Add New</button>
-                        </div>
-                        <div className="p-5 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                           {[
-                               { id: 'slack', name: 'Slack Integration', desc: 'Sync channels and alerts', color: 'bg-purple-500', icon: MessageSquare },
-                               { id: 'trello', name: 'Trello Boards', desc: 'Sync task cards directly', color: 'bg-blue-500', icon: FolderKanban },
-                               { id: 'github', name: 'GitHub Sync', desc: 'Code commits tracking', color: 'bg-foreground', icon: LinkIcon }
-                           ].map(integ => (
-                               <div 
-                                 key={integ.id}
-                                 onClick={() => toggleIntegration(integ.id)}
-                                 className={`p-5 border rounded-xl flex flex-col justify-between transition-all cursor-pointer shadow-sm relative overflow-hidden ${integrations[integ.id] ? 'border-primary/50 bg-secondary/10 hover:bg-secondary/20' : 'border-border bg-card hover:bg-secondary/20'}`}
-                               >
-                                  <div className="flex items-start justify-between mb-4">
-                                     <div className={`w-12 h-12 ${integ.color}/10 text-${integ.color.replace('bg-','')} rounded-xl flex items-center justify-center shadow-sm`}>
-                                        <integ.icon className={`w-6 h-6 ${integ.color === 'bg-foreground' ? 'text-foreground' : ''}`} />
-                                     </div>
-                                     <div className={`w-11 h-6 rounded-full relative transition-colors shadow-inner ${integrations[integ.id] ? 'bg-green-500' : 'bg-secondary border border-border'}`}>
-                                        <div className={`w-5 h-5 rounded-full absolute top-[1px] transition-all ${integrations[integ.id] ? 'bg-white right-[2px] shadow' : 'bg-muted-foreground left-[2px]'}`}></div>
-                                     </div>
-                                  </div>
-                                  <div>
-                                     <div className="font-bold text-[15px] mb-1">{integ.name}</div>
-                                     <div className="text-xs text-muted-foreground">{integ.desc}</div>
-                                  </div>
-                                  
-                                  {/* Status Indicator */}
-                                  <div className="mt-4 pt-4 border-t border-border/50 flex items-center justify-between text-[11px] font-bold">
-                                      {integrations[integ.id] ? (
-                                          <>
-                                            <span className="text-green-500 flex items-center gap-1.5">
-                                              <Circle className="w-2 h-2 fill-green-500" /> Connected
-                                            </span>
-                                            {liveMode && <span className="text-muted-foreground font-mono">{pings[integ.id as keyof typeof pings]}ms ping</span>}
-                                          </>
-                                      ) : (
-                                          <span className="text-muted-foreground flex items-center gap-1.5">
-                                            <Circle className="w-2 h-2" /> Disconnected
-                                          </span>
-                                      )}
-                                  </div>
-                               </div>
-                           ))}
-                        </div>
-                     </div>
-
+                  <div className="animate-in fade-in slide-in-from-bottom-4 duration-500">
+                    <AdminControlCenter />
                   </div>
                 )}
             </div>

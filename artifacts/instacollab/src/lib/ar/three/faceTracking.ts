@@ -19,13 +19,13 @@ export function landmarksToTrackingFrame(
   const width = 1;
   const height = 1;
   const frame = getFaceFrame(landmarks, width, height, mirror);
-  const noseLm = landmarks[LM.noseTip];
+  const noseZ = landmarks[LM.noseTip]?.z ?? 0;
 
   return {
     center: new THREE.Vector3(
       frame.eyeCenter.x - 0.5,
       0.5 - frame.eyeCenter.y,
-      -(noseLm.z ?? 0) * 0.35,
+      -noseZ * 0.35,
     ),
     scale: frame.eyeDistance * 3.8,
     rotationZ: frame.angle,

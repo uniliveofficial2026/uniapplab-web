@@ -2,7 +2,7 @@ import { useRef, type ReactEventHandler } from 'react';
 import { useDB } from '../../lib/useDB';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
 import { useInlineVideoVisibility } from '../../lib/useInlineVideoVisibility';
-import { nativeVideoControlGuardProps } from '../../lib/nativeVideoControls';
+import { AppNativeVideo } from './AppNativeVideo';
 
 type InlineAttachmentVideoProps = {
   src: string;
@@ -33,23 +33,18 @@ export function InlineAttachmentVideo({
 
   return (
     <div ref={containerRef} className={className}>
-      <video
-        data-playback-scope={PLAYBACK_SCOPE.INLINE}
+      <AppNativeVideo
+        playbackScope={PLAYBACK_SCOPE.INLINE}
         ref={(el) => {
           videoRef.current = el;
           onRegisterRef?.(el);
         }}
         src={src}
         muted={db.globalMuted}
-        playsInline
         preload="metadata"
-        controls
         loop={loop}
-        onVolumeChange={(e) => {
-          db.setGlobalMuted(e.currentTarget.muted);
-        }}
+        onGlobalMutedChange={(muted) => db.setGlobalMuted(muted)}
         onError={onError}
-        {...nativeVideoControlGuardProps()}
         className={videoClassName}
       />
     </div>

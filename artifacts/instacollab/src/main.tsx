@@ -9,7 +9,8 @@ import { registerAppServiceWorker } from './lib/pwaRegister';
 import { initSupabaseClient } from './lib/supabase/client';
 import { initWalletKstarSyncListeners } from './lib/walletKstarSync';
 import { initAppCloudSystems } from './lib/appCloudSystems';
-import { initAppMediaStore } from './lib/appMediaStore';
+import { initAppMediaStore, scheduleWarmAppMediaCache } from './lib/appMediaStore';
+import { db } from './lib/db/localDb';
 import { installPersistenceGuards } from './lib/persistSession';
 import { bootstrapDocumentTheme } from './lib/theme';
 import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithRetry';
@@ -23,15 +24,19 @@ import { installPresenceHeartbeat } from './lib/presenceHeartbeat';
 import { installNativeKeyboardPolicy } from './lib/nativeKeyboardPolicy';
 import { installAppSafeArea } from './lib/safeArea';
 import { bootstrapSupabaseAuthState } from './lib/auth/providerState';
-import { unblockLivePresenceCloudQueries } from './lib/supabase/livePresenceGuard';
+import { blockLivePresenceCloudQueries } from './lib/supabase/livePresenceGuard';
 import { ensureBundledFirebaseConfig } from './lib/firebase/runtimeAuthConfig';
+import { onAppShellReady } from './lib/appShellReady';
+import { initAppBrandRuntime } from './lib/appBrandRuntime';
+import { initAppAutopilot } from './lib/initAppAutopilot';
 
 // Sync-only setup (no network / IDB waits).
 bootstrapSupabaseAuthState();
 ensureBundledFirebaseConfig();
-// Clear stale circuit-breaker from older builds; liveDiscovery blocks only on real schema errors.
-unblockLivePresenceCloudQueries();
+blockLivePresenceCloudQueries();
 bootstrapDocumentTheme();
+initAppBrandRuntime();
+initAppAutopilot();
 installAppSafeArea();
 installChunkLoadRecovery();
 installPersistenceGuards();
@@ -44,16 +49,9 @@ installUxTelemetry();
 installNativeKeyboardPolicy();
 
 // Instant media: hydrate app-media blobs from localStorage mirrors (feed/chat/k-star).
-const scheduleBootMediaWarm = () => {
-  void import('./lib/mediaInstant').then((m) => m.warmMediaFromLocalStorageMirrors());
-};
-if (typeof requestIdleCallback === 'function') {
-  requestIdleCallback(() => scheduleBootMediaWarm(), { timeout: 4_000 });
-} else {
-  window.setTimeout(scheduleBootMediaWarm, 1_500);
-}
+void import('./lib/mediaInstant').then((m) => m.warmMediaFromLocalStorageMirrors());
 
-// AR / DeepAR packages load when camera surfaces open — not on every boot.
+// AR / DeepAR / TRTC packages load when camera surfaces open — not on every boot.
 
 const rootEl = document.getElementById('root');
 if (!rootEl) {
@@ -72,10 +70,13 @@ createRoot(rootEl).render(
   </ErrorBoundary>,
 );
 
-// Remove HTML boot shell once React has mounted.
-queueMicrotask(() => {
+// Remove HTML boot shell once Shell has painted (not on first React commit).
+onAppShellReady(() => {
   document.getElementById('boot-shell')?.remove();
 });
+window.setTimeout(() => {
+  document.getElementById('boot-shell')?.remove();
+}, 12_000);
 
 // Background services — must not block first paint.
 registerAppServiceWorker();
@@ -84,22 +85,26 @@ initAppCloudSystems();
 installPresenceHeartbeat();
 clearChunkReloadGuard();
 
+void import('./lib/instantUiBoot').then((m) => m.startInstantUiBoot());
+
+void import('./lib/cloudSocial/platformAppBrandCloud').then((m) => {
+  m.bootstrapPlatformAppBrand();
+});
+
 // Cache-first: local IDB paints UI, then live cloud syncs in background.
 void import('./lib/cacheFirstSync').then((m) => m.startCacheFirstCloudSync());
 
 void initSupabaseClient().then(() => {
-  void import('./lib/preloadAppSurfaces').then((m) => {
-    if (typeof window.requestIdleCallback === 'function') {
-      window.requestIdleCallback(() => m.preloadCoreAppSurfaces(), { timeout: 5000 });
-    } else {
-      window.setTimeout(() => m.preloadCoreAppSurfaces(), 2000);
-    }
-  });
+  void import('./lib/preloadAppSurfaces').then((m) => m.preloadCoreAppSurfaces());
 });
 
 void import('./lib/firebase/app').then((m) => {
   m.getFirebaseApp();
 });
 
-// Media cache warm runs once at boot (initAppMediaStore) — not on every db.save.
+// Media cache warm is best-effort and never blocks UI.
 void initAppMediaStore({ timeoutMs: 0 });
+
+db.subscribe(() => {
+  scheduleWarmAppMediaCache();
+});

@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, type RefObject } from 'react';
+import { applyMobileInlineVideoAttrs } from './nativeVideoPlatform';
 import { PLAYBACK_SCOPE } from './playbackScope';
 import {
   clearPlaybackIntent,
@@ -14,6 +15,7 @@ function bindPlaybackElement(
 ) {
   if (el instanceof HTMLVideoElement) {
     el.dataset.playbackScope = PLAYBACK_SCOPE.MANAGED;
+    applyMobileInlineVideoAttrs(el);
   }
   registerPlaybackElement(playbackId, intentKey, el);
 }

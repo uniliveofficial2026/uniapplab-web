@@ -6,12 +6,8 @@ import {
   listTeams,
   verifyLinearWebhook,
 } from "../lib/linear";
-import { auth } from "../middlewares/auth";
-import { requireAdmin } from "../middlewares/requireAdmin";
-import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
-router.use(upstashRateLimit);
 
 router.get("/linear/health", async (_req, res) => {
   if (!isLinearConfigured()) {
@@ -37,7 +33,7 @@ router.get("/linear/health", async (_req, res) => {
   }
 });
 
-router.post("/linear/issues", auth, requireAdmin, async (req, res) => {
+router.post("/linear/issues", async (req, res) => {
   if (!isLinearConfigured()) {
     res.status(503).json({ error: "Linear not configured" });
     return;

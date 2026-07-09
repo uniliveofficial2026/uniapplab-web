@@ -1,11 +1,5 @@
 import { getSupabaseClient } from './client';
 import { isSupabaseConfigured } from './config';
-import {
-  blockLivePresenceCloudQueries,
-  isLivePresenceCloudBlocked,
-  isMissingLiveColumnError,
-  unblockLivePresenceCloudQueries,
-} from './livePresenceGuard';
 import type { LiveKind } from '../../types';
 
 export type CloudLiveStream = {
@@ -47,59 +41,26 @@ function normalizeLiveKind(raw: string | null | undefined): LiveKind | null {
   return null;
 }
 
-function isMissingColumnError(error: { message?: string } | null, column: string): boolean {
-  const msg = String(error?.message || '');
-  return msg.includes(column) && /does not exist|column/i.test(msg);
-}
-
-/** Active rows from public.streams with profile metadata. */
+/** Active rows from public.streams joined with profiles. */
 export async function fetchCloudLiveStreams(limit = 30): Promise<CloudLiveStream[]> {
-  if (isLivePresenceCloudBlocked()) return [];
-
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
-  const { data: streamRows, error } = await supabase
+  const { data, error } = await supabase
     .from('streams')
-    .select('id, user_id, title, started_at')
+    .select(
+      'id, user_id, title, started_at, profiles!streams_user_id_fkey ( display_name, username, avatar_url, live_kind )',
+    )
     .eq('status', 'live')
     .order('started_at', { ascending: false })
     .limit(limit);
 
   if (error) throw error;
-  if (!streamRows?.length) return [];
 
-  const userIds = [...new Set(streamRows.map((r) => String(r.user_id)).filter(Boolean))];
-  let profileRows: Record<string, unknown>[] | null = null;
-  let profileError: { message?: string } | null = null;
-
-  const withLiveKind = await supabase
-    .from('profiles')
-    .select('id, display_name, username, avatar_url, live_kind')
-    .in('id', userIds);
-
-  if (withLiveKind.error && isMissingColumnError(withLiveKind.error, 'live_kind')) {
-    blockLivePresenceCloudQueries();
-    const fallback = await supabase
-      .from('profiles')
-      .select('id, display_name, username, avatar_url')
-      .in('id', userIds);
-    profileRows = (fallback.data ?? []) as Record<string, unknown>[];
-    profileError = fallback.error;
-  } else {
-    profileRows = (withLiveKind.data ?? []) as Record<string, unknown>[];
-    profileError = withLiveKind.error;
-    if (!profileError) unblockLivePresenceCloudQueries();
-  }
-
-  if (profileError) throw profileError;
-
-  const profileById = new Map(
-    (profileRows ?? []).map((p) => [String(p.id), p as Record<string, unknown>]),
-  );
-
-  return streamRows.map((row) => {
-    const profile = profileById.get(String(row.user_id)) ?? {};
+  return (data ?? []).map((row) => {
+    const rawProfile = (row as { profiles?: Record<string, unknown> | Record<string, unknown>[] })
+      .profiles;
+    const profile = Array.isArray(rawProfile) ? rawProfile[0] ?? {} : rawProfile ?? {};
     const displayName =
       (typeof profile.display_name === 'string' && profile.display_name) ||
       (typeof profile.username === 'string' && profile.username) ||
@@ -126,29 +87,17 @@ export async function fetchCloudLiveStreams(limit = 30): Promise<CloudLiveStream
 
 /** Profiles marked live (ring / discovery fallback). */
 export async function fetchCloudLiveProfiles(limit = 30): Promise<CloudLiveProfile[]> {
-  if (isLivePresenceCloudBlocked()) return [];
-
   const supabase = getSupabaseClient();
   if (!supabase) return [];
 
-  const full = await supabase
+  const { data, error } = await supabase
     .from('profiles')
     .select('id, display_name, username, avatar_url, live_kind, live_started_at')
     .eq('live_status', 'live')
     .order('live_started_at', { ascending: false })
     .limit(limit);
 
-  let data = full.data;
-  let error = full.error;
-
-  if (error && (isMissingColumnError(error, 'live_kind') || isMissingColumnError(error, 'live_status'))) {
-    blockLivePresenceCloudQueries();
-    return [];
-  }
-
   if (error) throw error;
-
-  unblockLivePresenceCloudQueries();
 
   return (data ?? []).map((row) => ({
     id: String(row.id),
@@ -165,8 +114,6 @@ export async function setProfileLivePresence(
   isLive: boolean,
   liveKind?: LiveKind,
 ): Promise<void> {
-  if (isLivePresenceCloudBlocked()) return;
-
   const supabase = getSupabaseClient();
   if (!supabase || !userId) return;
 
@@ -183,15 +130,9 @@ export async function setProfileLivePresence(
       };
 
   const { error } = await supabase.from('profiles').update(patch).eq('id', userId);
-  if (error) {
-    if (isMissingLiveColumnError(error)) {
-      blockLivePresenceCloudQueries();
-      return;
-    }
-    throw error;
-  }
+  if (error) throw error;
 }
 
 export function isLiveDiscoveryCloudAvailable(): boolean {
-  return isSupabaseConfigured() && !isLivePresenceCloudBlocked();
+  return isSupabaseConfigured();
 }

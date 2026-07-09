@@ -33,25 +33,19 @@
   },
   "devOrigins": [
     "http://localhost:5173",
-    "http://127.0.0.1:5173",
-    "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:5173"
   ],
   "supabase": {
     "siteUrl": "https://app.uniapplab.com",
     "redirectUrls": [
       "https://app.uniapplab.com/**",
-      "https://uniapplab.com/**",
       "https://www.uniapplab.com/**",
       "http://localhost:5173/**",
-      "http://127.0.0.1:5173/**",
-      "http://localhost:3000/**",
-      "http://127.0.0.1:3000/**"
+      "http://127.0.0.1:5173/**"
     ]
   },
   "vercel": {
-    "appProjectRoot": ".",
-    "note": "Deploy from repo root (not artifacts/instacollab) so vercel.json routes /api/* to api-server.",
-    "customDomains": ["app.uniapplab.com", "uniapplab.com", "www.uniapplab.com"]
+    "appProjectRoot": "artifacts/instacollab",
+    "customDomains": ["app.uniapplab.com"]
   }
 }

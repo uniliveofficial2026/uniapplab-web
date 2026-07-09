@@ -1,114 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { buildVoiceEffectNodes } from '../../lib/live/voiceChangerPipeline';
 import type { VoiceChangerEffectId } from '../utils/voiceEffects';
 import { resolveDisplayVoiceStatus } from '../utils/singingVoiceStatus';
 
 export type SingingVoiceStatus = 'silent' | 'warming' | 'good' | 'strong';
 
-type EffectGraph = { input: AudioNode; output: AudioNode; dispose?: () => void };
-
-function buildEffectNodes(
-  context: AudioContext,
-  effect: VoiceChangerEffectId,
-): EffectGraph {
-  const input = context.createGain();
-  const output = context.createGain();
-  input.gain.value = 1;
-  output.gain.value = 1;
-
-  if (effect === 'studio') {
-    input.connect(output);
-    return { input, output };
-  }
-
-  if (effect === 'hall') {
-    const delay = context.createDelay(1.2);
-    delay.delayTime.value = 0.28;
-    const feedback = context.createGain();
-    feedback.gain.value = 0.35;
-    const wet = context.createGain();
-    wet.gain.value = 0.45;
-    input.connect(delay);
-    delay.connect(feedback);
-    feedback.connect(delay);
-    delay.connect(wet);
-    input.connect(output);
-    wet.connect(output);
-    return { input, output };
-  }
-
-  if (effect === 'warm') {
-    const shelf = context.createBiquadFilter();
-    shelf.type = 'lowshelf';
-    shelf.frequency.value = 320;
-    shelf.gain.value = 8;
-    input.connect(shelf);
-    shelf.connect(output);
-    return { input, output };
-  }
-
-  if (effect === 'robot') {
-    const ring = context.createOscillator();
-    ring.frequency.value = 48;
-    const ringGain = context.createGain();
-    ringGain.gain.value = 0.22;
-    const amp = context.createGain();
-    ring.connect(ringGain);
-    ringGain.connect(amp.gain);
-    ring.start();
-    input.connect(amp);
-    amp.connect(output);
-    return {
-      input,
-      output,
-      dispose: () => {
-        try {
-          ring.stop();
-        } catch {
-          /* ignore */
-        }
-      },
-    };
-  }
-
-  if (effect === 'chipmunk') {
-    const filter = context.createBiquadFilter();
-    filter.type = 'highpass';
-    filter.frequency.value = 900;
-    const treble = context.createBiquadFilter();
-    treble.type = 'peaking';
-    treble.frequency.value = 2800;
-    treble.gain.value = 6;
-    input.connect(filter);
-    filter.connect(treble);
-    treble.connect(output);
-    return { input, output };
-  }
-
-  if (effect === 'deep') {
-    const filter = context.createBiquadFilter();
-    filter.type = 'lowpass';
-    filter.frequency.value = 520;
-    const shelf = context.createBiquadFilter();
-    shelf.type = 'lowshelf';
-    shelf.frequency.value = 180;
-    shelf.gain.value = 10;
-    input.connect(filter);
-    filter.connect(shelf);
-    shelf.connect(output);
-    return { input, output };
-  }
-
-  input.connect(output);
-  return { input, output };
-}
-
+/**
+ * Local singing mic monitor (lyrics UI). LiveKit publish uses useRoomVoiceChanger instead.
+ */
 export function useSingingSession(enabled: boolean, voiceEffect: VoiceChangerEffectId) {
   const [micLevel, setMicLevel] = useState(0);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
   const streamRef = useRef<MediaStream | null>(null);
   const contextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
-  const effectNodesRef = useRef<EffectGraph | null>(null);
+  const effectNodesRef = useRef<ReturnType<typeof buildVoiceEffectNodes> | null>(null);
   const sourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const rafRef = useRef<number | null>(null);
   const lastVoiceAtRef = useRef(0);
@@ -203,7 +109,7 @@ export function useSingingSession(enabled: boolean, voiceEffect: VoiceChangerEff
         const source = context.createMediaStreamSource(stream);
         sourceRef.current = source;
 
-        const effectNodes = buildEffectNodes(context, voiceEffect);
+        const effectNodes = buildVoiceEffectNodes(context, voiceEffect);
         effectNodesRef.current = effectNodes;
 
         const analyser = context.createAnalyser();
@@ -267,7 +173,7 @@ export function useSingingSession(enabled: boolean, voiceEffect: VoiceChangerEff
       effectNodesRef.current?.dispose?.();
       effectNodesRef.current?.output.disconnect();
 
-      const effectNodes = buildEffectNodes(contextRef.current, voiceEffect);
+      const effectNodes = buildVoiceEffectNodes(contextRef.current, voiceEffect);
       effectNodesRef.current = effectNodes;
       sourceRef.current.connect(effectNodes.input);
 

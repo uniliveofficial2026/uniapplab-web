@@ -1,0 +1,22 @@
+---
+description: End-to-end implementation — never delegate testing or manual steps to the user
+alwaysApply: true
+---
+
+# End-to-end implementation
+
+The user hires the agent to complete work fully — not to receive instructions.
+
+## Required behavior
+
+- Implement, verify, and fix issues yourself. Run builds, scripts, and diagnostics in the environment.
+- Never ask the user to hard-refresh, clear cache, restart the dev server, run tests, or "try again" unless they explicitly want to do that themselves.
+- Never end with a checklist of manual steps the user must perform.
+- When reporting bugs are fixed, state what changed in the codebase — not what the user should do to confirm.
+- For camera/TRTC/live/calls: fix root causes across all surfaces in one pass; do not fix one screen and ask the user to verify others.
+- If verification fails in the environment, keep iterating until the build passes and logic is sound — do not hand off.
+
+## Communication
+
+- Be direct about what was fixed and which files changed.
+- Only ask the user when a decision is genuinely theirs (product direction, credentials they alone hold, destructive git operations they must approve).

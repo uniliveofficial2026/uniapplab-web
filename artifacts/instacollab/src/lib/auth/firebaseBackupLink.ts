@@ -5,7 +5,6 @@ import { isSupabaseConfigured } from '../supabase/config';
 import { readDeviceAccounts } from './deviceAccounts';
 import { isSupabaseAuthUserId } from './activeBackend';
 import { hasStoredAccountSession } from './storedAccountSessions';
-import { isSupabaseOAuthDegraded } from './providerState';
 
 const BACKUP_LINK_KEY = 'instacollab_firebase_backup_link';
 
@@ -131,7 +130,6 @@ export function getLinkedSupabaseUserIdForFirebase(firebaseUid: string): string 
 
 /** True when signed in via Firebase OAuth but app identity must stay on Supabase data. */
 export function isFirebaseBackupSessionActive(supabaseUserId: string): boolean {
-  if (!isSupabaseOAuthDegraded()) return false;
   if (!isSupabaseConfigured() || !isSupabaseAuthUserId(supabaseUserId)) return false;
   const auth = getFirebaseAuth();
   const fbUser = auth?.currentUser;
@@ -140,12 +138,10 @@ export function isFirebaseBackupSessionActive(supabaseUserId: string): boolean {
   return linked === supabaseUserId;
 }
 
-/** Mirror profile to Firestore when Firebase owns the cloud data lane. */
+/** Never mirror Supabase UUID rows into Firestore — prevents split accounts / data loss. */
 export function shouldMirrorProfileToFirebase(userId: string): boolean {
-  if (!isSupabaseAuthUserId(userId)) return true;
-  if (isSupabaseOAuthDegraded()) return true;
-  if (isFirebaseBackupSessionActive(userId)) return true;
-  return false;
+  if (isSupabaseAuthUserId(userId)) return false;
+  return true;
 }
 
 export function hasKnownSupabaseAccountOnDevice(email: string | null | undefined): boolean {

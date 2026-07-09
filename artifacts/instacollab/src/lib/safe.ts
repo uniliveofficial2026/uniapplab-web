@@ -82,7 +82,9 @@ export function safeHttpUrl(value: unknown): string {
 export function safeAvatarUrl(value: unknown): string {
   const s = safeString(value);
   if (!s) return FALLBACK_AVATAR;
-  if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+  // Blob URLs are session-only — never use persisted blob refs for avatars.
+  if (s.startsWith('blob:')) return FALLBACK_AVATAR;
+  if (s.startsWith('data:')) return s;
   if (isAppMediaRef(s)) {
     const resolved = resolveAppMediaUrlSync(s);
     return isAppMediaRef(resolved) ? FALLBACK_AVATAR : resolved;
@@ -287,51 +289,13 @@ export function safeIdArray(value: unknown): string[] {
     .filter((id): id is string => id !== null);
 }
 
-type VideoWithWebkit = HTMLVideoElement & {
-  webkitEnterFullscreen?: () => void;
-  webkitExitFullscreen?: () => void;
-  webkitDisplayingFullscreen?: boolean;
-};
-
-/** Whether the given video is in native element fullscreen (standard or iOS webkit). */
-export function isVideoElementNativeFullscreen(
-  video: HTMLVideoElement | null | undefined
-): boolean {
-  if (!video) return false;
-  if (document.fullscreenElement === video) return true;
-  const doc = document as Document & { webkitFullscreenElement?: Element | null };
-  if (doc.webkitFullscreenElement === video) return true;
-  const webkitVideo = video as VideoWithWebkit;
-  return !!webkitVideo.webkitDisplayingFullscreen;
-}
-
-/** Request fullscreen on a video element (standard + iOS webkit). */
-export function tryEnterVideoFullscreen(video: HTMLVideoElement | null | undefined): void {
-  if (!video) return;
-  if (typeof video.requestFullscreen === 'function') {
-    video.requestFullscreen().catch(() => {});
-    return;
-  }
-  const webkitVideo = video as VideoWithWebkit;
-  if (typeof webkitVideo.webkitEnterFullscreen === 'function') {
-    webkitVideo.webkitEnterFullscreen();
-  }
-}
-
-/** Exit native video fullscreen when supported. */
-export function tryExitVideoFullscreen(video: HTMLVideoElement | null | undefined): void {
-  if (!video) return;
-  if (document.fullscreenElement === video && typeof document.exitFullscreen === 'function') {
-    document.exitFullscreen().catch(() => {});
-    return;
-  }
-  const webkitVideo = video as VideoWithWebkit;
-  if (webkitVideo.webkitDisplayingFullscreen && typeof webkitVideo.webkitExitFullscreen === 'function') {
-    webkitVideo.webkitExitFullscreen();
-  }
-}
-
 export type CrossPostKey = 'twitter' | 'facebook' | 'tumblr';
+
+export {
+  isVideoElementNativeFullscreen,
+  tryEnterVideoFullscreen,
+  tryExitVideoFullscreen,
+} from './nativeVideoPlatform';
 
 export function toggleCrossPostOption(
   prev: Record<CrossPostKey, boolean>,

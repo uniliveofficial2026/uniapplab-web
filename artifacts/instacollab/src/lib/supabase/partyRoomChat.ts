@@ -15,20 +15,17 @@ export type PartyRoomChatRow = {
   created_at: string;
 };
 
-export type PartyRoomSingPhase = 'start' | 'end';
-
 /** Matches the live party chat shape used in Room.tsx / SoloLiveView. */
 export type PartyRoomLiveChatMessage = {
   id: string | number;
   user?: string;
   userId?: string;
-  /** Optional for local-only events (e.g. announcement welcome). */
   text?: string;
   isBurmese?: boolean;
   isJoinEvent?: boolean;
   isGiftEvent?: boolean;
   isSystem?: boolean;
-  isSingEvent?: PartyRoomSingPhase;
+  isSingEvent?: 'start' | 'end';
   isOwner?: boolean;
   isAdmin?: boolean;
   giftName?: string;
@@ -46,17 +43,7 @@ export type PartyRoomLiveChatMessage = {
   createdAt?: string;
 };
 
-function parseSingPhase(
-  meta: Record<string, unknown>,
-  kind: PartyRoomChatKind,
-): PartyRoomSingPhase | undefined {
-  const value = meta.isSingEvent;
-  if (value === 'start' || value === 'end') return value;
-  if (kind === 'sing' || value === true) return 'start';
-  return undefined;
-}
-
-function kindFromMessage(message: PartyRoomLiveChatMessage): PartyRoomChatKind {
+export function kindFromMessage(message: PartyRoomLiveChatMessage): PartyRoomChatKind {
   if (message.isJoinEvent) return 'join';
   if (message.isGiftEvent) return 'gift';
   if (message.isSystem) return 'system';
@@ -64,7 +51,7 @@ function kindFromMessage(message: PartyRoomLiveChatMessage): PartyRoomChatKind {
   return 'chat';
 }
 
-function metaFromMessage(message: PartyRoomLiveChatMessage): Record<string, unknown> {
+export function metaFromMessage(message: PartyRoomLiveChatMessage): Record<string, unknown> {
   const {
     id: _id,
     user: _user,
@@ -87,7 +74,12 @@ export function rowToLiveChatMessage(row: PartyRoomChatRow): PartyRoomLiveChatMe
     isJoinEvent: row.kind === 'join' || Boolean(meta.isJoinEvent),
     isGiftEvent: row.kind === 'gift' || Boolean(meta.isGiftEvent),
     isSystem: row.kind === 'system' || Boolean(meta.isSystem),
-    isSingEvent: parseSingPhase(meta, row.kind),
+    isSingEvent:
+      meta.isSingEvent === 'start' || meta.isSingEvent === 'end'
+        ? meta.isSingEvent
+        : row.kind === 'sing'
+          ? 'start'
+          : undefined,
     isBurmese: Boolean(meta.isBurmese),
     isOwner: Boolean(meta.isOwner),
     isAdmin: Boolean(meta.isAdmin),
@@ -97,13 +89,7 @@ export function rowToLiveChatMessage(row: PartyRoomChatRow): PartyRoomLiveChatMe
     receiver: typeof meta.receiver === 'string' ? meta.receiver : undefined,
     singerName: typeof meta.singerName === 'string' ? meta.singerName : undefined,
     songTitle: typeof meta.songTitle === 'string' ? meta.songTitle : undefined,
-    score: typeof meta.score === 'number' ? meta.score : undefined,
     iconBadge: typeof meta.iconBadge === 'string' ? meta.iconBadge : undefined,
-    isAnnouncementWelcome: Boolean(meta.isAnnouncementWelcome),
-    targetViewerId: typeof meta.targetViewerId === 'string' ? meta.targetViewerId : undefined,
-    targetViewerName: typeof meta.targetViewerName === 'string' ? meta.targetViewerName : undefined,
-    targetViewerAvatar:
-      typeof meta.targetViewerAvatar === 'string' ? meta.targetViewerAvatar : undefined,
   };
 }
 

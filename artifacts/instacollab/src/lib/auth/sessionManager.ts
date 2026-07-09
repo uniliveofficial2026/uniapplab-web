@@ -23,7 +23,10 @@ import { syncDeviceAccountForAppUser } from './deviceAccounts';
 import {
   clearStoredAccountSession,
   loadStoredAccountSession,
+  resolveAppUserIdForDeviceAccount,
   saveStoredAccountSession,
+  saveStoredAccountSessionMirrored,
+  sessionLookupUids,
 } from './storedAccountSessions';
 import { initThoughtNoteCloudSync } from '../thoughtNoteCloudSync';
 import { syncLiveSessionData } from '../liveSessionSync';
@@ -81,9 +84,8 @@ function startProfileRealtime(userId: string): void {
 /** Apply (or clear) Supabase session into the local store and wire realtime channels. */
 export async function applySupabaseSessionToLocalDb(
   session: Session | null,
-  options?: { silent?: boolean },
+  _options?: { silent?: boolean },
 ): Promise<void> {
-  const silent = options?.silent === true;
   // Don't hang on slow IDB — localStorage mirror already seeds the cache.
   await withTimeout(db.whenStorageReady(), DB_READY_MS, 'Local storage').catch(() => undefined);
 
@@ -126,7 +128,7 @@ export async function applySupabaseSessionToLocalDb(
     ...instantUser,
     email: session.user.email ?? undefined,
   });
-  saveStoredAccountSession(userId, session);
+  saveStoredAccountSessionMirrored(userId, session);
   writeStoredAuthBackend('supabase');
 
   if (!isNetworkOnline()) {
@@ -160,9 +162,7 @@ export async function applySupabaseSessionToLocalDb(
       ...appUser,
       email: session.user.email ?? undefined,
     });
-    if (!silent || db.currentUserId !== appUser.id) {
-      db.advanceLaunchProgressAfterLogin(Boolean(profile?.profile_setup_complete));
-    }
+    db.advanceLaunchProgressAfterLogin(Boolean(profile?.profile_setup_complete));
     clearSupabaseUnhealthy();
 
     startProfileRealtime(appUser.id);
@@ -183,29 +183,56 @@ export async function restoreStoredAccountSession(
     return { ok: false, reason: 'Supabase is not configured.' };
   }
 
-  const stored = loadStoredAccountSession(uid);
+  const lookupUids = sessionLookupUids(uid);
+  const stored = lookupUids
+    .map((id) => loadStoredAccountSession(id))
+    .find((row) => row?.access_token && row.refresh_token);
   if (!stored) {
     return { ok: false, reason: 'No saved session for this account on this device.' };
   }
 
-  const { data, error } = await supabase.auth.setSession({
-    access_token: stored.access_token,
-    refresh_token: stored.refresh_token,
-  });
+  let data: { session: Session | null; user: Session['user'] | null };
+  let error: { message: string } | null;
+  try {
+    const result = await withTimeout(
+      supabase.auth.setSession({
+        access_token: stored.access_token,
+        refresh_token: stored.refresh_token,
+      }),
+      NET_AUTH_MS,
+      'Supabase setSession',
+    );
+    data = result.data;
+    error = result.error;
+  } catch (err) {
+    return {
+      ok: false,
+      reason: err instanceof Error ? err.message : 'Session switch timed out.',
+    };
+  }
 
   if (error || !data.session?.user) {
-    clearStoredAccountSession(uid);
+    for (const id of lookupUids) clearStoredAccountSession(id);
     return {
       ok: false,
       reason: error?.message ?? 'Saved session expired. Sign in again for this account.',
     };
   }
 
-  if (data.session.user.id !== uid) {
+  const sessionUserId = data.session.user.id;
+  const allowedIds = new Set([
+    ...lookupUids,
+    resolveAppUserIdForDeviceAccount(uid),
+    sessionUserId,
+  ]);
+  if (!allowedIds.has(sessionUserId)) {
     return { ok: false, reason: 'Saved session does not match this account.' };
   }
 
-  saveStoredAccountSession(uid, data.session);
+  saveStoredAccountSessionMirrored(sessionUserId, data.session);
+  for (const id of lookupUids) {
+    if (id !== sessionUserId) saveStoredAccountSessionMirrored(id, data.session);
+  }
   await applySupabaseSessionToLocalDb(data.session);
   return { ok: true };
 }

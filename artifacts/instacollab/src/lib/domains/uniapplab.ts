@@ -43,29 +43,6 @@ const ENV_KEYS: Record<UniapplabService, string> = {
 
 export const UNIAPPLAB_APEX = 'uniapplab.com';
 
-/** Hostnames that serve the InstaCollab React app (same Vercel deploy). */
-export const APP_SHELL_HOSTS = [
-  'app.uniapplab.com',
-  'uniapplab.com',
-  'www.uniapplab.com',
-] as const;
-
-export function isAppShellHost(hostname: string): boolean {
-  const host = hostname.toLowerCase();
-  return APP_SHELL_HOSTS.some((h) => h === host);
-}
-
-/** Origin for copied share links — current app host when on UniAppLab, else app subdomain. */
-export function getShareOrigin(): string {
-  if (typeof window !== 'undefined') {
-    const { hostname, origin } = window.location;
-    if (isAppShellHost(hostname) || isUniapplabHost(hostname)) {
-      return origin.replace(/\/$/, '');
-    }
-  }
-  return uniapplabOrigin('app');
-}
-
 export function uniapplabHost(service: UniapplabService): string {
   return HOSTS[service];
 }
@@ -109,12 +86,10 @@ export function getOAuthAllowlistOrigins(): string[] {
   const origins = new Set<string>([
     getAppOrigin(),
     uniapplabOrigin('app'),
-    uniapplabOrigin('landing'),
     uniapplabOrigin('www'),
+    uniapplabOrigin('landing'),
     'http://localhost:5173',
     'http://127.0.0.1:5173',
-    'http://localhost:3000',
-    'http://127.0.0.1:3000',
   ]);
 
   if (typeof window !== 'undefined') {

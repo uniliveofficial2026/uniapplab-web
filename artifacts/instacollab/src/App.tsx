@@ -13,28 +13,30 @@ import { ScreenGuard } from './components/common/ScreenGuard';
 import { KeepAliveTab } from './components/common/KeepAliveTab';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 
-const ReelsScreen = lazy(() =>
-  import('./components/reels/ReelsScreen').then((m) => ({ default: m.ReelsScreen }))
-);
+// Default home tab — eager so first paint is instant.
+import { Feed } from './components/feed/Feed';
+
 const MessagesScreen = lazy(() =>
   import('./components/messages/MessagesScreen').then((m) => ({ default: m.MessagesScreen }))
-);
-const WorkspaceGate = lazy(() => import('./components/workspace/WorkspaceGate'));
-const ProfileScreen = lazy(() =>
-  import('./components/profile/ProfileScreen').then((m) => ({ default: m.ProfileScreen }))
-);
-const DatingScreen = lazy(() =>
-  import('./components/dating/DatingScreen').then((m) => ({ default: m.DatingScreen }))
-);
-// Home feed is eager so the main UI is always in the bundle (works offline).
-import { Feed } from './components/feed/Feed';
-const SearchScreen = lazy(() =>
-  import('./components/search/SearchScreen').then((m) => ({ default: m.SearchScreen }))
 );
 const NotificationsScreen = lazy(() =>
   import('./components/notifications/NotificationsScreen').then((m) => ({
     default: m.NotificationsScreen,
   }))
+);
+const ReelsScreen = lazy(() =>
+  import('./components/reels/ReelsScreen').then((m) => ({ default: m.ReelsScreen }))
+);
+const SearchScreen = lazy(() =>
+  import('./components/search/SearchScreen').then((m) => ({ default: m.SearchScreen }))
+);
+const ProfileScreen = lazy(() =>
+  import('./components/profile/ProfileScreen').then((m) => ({ default: m.ProfileScreen }))
+);
+
+const WorkspaceGate = lazy(() => import('./components/workspace/WorkspaceGate'));
+const DatingScreen = lazy(() =>
+  import('./components/dating/DatingScreen').then((m) => ({ default: m.DatingScreen }))
 );
 const LaunchFlowHost = lazy(() =>
   import('./components/launch/LaunchFlowHost').then((m) => ({ default: m.LaunchFlowHost }))
@@ -51,9 +53,19 @@ const LiveScreen = lazy(() =>
 const KaraokeScreen = lazy(() =>
   import('./components/karaoke/KaraokeScreen').then((m) => ({ default: m.KaraokeScreen }))
 );
-const RoomsHost = lazy(() =>
-  import('./smule-rooms/RoomsHost').then((m) => ({ default: m.RoomsHost }))
-);
+
+function resolveRoomsKaraokePath(roomsPath: string): string {
+  if (!roomsPath || roomsPath === '/party') return '/room/create';
+  return roomsPath;
+}
+
+function openRoomsInKaraoke(roomsPath: string): void {
+  openKaraokeRoomFlow({
+    path: resolveRoomsKaraokePath(roomsPath),
+    entry: 'karaoke-party',
+  });
+}
+
 const LocalGamesScreen = lazy(() =>
   import('./components/games/LocalGamesScreen').then((m) => ({ default: m.LocalGamesScreen }))
 );
@@ -76,11 +88,13 @@ const DevLivePanelHost = import.meta.env.DEV
       return null;
     };
 import { Tab } from './types';
+import { ChatCallProvider } from './contexts/ChatCallContext';
 import { registerAppTabGetter } from './lib/karaokeReturnContext';
 import { useDB } from './lib/useDB';
 import { findUserById } from './lib/safe';
 import { useCurrentUser } from './lib/useCurrentUser';
-import { ToastProvider, useToast } from './lib/ToastContext';
+import { useToast } from './lib/ToastContext';
+import { AppCameraShell } from './components/camera/AppCameraShell';
 import { AnimatePresence } from 'motion/react';
 import { applyDocumentTheme } from './lib/theme';
 import {
@@ -129,7 +143,22 @@ import {
   sessionCacheToUser,
   writeSessionCache,
 } from './lib/sessionCache';
+import { hasInstantSessionCache, instantSuspenseFallback } from './lib/instantCachePolicy';
+import { isSilentSyncToast } from './lib/silentRemoteRefresh';
 import type { LaunchRoute } from './lib/launchRoute';
+import { openKaraokeRoomFlow } from './lib/live/openLiveRoom';
+import { stripAppBasePath } from './lib/appShellRoutes';
+
+const AdminEmbedRoomHost = lazy(() =>
+  import('./components/admin/AdminEmbedRoomHost').then((m) => ({ default: m.AdminEmbedRoomHost })),
+);
+
+function parseAdminEmbedRoomId(): string | null {
+  if (typeof window === 'undefined') return null;
+  const path = stripAppBasePath(window.location.pathname);
+  const match = path.match(/^\/admin-embed\/room\/([^/]+)$/);
+  return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
 
 function ToastListener() {
   const { showToast } = useToast();
@@ -137,9 +166,8 @@ function ToastListener() {
   useEffect(() => {
     const handleAppToast = (e: Event) => {
       const detail = (e as CustomEvent<string>).detail;
-      if (detail) {
-        showToast(detail);
-      }
+      if (!detail) return;
+      if (!isSilentSyncToast(detail)) showToast(detail);
     };
     window.addEventListener('app-toast', handleAppToast);
     return () => window.removeEventListener('app-toast', handleAppToast);
@@ -149,11 +177,28 @@ function ToastListener() {
 }
 
 export default function App() {
+  const adminEmbedRoomId = useMemo(() => parseAdminEmbedRoomId(), []);
+  return (
+    <AppCameraShell>
+      <ToastListener />
+      {adminEmbedRoomId ? (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <AdminEmbedRoomHost roomId={adminEmbedRoomId} />
+        </Suspense>
+      ) : (
+        <MainApp />
+      )}
+    </AppCameraShell>
+  );
+}
+
+function MainApp() {
   const initialShell = readInitialShellState();
   const [currentTab, setCurrentTab] = useState<Tab>(initialShell.currentTab);
   const currentTabRef = useRef(currentTab);
   currentTabRef.current = currentTab;
   const [initialChatId, setInitialChatId] = useState<string | null>(initialShell.initialChatId);
+  const [initialReelId, setInitialReelId] = useState<string | null>(null);
   const [initialSearchContext, setInitialSearchContext] = useState<{
     query?: string;
     tab?: SearchTab;
@@ -168,9 +213,12 @@ export default function App() {
     initialSearchContext: { query?: string; tab?: SearchTab } | null;
   }>>([]);
   const [roomsInitialPath, setRoomsInitialPath] = useState(initialShell.roomsInitialPath);
-  const [roomsRouterKey, setRoomsRouterKey] = useState(0);
   const [visitedTabs, setVisitedTabs] = useState<Tab[]>(() => [initialShell.currentTab]);
+  const [mainShellPinned, setMainShellPinned] = useState(
+    () => Boolean(readSessionCache()) || hasInstantSessionCache(),
+  );
   const deepLinkBootstrappedRef = useRef(false);
+  const roomsBootstrappedRef = useRef(false);
   const applyingHistoryRef = useRef(false);
   const shellSnapshotRef = useRef<PersistedShellState>(initialShell);
   shellSnapshotRef.current = {
@@ -199,12 +247,20 @@ export default function App() {
           profileSetupComplete: db.getLaunchProgress().profileSetupComplete,
         });
         setSessionHint(readSessionCache());
-      } else if (!db.isLoggedIn) {
+        setMainShellPinned(true);
+      } else if (!db.isLoggedIn && !hasInstantSessionCache()) {
         clearSessionCache();
         setSessionHint(null);
+        setMainShellPinned(false);
       }
     });
   }, [db]);
+
+  useEffect(() => {
+    if (hasInstantSessionCache() || sessionHint || db.isLoggedIn) {
+      setMainShellPinned(true);
+    }
+  }, [sessionHint, db.isLoggedIn]);
 
   // Prefer IDB user; fall back to session cache so Shell never waits on network.
   const currentUser =
@@ -214,11 +270,13 @@ export default function App() {
         ? sessionCacheToUser(sessionHint)
         : dbUser;
 
-  // Show main app from cache while IDB loads, or whenever we have a local session.
+  // Show main app from cache while IDB loads; once pinned, never flash back to launch funnel.
   const effectiveLaunchRoute: LaunchRoute =
     launchRoute === 'banned'
       ? 'banned'
-      : sessionHint && (!storageReady || db.isLoggedIn)
+      : mainShellPinned ||
+          hasInstantSessionCache() ||
+          (sessionHint && (!storageReady || db.isLoggedIn))
         ? 'main'
         : launchRoute;
 
@@ -226,6 +284,14 @@ export default function App() {
     registerAppTabGetter(() => currentTabRef.current);
     return () => registerAppTabGetter(null);
   }, []);
+
+  useEffect(() => {
+    if (roomsBootstrappedRef.current || currentTab !== 'rooms') return;
+    roomsBootstrappedRef.current = true;
+    openRoomsInKaraoke(roomsInitialPath);
+    setCurrentTab('karaoke');
+    setVisitedTabs((tabs) => (tabs.includes('karaoke') ? tabs : [...tabs, 'karaoke']));
+  }, [currentTab, roomsInitialPath]);
 
   useEffect(() => {
     trackScreen(currentTab);
@@ -250,7 +316,8 @@ export default function App() {
     setInitialSearchContext(state.initialSearchContext);
     setRoomsInitialPath(state.roomsInitialPath);
     if (state.currentTab === 'rooms') {
-      setRoomsRouterKey((k) => k + 1);
+      openRoomsInKaraoke(state.roomsInitialPath);
+      setCurrentTab('karaoke');
     }
     applyingHistoryRef.current = false;
   };
@@ -378,6 +445,7 @@ export default function App() {
     setCurrentTab(nextTab);
     setProfileUserId(nextProfileUserId);
     setInitialChatId(nextChatId);
+    setInitialReelId(null);
     setInitialSearchContext(nextSearchContext);
   };
 
@@ -411,6 +479,7 @@ export default function App() {
         tab?: Tab;
         userId?: string;
         chatId?: string;
+        reelId?: string;
         searchQuery?: string;
         searchTab?: string;
         roomsPath?: string;
@@ -429,8 +498,11 @@ export default function App() {
           return;
         }
         if (detail.tab === 'rooms') {
-          setRoomsInitialPath(detail.roomsPath || '/party');
-          setRoomsRouterKey((k) => k + 1);
+          const path = detail.roomsPath || '/party';
+          setRoomsInitialPath(path);
+          openRoomsInKaraoke(path);
+          pushState('karaoke', null, null, null);
+          return;
         }
         const nextTab = detail.tab;
         const pendingProfileUserId =
@@ -440,6 +512,7 @@ export default function App() {
             ? (detail.userId || pendingProfileUserId || null)
             : null;
         const nextChatId = detail.chatId || null;
+        const nextReelId = detail.reelId || null;
         let nextSearchContext: { query?: string; tab?: SearchTab } | null = null;
         if (detail.searchQuery || detail.searchTab) {
           const tab =
@@ -453,6 +526,7 @@ export default function App() {
           nextSearchContext = { query: detail.searchQuery, tab };
         }
         pushState(nextTab, nextProfileUserId, nextChatId, nextSearchContext);
+        if (nextReelId) setInitialReelId(nextReelId);
       }
     };
     window.addEventListener('navigate', handleNavigate);
@@ -462,7 +536,9 @@ export default function App() {
   const handleTabChange = (tab: Tab) => {
     if (tab === 'rooms') {
       setRoomsInitialPath('/party');
-      setRoomsRouterKey((k) => k + 1);
+      openRoomsInKaraoke('/party');
+      pushState('karaoke', null, null, null);
+      return;
     }
     if (currentTab === tab && !profileUserId) return;
     pushState(tab, null, null, null);
@@ -476,7 +552,9 @@ export default function App() {
   }, [profileUserId, history]);
 
   const screen = (name: string, node: React.ReactNode) => (
-    <ScreenGuard screen={name}>{node}</ScreenGuard>
+    <ScreenGuard screen={name}>
+      <Suspense fallback={instantSuspenseFallback()}>{node}</Suspense>
+    </ScreenGuard>
   );
 
   const renderTabPanel = (tab: Tab) => {
@@ -492,7 +570,7 @@ export default function App() {
           />,
         );
       case 'reels':
-        return screen('reels', <ReelsScreen />);
+        return screen('reels', <ReelsScreen initialReelId={initialReelId} />);
       case 'messages':
         return screen(
           'messages',
@@ -521,12 +599,8 @@ export default function App() {
       case 'live':
         return screen('live', <LiveScreen />);
       case 'karaoke':
-        return screen('karaoke', <KaraokeScreen />);
       case 'rooms':
-        return screen(
-          'rooms',
-          <RoomsHost initialPath={roomsInitialPath} routerKey={roomsRouterKey} />,
-        );
+        return screen('karaoke', <KaraokeScreen />);
       case 'local-games':
         return screen('local-games', <LocalGamesScreen />);
       case 'third-party-games':
@@ -542,7 +616,7 @@ export default function App() {
 
   const keepAliveKeyForTab = (tab: Tab): string => {
     if (tab === 'profile') return `profile-${profileUserId ?? 'me'}`;
-    if (tab === 'rooms') return `rooms-${roomsRouterKey}`;
+    if (tab === 'rooms') return 'karaoke';
     return tab;
   };
 
@@ -560,49 +634,53 @@ export default function App() {
   // immediately. Session restore runs in CloudAuthProvider in the background.
   const supabasePrimary = isPrimarySupabaseCloud();
 
-  // Firebase auth gate — skip when Supabase owns auth (primary cloud).
-  // Offline: never block on Firebase loading — show saved UI.
-  if (!supabasePrimary && firebaseLoading && isOnline) {
+  const canPaintMainFromCache =
+    mainShellPinned ||
+    hasInstantSessionCache() ||
+    (db.isLoggedIn && currentUser?.id && currentUser.id !== 'unknown');
+
+  if (!supabasePrimary && firebaseLoading && isOnline && !canPaintMainFromCache) {
     return (
-      <ToastProvider>
-        <ToastListener />
-        <Suspense fallback={<LaunchShell className="items-center justify-center gap-3 p-6"><div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></LaunchShell>}>
+      <>
+        <Suspense fallback={instantSuspenseFallback()}>
           <SplashScreen isLoading={true} />
         </Suspense>
         <OfflineStatusBanner />
-      </ToastProvider>
+      </>
     );
   }
 
   const firebaseConfigured = !!getFirebaseAuth();
-  if (!supabasePrimary && firebaseConfigured && !firebaseLoading && !firebaseUser) {
+  if (!supabasePrimary && firebaseConfigured && !firebaseLoading && !firebaseUser && !canPaintMainFromCache) {
     return (
-      <ToastProvider>
-        <ToastListener />
-        <Suspense fallback={<LaunchShell className="items-center justify-center gap-3 p-6"><div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></LaunchShell>}>
-          <AuthScreen />
-        </Suspense>
-      </ToastProvider>
+      <Suspense fallback={instantSuspenseFallback()}>
+        <AuthScreen />
+      </Suspense>
     );
   }
 
-  if (!supabasePrimary && !firebaseLoading && firebaseUser && !firebaseProfile) {
+  const profileReady =
+    db.getLaunchProgress().profileSetupComplete || Boolean(sessionHint?.profileSetupComplete);
+  if (
+    !supabasePrimary &&
+    !firebaseLoading &&
+    firebaseUser &&
+    !firebaseProfile &&
+    !profileReady &&
+    !canPaintMainFromCache
+  ) {
     return (
-      <ToastProvider>
-        <ToastListener />
-        <Suspense fallback={<LaunchShell className="items-center justify-center gap-3 p-6"><div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></LaunchShell>}>
-          <ProfileSetup />
-        </Suspense>
-      </ToastProvider>
+      <Suspense fallback={instantSuspenseFallback()}>
+        <ProfileSetup />
+      </Suspense>
     );
   }
 
-  if (effectiveLaunchRoute !== 'main') {
+  if (effectiveLaunchRoute !== 'main' && !canPaintMainFromCache) {
     return (
-      <ToastProvider>
-        <ToastListener />
+      <>
         <OfflineStatusBanner />
-        <Suspense fallback={<LaunchShell className="items-center justify-center gap-3 p-6"><div className="h-8 w-8 rounded-full border-2 border-primary border-t-transparent animate-spin" /></LaunchShell>}>
+        <Suspense fallback={instantSuspenseFallback()}>
           <LaunchFlowHost route={effectiveLaunchRoute} />
         </Suspense>
         {import.meta.env.DEV ? (
@@ -610,20 +688,24 @@ export default function App() {
             <DevLivePanelHost currentTab="home" profileUserId={null} />
           </Suspense>
         ) : null}
-      </ToastProvider>
+      </>
     );
   }
 
   return (
-    <ToastProvider>
-      <ToastListener />
+    <>
       <OfflineStatusBanner insetBelowNav />
       <Suspense fallback={null}>
         <YoutubeMiniPlayerHost />
       </Suspense>
-      <Shell currentTab={currentTab} setCurrentTab={handleTabChange} currentUser={currentUser}>
-        {renderContent()}
-      </Shell>
+      <ChatCallProvider
+        currentUserId={currentUser?.id}
+        currentUserAvatarUrl={currentUser?.avatarUrl}
+      >
+        <Shell currentTab={currentTab} setCurrentTab={handleTabChange} currentUser={currentUser}>
+          {renderContent()}
+        </Shell>
+      </ChatCallProvider>
       <AnimatePresence>
         {globalPreviewUserId && (
           <ErrorBoundary>
@@ -659,6 +741,6 @@ export default function App() {
           </Suspense>
         </ErrorBoundary>
       )}
-    </ToastProvider>
+    </>
   );
 }

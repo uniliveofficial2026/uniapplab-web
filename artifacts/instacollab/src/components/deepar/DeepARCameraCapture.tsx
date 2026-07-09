@@ -1,26 +1,37 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { Camera, Loader2, SwitchCamera, Video, X } from 'lucide-react';
+import { Camera, SwitchCamera, Video, X } from 'lucide-react';
 import { CameraDualBeautyButtons } from '../camera/CameraDualBeautyButtons';
-import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
 import {
-  getBeautyVideoFilter,
-  getTencentBeautifyParams,
-  type BeautyPresetId,
-} from '../../lib/ar/beautyFilters';
+  CameraCaptureViewport,
+  CAMERA_CAPTURE_CHROME_CLASS,
+  CAMERA_CAPTURE_ROOT_CLASS,
+} from '../camera/CameraCaptureViewport';
+import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
+import { getBeautyVideoFilter, type BeautyPresetId } from '../../lib/ar/beautyFilters';
+import { useStreamBeauty } from '../../lib/ar/useStreamBeauty';
+import { EMPTY_BODY_SHAPE, isBodyShapeActive, type BodyShapeParams } from '../../lib/ar/bodyShape';
+import {
+  getStableCameraIdeal,
+  WEBAR_CAMERA_FRAME_RATE,
+} from '../../lib/camera/cameraPipelinePolicy';
 import {
   captureVideoFrame,
   type CameraFacingMode,
   useCameraStream,
-} from '../../lib/deepar/useCameraStream';
+} from '../../lib/camera/useCameraStream';
+import {
+  nextCameraFacingMode,
+  shouldMirrorCameraPreview,
+} from '../../lib/camera/cameraMirrorPolicy';
+import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
 import { useDeepAR } from '../../lib/deepar/useDeepAR';
 import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
-import { useTencentWebAR } from '../../lib/webar/useTencentWebAR';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
   type TencentEffectSelection,
 } from '../../lib/webar/webarTypes';
 import { LiveBeautySheet } from '../../smule-rooms/components/LiveBeautySheet';
-import { MultiGuestEffectsSheet } from '../../smule-rooms/components/MultiGuestEffectsSheet';
+import { DeepARFilterCarousel } from './DeepARFilterCarousel';
 
 export type DeepARCameraCaptureProps = {
   open: boolean;
@@ -42,11 +53,13 @@ export function DeepARCameraCapture({
   const [beautyEffects, setBeautyEffects] = useState<TencentEffectSelection>(
     EMPTY_TENCENT_EFFECT_SELECTION,
   );
+  const [bodyShape, setBodyShape] = useState<BodyShapeParams>(EMPTY_BODY_SHAPE);
   const [deeparPanelOpen, setDeeparPanelOpen] = useState(false);
   const [beautyPanelOpen, setBeautyPanelOpen] = useState(false);
   const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
   const rawRecorderRef = useRef<MediaRecorder | null>(null);
   const rawChunksRef = useRef<Blob[]>([]);
+  const captureIdealRef = useRef(getStableCameraIdeal(isTencentWebARConfigured()));
   const configured = isDeepARConfigured();
   const webarConfigured = isTencentWebARConfigured();
   const deeparActive = configured && deeparEffectId !== 'none';
@@ -54,10 +67,17 @@ export function DeepARCameraCapture({
     beautyEffects.makeupId ||
       beautyEffects.stickerId ||
       beautyEffects.filterId ||
-      beautyEffects.backgroundUrl,
+      beautyEffects.backgroundUrl ||
+      beautyEffects.shapeEffectId,
   );
-  const beautyActive = beautyId !== 'none' || beautyEffectsActive;
-  const mirrorPreview = facingMode === 'user';
+  const shapeActive = isBodyShapeActive(bodyShape);
+  const beautyActive = beautyId !== 'none' || beautyEffectsActive || shapeActive;
+  const mirrorPreview = shouldMirrorCameraPreview(facingMode);
+
+  const flipCamera = useCallback(() => {
+    if (recording) return;
+    setFacingMode((current) => nextCameraFacingMode(current));
+  }, [recording]);
 
   const handleSelectDeepAR = useCallback((effectId: string) => {
     setDeeparEffectId(effectId);
@@ -83,12 +103,13 @@ export function DeepARCameraCapture({
   }, []);
 
   const toggleDeeparPanel = useCallback(() => {
+    if (!configured || webarConfigured) return;
     setDeeparPanelOpen((open) => {
       const next = !open;
       if (next) setBeautyPanelOpen(false);
       return next;
     });
-  }, []);
+  }, [configured, webarConfigured]);
 
   const toggleBeautyPanel = useCallback(() => {
     setBeautyPanelOpen((open) => {
@@ -102,6 +123,9 @@ export function DeepARCameraCapture({
     enabled: open,
     audio: true,
     facingMode,
+    videoIdeal: captureIdealRef.current,
+    frameRate: WEBAR_CAMERA_FRAME_RATE,
+    exactFacing: true,
   });
 
   const [inputStream, setInputStream] = useState<MediaStream | null>(null);
@@ -110,23 +134,38 @@ export function DeepARCameraCapture({
       setInputStream(null);
       return;
     }
-    const stream = camera.streamRef.current;
-    setInputStream((prev) => (prev === stream ? prev : stream));
-  }, [open, camera.ready, facingMode]);
+    setInputStream(camera.stream);
+  }, [open, camera.ready, camera.stream, facingMode]);
 
-  const webar = useTencentWebAR({
-    enabled: open && camera.ready && beautyActive && !deeparActive,
+  useEffect(() => {
+    const el = camera.videoRef.current;
+    const stream = camera.stream;
+    if (!el || !stream || !camera.ready) return;
+    if (el.srcObject !== stream) el.srcObject = stream;
+    void el.play().catch(() => undefined);
+  }, [camera.ready, camera.stream, facingMode]);
+
+  const streamBeauty = useStreamBeauty({
+    enabled: open && camera.ready,
     inputStream,
-    mirror: mirrorPreview,
-    beautify: getTencentBeautifyParams(beautyId),
+    beautyId,
     effects: beautyEffects,
+    bodyShape,
+    mirror: mirrorPreview,
+    keepWarm: open && webarConfigured,
+    beautyPanelOpen,
+    loadCatalogs: beautyPanelOpen || beautyActive,
   });
+
+  const beautyVideoReady = useVideoFrameReady(
+    streamBeauty.outputVideoRef,
+    open && beautyActive && !deeparActive && streamBeauty.active,
+  );
 
   const deepar = useDeepAR({
     previewRef,
     videoElementRef: camera.videoRef,
-    enabled: open && configured && camera.ready,
-    processingActive: deeparActive,
+    enabled: open && configured && camera.ready && deeparActive,
     initialEffectId: deeparEffectId,
     mirror: mirrorPreview,
   });
@@ -135,20 +174,21 @@ export function DeepARCameraCapture({
     const video = camera.videoRef.current;
     if (!video) return;
     const filter =
-      beautyActive && !webar.beautyActive && !deeparActive
+      beautyActive && !streamBeauty.configured && !deeparActive
         ? getBeautyVideoFilter(beautyId)
         : null;
     video.style.filter = filter ?? '';
     return () => {
       video.style.filter = '';
     };
-  }, [beautyId, camera.ready, beautyActive, webar.beautyActive, deeparActive]);
+  }, [beautyId, camera.ready, beautyActive, streamBeauty.configured, deeparActive]);
 
   useEffect(() => {
     if (!open) {
       setDeeparEffectId('none');
       setBeautyId('none');
       setBeautyEffects(EMPTY_TENCENT_EFFECT_SELECTION);
+      setBodyShape(EMPTY_BODY_SHAPE);
       setDeeparPanelOpen(false);
       setBeautyPanelOpen(false);
       setRecording(false);
@@ -165,18 +205,22 @@ export function DeepARCameraCapture({
     }
   }, [recording]);
 
+  useEffect(() => {
+    if (deeparActive && deepar.ready) {
+      void deepar.switchEffect(deeparEffectId);
+    }
+  }, [deeparActive, deepar.ready, deeparEffectId, deepar]);
+
   const permissionDenied = camera.permissionDenied || deepar.permissionDenied;
-  const error = camera.error ?? deepar.error ?? webar.error;
-  const previewReady = deeparActive
-    ? deepar.ready
-    : beautyActive
-      ? webar.beautyActive || camera.ready
-      : camera.ready;
-  const previewLoading = deeparActive
-    ? deepar.loading || !camera.ready
-    : beautyActive
-      ? !camera.ready || (webarConfigured && webar.loading)
-      : !camera.ready;
+  const error = camera.error ?? deepar.error ?? streamBeauty.error;
+  const showBeautyPreview =
+    beautyActive &&
+    !deeparActive &&
+    streamBeauty.configured &&
+    streamBeauty.active &&
+    beautyVideoReady;
+  const previewReady = deeparActive ? deepar.ready : showBeautyPreview || camera.ready;
+  const panelOpen = (deeparPanelOpen || beautyPanelOpen) && !recording;
 
   if (!open) return null;
 
@@ -186,13 +230,18 @@ export function DeepARCameraCapture({
     'text-[10px] font-bold uppercase drop-shadow-[0_1px_3px_rgba(0,0,0,0.9)]';
 
   const handlePhoto = async () => {
-    if (beautyActive && camera.ready) {
-      const video =
-        webar.beautyActive && webar.outputVideoRef.current
-          ? webar.outputVideoRef.current
-          : camera.videoRef.current;
+    if (showBeautyPreview && streamBeauty.outputVideoRef.current) {
+      const dataUrl = await captureVideoFrame(streamBeauty.outputVideoRef.current, false);
+      if (!dataUrl) return;
+      onCaptured({ kind: 'photo', url: dataUrl });
+      onClose();
+      return;
+    }
+
+    if (beautyActive && camera.ready && !deeparActive) {
+      const video = camera.videoRef.current;
       if (!video) return;
-      const dataUrl = await captureVideoFrame(video, webar.beautyActive ? false : mirrorPreview);
+      const dataUrl = await captureVideoFrame(video, mirrorPreview);
       if (!dataUrl) return;
       onCaptured({ kind: 'photo', url: dataUrl });
       onClose();
@@ -249,8 +298,8 @@ export function DeepARCameraCapture({
         return;
       }
 
-      if (beautyActive && webar.beautyActive && webar.outputStreamRef.current) {
-        startRawRecorder(webar.outputStreamRef.current);
+      if (showBeautyPreview && streamBeauty.outputStreamRef.current) {
+        startRawRecorder(streamBeauty.outputStreamRef.current);
         setRecording(true);
         return;
       }
@@ -280,7 +329,7 @@ export function DeepARCameraCapture({
   };
 
   return (
-    <div className="fixed inset-0 z-[3200] flex flex-col" data-app-overlay-root>
+    <div className={CAMERA_CAPTURE_ROOT_CLASS} data-app-overlay-root>
       {!configured && !webarConfigured ? (
         <div className="flex-1 flex flex-col items-center justify-center p-6 text-center text-white/80">
           <p className="font-semibold mb-2">AR license required</p>
@@ -290,36 +339,24 @@ export function DeepARCameraCapture({
           </p>
         </div>
       ) : (
-        <div className="relative flex-1 min-h-0 overflow-hidden">
+        <div className="relative h-full w-full min-h-0">
+          <CameraCaptureViewport
+            rawStream={inputStream}
+            beautyStream={streamBeauty.outputStream}
+            showBeautyPreview={showBeautyPreview}
+            mirrorRaw={mirrorPreview}
+            facePreviewRef={previewRef}
+            showFacePreview={deeparActive && deepar.ready}
+            beautySinkVideoRef={streamBeauty.outputVideoRef}
+          />
           <video
             ref={camera.videoRef}
             playsInline
             muted
             autoPlay
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ${
-              mirrorPreview ? 'scale-x-[-1]' : ''
-            } ${
-              (deeparActive && deepar.ready) || (beautyActive && webar.beautyActive)
-                ? 'opacity-0 pointer-events-none'
-                : 'opacity-100'
-            }`}
-          />
-          <video
-            ref={webar.outputVideoRef}
-            playsInline
-            muted
-            autoPlay
-            className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-200 ${
-              beautyActive && webar.beautyActive
-                ? 'opacity-100'
-                : 'opacity-0 pointer-events-none'
-            }`}
-          />
-          <div
-            ref={previewRef}
-            className={`absolute inset-0 w-full h-full transition-opacity duration-200 ${
-              deeparActive && deepar.ready ? 'opacity-100' : 'opacity-0 pointer-events-none'
-            }`}
+            aria-hidden
+            className="fixed h-px w-px opacity-0 pointer-events-none"
+            style={{ left: -9999, top: -9999 }}
           />
           {permissionDenied ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white/90 gap-4 bg-black">
@@ -336,27 +373,11 @@ export function DeepARCameraCapture({
               </button>
             </div>
           ) : null}
-          {previewLoading && !previewReady && !error && (
-            <div className="absolute inset-0 flex flex-col items-center justify-center bg-black/50 gap-3">
-              <Loader2 className="w-8 h-8 text-white animate-spin" />
-              <p className="text-xs text-white/70">
-                {!camera.ready
-                  ? 'Starting camera…'
-                  : deeparActive && deepar.loadProgress > 0
-                    ? `Loading AR… ${deepar.loadProgress}%`
-                    : deeparActive
-                      ? 'Loading AR…'
-                      : beautyActive
-                        ? 'Loading beauty…'
-                        : 'Starting camera…'}
-              </p>
-            </div>
-          )}
-          {error && !permissionDenied && (
-            <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-red-300 text-sm bg-black">
+          {error && !permissionDenied ? (
+            <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-red-300 text-sm bg-black/80 z-30">
               {error}
             </div>
-          )}
+          ) : null}
 
           {beautyPanelOpen ? (
             <LiveBeautySheet
@@ -366,28 +387,36 @@ export function DeepARCameraCapture({
               onSelectBeauty={handleSelectBeauty}
               effects={beautyEffects}
               onEffectsChange={handleBeautyEffectsChange}
-              catalogs={webar.catalogs}
-              anchorBottom={120}
+              bodyShape={bodyShape}
+              onBodyShapeChange={setBodyShape}
+              catalogs={streamBeauty.catalogs}
+              readyEffectIds={streamBeauty.readyEffectIds}
+              anchorBottom={112}
               webarConfigured={webarConfigured}
-              webarLoading={webar.loading}
-              webarError={webar.error}
+              webarLoading={streamBeauty.loading}
+              webarError={streamBeauty.error}
             />
           ) : null}
 
-          <MultiGuestEffectsSheet
-            isOpen={deeparPanelOpen && !recording}
-            onClose={() => setDeeparPanelOpen(false)}
-            activeEffectId={deeparEffectId}
-            onSelectEffect={(id) => {
-              handleSelectDeepAR(id);
-              if (id === deeparEffectId) setDeeparPanelOpen(false);
-            }}
-            loading={deeparActive && deepar.loading}
-            cameraReady={camera.ready}
-            anchorBottom={120}
-          />
+          <div className={`${CAMERA_CAPTURE_CHROME_CLASS} space-y-2`}>
+            <div
+              className={`pointer-events-auto overflow-hidden transition-all duration-300 ease-out ${
+                panelOpen ? 'max-h-56 opacity-100 translate-y-0' : 'max-h-0 opacity-0 translate-y-2 pointer-events-none'
+              }`}
+            >
+              {deeparPanelOpen ? (
+                <DeepARFilterCarousel
+                  activeEffectId={deeparEffectId}
+                  onSelect={(id) => {
+                    handleSelectDeepAR(id);
+                    if (id === deeparEffectId) setDeeparPanelOpen(false);
+                  }}
+                  disabled={!camera.ready || recording}
+                  deepAROnly
+                />
+              ) : null}
+            </div>
 
-          <div className="absolute inset-x-0 bottom-0 z-10 p-4 pb-[max(1rem,env(safe-area-inset-bottom))] space-y-3 pointer-events-none">
             <div className="pointer-events-auto flex items-center justify-center gap-3 flex-wrap">
               <CameraDualBeautyButtons
                 variant="capture"
@@ -398,7 +427,7 @@ export function DeepARCameraCapture({
                 beautyActive={beautyActive}
                 onToggleDeepAR={toggleDeeparPanel}
                 onToggleBeauty={toggleBeautyPanel}
-                showDeepAR={configured}
+                showDeepAR={configured && !webarConfigured}
                 showBeauty
               />
               <button
@@ -436,23 +465,21 @@ export function DeepARCameraCapture({
                 >
                   <Video className="w-6 h-6" />
                 </span>
-                <span className={glassControlLabel}>
-                  {recording ? 'Stop' : 'Video'}
-                </span>
+                <span className={glassControlLabel}>{recording ? 'Stop' : 'Video'}</span>
               </button>
               <button
                 type="button"
                 disabled={!previewReady || recording}
-                onClick={() =>
-                  setFacingMode((current) => (current === 'user' ? 'environment' : 'user'))
-                }
+                onClick={flipCamera}
                 className="flex flex-col items-center gap-1.5 text-white disabled:opacity-40"
                 aria-label="Flip camera"
               >
                 <span className={glassControlBtn}>
                   <SwitchCamera className="w-6 h-6" />
                 </span>
-                <span className={glassControlLabel}>Flip</span>
+                <span className={glassControlLabel}>
+                  {facingMode === 'user' ? 'Selfie' : 'Back'}
+                </span>
               </button>
             </div>
           </div>

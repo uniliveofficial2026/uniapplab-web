@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import YouTube, { type YouTubeProps } from 'react-youtube';
-import { buildYoutubeWatchUrl } from '../../services/youtube';
+import { buildYoutubeEmbedUrl } from '../../services/youtube';
 
 type WatchTogetherYoutubePlayerProps = {
   videoId: string;
@@ -41,7 +41,7 @@ export function WatchTogetherYoutubePlayer({
       <div className={`flex h-full w-full flex-col items-center justify-center gap-3 bg-black px-4 text-center ${className}`}>
         <p className="text-xs font-bold text-red-300">This YouTube video could not be embedded.</p>
         <a
-          href={buildYoutubeWatchUrl(videoId)}
+          href={buildYoutubeEmbedUrl(videoId).replace('/embed/', '/watch?v=')}
           target="_blank"
           rel="noreferrer"
           className="rounded-full border border-red-400/40 bg-red-500/15 px-3 py-1 text-[10px] font-black text-red-200"

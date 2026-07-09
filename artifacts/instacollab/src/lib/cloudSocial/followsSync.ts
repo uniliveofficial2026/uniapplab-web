@@ -1,5 +1,4 @@
 import { isCloudAuthUserId } from '../auth/cloudProfile';
-import { isSupabaseConfigured } from '../supabase/config';
 import {
   deleteFollow,
   deleteFollowRequest,
@@ -9,9 +8,9 @@ import {
   hasFollowRequest,
   insertFollow,
   insertFollowRequest,
-  insertUserNotification,
   isFollowsCloudAvailable,
-} from '../supabase/follows';
+} from './followsCloud';
+import { insertUserNotification } from './notificationsCloud';
 
 type Cache = {
   followingByUser: Map<string, string[]>;
@@ -26,7 +25,7 @@ const cache: Cache = {
 };
 
 export function isCloudFollowsEnabled(): boolean {
-  return isFollowsCloudAvailable() && isSupabaseConfigured();
+  return isFollowsCloudAvailable();
 }
 
 export function clearCloudFollowCache(): void {

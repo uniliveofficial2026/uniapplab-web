@@ -9,6 +9,7 @@ import {
   Smile,
   X,
   Plus,
+  Camera,
   Mic,
   ChevronLeft,
   ChevronRight,
@@ -18,6 +19,7 @@ import {
 import EmojiPicker, { Theme } from "emoji-picker-react";
 import { useDB, usePostById } from "../../lib/useDB";
 import { useToast } from "../../lib/ToastContext";
+import { useAppCamera } from "../../contexts/AppCameraContext";
 import { useVoice } from "../../lib/useVoice";
 import {
   formatContentDateTime,
@@ -97,7 +99,7 @@ import { Waveform } from "../messages/Waveform";
 import { VoiceMessagePlayer } from "../messages/VoiceMessagePlayer";
 import { InlineAttachmentVideo } from "../common/InlineAttachmentVideo";
 import { PLAYBACK_SCOPE } from "../../lib/playbackScope";
-import { nativeVideoControlGuardProps } from "../../lib/nativeVideoControls";
+import { AppNativeVideo } from "../common/AppNativeVideo";
 import type { Post } from "../../types";
 
 export function PostModal({
@@ -109,6 +111,7 @@ export function PostModal({
 }) {
   const db = useDB();
   const { showToast } = useToast();
+  const { isAvailable: cameraAvailable, openCamera } = useAppCamera();
   const selectedPost = usePostById(postId);
   const modalMedia = useMemo(
     () =>
@@ -779,6 +782,25 @@ export function PostModal({
       }
     }
   };
+
+  const handleCommentCameraCapture = async (payload: {
+    kind: 'photo' | 'video';
+    url: string;
+    blob?: Blob;
+  }) => {
+    try {
+      if (payload.kind === 'video' && payload.blob) {
+        const base64 = await fileToBase64(
+          new File([payload.blob], 'camera-video.webm', { type: payload.blob.type || 'video/webm' }),
+        );
+        setCommentMedia((prev) => [...prev, { url: base64, isVideo: true }]);
+        return;
+      }
+      setCommentMedia((prev) => [...prev, { url: payload.url, isVideo: false }]);
+    } catch {
+      showToast('Could not attach camera capture');
+    }
+  };
   const isCommentPostDisabled = !commentText.trim() && commentMedia.length === 0 && !recordedVoice;
 
   const commentItemProps = {
@@ -846,24 +868,17 @@ export function PostModal({
               <>
                 {currentMedia.type === 'video' ? (
                   <MediaWithSoundtrack className="relative w-full h-full">
-                  <video
-                    data-playback-scope={PLAYBACK_SCOPE.MANAGED}
+                  <AppNativeVideo
+                    playbackScope={PLAYBACK_SCOPE.MANAGED}
                     ref={modalVideoRef}
                     src={currentMedia.url || undefined}
                     loop={loopCarouselItem}
-                    playsInline
                     muted={postSoundtrackUrl ? true : db.globalMuted}
-                    controls
                     preload="metadata"
                     onEnded={loopCarouselItem ? undefined : goToNextCarouselItem}
-                    onVolumeChange={(e) => {
-                      if (!postSoundtrackUrl) {
-                        db.setGlobalMuted(e.currentTarget.muted);
-                      }
-                    }}
+                    onGlobalMutedChange={postSoundtrackUrl ? undefined : (muted) => db.setGlobalMuted(muted)}
                     style={postFilterStyle}
                     className="w-full h-full object-contain"
-                    {...nativeVideoControlGuardProps()}
                   />
                   </MediaWithSoundtrack>
                 ) : currentMedia.type === 'audio' ? (
@@ -1075,24 +1090,17 @@ export function PostModal({
                   <>
                     {currentMedia.type === 'video' ? (
                       <MediaWithSoundtrack className="relative w-full h-full">
-                      <video
-                        data-playback-scope={PLAYBACK_SCOPE.MANAGED}
+                      <AppNativeVideo
+                        playbackScope={PLAYBACK_SCOPE.MANAGED}
                         ref={modalVideoRef}
                         src={currentMedia.url || undefined}
                         loop={loopCarouselItem}
-                        playsInline
                         muted={postSoundtrackUrl ? true : db.globalMuted}
-                        controls
                         preload="metadata"
                         onEnded={loopCarouselItem ? undefined : goToNextCarouselItem}
-                        onVolumeChange={(e) => {
-                          if (!postSoundtrackUrl) {
-                            db.setGlobalMuted(e.currentTarget.muted);
-                          }
-                        }}
+                        onGlobalMutedChange={postSoundtrackUrl ? undefined : (muted) => db.setGlobalMuted(muted)}
                         style={postFilterStyle}
                         className="w-full h-full object-contain"
-                        {...nativeVideoControlGuardProps()}
                       />
                       </MediaWithSoundtrack>
                     ) : currentMedia.type === 'audio' ? (
@@ -1413,6 +1421,23 @@ export function PostModal({
                   multiple
                   onChange={handleMediaUpload}
                 />
+                {cameraAvailable ? (
+                  <button
+                    type="button"
+                    onClick={() =>
+                      openCamera({
+                        title: 'Comment camera',
+                        onCaptured: (payload) => {
+                          void handleCommentCameraCapture(payload);
+                        },
+                      })
+                    }
+                    className="p-1.5 md:p-2 hover:bg-secondary rounded-full mr-1 md:mr-2 transition-colors text-muted-foreground hover:text-foreground"
+                    aria-label="Open camera"
+                  >
+                    <Camera className="w-5 h-5 md:w-6 md:h-6" />
+                  </button>
+                ) : null}
                 <label
                   htmlFor="comment-media"
                   className="p-1.5 md:p-2 hover:bg-secondary rounded-full mr-2 md:mr-3 cursor-pointer transition-colors text-muted-foreground hover:text-foreground"

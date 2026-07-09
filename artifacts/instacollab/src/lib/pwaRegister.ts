@@ -1,6 +1,4 @@
 import { registerSW } from 'virtual:pwa-register';
-import { APP_UPDATE_STAGED_EVENT, stageAppUpdate } from './invisibleReload';
-import { checkForPwaUpdate } from './pwaAutoUpdate';
 
 let updateSw: ((reloadPage?: boolean) => Promise<void>) | null = null;
 
@@ -35,43 +33,28 @@ export function registerAppServiceWorker() {
       window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
     },
     onNeedRefresh() {
-      void (async () => {
-        try {
-          await updateSw?.(false);
-        } catch {
-          await checkForPwaUpdate();
-        }
-        stageAppUpdate('pwa_update');
-        window.dispatchEvent(
-          new CustomEvent(APP_UPDATE_STAGED_EVENT, { detail: { reason: 'pwa_update' } }),
-        );
-      })();
+      window.dispatchEvent(new CustomEvent('pwa-need-refresh'));
     },
-    onRegisteredSW(_swUrl, registration) {
-      if (registration) {
-        window.setInterval(() => {
-          void registration.update();
-        }, 60 * 60_000);
-      }
+    onRegistered(registration) {
+      if (!registration) return;
+      const interval = window.setInterval(() => {
+        void registration.update();
+      }, 60 * 60 * 1000);
+      registration.addEventListener('updatefound', () => {
+        const worker = registration.installing;
+        worker?.addEventListener('statechange', () => {
+          if (worker.state === 'installed' && navigator.serviceWorker.controller) {
+            window.dispatchEvent(new CustomEvent('pwa-need-refresh'));
+          }
+        });
+      });
+      window.addEventListener('beforeunload', () => window.clearInterval(interval));
     },
   });
 }
 
-/** Optional manual refresh — only when the user explicitly asks to reload. */
 export function applyPwaUpdate() {
   void updateSw?.(true);
-}
-
-/** Stage a new build after lazy-chunk failure — never forces a full page reload. */
-export async function recoverStaleBuild(): Promise<void> {
-  if (typeof window === 'undefined') return;
-  try {
-    await updateSw?.(false);
-  } catch {
-    /* fall through */
-  }
-  await checkForPwaUpdate();
-  stageAppUpdate('chunk_recovery');
 }
 
 export function isStandaloneDisplayMode(): boolean {

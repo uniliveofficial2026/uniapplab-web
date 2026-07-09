@@ -8,6 +8,7 @@ import fs from 'node:fs';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { isAutopilotOn } from './lib/automation-config.mjs';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = Number(process.env.LIVE_DEV_PORT ?? process.env.PORT ?? '5173');
@@ -75,22 +76,26 @@ async function main() {
   }
 
   const out = fs.openSync(LOG_FILE, 'a');
-  const child = spawn('pnpm', ['live'], {
+  const onExternalVolume = ROOT.startsWith('/Volumes/');
+  const devCommand = onExternalVolume ? 'dev:light' : 'live';
+  const autopilot = isAutopilotOn();
+  const child = spawn('pnpm', [devCommand], {
     cwd: ROOT,
     detached: true,
     stdio: ['ignore', out, out],
     env: {
       ...process.env,
       LIVE_SYNC_SILENT: '1',
-      LIVE_SYNC_DEPLOY: '0',
-      LIVE_SYNC_AUTO_PUSH: '0',
+      LIVE_SYNC_DEPLOY: autopilot ? '1' : '0',
+      LIVE_SYNC_AUTO_PUSH: autopilot ? '1' : '0',
+      UX_AGENT: autopilot ? '1' : '0',
       UX_AGENT_SILENT: '1',
     },
   });
   child.unref();
   fs.writeFileSync(PID_FILE, String(child.pid));
 
-  log(`started pnpm live (pid ${child.pid}) — log: ${path.relative(ROOT, LOG_FILE)}`);
+  log(`started pnpm ${devCommand} (pid ${child.pid}) — log: ${path.relative(ROOT, LOG_FILE)}`);
 
   const uxPidFile = path.join(ROOT, '.local/ux-agent.pid');
   let uxRunning = false;
@@ -101,7 +106,7 @@ async function main() {
   } catch {
     /* not running */
   }
-  if (!uxRunning && process.env.UX_AGENT !== '0') {
+  if (!uxRunning && (autopilot || process.env.UX_AGENT !== '0') && !onExternalVolume) {
     const uxLog = path.join(ROOT, '.local/ux-agent.log');
     const uxOut = fs.openSync(uxLog, 'a');
     const uxChild = spawn('node', ['scripts/background-ux-agent.mjs'], {

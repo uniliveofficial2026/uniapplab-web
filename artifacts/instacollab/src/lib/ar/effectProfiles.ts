@@ -1,7 +1,6 @@
 export type EffectRenderKind =
   | 'makeup'
   | 'makeup-split'
-  | 'beauty'
   | 'glasses'
   | 'helmet'
   | 'horns'
@@ -27,9 +26,6 @@ export const EFFECT_PROFILES: Record<string, EffectProfile> = {
   none: { id: 'none', kind: 'makeup' },
   makeup: { id: 'makeup', kind: 'makeup' },
   'makeup-split': { id: 'makeup-split', kind: 'makeup-split' },
-  'beauty-smooth': { id: 'beauty-smooth', kind: 'beauty' },
-  'beauty-soft': { id: 'beauty-soft', kind: 'beauty' },
-  'beauty-glow': { id: 'beauty-glow', kind: 'beauty' },
   viking: { id: 'viking', kind: 'helmet' },
   flowers: { id: 'flowers', kind: 'flowers' },
   humanoid: { id: 'humanoid', kind: 'face-mask' },
