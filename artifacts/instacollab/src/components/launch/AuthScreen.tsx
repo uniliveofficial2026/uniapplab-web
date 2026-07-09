@@ -360,7 +360,7 @@ export function AuthScreen() {
       ? useCloudAuth
         ? import.meta.env.DEV
           ? `Cloud: email or Google. Demo: ${DEMO_EMAIL} / ${DEMO_PASSWORD} (or button below).`
-          : 'Sign in with email or Google (syncs across devices).'
+          : ''
         : import.meta.env.DEV
           ? 'Demo mode — add VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY to a .env file, then restart npm run dev.'
           : `Sign in with ${DEMO_EMAIL} / ${DEMO_PASSWORD}`
@@ -382,9 +382,11 @@ export function AuthScreen() {
             <LaunchBrandMark size="xl" allowUpload showUploadHint={false} />
             <div className="flex flex-col items-center gap-2">
               <h1 className="text-2xl font-black tracking-tight">{title}</h1>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-[320px]">
-                {subtitle}
-              </p>
+              {subtitle ? (
+                <p className="text-sm text-muted-foreground leading-relaxed max-w-[320px]">
+                  {subtitle}
+                </p>
+              ) : null}
               {!useCloudAuth && import.meta.env.DEV ? (
                 <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 pt-1 max-w-[320px]">
                   Local demo only — copy .env.example → .env and restart dev server for Google sign-in
