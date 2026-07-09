@@ -17,6 +17,9 @@ import {
   CheckCircle,
   X,
   Camera,
+  FileText,
+  Scale,
+  ExternalLink,
 } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
@@ -49,7 +52,13 @@ import type { AppSettings } from '../../lib/dbTypes';
 import { ProfileCloudSystemsModal } from './ProfileCloudSystemsModal';
 import { AvatarQuickPresets } from '../common/AvatarQuickPresets';
 import { avatarPresetSeedFromUrl, avatarPresetUrl } from '../../lib/avatarPresets';
-
+import {
+  LEGAL_AGE_REQUIREMENT_YEARS,
+  openPrivacyPolicy,
+  openTermsOfService,
+  PRIVACY_POLICY_PATH,
+  TERMS_OF_SERVICE_PATH,
+} from '../../lib/legalDocs';
 
 export type ProfileEditSettingsModalProps = {
   onClose: () => void;
@@ -762,6 +771,41 @@ export function ProfileEditSettingsModal({
             <Trash2 className="w-4 h-4" /> Permanent Account Deletion
           </button>
         ) : null}
+      </div>
+
+      <div className="pt-4 border-t border-border space-y-4">
+        <h3 className="font-bold flex items-center gap-2"><Scale className="w-5 h-5 text-violet-500" /> Legal</h3>
+        <div className="bg-secondary/30 rounded-xl p-4 border border-border space-y-3">
+          <p className="text-[11px] leading-relaxed text-muted-foreground">
+            {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. The developer, service, and app
+            are not responsible for underage use.
+          </p>
+          <button
+            type="button"
+            onClick={openPrivacyPolicy}
+            className="w-full flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl bg-background/60 hover:bg-background border border-border text-sm font-semibold transition-colors"
+          >
+            <span className="inline-flex items-center gap-2">
+              <Shield className="w-4 h-4 text-sky-500" />
+              Privacy Policy
+            </span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <button
+            type="button"
+            onClick={openTermsOfService}
+            className="w-full flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl bg-background/60 hover:bg-background border border-border text-sm font-semibold transition-colors"
+          >
+            <span className="inline-flex items-center gap-2">
+              <FileText className="w-4 h-4 text-violet-500" />
+              Terms of Service &amp; User Agreement
+            </span>
+            <ExternalLink className="w-4 h-4 text-muted-foreground" />
+          </button>
+          <p className="text-[10px] text-muted-foreground font-mono">
+            {PRIVACY_POLICY_PATH} · {TERMS_OF_SERVICE_PATH}
+          </p>
+        </div>
       </div>
 
       <div className="pt-4 border-t border-border space-y-4">

@@ -2,11 +2,13 @@ import React, { useState } from 'react';
 import { motion } from 'motion/react';
 import { Camera, User as UserIcon, AtSign, Globe, Check } from 'lucide-react';
 import { LanguageSelector } from '../common/LanguageSelector';
+import { LegalAgreementCheckbox } from '../legal/LegalAgreementCheckbox';
 import { useAuth } from '../../lib/AuthContext';
 import { useAppCamera } from '../../contexts/AppCameraContext';
 import { getFirestoreDB } from '../../lib/firebase';
 import { upsertFirebaseProfile } from '../../lib/firebase/profile';
 import { db } from '../../lib/db/localDb';
+import { LEGAL_AGREEMENT_VERSION, writeLegalAcceptanceToStorage } from '../../lib/legalDocs';
 import type { User } from '../../types';
 
 export function ProfileSetup() {
@@ -16,6 +18,7 @@ export function ProfileSetup() {
   const [bio, setBio] = useState('');
   const [language, setLanguage] = useState('English');
   const [loading, setLoading] = useState(false);
+  const [legalAccepted, setLegalAccepted] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>(user?.photoURL || '');
   const fileInputRef = React.useRef<HTMLInputElement>(null);
   const { isAvailable: cameraAvailable, openCamera } = useAppCamera();
@@ -37,7 +40,14 @@ export function ProfileSetup() {
 
   const handleComplete = async () => {
     if (!user) return;
+    if (!legalAccepted) {
+      alert('Confirm you are 18+ and agree to the Privacy Policy and Terms to continue.');
+      return;
+    }
     setLoading(true);
+
+    const acceptedAt = Date.now();
+    writeLegalAcceptanceToStorage(user.uid, acceptedAt);
 
     const profileData: User = {
       id: user.uid,
@@ -52,9 +62,10 @@ export function ProfileSetup() {
       isVerified: false,
       storageTier: '50GB',
       status: 'none',
+      legalAgreementAcceptedAt: acceptedAt,
+      legalAgreementVersion: LEGAL_AGREEMENT_VERSION,
     };
 
-    // 1. Save locally to localStorage
     try {
       localStorage.setItem('local_profile_' + user.uid, JSON.stringify(profileData));
       localStorage.setItem('instacollab_has_onboarded', 'true');
@@ -62,7 +73,6 @@ export function ProfileSetup() {
       console.warn("Storage quota exceeded or error occurred while updating profile in localStorage:", e);
     }
 
-    // 2. Synchronize to LocalDB
     const updatedUsers = [...db.users];
     const existsIdx = updatedUsers.findIndex(u => u.id === user.uid);
     if (existsIdx >= 0) {
@@ -72,13 +82,11 @@ export function ProfileSetup() {
     }
     db.save('users', updatedUsers);
     db.login(user.uid);
-    db.completeProfileSetup();
+    db.completeProfileSetup({ legalAgreementAccepted: true });
 
-    // 3. Update active AuthContext state for real-time local load
     setProfile(profileData);
 
     try {
-      // 4. Try Firestore cloud backup (profiles collection — matches CloudAuth bootstrap)
       const firestoreDB = getFirestoreDB();
       if (firestoreDB) {
         await upsertFirebaseProfile({
@@ -193,9 +201,11 @@ export function ProfileSetup() {
             </div>
           </div>
 
+          <LegalAgreementCheckbox checked={legalAccepted} onChange={setLegalAccepted} />
+
           <button 
             onClick={handleComplete}
-            disabled={loading || !username}
+            disabled={loading || !username || !legalAccepted}
             className="w-full h-14 bg-primary text-primary-foreground rounded-2xl font-bold text-lg flex items-center justify-center gap-2 hover:opacity-90 disabled:opacity-50 transition-all active:scale-95 shadow-lg shadow-primary/10 mt-4"
           >
             {loading ? 'Finalizing...' : (

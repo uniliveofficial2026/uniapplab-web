@@ -25,6 +25,8 @@ import {
   LaunchShell,
   launchInputClass,
 } from './launchUi';
+import { LegalAgreementCheckbox } from '../legal/LegalAgreementCheckbox';
+import { LEGAL_AGREEMENT_VERSION, writeLegalAcceptanceToStorage } from '../../lib/legalDocs';
 
 export function ProfileSetupScreen() {
   const db = useDB();
@@ -41,6 +43,9 @@ export function ProfileSetupScreen() {
   );
   const [bio, setBio] = useState(me.bio || '');
   const [avatarUrl, setAvatarUrl] = useState(me.avatarUrl || '');
+  const [legalAccepted, setLegalAccepted] = useState(
+    () => Boolean(me.legalAgreementAcceptedAt) || db.hasAcceptedLegalAgreement(me.id),
+  );
   const [busy, setBusy] = useState(false);
   const [profilesTable, setProfilesTable] = useState<ProfilesTableStatus>('unknown');
 
@@ -96,6 +101,10 @@ export function ProfileSetupScreen() {
       showToast('Username must be at least 3 characters');
       return;
     }
+    if (!legalAccepted) {
+      showToast('Confirm you are 18+ and agree to Privacy Policy & Terms to continue');
+      return;
+    }
 
     setBusy(true);
     try {
@@ -126,6 +135,8 @@ export function ProfileSetupScreen() {
 
       const rawAvatar = avatarUrl.trim() || me.avatarUrl;
       const changedAt = Date.now();
+      const acceptedAt = Date.now();
+      writeLegalAcceptanceToStorage(me.id, acceptedAt);
       const nextUser = {
         ...me,
         displayName: trimmedName,
@@ -134,6 +145,8 @@ export function ProfileSetupScreen() {
         publicUserIdChangedAt: changedAt,
         bio: bio.trim(),
         avatarUrl: rawAvatar,
+        legalAgreementAcceptedAt: acceptedAt,
+        legalAgreementVersion: LEGAL_AGREEMENT_VERSION,
       };
 
       if (isCloudAuthConfigured()) {
@@ -142,7 +155,7 @@ export function ProfileSetupScreen() {
 
       db.updateUser(me.id, () => nextUser);
 
-      db.completeProfileSetup();
+      db.completeProfileSetup({ legalAgreementAccepted: true });
       showToast('Profile ready');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not save profile';
@@ -286,9 +299,11 @@ export function ProfileSetupScreen() {
               />
             </LaunchField>
 
+            <LegalAgreementCheckbox checked={legalAccepted} onChange={setLegalAccepted} />
+
             <LaunchPrimaryButton
               onClick={() => void onSave()}
-              disabled={busy || profilesTable === 'missing'}
+              disabled={busy || profilesTable === 'missing' || !legalAccepted}
             >
               {busy ? 'Saving…' : profilesTable === 'missing' ? 'Set up database first' : 'Continue'}
             </LaunchPrimaryButton>

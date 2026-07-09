@@ -13,12 +13,14 @@ const DEFAULT_LAUNCH: LaunchProgress = {
   hasCompletedOnboarding: false,
   profileSetupComplete: false,
   hasSeenTrending: false,
+  legalAgreementAccepted: false,
   pendingPasswordResetEmail: null,
 };
 
 const DEFAULT_USER_GATES = {
   profileSetupComplete: false,
   hasSeenTrending: false,
+  legalAgreementAccepted: false,
 };
 
 type UserLaunchGates = typeof DEFAULT_USER_GATES;
@@ -74,7 +76,7 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
 
     private getUserLaunchGates(userId: string): UserLaunchGates {
       if (isLegacySeedUserId(userId)) {
-        return { profileSetupComplete: true, hasSeenTrending: true };
+        return { profileSetupComplete: true, hasSeenTrending: true, legalAgreementAccepted: true };
       }
       const map = this.loadUserGatesMap();
       const stored = map[userId];
@@ -95,21 +97,32 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
         this.asLocalDB().isLoggedIn && userId
           ? this.getUserLaunchGates(userId)
           : { ...DEFAULT_USER_GATES };
-      return { ...DEFAULT_LAUNCH, ...device, ...gates };
+      const legalAccepted =
+        gates.legalAgreementAccepted ||
+        (userId ? this.hasAcceptedLegalAgreement(userId) : false);
+      return {
+        ...DEFAULT_LAUNCH,
+        ...device,
+        ...gates,
+        legalAgreementAccepted: legalAccepted,
+      };
     }
 
     private saveLaunchProgress(patch: Partial<LaunchProgress>) {
-      const { profileSetupComplete, hasSeenTrending, ...devicePatch } = patch;
+      const { profileSetupComplete, hasSeenTrending, legalAgreementAccepted, ...devicePatch } = patch;
       const userId = this.asLocalDB().currentUserId;
 
       if (
         userId &&
         this.asLocalDB().isLoggedIn &&
-        (profileSetupComplete !== undefined || hasSeenTrending !== undefined)
+        (profileSetupComplete !== undefined ||
+          hasSeenTrending !== undefined ||
+          legalAgreementAccepted !== undefined)
       ) {
         this.saveUserLaunchGates(userId, {
           ...(profileSetupComplete !== undefined ? { profileSetupComplete } : {}),
           ...(hasSeenTrending !== undefined ? { hasSeenTrending } : {}),
+          ...(legalAgreementAccepted !== undefined ? { legalAgreementAccepted } : {}),
         });
       }
 
@@ -122,6 +135,7 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
       this.saveUserLaunchGates(userId, {
         profileSetupComplete: false,
         hasSeenTrending: false,
+        legalAgreementAccepted: false,
       });
     }
 
@@ -133,9 +147,23 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
       this.saveLaunchProgress({ hasCompletedOnboarding: true });
     }
 
-    completeProfileSetup() {
+    hasAcceptedLegalAgreement(userId?: string): boolean {
+      const id = userId || this.asLocalDB().currentUserId;
+      if (!id) return false;
+      if (this.getUserLaunchGates(id).legalAgreementAccepted) return true;
+      const user = this.asLocalDB().users.find((entry) => entry.id === id);
+      return Boolean(user?.legalAgreementAcceptedAt);
+    }
+
+    completeProfileSetup(opts?: { legalAgreementAccepted?: boolean }) {
       const userId = this.asLocalDB().currentUserId;
-      if (userId) this.saveUserLaunchGates(userId, { profileSetupComplete: true });
+      if (!userId) return;
+      const legalOk = opts?.legalAgreementAccepted === true || this.hasAcceptedLegalAgreement(userId);
+      if (!legalOk) return;
+      this.saveUserLaunchGates(userId, {
+        profileSetupComplete: true,
+        legalAgreementAccepted: true,
+      });
     }
 
     markTrendingSeen() {
@@ -145,16 +173,19 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
 
     /**
      * After sign-in: splash/onboarding marked done.
-     * Returning accounts (cloud profile_setup_complete or prior completion) skip profile + trending.
+     * Returning accounts (cloud profile_setup_complete or prior completion) skip profile + trending
+     * only when legal agreement was already accepted.
      * New accounts must complete both gates.
      */
     advanceLaunchProgressAfterLogin(profileSetupCompleteFromServer: boolean) {
       const userId = this.asLocalDB().currentUserId;
       const priorGates = userId ? this.getUserLaunchGates(userId) : { ...DEFAULT_USER_GATES };
+      const legalOk = priorGates.legalAgreementAccepted || this.hasAcceptedLegalAgreement(userId || undefined);
       const returning =
-        Boolean(profileSetupCompleteFromServer) ||
-        priorGates.profileSetupComplete ||
-        priorGates.hasSeenTrending;
+        legalOk &&
+        (Boolean(profileSetupCompleteFromServer) ||
+          priorGates.profileSetupComplete ||
+          priorGates.hasSeenTrending);
 
       this.saveLaunchProgress({
         hasSeenSplash: true,
@@ -165,6 +196,7 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
         this.saveUserLaunchGates(userId, {
           profileSetupComplete: returning || priorGates.profileSetupComplete,
           hasSeenTrending: returning || priorGates.hasSeenTrending,
+          legalAgreementAccepted: legalOk || priorGates.legalAgreementAccepted,
         });
       }
     }
@@ -174,6 +206,7 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
       return (
         p.hasSeenSplash &&
         p.hasCompletedOnboarding &&
+        p.legalAgreementAccepted === true &&
         p.profileSetupComplete &&
         p.hasSeenTrending &&
         this.asLocalDB().isLoggedIn

@@ -10,9 +10,13 @@ export type LaunchRoute =
   | 'banned'
   | 'main';
 
-/** Logged-in user who already finished profile and/or trending — skip marketing funnel. */
+/** Logged-in user who already finished legal + profile and/or trending — skip marketing funnel. */
 export function isReturningLaunchUser(progress: LaunchProgress, isLoggedIn: boolean): boolean {
-  return isLoggedIn && (progress.profileSetupComplete || progress.hasSeenTrending);
+  return (
+    isLoggedIn &&
+    progress.legalAgreementAccepted === true &&
+    (progress.profileSetupComplete || progress.hasSeenTrending)
+  );
 }
 
 export function isUserBanned(db: LocalDB): boolean {
@@ -31,7 +35,8 @@ export function resolveLaunchRoute(
   if (!progress.hasSeenSplash) return 'splash';
   if (!progress.hasCompletedOnboarding) return 'onboarding';
   if (!isLoggedIn) return 'auth';
-  if (!progress.profileSetupComplete) return 'profile_setup';
+  // Every account must accept Privacy + Terms and confirm 18+ on profile setup.
+  if (!progress.legalAgreementAccepted || !progress.profileSetupComplete) return 'profile_setup';
   if (!progress.hasSeenTrending) return 'trending';
   return 'main';
 }

@@ -107,7 +107,9 @@ export async function applyDevSessionOverrideFromUrl(
     const progress = db.getLaunchProgress();
     if (!progress.hasSeenSplash) db.markSplashSeen();
     if (!progress.hasCompletedOnboarding) db.completeOnboarding();
-    if (!progress.profileSetupComplete) db.completeProfileSetup();
+    if (!progress.profileSetupComplete) {
+      db.completeProfileSetup({ legalAgreementAccepted: true });
+    }
     if (!progress.hasSeenTrending) db.markTrendingSeen();
 
     const user = findUserById(db.users, targetId);

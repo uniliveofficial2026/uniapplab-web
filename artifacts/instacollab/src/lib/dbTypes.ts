@@ -75,6 +75,8 @@ export type LaunchProgress = {
   hasCompletedOnboarding: boolean;
   profileSetupComplete: boolean;
   hasSeenTrending: boolean;
+  /** 18+ + Privacy/Terms accepted during profile setup. */
+  legalAgreementAccepted?: boolean;
   pendingPasswordResetEmail?: string | null;
 };
 

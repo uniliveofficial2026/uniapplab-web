@@ -48,6 +48,10 @@ export interface User {
   purchasedPremiumPackages?: string[];
   /** Active and expired premium passes with expiry timestamps. */
   premiumSubscriptions?: PremiumSubscription[];
+  /** User confirmed 18+ and accepted Privacy Policy + Terms (profile setup). */
+  legalAgreementAcceptedAt?: number;
+  /** Version string of the legal docs accepted (see LEGAL_AGREEMENT_VERSION). */
+  legalAgreementVersion?: string;
 }
 
 export interface PremiumSubscription {

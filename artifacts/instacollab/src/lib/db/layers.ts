@@ -36,7 +36,8 @@ export interface AuthLaunchLayer {
   getLaunchProgress(): LaunchProgress;
   markSplashSeen(): void;
   completeOnboarding(): void;
-  completeProfileSetup(): void;
+  completeProfileSetup(opts?: { legalAgreementAccepted?: boolean }): void;
+  hasAcceptedLegalAgreement(userId?: string): boolean;
   markTrendingSeen(): void;
   advanceLaunchProgressAfterLogin(profileSetupComplete: boolean): void;
   resetLaunchGatesForNewAccount(userId: string): void;
