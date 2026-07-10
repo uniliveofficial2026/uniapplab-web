@@ -5,7 +5,7 @@
 import { APP_DISPLAY_NAME, WORKSPACE_DISPLAY_NAME } from './appBrand';
 
 /** Bump when material terms change so users can be re-prompted later if needed. */
-export const LEGAL_AGREEMENT_VERSION = '2026-07-09-c';
+export const LEGAL_AGREEMENT_VERSION = '2026-07-09-d';
 
 export const PRIVACY_POLICY_PATH = '/privacy-policy.html';
 export const TERMS_OF_SERVICE_PATH = '/terms-of-service.html';
@@ -25,7 +25,8 @@ export const LEGAL_AGE_DISCLAIMER =
 export const LEGAL_AGREEMENT_CHECKBOX_LABEL =
   `I confirm I am ${LEGAL_AGE_REQUIREMENT_YEARS} years of age or older, and I agree to the Privacy Policy and the Terms of Service & User Agreement. ` +
   `I understand underage use is prohibited; the developer, service, and app are not responsible for underage users; ` +
-  `and I will not hack, take, sell, or copy other users’ information.`;
+  `I will not hack, take, sell, or copy other users’ information; ` +
+  `and if I break those rules, legal action may be taken against me under applicable law.`;
 
 export function privacyPolicyUrl(origin?: string): string {
   const base = (origin ?? (typeof window !== 'undefined' ? window.location.origin : '')).replace(/\/$/, '');
