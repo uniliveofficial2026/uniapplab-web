@@ -159,7 +159,8 @@ export default defineConfig(({ mode }) => {
         id: normalizedBase,
         name: "UniLive",
         short_name: "UniLive",
-        description: "Create, connect, and collaborate in real time.",
+        description:
+          "UniLive is a live social app for going live, chatting, sharing posts, and collaborating with creators in real time.",
         theme_color: "#020617",
         background_color: "#020617",
         display: "standalone",

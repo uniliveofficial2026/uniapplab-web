@@ -2,29 +2,30 @@ import React, { useState } from 'react';
 import { AnimatePresence, motion } from 'motion/react';
 import { Camera, MessageCircle, Sparkles, Users } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { OnboardingBackgroundUpload } from './OnboardingBackgroundUpload';
 import { LaunchPrimaryButton, LaunchShell, LaunchTextButton } from './launchUi';
 
 const SLIDES = [
   {
     icon: Sparkles,
-    title: 'Share your world',
-    body: 'Post photos, reels, and stories with filters and music your audience will love.',
+    title: `Welcome to ${APP_DISPLAY_NAME}`,
+    body: `${APP_DISPLAY_NAME} is a live social app for going live, chatting, sharing posts and stories, discovering creators, and collaborating in real time.`,
   },
   {
     icon: Users,
     title: 'Grow your circle',
-    body: 'Follow creators, get discovered on trending, and build your community.',
+    body: 'Follow creators, get discovered on trending, and build your community on UniLive.',
   },
   {
     icon: MessageCircle,
     title: 'Chat in real time',
-    body: 'DMs with typing indicators, read receipts, and rich media sharing.',
+    body: 'DMs with typing indicators, read receipts, and rich media sharing inside UniLive.',
   },
   {
     icon: Camera,
     title: 'Go live & create',
-    body: 'Stream, collaborate on workspace tasks, and manage your profile in one place.',
+    body: 'Stream live rooms, collaborate with creators, and manage your UniLive profile in one place.',
   },
 ] as const;
 

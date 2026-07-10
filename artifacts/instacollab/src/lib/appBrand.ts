@@ -2,7 +2,8 @@
 export const APP_DISPLAY_NAME = 'UniLive';
 export const WORKSPACE_DISPLAY_NAME = 'UniappLab Workspace';
 export const APP_SHORT_NAME = 'UniLive';
-export const APP_TAGLINE = 'Create, connect, and collaborate in real time.';
+export const APP_TAGLINE =
+  'UniLive is a live social app for going live, chatting, sharing posts, and collaborating with creators in real time.';
 export const APP_SHARE_HOST = 'unilive.app';
 /** Legacy share links still resolve for older messages. */
 export const LEGACY_SHARE_HOST = 'instacollab.app';

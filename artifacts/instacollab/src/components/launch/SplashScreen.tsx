@@ -28,8 +28,11 @@ export function SplashScreen() {
         <LaunchBrandMark size="hero" allowUpload />
         <div>
           <h1 className="text-3xl font-black tracking-tight">{APP_DISPLAY_NAME}</h1>
-          <p className="text-muted-foreground mt-2 text-sm font-medium">
+          <p className="text-muted-foreground mt-3 text-sm font-medium leading-relaxed max-w-sm">
             {APP_TAGLINE}
+          </p>
+          <p className="text-muted-foreground/80 mt-3 text-xs leading-relaxed max-w-sm">
+            Go live, chat, share posts, discover creators, and collaborate — all in {APP_DISPLAY_NAME}.
           </p>
         </div>
         <motion.div

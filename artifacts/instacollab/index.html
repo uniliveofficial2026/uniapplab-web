@@ -7,6 +7,7 @@
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
     <meta name="apple-mobile-web-app-title" content="UniLive" />
+    <meta name="application-name" content="UniLive" />
     <meta name="theme-color" content="#020617" />
     <script>
       (function () {
@@ -71,15 +72,25 @@
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
     </noscript>
     <title>UniLive</title>
-    <meta name="description" content="UniLive — create, connect, and collaborate in real time." />
+    <meta
+      name="description"
+      content="UniLive is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time. Sign in with Google to use UniLive on web and mobile."
+    />
     <meta property="og:title" content="UniLive" />
-    <meta property="og:description" content="UniLive — create, connect, and collaborate in real time." />
+    <meta
+      property="og:description"
+      content="UniLive is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
+    />
     <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="UniLive" />
     <meta name="twitter:card" content="summary_large_image" />
     <meta name="twitter:title" content="UniLive" />
-    <meta name="twitter:description" content="UniLive — create, connect, and collaborate in real time." />
+    <meta
+      name="twitter:description"
+      content="UniLive is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
+    />
     <style>
-      /* Visible before any JS — prevents blank white/black flash */
+      /* Visible before any JS — Google OAuth reviewers read this static homepage. */
       html, body {
         margin: 0;
         min-height: 100dvh;
@@ -94,56 +105,135 @@
       #boot-shell {
         position: fixed;
         inset: 0;
+        overflow: auto;
         display: flex;
         flex-direction: column;
         background: inherit;
         color: inherit;
         z-index: 9999;
-        pointer-events: none;
+        -webkit-overflow-scrolling: touch;
       }
-      #boot-shell .boot-top {
-        height: calc(3.25rem + env(safe-area-inset-top, 0px));
-        border-bottom: 1px solid rgba(148, 163, 184, 0.25);
-        flex-shrink: 0;
-      }
-      #boot-shell .boot-main {
+      #boot-shell .home {
         flex: 1;
-        padding: 1rem;
+        max-width: 40rem;
+        margin: 0 auto;
+        padding: 2.5rem 1.25rem 3rem;
         display: flex;
         flex-direction: column;
-        gap: 0.75rem;
+        gap: 1.25rem;
       }
-      #boot-shell .boot-row {
-        height: 0.75rem;
-        border-radius: 999px;
-        background: rgba(148, 163, 184, 0.2);
-        max-width: 12rem;
+      #boot-shell .home-brand {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
       }
-      #boot-shell .boot-card {
-        height: 10rem;
-        border-radius: 1rem;
-        background: rgba(148, 163, 184, 0.15);
+      #boot-shell .home-logo {
+        width: 3.25rem;
+        height: 3.25rem;
+        border-radius: 0.9rem;
+        object-fit: contain;
+        background: rgba(148, 163, 184, 0.12);
       }
-      #boot-shell .boot-nav {
-        height: calc(3.25rem + env(safe-area-inset-bottom, 0px));
-        border-top: 1px solid rgba(148, 163, 184, 0.25);
-        flex-shrink: 0;
+      #boot-shell h1 {
+        margin: 0;
+        font-size: 2rem;
+        font-weight: 900;
+        letter-spacing: -0.03em;
+        line-height: 1.1;
       }
-      /* Boot shell stays visible until app signals ready — prevents flash between skeleton and Shell. */
+      #boot-shell .home-lead {
+        margin: 0;
+        font-size: 1.05rem;
+        line-height: 1.55;
+        color: #cbd5e1;
+      }
+      html:not(.dark) #boot-shell .home-lead {
+        color: #475569;
+      }
+      #boot-shell .home-purpose,
+      #boot-shell .home-list {
+        margin: 0;
+        font-size: 0.95rem;
+        line-height: 1.65;
+        color: #94a3b8;
+      }
+      html:not(.dark) #boot-shell .home-purpose,
+      html:not(.dark) #boot-shell .home-list {
+        color: #64748b;
+      }
+      #boot-shell .home-list {
+        padding-left: 1.15rem;
+      }
+      #boot-shell .home-list li {
+        margin: 0.35rem 0;
+      }
+      #boot-shell .home-links {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.75rem 1.25rem;
+        margin-top: 0.5rem;
+        font-size: 0.9rem;
+      }
+      #boot-shell a {
+        color: #e879f9;
+        font-weight: 600;
+        text-decoration: none;
+      }
+      #boot-shell a:hover {
+        text-decoration: underline;
+      }
+      #boot-shell .home-cta {
+        margin-top: 0.5rem;
+        font-size: 0.85rem;
+        color: #64748b;
+      }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <!-- Instant visible chrome while JS bundle parses/executes -->
-    <div id="boot-shell" aria-hidden="true">
-      <div class="boot-top"></div>
-      <div class="boot-main">
-        <div class="boot-row"></div>
-        <div class="boot-card"></div>
-        <div class="boot-card"></div>
-      </div>
-      <div class="boot-nav"></div>
+    <!--
+      Static UniLive homepage for OAuth verification / crawlers.
+      Removed once the React app shell paints (see main.tsx).
+    -->
+    <div id="boot-shell">
+      <main class="home" role="main">
+        <div class="home-brand">
+          <img class="home-logo" src="/pwa-icon.svg" width="52" height="52" alt="UniLive logo" />
+          <h1>UniLive</h1>
+        </div>
+        <p class="home-lead">
+          UniLive is a live social application for going live, chatting with friends, sharing posts and stories,
+          discovering creators, and collaborating in real time.
+        </p>
+        <p class="home-purpose">
+          The purpose of UniLive is to help people connect through live streaming rooms, direct messages,
+          a social feed, karaoke and creator tools, and optional Google sign-in so you can securely access your
+          UniLive account on the web.
+        </p>
+        <ul class="home-list">
+          <li>Go live and join live rooms with chat, gifts, and multi-guest sessions</li>
+          <li>Share photos, reels, and stories with your audience</li>
+          <li>Message friends and discover trending creators</li>
+          <li>Manage your UniLive profile, wallet, and creator workspace in one place</li>
+        </ul>
+        <nav class="home-links" aria-label="Legal">
+          <a href="/privacy-policy.html">Privacy Policy</a>
+          <a href="/terms-of-service.html">Terms of Service</a>
+        </nav>
+        <p class="home-cta">Loading UniLive…</p>
+      </main>
     </div>
+    <noscript>
+      <main style="max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem;font-family:system-ui,sans-serif">
+        <h1>UniLive</h1>
+        <p>
+          UniLive is a live social application for going live, chatting with friends, sharing posts and stories,
+          discovering creators, and collaborating in real time. Enable JavaScript to open the UniLive app, or read
+          our <a href="/privacy-policy.html">Privacy Policy</a> and
+          <a href="/terms-of-service.html">Terms of Service</a>.
+        </p>
+      </main>
+    </noscript>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>
