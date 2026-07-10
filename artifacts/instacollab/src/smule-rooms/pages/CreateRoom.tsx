@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { ArrowLeft, Camera, Globe, Lock, Music2, Radio, MessageSquare, Users2, Video, ShoppingBag, Swords, Gamepad2 } from 'lucide-react';
 import { CreateRoomModePreview } from '../components/CreateRoomModePreview';
+import { CreateRoomSeatMockup } from '../components/CreateRoomSeatMockup';
 import { useNavigate } from 'react-router-dom';
 import { useRoomSettingsNavigateBack } from '../context/RoomFlowContext';
 import { useCurrentUser } from '../../lib/useCurrentUser';
@@ -376,9 +377,7 @@ const CreateRoom = () => {
               </div>
             ) : null}
 
-            <p className="text-center text-[11px] leading-relaxed text-slate-500">
-              Choose a mode, then open your room — or tap Preview to see a demo layout.
-            </p>
+            <CreateRoomSeatMockup mode={mode} />
           </div>
         </div>
       )}
