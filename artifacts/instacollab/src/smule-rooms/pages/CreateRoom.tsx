@@ -298,7 +298,7 @@ const CreateRoom = () => {
         </div>
       ) : null}
 
-      <header className="sticky top-0 z-20 flex items-center p-4">
+      <header className="sticky top-0 z-40 flex shrink-0 items-center bg-slate-950/95 p-4 backdrop-blur-md">
         <button
           onClick={handleHeaderBack}
           className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/10"
@@ -327,6 +327,143 @@ const CreateRoom = () => {
       {previewFocused ? (
         <div className="flex min-h-0 flex-1 flex-col px-3 pb-2 pt-1">
           <CreateRoomModePreview mode={mode} fill />
+        </div>
+      ) : isLiveCameraMode ? (
+        <div className="relative min-h-0 flex-1 overflow-hidden bg-black">
+          <CreateRoomSeatMockup
+            mode={mode}
+            livePreviewEnabled
+            onLiveSetupChange={handleLiveSetupChange}
+          />
+
+          <div className="pointer-events-none absolute inset-x-0 top-3 z-20 px-3">
+            <div className="pointer-events-auto flex min-w-0 items-end gap-3 rounded-2xl border border-white/10 bg-black/45 p-3 backdrop-blur-md">
+              <div className="flex shrink-0 flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.18em] text-white/55">
+                  Cover
+                </label>
+                <button
+                  type="button"
+                  onClick={handleImageClick}
+                  className={`group relative flex h-14 w-14 flex-col items-center justify-center overflow-hidden rounded-xl border border-dashed transition-all ${
+                    coverPreview
+                      ? 'border-transparent'
+                      : 'border-white/25 bg-black/40 hover:border-blue-400'
+                  }`}
+                  aria-label="Add room cover"
+                >
+                  {coverPreview ? (
+                    <>
+                      <img src={coverPreview} className="absolute inset-0 h-full w-full object-cover" alt="Cover" />
+                      <div className="absolute inset-0 flex items-center justify-center bg-black/40 opacity-0 transition group-hover:opacity-100">
+                        <Camera size={16} className="text-white" />
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <Camera size={16} className="text-white/60 transition group-hover:text-blue-300" />
+                      <span className="mt-0.5 text-[7px] font-bold uppercase tracking-wide text-white/50">
+                        Add
+                      </span>
+                    </>
+                  )}
+                </button>
+                <input
+                  type="file"
+                  ref={fileInputRef}
+                  onChange={handleFileChange}
+                  className="hidden"
+                  accept="image/*"
+                />
+              </div>
+
+              <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+                <label
+                  htmlFor="create-room-name-live"
+                  className="text-[9px] font-black uppercase tracking-[0.18em] text-white/55"
+                >
+                  Room Name
+                </label>
+                <input
+                  id="create-room-name-live"
+                  type="text"
+                  placeholder="What's the vibe?"
+                  value={roomName}
+                  onChange={(e) => setRoomName(e.target.value)}
+                  className="h-14 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm font-medium text-white outline-none transition placeholder:text-white/35 focus:border-blue-400"
+                />
+              </div>
+
+              <div className="flex shrink-0 flex-col gap-1.5">
+                <label className="text-[9px] font-black uppercase tracking-[0.18em] text-white/55">
+                  Privacy
+                </label>
+                <div className="flex h-14 items-center gap-2.5">
+                  {privacyOptions.map((option) => {
+                    const Icon = option.icon;
+                    const selected = privacy === option.id;
+                    return (
+                      <button
+                        key={option.id}
+                        type="button"
+                        onClick={() => {
+                          setPrivacy(option.id);
+                          setPrivateKeyError(null);
+                        }}
+                        title={option.id === 'Public' ? 'Everyone can join' : 'Key required to enter'}
+                        className="flex flex-col items-center gap-0.5"
+                      >
+                        <span
+                          className={`flex h-9 w-9 items-center justify-center rounded-full border transition-all active:scale-95 ${
+                            selected
+                              ? option.id === 'Public'
+                                ? 'border-blue-400 bg-blue-600/30 text-blue-200'
+                                : 'border-amber-400 bg-amber-600/30 text-amber-200'
+                              : 'border-white/20 bg-black/40 text-white/50 hover:text-white'
+                          }`}
+                        >
+                          <Icon size={16} strokeWidth={2.25} />
+                        </span>
+                        <span
+                          className={`text-[8px] font-bold uppercase tracking-wide ${
+                            selected ? 'text-white' : 'text-white/45'
+                          }`}
+                        >
+                          {option.label}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+
+            {privacy === 'Private' ? (
+              <div className="pointer-events-auto mt-2 rounded-xl border border-amber-400/30 bg-black/55 p-3 backdrop-blur-md">
+                <label
+                  htmlFor="create-room-key-live"
+                  className="text-[9px] font-black uppercase tracking-[0.18em] text-amber-300/90"
+                >
+                  Room Key
+                </label>
+                <input
+                  id="create-room-key-live"
+                  type="text"
+                  value={privateRoomKey}
+                  onChange={(event) => {
+                    setPrivateRoomKey(event.target.value);
+                    if (privateKeyError) setPrivateKeyError(null);
+                  }}
+                  placeholder={`Choose a key (${MIN_ROOM_KEY_LENGTH}-${MAX_ROOM_KEY_LENGTH} characters)`}
+                  maxLength={MAX_ROOM_KEY_LENGTH}
+                  className="mt-1.5 w-full rounded-lg border border-white/15 bg-black/50 px-3 py-2 text-sm font-semibold text-white outline-none transition focus:border-amber-400/60"
+                />
+                {privateKeyError ? (
+                  <p className="mt-1 text-xs font-medium text-red-300">{privateKeyError}</p>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
       ) : (
         <div className="flex-1 overflow-y-auto px-5 pb-4 pt-2 scrollbar-hide">
@@ -463,14 +600,14 @@ const CreateRoom = () => {
 
             <CreateRoomSeatMockup
               mode={mode}
-              livePreviewEnabled={!previewFocused && isLiveCameraMode}
+              livePreviewEnabled={false}
               onLiveSetupChange={handleLiveSetupChange}
             />
           </div>
         </div>
       )}
 
-      <div className="sticky bottom-0 left-0 right-0 z-30 px-5 pb-5 pt-4">
+      <div className="sticky bottom-0 left-0 right-0 z-40 shrink-0 bg-slate-950/95 px-5 pb-5 pt-4 backdrop-blur-md">
         <section className="mb-4 flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">

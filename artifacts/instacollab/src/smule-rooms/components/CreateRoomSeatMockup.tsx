@@ -466,14 +466,14 @@ export function CreateRoomSeatMockup({
       break;
     case 'Solo-Live':
     case 'Commerce-Live':
-      body = (
+      return (
         <CreateRoomLivePreview
           mode={mode}
           enabled={livePreviewEnabled}
+          fill
           onSetupChange={onLiveSetupChange}
         />
       );
-      break;
     default:
       body = <ChatLikeMockup title="Room" icon={Mic} />;
   }
