@@ -266,7 +266,7 @@ export function ProfileEditSettingsModal({
   return (
     <>
       {!showCloudSystems && (
-<div id="edit-profile-modal" className="fixed inset-0 z-50 flex items-center justify-center bg-background">
+<div id="edit-profile-modal" className="fixed inset-0 z-[200] flex items-center justify-center bg-background">
   <div className="absolute inset-0" onClick={() => onClose()}></div>
   <div className="bg-card w-full max-w-md rounded-3xl border border-border shadow-2xl p-6 flex flex-col max-h-[90vh] min-h-0 relative z-10">
     <div className="flex justify-between items-center mb-6 shrink-0">

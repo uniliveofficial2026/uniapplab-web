@@ -7,5 +7,13 @@ export const APP_TAGLINE =
 export const APP_SHARE_HOST = 'unilive.app';
 /** Legacy share links still resolve for older messages. */
 export const LEGACY_SHARE_HOST = 'instacollab.app';
+/** Hosts accepted when parsing in-app share URLs (production + brand aliases). */
+export const APP_SHARE_HOSTS = [
+  APP_SHARE_HOST,
+  LEGACY_SHARE_HOST,
+  'app.uniapplab.com',
+  'uniapplab.com',
+  'www.uniapplab.com',
+] as const;
 /** Neutral static mark until backend platform logo loads. */
 export const APP_BRAND_FALLBACK_ICON = '/pwa-icon.svg';

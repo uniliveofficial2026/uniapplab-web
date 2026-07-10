@@ -510,6 +510,8 @@ export function PostModal({
   }, []);
 
   const handleMicPointerDown = (event: React.PointerEvent<HTMLButtonElement>) => {
+    // Block browser text-select / callout on press-and-hold record.
+    event.preventDefault();
     if (activePointerIdRef.current !== null) return;
     activePointerIdRef.current = event.pointerId;
     micModeRef.current = 'pressing';
@@ -1486,7 +1488,9 @@ export function PostModal({
                     onPointerDown={handleMicPointerDown}
                     onPointerUp={handleMicPointerUp}
                     onPointerCancel={handleMicPointerCancel}
-                    className={`p-1.5 md:p-2 rounded-full mr-1 md:mr-2 transition-colors ${
+                    onContextMenu={(event) => event.preventDefault()}
+                    aria-label={isRecording ? 'Release to send voice comment' : 'Hold to record voice comment'}
+                    className={`p-1.5 md:p-2 rounded-full mr-1 md:mr-2 transition-colors select-none touch-none [-webkit-user-select:none] [-webkit-touch-callout:none] ${
                       isRecording
                         ? "bg-red-500 text-white animate-pulse"
                         : isListening
@@ -1494,7 +1498,7 @@ export function PostModal({
                           : "text-muted-foreground hover:text-foreground hover:bg-secondary"
                     }`}
                   >
-                    <Mic className="w-5 h-5 md:w-6 md:h-6" />
+                    <Mic className="w-5 h-5 md:w-6 md:h-6 pointer-events-none" />
                   </button>
                 )}
                 <button

@@ -266,8 +266,12 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   ];
 
   const hideShellMobileTopNav =
-    hideMobileTopNavForChat || currentTab === 'karaoke' || currentTab === 'rooms';
+    showSettings ||
+    hideMobileTopNavForChat ||
+    currentTab === 'karaoke' ||
+    currentTab === 'rooms';
   const showShellMobileBottomNav =
+    !showSettings &&
     !hideMobileTopNavForChat &&
     currentTab !== 'messages' &&
     currentTab !== 'reels' &&

@@ -553,11 +553,13 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
               onTouchStart={handleMicDown}
               onTouchEnd={handleMicUp}
               onTouchCancel={handleMicUp}
-               className={`text-foreground hover:scale-110 transition-transform flex items-center justify-center w-10 h-10 rounded-full hover:bg-secondary shrink-0 cursor-pointer ${
+              onContextMenu={(event) => event.preventDefault()}
+              aria-label={isRecording ? 'Release to send voice message' : 'Hold to record voice message'}
+               className={`text-foreground hover:scale-110 transition-transform flex items-center justify-center w-10 h-10 rounded-full hover:bg-secondary shrink-0 cursor-pointer select-none touch-none [-webkit-user-select:none] [-webkit-touch-callout:none] ${
                  isRecording ? 'bg-red-500 text-white animate-pulse' : isListening ? 'bg-primary text-primary-foreground animate-pulse' : ''
                }`}
              >
-               <Mic className="w-6 h-6" />
+               <Mic className="w-6 h-6 pointer-events-none" />
              </button>
              {messageText.trim() || chatMedia.length > 0 || recordedVoice ? (
                <button type="submit" className="text-primary font-bold hover:scale-110 transition-transform flex items-center justify-center bg-primary text-primary-foreground w-11 h-11 rounded-full shrink-0 shadow-md">

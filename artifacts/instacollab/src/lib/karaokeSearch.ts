@@ -282,7 +282,7 @@ export function syncKaraokeUrl(patch: KaraokeUrlParams, mode: 'replace' | 'push'
 /** Build a shareable karaoke deep link without mutating browser history. */
 export function buildKaraokeShareUrl(
   patch: KaraokeUrlParams,
-  baseHref: string = typeof window !== 'undefined' ? window.location.href : 'https://instacollab.app/',
+  baseHref: string = typeof window !== 'undefined' ? window.location.href : 'https://app.uniapplab.com/',
 ): string {
   const url = new URL(baseHref);
   const entries: [keyof KaraokeUrlParams, string | null | undefined][] = [

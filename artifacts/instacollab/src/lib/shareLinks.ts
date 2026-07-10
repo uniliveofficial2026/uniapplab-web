@@ -15,7 +15,7 @@ import {
   safeVideoUrl,
 } from './safe';
 import { getRoomSettings } from '../smule-rooms/utils/storage';
-import { APP_SHARE_HOST, LEGACY_SHARE_HOST } from './appBrand';
+import { APP_SHARE_HOST, APP_SHARE_HOSTS } from './appBrand';
 
 export type ShareKind =
   | 'post'
@@ -87,9 +87,6 @@ export type ShareCardMeta = {
 };
 
 const SHARE_HOST = APP_SHARE_HOST;
-const SHARE_HOSTS_PATTERN = `(?:${[APP_SHARE_HOST, LEGACY_SHARE_HOST]
-  .map((host) => host.replace(/\./g, '\\.'))
-  .join('|')})`;
 
 export function shareOrigin(): string {
   if (typeof window !== 'undefined' && window.location.hostname) {
@@ -103,8 +100,13 @@ export function formatShareMessage(shareText: string, shareUrl: string): string 
 }
 
 export function extractShareUrl(text: string): string | null {
+  const hosts = [...APP_SHARE_HOSTS];
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    hosts.push(window.location.hostname);
+  }
+  const hostsPattern = `(?:${[...new Set(hosts)].map((host) => host.replace(/\./g, '\\.')).join('|')})`;
   const match = text.match(
-    new RegExp(`https?:\\/\\/(?:www\\.)?${SHARE_HOSTS_PATTERN}\\/[^\\s]+`, 'i'),
+    new RegExp(`https?:\\/\\/(?:www\\.)?${hostsPattern}\\/[^\\s]+`, 'i'),
   );
   if (match) return match[0];
   const hashRoom = text.match(/#karaoke-room\/([^\s#?]+)/i);
@@ -119,7 +121,12 @@ export function extractShareUrl(text: string): string | null {
 
 export function isShareLinkMessage(text: string | null | undefined): boolean {
   if (!text || typeof text !== 'string') return false;
-  if (new RegExp(`${SHARE_HOSTS_PATTERN}\\/`, 'i').test(text)) return true;
+  const hosts = [...APP_SHARE_HOSTS];
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    hosts.push(window.location.hostname);
+  }
+  const hostsPattern = `(?:${[...new Set(hosts)].map((host) => host.replace(/\./g, '\\.')).join('|')})`;
+  if (new RegExp(`${hostsPattern}\\/`, 'i').test(text)) return true;
   if (/#karaoke-room\//i.test(text)) return true;
   return parseShareLink(text) !== null;
 }
@@ -134,18 +141,23 @@ export function parseShareLink(text: string): ShareLinkRef | null {
   if (!rawUrl) return null;
 
   const normalized = rawUrl.replace(/^https?:\/\/(?:www\.)?/i, '');
+  const hosts = [...APP_SHARE_HOSTS];
+  if (typeof window !== 'undefined' && window.location.hostname) {
+    hosts.push(window.location.hostname);
+  }
+  const hostPattern = `(?:${[...new Set(hosts)].map((host) => host.replace(/\./g, '\\.')).join('|')})`;
 
-  let m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/p\\/([^/?#\\s]+)`, 'i'));
+  let m = normalized.match(new RegExp(`^${hostPattern}\\/p\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     return { kind: 'post', rawUrl, postId: m[1] };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/r\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/r\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     return { kind: 'reel', rawUrl, reelId: m[1] };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/s\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/s\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     return {
       kind: 'story',
@@ -155,7 +167,7 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/u\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/u\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     return {
       kind: 'profile',
@@ -164,17 +176,17 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/live\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/live\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     return { kind: 'live', rawUrl, liveUserId: m[1] };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/room\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/room\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     return { kind: 'party', rawUrl, partyRoomId: m[1] };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/k\\/t\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/k\\/t\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     const rec = rawUrl.match(/[?&]recording=([^&\s]+)/i);
     return {
@@ -185,7 +197,7 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/k\\/u\\/id\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/k\\/u\\/id\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     const tab = rawUrl.match(/[?&]profileTab=([^&\s]+)/i)?.[1] as KaraokeProfileTab | undefined;
     return {
@@ -196,7 +208,7 @@ export function parseShareLink(text: string): ShareLinkRef | null {
     };
   }
 
-  m = normalized.match(new RegExp(`^${SHARE_HOSTS_PATTERN}\\/k\\/u\\/([^/?#\\s]+)`, 'i'));
+  m = normalized.match(new RegExp(`^${hostPattern}\\/k\\/u\\/([^/?#\\s]+)`, 'i'));
   if (m) {
     const tab = rawUrl.match(/[?&]profileTab=([^&\s]+)/i)?.[1] as KaraokeProfileTab | undefined;
     const segment = decodeURIComponent(m[1]);

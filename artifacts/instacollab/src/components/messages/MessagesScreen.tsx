@@ -2901,6 +2901,8 @@ export function MessagesScreen({
   };
 
   const handleMicDown = (event: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+    // Block browser text-select / callout on press-and-hold record.
+    event.preventDefault();
     if (event.type.startsWith('touch')) {
       lastTouchTsRef.current = Date.now();
     } else if (shouldIgnoreSyntheticMouse(event.type)) {
@@ -2916,6 +2918,7 @@ export function MessagesScreen({
   };
 
   const handleMicUp = (event: React.MouseEvent<HTMLButtonElement> | React.TouchEvent<HTMLButtonElement>) => {
+    event.preventDefault();
     if (event.type.startsWith('touch')) {
       lastTouchTsRef.current = Date.now();
     } else if (shouldIgnoreSyntheticMouse(event.type)) {

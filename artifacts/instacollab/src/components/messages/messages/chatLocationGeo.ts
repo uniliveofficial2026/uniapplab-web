@@ -5,7 +5,7 @@ const CACHE_KEY = 'instacollab:lastChatLocation';
 /** https://operations.osmfoundation.org/policies/nominatim/ — identify app + contact */
 const NOMINATIM_USER_AGENT =
   'UniLive/1.0 (+https://uniapplab.com; chat-location-search)';
-const NOMINATIM_CONTACT_EMAIL = 'support@instacollab.app';
+const NOMINATIM_CONTACT_EMAIL = 'uniliveofficial2026@gmail.com';
 const NOMINATIM_MIN_INTERVAL_MS = 1100;
 
 let lastNominatimRequestAt = 0;

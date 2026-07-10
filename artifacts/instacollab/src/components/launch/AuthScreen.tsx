@@ -388,10 +388,6 @@ export function AuthScreen() {
             <div className="flex flex-col items-center gap-2">
               <p className="text-lg font-black tracking-tight">{APP_DISPLAY_NAME}</p>
               <h1 className="text-2xl font-black tracking-tight">{title}</h1>
-              <p className="text-sm text-muted-foreground leading-relaxed max-w-[340px]">
-                {APP_DISPLAY_NAME} is a live social app for going live, chatting, sharing posts, and
-                collaborating with creators in real time.
-              </p>
               {subtitle ? (
                 <p className="text-sm text-muted-foreground leading-relaxed max-w-[320px]">
                   {subtitle}
