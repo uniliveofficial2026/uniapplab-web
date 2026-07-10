@@ -9,7 +9,13 @@ import {
   upsertPublishedGift,
   type PublishedGiftItem,
 } from '../../lib/adminCatalogStore';
-import type { GiftEffectTier } from '../../lib/live/giftEffectCatalogTypes';
+import {
+  GIFT_TIER_META,
+  GIFT_TIER_OPTIONS,
+  giftTierFromStars,
+  giftTierMeta,
+  type GiftEffectTier,
+} from '../../lib/live/giftEffectCatalogTypes';
 import { CoinIcon } from '../../components/common/CoinIcon';
 import { usePartyGiftCatalog } from '../hooks/usePartyGiftCatalog';
 import type { PartyGiftDefinition } from '../utils/roomGifts';
@@ -24,8 +30,6 @@ type PartyGiftPickerPanelProps = {
   onSendGift: (gift: PartyGiftDefinition) => void;
 };
 
-const TIER_OPTIONS: GiftEffectTier[] = ['combo', 'standard', 'fullscreen'];
-
 function findPublishedGift(gift: PartyGiftDefinition): PublishedGiftItem | null {
   const items = listPublishedGifts(true);
   if (gift.id) {
@@ -36,25 +40,40 @@ function findPublishedGift(gift: PartyGiftDefinition): PublishedGiftItem | null 
 
 function giftToDraft(gift: PartyGiftDefinition): PublishedGiftItem {
   const existing = findPublishedGift(gift);
-  if (existing) return { ...existing };
+  if (existing) {
+    const stars = Math.max(1, Number(existing.stars) || 1);
+    return { ...existing, stars, tier: giftTierFromStars(stars) };
+  }
   const stableId =
     gift.id?.trim() ||
     gift.name
       .trim()
       .toLowerCase()
       .replace(/\s+/g, '-');
+  const stars = Math.max(1, Number(gift.stars) || 1);
   return {
     ...createEmptyGiftDraft(),
     id: stableId,
     name: gift.name,
     icon: gift.icon,
-    stars: gift.stars,
-    tier: gift.tier ?? 'standard',
+    stars,
+    tier: giftTierFromStars(stars),
     effectVideoUrl: gift.effectVideoUrl,
     effectSvgaUrl: gift.effectSvgaUrl,
     particleColor: gift.particleColor,
     status: 'published',
   };
+}
+
+function GiftTierBadge({ tier }: { tier: GiftEffectTier }) {
+  const meta = giftTierMeta(tier);
+  return (
+    <span
+      className={`rounded-full border px-1.5 py-0.5 text-[7px] font-black uppercase tracking-wide ${meta.badgeClass}`}
+    >
+      {meta.label}
+    </span>
+  );
 }
 
 export function PartyGiftPickerPanel({
@@ -69,11 +88,18 @@ export function PartyGiftPickerPanel({
   const catalog = usePartyGiftCatalog();
   const [manageMode, setManageMode] = useState(false);
   const [editing, setEditing] = useState<PublishedGiftItem | null>(null);
+  const [tierFilter, setTierFilter] = useState<GiftEffectTier | 'all'>('all');
 
-  const sortedCatalog = useMemo(
-    () => [...catalog].sort((a, b) => a.stars - b.stars),
-    [catalog],
-  );
+  const sortedCatalog = useMemo(() => {
+    const rows = [...catalog]
+      .map((gift) => ({
+        ...gift,
+        tier: giftTierFromStars(gift.stars),
+      }))
+      .sort((a, b) => a.stars - b.stars);
+    if (tierFilter === 'all') return rows;
+    return rows.filter((gift) => gift.tier === tierFilter);
+  }, [catalog, tierFilter]);
 
   if (!open) return null;
 
@@ -81,7 +107,13 @@ export function PartyGiftPickerPanel({
 
   const saveGift = (publish: boolean) => {
     if (!editing) return;
-    upsertPublishedGift({ ...editing, status: publish ? 'published' : 'draft' });
+    const stars = Math.max(1, Number(editing.stars) || 1);
+    upsertPublishedGift({
+      ...editing,
+      stars,
+      tier: giftTierFromStars(stars),
+      status: publish ? 'published' : 'draft',
+    });
     window.dispatchEvent(
       new CustomEvent('app-toast', {
         detail: publish ? 'Gift updated in live rooms' : 'Gift draft saved',
@@ -132,7 +164,7 @@ export function PartyGiftPickerPanel({
           </div>
         </div>
 
-        <p className="mb-3 text-[10px] text-gray-400">
+        <p className="mb-2 text-[10px] text-gray-400">
           To: <span className="font-bold text-pink-300">{receiverName}</span>
           {' · '}
           Your balance:{' '}
@@ -147,6 +179,37 @@ export function PartyGiftPickerPanel({
             <CoinIcon className="h-2.5 w-2.5 shrink-0" />
           </span>
         </p>
+
+        {!editing ? (
+          <div className="mb-3 flex gap-1 overflow-x-auto no-scrollbar pb-0.5">
+            <button
+              type="button"
+              onClick={() => setTierFilter('all')}
+              className={`shrink-0 rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-wide ${
+                tierFilter === 'all'
+                  ? 'border-pink-400/50 bg-pink-500/20 text-pink-100'
+                  : 'border-white/10 bg-black/20 text-gray-400'
+              }`}
+            >
+              All
+            </button>
+            {GIFT_TIER_META.map((tier) => (
+              <button
+                key={tier.id}
+                type="button"
+                onClick={() => setTierFilter(tier.id)}
+                className={`shrink-0 rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-wide ${
+                  tierFilter === tier.id ? tier.badgeClass : 'border-white/10 bg-black/20 text-gray-400'
+                }`}
+                title={`${tier.label}: ${tier.minStars.toLocaleString()}${
+                  tier.maxStars == null ? '+' : `–${tier.maxStars.toLocaleString()}`
+                } · ${tier.animation}`}
+              >
+                {tier.label}
+              </button>
+            ))}
+          </div>
+        ) : null}
 
         {editing ? (
           <div className="space-y-2 rounded-2xl border border-white/10 bg-black/25 p-3">
@@ -170,27 +233,41 @@ export function PartyGiftPickerPanel({
                 type="number"
                 min={1}
                 value={editing.stars}
-                onChange={(event) =>
-                  setEditing({ ...editing, stars: Math.max(1, Number(event.target.value) || 1) })
-                }
+                onChange={(event) => {
+                  const stars = Math.max(1, Number(event.target.value) || 1);
+                  setEditing({ ...editing, stars, tier: giftTierFromStars(stars) });
+                }}
                 className="rounded-lg border border-white/10 bg-black/40 px-3 py-2 text-sm text-white"
-                aria-label="Gift stars"
+                aria-label="Gift coins"
               />
               <select
                 value={editing.tier}
-                onChange={(event) =>
-                  setEditing({ ...editing, tier: event.target.value as GiftEffectTier })
-                }
+                onChange={(event) => {
+                  const tier = event.target.value as GiftEffectTier;
+                  const meta = giftTierMeta(tier);
+                  setEditing({
+                    ...editing,
+                    tier,
+                    stars: Math.max(editing.stars, meta.minStars),
+                  });
+                }}
                 className="rounded-lg border border-white/10 bg-black/40 px-2 py-2 text-sm text-white"
                 aria-label="Gift tier"
               >
-                {TIER_OPTIONS.map((tier) => (
-                  <option key={tier} value={tier}>
-                    {tier}
-                  </option>
-                ))}
+                {GIFT_TIER_OPTIONS.map((tier) => {
+                  const meta = giftTierMeta(tier);
+                  return (
+                    <option key={tier} value={tier}>
+                      {meta.label}
+                    </option>
+                  );
+                })}
               </select>
             </div>
+            <p className="text-[9px] text-gray-400">
+              {giftTierMeta(giftTierFromStars(editing.stars)).label}:{' '}
+              {giftTierMeta(giftTierFromStars(editing.stars)).animation}
+            </p>
             <input
               value={editing.effectVideoUrl ?? ''}
               onChange={(event) => setEditing({ ...editing, effectVideoUrl: event.target.value || undefined })}
@@ -236,33 +313,37 @@ export function PartyGiftPickerPanel({
             </div>
           </div>
         ) : (
-          <div className="grid grid-cols-3 gap-2">
-            {sortedCatalog.map((gift) => (
-              <button
-                key={gift.id ?? gift.name}
-                type="button"
-                onClick={() => {
-                  if (manageMode && isPlatformAdmin) {
-                    setEditing(giftToDraft(gift));
-                    return;
-                  }
-                  onSendGift(gift);
-                }}
-                className="relative flex flex-col items-center gap-1 rounded-xl border border-white/10 bg-black/30 p-2 transition hover:border-pink-500/40 hover:bg-pink-950/20 active:scale-95"
-              >
-                {manageMode && isPlatformAdmin ? (
-                  <span className="absolute right-1 top-1 text-pink-300">
-                    <Pencil size={10} />
+          <div className="grid max-h-[46vh] grid-cols-3 gap-2 overflow-y-auto no-scrollbar pr-0.5">
+            {sortedCatalog.map((gift) => {
+              const tier = giftTierFromStars(gift.stars);
+              return (
+                <button
+                  key={gift.id ?? gift.name}
+                  type="button"
+                  onClick={() => {
+                    if (manageMode && isPlatformAdmin) {
+                      setEditing(giftToDraft(gift));
+                      return;
+                    }
+                    onSendGift({ ...gift, tier });
+                  }}
+                  className="relative flex flex-col items-center gap-1 rounded-xl border border-white/10 bg-black/30 p-2 transition hover:border-pink-500/40 hover:bg-pink-950/20 active:scale-95"
+                >
+                  {manageMode && isPlatformAdmin ? (
+                    <span className="absolute right-1 top-1 text-pink-300">
+                      <Pencil size={10} />
+                    </span>
+                  ) : null}
+                  <GiftTierBadge tier={tier} />
+                  <span className="text-2xl">{gift.icon}</span>
+                  <span className="text-[9px] font-bold text-gray-200">{gift.name}</span>
+                  <span className="inline-flex items-center gap-0.5 text-[8px] font-black text-yellow-300">
+                    {gift.stars.toLocaleString()}
+                    <CoinIcon className="h-2 w-2 shrink-0" />
                   </span>
-                ) : null}
-                <span className="text-2xl">{gift.icon}</span>
-                <span className="text-[9px] font-bold text-gray-200">{gift.name}</span>
-                <span className="inline-flex items-center gap-0.5 text-[8px] font-black text-yellow-300">
-                  {gift.stars}
-                  <CoinIcon className="h-2 w-2 shrink-0" />
-                </span>
-              </button>
-            ))}
+                </button>
+              );
+            })}
             {manageMode && isPlatformAdmin ? (
               <button
                 type="button"

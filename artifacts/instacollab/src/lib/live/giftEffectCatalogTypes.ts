@@ -1,5 +1,20 @@
-/** TRTC/TUILiveKit-style gift effect tiers: combo barrage, path fly-in, full-screen SVGA. */
-export type GiftEffectTier = 'combo' | 'standard' | 'fullscreen';
+/** TRTC/TUILiveKit-style gift effect tiers driven by coin value. */
+export type {
+  GiftEffectTier,
+  LegacyGiftEffectTier,
+  AnyGiftEffectTier,
+  GiftTierMeta,
+} from './giftTiers';
+export {
+  GIFT_TIER_META,
+  GIFT_TIER_OPTIONS,
+  giftTierFromStars,
+  giftTierMeta,
+  normalizeGiftTier,
+  giftEffectDurationMs,
+} from './giftTiers';
+
+import type { GiftEffectTier } from './giftTiers';
 
 export type GiftEffectDefinition = {
   id: string;
@@ -7,7 +22,7 @@ export type GiftEffectDefinition = {
   icon: string;
   stars: number;
   tier: GiftEffectTier;
-  /** TRTC basic player — SVGA (preferred for standard/fullscreen). */
+  /** TRTC basic player — SVGA (preferred for premium+). */
   effectSvgaUrl?: string;
   /** Gift AR / full-screen transparent MP4/WebM. */
   effectVideoUrl?: string;

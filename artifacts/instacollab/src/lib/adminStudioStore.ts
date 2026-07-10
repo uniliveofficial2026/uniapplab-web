@@ -22,9 +22,11 @@ const BUILTIN_BEAUTY_PROVIDERS: StudioBeautyProviderOption[] = [
 ];
 
 const BUILTIN_GIFT_TIERS: StudioGiftTierOption[] = [
-  { id: 'combo', label: 'combo' },
-  { id: 'standard', label: 'standard' },
-  { id: 'fullscreen', label: 'fullscreen' },
+  { id: 'normal', label: 'Normal · 1–99 · small icon' },
+  { id: 'premium', label: 'Premium · 100–999 · medium SVGA' },
+  { id: 'epic', label: 'Epic · 1,000–9,999 · full-screen SVGA' },
+  { id: 'legendary', label: 'Legendary · 10,000–99,999 · cinematic' },
+  { id: 'mythic', label: 'Mythic · 100,000+ · multi-stage + announcement' },
 ];
 
 function slugify(value: string): string {

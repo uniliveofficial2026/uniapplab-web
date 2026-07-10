@@ -12,6 +12,7 @@ import type {
   PublishedGiftItem,
 } from './live/giftEffectCatalogTypes';
 import { GIFT_EFFECT_CATALOG_BASE } from './live/giftEffectCatalogBase';
+import { giftTierFromStars } from './live/giftTiers';
 import { PARTY_GIFT_CATALOG, type PartyGiftDefinition } from '../smule-rooms/utils/roomGifts';
 
 const GIFT_CATALOG_KEY = 'admin_published_gifts';
@@ -72,12 +73,13 @@ function mergePublishedGiftSources(): PublishedGiftItem[] {
 }
 
 function toPartyGiftRow(gift: PublishedGiftItem): PartyGiftDefinition {
+  const stars = Math.max(1, Number(gift.stars) || 1);
   return {
     id: gift.id,
     name: gift.name,
     icon: gift.icon,
-    stars: gift.stars,
-    tier: gift.tier,
+    stars,
+    tier: giftTierFromStars(stars),
     effectVideoUrl: gift.effectVideoUrl,
     effectSvgaUrl: gift.effectSvgaUrl,
     particleColor: gift.particleColor,
@@ -105,7 +107,13 @@ export function listPublishedBeauty(includeDrafts = true): PublishedBeautyItem[]
 
 export function upsertPublishedGift(input: Omit<PublishedGiftItem, 'updatedAt'>): PublishedGiftItem {
   const items = readGifts();
-  const row: PublishedGiftItem = { ...input, updatedAt: Date.now() };
+  const stars = Math.max(1, Number(input.stars) || 1);
+  const row: PublishedGiftItem = {
+    ...input,
+    stars,
+    tier: giftTierFromStars(stars),
+    updatedAt: Date.now(),
+  };
   const idx = items.findIndex((g) => g.id === row.id);
   if (idx >= 0) items[idx] = row;
   else items.unshift(row);
@@ -139,6 +147,7 @@ export function listStudioGiftCatalog(): PublishedGiftItem[] {
   for (const gift of GIFT_EFFECT_CATALOG_BASE) {
     byId.set(gift.id, {
       ...gift,
+      tier: giftTierFromStars(gift.stars),
       status: 'published',
       updatedAt: 0,
     });
@@ -185,12 +194,13 @@ export function getMergedGiftEffectCatalog(): GiftEffectDefinition[] {
   const base = [...GIFT_EFFECT_CATALOG_BASE];
   for (const gift of published) {
     const idx = base.findIndex((g) => g.id === gift.id || g.name.toLowerCase() === gift.name.toLowerCase());
+    const stars = Math.max(1, Number(gift.stars) || 1);
     const row: GiftEffectDefinition = {
       id: gift.id,
       name: gift.name,
       icon: gift.icon,
-      stars: gift.stars,
-      tier: gift.tier,
+      stars,
+      tier: giftTierFromStars(stars),
       effectSvgaUrl: gift.effectSvgaUrl,
       effectVideoUrl: gift.effectVideoUrl,
       particleColor: gift.particleColor,
@@ -217,12 +227,13 @@ export function getMergedPartyGiftCatalog(): PartyGiftDefinition[] {
 }
 
 export function createEmptyGiftDraft(): PublishedGiftItem {
+  const stars = 10;
   return {
     id: `gift-${Date.now()}`,
     name: 'New Gift',
     icon: '🎁',
-    stars: 10,
-    tier: 'standard',
+    stars,
+    tier: giftTierFromStars(stars),
     status: 'draft',
     updatedAt: Date.now(),
   };

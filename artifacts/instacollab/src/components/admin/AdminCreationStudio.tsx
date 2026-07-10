@@ -3,6 +3,7 @@ import { Gift, Palette, Play, Plus, Save, Sparkles, Trash2, Upload } from 'lucid
 import { GiftPlayOverlay } from '../../smule-rooms/components/GiftPlayOverlay';
 import type { GiftPlayPayload } from '../../smule-rooms/utils/liveRoomTypes';
 import type { GiftEffectTier } from '../../lib/live/giftEffectCatalogTypes';
+import { giftTierFromStars, giftTierMeta } from '../../lib/live/giftTiers';
 import {
   createEmptyBeautyDraft,
   createEmptyGiftDraft,
@@ -417,12 +418,27 @@ function GiftEditor({
       <Field label="Gift id (stable)" value={draft.id} onChange={(id) => onChange({ ...draft, id })} mono />
       <Field label="Name" value={draft.name} onChange={(name) => onChange({ ...draft, name })} />
       <Field label="Icon (emoji)" value={draft.icon} onChange={(icon) => onChange({ ...draft, icon })} />
-      <Field label="Coin" value={String(draft.stars)} onChange={(v) => onChange({ ...draft, stars: Number(v) || 0 })} />
+      <Field
+        label="Coin"
+        value={String(draft.stars)}
+        onChange={(v) => {
+          const stars = Math.max(1, Number(v) || 1);
+          onChange({ ...draft, stars, tier: giftTierFromStars(stars) });
+        }}
+      />
       <label className="block text-xs">
-        <span className="font-bold text-muted-foreground">Tier</span>
+        <span className="font-bold text-muted-foreground">Tier (from coin value)</span>
         <select
-          value={draft.tier}
-          onChange={(e) => onChange({ ...draft, tier: e.target.value as GiftEffectTier })}
+          value={giftTierFromStars(draft.stars)}
+          onChange={(e) => {
+            const tier = e.target.value as GiftEffectTier;
+            const meta = giftTierMeta(tier);
+            onChange({
+              ...draft,
+              tier,
+              stars: Math.max(draft.stars, meta.minStars),
+            });
+          }}
           className="mt-1 w-full border border-border rounded-lg px-3 py-2 bg-background min-h-[40px]"
         >
           {tiers.map((tier) => (

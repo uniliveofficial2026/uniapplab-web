@@ -3,8 +3,10 @@ import { AnimatePresence, motion } from 'motion/react';
 import {
   giftEffectDurationMs,
   resolveGiftEffect,
+  resolvePlayTier,
   type GiftEffectTier,
 } from '../../lib/live/giftEffectCatalog';
+import { giftTierMeta } from '../../lib/live/giftTiers';
 import type { GiftPlayPayload } from '../utils/liveRoomTypes';
 import { GiftSvgaPlayer } from './GiftSvgaPlayer';
 
@@ -43,7 +45,7 @@ function GiftVideoEffect({ url, onEnded }: { url: string; onEnded: () => void })
   );
 }
 
-/** TRTC barrage gift — bottom-left strip, no container background. */
+/** Normal · 1–99 — small icon barrage (bottom-left). */
 function ComboBarrage({ combo }: { combo: ComboState }) {
   return (
     <motion.div
@@ -77,7 +79,7 @@ function ComboBarrage({ combo }: { combo: ComboState }) {
   );
 }
 
-/** TRTC path gift — flies from bottom-right toward host area (fallback when no SVGA). */
+/** Premium fallback — flies from bottom-right toward host. */
 function StandardFlyIn({ gift }: { gift: QueuedGift }) {
   return (
     <motion.div
@@ -96,7 +98,7 @@ function StandardFlyIn({ gift }: { gift: QueuedGift }) {
   );
 }
 
-function StandardGiftEffect({
+function MediumSvgaEffect({
   gift,
   svgaUrl,
   videoUrl,
@@ -130,7 +132,7 @@ function StandardGiftEffect({
   return <StandardFlyIn gift={gift} />;
 }
 
-function FullscreenGiftEffect({
+function FullscreenSvgaEffect({
   gift,
   svgaUrl,
   videoUrl,
@@ -185,6 +187,115 @@ function FullscreenGiftEffect({
   );
 }
 
+/** Legendary · cinematic vignette + oversized icon / SVGA. */
+function CinematicGiftEffect({
+  gift,
+  svgaUrl,
+  videoUrl,
+  onFinished,
+}: {
+  gift: QueuedGift;
+  svgaUrl?: string;
+  videoUrl?: string;
+  onFinished: () => void;
+}) {
+  return (
+    <>
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.55, 0.45, 0] }}
+        transition={{ duration: 5.2, times: [0, 0.12, 0.78, 1] }}
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(251,191,36,0.35),transparent_62%)]"
+      />
+      <FullscreenSvgaEffect gift={gift} svgaUrl={svgaUrl} videoUrl={videoUrl} onFinished={onFinished} />
+      <motion.div
+        initial={{ opacity: 0, y: 24, scale: 0.92 }}
+        animate={{ opacity: [0, 1, 1, 0], y: [24, 0, 0, -8], scale: [0.92, 1, 1, 1.02] }}
+        transition={{ duration: 4.8, times: [0, 0.12, 0.8, 1] }}
+        className="pointer-events-none absolute bottom-[12%] left-0 right-0 flex flex-col items-center gap-1 px-4 text-center"
+      >
+        <span className="rounded-full border border-amber-300/40 bg-amber-500/20 px-3 py-0.5 text-[10px] font-black uppercase tracking-[0.2em] text-amber-100">
+          Legendary
+        </span>
+        <p className="text-sm font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+          {gift.senderName} sent {gift.giftName} to {gift.receiverName}
+        </p>
+      </motion.div>
+    </>
+  );
+}
+
+/** Mythic · multi-stage: global announcement → fullscreen effect. */
+function MythicGiftEffect({
+  gift,
+  svgaUrl,
+  videoUrl,
+  onFinished,
+}: {
+  gift: QueuedGift;
+  svgaUrl?: string;
+  videoUrl?: string;
+  onFinished: () => void;
+}) {
+  const [stage, setStage] = useState<'announce' | 'effect'>('announce');
+
+  useEffect(() => {
+    const timer = window.setTimeout(() => setStage('effect'), 1600);
+    return () => window.clearTimeout(timer);
+  }, [gift.queueKey]);
+
+  return (
+    <>
+      <AnimatePresence>
+        {stage === 'announce' ? (
+          <motion.div
+            key="mythic-announce"
+            initial={{ opacity: 0, y: -40 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -20 }}
+            transition={{ duration: 0.35 }}
+            className="pointer-events-none absolute inset-x-0 top-[12%] z-10 flex justify-center px-4"
+          >
+            <div className="max-w-md rounded-2xl border border-fuchsia-300/50 bg-gradient-to-r from-fuchsia-700/80 via-violet-700/80 to-amber-600/70 px-4 py-3 text-center shadow-[0_12px_40px_rgba(192,38,211,0.45)] backdrop-blur-md">
+              <p className="text-[10px] font-black uppercase tracking-[0.28em] text-fuchsia-100">
+                Global Mythic Gift
+              </p>
+              <p className="mt-1 text-sm font-black text-white">
+                {gift.senderName} sent {gift.giftIcon} {gift.giftName}
+              </p>
+              <p className="text-[11px] font-semibold text-white/80">
+                to {gift.receiverName} · {gift.starValue.toLocaleString()} coins
+              </p>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 0.7, 0.5, 0] }}
+        transition={{ duration: 7.2, times: [0, 0.1, 0.82, 1] }}
+        className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(232,121,249,0.4),transparent_58%)]"
+      />
+
+      {stage === 'effect' ? (
+        <FullscreenSvgaEffect gift={gift} svgaUrl={svgaUrl} videoUrl={videoUrl} onFinished={onFinished} />
+      ) : null}
+
+      <motion.div
+        initial={{ opacity: 0 }}
+        animate={{ opacity: [0, 1, 1, 0] }}
+        transition={{ duration: 7, times: [0, 0.08, 0.86, 1] }}
+        className="pointer-events-none absolute bottom-[10%] left-0 right-0 flex justify-center px-4"
+      >
+        <div className="rounded-full border border-fuchsia-200/40 bg-black/45 px-4 py-1.5 text-[11px] font-bold text-fuchsia-50 shadow-lg backdrop-blur-sm">
+          Mythic event · room-wide announcement
+        </div>
+      </motion.div>
+    </>
+  );
+}
+
 function ActiveGiftEffect({
   gift,
   tier,
@@ -202,7 +313,10 @@ function ActiveGiftEffect({
 
   useEffect(() => {
     finishedRef.current = false;
-    if (usesMedia) return undefined;
+    if (usesMedia && tier !== 'mythic' && tier !== 'legendary') return undefined;
+    // Mythic/legendary keep a timer even with media so multi-stage can finish cleanly
+    // when SVGA ends early; media onEnded still wins via finishOnce.
+    if (usesMedia && (tier === 'mythic' || tier === 'legendary')) return undefined;
 
     const ms = giftEffectDurationMs(tier);
     const timer = window.setTimeout(() => {
@@ -219,25 +333,35 @@ function ActiveGiftEffect({
     onFinished();
   }, [onFinished]);
 
-  if (tier === 'standard') {
+  // Fallback timer for cinematic/mythic when media is present but may not fire onEnded.
+  useEffect(() => {
+    if (!(tier === 'legendary' || tier === 'mythic')) return undefined;
+    const ms = giftEffectDurationMs(tier) + (tier === 'mythic' ? 400 : 0);
+    const timer = window.setTimeout(() => finishOnce(), ms);
+    return () => window.clearTimeout(timer);
+  }, [finishOnce, gift.queueKey, tier]);
+
+  if (tier === 'premium') {
     return (
-      <StandardGiftEffect
-        gift={gift}
-        svgaUrl={svgaUrl}
-        videoUrl={videoUrl}
-        onFinished={finishOnce}
-      />
+      <MediumSvgaEffect gift={gift} svgaUrl={svgaUrl} videoUrl={videoUrl} onFinished={finishOnce} />
     );
   }
 
-  if (tier === 'fullscreen') {
+  if (tier === 'epic') {
     return (
-      <FullscreenGiftEffect
-        gift={gift}
-        svgaUrl={svgaUrl}
-        videoUrl={videoUrl}
-        onFinished={finishOnce}
-      />
+      <FullscreenSvgaEffect gift={gift} svgaUrl={svgaUrl} videoUrl={videoUrl} onFinished={finishOnce} />
+    );
+  }
+
+  if (tier === 'legendary') {
+    return (
+      <CinematicGiftEffect gift={gift} svgaUrl={svgaUrl} videoUrl={videoUrl} onFinished={finishOnce} />
+    );
+  }
+
+  if (tier === 'mythic') {
+    return (
+      <MythicGiftEffect gift={gift} svgaUrl={svgaUrl} videoUrl={videoUrl} onFinished={finishOnce} />
     );
   }
 
@@ -249,14 +373,19 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
   const [active, setActive] = useState<QueuedGift | null>(null);
   const [activeTier, setActiveTier] = useState<GiftEffectTier | null>(null);
   const [combos, setCombos] = useState<ComboState[]>([]);
+  const [globalAnnouncement, setGlobalAnnouncement] = useState<QueuedGift | null>(null);
   const processingRef = useRef(false);
 
   const pumpQueue = useCallback(() => {
     while (queueRef.current.length > 0) {
       const next = queueRef.current[0];
-      const definition = resolveGiftEffect(next.giftId, next.giftName);
+      const tier = resolvePlayTier({
+        giftId: next.giftId,
+        giftName: next.giftName,
+        starValue: next.starValue,
+      });
 
-      if (definition.tier === 'combo') {
+      if (tier === 'normal') {
         queueRef.current.shift();
         const comboKey = `${next.senderId ?? next.senderName}:${next.giftId ?? next.giftName}`;
         setCombos((prev) => {
@@ -287,7 +416,10 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
       queueRef.current.shift();
       processingRef.current = true;
       setActive(next);
-      setActiveTier(definition.tier);
+      setActiveTier(tier);
+      if (tier === 'mythic') {
+        setGlobalAnnouncement(next);
+      }
       return;
     }
 
@@ -312,6 +444,12 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
     return () => window.clearInterval(timer);
   }, [combos.length]);
 
+  useEffect(() => {
+    if (!globalAnnouncement) return undefined;
+    const timer = window.setTimeout(() => setGlobalAnnouncement(null), 9000);
+    return () => window.clearTimeout(timer);
+  }, [globalAnnouncement]);
+
   const finishActive = useCallback(() => {
     processingRef.current = false;
     setActive(null);
@@ -319,10 +457,30 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
     window.setTimeout(pumpQueue, 60);
   }, [pumpQueue]);
 
-  const showStage = Boolean(active && activeTier && activeTier !== 'combo');
+  const showStage = Boolean(active && activeTier && activeTier !== 'normal');
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[120] overflow-hidden bg-transparent">
+      <AnimatePresence>
+        {globalAnnouncement ? (
+          <motion.div
+            key={`global-${globalAnnouncement.queueKey}`}
+            initial={{ opacity: 0, y: -24 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -16 }}
+            className="absolute inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-20 flex justify-center px-3"
+          >
+            <div className="flex max-w-lg items-center gap-2 rounded-full border border-fuchsia-300/45 bg-black/70 px-3 py-1.5 text-[11px] font-bold text-fuchsia-50 shadow-xl backdrop-blur-md">
+              <span className="text-base leading-none">{globalAnnouncement.giftIcon}</span>
+              <span className="truncate">
+                Mythic · {globalAnnouncement.senderName} → {globalAnnouncement.receiverName} ·{' '}
+                {globalAnnouncement.giftName}
+              </span>
+            </div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
+
       <div className="absolute bottom-[calc(5.5rem+env(safe-area-inset-bottom))] left-3 flex flex-col gap-1.5 sm:left-4">
         <AnimatePresence mode="popLayout">
           {combos.map((combo) => (
@@ -347,4 +505,9 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
       </AnimatePresence>
     </div>
   );
+}
+
+/** Optional helper for panel labels. */
+export function giftTierLabel(tier: GiftEffectTier): string {
+  return giftTierMeta(tier).label;
 }
