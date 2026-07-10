@@ -73,62 +73,88 @@ function isGiftAvailableNow(row: GiftCatalogRow, now = Date.now()): boolean {
   return true;
 }
 
+async function withTimeout<T>(promise: PromiseLike<T>, ms: number, label: string): Promise<T> {
+  let timer: ReturnType<typeof setTimeout> | undefined;
+  try {
+    return await Promise.race([
+      Promise.resolve(promise),
+      new Promise<T>((_, reject) => {
+        timer = setTimeout(() => reject(new Error(`${label} timed out`)), ms);
+      }),
+    ]);
+  } finally {
+    if (timer) clearTimeout(timer);
+  }
+}
+
 /** Public gift catalog (normalized rows + jsonb fallback). */
 router.get("/catalog", async (_req, res, next) => {
   try {
     const sb = getSupabaseService();
-    const { data: rows, error } = await sb
-      .from("gift_catalog_items")
-      .select("*")
-      .eq("status", "published")
-      .order("sort_order", { ascending: true })
-      .order("price", { ascending: true });
-
     let gifts: ReturnType<typeof mapCatalogItem>[] = [];
-    if (!error && rows) {
-      gifts = ((rows ?? []) as GiftCatalogRow[])
-        .filter((row) => isGiftAvailableNow(row))
-        .map(mapCatalogItem);
+
+    try {
+      const { data: rows, error } = await withTimeout(
+        sb
+          .from("gift_catalog_items")
+          .select("*")
+          .eq("status", "published")
+          .order("sort_order", { ascending: true })
+          .order("price", { ascending: true }),
+        4_000,
+        "gift_catalog_items",
+      );
+      if (!error && rows) {
+        gifts = ((rows ?? []) as GiftCatalogRow[])
+          .filter((row) => isGiftAvailableNow(row))
+          .map(mapCatalogItem);
+      }
+    } catch {
+      /* table missing or Supabase slow — try jsonb blob */
     }
 
     if (gifts.length === 0) {
-      const { data: blob } = await sb
-        .from("platform_gift_catalog")
-        .select("gifts")
-        .eq("id", "default")
-        .maybeSingle();
-      const raw = Array.isArray(blob?.gifts) ? blob.gifts : [];
-      gifts = raw
-        .filter((g: { status?: string }) => !g.status || g.status === "published")
-        .map((g: Record<string, unknown>) => ({
-          id: String(g.id ?? ""),
-          name: String(g.name ?? "Gift"),
-          description: String(g.description ?? ""),
-          price: Number(g.stars ?? g.price ?? 1),
-          currency: "coins",
-          category: String(g.category ?? "standard"),
-          tier: String(g.tier ?? "normal"),
-          rarity: String(g.rarity ?? "common"),
-          animation: (g.effectSvgaUrl ?? g.effectVideoUrl ?? null) as string | null,
-          preview: (g.previewUrl ?? g.icon ?? null) as string | null,
-          sound: (g.soundUrl ?? null) as string | null,
-          icon: String(g.icon ?? "🎁"),
-          effectSvgaUrl: (g.effectSvgaUrl ?? null) as string | null,
-          effectVideoUrl: (g.effectVideoUrl ?? null) as string | null,
-          comboEnabled: g.comboEnabled !== false,
-          vipOnly: Boolean(g.vipOnly),
-          seasonal: Boolean(g.seasonal),
-          lucky: Boolean(g.lucky),
-          blindBox: Boolean(g.blindBox),
-          pkEnabled: g.pkEnabled !== false,
-          availableFrom: null,
-          availableUntil: null,
-          status: "published",
-          metadata: {},
-          sortOrder: 0,
-          stars: Number(g.stars ?? g.price ?? 1),
-        }))
-        .filter((g) => g.id);
+      try {
+        const { data: blob } = await withTimeout(
+          sb.from("platform_gift_catalog").select("gifts").eq("id", "default").maybeSingle(),
+          4_000,
+          "platform_gift_catalog",
+        );
+        const raw = Array.isArray(blob?.gifts) ? blob.gifts : [];
+        gifts = raw
+          .filter((g: { status?: string }) => !g.status || g.status === "published")
+          .map((g: Record<string, unknown>) => ({
+            id: String(g.id ?? ""),
+            name: String(g.name ?? "Gift"),
+            description: String(g.description ?? ""),
+            price: Number(g.stars ?? g.price ?? 1),
+            currency: "coins",
+            category: String(g.category ?? "standard"),
+            tier: String(g.tier ?? "normal"),
+            rarity: String(g.rarity ?? "common"),
+            animation: (g.effectSvgaUrl ?? g.effectVideoUrl ?? null) as string | null,
+            preview: (g.previewUrl ?? g.icon ?? null) as string | null,
+            sound: (g.soundUrl ?? null) as string | null,
+            icon: String(g.icon ?? "🎁"),
+            effectSvgaUrl: (g.effectSvgaUrl ?? null) as string | null,
+            effectVideoUrl: (g.effectVideoUrl ?? null) as string | null,
+            comboEnabled: g.comboEnabled !== false,
+            vipOnly: Boolean(g.vipOnly),
+            seasonal: Boolean(g.seasonal),
+            lucky: Boolean(g.lucky),
+            blindBox: Boolean(g.blindBox),
+            pkEnabled: g.pkEnabled !== false,
+            availableFrom: null,
+            availableUntil: null,
+            status: "published",
+            metadata: {},
+            sortOrder: 0,
+            stars: Number(g.stars ?? g.price ?? 1),
+          }))
+          .filter((g) => g.id);
+      } catch {
+        gifts = [];
+      }
     }
 
     res.json({ gifts });
