@@ -15,5 +15,7 @@ export const APP_SHARE_HOSTS = [
   'uniapplab.com',
   'www.uniapplab.com',
 ] as const;
-/** Neutral static mark until backend platform logo loads. */
-export const APP_BRAND_FALLBACK_ICON = '/pwa-icon.svg';
+/** Hardcoded UniLive install / PWA / favicon mark (static asset in public/). */
+export const APP_BRAND_FALLBACK_ICON = '/brand/app-logo.png';
+/** Alias used by older PWA / notification paths. */
+export const APP_PWA_ICON = APP_BRAND_FALLBACK_ICON;

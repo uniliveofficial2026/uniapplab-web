@@ -143,7 +143,7 @@ export default defineConfig(({ mode }) => {
     ...(useDevHttps ? [basicSsl()] : []),
     VitePWA({
       registerType: "prompt",
-      includeAssets: ["favicon.svg", "pwa-icon.svg", "robots.txt", "opengraph.jpg"],
+      includeAssets: ["brand/app-logo.png", "pwa-icon.png", "robots.txt", "opengraph.jpg"],
       devOptions: {
         enabled: pwaDevEnabled,
       },
@@ -171,21 +171,21 @@ export default defineConfig(({ mode }) => {
         categories: ["social", "entertainment"],
         icons: [
           {
-            src: `${normalizedBase}pwa-icon.svg`,
+            src: `${normalizedBase}brand/app-logo.png`,
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
             purpose: "any",
           },
           {
-            src: `${normalizedBase}pwa-icon.svg`,
+            src: `${normalizedBase}brand/app-logo.png`,
             sizes: "512x512",
-            type: "image/svg+xml",
+            type: "image/png",
             purpose: "maskable",
           },
           {
-            src: `${normalizedBase}favicon.svg`,
-            sizes: "180x180",
-            type: "image/svg+xml",
+            src: `${normalizedBase}brand/app-logo.png`,
+            sizes: "1254x1254",
+            type: "image/png",
             purpose: "any",
           },
         ],

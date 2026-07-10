@@ -39,6 +39,9 @@
           if (!brandHref && s && typeof s.appLogoUrl === 'string' && s.appLogoUrl && s.appLogoMediaType !== 'video') {
             brandHref = s.appLogoUrl.indexOf('data:') === 0 ? '/api/platform/brand-icon' : s.appLogoUrl;
           }
+          if (!brandHref) {
+            brandHref = '/brand/app-logo.png';
+          }
           if (brandHref) {
             var href = brandHref;
             var icon = document.createElement('link');
@@ -57,8 +60,8 @@
         } catch (e) {}
       })();
     </script>
-    <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
-    <link rel="apple-touch-icon" href="/opengraph.jpg" />
+    <link rel="icon" href="/brand/app-logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/brand/app-logo.png" />
     <!-- Non-blocking fonts — UI paints with system font first -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
@@ -198,7 +201,7 @@
     <div id="boot-shell">
       <main class="home" role="main">
         <div class="home-brand">
-          <img class="home-logo" src="/pwa-icon.svg" width="52" height="52" alt="UniLive logo" />
+          <img class="home-logo" src="/brand/app-logo.png" width="52" height="52" alt="UniLive logo" />
           <h1>UniLive</h1>
         </div>
         <p class="home-lead">

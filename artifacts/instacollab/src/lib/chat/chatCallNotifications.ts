@@ -62,7 +62,7 @@ export function notifyIncomingChatCall(detail: IncomingChatCall): void {
       const notification = new Notification(title, {
         body: body.slice(0, 240),
         tag: `chat-call-${detail.chatId}-${detail.callRoomName ?? callKind}`,
-        icon: '/pwa-icon.svg',
+        icon: '/brand/app-logo.png',
         requireInteraction: true,
         silent: false,
       });

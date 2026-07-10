@@ -109,7 +109,7 @@ router.get("/platform/brand-icon", async (_req, res) => {
   const brand = await resolvePlatformBrand();
   const logoUrl = brand.logoUrl;
   if (!logoUrl || brand.mediaType === "video") {
-    res.redirect(302, "/pwa-icon.svg");
+    res.redirect(302, "/brand/app-logo.png");
     return;
   }
 
@@ -126,7 +126,7 @@ router.get("/platform/brand-icon", async (_req, res) => {
     return;
   }
 
-  res.redirect(302, "/pwa-icon.svg");
+  res.redirect(302, "/brand/app-logo.png");
 });
 
 router.get("/platform/manifest.webmanifest", async (_req, res) => {
@@ -134,7 +134,7 @@ router.get("/platform/manifest.webmanifest", async (_req, res) => {
   const iconSrc =
     brand.logoUrl && brand.mediaType !== "video"
       ? "/api/platform/brand-icon"
-      : "/pwa-icon.svg";
+      : "/brand/app-logo.png";
   const iconType = guessMimeFromUrl(brand.logoUrl ?? iconSrc);
 
   const manifest = {
@@ -151,7 +151,7 @@ router.get("/platform/manifest.webmanifest", async (_req, res) => {
     icons: [
       { src: iconSrc, sizes: "512x512", type: iconType, purpose: "any" },
       { src: iconSrc, sizes: "512x512", type: iconType, purpose: "maskable" },
-      { src: "/favicon.svg", sizes: "180x180", type: "image/svg+xml", purpose: "any" },
+      { src: "/brand/app-logo.png", sizes: "1254x1254", type: "image/png", purpose: "any" },
     ],
   };
 

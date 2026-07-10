@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import { Download, Share, X } from 'lucide-react';
 import { getIosInstallInstructions, isIosDevice, isPwaInstallableHost, isPrivateDevHost, isStandaloneDisplayMode } from '../../lib/pwaRegister';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
-import { AppBrandIcon } from './AppBrandIcon';
 
 type BeforeInstallPromptEvent = Event & {
   prompt: () => Promise<void>;
@@ -18,13 +17,6 @@ export function PwaInstallPrompt() {
     if (typeof window === 'undefined') return true;
     return window.localStorage.getItem(DISMISS_KEY) === '1';
   });
-  const [brandTick, setBrandTick] = useState(0);
-
-  useEffect(() => {
-    const onBrand = () => setBrandTick((t) => t + 1);
-    window.addEventListener('app-brand:updated', onBrand);
-    return () => window.removeEventListener('app-brand:updated', onBrand);
-  }, []);
 
   useEffect(() => {
     if (isStandaloneDisplayMode()) return;
@@ -56,8 +48,6 @@ export function PwaInstallPrompt() {
 
   if (!visible && !(privateDevHost && isIosDevice())) return null;
 
-  void brandTick;
-
   const dismiss = () => {
     setDismissed(true);
     setShowIosHint(false);
@@ -84,10 +74,10 @@ export function PwaInstallPrompt() {
           <div className="rounded-2xl border border-border bg-card/95 p-4 shadow-xl backdrop-blur-md">
             <div className="flex items-start gap-3">
               <div className="flex h-11 w-11 shrink-0 items-center justify-center overflow-hidden rounded-2xl border border-border bg-card shadow-sm">
-                <AppBrandIcon
-                  className="h-11 w-11"
-                  roundedClassName="rounded-2xl"
-                  imageFit="cover"
+                <img
+                  src="/brand/app-logo.png"
+                  alt={`${APP_DISPLAY_NAME} logo`}
+                  className="h-11 w-11 rounded-2xl object-cover"
                 />
               </div>
               <div className="min-w-0 flex-1">
