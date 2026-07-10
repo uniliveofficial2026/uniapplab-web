@@ -16,6 +16,13 @@ import {
 
 const router: IRouter = Router();
 
+type PartyRoomRecord = {
+  id: string;
+  owner_id: string | null;
+  status: string | null;
+  privacy: string | null;
+};
+
 function canGoLive(role: string | undefined): boolean {
   return role === "streamer" || role === "admin";
 }
@@ -114,8 +121,27 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
       return;
     }
 
+    const normalizedRoomId = roomId.trim();
     const userId = req.authUser!.id;
-    const roomName = partyRoomName(roomId.trim());
+    const { data: room, error: roomError } = await getSupabaseService()
+      .from("party_rooms")
+      .select("id, owner_id, status, privacy")
+      .eq("id", normalizedRoomId)
+      .maybeSingle<PartyRoomRecord>();
+
+    if (roomError || !room || room.status !== "active") {
+      res.status(404).json({ error: "party_room_not_found" });
+      return;
+    }
+
+    const isOwner = room.owner_id === userId;
+    const isPrivate = room.privacy !== "Public";
+    if (isPrivate && !isOwner) {
+      res.status(403).json({ error: "party_room_forbidden" });
+      return;
+    }
+
+    const roomName = partyRoomName(normalizedRoomId);
     await ensureLiveKitRoom(roomName);
 
     const token = await createLiveKitToken({
@@ -129,7 +155,7 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
       token,
       url: getLiveKitUrl(),
       roomName,
-      roomId: roomId.trim(),
+      roomId: normalizedRoomId,
       publish: Boolean(publish),
     });
   } catch (err) {
