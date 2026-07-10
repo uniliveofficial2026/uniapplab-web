@@ -141,14 +141,89 @@ function WatchMockup() {
 }
 
 function KaraokeMockup() {
+  const seats = buildPreviewPartySeats(false);
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
         <Music2 size={12} className="text-fuchsia-300" />
-        Karaoke · chorus seats
+        Karaoke · chorus stage
       </div>
-      <StaffRow />
-      <GuestGrid count={12} cols={6} filledIndexes={[0, 1, 2, 6]} />
+
+      <div className="overflow-hidden rounded-[22px] border border-white/10 bg-gradient-to-b from-purple-900/40 to-black/50 shadow-inner">
+        <div className="flex items-center gap-2 border-b border-white/5 px-3 py-2">
+          <img
+            src={PREVIEW_AVATARS.guest1}
+            alt=""
+            className="h-8 w-8 rounded-lg object-cover"
+          />
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-[10px] font-black text-white">Shape of You</p>
+            <p className="text-[8px] font-bold text-pink-300">Melodia is singing</p>
+          </div>
+          <span className="rounded-full bg-pink-500/20 px-2 py-0.5 text-[8px] font-black text-pink-200">
+            LIVE
+          </span>
+        </div>
+        <div className="space-y-1 px-4 py-3 text-center">
+          <p className="text-[10px] font-bold text-white/35">
+            The club isn&apos;t the best place to find a lover
+          </p>
+          <p className="text-[12px] font-black text-white drop-shadow-[0_0_12px_rgba(236,72,153,0.45)]">
+            So the bar is where I go
+          </p>
+          <p className="text-[10px] font-bold text-white/35">
+            Me and my friends at the table doing shots
+          </p>
+        </div>
+        <div className="mx-3 mb-2 h-1 overflow-hidden rounded-full bg-white/10">
+          <div className="h-full w-[42%] rounded-full bg-gradient-to-r from-pink-500 to-purple-500" />
+        </div>
+      </div>
+
+      <div className="flex items-center justify-center gap-4">
+        <SeatChip label="Host" avatar={seats.host?.avatar} filled accent wide />
+        <SeatChip label="Co" avatar={seats.coowner?.avatar} filled={Boolean(seats.coowner)} />
+      </div>
+      <GuestGrid count={12} cols={6} filledIndexes={[0, 1, 4]} />
+    </div>
+  );
+}
+
+function GameMockup() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
+        <Gamepad2 size={12} className="text-emerald-300" />
+        Game · live cast
+      </div>
+
+      <div className="relative overflow-hidden rounded-xl border border-white/10 bg-black">
+        <div className="relative aspect-video">
+          <img
+            src="https://images.unsplash.com/photo-1542751371-adc38448a05e?w=800&h=450&fit=crop"
+            alt=""
+            className="absolute inset-0 h-full w-full object-cover opacity-90"
+          />
+          <div className="absolute inset-0 bg-gradient-to-t from-black/55 via-transparent to-black/25" />
+          <div className="absolute left-2.5 top-2.5 rounded-full border border-emerald-500/30 bg-emerald-950/55 px-2 py-0.5 text-[8px] font-black uppercase tracking-wide text-emerald-200">
+            Game Live
+          </div>
+          <div className="absolute bottom-2 left-2 max-w-[55%] rounded-lg border border-white/10 bg-black/55 px-2 py-1.5 backdrop-blur-sm">
+            <p className="text-[8px] font-bold text-emerald-200">@viewer</p>
+            <p className="truncate text-[9px] font-semibold text-white/90">nice clutch!</p>
+          </div>
+          <div className="absolute bottom-2 right-2 h-[4.25rem] w-[5.5rem] overflow-hidden rounded-xl border border-white/25 shadow-[0_0_16px_rgba(0,0,0,0.45)]">
+            <img src={PREVIEW_AVATARS.host} alt="" className="h-full w-full object-cover" />
+            <span className="absolute left-1 top-1 rounded-full bg-black/65 px-1.5 py-0.5 text-[7px] font-black uppercase text-white">
+              Host
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-center text-[9px] font-semibold text-slate-500">
+        Fullscreen game share with host camera PiP — no sofa seats
+      </p>
     </div>
   );
 }
@@ -389,7 +464,7 @@ export function CreateRoomSeatMockup({ mode }: CreateRoomSeatMockupProps) {
       body = <WatchMockup />;
       break;
     case 'Game-Live':
-      body = <ChatLikeMockup title="Game" icon={Gamepad2} />;
+      body = <GameMockup />;
       break;
     case 'Karaoke':
       body = <KaraokeMockup />;
@@ -418,7 +493,11 @@ export function CreateRoomSeatMockup({ mode }: CreateRoomSeatMockupProps) {
         <p className="mt-3 text-center text-[10px] leading-relaxed text-slate-500">
           {mode === 'Party'
             ? 'Toggle 1v1 or Team above to preview the video PK stage.'
-            : 'In-room seat preview — empty seats stay open for guests.'}
+            : mode === 'Game-Live'
+              ? 'Game Live casts the screen — viewers watch with floating chat.'
+              : mode === 'Karaoke'
+                ? 'Chorus stage with lyrics, host/co seats, and 12 guest sofas (2×6).'
+                : 'In-room seat preview — empty seats stay open for guests.'}
         </p>
       ) : null}
     </section>
