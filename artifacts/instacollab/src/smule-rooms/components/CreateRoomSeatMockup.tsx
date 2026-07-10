@@ -1,10 +1,14 @@
 import type { ReactNode } from 'react';
 import { useState } from 'react';
-import { Mic, Sofa, Tv, Gamepad2, Music2, Users2, Video, ShoppingBag, Swords, Users } from 'lucide-react';
+import { Mic, Sofa, Tv, Gamepad2, Music2, Users2, Swords, Users } from 'lucide-react';
 import { PREVIEW_AVATARS, buildPreviewPartySeats } from '../utils/roomModePreviewDemo';
+import type { PendingCreateRoomBeauty } from '../utils/pendingCreateRoomBeauty';
+import { CreateRoomLivePreview } from './CreateRoomLivePreview';
 
 type CreateRoomSeatMockupProps = {
   mode: string;
+  livePreviewEnabled?: boolean;
+  onLiveSetupChange?: (setup: PendingCreateRoomBeauty) => void;
 };
 
 const INLINE_SEAT_MODES = new Set([
@@ -435,26 +439,11 @@ function PkMockup() {
   );
 }
 
-function LaterMockup({ mode }: { mode: string }) {
-  const isShop = mode === 'Commerce-Live';
-  return (
-    <div className="flex flex-col items-center justify-center gap-2 rounded-xl border border-dashed border-white/15 bg-slate-900/50 px-4 py-8 text-center">
-      {isShop ? (
-        <ShoppingBag size={22} className="text-emerald-300/80" />
-      ) : (
-        <Video size={22} className="text-violet-300/80" />
-      )}
-      <p className="text-xs font-bold text-slate-200">
-        {isShop ? 'Shop layout coming next' : 'Solo layout coming next'}
-      </p>
-      <p className="max-w-xs text-[10px] leading-relaxed text-slate-500">
-        Seat mockup for this mode will be added separately.
-      </p>
-    </div>
-  );
-}
-
-export function CreateRoomSeatMockup({ mode }: CreateRoomSeatMockupProps) {
+export function CreateRoomSeatMockup({
+  mode,
+  livePreviewEnabled = true,
+  onLiveSetupChange,
+}: CreateRoomSeatMockupProps) {
   let body: ReactNode;
   switch (mode) {
     case 'Chat':
@@ -477,7 +466,13 @@ export function CreateRoomSeatMockup({ mode }: CreateRoomSeatMockupProps) {
       break;
     case 'Solo-Live':
     case 'Commerce-Live':
-      body = <LaterMockup mode={mode} />;
+      body = (
+        <CreateRoomLivePreview
+          mode={mode}
+          enabled={livePreviewEnabled}
+          onSetupChange={onLiveSetupChange}
+        />
+      );
       break;
     default:
       body = <ChatLikeMockup title="Room" icon={Mic} />;

@@ -219,6 +219,7 @@ import {
 } from "../../lib/deepar/deeparEffectSelection";
 import { DEEPAR_ENABLED } from "../../lib/deepar/deeparEnabled";
 import { EMPTY_BODY_SHAPE, type TencentBodyShapeParams } from "../../lib/webar/webarTypes";
+import { consumePendingCreateRoomBeauty, peekPendingCreateRoomBeauty } from "../utils/pendingCreateRoomBeauty";
 import { useSongPerformanceTimer } from "../hooks/useSongPerformanceTimer";
 import { useSingingSession } from "../hooks/useSingingSession";
 import { usePerformanceBackingTrack } from "../hooks/usePerformanceBackingTrack";
@@ -697,14 +698,25 @@ export function Room() {
   const [multiGuestDeeparSelection, setMultiGuestDeeparSelection] =
     useState<DeepAREffectSelection>(EMPTY_DEEPAR_EFFECT_SELECTION);
   const [isMultiGuestEffectsOpen, setIsMultiGuestEffectsOpen] = useState(false);
-  const [liveBeautyEffectId, setLiveBeautyEffectId] = useState<BeautyPresetId>('none');
-  const [liveBeautyEffects, setLiveBeautyEffects] = useState(() => ({
-    makeupId: null as string | null,
-    stickerId: null as string | null,
-    filterId: null as string | null,
-    backgroundUrl: null as string | null,
-  }));
-  const [liveBodyShape, setLiveBodyShape] = useState<TencentBodyShapeParams>(EMPTY_BODY_SHAPE);
+  const [liveBeautyEffectId, setLiveBeautyEffectId] = useState<BeautyPresetId>(() => {
+    return peekPendingCreateRoomBeauty()?.beautyId ?? 'none';
+  });
+  const [liveBeautyEffects, setLiveBeautyEffects] = useState(() => {
+    const pending = peekPendingCreateRoomBeauty();
+    return {
+      makeupId: pending?.beautyEffects.makeupId ?? (null as string | null),
+      stickerId: pending?.beautyEffects.stickerId ?? (null as string | null),
+      filterId: pending?.beautyEffects.filterId ?? (null as string | null),
+      backgroundUrl: pending?.beautyEffects.backgroundUrl ?? (null as string | null),
+      shapeEffectId: pending?.beautyEffects.shapeEffectId ?? (null as string | null),
+    };
+  });
+  const [liveBodyShape, setLiveBodyShape] = useState<TencentBodyShapeParams>(() => {
+    const pending = peekPendingCreateRoomBeauty();
+    return pending?.bodyShape
+      ? { ...EMPTY_BODY_SHAPE, ...pending.bodyShape }
+      : EMPTY_BODY_SHAPE;
+  });
   const [isLiveBeautyOpen, setIsLiveBeautyOpen] = useState(false);
   const [isCommerceShopOpen, setIsCommerceShopOpen] = useState(false);
   const [commerceCatalog, setCommerceCatalog] = useState<CommerceProduct[]>(() => [...DEFAULT_COMMERCE_CATALOG]);
@@ -736,6 +748,10 @@ export function Room() {
     const refreshUploads = () => setKaraokeUploadsVersion((version) => version + 1);
     window.addEventListener('karaoke-uploads-updated', refreshUploads);
     return () => window.removeEventListener('karaoke-uploads-updated', refreshUploads);
+  }, []);
+
+  useEffect(() => {
+    consumePendingCreateRoomBeauty();
   }, []);
 
   useEffect(() => {
@@ -1510,6 +1526,7 @@ export function Room() {
         stickerId: null,
         filterId: null,
         backgroundUrl: null,
+        shapeEffectId: null,
       });
     }
   }, []);
@@ -1527,10 +1544,21 @@ export function Room() {
       stickerId: string | null;
       filterId: string | null;
       backgroundUrl: string | null;
+      shapeEffectId?: string | null;
     }) => {
-      setLiveBeautyEffects(effects);
+      setLiveBeautyEffects({
+        makeupId: effects.makeupId,
+        stickerId: effects.stickerId,
+        filterId: effects.filterId,
+        backgroundUrl: effects.backgroundUrl,
+        shapeEffectId: effects.shapeEffectId ?? null,
+      });
       const active = Boolean(
-        effects.makeupId || effects.stickerId || effects.filterId || effects.backgroundUrl,
+        effects.makeupId ||
+          effects.stickerId ||
+          effects.filterId ||
+          effects.backgroundUrl ||
+          effects.shapeEffectId,
       );
       if (active) setMultiGuestDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
     },

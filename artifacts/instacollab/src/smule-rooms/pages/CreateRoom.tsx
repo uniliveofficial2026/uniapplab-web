@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { ArrowLeft, Camera, Globe, Lock, Music2, Radio, MessageSquare, Users2, Video, ShoppingBag, Swords, Gamepad2 } from 'lucide-react';
 import { CreateRoomModePreview } from '../components/CreateRoomModePreview';
 import { CreateRoomSeatMockup } from '../components/CreateRoomSeatMockup';
@@ -16,6 +16,12 @@ import { resolveLocalOwnerPartyRoomId, reconcileOwnerPartyRoomIdFromCloud, getSt
 import { syncPartyRoomToCloud } from '../utils/syncPartyRoomCloud';
 import { getRoomSettings } from '../utils/storage';
 import { useAppCamera } from '../../contexts/AppCameraContext';
+import { EMPTY_BODY_SHAPE } from '../../lib/ar/bodyShape';
+import { EMPTY_TENCENT_EFFECT_SELECTION } from '../../lib/webar/webarTypes';
+import {
+  stashPendingCreateRoomBeauty,
+  type PendingCreateRoomBeauty,
+} from '../utils/pendingCreateRoomBeauty';
 
 const MODE_LABELS: Record<string, string> = {
   Chat: 'Chat',
@@ -28,6 +34,8 @@ const MODE_LABELS: Record<string, string> = {
   'Commerce-Live': 'Shop',
 };
 
+const LIVE_CAMERA_MODES = new Set(['Solo-Live', 'Commerce-Live']);
+
 const CreateRoom = () => {
   const navigate = useNavigate();
   const navigateSettingsBack = useRoomSettingsNavigateBack();
@@ -35,16 +43,23 @@ const CreateRoom = () => {
   const hostDisplayName = getProfileDisplayName(currentUser, 'Host');
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { isAvailable: cameraAvailable, openCamera } = useAppCamera();
-  
-  const [roomName, setRoomName] = useState("");
-  const [privacy, setPrivacy] = useState<"Public" | "Private">("Public");
-  const [privateRoomKey, setPrivateRoomKey] = useState("");
+  const liveSetupRef = useRef<PendingCreateRoomBeauty | null>(null);
+
+  const [roomName, setRoomName] = useState('');
+  const [privacy, setPrivacy] = useState<'Public' | 'Private'>('Public');
+  const [privateRoomKey, setPrivateRoomKey] = useState('');
   const [privateKeyError, setPrivateKeyError] = useState<string | null>(null);
-  const [mode, setMode] = useState("Chat");
+  const [mode, setMode] = useState('Chat');
   const [previewFocused, setPreviewFocused] = useState(false);
   const [coverPreview, setCoverPreview] = useState<string | null>(null);
   const [canonicalRoomId, setCanonicalRoomId] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
+  const [goLiveCountdown, setGoLiveCountdown] = useState<number | null>(null);
+  const pendingNavigateRef = useRef<string | null>(null);
+
+  const handleLiveSetupChange = useCallback((setup: PendingCreateRoomBeauty) => {
+    liveSetupRef.current = setup;
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -74,6 +89,24 @@ const CreateRoom = () => {
     };
   }, [currentUser?.id]);
 
+  useEffect(() => {
+    if (goLiveCountdown === null) return undefined;
+    if (goLiveCountdown <= 0) {
+      const timer = window.setTimeout(() => {
+        const roomId = pendingNavigateRef.current;
+        pendingNavigateRef.current = null;
+        setGoLiveCountdown(null);
+        setLaunching(false);
+        if (roomId) navigate(`/room/${roomId}`);
+      }, 700);
+      return () => window.clearTimeout(timer);
+    }
+    const timer = window.setTimeout(() => {
+      setGoLiveCountdown((value) => (value === null ? null : value - 1));
+    }, 1000);
+    return () => window.clearTimeout(timer);
+  }, [goLiveCountdown, navigate]);
+
   const handleImageClick = () => {
     if (cameraAvailable) {
       openCamera({
@@ -99,7 +132,7 @@ const CreateRoom = () => {
   };
 
   const handleCreate = () => {
-    if (!roomName.trim() || launching) {
+    if (!roomName.trim() || launching || goLiveCountdown !== null) {
       return;
     }
 
@@ -113,11 +146,14 @@ const CreateRoom = () => {
     setPrivateKeyError(null);
     setLaunching(true);
 
+    const isLiveCameraMode = LIVE_CAMERA_MODES.has(mode);
+
     try {
       const roomIdString =
         resolveLocalOwnerPartyRoomId(currentUser?.id, { createIfMissing: true }) ??
         canonicalRoomId;
       if (!roomIdString) {
+        setLaunching(false);
         return;
       }
 
@@ -158,8 +194,6 @@ const CreateRoom = () => {
         setStoredOwnerPartyRoomId(currentUser.id, roomIdString);
       }
 
-      navigate(`/room/${roomIdString}`);
-
       syncPartyRoomToCloud(roomIdString, currentUser?.id, {
         roomName,
         roomMode: mode as RoomMode,
@@ -168,20 +202,43 @@ const CreateRoom = () => {
         coverPhoto: coverPreview ?? 'Default',
       });
       void reconcileOwnerPartyRoomIdFromCloud(currentUser?.id);
+
+      if (isLiveCameraMode) {
+        const setup = liveSetupRef.current ?? {
+          beautyId: 'none' as const,
+          beautyEffects: { ...EMPTY_TENCENT_EFFECT_SELECTION },
+          bodyShape: { ...EMPTY_BODY_SHAPE },
+          roomMode: mode as 'Solo-Live' | 'Commerce-Live',
+        };
+        stashPendingCreateRoomBeauty({
+          ...setup,
+          roomMode: mode as 'Solo-Live' | 'Commerce-Live',
+        });
+        pendingNavigateRef.current = roomIdString;
+        setGoLiveCountdown(3);
+        return;
+      }
+
+      navigate(`/room/${roomIdString}`);
     } finally {
-      setLaunching(false);
+      if (!isLiveCameraMode) {
+        setLaunching(false);
+      }
     }
   };
 
   const handleModeSelect = (modeId: string) => {
+    if (goLiveCountdown !== null) return;
     setMode(modeId);
   };
 
   const openModePreview = () => {
+    if (goLiveCountdown !== null) return;
     setPreviewFocused(true);
   };
 
   const handleHeaderBack = () => {
+    if (goLiveCountdown !== null) return;
     if (previewFocused) {
       setPreviewFocused(false);
       return;
@@ -193,6 +250,16 @@ const CreateRoom = () => {
   const canLaunch =
     roomName.trim().length > 0 &&
     (privacy === 'Public' || privateKeyValidation.valid);
+  const isLiveCameraMode = LIVE_CAMERA_MODES.has(mode);
+  const launchLabel = launching
+    ? goLiveCountdown !== null
+      ? 'Going live…'
+      : 'Opening…'
+    : isLiveCameraMode
+      ? 'Go Live'
+      : canonicalRoomId
+        ? 'Open Room'
+        : 'Launch Room';
 
   const modes = [
     { id: 'Chat', icon: MessageSquare, label: 'Chat' },
@@ -213,17 +280,34 @@ const CreateRoom = () => {
   const modeLabel = MODE_LABELS[mode] ?? 'Room';
 
   return (
-    <div className="h-full bg-slate-950 flex flex-col text-white font-sans">
+    <div className="relative flex h-full flex-col bg-slate-950 font-sans text-white">
+      {goLiveCountdown !== null ? (
+        <div className="absolute inset-0 z-[80] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+          <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-white/70">
+            Starting stream
+          </p>
+          <div
+            key={goLiveCountdown}
+            className="text-7xl font-black tabular-nums text-white drop-shadow-[0_0_28px_rgba(59,130,246,0.55)]"
+          >
+            {goLiveCountdown > 0 ? goLiveCountdown : 'GO'}
+          </div>
+          <p className="mt-4 text-sm font-semibold text-white/80">
+            Beauty effects stay on when you go live
+          </p>
+        </div>
+      ) : null}
+
       <header className="sticky top-0 z-20 flex items-center p-4">
-        <button 
+        <button
           onClick={handleHeaderBack}
-          className="w-10 h-10 flex items-center justify-center hover:bg-white/10 rounded-full transition"
+          className="flex h-10 w-10 items-center justify-center rounded-full transition hover:bg-white/10"
           aria-label={previewFocused ? 'Back to room setup' : 'Go back'}
         >
           <ArrowLeft size={24} />
         </button>
         <div className="mr-10 flex min-w-0 flex-1 flex-col items-center gap-0.5">
-          <h1 className="text-center font-black text-lg tracking-tight uppercase">
+          <h1 className="text-center text-lg font-black uppercase tracking-tight">
             {previewFocused ? `${modeLabel} preview` : canonicalRoomId ? 'Your Room' : 'Create Room'}
           </h1>
           {previewFocused ? (
@@ -255,10 +339,10 @@ const CreateRoom = () => {
                 <button
                   type="button"
                   onClick={handleImageClick}
-                  className={`relative h-20 w-20 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center overflow-hidden transition-all group ${
+                  className={`group relative flex h-20 w-20 flex-col items-center justify-center overflow-hidden rounded-2xl border-2 border-dashed transition-all ${
                     coverPreview
                       ? 'border-transparent'
-                      : 'border-slate-700 hover:border-blue-500 bg-slate-950'
+                      : 'border-slate-700 bg-slate-950 hover:border-blue-500'
                   }`}
                   aria-label="Add room cover"
                 >
@@ -271,7 +355,7 @@ const CreateRoom = () => {
                     </>
                   ) : (
                     <>
-                      <Camera size={22} className="text-slate-500 group-hover:text-blue-400 transition" />
+                      <Camera size={22} className="text-slate-500 transition group-hover:text-blue-400" />
                       <span className="mt-0.5 text-[8px] font-bold uppercase tracking-wide text-slate-500 group-hover:text-blue-400">
                         Add
                       </span>
@@ -300,7 +384,7 @@ const CreateRoom = () => {
                   placeholder="What's the vibe?"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
-                  className="h-20 w-full rounded-2xl border border-white/5 bg-slate-950 px-4 text-sm font-medium text-white placeholder:text-slate-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20 transition-all"
+                  className="h-20 w-full rounded-2xl border border-white/5 bg-slate-950 px-4 text-sm font-medium text-white transition-all placeholder:text-slate-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
 
@@ -377,7 +461,11 @@ const CreateRoom = () => {
               </div>
             ) : null}
 
-            <CreateRoomSeatMockup mode={mode} />
+            <CreateRoomSeatMockup
+              mode={mode}
+              livePreviewEnabled={!previewFocused && isLiveCameraMode}
+              onLiveSetupChange={handleLiveSetupChange}
+            />
           </div>
         </div>
       )}
@@ -438,14 +526,14 @@ const CreateRoom = () => {
         {!previewFocused ? (
           <button
             onClick={handleCreate}
-            disabled={!canLaunch || launching}
-            className={`w-full py-4 rounded-2xl font-black text-sm uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
-              !canLaunch || launching
-                ? 'bg-slate-800 text-slate-600 cursor-not-allowed opacity-50' 
-                : 'bg-blue-600 text-white hover:bg-blue-500 shadow-blue-500/20 border border-white/10'
+            disabled={!canLaunch || launching || goLiveCountdown !== null}
+            className={`w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
+              !canLaunch || launching || goLiveCountdown !== null
+                ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'
+                : 'border border-white/10 bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-500'
             }`}
           >
-            {launching ? 'Opening…' : canonicalRoomId ? 'Open Room' : 'Launch Room'}
+            {launchLabel}
           </button>
         ) : null}
       </div>
