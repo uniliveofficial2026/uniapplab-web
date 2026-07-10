@@ -36,6 +36,9 @@ function shouldSkip(name, relPath = '') {
   if (name.endsWith('.map')) return true;
   if (relPath.includes('public/deepar-resources')) return true;
   if (relPath.includes('public/effects/')) return true;
+  // DeepAR zip archives are installed at build time — never upload ~900MB to Vercel.
+  if (relPath.includes('vendor/archives')) return true;
+  if (name === 'archives' && relPath.includes('/vendor')) return true;
   return false;
 }
 
