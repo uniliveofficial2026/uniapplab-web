@@ -174,6 +174,9 @@ const CreateRoom = () => {
 
   const handleModeSelect = (modeId: string) => {
     setMode(modeId);
+  };
+
+  const openModePreview = () => {
     setPreviewFocused(true);
   };
 
@@ -374,7 +377,7 @@ const CreateRoom = () => {
             ) : null}
 
             <p className="text-center text-[11px] leading-relaxed text-slate-500">
-              Pick a mode below to preview the full room layout, or fill in your details and open the room.
+              Choose a mode, then open your room — or tap Preview to see a demo layout.
             </p>
           </div>
         </div>
@@ -382,9 +385,20 @@ const CreateRoom = () => {
 
       <div className="sticky bottom-0 left-0 right-0 z-30 px-5 pb-5 pt-4">
         <section className="mb-4 flex flex-col gap-3">
-          <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
-            Mode
-          </label>
+          <div className="flex items-center justify-between gap-2">
+            <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
+              Mode
+            </label>
+            {!previewFocused ? (
+              <button
+                type="button"
+                onClick={openModePreview}
+                className="rounded-full border border-indigo-400/35 bg-indigo-500/15 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wide text-indigo-200 transition hover:bg-indigo-500/25"
+              >
+                Preview {modeLabel}
+              </button>
+            ) : null}
+          </div>
           <div className="grid grid-cols-8 gap-x-0.5 gap-y-0 sm:gap-x-1.5">
             {modes.map((m) => {
               const Icon = m.icon;
@@ -393,7 +407,10 @@ const CreateRoom = () => {
                 <button
                   key={m.id}
                   type="button"
-                  onClick={() => handleModeSelect(m.id)}
+                  onClick={(event) => {
+                    event.stopPropagation();
+                    handleModeSelect(m.id);
+                  }}
                   title={m.label}
                   className="flex min-w-0 flex-col items-center gap-1"
                 >
