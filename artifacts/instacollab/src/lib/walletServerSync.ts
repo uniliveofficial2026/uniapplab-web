@@ -1,6 +1,11 @@
 import { db } from './db/localDb';
 import { isCloudAuthUserId } from './auth/cloudProfile';
+import { shouldUseFirebaseForCloudData } from './auth/cloudDataBackend';
 import { fetchWallet, fetchMe, isPlatformApiAvailable } from './platformApi';
+import {
+  fetchFirebaseWallet,
+  isFirebaseGiftWalletAvailable,
+} from './firebase/giftWallet';
 import { saveWalletCoinsBalance } from './walletKstarSync';
 
 let meCache: Awaited<ReturnType<typeof fetchMe>> | null = null;
@@ -39,8 +44,39 @@ export async function hydratePlatformSession(userId: string): Promise<void> {
 }
 
 export async function syncServerWalletBalance(userId: string): Promise<void> {
-  if (!isPlatformApiAvailable() || !isCloudAuthUserId(userId)) return;
+  if (!isCloudAuthUserId(userId)) return;
   if (db.currentUserId !== userId) return;
+
+  const preferFirebase = shouldUseFirebaseForCloudData(userId);
+
+  if (preferFirebase && isFirebaseGiftWalletAvailable()) {
+    try {
+      const wallet = await fetchFirebaseWallet(userId);
+      const server = Math.floor(wallet.balance);
+      const local = Math.floor(Number(db.load('coins_balance', 0)));
+      if (server !== local) {
+        saveWalletCoinsBalance(userId, server);
+        window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+      }
+      return;
+    } catch {
+      /* try API */
+    }
+  }
+
+  if (!isPlatformApiAvailable()) {
+    if (isFirebaseGiftWalletAvailable()) {
+      try {
+        const wallet = await fetchFirebaseWallet(userId);
+        saveWalletCoinsBalance(userId, Math.floor(wallet.balance));
+        window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+      } catch {
+        /* local ledger */
+      }
+    }
+    return;
+  }
+
   try {
     const { balance } = await fetchWallet();
     if (typeof balance !== 'number' || !Number.isFinite(balance)) return;
@@ -52,6 +88,14 @@ export async function syncServerWalletBalance(userId: string): Promise<void> {
       window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
     }
   } catch {
-    // fall back to local ledger
+    if (isFirebaseGiftWalletAvailable()) {
+      try {
+        const wallet = await fetchFirebaseWallet(userId);
+        saveWalletCoinsBalance(userId, Math.floor(wallet.balance));
+        window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+      } catch {
+        // fall back to local ledger
+      }
+    }
   }
 }

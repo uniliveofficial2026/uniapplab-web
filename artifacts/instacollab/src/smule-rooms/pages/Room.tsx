@@ -1343,7 +1343,15 @@ export function Room() {
         return;
       }
       void (async () => {
-        const settled = await settlePartyGiftSend(self.id, target.userId, gift.stars);
+        const clientRequestId = `gift_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+        const settled = await settlePartyGiftSend(self.id, target.userId, gift.stars, {
+          giftId: gift.id ?? gift.name,
+          giftName: gift.name,
+          roomId: roomDisplayId,
+          quantity: 1,
+          combo: 1,
+          clientRequestId,
+        });
         if (!settled.ok) {
           showToast(settled.reason ?? 'Not enough coins');
           return;
@@ -1360,6 +1368,12 @@ export function Room() {
           gift,
           { id: self.id, name: self.roomName || self.chatLabel },
           { name: target.name, userId: target.userId },
+          {
+            quantity: 1,
+            combo: 1,
+            roomId: roomDisplayId,
+            giftTransactionId: settled.settle?.giftTransactionId,
+          },
         );
         processedGiftPlayIdsRef.current.add(playPayload.playId ?? `local_${Date.now()}`);
         setActiveGiftPlay(playPayload);
@@ -1369,7 +1383,7 @@ export function Room() {
         showToast(`Sent ${gift.icon} ${gift.name} to ${target.name} (+${gift.stars} coins)`);
       })();
     },
-    [applyRoomGift, defaultGiftReceiver, giftPickerReceiver, liveRoomBus, self.chatLabel, self.id, self.roomName, showToast],
+    [applyRoomGift, defaultGiftReceiver, giftPickerReceiver, liveRoomBus, roomDisplayId, self.chatLabel, self.id, self.roomName, showToast],
   );
 
   const selfCanTakeAdminSeat = canTakeAdminSeat(liveSettings, self.id, {

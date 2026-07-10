@@ -1,8 +1,16 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 import { addWalletCoins, saveWalletCoinsBalance, spendWalletCoins } from '../../lib/walletKstarSync';
+import { syncServerWalletBalance } from '../../lib/walletServerSync';
+import {
+  createRechargeCheckoutSession,
+  fetchRechargePackages,
+  isPlatformApiAvailable,
+  verifyRechargeCheckoutSession,
+} from '../../lib/platformApi';
+import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
 import { 
   DollarSign, 
   ArrowRightLeft, 
@@ -14,6 +22,22 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CoinIcon } from '../common/CoinIcon';
+
+type CoinBundle = {
+  id?: string;
+  coins: number;
+  bonusCoins?: number;
+  price: number;
+  label: string;
+  badge?: string;
+};
+
+const FALLBACK_BUNDLES: CoinBundle[] = [
+  { id: 'starter', coins: 500, bonusCoins: 0, price: 4.99, label: 'Starter Bundle', badge: 'Popular' },
+  { id: 'super', coins: 1000, bonusCoins: 200, price: 9.99, label: 'Super Pack', badge: 'Bonus +20%' },
+  { id: 'elite', coins: 2500, bonusCoins: 500, price: 24.99, label: 'Elite Vault', badge: 'Best Value' },
+  { id: 'whale', coins: 5000, bonusCoins: 1500, price: 49.99, label: 'Whale Cache', badge: 'Super Saver' },
+];
 
 export function BuyExchangeTab() {
   const db = useDB();
@@ -28,58 +52,115 @@ export function BuyExchangeTab() {
   const [exchangeAmount, setExchangeAmount] = useState<string>('');
   const [exchangeSuccess, setExchangeSuccess] = useState<string | null>(null);
 
-  // Coins bundle selectors
-  const COINS_BUNDLES = [
-    { coins: 500, price: 4.99, label: 'Starter Bundle', badge: 'Popular' },
-    { coins: 1200, price: 9.99, label: 'Super pack', badge: 'Bonus +20%' },
-    { coins: 3000, price: 24.99, label: 'Elite Vault', badge: 'Best Value' },
-    { coins: 6500, price: 49.99, label: 'Whale Cache', badge: 'Super Saver' },
-  ];
-
-  // Secure payment checkout modal state
-  const [selectedBundle, setSelectedBundle] = useState<typeof COINS_BUNDLES[0] | null>(null);
+  const [bundles, setBundles] = useState<CoinBundle[]>(FALLBACK_BUNDLES);
+  const [selectedBundle, setSelectedBundle] = useState<CoinBundle | null>(null);
   const [paymentStep, setPaymentStep] = useState<'input' | 'processing' | 'success'>('input');
+  const [checkoutError, setCheckoutError] = useState<string | null>(null);
   
-  // Simulated Card Fields
+  // Simulated Card Fields (local/dev fallback when Stripe unavailable)
   const [cardNumber, setCardNumber] = useState('');
   const [cardExpiry, setCardExpiry] = useState('');
   const [cardCvc, setCardCvc] = useState('');
   const [cardName, setCardName] = useState('');
 
-  // Handle bundle selection click
-  const handleSelectBundle = (bundle: typeof COINS_BUNDLES[0]) => {
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      if (!isPlatformApiAvailable()) return;
+      try {
+        const { packages } = await fetchRechargePackages();
+        if (cancelled || !packages?.length) return;
+        setBundles(
+          packages.map((pkg) => ({
+            id: pkg.id,
+            coins: pkg.coins + (pkg.bonusCoins || 0),
+            bonusCoins: pkg.bonusCoins,
+            price: pkg.priceUsdCents / 100,
+            label: pkg.title,
+            badge: pkg.badge ?? undefined,
+          })),
+        );
+      } catch {
+        /* keep fallback bundles */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const sessionId = params.get('session_id') || params.get('recharge_session');
+    if (!sessionId || !isCloudAuthUserId(appUser.id)) return;
+    void (async () => {
+      try {
+        const result = await verifyRechargeCheckoutSession(sessionId);
+        if (result.paid || result.credited) {
+          await syncServerWalletBalance(appUser.id);
+          window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+        }
+      } catch {
+        /* ignore */
+      }
+    })();
+  }, [appUser.id]);
+
+  const handleSelectBundle = (bundle: CoinBundle) => {
     setSelectedBundle(bundle);
     setPaymentStep('input');
-    // Pre-populate with typical mock values for convenience
+    setCheckoutError(null);
     setCardNumber('4111 2222 3333 4444');
     setCardExpiry('12/28');
     setCardCvc('321');
     setCardName(db.currentUser?.displayName || 'Cardholder');
   };
 
-  // Perform purchase delivery
   const processPurchasePayment = () => {
     if (!selectedBundle) return;
     setPaymentStep('processing');
-    
-    setTimeout(() => {
-      // Deliver coins
-      addWalletCoins(appUser.id, selectedBundle.coins);
+    setCheckoutError(null);
 
-      // Record transaction
-      const currentTrans = db.load('wallet_transactions', []);
-      const newTransaction = {
-        id: `t_${Date.now()}`,
-        type: 'Coins Bought',
-        amount: `+${selectedBundle.coins} Coins`,
-        status: 'Completed',
-        date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        cost: `$${selectedBundle.price.toFixed(2)} USD`
-      };
-      db.save('wallet_transactions', [newTransaction, ...currentTrans]);
+    void (async () => {
+      const canStripe =
+        Boolean(selectedBundle.id) &&
+        isPlatformApiAvailable() &&
+        isCloudAuthUserId(appUser.id);
 
-      setPaymentStep('success');
-    }, 1200); // Quick professional processing delay
+      if (canStripe && selectedBundle.id) {
+        try {
+          const origin = window.location.origin;
+          const path = window.location.pathname;
+          const { url } = await createRechargeCheckoutSession({
+            packageId: selectedBundle.id,
+            successUrl: `${origin}${path}?wallet=buy&recharge=1&session_id={CHECKOUT_SESSION_ID}`,
+            cancelUrl: `${origin}${path}?wallet=buy&recharge=cancel`,
+          });
+          if (url) {
+            window.location.assign(url);
+            return;
+          }
+        } catch (err) {
+          setCheckoutError(err instanceof Error ? err.message : 'Checkout unavailable — using demo credit');
+        }
+      }
+
+      // Local/demo credit when Stripe is not configured
+      window.setTimeout(() => {
+        addWalletCoins(appUser.id, selectedBundle.coins);
+        const currentTrans = db.load('wallet_transactions', []);
+        const newTransaction = {
+          id: `t_${Date.now()}`,
+          type: 'Coins Bought',
+          amount: `+${selectedBundle.coins} Coins`,
+          status: 'Completed',
+          date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          cost: `$${selectedBundle.price.toFixed(2)} USD`,
+        };
+        db.save('wallet_transactions', [newTransaction, ...currentTrans]);
+        setPaymentStep('success');
+      }, 800);
+    })();
   };
 
   // Live currency calculators
@@ -156,7 +237,7 @@ export function BuyExchangeTab() {
         </div>
 
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {COINS_BUNDLES.map(bundle => (
+          {bundles.map(bundle => (
             <div 
               key={bundle.coins}
               onClick={() => handleSelectBundle(bundle)}
@@ -396,6 +477,10 @@ export function BuyExchangeTab() {
                   <Lock className="w-3 h-3 text-indigo-500" />
                   Your connection is securely encrypted by certified merchant protocols.
                 </div>
+
+                {checkoutError ? (
+                  <p className="text-[11px] font-semibold text-amber-600">{checkoutError}</p>
+                ) : null}
 
                 <button
                   onClick={processPurchasePayment}

@@ -63,6 +63,32 @@ service cloud.firestore {
       allow delete: if false;
     }
 
+    // Gift economy dual-lane (mirrors Supabase wallets / gift_transactions).
+    match /wallets/{userId} {
+      allow read: if isAuthed();
+      allow create: if ownsCloudUser(userId);
+      // Cross-user updates required for gift settle (sender debit + receiver diamonds).
+      allow update: if isAuthed();
+      allow delete: if false;
+    }
+
+    match /gift_transactions/{txId} {
+      allow read: if isAuthed() && (
+        resource.data.sender_id == profileIdForAuth()
+        || resource.data.receiver_id == profileIdForAuth()
+        || isPlatformAdmin()
+      );
+      allow create: if isAuthed()
+        && request.resource.data.sender_id == profileIdForAuth();
+      allow update, delete: if false;
+    }
+
+    match /gift_room_stats/{statId} {
+      allow read: if isAuthed();
+      allow create, update: if isAuthed();
+      allow delete: if false;
+    }
+
     match /user_app_state/{userId} {
       allow read, create, update: if ownsCloudUser(userId);
       allow delete: if false;

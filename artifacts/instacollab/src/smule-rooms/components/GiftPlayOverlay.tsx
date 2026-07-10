@@ -7,6 +7,7 @@ import {
   type GiftEffectTier,
 } from '../../lib/live/giftEffectCatalog';
 import { giftTierMeta } from '../../lib/live/giftTiers';
+import { GIFT_QUEUE_PRIORITY } from '../../lib/live/giftEconomy';
 import type { GiftPlayPayload } from '../utils/liveRoomTypes';
 import { GiftSvgaPlayer } from './GiftSvgaPlayer';
 
@@ -28,6 +29,19 @@ type ComboState = {
 
 function queueKeyFor(gift: GiftPlayPayload): string {
   return gift.playId ?? `${gift.senderId ?? gift.senderName}-${gift.giftName}-${Date.now()}`;
+}
+
+function queuePriority(gift: GiftPlayPayload): number {
+  const tier = resolvePlayTier({
+    giftId: gift.giftId,
+    giftName: gift.giftName,
+    starValue: gift.starValue,
+  });
+  return GIFT_QUEUE_PRIORITY[tier] ?? 0;
+}
+
+function sortGiftQueue(queue: QueuedGift[]): QueuedGift[] {
+  return [...queue].sort((a, b) => queuePriority(b) - queuePriority(a));
 }
 
 function GiftVideoEffect({ url, onEnded }: { url: string; onEnded: () => void }) {
@@ -429,6 +443,7 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
   useEffect(() => {
     if (!gift) return;
     queueRef.current.push({ ...gift, queueKey: queueKeyFor(gift) });
+    queueRef.current = sortGiftQueue(queueRef.current);
     pumpQueue();
   }, [gift, pumpQueue]);
 

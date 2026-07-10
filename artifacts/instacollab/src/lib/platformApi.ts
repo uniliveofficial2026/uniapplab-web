@@ -102,7 +102,17 @@ export async function fetchMe(): Promise<MeResponse> {
   return apiFetch<MeResponse>('/api/me');
 }
 
-export async function fetchWallet(): Promise<{ balance: number; transactions: unknown[] }> {
+export async function fetchWallet(): Promise<{
+  balance: number;
+  coins?: number;
+  diamonds?: number;
+  rewardPoints?: number;
+  bonusCoins?: number;
+  promoCredits?: number;
+  vipTokens?: number;
+  limits?: unknown;
+  transactions: unknown[];
+}> {
   return apiFetch('/api/wallet');
 }
 
@@ -110,6 +120,102 @@ export async function transferCoins(toUser: string, amount: number): Promise<unk
   return apiFetch('/api/wallet/transfer', {
     method: 'POST',
     body: JSON.stringify({ toUser, amount }),
+  });
+}
+
+export type SendGiftRequest = {
+  giftId: string;
+  receiverId: string;
+  roomId?: string;
+  quantity?: number;
+  combo?: number;
+  clientRequestId?: string;
+  giftName?: string;
+  unitPrice?: number;
+  tier?: string;
+  metadata?: Record<string, unknown>;
+};
+
+export type SendGiftResponse = {
+  ok: boolean;
+  duplicate?: boolean;
+  giftTransactionId?: string;
+  totalCoins?: number;
+  diamondsAwarded?: number;
+  balances?: {
+    senderCoins?: number;
+    senderBonusCoins?: number;
+    receiverDiamonds?: number;
+  };
+  event?: {
+    giftId: string;
+    senderId: string;
+    receiverId: string;
+    roomId: string | null;
+    quantity: number;
+    combo: number;
+    timestamp: number;
+    totalCoins?: number;
+    tier?: string;
+    giftTransactionId?: string;
+  };
+  error?: string;
+};
+
+export async function sendGiftApi(payload: SendGiftRequest): Promise<SendGiftResponse> {
+  return apiFetch('/api/gifts/send', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function fetchGiftCatalogApi(): Promise<{ gifts: unknown[] }> {
+  return apiFetch('/api/gifts/catalog');
+}
+
+export async function fetchGiftHistoryApi(limit = 40): Promise<{ transactions: unknown[] }> {
+  return apiFetch(`/api/gifts/history?limit=${limit}`);
+}
+
+export async function fetchGiftRoomRankingsApi(
+  roomId: string,
+  role: 'sender' | 'receiver' = 'sender',
+): Promise<{ rankings: unknown[] }> {
+  return apiFetch(
+    `/api/gifts/rankings/${encodeURIComponent(roomId)}?role=${encodeURIComponent(role)}`,
+  );
+}
+
+export async function fetchRechargePackages(): Promise<{
+  packages: Array<{
+    id: string;
+    title: string;
+    coins: number;
+    bonusCoins: number;
+    priceUsdCents: number;
+    badge?: string | null;
+  }>;
+}> {
+  return apiFetch('/api/payments/recharge/packages');
+}
+
+export async function createRechargeCheckoutSession(payload: {
+  packageId: string;
+  successUrl: string;
+  cancelUrl: string;
+}): Promise<{ sessionId: string; url: string; orderId: string }> {
+  return apiFetch('/api/payments/recharge/checkout-session', {
+    method: 'POST',
+    body: JSON.stringify(payload),
+  });
+}
+
+export async function verifyRechargeCheckoutSession(
+  sessionId: string,
+): Promise<{ paid: boolean; credited?: boolean; orderId?: string }> {
+  return apiFetch('/api/payments/recharge/verify-session', {
+    method: 'POST',
+    body: JSON.stringify({ sessionId }),
   });
 }
 

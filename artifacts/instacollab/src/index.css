@@ -1833,3 +1833,12 @@ html.chat-open-mobile .mobile-top-nav {
 @keyframes editor-text-cursor {
   50% { border-color: transparent; }
 }
+
+@keyframes youtube-mini-spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}
+
+.youtube-mini-disc {
+  animation: youtube-mini-spin 4.5s linear infinite;
+}

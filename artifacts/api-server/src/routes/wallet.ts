@@ -9,9 +9,19 @@ const router: IRouter = Router();
 router.get("/", auth, requireNotBanned, async (req, res, next) => {
   try {
     const userId = req.authUser!.id;
-    const { data: wallet, error: walletErr } = await getSupabaseService()
+    const sb = getSupabaseService();
+
+    try {
+      await sb.rpc("ensure_wallet", { p_user_id: userId });
+    } catch {
+      /* wallet row may already exist via auth trigger */
+    }
+
+    const { data: wallet, error: walletErr } = await sb
       .from("wallets")
-      .select("balance, updated_at")
+      .select(
+        "balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, updated_at",
+      )
       .eq("user_id", userId)
       .maybeSingle();
     if (walletErr) {
@@ -19,20 +29,46 @@ router.get("/", auth, requireNotBanned, async (req, res, next) => {
       return;
     }
 
-    const { data: txs, error: txErr } = await getSupabaseService()
+    const { data: limits } = await sb
+      .from("wallet_spend_limits")
+      .select(
+        "daily_coin_limit, monthly_coin_limit, daily_spent, monthly_spent, day_key, month_key",
+      )
+      .eq("user_id", userId)
+      .maybeSingle();
+
+    const { data: txs, error: txErr } = await sb
       .from("wallet_transactions")
-      .select("id, from_user, to_user, amount, tx_type, metadata, created_at")
+      .select("id, from_user, to_user, amount, tx_type, currency, metadata, created_at")
       .or(`from_user.eq.${userId},to_user.eq.${userId}`)
       .order("created_at", { ascending: false })
-      .limit(25);
+      .limit(40);
     if (txErr) {
       res.status(400).json({ error: txErr.message });
       return;
     }
 
+    const coins = Number(wallet?.balance ?? 0);
     res.json({
-      balance: wallet?.balance ?? 0,
+      /** Primary spendable coins (legacy field). */
+      balance: coins,
+      coins,
+      diamonds: Number(wallet?.diamonds ?? 0),
+      rewardPoints: Number(wallet?.reward_points ?? 0),
+      bonusCoins: Number(wallet?.bonus_coins ?? 0),
+      promoCredits: Number(wallet?.promo_credits ?? 0),
+      vipTokens: Number(wallet?.vip_tokens ?? 0),
       updatedAt: wallet?.updated_at ?? null,
+      limits: limits
+        ? {
+            dailyCoinLimit: Number(limits.daily_coin_limit),
+            monthlyCoinLimit: Number(limits.monthly_coin_limit),
+            dailySpent: Number(limits.daily_spent),
+            monthlySpent: Number(limits.monthly_spent),
+            dayKey: limits.day_key,
+            monthKey: limits.month_key,
+          }
+        : null,
       transactions: txs ?? [],
     });
   } catch (err) {
@@ -65,21 +101,41 @@ router.post("/transfer", auth, requireNotBanned, async (req, res, next) => {
 
 router.post("/credit", auth, requireAdmin, async (req, res, next) => {
   try {
-    const { userId, amount, txType, metadata } = req.body as {
+    const { userId, amount, txType, metadata, currency } = req.body as {
       userId?: string;
       amount?: number;
       txType?: string;
       metadata?: Record<string, unknown>;
+      currency?: string;
     };
     if (!userId || !amount || amount <= 0) {
       res.status(400).json({ error: "userId and positive amount required" });
       return;
     }
-    const { data, error } = await getSupabaseService().rpc("credit_coins", {
+
+    const cur = String(currency || "coins");
+    if (cur === "coins") {
+      const { data, error } = await getSupabaseService().rpc("credit_coins", {
+        target_user: userId,
+        amount: Math.floor(amount),
+        tx_type: txType ?? "credit",
+        metadata: metadata ?? {},
+      });
+      if (error) {
+        res.status(400).json({ error: error.message });
+        return;
+      }
+      res.json(data);
+      return;
+    }
+
+    const { data, error } = await getSupabaseService().rpc("credit_wallet_currency", {
       target_user: userId,
       amount: Math.floor(amount),
+      p_currency: cur,
       tx_type: txType ?? "credit",
       metadata: metadata ?? {},
+      p_idempotency_key: null,
     });
     if (error) {
       res.status(400).json({ error: error.message });

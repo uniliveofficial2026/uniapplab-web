@@ -13,6 +13,12 @@ export type GiftPlayPayload = {
   receiverUserId?: string;
   effectVideoUrl?: string;
   effectSvgaUrl?: string;
+  /** Phase 1+ realtime gift event fields */
+  quantity?: number;
+  combo?: number;
+  roomId?: string;
+  timestamp?: number;
+  giftTransactionId?: string;
 };
 
 export type PKPhase = 'idle' | 'inviting' | 'active' | 'ended';
@@ -310,6 +316,12 @@ export function giftFromDefinition(
   gift: PartyGiftDefinition,
   sender: { id: string; name: string },
   receiver: { name: string; userId?: string },
+  extras?: {
+    quantity?: number;
+    combo?: number;
+    roomId?: string;
+    giftTransactionId?: string;
+  },
 ): GiftPlayPayload {
   return {
     action: 'play',
@@ -324,5 +336,10 @@ export function giftFromDefinition(
     receiverUserId: receiver.userId,
     effectVideoUrl: gift.effectVideoUrl,
     effectSvgaUrl: gift.effectSvgaUrl,
+    quantity: extras?.quantity ?? 1,
+    combo: extras?.combo ?? 1,
+    roomId: extras?.roomId,
+    timestamp: Math.floor(Date.now() / 1000),
+    giftTransactionId: extras?.giftTransactionId,
   };
 }

@@ -17,7 +17,7 @@ const STORAGE_KEY = 'youtube-mini-player-v1';
 const CHANGE_EVENT = 'youtube-mini-player:change';
 const OPEN_PICKER_EVENT = 'youtube-mini-player:open-picker';
 
-const DEFAULT_SIZE = { width: 300, height: 170 };
+const DEFAULT_SIZE = { width: 380, height: 232 };
 
 function defaultPosition(): { x: number; y: number } {
   if (typeof window === 'undefined') return { x: 16, y: 96 };
@@ -67,8 +67,12 @@ function readStoredState(): YoutubeMiniPlayerState {
       videoId: typeof parsed.videoId === 'string' ? parsed.videoId : null,
       title: typeof parsed.title === 'string' ? parsed.title : '',
       channelTitle: typeof parsed.channelTitle === 'string' ? parsed.channelTitle : '',
-      width: Number.isFinite(parsed.width) ? Number(parsed.width) : base.width,
-      height: Number.isFinite(parsed.height) ? Number(parsed.height) : base.height,
+      width: Number.isFinite(parsed.width)
+        ? Math.max(Number(parsed.width), DEFAULT_SIZE.width)
+        : base.width,
+      height: Number.isFinite(parsed.height)
+        ? Math.max(Number(parsed.height), DEFAULT_SIZE.height)
+        : base.height,
       x: Number.isFinite(parsed.x) ? Number(parsed.x) : base.x,
       y: Number.isFinite(parsed.y) ? Number(parsed.y) : base.y,
     };
