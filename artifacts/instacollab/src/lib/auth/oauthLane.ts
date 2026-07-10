@@ -12,7 +12,7 @@ import {
   resolveOAuthSignInBackend,
 } from './providerState';
 
-const OAUTH_PROBE_MS = 6_000;
+const OAUTH_PROBE_MS = 4_000;
 
 /** Instant OAuth lane — no network probe on sign-in click. */
 export function resolveLiveOAuthBackendSync(): AuthBackend {
@@ -32,6 +32,10 @@ export async function resolveLiveOAuthBackend(): Promise<AuthBackend> {
     return 'firebase';
   }
 
+  if (!isFirebaseConfigured()) {
+    return 'supabase';
+  }
+
   invalidateSupabaseHealthCache();
   const oauthOk = await probeSupabaseOAuthReady(OAUTH_PROBE_MS);
   if (oauthOk) {
@@ -40,7 +44,7 @@ export async function resolveLiveOAuthBackend(): Promise<AuthBackend> {
   }
 
   markSupabaseOAuthDegraded();
-  return isFirebaseConfigured() ? 'firebase' : 'supabase';
+  return 'firebase';
 }
 
 export async function isSupabaseOAuthRedirectAllowed(): Promise<boolean> {

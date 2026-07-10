@@ -23,17 +23,18 @@ export function getConfiguredAppOrigin(): string {
 export function getAuthRedirectUrl(): string | undefined {
   if (typeof window === 'undefined') return undefined;
 
-  const configured = getConfiguredAppOrigin();
   const fromEnv = String(import.meta.env.VITE_APP_ORIGIN || '').trim().replace(/\/$/, '');
   if (fromEnv) return fromEnv;
 
+  const configured = getConfiguredAppOrigin();
   const { origin, pathname, search, hostname } = window.location;
   if (isLocalDevHost(hostname) || hostname.endsWith('vercel.app')) {
     const path = pathname && pathname !== '/' ? pathname : '';
     return `${normalizeLoopbackOrigin(origin)}${path}${search}`;
   }
 
-  return configured;
+  // Production OAuth must return to the app origin root (SPA), never a deep path that 404s.
+  return configured || normalizeLoopbackOrigin(origin);
 }
 
 /** Origins to register in Supabase + Google Cloud. */
