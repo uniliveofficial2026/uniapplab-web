@@ -84,14 +84,12 @@ router.get("/catalog", async (_req, res, next) => {
       .order("sort_order", { ascending: true })
       .order("price", { ascending: true });
 
-    if (error) {
-      res.status(400).json({ error: error.message });
-      return;
+    let gifts: ReturnType<typeof mapCatalogItem>[] = [];
+    if (!error && rows) {
+      gifts = ((rows ?? []) as GiftCatalogRow[])
+        .filter((row) => isGiftAvailableNow(row))
+        .map(mapCatalogItem);
     }
-
-    let gifts = ((rows ?? []) as GiftCatalogRow[])
-      .filter((row) => isGiftAvailableNow(row))
-      .map(mapCatalogItem);
 
     if (gifts.length === 0) {
       const { data: blob } = await sb
