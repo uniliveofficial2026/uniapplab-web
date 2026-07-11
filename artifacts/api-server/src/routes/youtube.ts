@@ -98,4 +98,87 @@ router.get("/youtube/search", async (req, res, next) => {
   }
 });
 
+router.get("/youtube/playlist", async (req, res, next) => {
+  try {
+    const apiKey = youtubeApiKey();
+    if (!apiKey) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+
+    const playlistId = String(req.query.playlistId ?? "").trim();
+    if (!playlistId) {
+      res.status(400).json({ error: "playlistId required" });
+      return;
+    }
+
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const maxResults = Math.min(
+      50,
+      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "50"), 10) || 50),
+    );
+
+    const params = new URLSearchParams({
+      part: "snippet,contentDetails",
+      playlistId,
+      maxResults: String(maxResults),
+      key: apiKey,
+    });
+    if (pageToken) params.set("pageToken", pageToken);
+
+    const upstream = await fetch(
+      `https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`,
+    );
+    const body = (await upstream.json()) as {
+      items?: Array<{
+        contentDetails?: { videoId?: string };
+        snippet?: {
+          title?: string;
+          channelTitle?: string;
+          publishedAt?: string;
+          resourceId?: { videoId?: string };
+          thumbnails?: {
+            medium?: { url?: string };
+            high?: { url?: string };
+            default?: { url?: string };
+          };
+        };
+      }>;
+      nextPageToken?: string;
+      error?: { message?: string };
+    };
+
+    if (!upstream.ok) {
+      res.status(upstream.status).json({
+        error: "youtube_playlist_failed",
+        message: body.error?.message ?? upstream.statusText,
+      });
+      return;
+    }
+
+    const items = (body.items ?? [])
+      .map((item) => {
+        const videoId =
+          item.contentDetails?.videoId?.trim() ||
+          item.snippet?.resourceId?.videoId?.trim();
+        if (!videoId) return null;
+        const thumbs = item.snippet?.thumbnails;
+        const thumbnailUrl =
+          thumbs?.medium?.url ?? thumbs?.high?.url ?? thumbs?.default?.url ?? "";
+        return {
+          videoId,
+          title: item.snippet?.title?.trim() || "Untitled",
+          channelTitle: item.snippet?.channelTitle?.trim() || "YouTube",
+          thumbnailUrl,
+          publishedAt: item.snippet?.publishedAt,
+        };
+      })
+      .filter((item): item is NonNullable<typeof item> => Boolean(item));
+
+    res.json({ items, nextPageToken: body.nextPageToken ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
 export default router;

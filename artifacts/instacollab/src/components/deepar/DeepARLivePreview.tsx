@@ -79,7 +79,7 @@ export function DeepARLivePreview({
 
   const camera = useCameraStream({
     enabled: enabled && (configured || webarConfigured),
-    audio: true,
+    audio: false,
   });
 
   const [inputStream, setInputStream] = useState<MediaStream | null>(null);

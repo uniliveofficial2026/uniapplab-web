@@ -121,7 +121,7 @@ export function DeepARCameraCapture({
 
   const camera = useCameraStream({
     enabled: open,
-    audio: true,
+    audio: false,
     facingMode,
     videoIdeal: captureIdealRef.current,
     frameRate: WEBAR_CAMERA_FRAME_RATE,

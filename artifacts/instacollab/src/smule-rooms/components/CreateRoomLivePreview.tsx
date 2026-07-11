@@ -24,6 +24,7 @@ import {
 } from '../../lib/webar/webarTypes';
 import { PREVIEW_AVATARS } from '../utils/roomModePreviewDemo';
 import type { PendingCreateRoomBeauty } from '../utils/pendingCreateRoomBeauty';
+import { readLastVideoCallBeauty, stashLastVideoCallBeauty } from '../../lib/ar/lastVideoCallBeauty';
 import { LiveBeautySheet } from './LiveBeautySheet';
 
 type CreateRoomLivePreviewProps = {
@@ -34,6 +35,10 @@ type CreateRoomLivePreviewProps = {
   onSetupChange?: (setup: PendingCreateRoomBeauty) => void;
 };
 
+function initialBeautyFromLastCall() {
+  return readLastVideoCallBeauty();
+}
+
 export function CreateRoomLivePreview({
   mode,
   enabled,
@@ -43,12 +48,17 @@ export function CreateRoomLivePreview({
   const isShop = mode === 'Commerce-Live';
   const webarConfigured = isTencentWebARConfigured();
   const captureIdealRef = useRef(getStableCameraIdeal(webarConfigured));
+  const lastCallBeauty = useRef(initialBeautyFromLastCall()).current;
 
-  const [beautyId, setBeautyId] = useState<BeautyPresetId>('none');
-  const [beautyEffects, setBeautyEffects] = useState<TencentEffectSelection>(
-    EMPTY_TENCENT_EFFECT_SELECTION,
+  const [beautyId, setBeautyId] = useState<BeautyPresetId>(
+    () => lastCallBeauty?.beautyId ?? 'none',
   );
-  const [bodyShape, setBodyShape] = useState<BodyShapeParams>(EMPTY_BODY_SHAPE);
+  const [beautyEffects, setBeautyEffects] = useState<TencentEffectSelection>(
+    () => lastCallBeauty?.beautyEffects ?? EMPTY_TENCENT_EFFECT_SELECTION,
+  );
+  const [bodyShape, setBodyShape] = useState<BodyShapeParams>(
+    () => lastCallBeauty?.bodyShape ?? EMPTY_BODY_SHAPE,
+  );
   const [beautyPanelOpen, setBeautyPanelOpen] = useState(false);
   const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
 
@@ -133,6 +143,7 @@ export function CreateRoomLivePreview({
       bodyShape,
       roomMode: mode,
     });
+    stashLastVideoCallBeauty({ beautyId, beautyEffects, bodyShape });
   }, [beautyId, beautyEffects, bodyShape, mode, onSetupChange]);
 
   useEffect(() => {
@@ -277,24 +288,35 @@ export function CreateRoomLivePreview({
       ) : null}
 
       {beautyPanelOpen ? (
-        <div className="absolute inset-x-0 bottom-0 z-30 max-h-[55%] overflow-y-auto">
-          <LiveBeautySheet
-            isOpen
-            onClose={() => setBeautyPanelOpen(false)}
-            activeBeautyId={beautyId}
-            onSelectBeauty={handleSelectBeauty}
-            effects={beautyEffects}
-            onEffectsChange={handleBeautyEffectsChange}
-            bodyShape={bodyShape}
-            onBodyShapeChange={setBodyShape}
-            catalogs={streamBeauty.catalogs}
-            readyEffectIds={streamBeauty.readyEffectIds}
-            variant="inline"
-            webarConfigured={webarConfigured}
-            webarLoading={streamBeauty.loading}
-            webarError={streamBeauty.error}
+        <>
+          <button
+            type="button"
+            className="absolute inset-0 z-[25] cursor-default bg-black/35"
+            aria-label="Close beauty panel"
+            onClick={() => setBeautyPanelOpen(false)}
           />
-        </div>
+          <div
+            className="absolute inset-x-0 bottom-0 z-30 max-h-[55%] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-black/80 backdrop-blur-xl"
+            onClick={(event) => event.stopPropagation()}
+          >
+            <LiveBeautySheet
+              isOpen
+              onClose={() => setBeautyPanelOpen(false)}
+              activeBeautyId={beautyId}
+              onSelectBeauty={handleSelectBeauty}
+              effects={beautyEffects}
+              onEffectsChange={handleBeautyEffectsChange}
+              bodyShape={bodyShape}
+              onBodyShapeChange={setBodyShape}
+              catalogs={streamBeauty.catalogs}
+              readyEffectIds={streamBeauty.readyEffectIds}
+              variant="inline"
+              webarConfigured={webarConfigured}
+              webarLoading={streamBeauty.loading}
+              webarError={streamBeauty.error}
+            />
+          </div>
+        </>
       ) : null}
     </div>
   );

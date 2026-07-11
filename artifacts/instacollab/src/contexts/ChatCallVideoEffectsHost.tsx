@@ -26,6 +26,7 @@ import { prepareProcessedVideoTrackForLiveKit } from '../lib/livekit/liveKitVide
 import { ChatCallLocalCameraStage } from '../components/messages/ChatCallLocalCameraStage';
 import { MultiGuestEffectsSheet } from '../smule-rooms/components/MultiGuestEffectsSheet';
 import { LiveBeautySheet } from '../smule-rooms/components/LiveBeautySheet';
+import { readLastVideoCallBeauty, stashLastVideoCallBeauty } from '../lib/ar/lastVideoCallBeauty';
 
 export type ChatCallVideoEffectsValue = {
   beautyId: BeautyPresetId;
@@ -85,11 +86,15 @@ export function ChatCallVideoEffectsHost({
   onReplaceVideoTrack: (track: MediaStreamTrack | null) => void;
   children: React.ReactNode;
 }) {
-  const [beautyId, setBeautyId] = useState<BeautyPresetId>('none');
-  const [beautyEffects, setBeautyEffects] = useState<TencentEffectSelection>(
-    EMPTY_TENCENT_EFFECT_SELECTION,
-  );
-  const [bodyShape, setBodyShape] = useState<BodyShapeParams>(EMPTY_BODY_SHAPE);
+  const [beautyId, setBeautyId] = useState<BeautyPresetId>(() => {
+    return readLastVideoCallBeauty()?.beautyId ?? 'none';
+  });
+  const [beautyEffects, setBeautyEffects] = useState<TencentEffectSelection>(() => {
+    return readLastVideoCallBeauty()?.beautyEffects ?? EMPTY_TENCENT_EFFECT_SELECTION;
+  });
+  const [bodyShape, setBodyShape] = useState<BodyShapeParams>(() => {
+    return readLastVideoCallBeauty()?.bodyShape ?? EMPTY_BODY_SHAPE;
+  });
   const [deeparEffectId, setDeeparEffectId] = useState('none');
   const [deeparPanelOpen, setDeeparPanelOpen] = useState(false);
   const [beautyPanelOpen, setBeautyPanelOpen] = useState(false);
@@ -116,6 +121,11 @@ export function ChatCallVideoEffectsHost({
   );
   const shapeActive = !BODY_SHAPE_COMING_SOON && isBodyShapeActive(bodyShape);
   const beautyActive = beautyId !== 'none' || beautyEffectsActive || shapeActive;
+
+  useEffect(() => {
+    if (!active) return;
+    stashLastVideoCallBeauty({ beautyId, beautyEffects, bodyShape });
+  }, [active, beautyId, beautyEffects, bodyShape]);
 
   useEffect(() => {
     if (active && beautyConfigured) {

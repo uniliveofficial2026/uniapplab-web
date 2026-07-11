@@ -67,6 +67,37 @@ export function parseYoutubeVideoId(input: string): string | null {
   }
 }
 
+/** Extract a YouTube playlist id (PL…) from a URL or raw id. */
+export function parseYoutubePlaylistId(input: string): string | null {
+  const trimmed = input.trim();
+  if (!trimmed) return null;
+  if (/^PL[\w-]{10,}$/i.test(trimmed) || /^UU[\w-]{10,}$/i.test(trimmed) || /^OLAK5uy_[\w-]{10,}$/i.test(trimmed)) {
+    return trimmed;
+  }
+  try {
+    const url = new URL(trimmed);
+    const host = url.hostname.toLowerCase();
+    if (!YOUTUBE_HOSTS.has(host)) return null;
+    if (url.pathname.startsWith('/playlist')) {
+      const list = url.searchParams.get('list');
+      return list?.trim() || null;
+    }
+    const list = url.searchParams.get('list');
+    return list?.trim() || null;
+  } catch {
+    return null;
+  }
+}
+
+export async function fetchYoutubePlaylistItems(
+  playlistId: string,
+  pageToken?: string,
+): Promise<YoutubeSearchResponse> {
+  const params = new URLSearchParams({ playlistId: playlistId.trim() });
+  if (pageToken) params.set('pageToken', pageToken);
+  return apiFetch<YoutubeSearchResponse>(`/api/youtube/playlist?${params.toString()}`);
+}
+
 export function isValidYoutubeVideoId(value: string | null | undefined): value is string {
   if (!value) return false;
   return /^[a-zA-Z0-9_-]{11}$/.test(value);

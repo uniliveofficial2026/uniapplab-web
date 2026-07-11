@@ -5,6 +5,11 @@ export type YoutubeMiniPlayerState = {
   minimized: boolean;
   pickerOpen: boolean;
   videoId: string | null;
+  /** Native YouTube playlist id (PL…) — player auto-advances within the list. */
+  playlistId: string | null;
+  /** App-managed queue for search picks / multi-select. */
+  queue: YoutubeVideoSummary[];
+  queueIndex: number;
   title: string;
   channelTitle: string;
   x: number;
@@ -40,6 +45,9 @@ function createDefaultState(): YoutubeMiniPlayerState {
     minimized: false,
     pickerOpen: false,
     videoId: null,
+    playlistId: null,
+    queue: [],
+    queueIndex: 0,
     title: '',
     channelTitle: '',
     x: pos.x,
@@ -58,6 +66,12 @@ function readStoredState(): YoutubeMiniPlayerState {
     if (!raw) return createDefaultState();
     const parsed = JSON.parse(raw) as Partial<YoutubeMiniPlayerState>;
     const base = createDefaultState();
+    const queue = Array.isArray(parsed.queue)
+      ? parsed.queue.filter(
+          (item): item is YoutubeVideoSummary =>
+            Boolean(item && typeof item.videoId === 'string' && item.videoId.length === 11),
+        )
+      : [];
     return {
       ...base,
       ...parsed,
@@ -65,6 +79,11 @@ function readStoredState(): YoutubeMiniPlayerState {
       minimized: parsed.minimized === true,
       pickerOpen: false,
       videoId: typeof parsed.videoId === 'string' ? parsed.videoId : null,
+      playlistId: typeof parsed.playlistId === 'string' ? parsed.playlistId : null,
+      queue,
+      queueIndex: Number.isFinite(parsed.queueIndex)
+        ? Math.max(0, Math.min(Number(parsed.queueIndex), Math.max(0, queue.length - 1)))
+        : 0,
       title: typeof parsed.title === 'string' ? parsed.title : '',
       channelTitle: typeof parsed.channelTitle === 'string' ? parsed.channelTitle : '',
       width: Number.isFinite(parsed.width)
@@ -119,18 +138,62 @@ export function openYoutubeMiniPlayerPicker(): void {
   window.dispatchEvent(new CustomEvent(OPEN_PICKER_EVENT));
 }
 
-export function playYoutubeMiniVideo(video: YoutubeVideoSummary | { videoId: string; title?: string; channelTitle?: string }): void {
+export function playYoutubeMiniVideo(
+  video: YoutubeVideoSummary | { videoId: string; title?: string; channelTitle?: string; thumbnailUrl?: string },
+  options?: { playlistId?: string | null; queue?: YoutubeVideoSummary[]; queueIndex?: number },
+): void {
   const pos = memoryState.open ? { x: memoryState.x, y: memoryState.y } : defaultPosition();
+  const queue =
+    options?.queue && options.queue.length > 0
+      ? options.queue
+      : [
+          {
+            videoId: video.videoId,
+            title: video.title || 'YouTube',
+            channelTitle: video.channelTitle || '',
+            thumbnailUrl:
+              'thumbnailUrl' in video && video.thumbnailUrl
+                ? video.thumbnailUrl
+                : `https://i.ytimg.com/vi/${video.videoId}/hqdefault.jpg`,
+          },
+        ];
+  const queueIndex = Math.max(
+    0,
+    Math.min(options?.queueIndex ?? 0, Math.max(0, queue.length - 1)),
+  );
+  const current = queue[queueIndex] ?? video;
   patchYoutubeMiniPlayerState({
     open: true,
     minimized: false,
     pickerOpen: false,
-    videoId: video.videoId,
-    title: video.title || 'YouTube',
-    channelTitle: video.channelTitle || '',
+    videoId: current.videoId,
+    playlistId: options?.playlistId ?? null,
+    queue,
+    queueIndex,
+    title: current.title || 'YouTube',
+    channelTitle: current.channelTitle || '',
     x: pos.x,
     y: pos.y,
   });
+}
+
+/** Advance to the next queued video. Returns false when nothing left to play. */
+export function playYoutubeMiniNext(): boolean {
+  const { queue, queueIndex, playlistId } = memoryState;
+  // Native playlist auto-advances inside the iframe — don't force a reload.
+  if (playlistId) return false;
+  const nextIndex = queueIndex + 1;
+  if (nextIndex >= queue.length) return false;
+  const next = queue[nextIndex];
+  if (!next) return false;
+  patchYoutubeMiniPlayerState({
+    open: true,
+    videoId: next.videoId,
+    queueIndex: nextIndex,
+    title: next.title || 'YouTube',
+    channelTitle: next.channelTitle || '',
+  });
+  return true;
 }
 
 export function toggleYoutubeMiniPlayerMinimized(): void {
@@ -147,6 +210,9 @@ export function closeYoutubeMiniPlayer(): void {
     minimized: false,
     pickerOpen: false,
     videoId: null,
+    playlistId: null,
+    queue: [],
+    queueIndex: 0,
     title: '',
     channelTitle: '',
   });

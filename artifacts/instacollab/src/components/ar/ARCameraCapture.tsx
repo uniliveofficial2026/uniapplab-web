@@ -121,7 +121,7 @@ export function ARCameraCapture({ open, onClose, onCaptured }: ARCameraCapturePr
 
   const camera = useCameraStream({
     enabled: open && available,
-    audio: true,
+    audio: false,
     facingMode,
     videoIdeal: captureIdealRef.current,
     frameRate: WEBAR_CAMERA_FRAME_RATE,

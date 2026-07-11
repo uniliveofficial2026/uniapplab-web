@@ -7,13 +7,14 @@ import {
   closeYoutubeMiniPlayer,
   openYoutubeMiniPlayerPicker,
   patchYoutubeMiniPlayerState,
+  playYoutubeMiniNext,
 } from '../../lib/youtubeMiniPlayer';
 import { useYoutubeMiniPlayer } from '../../hooks/useYoutubeMiniPlayer';
 
 /** Expanded chrome header — taller so controls stay tappable. */
 const HEADER_HEIGHT = 52;
 /** Spinning disc size when minimized (playback continues off-screen). */
-const DISC_SIZE = 76;
+const DISC_SIZE = 48;
 
 function youtubeThumbUrl(videoId: string): string {
   return `https://i.ytimg.com/vi/${videoId}/mqdefault.jpg`;
@@ -115,7 +116,7 @@ export function YoutubeMiniPlayerFloating() {
           title={`${state.title || 'YouTube'} — tap to expand`}
         >
           <span
-            className="youtube-mini-disc absolute inset-[5px] overflow-hidden rounded-full border-2 border-white/25 shadow-[inset_0_0_0_11px_rgba(0,0,0,0.5)]"
+            className="youtube-mini-disc absolute inset-[3px] overflow-hidden rounded-full border border-white/25 shadow-[inset_0_0_0_7px_rgba(0,0,0,0.5)]"
             style={{
               backgroundImage: `url(${youtubeThumbUrl(state.videoId)})`,
               backgroundSize: 'cover',
@@ -123,7 +124,7 @@ export function YoutubeMiniPlayerFloating() {
             }}
           />
           <span className="absolute inset-0 rounded-full bg-gradient-to-br from-white/10 via-transparent to-black/50" />
-          <span className="relative z-[1] h-3.5 w-3.5 rounded-full border border-white/35 bg-[#0b0612] shadow-inner" />
+          <span className="relative z-[1] h-2.5 w-2.5 rounded-full border border-white/35 bg-[#0b0612] shadow-inner" />
         </button>
       ) : (
         <div
@@ -189,8 +190,12 @@ export function YoutubeMiniPlayerFloating() {
       >
         <WatchTogetherYoutubePlayer
           videoId={state.videoId}
+          playlistId={state.playlistId}
           title={state.title}
           className="h-full w-full"
+          onEnded={() => {
+            playYoutubeMiniNext();
+          }}
         />
       </div>
     </div>

@@ -31,7 +31,10 @@ import { buildKaraokeTrackSharePayload, type SharePayload } from '../../lib/shar
 import type { User } from '../../types';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
+import { useCloudPartyRooms } from '../../hooks/useCloudPartyRooms';
 import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
+import type { RoomMode } from '../../smule-rooms/utils/storage';
+import { isDiscoverableLiveRoomMode } from '../../lib/liveRing';
 import { syncLiveSessionData } from '../../lib/liveSessionSync';
 import { consumePendingKaraokeRoomOpen } from '../../lib/live/openLiveRoom';
 import { safeAvatarUrl, safeUsername } from '../../lib/safe';
@@ -808,26 +811,48 @@ export function KaraokeScreen() {
     openSmuleRoomFlow(path ?? `/room/${room.id}`);
   };
 
-  const PARTY_LOBBY_ROOMS = [
-    { id: 1181033, name: 'Pop Hits 2026 🎵', host: 'VocalKing', participants: 42, max: 50, tags: ['Pop', 'Top 40'], roomMode: 'Karaoke' as const },
-    { id: 1167298, name: '90s R&B Throwbacks', host: 'SoulSister', participants: 28, max: 50, tags: ['R&B', '90s'], roomMode: 'Chat' as const },
-    { id: 3, name: 'K-Pop Fanatics', host: 'BTS_Army12', participants: 49, max: 50, tags: ['K-Pop', 'Dance'], roomMode: 'Karaoke' as const },
-    { id: 4, name: 'Chill Acoustic Vibes', host: 'GuitarHero', participants: 15, max: 50, tags: ['Acoustic', 'Chill'], roomMode: 'Radio' as const },
-  ];
+  const { rooms: cloudPartyRooms, loading: cloudPartyRoomsLoading } = useCloudPartyRooms(
+    activeTab === 'party',
+  );
 
-  const joinPartyRoom = (room: (typeof PARTY_LOBBY_ROOMS)[number]) => {
+  const livePartyRooms = useMemo(
+    () =>
+      cloudPartyRooms.filter((room) => isDiscoverableLiveRoomMode(room.roomMode)),
+    [cloudPartyRooms],
+  );
+
+  const toStorageRoomMode = (mode: string): RoomMode => {
+    const normalized = mode.trim();
+    if (normalized === 'SoloLive' || normalized === 'Solo-Live') return 'Solo-Live';
+    if (normalized === 'MultiGuest' || normalized === 'Multi-Guest') return 'Multi-Guest';
+    if (normalized === 'WatchTogether' || normalized === 'Radio') return 'Radio';
+    if (normalized === 'GameLive' || normalized === 'Game-Live') return 'Game-Live';
+    if (normalized === 'Commerce-Live' || normalized === 'CommerceLive') return 'Commerce-Live';
+    if (normalized === 'Party') return 'Party';
+    if (normalized === 'Chorus' || normalized === 'Karaoke') return 'Karaoke';
+    if (normalized === 'Chat') return 'Chat';
+    return 'Karaoke';
+  };
+
+  const joinPartyRoom = (room: {
+    id: string;
+    name: string;
+    host: string;
+    roomMode: string;
+  }) => {
     const roomId = String(room.id);
+    const roomMode = toStorageRoomMode(room.roomMode);
     ensureRoomSettingsSeeded(roomId, {
       roomId,
       roomName: room.name,
-      roomMode: room.roomMode,
+      roomMode,
       owner: room.host,
     });
     ensureRoomRoleUserIds(roomId);
     saveRoomSettings(roomId, {
       roomId,
       roomName: room.name,
-      roomMode: room.roomMode,
+      roomMode,
     });
     localStorage.setItem('currentUserRole', 'user');
     openSmuleRoomFlow(`/room/${roomId}`);
@@ -3294,16 +3319,28 @@ export function KaraokeScreen() {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {PARTY_LOBBY_ROOMS.map((room) => {
+                  {cloudPartyRoomsLoading && livePartyRooms.length === 0 ? (
+                    <p className="col-span-full text-sm text-muted-foreground">Loading live rooms…</p>
+                  ) : null}
+                  {!cloudPartyRoomsLoading && livePartyRooms.length === 0 ? (
+                    <p className="col-span-full text-sm text-muted-foreground">
+                      No active live rooms right now. Start one above.
+                    </p>
+                  ) : null}
+                  {livePartyRooms.map((room) => {
                     const hostLabel = formatRoomHostMeta(
                       resolveRoomHostDisplay(String(room.id), room.host),
                     );
+                    const extra = Math.max(0, room.participants - 3);
                     return (
                      <div key={room.id} className="bg-card border border-border rounded-2xl p-4 hover:shadow-md hover:border-primary/40 transition group">
                         <div className="flex justify-between items-start mb-3">
                            <div>
                               <h3 className="font-bold text-lg group-hover:text-primary transition">{room.name}</h3>
                               <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">Host: <span className="font-semibold text-foreground">{hostLabel}</span></p>
+                              {room.roomMode ? (
+                                <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-primary/80">{room.roomMode}</p>
+                              ) : null}
                            </div>
                            <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 px-2 py-1 rounded-md text-xs font-bold">
                               <Users className="w-3 h-3" /> {room.participants}/{room.max}
@@ -3312,11 +3349,16 @@ export function KaraokeScreen() {
                         <div className="flex items-center justify-between mt-4">
                            <div className="flex gap-2">
                              <div className="flex -space-x-2">
-                               {[1, 2, 3].map((j) => (
-                                 <img key={j} src={`https://api.dicebear.com/7.x/avataaars/svg?seed=party${room.id}${j}`} className="w-6 h-6 rounded-full border-2 border-card bg-zinc-200 shadow-sm" alt="" />
+                               {(room.coverUrl
+                                 ? [room.coverUrl]
+                                 : [1, 2, 3].map((j) => `https://api.dicebear.com/7.x/avataaars/svg?seed=party${room.id}${j}`)
+                               ).slice(0, 3).map((src, j) => (
+                                 <img key={`${room.id}-av-${j}`} src={src} className="w-6 h-6 rounded-full border-2 border-card bg-zinc-200 shadow-sm object-cover" alt="" />
                                ))}
                              </div>
-                             <span className="text-xs text-muted-foreground flex items-center">+{room.participants - 3} more</span>
+                             {extra > 0 ? (
+                               <span className="text-xs text-muted-foreground flex items-center">+{extra} more</span>
+                             ) : null}
                            </div>
                            <button
                              type="button"
