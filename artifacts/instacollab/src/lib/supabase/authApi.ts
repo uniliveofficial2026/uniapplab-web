@@ -8,57 +8,6 @@ import {
   mapSupabaseAuthServiceError,
 } from '../auth/googleSignInErrorHints';
 import type { AuthResult } from '../auth/types';
-import { fetchWithTimeout, NET_API_MS } from '../networkPolicy';
-import { getSupabaseUrl } from './config';
-import {
-  isSupabaseOAuthReadyStatus,
-  isSupabaseReachableStatus,
-} from '../auth/health';
-import { markSupabaseOAuthDegraded } from '../auth/providerState';
-
-async function assertSupabaseReachable(): Promise<AuthResult | null> {
-  const base = getSupabaseUrl().replace(/\/$/, '');
-  if (!base) {
-    return { ok: false, reason: 'Supabase is not configured.' };
-  }
-
-  const infraMessage =
-    'Supabase sign-in is temporarily unavailable. Wait a few minutes, or use email login if enabled.';
-
-  try {
-    const health = await fetchWithTimeout(
-      `${base}/auth/v1/health`,
-      { method: 'GET', headers: { accept: 'application/json' } },
-      NET_API_MS,
-      'supabase.auth.health',
-    );
-    if (!isSupabaseReachableStatus(health.status)) {
-      markSupabaseOAuthDegraded();
-      return { ok: false, reason: infraMessage };
-    }
-
-    const redirectTo =
-      typeof window !== 'undefined' ? window.location.origin : 'https://app.uniapplab.com';
-    const authorize = await fetchWithTimeout(
-      `${base}/auth/v1/authorize?provider=google&redirect_to=${encodeURIComponent(redirectTo)}`,
-      { method: 'GET', redirect: 'manual', headers: { accept: 'text/html' } },
-      Math.min(NET_API_MS, 6_000),
-      'supabase.auth.authorize',
-    );
-    if (!isSupabaseOAuthReadyStatus(authorize.status)) {
-      markSupabaseOAuthDegraded();
-      return { ok: false, reason: infraMessage };
-    }
-  } catch {
-    markSupabaseOAuthDegraded();
-    return {
-      ok: false,
-      reason:
-        'Cannot reach Supabase auth right now (connection timed out). Check your network or try again in a few minutes.',
-    };
-  }
-  return null;
-}
 
 function mapAuthError(message: string, code?: string): string {
   const upstream = mapSupabaseAuthServiceError(message);
@@ -256,9 +205,8 @@ async function supabaseSignInWithOAuthProvider(
   provider: 'google' | 'apple',
   options?: { scopes?: string; selectAccount?: boolean; loginHint?: string }
 ): Promise<AuthResult> {
-  const unreachable = await assertSupabaseReachable();
-  if (unreachable) return unreachable;
-
+  // Do not pre-probe /authorize here — cross-origin redirect:manual often returns
+  // status 0 and falsely blocked Google login before the real OAuth redirect.
   const supabase = await getSupabaseClientAsync();
   if (!supabase) return { ok: false, reason: 'Supabase is not configured.' };
 
@@ -266,16 +214,22 @@ async function supabaseSignInWithOAuthProvider(
   if (options?.selectAccount) queryParams.prompt = 'select_account';
   if (options?.loginHint?.trim()) queryParams.login_hint = options.loginHint.trim();
 
-  const { error } = await supabase.auth.signInWithOAuth({
+  const { data, error } = await supabase.auth.signInWithOAuth({
     provider: provider === 'google' ? 'google' : 'apple',
     options: {
       redirectTo: getAuthRedirectUrl(),
+      // Navigate ourselves — more reliable than relying on SDK auto-redirect in WebViews.
+      skipBrowserRedirect: true,
       ...(options?.scopes ? { scopes: options.scopes } : {}),
       ...(Object.keys(queryParams).length > 0 ? { queryParams } : {}),
     },
   });
   if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
-  return { ok: true, redirecting: true };
+  if (data?.url && typeof window !== 'undefined') {
+    window.location.assign(data.url);
+    return { ok: true, redirecting: true };
+  }
+  return { ok: false, reason: `Could not start ${provider === 'google' ? 'Google' : 'Apple'} sign-in.` };
 }
 
 /** Opens Google OAuth (login or sign-up — same flow). Redirects away from the app. */

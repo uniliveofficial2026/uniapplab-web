@@ -3,9 +3,10 @@ import { ImagePlus } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64 } from '../../lib/utils';
+import { compressAvatarDataUrl } from '../../lib/auth/cloudAvatar';
 import { AppNativeVideo } from '../common/AppNativeVideo';
 import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME } from '../../lib/appBrand';
-import { readAppBrandSnapshot } from '../../lib/appBrandRuntime';
+import { applyAppBrandToDocument, readAppBrandSnapshot } from '../../lib/appBrandRuntime';
 import { publishPlatformAppBrand } from '../../lib/cloudSocial/platformAppBrandCloud';
 
 const SIZE_CLASS = {
@@ -31,6 +32,8 @@ const LOGO_ACCEPT =
 
 export type LaunchBrandMarkSize = keyof typeof SIZE_CLASS;
 
+type LocalPreview = { logoUrl: string; mediaType: 'image' | 'video' };
+
 export function LaunchBrandMark({
   size = 'lg',
   allowUpload = false,
@@ -51,7 +54,9 @@ export function LaunchBrandMark({
   const db = useDB();
   const { showToast } = useToast();
   const inputRef = useRef<HTMLInputElement>(null);
-  const [, setBrandTick] = useState(0);
+  const [brandTick, setBrandTick] = useState(0);
+  const [localPreview, setLocalPreview] = useState<LocalPreview | null>(null);
+  const [picking, setPicking] = useState(false);
 
   useEffect(() => {
     const refresh = () => setBrandTick((t) => t + 1);
@@ -63,9 +68,18 @@ export function LaunchBrandMark({
     };
   }, []);
 
+  useEffect(() => {
+    return () => {
+      if (localPreview?.logoUrl.startsWith('blob:')) {
+        URL.revokeObjectURL(localPreview.logoUrl);
+      }
+    };
+  }, [localPreview]);
+
+  void brandTick;
   const resolved = readAppBrandSnapshot();
-  const logoUrl = src ?? resolved.logoUrl;
-  const mediaType = resolved.mediaType;
+  const logoUrl = localPreview?.logoUrl ?? src ?? resolved.logoUrl;
+  const mediaType = localPreview?.mediaType ?? resolved.mediaType;
   const isVideo = Boolean(logoUrl && mediaType === 'video' && logoUrl !== APP_BRAND_FALLBACK_ICON);
   const hasCustomLogo = Boolean(logoUrl && logoUrl !== APP_BRAND_FALLBACK_ICON);
 
@@ -77,21 +91,43 @@ export function LaunchBrandMark({
       showToast('Logo file must be under 8 MB');
       return;
     }
+
+    const isVideoFile = file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name);
+    const nextMediaType: 'image' | 'video' = isVideoFile ? 'video' : 'image';
+    const instantUrl = URL.createObjectURL(file);
+    setLocalPreview((prev) => {
+      if (prev?.logoUrl.startsWith('blob:')) URL.revokeObjectURL(prev.logoUrl);
+      return { logoUrl: instantUrl, mediaType: nextMediaType };
+    });
+    setPicking(true);
+
     try {
-      const dataUrl = await fileToBase64(file);
-      const isVideoFile = file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name);
-      const nextMediaType = isVideoFile ? 'video' : 'image';
-      db.updateSettings({
-        appLogoUrl: dataUrl,
-        appLogoMediaType: nextMediaType,
-      });
+      let dataUrl = await fileToBase64(file);
+      if (nextMediaType === 'image' && dataUrl.startsWith('data:image/')) {
+        dataUrl = await compressAvatarDataUrl(dataUrl);
+      }
+      try {
+        db.updateSettings({
+          appLogoUrl: dataUrl,
+          appLogoMediaType: nextMediaType,
+        });
+      } catch {
+        showToast('Could not save logo (storage full). Showing preview only.');
+        setPicking(false);
+        return;
+      }
       if (publishToPlatform) {
         await publishPlatformAppBrand(dataUrl, nextMediaType);
       }
+      setLocalPreview({ logoUrl: dataUrl, mediaType: nextMediaType });
+      URL.revokeObjectURL(instantUrl);
+      applyAppBrandToDocument({ logoUrl: dataUrl, mediaType: nextMediaType });
       window.dispatchEvent(new CustomEvent('app-brand:updated'));
       showToast(publishToPlatform ? 'App logo published for all users' : 'App logo updated');
     } catch {
       showToast('Could not load that file');
+    } finally {
+      setPicking(false);
     }
   };
 
@@ -138,62 +174,40 @@ export function LaunchBrandMark({
     .filter(Boolean)
     .join(' ');
 
-  const openPicker = () => {
-    inputRef.current?.click();
-  };
-
   return (
     <div className="relative flex flex-col items-center gap-2">
-      <div
+      <label
         className={shellClass}
-        role={interactive ? 'button' : undefined}
-        tabIndex={interactive ? 0 : undefined}
         title={interactive ? 'Upload logo (image, SVG, or video)' : undefined}
         aria-label={interactive ? 'Upload app logo' : undefined}
-        onClick={interactive ? openPicker : undefined}
-        onKeyDown={
-          interactive
-            ? (event) => {
-                if (event.key === 'Enter' || event.key === ' ') {
-                  event.preventDefault();
-                  openPicker();
-                }
-              }
-            : undefined
-        }
       >
         {inner}
         {interactive ? (
           <>
             <div
-              className={`pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/0 opacity-0 transition-opacity hover:bg-black/35 hover:opacity-100 ${
+              className={`pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/0 opacity-0 transition-opacity group-hover:opacity-100 ${
                 hasCustomLogo ? '' : 'bg-black/20 opacity-100'
-              }`}
+              } ${picking ? 'opacity-100 bg-black/35' : ''}`}
               aria-hidden
             >
               <ImagePlus className={`${ICON_CLASS[size]} text-white drop-shadow`} />
             </div>
-            {/* Full-hit transparent input — more reliable than label + sr-only on mobile/WebView */}
             <input
               ref={inputRef}
               type="file"
               accept={LOGO_ACCEPT}
               className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
               aria-label="Choose logo image or video"
+              disabled={picking}
               onChange={(e) => void onPickFile(e)}
-              onClick={(e) => e.stopPropagation()}
             />
           </>
         ) : null}
-      </div>
+      </label>
       {interactive && showUploadHint ? (
-        <button
-          type="button"
-          onClick={openPicker}
-          className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
-        >
-          Tap to upload logo
-        </button>
+        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+          {picking ? 'Uploading…' : 'Tap to upload logo'}
+        </span>
       ) : null}
     </div>
   );

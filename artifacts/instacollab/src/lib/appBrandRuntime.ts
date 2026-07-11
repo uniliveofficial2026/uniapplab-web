@@ -84,15 +84,21 @@ function hasCustomLogo(brand: AppBrandSnapshot): boolean {
   );
 }
 
-/** Platform backend logo wins; then local settings; then neutral static icon. */
+/** Platform backend logo wins; then local settings; then neutral static icon.
+ * Local data-URL uploads always win so splash/auth logo picks are visible immediately.
+ */
 export function readAppBrandSnapshot(): AppBrandSnapshot {
+  const settings = readSettingsBrand();
+  if (settings.logoUrl?.startsWith('data:') || settings.logoUrl?.startsWith('blob:')) {
+    return settings;
+  }
+
   const platform = readPlatformAppBrandCache();
   if (platform.logoUrl) return platform;
 
   const platformLs = readPlatformBrandFromLocalStorage();
   if (platformLs?.logoUrl) return platformLs;
 
-  const settings = readSettingsBrand();
   if (settings.logoUrl) return settings;
 
   return {
