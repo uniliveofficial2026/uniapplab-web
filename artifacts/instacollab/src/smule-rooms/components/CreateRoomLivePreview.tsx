@@ -104,7 +104,7 @@ export function CreateRoomLivePreview({
   }, [camera.ready, camera.stream, facingMode]);
 
   const streamBeauty = useStreamBeauty({
-    enabled: enabled && (camera.ready || Boolean(inputStream)),
+    enabled: enabled && webarConfigured,
     inputStream,
     beautyId,
     effects: beautyEffects,
@@ -114,14 +114,19 @@ export function CreateRoomLivePreview({
     beautyPanelOpen: true,
     // Always load catalogs in Create Room so makeup/sticker trays stay warm.
     loadCatalogs: enabled && webarConfigured,
+    // Keep TRTC processing on at all times so taps apply with no cold start.
     persistent: enabled && webarConfigured,
   });
 
-  // Swap to TRTC output as soon as the shared engine is ready — no extra frame-gate delay.
-  const showBeautyPreview =
-    beautyActive && streamBeauty.configured && streamBeauty.ready && Boolean(streamBeauty.outputStream);
+  const beautyStream =
+    streamBeauty.outputStream ?? streamBeauty.outputStreamRef.current ?? null;
 
-  // CSS look applies on the same tap — TRTC takes over when the engine is ready.
+  // Once TRTC is warm, always show its output — beauty/makeup/sticker/filter/BG apply on the live stream.
+  const showBeautyPreview = Boolean(
+    webarConfigured && streamBeauty.ready && (beautyStream || streamBeauty.outputVideoRef.current),
+  );
+
+  // CSS look only until TRTC frames are on screen.
   const cssFallbackFilter =
     beautyActive && !showBeautyPreview
       ? getBeautyVideoFilter(beautyId !== 'none' ? beautyId : 'beauty-natural')
@@ -181,7 +186,7 @@ export function CreateRoomLivePreview({
           >
             <CameraCaptureViewport
               rawStream={inputStream}
-              beautyStream={streamBeauty.outputStream}
+              beautyStream={beautyStream}
               showBeautyPreview={showBeautyPreview}
               mirrorRaw={mirrorPreview}
               beautySinkVideoRef={streamBeauty.outputVideoRef}

@@ -107,9 +107,14 @@ export function useStreamBeauty({
       setOutputStream(null);
       return undefined;
     }
-    const next = webar.outputStreamRef.current;
-    setOutputStream((prev) => (prev === next ? prev : next));
-    return undefined;
+    const sync = () => {
+      const next = webar.outputStreamRef.current;
+      if (!next) return;
+      setOutputStream((prev) => (prev === next ? prev : next));
+    };
+    sync();
+    const id = window.setInterval(sync, 120);
+    return () => window.clearInterval(id);
   }, [webar.ready, webar.outputStreamRef, webar.beautyActive, beautify, effects]);
 
   return {

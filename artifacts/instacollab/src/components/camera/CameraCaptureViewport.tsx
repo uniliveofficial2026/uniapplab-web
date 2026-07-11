@@ -11,7 +11,7 @@ export type CameraCaptureViewportProps = {
   mirrorRaw?: boolean;
   facePreviewRef?: RefObject<HTMLDivElement | null>;
   showFacePreview?: boolean;
-  /** Hidden TRTC sink — keeps SDK output alive. */
+  /** TRTC output sink — shown full-bleed when beauty preview is active (same element the SDK paints). */
   beautySinkVideoRef?: RefObject<HTMLVideoElement | null>;
 };
 
@@ -25,6 +25,9 @@ export function CameraCaptureViewport({
   showFacePreview = false,
   beautySinkVideoRef,
 }: CameraCaptureViewportProps) {
+  const showTrtcSink = Boolean(showBeautyPreview && beautySinkVideoRef);
+  const showTrtcStreamSurface = Boolean(showBeautyPreview && beautyStream && !beautySinkVideoRef);
+
   return (
     <div className="absolute inset-0 overflow-hidden bg-black">
       <CallVideoSurface
@@ -43,12 +46,16 @@ export function CameraCaptureViewport({
           autoPlay
           playsInline
           muted
-          aria-hidden
-          className="fixed h-px w-px opacity-0 pointer-events-none"
-          style={{ left: -9999, top: -9999 }}
+          aria-hidden={!showTrtcSink}
+          className={
+            showTrtcSink
+              ? 'absolute inset-0 z-[1] h-full w-full object-cover'
+              : 'fixed h-px w-px opacity-0 pointer-events-none'
+          }
+          style={showTrtcSink ? undefined : { left: -9999, top: -9999 }}
         />
       ) : null}
-      {showBeautyPreview && beautyStream ? (
+      {showTrtcStreamSurface ? (
         <CallVideoSurface
           stream={beautyStream}
           layout="fullscreen"

@@ -551,7 +551,7 @@ export function useTencentWebAR({
 
   useEffect(() => {
     const instance = instanceRef.current;
-    if (!instance || !ready || !loadCatalogs || catalogsLoadedRef.current) return undefined;
+    if (!instance || !ready || !loadCatalogs) return undefined;
     void loadCatalogsAsync(instance, () => false);
     return undefined;
   }, [loadCatalogs, ready]);
