@@ -6,6 +6,7 @@ import { WEBAR_OUTPUT_FPS } from './webarCameraConfig';
 import { isTencentWebARConfigured } from './webarConfig';
 import {
   ensureSharedTencentWebAR,
+  getSharedTencentWebARInstance,
   hydrateTencentWebARCatalogsFromStorage,
   isSharedTencentWebARInitInProgress,
   isSharedTencentWebARReady,
@@ -66,6 +67,14 @@ export function onSharedInputReplaced(nextStream?: MediaStream | null): void {
   stopWarmCameraStream();
 }
 
+async function refreshCatalogsIfPossible(): Promise<boolean> {
+  if (hasSharedEffectCatalogRows()) return true;
+  const instance = getSharedTencentWebARInstance();
+  if (!instance) return false;
+  await refreshSharedEffectCatalogs(instance, 5);
+  return hasSharedEffectCatalogRows();
+}
+
 /**
  * Start (or reuse) the shared WebAR engine and load makeup/sticker/filter catalogs.
  * Safe to call many times — deduped. Does not open a second camera when UI already owns one.
@@ -82,17 +91,16 @@ export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
     return Promise.resolve(true);
   }
 
-  // Create Room / call is already initializing — don't open a competing camera.
+  // UI already owns / is initializing the SDK — refresh catalogs on that instance.
   if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
-    return Promise.resolve(hasSharedEffectCatalogRows());
+    return refreshCatalogsIfPossible();
   }
 
   if (warmPromise) return warmPromise;
 
   warmPromise = (async () => {
-    // Bail if a UI surface started init while we awaited permission.
     if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
-      return hasSharedEffectCatalogRows();
+      return refreshCatalogsIfPossible();
     }
 
     const stream = await getWarmCameraStream();
@@ -100,7 +108,7 @@ export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
 
     if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
       stopWarmCameraStream();
-      return hasSharedEffectCatalogRows();
+      return refreshCatalogsIfPossible();
     }
 
     const shared = await ensureSharedTencentWebAR({
@@ -110,17 +118,18 @@ export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
       outputFps: WEBAR_OUTPUT_FPS,
     });
 
+    const instance = shared.instance;
+    if (!instance) {
+      // ensureShared already released its acquire on failure.
+      stopWarmCameraStream();
+      return false;
+    }
+
     // Pin one consumer for the app session so the pool never cold-destroys mid-use.
     if (!keepalivePinned) {
       keepalivePinned = true;
     } else {
       releaseSharedTencentWebAR();
-    }
-
-    const instance = shared.instance;
-    if (!instance) {
-      stopWarmCameraStream();
-      return false;
     }
 
     await refreshSharedEffectCatalogs(instance, 5);

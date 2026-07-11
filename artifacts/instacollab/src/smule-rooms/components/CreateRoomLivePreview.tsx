@@ -16,6 +16,7 @@ import {
   shouldMirrorCameraPreview,
 } from '../../lib/camera/cameraMirrorPolicy';
 import { useCameraStream, type CameraFacingMode } from '../../lib/camera/useCameraStream';
+import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
 import {
   hydrateTencentWebARCatalogsFromStorage,
   isTencentWebARConfigured,
@@ -87,10 +88,12 @@ export function CreateRoomLivePreview({
 
   const [inputStream, setInputStream] = useState<MediaStream | null>(null);
   useEffect(() => {
-    if (!enabled || !camera.ready) {
+    if (!enabled) {
       setInputStream(null);
       return;
     }
+    // Keep the last live stream across brief camera flips so TRTC does not tear down.
+    if (!camera.ready || !camera.stream) return;
     setInputStream(camera.stream);
   }, [enabled, camera.ready, camera.stream, facingMode]);
 
@@ -123,10 +126,14 @@ export function CreateRoomLivePreview({
   const beautyOutputLive = Boolean(
     beautyStream?.getVideoTracks().some((track) => track.readyState === 'live'),
   );
+  const beautyFramesReady = useVideoFrameReady(
+    streamBeauty.outputVideoRef,
+    enabled && webarConfigured && streamBeauty.ready && beautyOutputLive,
+  );
 
-  // Only cover the raw camera once TRTC is actually painting live frames of THIS preview.
+  // Only cover the raw camera once TRTC is painting decoded frames of THIS preview.
   const showBeautyPreview = Boolean(
-    webarConfigured && streamBeauty.ready && beautyOutputLive,
+    webarConfigured && streamBeauty.ready && beautyOutputLive && beautyFramesReady,
   );
 
   // CSS look only until TRTC frames are on screen.

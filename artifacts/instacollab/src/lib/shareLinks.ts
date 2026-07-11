@@ -100,7 +100,7 @@ export function formatShareMessage(shareText: string, shareUrl: string): string 
 }
 
 export function extractShareUrl(text: string): string | null {
-  const hosts = [...APP_SHARE_HOSTS];
+  const hosts: string[] = [...APP_SHARE_HOSTS];
   if (typeof window !== 'undefined' && window.location.hostname) {
     hosts.push(window.location.hostname);
   }
@@ -121,7 +121,7 @@ export function extractShareUrl(text: string): string | null {
 
 export function isShareLinkMessage(text: string | null | undefined): boolean {
   if (!text || typeof text !== 'string') return false;
-  const hosts = [...APP_SHARE_HOSTS];
+  const hosts: string[] = [...APP_SHARE_HOSTS];
   if (typeof window !== 'undefined' && window.location.hostname) {
     hosts.push(window.location.hostname);
   }
@@ -141,7 +141,7 @@ export function parseShareLink(text: string): ShareLinkRef | null {
   if (!rawUrl) return null;
 
   const normalized = rawUrl.replace(/^https?:\/\/(?:www\.)?/i, '');
-  const hosts = [...APP_SHARE_HOSTS];
+  const hosts: string[] = [...APP_SHARE_HOSTS];
   if (typeof window !== 'undefined' && window.location.hostname) {
     hosts.push(window.location.hostname);
   }

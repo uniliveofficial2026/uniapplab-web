@@ -52,6 +52,65 @@ export function buildTencentWebARApplyKey(state: TencentWebARApplyState): string
   });
 }
 
+function applyInstantLook(
+  instance: TencentWebARInstance,
+  state: TencentWebARApplyState,
+  stack: Array<string | { id: string; intensity?: number; filterIntensity?: number }>,
+): void {
+  const { beautify, effects, beautyOn, mirror } = state;
+  try {
+    instance.setCommonConfig?.({ mirror });
+  } catch {
+    /* ignore */
+  }
+
+  if (!beautyOn) {
+    try {
+      instance.setEffect?.(null);
+    } catch {
+      /* ignore */
+    }
+    try {
+      instance.setFilter?.(null);
+    } catch {
+      /* ignore */
+    }
+    try {
+      instance.setBeautify(BEAUTY_OFF_PARAMS);
+    } catch {
+      /* ignore */
+    }
+    try {
+      instance.disable?.();
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+
+  try {
+    instance.enable?.();
+  } catch {
+    /* ignore */
+  }
+  try {
+    instance.setBeautify(beautify);
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (effects.filterId) instance.setFilter?.(effects.filterId, 1);
+    else instance.setFilter?.(null);
+  } catch {
+    /* ignore */
+  }
+  try {
+    instance.setEffect?.(stack.length > 0 ? stack : null);
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Apply TRTC state. Beautify/filter/effects apply immediately; assets preload in the background. */
 export function applyTencentWebARState(
   instance: TencentWebARInstance,
@@ -70,39 +129,18 @@ export function applyTencentWebARState(
   const { beautify, effects, beautyOn, needsSegmentation, mirror } = state;
   const stack = buildEffectStack(effects);
 
-  // Instant path — paint the look now; never block the camera view on asset downloads.
-  try {
-    instance.setCommonConfig?.({ mirror });
-  } catch {
-    /* ignore */
-  }
-  try {
-    instance.setBeautify(beautyOn ? beautify : BEAUTY_OFF_PARAMS);
-    if (beautyOn) instance.enable?.();
-    else instance.disable?.();
-  } catch {
-    /* ignore */
-  }
-  try {
-    if (effects.filterId) instance.setFilter?.(effects.filterId, 1);
-    else instance.setFilter?.(null);
-  } catch {
-    /* ignore */
-  }
-  try {
-    instance.setEffect?.(stack.length > 0 ? stack : null);
-  } catch {
-    /* ignore */
-  }
+  applyInstantLook(instance, state, stack);
 
   if (options?.lastKeyRef) {
     options.lastKeyRef.current = key;
   }
 
   return enqueueTencentWebAREffect(async () => {
+    // Drop stale jobs — a newer apply already owns lastKeyRef.
+    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
+
     const segmentationOnRef = options?.segmentationOnRef;
     if (segmentationOnRef && segmentationOnRef.current !== needsSegmentation) {
-      segmentationOnRef.current = needsSegmentation;
       try {
         instance.setDetectModuleConfig?.({
           beautify: true,
@@ -112,10 +150,13 @@ export function applyTencentWebARState(
         if (needsSegmentation) {
           await instance.setSegmentationLevel?.(2);
         }
+        segmentationOnRef.current = needsSegmentation;
       } catch {
         /* ignore */
       }
     }
+
+    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
 
     const preloadIds = [effects.makeupId, effects.stickerId, effects.shapeEffectId].filter(
       Boolean,
@@ -124,25 +165,24 @@ export function applyTencentWebARState(
       await preloadEffectIds(instance, preloadIds);
     }
 
-    // Re-assert after preload so a queued older job cannot wipe the latest look.
-    instance.setBeautify(beautyOn ? beautify : BEAUTY_OFF_PARAMS);
-    instance.setEffect?.(stack.length > 0 ? stack : null);
+    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
 
-    if (effects.filterId) instance.setFilter?.(effects.filterId, 1);
-    else instance.setFilter?.(null);
+    applyInstantLook(instance, state, stack);
 
-    if (effects.backgroundUrl) {
-      const bg = resolveTencentBackgroundSrc(effects.backgroundUrl);
-      const type =
-        effects.backgroundType ?? bg.type ?? inferTencentBackgroundType(effects.backgroundUrl);
-      await instance.setBackground?.({ type, src: bg.src });
-    } else {
-      await instance.setBackground?.(null);
+    try {
+      if (effects.backgroundUrl && beautyOn) {
+        const bg = resolveTencentBackgroundSrc(effects.backgroundUrl);
+        const type =
+          effects.backgroundType ?? bg.type ?? inferTencentBackgroundType(effects.backgroundUrl);
+        await instance.setBackground?.({ type, src: bg.src });
+      } else {
+        await instance.setBackground?.(null);
+      }
+    } catch {
+      /* ignore */
     }
 
-    if (beautyOn) instance.enable?.();
-    else instance.disable?.();
-
+    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
     if (options?.lastKeyRef) {
       options.lastKeyRef.current = key;
     }

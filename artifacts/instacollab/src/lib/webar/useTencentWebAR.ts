@@ -272,6 +272,25 @@ export function useTencentWebAR({
     let cancelled = false;
     let instance: TencentWebARInstance | null = null;
     let ownedInstance = false;
+    let sharedReleased = false;
+    let ownedDestroyed = false;
+
+    const releaseSharedOnce = () => {
+      if (!usingSharedRef.current || sharedReleased) return;
+      sharedReleased = true;
+      usingSharedRef.current = false;
+      releaseSharedTencentWebAR();
+    };
+
+    const destroyOwnedOnce = () => {
+      if (!ownedInstance || ownedDestroyed) return;
+      ownedDestroyed = true;
+      try {
+        instance?.destroy?.({ stopInputStream: false });
+      } catch {
+        /* ignore */
+      }
+    };
 
     void (async () => {
       const alreadyWarm = streamMode && isSharedTencentWebARReady();
@@ -290,27 +309,31 @@ export function useTencentWebAR({
             outputFps,
           });
           if (cancelled) {
-            releaseSharedTencentWebAR();
-            usingSharedRef.current = false;
+            // ensureShared acquired — release exactly once.
+            if (shared.instance) releaseSharedOnce();
+            else {
+              usingSharedRef.current = false;
+              sharedReleased = true;
+            }
             return;
           }
           instance = shared.instance;
           if (!instance) {
+            usingSharedRef.current = false;
+            sharedReleased = true;
             throw new Error('Tencent WebAR failed to initialize');
           }
           instanceRef.current = instance;
-          segmentationOnRef.current = needsSegmentation;
+          // Warm SDK starts with segmentation off — sync from actual state, not desired.
+          segmentationOnRef.current = false;
           lastApplyKeyRef.current = '';
-          // Track the stream the SDK is actually bound to (may differ until sync completes).
           inputTrackIdRef.current = getSharedTencentWebARInputTrackId();
           outputStreamRef.current = shared.output;
-          // Rebind to this surface's live camera — warm pipeline must not own the preview.
           if (inputStream && inputVideoTrackId !== inputTrackIdRef.current) {
             const rebound = await syncSharedTencentWebARInput(inputStream, outputFps);
             if (rebound) outputStreamRef.current = rebound;
             inputTrackIdRef.current = getSharedTencentWebARInputTrackId();
           }
-          // Apply last-call beauty immediately — don't wait on catalog fetch.
           await pushApplyState(instance, true);
           await attachOutput(instance);
         } else {
@@ -345,7 +368,7 @@ export function useTencentWebAR({
           ) as TencentWebARInstance;
           ownedInstance = true;
           instanceRef.current = instance;
-          segmentationOnRef.current = needsSegmentation;
+          segmentationOnRef.current = false;
           lastApplyKeyRef.current = '';
 
           await new Promise<void>((resolve, reject) => {
@@ -370,7 +393,7 @@ export function useTencentWebAR({
           });
 
           if (cancelled) {
-            instance.destroy?.({ stopInputStream: false });
+            destroyOwnedOnce();
             return;
           }
 
@@ -379,12 +402,8 @@ export function useTencentWebAR({
         }
 
         if (cancelled) {
-          if (ownedInstance) {
-            instance?.destroy?.({ stopInputStream: false });
-          } else {
-            releaseSharedTencentWebAR();
-            usingSharedRef.current = false;
-          }
+          if (ownedInstance) destroyOwnedOnce();
+          else releaseSharedOnce();
           return;
         }
 
@@ -399,10 +418,8 @@ export function useTencentWebAR({
           setReady(false);
           setError(err instanceof Error ? err.message : 'Tencent WebAR failed');
         }
-        if (usingSharedRef.current) {
-          releaseSharedTencentWebAR();
-          usingSharedRef.current = false;
-        }
+        releaseSharedOnce();
+        destroyOwnedOnce();
       } finally {
         if (!cancelled) setLoading(false);
       }
@@ -419,16 +436,8 @@ export function useTencentWebAR({
       if (outputVideoRef.current) {
         outputVideoRef.current.srcObject = null;
       }
-      if (usingSharedRef.current) {
-        releaseSharedTencentWebAR();
-        usingSharedRef.current = false;
-      } else {
-        try {
-          instance?.destroy?.({ stopInputStream: false });
-        } catch {
-          /* ignore shutdown errors */
-        }
-      }
+      releaseSharedOnce();
+      destroyOwnedOnce();
       if (instanceRef.current === instance) {
         instanceRef.current = null;
       }
@@ -476,8 +485,11 @@ export function useTencentWebAR({
   useEffect(() => {
     const instance = instanceRef.current;
     if (!instance || !ready || !loadCatalogs) return undefined;
-    void loadCatalogsAsync(instance, () => false);
-    return undefined;
+    let cancelled = false;
+    void loadCatalogsAsync(instance, () => cancelled);
+    return () => {
+      cancelled = true;
+    };
   }, [loadCatalogs, ready]);
 
   // Pull catalogs from the warm pipeline / other mounts as soon as they land.

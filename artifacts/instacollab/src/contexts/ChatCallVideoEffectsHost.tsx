@@ -340,11 +340,11 @@ export function ChatCallVideoEffectsHost({
   const resolveLocalDisplayStream = useCallback(
     (isCameraEnabled: boolean, rawStream: MediaStream | null) => {
       if (!isCameraEnabled) return null;
-      if (trtcPreviewReady && beautyOutputStream) return beautyOutputStream;
+      if (showBeautyPreview && beautyOutputStream) return beautyOutputStream;
       if (showProcessedPreview && localPreviewStream) return localPreviewStream;
       return rawStream;
     },
-    [beautyOutputStream, localPreviewStream, showProcessedPreview, trtcPreviewReady],
+    [beautyOutputStream, localPreviewStream, showBeautyPreview, showProcessedPreview],
   );
 
   const showFullscreenCamera = active && presentation === 'fullscreen';
@@ -395,7 +395,7 @@ export function ChatCallVideoEffectsHost({
                 beautySinkVideoRef={beauty.outputVideoRef}
                 beautyDisplayStream={beautyOutputStream}
                 deeparPreviewHostRef={deeparHostRef}
-                showBeautyPreview={trtcPreviewReady}
+                showBeautyPreview={showBeautyPreview}
                 showDeeparPreview={showDeeparPreview}
                 showProcessedPreview={showProcessedPreview}
                 layout="fullscreen"

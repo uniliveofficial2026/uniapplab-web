@@ -158,11 +158,14 @@ export function useMultiGuestCameraEffects({
   const cameraReady = camera.ready;
 
   useEffect(() => {
-    if (!enabled || !cameraReady) {
+    if (!enabled) {
       setInputStream(null);
       return;
     }
-    setInputStream(camera.streamRef.current);
+    // Keep last live stream across brief camera flips so TRTC does not tear down.
+    if (!cameraReady) return;
+    const next = camera.streamRef.current;
+    if (next) setInputStream(next);
   }, [camera.streamRef, cameraReady, enabled, facingMode]);
 
   const beautifyParams = useMemo(

@@ -246,7 +246,7 @@ export function LiveBeautySheet({
           items={catalogs?.makeups ?? []}
           onSelect={(id) => patchEffects({ makeupId: id })}
           emptyHint=""
-          isReady={() => true}
+          isReady={(id) => !id || readyEffectIds.length === 0 || readyEffectIds.includes(id)}
         />
       ) : null}
 
@@ -257,7 +257,7 @@ export function LiveBeautySheet({
           items={catalogs?.stickers ?? []}
           onSelect={(id) => patchEffects({ stickerId: id })}
           emptyHint=""
-          isReady={() => true}
+          isReady={(id) => !id || readyEffectIds.length === 0 || readyEffectIds.includes(id)}
         />
       ) : null}
 
@@ -268,7 +268,7 @@ export function LiveBeautySheet({
           items={catalogs?.filters ?? []}
           onSelect={(id) => patchEffects({ filterId: id })}
           emptyHint=""
-          isReady={() => true}
+          isReady={(id) => !id || readyEffectIds.length === 0 || readyEffectIds.includes(id)}
         />
       ) : null}
 

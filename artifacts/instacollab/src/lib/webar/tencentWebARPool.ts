@@ -230,17 +230,17 @@ export async function syncSharedTencentWebARInput(
 
   if (inputTrackId !== sharedInputTrackId) {
     if (!sharedInstance.updateInputStream) {
+      // Cannot rebind — leave track id unchanged so callers keep retrying / stay on raw preview.
+      return null;
+    }
+    try {
+      await sharedInstance.updateInputStream(inputStream, false, false);
       sharedInputTrackId = inputTrackId;
-    } else {
-      try {
-        await sharedInstance.updateInputStream(inputStream, false, false);
-        sharedInputTrackId = inputTrackId;
-        void import('./tencentWebARWarm').then((m) => {
-          m.onSharedInputReplaced(inputStream);
-        });
-      } catch {
-        return sharedOutputStream;
-      }
+      void import('./tencentWebARWarm').then((m) => {
+        m.onSharedInputReplaced(inputStream);
+      });
+    } catch {
+      return null;
     }
   }
 
@@ -277,6 +277,9 @@ function scheduleWarmDestroy(): void {
     sharedOutputStream = null;
     sharedInputTrackId = '';
     initPromise = null;
+    void import('./tencentWebAREffectQueue').then((m) => {
+      m.resetTencentWebAREffectQueue();
+    });
   }, WARM_TTL_MS);
 }
 
@@ -308,98 +311,115 @@ export async function ensureSharedTencentWebAR(
 
   acquireSharedTencentWebAR();
 
-  const bindCallerInput = async () => {
-    const output = await syncSharedTencentWebARInput(options.inputStream, options.outputFps);
-    return { instance: sharedInstance, output };
+  const fail = (): { instance: null; output: null } => {
+    releaseSharedTencentWebAR();
+    return { instance: null, output: null };
   };
 
-  if (sharedInstance && sharedReady) {
-    return bindCallerInput();
-  }
-
-  if (initPromise) {
-    const instance = await initPromise;
-    if (!instance) return { instance: null, output: null };
-    return bindCallerInput();
-  }
-
-  const inputTrackId = options.inputStream.getVideoTracks()[0]?.id ?? '';
-
-  initPromise = (async () => {
-    const mod = await loadTencentWebARModule();
-    if (!mod) return null;
-
-    const instance = new mod.ArSdk({
-      module: {
-        beautify: true,
-        segmentation: options.needsSegmentation,
-        ...(options.needsSegmentation ? { segmentationLevel: 2 as const } : {}),
-      },
-      auth: {
-        authFunc: buildSignature,
-        appId: getTencentWebARAppId(),
-        licenseKey: getTencentWebARLicenseKey(),
-      },
-      mirror: options.mirror,
-      beautify: BEAUTY_OFF_PARAMS,
-      language: 'en',
-      loading: { enable: false },
-      fps: WEBAR_CAMERA_FPS,
-      input: options.inputStream,
-    }) as TencentWebARInstance;
-
-    // Start catalog fetch as soon as the SDK reports created (before ready).
-    const kickCatalogs = () => {
-      void import('./tencentWebARCatalogs').then((m) => {
-        void m.refreshSharedEffectCatalogs(instance, 5);
-      });
-    };
-    instance.on?.('created', kickCatalogs);
-
-    await new Promise<void>((resolve, reject) => {
-      const onReady = () => {
-        cleanup();
-        resolve();
-      };
-      const onError = (payload?: unknown) => {
-        cleanup();
-        const message =
-          payload && typeof payload === 'object' && 'message' in payload
-            ? String((payload as { message?: unknown }).message)
-            : 'Tencent WebAR failed to initialize';
-        reject(new Error(message));
-      };
-      const cleanup = () => {
-        instance.off?.('ready', onReady);
-        instance.off?.('error', onError);
-      };
-      instance.on('ready', onReady);
-      instance.on('error', onError);
-    });
-
-    kickCatalogs();
-
-    sharedOutputStream = (await (instance.getOutput as (fps?: number) => Promise<MediaStream>)(
-      options.outputFps,
-    )) as MediaStream;
-    sharedInstance = instance;
-    sharedReady = true;
-    sharedInputTrackId = inputTrackId;
-    return instance;
-  })().finally(() => {
-    initPromise = null;
-  });
+  const bindCallerInput = async () => {
+    if (!sharedInstance || !sharedReady) return fail();
+    const output = await syncSharedTencentWebARInput(options.inputStream, options.outputFps);
+    // Rebind failed (no updateInputStream / track dead) — still return instance; caller may retry.
+    return { instance: sharedInstance, output: output ?? sharedOutputStream };
+  };
 
   try {
+    if (sharedInstance && sharedReady) {
+      return await bindCallerInput();
+    }
+
+    if (initPromise) {
+      const instance = await initPromise;
+      if (!instance) return fail();
+      return await bindCallerInput();
+    }
+
+    const inputTrackId = options.inputStream.getVideoTracks()[0]?.id ?? '';
+
+    initPromise = (async () => {
+      const mod = await loadTencentWebARModule();
+      if (!mod) return null;
+
+      const instance = new mod.ArSdk({
+        module: {
+          beautify: true,
+          segmentation: options.needsSegmentation,
+          ...(options.needsSegmentation ? { segmentationLevel: 2 as const } : {}),
+        },
+        auth: {
+          authFunc: buildSignature,
+          appId: getTencentWebARAppId(),
+          licenseKey: getTencentWebARLicenseKey(),
+        },
+        mirror: options.mirror,
+        beautify: BEAUTY_OFF_PARAMS,
+        language: 'en',
+        loading: { enable: false },
+        fps: WEBAR_CAMERA_FPS,
+        input: options.inputStream,
+      }) as TencentWebARInstance;
+
+      try {
+        const kickCatalogs = () => {
+          void import('./tencentWebARCatalogs').then((m) => {
+            void m.refreshSharedEffectCatalogs(instance, 5);
+          });
+        };
+        instance.on?.('created', kickCatalogs);
+
+        await new Promise<void>((resolve, reject) => {
+          const onReady = () => {
+            cleanup();
+            resolve();
+          };
+          const onError = (payload?: unknown) => {
+            cleanup();
+            const message =
+              payload && typeof payload === 'object' && 'message' in payload
+                ? String((payload as { message?: unknown }).message)
+                : 'Tencent WebAR failed to initialize';
+            reject(new Error(message));
+          };
+          const cleanup = () => {
+            instance.off?.('ready', onReady);
+            instance.off?.('error', onError);
+          };
+          instance.on('ready', onReady);
+          instance.on('error', onError);
+        });
+
+        kickCatalogs();
+
+        sharedOutputStream = (await (instance.getOutput as (fps?: number) => Promise<MediaStream>)(
+          options.outputFps,
+        )) as MediaStream;
+        sharedInstance = instance;
+        sharedReady = true;
+        sharedInputTrackId = inputTrackId;
+        return instance;
+      } catch (err) {
+        try {
+          instance.destroy?.({ stopInputStream: false });
+        } catch {
+          /* ignore */
+        }
+        throw err;
+      }
+    })().finally(() => {
+      initPromise = null;
+    });
+
     const instance = await initPromise;
-    if (!instance) return { instance: null, output: null };
-    // Caller may differ from the stream that won the init race — always rebind.
-    return bindCallerInput();
+    if (!instance) return fail();
+    return await bindCallerInput();
   } catch {
     sharedInstance = null;
     sharedReady = false;
     sharedOutputStream = null;
     sharedInputTrackId = '';
-    return { instance: null, output: null };
+    void import('./tencentWebAREffectQueue').then((m) => {
+      m.resetTencentWebAREffectQueue();
+    });
+    return fail();
   }
 }
