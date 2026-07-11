@@ -180,8 +180,7 @@ export function EmailOtpPanel({
             }}
           />
           <p className="text-[11px] text-muted-foreground font-semibold leading-relaxed px-1">
-            We email a 6-digit code (not a password). If nothing arrives, configure Supabase SMTP
-            (run <span className="text-foreground">pnpm run email-otp:setup</span>).
+            We email a 6-digit code.
           </p>
           <button
             type="button"

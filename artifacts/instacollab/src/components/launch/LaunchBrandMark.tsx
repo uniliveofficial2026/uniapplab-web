@@ -1,4 +1,4 @@
-import React, { useEffect, useId, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { ImagePlus } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
@@ -50,7 +50,7 @@ export function LaunchBrandMark({
 }) {
   const db = useDB();
   const { showToast } = useToast();
-  const inputId = useId();
+  const inputRef = useRef<HTMLInputElement>(null);
   const [, setBrandTick] = useState(0);
 
   useEffect(() => {
@@ -79,7 +79,7 @@ export function LaunchBrandMark({
     }
     try {
       const dataUrl = await fileToBase64(file);
-      const isVideoFile = file.type.startsWith('video/');
+      const isVideoFile = file.type.startsWith('video/') || /\.(mp4|webm|mov)$/i.test(file.name);
       const nextMediaType = isVideoFile ? 'video' : 'image';
       db.updateSettings({
         appLogoUrl: dataUrl,
@@ -102,71 +102,99 @@ export function LaunchBrandMark({
     isVideo ? (
       <AppNativeVideo
         src={logoUrl!}
-        className="h-full w-full object-cover"
+        className="pointer-events-none h-full w-full object-cover"
         autoPlay
         muted
         loop
         aria-label="App logo"
       />
     ) : (
-      <img src={logoUrl!} alt={APP_DISPLAY_NAME} className="h-full w-full object-contain p-1" />
+      <img
+        src={logoUrl!}
+        alt={APP_DISPLAY_NAME}
+        className="pointer-events-none h-full w-full object-contain p-1"
+        draggable={false}
+      />
     )
   ) : (
-    <img src={APP_BRAND_FALLBACK_ICON} alt={APP_DISPLAY_NAME} className="h-full w-full object-contain p-2" />
+    <img
+      src={APP_BRAND_FALLBACK_ICON}
+      alt={APP_DISPLAY_NAME}
+      className="pointer-events-none h-full w-full object-contain p-2"
+      draggable={false}
+    />
   );
 
   const shellClass = [
     box,
-    'rounded-[1.75rem] overflow-hidden shrink-0',
+    'relative rounded-[1.75rem] overflow-hidden shrink-0',
     'flex items-center justify-center',
     'bg-card border border-border shadow-xl shadow-black/10',
     interactive
-      ? 'cursor-pointer ring-0 hover:ring-2 hover:ring-primary/40 focus-visible:ring-2 focus-visible:ring-primary/50 transition-shadow'
+      ? 'cursor-pointer ring-0 hover:ring-2 hover:ring-primary/40 focus-within:ring-2 focus-within:ring-primary/50 transition-shadow'
       : '',
     interactive && !hasCustomLogo ? 'border-2 border-dashed border-border' : '',
   ]
     .filter(Boolean)
     .join(' ');
 
-  const body = (
-    <div className={`relative ${shellClass}`}>
-      {inner}
-      {interactive && (
-        <div
-          className={`absolute inset-0 flex items-center justify-center bg-black/0 opacity-0 hover:opacity-100 hover:bg-black/35 transition-opacity ${hasCustomLogo ? '' : 'opacity-100 bg-black/20'}`}
-          aria-hidden
-        >
-          <ImagePlus className={`${ICON_CLASS[size]} text-white drop-shadow`} />
-        </div>
-      )}
-    </div>
-  );
-
-  if (!interactive) {
-    return <div className="relative">{body}</div>;
-  }
+  const openPicker = () => {
+    inputRef.current?.click();
+  };
 
   return (
     <div className="relative flex flex-col items-center gap-2">
-      <label
-        htmlFor={inputId}
-        className="relative block rounded-[1.75rem] focus-within:outline-none focus-within:ring-2 focus-within:ring-primary/50"
-        title="Upload logo (image, SVG, or video)"
+      <div
+        className={shellClass}
+        role={interactive ? 'button' : undefined}
+        tabIndex={interactive ? 0 : undefined}
+        title={interactive ? 'Upload logo (image, SVG, or video)' : undefined}
+        aria-label={interactive ? 'Upload app logo' : undefined}
+        onClick={interactive ? openPicker : undefined}
+        onKeyDown={
+          interactive
+            ? (event) => {
+                if (event.key === 'Enter' || event.key === ' ') {
+                  event.preventDefault();
+                  openPicker();
+                }
+              }
+            : undefined
+        }
       >
-        {body}
-        <input
-          id={inputId}
-          type="file"
-          className="sr-only"
-          accept={LOGO_ACCEPT}
-          onChange={(e) => void onPickFile(e)}
-        />
-      </label>
-      {showUploadHint && (
-        <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+        {inner}
+        {interactive ? (
+          <>
+            <div
+              className={`pointer-events-none absolute inset-0 z-[1] flex items-center justify-center bg-black/0 opacity-0 transition-opacity hover:bg-black/35 hover:opacity-100 ${
+                hasCustomLogo ? '' : 'bg-black/20 opacity-100'
+              }`}
+              aria-hidden
+            >
+              <ImagePlus className={`${ICON_CLASS[size]} text-white drop-shadow`} />
+            </div>
+            {/* Full-hit transparent input — more reliable than label + sr-only on mobile/WebView */}
+            <input
+              ref={inputRef}
+              type="file"
+              accept={LOGO_ACCEPT}
+              className="absolute inset-0 z-20 h-full w-full cursor-pointer opacity-0"
+              aria-label="Choose logo image or video"
+              onChange={(e) => void onPickFile(e)}
+              onClick={(e) => e.stopPropagation()}
+            />
+          </>
+        ) : null}
+      </div>
+      {interactive && showUploadHint ? (
+        <button
+          type="button"
+          onClick={openPicker}
+          className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground hover:text-foreground"
+        >
           Tap to upload logo
-        </span>
-      )}
+        </button>
+      ) : null}
     </div>
   );
 }

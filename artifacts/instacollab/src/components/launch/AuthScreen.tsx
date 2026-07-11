@@ -380,8 +380,9 @@ export function AuthScreen() {
             : 'Enter demo code 123456 and a new password.';
 
   return (
-    <LaunchShell className="p-4 sm:p-6 overflow-y-auto">
-      <div className="flex flex-1 w-full min-h-0 flex-col items-center justify-center py-6 sm:py-10 pb-[max(1.5rem,var(--app-safe-bottom))]">
+    <LaunchShell className="h-dvh max-h-dvh overflow-hidden p-0">
+      <div className="flex min-h-0 w-full flex-1 flex-col overflow-y-auto overscroll-y-contain">
+        <div className="flex min-h-full w-full flex-col items-center justify-center p-4 py-6 sm:p-6 sm:py-10 pb-[max(1.5rem,var(--app-safe-bottom))]">
         <div className="w-full max-w-[420px] flex flex-col items-center gap-8">
           <header className="flex w-full flex-col items-center gap-5 text-center">
             <LaunchBrandMark size="xl" allowUpload showUploadHint={false} />
@@ -702,6 +703,7 @@ export function AuthScreen() {
               </div>
             </footer>
           </div>
+        </div>
         </div>
       </div>
     </LaunchShell>

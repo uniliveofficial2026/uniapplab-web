@@ -28,6 +28,7 @@ import { isFirebaseConfigured } from '../firebase/config';
 import { withSupabaseFirebaseFailover } from './failover';
 import {
   resolveLiveOAuthBackend,
+  resolveLiveOAuthBackendSync,
   SUPABASE_OAUTH_DOWN_MESSAGE,
   SUPABASE_OAUTH_ONLY_DOWN_MESSAGE,
   isSupabaseOAuthRedirectAllowed,
@@ -165,8 +166,8 @@ export async function authSignInWithGoogle(options?: {
   clearDevLocalAuthBypass();
 
   if (isSupabaseConfigured() && isFirebaseConfigured()) {
-    // Probe Supabase Auth before any browser redirect — project is often 522 while REST is up.
-    const lane = await resolveLiveOAuthBackend();
+    // Instant redirect on click — use cached lane, never wait on a health probe.
+    const lane = resolveLiveOAuthBackendSync();
     if (lane === 'firebase') {
       writeStoredAuthBackend('firebase');
       const result = await firebaseSignInWithGoogle();
@@ -184,9 +185,7 @@ export async function authSignInWithGoogle(options?: {
     );
   }
   if (isSupabaseConfigured()) {
-    if (!(await isSupabaseOAuthRedirectAllowed())) {
-      return { ok: false, reason: SUPABASE_OAUTH_ONLY_DOWN_MESSAGE };
-    }
+    // Start Google OAuth immediately — probing here blocked the button for seconds.
     const result = await supabaseSignInWithGoogle(options);
     return result.ok ? { ok: true, redirecting: true } : result;
   }
