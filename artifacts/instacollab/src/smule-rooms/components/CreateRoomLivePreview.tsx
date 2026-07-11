@@ -17,7 +17,7 @@ import {
 } from '../../lib/camera/cameraMirrorPolicy';
 import { useCameraStream, type CameraFacingMode } from '../../lib/camera/useCameraStream';
 import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
-import { isTencentWebARConfigured, preloadTencentWebARModule } from '../../lib/webar/useTencentWebAR';
+import { isTencentWebARConfigured, preloadTencentWebARModule, warmTencentWebARForVideoCall } from '../../lib/webar/useTencentWebAR';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
   type TencentEffectSelection,
@@ -109,6 +109,8 @@ export function CreateRoomLivePreview({
     keepWarm: enabled && webarConfigured,
     beautyPanelOpen,
     loadCatalogs: beautyPanelOpen || beautyActive,
+    // Same persistent TRTC path as video calls so last-call beauty applies immediately.
+    persistent: enabled && webarConfigured,
   });
 
   const beautyVideoReady = useVideoFrameReady(
@@ -120,7 +122,9 @@ export function CreateRoomLivePreview({
     beautyActive && streamBeauty.configured && streamBeauty.active && beautyVideoReady;
 
   useEffect(() => {
-    if (enabled && webarConfigured) preloadTencentWebARModule();
+    if (!enabled || !webarConfigured) return;
+    preloadTencentWebARModule();
+    warmTencentWebARForVideoCall();
   }, [enabled, webarConfigured]);
 
   useEffect(() => {
@@ -291,12 +295,12 @@ export function CreateRoomLivePreview({
         <>
           <button
             type="button"
-            className="absolute inset-0 z-[25] cursor-default bg-black/35"
+            className="absolute inset-0 z-[25] cursor-default bg-transparent"
             aria-label="Close beauty panel"
             onClick={() => setBeautyPanelOpen(false)}
           />
           <div
-            className="absolute inset-x-0 bottom-0 z-30 max-h-[55%] overflow-y-auto rounded-t-2xl border-t border-white/10 bg-black/80 backdrop-blur-xl"
+            className="absolute inset-x-0 bottom-0 z-30 max-h-[55%] overflow-y-auto bg-transparent p-3 pt-2"
             onClick={(event) => event.stopPropagation()}
           >
             <LiveBeautySheet
