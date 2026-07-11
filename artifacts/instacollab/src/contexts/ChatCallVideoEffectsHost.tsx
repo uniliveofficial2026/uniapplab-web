@@ -16,7 +16,7 @@ import type { CameraFacingMode } from '../lib/camera/useCameraStream';
 import { isDeepARConfigured } from '../lib/deepar/deeparConfig';
 import { useDeepAR } from '../lib/deepar/useDeepAR';
 import { useVideoFrameReady } from '../lib/camera/useVideoFrameReady';
-import { isTencentWebARConfigured, warmTencentWebARForVideoCall } from '../lib/webar/useTencentWebAR';
+import { isTencentWebARConfigured, warmTencentWebARPipelineNow } from '../lib/webar/useTencentWebAR';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
   type TencentEffectSelection,
@@ -129,7 +129,7 @@ export function ChatCallVideoEffectsHost({
 
   useEffect(() => {
     if (active && beautyConfigured) {
-      warmTencentWebARForVideoCall();
+      warmTencentWebARPipelineNow();
     }
   }, [active, beautyConfigured]);
 

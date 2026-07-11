@@ -267,6 +267,9 @@ export async function ensureSharedTencentWebAR(
       sharedInputTrackId = inputTrackId;
       try {
         await sharedInstance.updateInputStream(options.inputStream, false, false);
+        void import('./tencentWebARWarm').then((m) => {
+          m.onSharedInputReplaced(options.inputStream);
+        });
       } catch {
         /* instance may be mid-update */
       }
@@ -302,6 +305,14 @@ export async function ensureSharedTencentWebAR(
       input: options.inputStream,
     }) as TencentWebARInstance;
 
+    // Start catalog fetch as soon as the SDK reports created (before ready).
+    const kickCatalogs = () => {
+      void import('./tencentWebARCatalogs').then((m) => {
+        void m.refreshSharedEffectCatalogs(instance, 5);
+      });
+    };
+    instance.on?.('created', kickCatalogs);
+
     await new Promise<void>((resolve, reject) => {
       const onReady = () => {
         cleanup();
@@ -322,6 +333,8 @@ export async function ensureSharedTencentWebAR(
       instance.on('ready', onReady);
       instance.on('error', onError);
     });
+
+    kickCatalogs();
 
     sharedOutputStream = (await (instance.getOutput as (fps?: number) => Promise<MediaStream>)(
       options.outputFps,

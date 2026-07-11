@@ -58,19 +58,16 @@ const CreateRoom = () => {
   const pendingNavigateRef = useRef<string | null>(null);
 
   useEffect(() => {
-    void import('../../lib/webar/tencentWebARPool').then((m) => {
-      m.hydrateTencentWebARCatalogsFromStorage();
-      m.warmTencentWebARForVideoCall();
+    void import('../../lib/webar/tencentWebARWarm').then((m) => {
+      m.warmTencentWebARPipelineNow();
     });
   }, []);
 
   // Keep TRTC warm whenever Solo/Shop is selected so beauty applies on first tap.
   useEffect(() => {
     if (!LIVE_CAMERA_MODES.has(mode)) return;
-    void import('../../lib/webar/tencentWebARPool').then((m) => {
-      m.hydrateTencentWebARCatalogsFromStorage();
-      m.preloadTencentWebARModule();
-      m.warmTencentWebARForVideoCall();
+    void import('../../lib/webar/tencentWebARWarm').then((m) => {
+      void m.ensureTencentWebARPipelineWarm();
     });
   }, [mode]);
 

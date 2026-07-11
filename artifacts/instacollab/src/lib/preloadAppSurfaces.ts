@@ -24,7 +24,12 @@ export function preloadCoreAppSurfaces(): void {
   }
 
   void import('./webar/tencentWebARPool').then((m) => {
+    m.hydrateTencentWebARCatalogsFromStorage();
     m.warmTencentWebARForVideoCall();
+  });
+  // Full SDK + catalog warm (uses camera if permission already granted).
+  void import('./webar/tencentWebARWarm').then((m) => {
+    m.warmTencentWebARPipelineNow();
   });
 }
 

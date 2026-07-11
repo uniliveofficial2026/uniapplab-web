@@ -32,17 +32,10 @@ import {
   getSharedTencentWebAREffectCatalogs,
   hydrateTencentWebARCatalogsFromStorage,
   isSharedTencentWebARReady,
-  markSharedTencentWebARCatalogsLoaded,
   releaseSharedTencentWebAR,
-  setSharedTencentWebARCovers,
-  setSharedTencentWebAREffectCatalogs,
   sharedCatalogsLoaded,
 } from './tencentWebARPool';
-import {
-  buildBeautyCoverMap,
-  buildShapeCoverMap,
-  buildShapeEffectMap,
-} from './trtcBeautyCatalog';
+import { refreshSharedEffectCatalogs } from './tencentWebARCatalogs';
 
 type UseTencentWebAROptions = {
   /** Init SDK when true — keep off for raw camera-only paths. */
@@ -104,131 +97,6 @@ async function preloadEffectIds(
 
 function isBeautifyActive(params: TencentBeautifyParams): boolean {
   return Object.values(params).some((value) => typeof value === 'number' && value > 0);
-}
-
-function mapEffectRows(
-  rows: Array<{
-    Name?: string;
-    EffectId?: string;
-    CoverUrl?: string;
-    Url?: string;
-    Label?: string;
-    PresetType?: string;
-  }>,
-): TencentEffectItem[] {
-  return rows
-    .map((item) => ({
-      id: String(item.EffectId || ''),
-      name: String(item.Name || 'Effect'),
-      cover: String(item.CoverUrl || ''),
-      url: item.Url ? String(item.Url) : undefined,
-      label: item.Label ? String(item.Label) : undefined,
-      type: item.PresetType ? String(item.PresetType) : undefined,
-    }))
-    .filter((item) => item.id);
-}
-
-function labelMatches(item: TencentEffectItem, needles: string[]): boolean {
-  const haystack = [item.label, item.type, item.name].filter(Boolean).join(' ').toLowerCase();
-  return needles.some((needle) => haystack.includes(needle.toLowerCase()));
-}
-
-const MAKEUP_LABELS = ['Makeup', '美妆', '妆容', '妆', 'Lip makeup', 'Eye makeup'];
-const STICKER_LABELS = ['Sticker', '贴纸', 'Stickers'];
-const BEAUTY_LABELS = ['Beauty', '美颜', 'beauty'];
-const BODY_LABELS = ['Body', '美体', 'body', 'Body beauty'];
-
-async function fetchEffectListByLabels(
-  instance: TencentWebARInstance,
-  labels: string[],
-): Promise<TencentEffectItem[]> {
-  for (const lb of labels) {
-    try {
-      const labeled = await instance.getEffectList?.({
-        Type: 'Preset',
-        Label: lb,
-        PageNumber: 0,
-        PageSize: 1000,
-      });
-      if (labeled?.length) return mapEffectRows(labeled);
-    } catch {
-      /* try next label */
-    }
-  }
-  try {
-    // Label as array — supported by Tencent WebAR
-    const labeled = await instance.getEffectList?.({
-      Type: 'Preset',
-      Label: labels,
-      PageNumber: 0,
-      PageSize: 1000,
-    });
-    if (labeled?.length) return mapEffectRows(labeled);
-  } catch {
-    /* fall through */
-  }
-  return [];
-}
-
-async function fetchAllPresetEffects(instance: TencentWebARInstance): Promise<TencentEffectItem[]> {
-  try {
-    const all = await instance.getEffectList?.({
-      Type: 'Preset',
-      PageNumber: 0,
-      PageSize: 1000,
-    });
-    if (all?.length) return mapEffectRows(all);
-  } catch {
-    /* ignore */
-  }
-  return [];
-}
-
-function partitionPresetCatalog(all: TencentEffectItem[]) {
-  const makeups = all.filter((item) => labelMatches(item, MAKEUP_LABELS));
-  const stickers = all.filter((item) => labelMatches(item, STICKER_LABELS));
-  const bodyShapes = all.filter((item) => labelMatches(item, BODY_LABELS));
-  // Anything left that isn't clearly sticker/body — treat as makeup-adjacent for the tray.
-  const used = new Set([...makeups, ...stickers, ...bodyShapes].map((item) => item.id));
-  const leftover = all.filter((item) => !used.has(item.id));
-  return {
-    makeups: makeups.length > 0 ? makeups : leftover,
-    stickers,
-    bodyShapes,
-  };
-}
-
-async function loadEffectCatalogsFromInstance(instance: TencentWebARInstance): Promise<{
-  makeups: TencentEffectItem[];
-  stickers: TencentEffectItem[];
-  filters: TencentEffectItem[];
-  bodyShapes: TencentEffectItem[];
-  beautifyRows: TencentEffectItem[];
-}> {
-  let makeups = await fetchEffectListByLabels(instance, MAKEUP_LABELS);
-  let stickers = await fetchEffectListByLabels(instance, STICKER_LABELS);
-  const beautifyRows = await fetchEffectListByLabels(instance, BEAUTY_LABELS);
-  let bodyShapes = await fetchEffectListByLabels(instance, BODY_LABELS);
-
-  if (makeups.length === 0 || stickers.length === 0) {
-    const all = await fetchAllPresetEffects(instance);
-    if (all.length > 0) {
-      const partitioned = partitionPresetCatalog(all);
-      if (makeups.length === 0) makeups = partitioned.makeups;
-      if (stickers.length === 0) stickers = partitioned.stickers;
-      if (bodyShapes.length === 0) bodyShapes = partitioned.bodyShapes;
-    }
-  }
-
-  let filters: TencentEffectItem[] = [];
-  try {
-    const list = await instance.getCommonFilter?.();
-    if (list) filters = mapEffectRows(list);
-  } catch {
-    /* optional */
-  }
-
-  return { makeups, stickers, filters, bodyShapes, beautifyRows };
 }
 
 /**
@@ -319,79 +187,55 @@ export function useTencentWebAR({
     [],
   );
 
+  const syncCatalogStateFromShared = () => {
+    const catalogs = getSharedTencentWebAREffectCatalogs();
+    const covers = getSharedTencentWebARCovers();
+    const hasAny =
+      catalogs.makeups.length > 0 ||
+      catalogs.stickers.length > 0 ||
+      catalogs.filters.length > 0;
+    if (!hasAny) return false;
+    setMakeups(catalogs.makeups);
+    setStickers(catalogs.stickers);
+    setBodyShapes(catalogs.bodyShapes);
+    setFilters(catalogs.filters);
+    setBeautyCovers(covers.beautyCovers);
+    setShapeCovers(covers.shapeCovers);
+    setShapeEffectByPreset(covers.shapeEffectByPreset);
+    catalogsLoadedRef.current = true;
+    return true;
+  };
+
   const loadCatalogsAsync = async (
     instance: TencentWebARInstance,
     cancelled: () => boolean,
   ) => {
     if (cancelled()) return;
+    syncCatalogStateFromShared();
 
-    const applyCatalog = (payload: Awaited<ReturnType<typeof loadEffectCatalogsFromInstance>>) => {
-      if (cancelled()) return false;
-      const { makeups, stickers, filters, bodyShapes, beautifyRows } = payload;
-      const hasAny = makeups.length > 0 || stickers.length > 0 || filters.length > 0;
-      if (!hasAny) return false;
+    await refreshSharedEffectCatalogs(instance, 5);
+    if (cancelled()) return;
+    if (!syncCatalogStateFromShared()) return;
 
-      setMakeups(makeups);
-      setStickers(stickers);
-      setBodyShapes(bodyShapes);
-      setFilters(filters);
-      setSharedTencentWebAREffectCatalogs({
-        makeups,
-        stickers,
-        filters,
-        bodyShapes,
-      });
-
-      const coverSources = [...beautifyRows, ...filters, ...bodyShapes, ...makeups];
-      const nextBeautyCovers = buildBeautyCoverMap(coverSources);
-      const nextShapeCovers = buildShapeCoverMap(
-        bodyShapes.length > 0 ? bodyShapes : coverSources,
-      );
-      const nextShapeEffects = buildShapeEffectMap(bodyShapes);
-      setBeautyCovers(nextBeautyCovers as Record<string, string>);
-      setShapeCovers(nextShapeCovers as Record<string, string>);
-      setShapeEffectByPreset(nextShapeEffects as Record<string, string>);
-      setSharedTencentWebARCovers(
-        nextBeautyCovers as Record<string, string>,
-        nextShapeCovers as Record<string, string>,
-        nextShapeEffects as Record<string, string>,
-      );
-
-      const preloadIds = [
-        ...makeups.map((row) => row.id),
-        ...stickers.map((row) => row.id),
-        ...bodyShapes.map((row) => row.id),
-      ].filter(Boolean);
-      const selectedFirst = [
-        applyStateRef.current?.effects.makeupId,
-        applyStateRef.current?.effects.stickerId,
-        applyStateRef.current?.effects.shapeEffectId,
-      ].filter(Boolean) as string[];
-      const orderedIds = [
-        ...selectedFirst,
-        ...preloadIds.filter((id) => !selectedFirst.includes(id)),
-      ];
-      void preloadEffectIds(instance, orderedIds, (id) => {
-        if (cancelled()) return;
-        setReadyEffectIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
-      });
-
-      markSharedTencentWebARCatalogsLoaded();
-      catalogsLoadedRef.current = true;
-      return true;
-    };
-
-    // Retry — getEffectList can return empty if called a tick too early after ready.
-    for (let attempt = 0; attempt < 4; attempt += 1) {
+    const catalogs = getSharedTencentWebAREffectCatalogs();
+    const preloadIds = [
+      ...catalogs.makeups.map((row) => row.id),
+      ...catalogs.stickers.map((row) => row.id),
+      ...catalogs.bodyShapes.map((row) => row.id),
+    ].filter(Boolean);
+    const selectedFirst = [
+      applyStateRef.current?.effects.makeupId,
+      applyStateRef.current?.effects.stickerId,
+      applyStateRef.current?.effects.shapeEffectId,
+    ].filter(Boolean) as string[];
+    const orderedIds = [
+      ...selectedFirst,
+      ...preloadIds.filter((id) => !selectedFirst.includes(id)),
+    ];
+    void preloadEffectIds(instance, orderedIds, (id) => {
       if (cancelled()) return;
-      try {
-        const payload = await loadEffectCatalogsFromInstance(instance);
-        if (applyCatalog(payload)) return;
-      } catch {
-        /* retry */
-      }
-      await new Promise((resolve) => window.setTimeout(resolve, 350 * (attempt + 1)));
-    }
+      setReadyEffectIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
+    });
   };
 
   const attachOutput = async (instance: TencentWebARInstance) => {
@@ -610,6 +454,9 @@ export function useTencentWebAR({
     void instance
       .updateInputStream(inputStream, false, false)
       .then(() => {
+        void import('./tencentWebARWarm').then((m) => {
+          m.onSharedInputReplaced(inputStream);
+        });
         lastApplyKeyRef.current = '';
         return pushApplyState(instance, true);
       })
@@ -625,6 +472,16 @@ export function useTencentWebAR({
     void loadCatalogsAsync(instance, () => false);
     return undefined;
   }, [loadCatalogs, ready]);
+
+  // Pull catalogs from the warm pipeline / other mounts as soon as they land.
+  useEffect(() => {
+    if (!loadCatalogs) return undefined;
+    syncCatalogStateFromShared();
+    const id = window.setInterval(() => {
+      syncCatalogStateFromShared();
+    }, 400);
+    return () => window.clearInterval(id);
+  }, [loadCatalogs]);
 
   useEffect(() => {
     const instance = instanceRef.current;
@@ -679,3 +536,7 @@ export {
   preloadTencentWebARModule,
   warmTencentWebARForVideoCall,
 } from './tencentWebARPool';
+export {
+  ensureTencentWebARPipelineWarm,
+  warmTencentWebARPipelineNow,
+} from './tencentWebARWarm';

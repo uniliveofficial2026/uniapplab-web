@@ -23,9 +23,8 @@ import { isBodyShapeActive, BODY_SHAPE_COMING_SOON, type BodyShapeParams } from 
 import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
 import {
   isTencentWebARConfigured,
-  preloadTencentWebARModule,
   useTencentWebAR,
-  warmTencentWebARForVideoCall,
+  warmTencentWebARPipelineNow,
 } from '../../lib/webar/useTencentWebAR';
 import type { TencentEffectItem, TencentEffectSelection } from '../../lib/webar/webarTypes';
 import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../../lib/webar/webarTypes';
@@ -125,14 +124,14 @@ export function useMultiGuestCameraEffects({
     });
 
   useEffect(() => {
-    if (enabled && beautyConfigured) warmTencentWebARForVideoCall();
+    if (enabled && beautyConfigured) warmTencentWebARPipelineNow();
   }, [beautyConfigured, enabled]);
 
   /** Fixed for this mount — toggling beauty must not restart getUserMedia. */
   const captureIdealRef = useRef(getStableCameraIdeal(beautyConfigured));
 
   useEffect(() => {
-    if (enabled && shouldPreloadTrtcModule()) preloadTencentWebARModule();
+    if (enabled && shouldPreloadTrtcModule()) warmTencentWebARPipelineNow();
   }, [enabled]);
 
   const previewRef = useRef<HTMLDivElement>(null);

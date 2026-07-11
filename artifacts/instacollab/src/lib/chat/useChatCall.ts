@@ -24,7 +24,7 @@ import {
   prepareProcessedVideoTrackForLiveKit,
   updateLiveKitLocalVideoTrack,
 } from '../livekit/liveKitVideoPublish';
-import { isTencentWebARConfigured, warmTencentWebARForVideoCall } from '../webar/useTencentWebAR';
+import { isTencentWebARConfigured, warmTencentWebARPipelineNow } from '../webar/useTencentWebAR';
 import { WEBAR_CAMERA_FRAME_RATE, WEBAR_CAMERA_IDEAL } from '../webar/webarCameraConfig';
 import { isNetworkOnline } from '../networkStatus';
 import { isCloudAuthUserId } from '../auth/cloudProfile';
@@ -455,7 +455,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     (chatId: string, kind: ChatCallKind) => {
       const callType = normalizeCallKind(kind);
       if (callType === 'video' && isTencentWebARConfigured()) {
-        warmTencentWebARForVideoCall();
+        warmTencentWebARPipelineNow();
       }
       callKindRef.current = callType;
       setCallKind(callType);
@@ -511,7 +511,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     if (!inc) return;
     const callType = normalizeCallKind(inc.callKind);
     if (callType === 'video' && isTencentWebARConfigured()) {
-      warmTencentWebARForVideoCall();
+      warmTencentWebARPipelineNow();
     }
     callKindRef.current = callType;
     setCallKind(callType);
@@ -577,7 +577,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     async (chatId: string, kind: ChatCallKind) => {
       const callType = normalizeCallKind(kind);
       if (callType === 'video' && isTencentWebARConfigured()) {
-        warmTencentWebARForVideoCall();
+        warmTencentWebARPipelineNow();
       }
       callKindRef.current = callType;
       setCallKind(callType);

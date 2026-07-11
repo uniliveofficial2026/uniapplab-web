@@ -19,8 +19,7 @@ import { useCameraStream, type CameraFacingMode } from '../../lib/camera/useCame
 import {
   hydrateTencentWebARCatalogsFromStorage,
   isTencentWebARConfigured,
-  preloadTencentWebARModule,
-  warmTencentWebARForVideoCall,
+  warmTencentWebARPipelineNow,
 } from '../../lib/webar/useTencentWebAR';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
@@ -135,8 +134,7 @@ export function CreateRoomLivePreview({
   useEffect(() => {
     if (!enabled || !webarConfigured) return;
     hydrateTencentWebARCatalogsFromStorage();
-    preloadTencentWebARModule();
-    warmTencentWebARForVideoCall();
+    warmTencentWebARPipelineNow();
   }, [enabled, webarConfigured]);
 
   useEffect(() => {
