@@ -381,11 +381,12 @@ export function AuthScreen() {
 
   return (
     <LaunchShell className="h-dvh max-h-dvh overflow-hidden p-0">
-      <div className="min-h-0 flex-1 overflow-y-auto overscroll-y-contain [-webkit-overflow-scrolling:touch]">
-        <div className="flex min-h-full w-full flex-col">
-          <div className="min-h-6 flex-1 shrink" aria-hidden />
-          <div className="mx-auto w-full max-w-[420px] shrink-0 px-4 py-6 sm:px-6 sm:py-10 pb-[max(2rem,var(--app-safe-bottom))]">
-            <div className="flex w-full flex-col items-center gap-8">
+      <div
+        className="h-full min-h-0 w-full overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
+        data-auth-scroll=""
+      >
+        <div className="mx-auto w-full max-w-[420px] px-4 py-8 sm:px-6 sm:py-10 pb-[max(3rem,calc(var(--app-safe-bottom)+1.5rem))]">
+          <div className="flex w-full flex-col items-center gap-8">
           <header className="flex w-full flex-col items-center gap-5 text-center">
             <LaunchBrandMark size="xl" allowUpload={false} showUploadHint={false} />
             <div className="flex flex-col items-center gap-2">
@@ -705,9 +706,7 @@ export function AuthScreen() {
               </div>
             </footer>
           </div>
-            </div>
           </div>
-          <div className="min-h-6 flex-1 shrink" aria-hidden />
         </div>
       </div>
     </LaunchShell>

@@ -144,6 +144,27 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-
       overscroll-behavior: none;
     }
   }
+
+  /* Auth / launch forms must scroll inside #root overflow:hidden shells */
+  [data-auth-scroll] {
+    overflow-y: auto !important;
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-y: contain;
+    touch-action: pan-y;
+    /* Keep a visible scrollbar so end-to-end scroll is obvious */
+    scrollbar-width: thin !important;
+    -ms-overflow-style: auto !important;
+  }
+
+  [data-auth-scroll]::-webkit-scrollbar {
+    display: block !important;
+    width: 6px;
+  }
+
+  [data-auth-scroll]::-webkit-scrollbar-thumb {
+    background: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
+    border-radius: 999px;
+  }
   
   /* Hide scrollbar for feeds and stories */
   .no-scrollbar::-webkit-scrollbar,
