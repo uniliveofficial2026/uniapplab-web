@@ -120,9 +120,13 @@ export function CreateRoomLivePreview({
   const beautyStream =
     streamBeauty.outputStream ?? streamBeauty.outputStreamRef.current ?? null;
 
-  // Once TRTC is warm, always show its output — beauty/makeup/sticker/filter/BG apply on the live stream.
+  const beautyOutputLive = Boolean(
+    beautyStream?.getVideoTracks().some((track) => track.readyState === 'live'),
+  );
+
+  // Only cover the raw camera once TRTC is actually painting live frames of THIS preview.
   const showBeautyPreview = Boolean(
-    webarConfigured && streamBeauty.ready && (beautyStream || streamBeauty.outputVideoRef.current),
+    webarConfigured && streamBeauty.ready && beautyOutputLive,
   );
 
   // CSS look only until TRTC frames are on screen.

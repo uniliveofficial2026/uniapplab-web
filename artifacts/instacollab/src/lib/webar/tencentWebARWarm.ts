@@ -1,12 +1,13 @@
 /**
- * Eager TRTC / Tencent WebAR warm pipeline — init SDK + catalogs before Create Room / calls.
- * Keeps a keepalive consumer so the shared instance stays ready for instant apply.
+ * Eager TRTC / Tencent WebAR warm — preload module + catalogs without stealing the preview camera.
+ * Full SDK init with getUserMedia only when the engine is cold and nothing else is initializing.
  */
 import { WEBAR_OUTPUT_FPS } from './webarCameraConfig';
 import { isTencentWebARConfigured } from './webarConfig';
 import {
   ensureSharedTencentWebAR,
   hydrateTencentWebARCatalogsFromStorage,
+  isSharedTencentWebARInitInProgress,
   isSharedTencentWebARReady,
   releaseSharedTencentWebAR,
   warmTencentWebARForVideoCall,
@@ -67,7 +68,7 @@ export function onSharedInputReplaced(nextStream?: MediaStream | null): void {
 
 /**
  * Start (or reuse) the shared WebAR engine and load makeup/sticker/filter catalogs.
- * Safe to call many times — deduped. Pins one keepalive so the engine stays warm.
+ * Safe to call many times — deduped. Does not open a second camera when UI already owns one.
  */
 export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
   if (!isTencentWebARConfigured() || typeof window === 'undefined') {
@@ -81,11 +82,26 @@ export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
     return Promise.resolve(true);
   }
 
+  // Create Room / call is already initializing — don't open a competing camera.
+  if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
+    return Promise.resolve(hasSharedEffectCatalogRows());
+  }
+
   if (warmPromise) return warmPromise;
 
   warmPromise = (async () => {
+    // Bail if a UI surface started init while we awaited permission.
+    if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
+      return hasSharedEffectCatalogRows();
+    }
+
     const stream = await getWarmCameraStream();
     if (!stream) return hasSharedEffectCatalogRows();
+
+    if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
+      stopWarmCameraStream();
+      return hasSharedEffectCatalogRows();
+    }
 
     const shared = await ensureSharedTencentWebAR({
       inputStream: stream,
@@ -98,19 +114,20 @@ export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
     if (!keepalivePinned) {
       keepalivePinned = true;
     } else {
-      // ensureShared acquired an extra consumer on repeat warm calls — drop it.
       releaseSharedTencentWebAR();
     }
 
     const instance = shared.instance;
-    if (!instance) return false;
+    if (!instance) {
+      stopWarmCameraStream();
+      return false;
+    }
 
     await refreshSharedEffectCatalogs(instance, 5);
     return isSharedTencentWebARReady() && hasSharedEffectCatalogRows();
   })()
     .catch(() => hasSharedEffectCatalogRows())
     .finally(() => {
-      // Allow a later retry if this attempt failed to populate catalogs.
       if (!hasSharedEffectCatalogRows() || !isSharedTencentWebARReady()) {
         warmPromise = null;
       }

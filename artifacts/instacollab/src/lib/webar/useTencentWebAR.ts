@@ -30,10 +30,12 @@ import {
   ensureSharedTencentWebAR,
   getSharedTencentWebARCovers,
   getSharedTencentWebAREffectCatalogs,
+  getSharedTencentWebARInputTrackId,
   hydrateTencentWebARCatalogsFromStorage,
   isSharedTencentWebARReady,
   releaseSharedTencentWebAR,
   sharedCatalogsLoaded,
+  syncSharedTencentWebARInput,
 } from './tencentWebARPool';
 import { refreshSharedEffectCatalogs } from './tencentWebARCatalogs';
 
@@ -299,8 +301,15 @@ export function useTencentWebAR({
           instanceRef.current = instance;
           segmentationOnRef.current = needsSegmentation;
           lastApplyKeyRef.current = '';
-          inputTrackIdRef.current = inputVideoTrackId;
+          // Track the stream the SDK is actually bound to (may differ until sync completes).
+          inputTrackIdRef.current = getSharedTencentWebARInputTrackId();
           outputStreamRef.current = shared.output;
+          // Rebind to this surface's live camera — warm pipeline must not own the preview.
+          if (inputStream && inputVideoTrackId !== inputTrackIdRef.current) {
+            const rebound = await syncSharedTencentWebARInput(inputStream, outputFps);
+            if (rebound) outputStreamRef.current = rebound;
+            inputTrackIdRef.current = getSharedTencentWebARInputTrackId();
+          }
           // Apply last-call beauty immediately — don't wait on catalog fetch.
           await pushApplyState(instance, true);
           await attachOutput(instance);
@@ -445,26 +454,24 @@ export function useTencentWebAR({
     if (inputVideoTrackId === inputTrackIdRef.current) return undefined;
 
     const instance = instanceRef.current;
-    if (!instance?.updateInputStream) {
+    if (!instance) {
       inputTrackIdRef.current = inputVideoTrackId;
       return undefined;
     }
 
-    inputTrackIdRef.current = inputVideoTrackId;
-    void instance
-      .updateInputStream(inputStream, false, false)
-      .then(() => {
-        void import('./tencentWebARWarm').then((m) => {
-          m.onSharedInputReplaced(inputStream);
-        });
+    void syncSharedTencentWebARInput(inputStream, outputFps)
+      .then(async (output) => {
+        inputTrackIdRef.current = getSharedTencentWebARInputTrackId();
+        if (output) outputStreamRef.current = output;
         lastApplyKeyRef.current = '';
-        return pushApplyState(instance, true);
+        await pushApplyState(instance, true);
+        await attachOutput(instance);
       })
       .catch(() => {
         /* instance may be tearing down */
       });
     return undefined;
-  }, [streamMode, ready, inputStream, inputVideoTrackId, pushApplyState]);
+  }, [streamMode, ready, inputStream, inputVideoTrackId, outputFps, pushApplyState]);
 
   useEffect(() => {
     const instance = instanceRef.current;

@@ -203,8 +203,55 @@ export function getSharedTencentWebAROutputStream(): MediaStream | null {
   return sharedOutputStream;
 }
 
+export function getSharedTencentWebARInputTrackId(): string {
+  return sharedInputTrackId;
+}
+
+export function isSharedTencentWebARInitInProgress(): boolean {
+  return Boolean(initPromise);
+}
+
 export function markSharedTencentWebARCatalogsLoaded(): void {
   sharedCatalogsLoaded = true;
+}
+
+/**
+ * Bind the shared SDK to this camera stream. Always call from UI surfaces so warm
+ * pipeline / prior sessions cannot leave effects running on a dead or foreign track.
+ */
+export async function syncSharedTencentWebARInput(
+  inputStream: MediaStream,
+  outputFps = WEBAR_CAMERA_FPS,
+): Promise<MediaStream | null> {
+  if (!sharedInstance || !sharedReady) return sharedOutputStream;
+  const track = inputStream.getVideoTracks()[0];
+  const inputTrackId = track?.id ?? '';
+  if (!inputTrackId || track.readyState !== 'live') return sharedOutputStream;
+
+  if (inputTrackId !== sharedInputTrackId) {
+    if (!sharedInstance.updateInputStream) {
+      sharedInputTrackId = inputTrackId;
+    } else {
+      try {
+        await sharedInstance.updateInputStream(inputStream, false, false);
+        sharedInputTrackId = inputTrackId;
+        void import('./tencentWebARWarm').then((m) => {
+          m.onSharedInputReplaced(inputStream);
+        });
+      } catch {
+        return sharedOutputStream;
+      }
+    }
+  }
+
+  try {
+    sharedOutputStream = (await (sharedInstance.getOutput as (fps?: number) => Promise<MediaStream>)(
+      outputFps,
+    )) as MediaStream;
+  } catch {
+    /* keep previous output */
+  }
+  return sharedOutputStream;
 }
 
 function cancelWarmDestroy(): void {
@@ -261,26 +308,22 @@ export async function ensureSharedTencentWebAR(
 
   acquireSharedTencentWebAR();
 
-  const inputTrackId = options.inputStream.getVideoTracks()[0]?.id ?? '';
+  const bindCallerInput = async () => {
+    const output = await syncSharedTencentWebARInput(options.inputStream, options.outputFps);
+    return { instance: sharedInstance, output };
+  };
+
   if (sharedInstance && sharedReady) {
-    if (inputTrackId && inputTrackId !== sharedInputTrackId && sharedInstance.updateInputStream) {
-      sharedInputTrackId = inputTrackId;
-      try {
-        await sharedInstance.updateInputStream(options.inputStream, false, false);
-        void import('./tencentWebARWarm').then((m) => {
-          m.onSharedInputReplaced(options.inputStream);
-        });
-      } catch {
-        /* instance may be mid-update */
-      }
-    }
-    return { instance: sharedInstance, output: sharedOutputStream };
+    return bindCallerInput();
   }
 
   if (initPromise) {
     const instance = await initPromise;
-    return { instance, output: sharedOutputStream };
+    if (!instance) return { instance: null, output: null };
+    return bindCallerInput();
   }
+
+  const inputTrackId = options.inputStream.getVideoTracks()[0]?.id ?? '';
 
   initPromise = (async () => {
     const mod = await loadTencentWebARModule();
@@ -349,7 +392,9 @@ export async function ensureSharedTencentWebAR(
 
   try {
     const instance = await initPromise;
-    return { instance, output: sharedOutputStream };
+    if (!instance) return { instance: null, output: null };
+    // Caller may differ from the stream that won the init race — always rebind.
+    return bindCallerInput();
   } catch {
     sharedInstance = null;
     sharedReady = false;
