@@ -87,7 +87,13 @@ export type TencentWebARInstance = {
   off?: (event: string, handler?: (payload?: unknown) => void) => void;
   setBeautify: (params: TencentBeautifyParams) => void;
   getOutput: () => Promise<MediaStream>;
-  getEffectList?: (opts: { Type: string; Label?: string; PageSize?: number }) => Promise<
+  getEffectList?: (opts: {
+    Type: string;
+    Label?: string | string[];
+    PageSize?: number;
+    PageNumber?: number;
+    Name?: string;
+  }) => Promise<
     Array<{
       Name?: string;
       EffectId?: string;

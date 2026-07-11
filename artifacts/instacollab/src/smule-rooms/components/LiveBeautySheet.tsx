@@ -245,11 +245,7 @@ export function LiveBeautySheet({
           selectedId={effects.makeupId}
           items={catalogs?.makeups ?? []}
           onSelect={(id) => patchEffects({ makeupId: id })}
-          emptyHint={
-            catalogs?.makeups?.length
-              ? ''
-              : 'Makeup presets appear after the first TRTC session.'
-          }
+          emptyHint=""
           isReady={() => true}
         />
       ) : null}
@@ -260,11 +256,7 @@ export function LiveBeautySheet({
           selectedId={effects.stickerId}
           items={catalogs?.stickers ?? []}
           onSelect={(id) => patchEffects({ stickerId: id })}
-          emptyHint={
-            catalogs?.stickers?.length
-              ? ''
-              : 'Stickers appear after the first TRTC session.'
-          }
+          emptyHint=""
           isReady={() => true}
         />
       ) : null}
@@ -275,11 +267,7 @@ export function LiveBeautySheet({
           selectedId={effects.filterId}
           items={catalogs?.filters ?? []}
           onSelect={(id) => patchEffects({ filterId: id })}
-          emptyHint={
-            catalogs?.filters?.length
-              ? ''
-              : 'Filters appear after the first TRTC session.'
-          }
+          emptyHint=""
           isReady={() => true}
         />
       ) : null}
@@ -507,7 +495,9 @@ function EffectGrid({
         <span className="text-[10px] font-black uppercase tracking-wide">{noneLabel}</span>
       </button>
       {items.length === 0 ? (
-        <p className="self-center px-2 text-[10px] font-bold text-white/60 drop-shadow">{emptyHint}</p>
+        emptyHint ? (
+          <p className="self-center px-2 text-[10px] font-bold text-white/60 drop-shadow">{emptyHint}</p>
+        ) : null
       ) : (
         items.map((item) => {
           const selected = selectedId === item.id;
