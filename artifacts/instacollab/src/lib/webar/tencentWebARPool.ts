@@ -24,8 +24,10 @@ let initPromise: Promise<TencentWebARInstance | null> | null = null;
 let consumerCount = 0;
 let destroyTimer: ReturnType<typeof setTimeout> | null = null;
 
-/** Keep GPU instance warm briefly after last consumer — instant re-open on next call. */
-const WARM_TTL_MS = 90_000;
+/** Keep GPU instance warm after last consumer — Create Room / next call reopen instantly. */
+const WARM_TTL_MS = 15 * 60_000;
+
+const CATALOG_STORAGE_KEY = 'tencentWebAREffectCatalogs.v1';
 
 export let sharedCatalogsLoaded = false;
 
@@ -46,6 +48,74 @@ let sharedEffectCatalogs: SharedEffectCatalogs = {
   filters: [],
   bodyShapes: [],
 };
+
+function persistSharedCatalogsToStorage(): void {
+  if (typeof window === 'undefined') return;
+  if (
+    sharedEffectCatalogs.makeups.length === 0 &&
+    sharedEffectCatalogs.stickers.length === 0 &&
+    sharedEffectCatalogs.filters.length === 0
+  ) {
+    return;
+  }
+  try {
+    localStorage.setItem(
+      CATALOG_STORAGE_KEY,
+      JSON.stringify({
+        catalogs: sharedEffectCatalogs,
+        beautyCovers: sharedBeautyCovers,
+        shapeCovers: sharedShapeCovers,
+        shapeEffectByPreset: sharedShapeEffectByPreset,
+        savedAt: Date.now(),
+      }),
+    );
+  } catch {
+    /* quota / private mode */
+  }
+}
+
+/** Hydrate makeup/sticker/filter trays from last session — no TRTC wait. */
+export function hydrateTencentWebARCatalogsFromStorage(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (
+    sharedEffectCatalogs.makeups.length > 0 ||
+    sharedEffectCatalogs.stickers.length > 0 ||
+    sharedEffectCatalogs.filters.length > 0
+  ) {
+    sharedCatalogsLoaded = true;
+    return true;
+  }
+  try {
+    const raw = localStorage.getItem(CATALOG_STORAGE_KEY);
+    if (!raw) return false;
+    const parsed = JSON.parse(raw) as {
+      catalogs?: Partial<SharedEffectCatalogs>;
+      beautyCovers?: Record<string, string>;
+      shapeCovers?: Record<string, string>;
+      shapeEffectByPreset?: Record<string, string>;
+    };
+    const catalogs = parsed.catalogs ?? {};
+    sharedEffectCatalogs = {
+      makeups: Array.isArray(catalogs.makeups) ? catalogs.makeups : [],
+      stickers: Array.isArray(catalogs.stickers) ? catalogs.stickers : [],
+      filters: Array.isArray(catalogs.filters) ? catalogs.filters : [],
+      bodyShapes: Array.isArray(catalogs.bodyShapes) ? catalogs.bodyShapes : [],
+    };
+    sharedBeautyCovers = parsed.beautyCovers ?? {};
+    sharedShapeCovers = parsed.shapeCovers ?? {};
+    sharedShapeEffectByPreset = parsed.shapeEffectByPreset ?? {};
+    const hasRows =
+      sharedEffectCatalogs.makeups.length > 0 ||
+      sharedEffectCatalogs.stickers.length > 0 ||
+      sharedEffectCatalogs.filters.length > 0;
+    if (hasRows) sharedCatalogsLoaded = true;
+    return hasRows;
+  } catch {
+    return false;
+  }
+}
+
+hydrateTencentWebARCatalogsFromStorage();
 
 export function getSharedTencentWebARCovers(): {
   beautyCovers: Record<string, string>;
@@ -75,6 +145,8 @@ export function setSharedTencentWebAREffectCatalogs(next: SharedEffectCatalogs):
     filters: next.filters,
     bodyShapes: next.bodyShapes,
   };
+  sharedCatalogsLoaded = true;
+  persistSharedCatalogsToStorage();
 }
 
 export function setSharedTencentWebARCovers(
@@ -85,6 +157,7 @@ export function setSharedTencentWebARCovers(
   sharedBeautyCovers = beautyCovers;
   sharedShapeCovers = shapeCovers;
   sharedShapeEffectByPreset = shapeEffectByPreset;
+  persistSharedCatalogsToStorage();
 }
 
 async function buildSignature() {
@@ -103,6 +176,7 @@ export function preloadTencentWebARModule(): void {
 /** Preload JS module + AR asset manifest before a video call starts. */
 export function warmTencentWebARForVideoCall(): void {
   if (!isTencentWebARConfigured() || typeof window === 'undefined') return;
+  hydrateTencentWebARCatalogsFromStorage();
   preloadTencentWebARModule();
   void import('../ar/ensureArStack').then((m) => m.ensureArStackLoaded());
 }

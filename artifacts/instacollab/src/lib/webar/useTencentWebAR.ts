@@ -30,6 +30,8 @@ import {
   ensureSharedTencentWebAR,
   getSharedTencentWebARCovers,
   getSharedTencentWebAREffectCatalogs,
+  hydrateTencentWebARCatalogsFromStorage,
+  isSharedTencentWebARReady,
   markSharedTencentWebARCatalogsLoaded,
   releaseSharedTencentWebAR,
   setSharedTencentWebARCovers,
@@ -183,38 +185,37 @@ export function useTencentWebAR({
   const outputVideoRef = useRef<HTMLVideoElement | null>(null);
   const outputStreamRef = useRef<MediaStream | null>(null);
   const usingSharedRef = useRef(false);
-  const catalogsLoadedRef = useRef(sharedCatalogsLoaded && getSharedTencentWebAREffectCatalogs().makeups.length > 0);
+  // Instant trays: memory cache or last-session localStorage — never wait on TRTC for the grid.
+  const bootCatalogs = (() => {
+    hydrateTencentWebARCatalogsFromStorage();
+    return getSharedTencentWebAREffectCatalogs();
+  })();
+  const bootCovers = getSharedTencentWebARCovers();
+  const catalogsLoadedRef = useRef(
+    sharedCatalogsLoaded &&
+      (bootCatalogs.makeups.length > 0 ||
+        bootCatalogs.stickers.length > 0 ||
+        bootCatalogs.filters.length > 0),
+  );
   const inputTrackIdRef = useRef('');
   const segmentationOnRef = useRef(false);
   const lastApplyKeyRef = useRef('');
   const applyStateRef = useRef<TencentWebARApplyState | null>(null);
   const mirrorRef = useRef(mirror);
-  const [ready, setReady] = useState(false);
+  const [ready, setReady] = useState(() => isSharedTencentWebARReady());
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [makeups, setMakeups] = useState<TencentEffectItem[]>(() =>
-    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().makeups : [],
-  );
-  const [stickers, setStickers] = useState<TencentEffectItem[]>(() =>
-    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().stickers : [],
-  );
-  const [filters, setFilters] = useState<TencentEffectItem[]>(() =>
-    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().filters : [],
-  );
+  const [makeups, setMakeups] = useState<TencentEffectItem[]>(() => bootCatalogs.makeups);
+  const [stickers, setStickers] = useState<TencentEffectItem[]>(() => bootCatalogs.stickers);
+  const [filters, setFilters] = useState<TencentEffectItem[]>(() => bootCatalogs.filters);
   const [backgrounds] = useState<string[]>([...TRTC_DEFAULT_BACKGROUNDS]);
   const [readyEffectIds, setReadyEffectIds] = useState<string[]>([]);
-  const [beautyCovers, setBeautyCovers] = useState<Record<string, string>>(() =>
-    sharedCatalogsLoaded ? getSharedTencentWebARCovers().beautyCovers : {},
+  const [beautyCovers, setBeautyCovers] = useState<Record<string, string>>(() => bootCovers.beautyCovers);
+  const [shapeCovers, setShapeCovers] = useState<Record<string, string>>(() => bootCovers.shapeCovers);
+  const [shapeEffectByPreset, setShapeEffectByPreset] = useState<Record<string, string>>(
+    () => bootCovers.shapeEffectByPreset,
   );
-  const [shapeCovers, setShapeCovers] = useState<Record<string, string>>(() =>
-    sharedCatalogsLoaded ? getSharedTencentWebARCovers().shapeCovers : {},
-  );
-  const [shapeEffectByPreset, setShapeEffectByPreset] = useState<Record<string, string>>(() =>
-    sharedCatalogsLoaded ? getSharedTencentWebARCovers().shapeEffectByPreset : {},
-  );
-  const [bodyShapes, setBodyShapes] = useState<TencentEffectItem[]>(() =>
-    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().bodyShapes : [],
-  );
+  const [bodyShapes, setBodyShapes] = useState<TencentEffectItem[]>(() => bootCatalogs.bodyShapes);
 
   const beautyOn = persistent || isBeautifyActive(beautify) || hasEffectSelection(effects);
   const needsSegmentation = Boolean(effects.backgroundUrl);
@@ -251,7 +252,7 @@ export function useTencentWebAR({
     instance: TencentWebARInstance,
     cancelled: () => boolean,
   ) => {
-    if (catalogsLoadedRef.current || cancelled()) return;
+    if (cancelled()) return;
     try {
       const [makeupRows, stickerRows, beautifyRows, bodyRows] = await Promise.all([
         fetchEffectCatalog(instance, 'Makeup'),
@@ -299,7 +300,17 @@ export function useTencentWebAR({
           ...stickerRows.map((row) => row.id),
           ...bodyRows.map((row) => row.id),
         ].filter(Boolean);
-        void preloadEffectIds(instance, preloadIds, (id) => {
+        // Selected effects first so last-call look applies without waiting on the full catalog.
+        const selectedFirst = [
+          applyStateRef.current?.effects.makeupId,
+          applyStateRef.current?.effects.stickerId,
+          applyStateRef.current?.effects.shapeEffectId,
+        ].filter(Boolean) as string[];
+        const orderedIds = [
+          ...selectedFirst,
+          ...preloadIds.filter((id) => !selectedFirst.includes(id)),
+        ];
+        void preloadEffectIds(instance, orderedIds, (id) => {
           if (cancelled()) return;
           setReadyEffectIds((prev) => (prev.includes(id) ? prev : [...prev, id]));
         });
@@ -347,7 +358,8 @@ export function useTencentWebAR({
     let ownedInstance = false;
 
     void (async () => {
-      setLoading(true);
+      const alreadyWarm = streamMode && isSharedTencentWebARReady();
+      setLoading(!alreadyWarm);
       setError(null);
 
       try {
@@ -375,6 +387,7 @@ export function useTencentWebAR({
           lastApplyKeyRef.current = '';
           inputTrackIdRef.current = inputVideoTrackId;
           outputStreamRef.current = shared.output;
+          // Apply last-call beauty immediately — don't wait on catalog fetch.
           await pushApplyState(instance, true);
           await attachOutput(instance);
         } else {
@@ -455,7 +468,7 @@ export function useTencentWebAR({
         setReady(true);
         setError(null);
 
-        if (loadCatalogs || !catalogsLoadedRef.current) {
+        if (loadCatalogs) {
           void loadCatalogsAsync(instance, () => cancelled);
         }
       } catch (err) {
@@ -591,4 +604,8 @@ export function useTencentWebAR({
 }
 
 export { isTencentWebARConfigured } from './webarConfig';
-export { preloadTencentWebARModule, warmTencentWebARForVideoCall } from './tencentWebARPool';
+export {
+  hydrateTencentWebARCatalogsFromStorage,
+  preloadTencentWebARModule,
+  warmTencentWebARForVideoCall,
+} from './tencentWebARPool';

@@ -88,11 +88,6 @@ export function LiveBeautySheet({
   const [uploadedBackgroundUrl, setUploadedBackgroundUrl] = useState<string | null>(null);
   const [uploadedBackgroundLabel, setUploadedBackgroundLabel] = useState('My BG');
   const [uploadingBackground, setUploadingBackground] = useState(false);
-  const readySet = useRef(new Set(readyEffectIds));
-
-  useEffect(() => {
-    readySet.current = new Set(readyEffectIds);
-  }, [readyEffectIds]);
 
   useEffect(() => {
     return () => {
@@ -162,8 +157,6 @@ export function LiveBeautySheet({
     [effects, onEffectsChange],
   );
 
-  const isEffectReady = (id: string | null) => !id || readySet.current.has(id);
-
   const body = (
     <>
       {!webarConfigured ? (
@@ -171,7 +164,7 @@ export function LiveBeautySheet({
           Add <code className="font-mono">VITE_TENCENT_WEBAR_*</code> for full TRTC beauty. CSS fallback active.
         </p>
       ) : null}
-      {webarConfigured && webarLoading ? (
+      {webarConfigured && webarLoading && !(catalogs?.makeups?.length || catalogs?.stickers?.length) ? (
         <p className="mb-2 px-0.5 text-[10px] font-bold text-cyan-200 drop-shadow">
           Loading TRTC beauty…
         </p>
@@ -260,9 +253,11 @@ export function LiveBeautySheet({
           emptyHint={
             webarLoading
               ? 'Loading makeup presets…'
-              : 'Makeup presets load when TRTC WebAR is ready.'
+              : catalogs?.makeups?.length
+                ? ''
+                : 'Open Beauty once on a video call to cache makeup presets.'
           }
-          isReady={(id) => variant === 'call' || isEffectReady(id)}
+          isReady={() => true}
         />
       ) : null}
 
@@ -275,9 +270,11 @@ export function LiveBeautySheet({
           emptyHint={
             webarLoading
               ? 'Loading stickers…'
-              : 'Stickers load when TRTC WebAR is ready.'
+              : catalogs?.stickers?.length
+                ? ''
+                : 'Open Beauty once on a video call to cache stickers.'
           }
-          isReady={(id) => variant === 'call' || isEffectReady(id)}
+          isReady={() => true}
         />
       ) : null}
 
@@ -290,7 +287,9 @@ export function LiveBeautySheet({
           emptyHint={
             webarLoading
               ? 'Loading filters…'
-              : 'Filters load when TRTC WebAR is ready.'
+              : catalogs?.filters?.length
+                ? ''
+                : 'Open Beauty once on a video call to cache filters.'
           }
           isReady={() => true}
         />

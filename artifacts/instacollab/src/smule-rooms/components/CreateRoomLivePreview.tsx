@@ -16,8 +16,12 @@ import {
   shouldMirrorCameraPreview,
 } from '../../lib/camera/cameraMirrorPolicy';
 import { useCameraStream, type CameraFacingMode } from '../../lib/camera/useCameraStream';
-import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
-import { isTencentWebARConfigured, preloadTencentWebARModule, warmTencentWebARForVideoCall } from '../../lib/webar/useTencentWebAR';
+import {
+  hydrateTencentWebARCatalogsFromStorage,
+  isTencentWebARConfigured,
+  preloadTencentWebARModule,
+  warmTencentWebARForVideoCall,
+} from '../../lib/webar/useTencentWebAR';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
   type TencentEffectSelection,
@@ -113,22 +117,24 @@ export function CreateRoomLivePreview({
     persistent: enabled && webarConfigured,
   });
 
-  const beautyVideoReady = useVideoFrameReady(
-    streamBeauty.outputVideoRef,
-    enabled && webarConfigured && streamBeauty.ready,
+  const hasCachedCatalogs = Boolean(
+    streamBeauty.catalogs?.makeups?.length ||
+      streamBeauty.catalogs?.stickers?.length ||
+      streamBeauty.catalogs?.filters?.length,
   );
 
+  // Swap to TRTC output as soon as the shared engine is ready — no extra frame-gate delay.
   const showBeautyPreview =
-    beautyActive &&
-    streamBeauty.configured &&
-    streamBeauty.ready &&
-    beautyVideoReady;
+    beautyActive && streamBeauty.configured && streamBeauty.ready && Boolean(streamBeauty.outputStream);
 
   const cssFallbackFilter =
-    beautyActive && !showBeautyPreview ? getBeautyVideoFilter(beautyId) : null;
+    beautyActive && !showBeautyPreview
+      ? getBeautyVideoFilter(beautyId !== 'none' ? beautyId : 'beauty-natural')
+      : null;
 
   useEffect(() => {
     if (!enabled || !webarConfigured) return;
+    hydrateTencentWebARCatalogsFromStorage();
     preloadTencentWebARModule();
     warmTencentWebARForVideoCall();
   }, [enabled, webarConfigured]);
@@ -312,9 +318,13 @@ export function CreateRoomLivePreview({
               onBodyShapeChange={setBodyShape}
               catalogs={streamBeauty.catalogs}
               readyEffectIds={streamBeauty.readyEffectIds}
-              variant="inline"
+              variant="call"
               webarConfigured={webarConfigured}
-              webarLoading={streamBeauty.loading || (webarConfigured && !streamBeauty.ready)}
+              webarLoading={
+                webarConfigured &&
+                !hasCachedCatalogs &&
+                (streamBeauty.loading || !streamBeauty.ready)
+              }
               webarError={streamBeauty.error}
             />
           </div>

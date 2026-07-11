@@ -57,6 +57,13 @@ const CreateRoom = () => {
   const [goLiveCountdown, setGoLiveCountdown] = useState<number | null>(null);
   const pendingNavigateRef = useRef<string | null>(null);
 
+  useEffect(() => {
+    void import('../../lib/webar/tencentWebARPool').then((m) => {
+      m.hydrateTencentWebARCatalogsFromStorage();
+      m.warmTencentWebARForVideoCall();
+    });
+  }, []);
+
   const handleLiveSetupChange = useCallback((setup: PendingCreateRoomBeauty) => {
     liveSetupRef.current = setup;
   }, []);
