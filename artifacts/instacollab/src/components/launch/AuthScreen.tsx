@@ -385,7 +385,7 @@ export function AuthScreen() {
         <div className="m-auto w-full max-w-[420px] p-4 py-8 sm:p-6 sm:py-12 pb-[max(2rem,var(--app-safe-bottom))]">
         <div className="w-full flex flex-col items-center gap-8">
           <header className="flex w-full flex-col items-center gap-5 text-center">
-            <LaunchBrandMark size="xl" allowUpload showUploadHint={false} />
+            <LaunchBrandMark size="xl" allowUpload={false} showUploadHint={false} />
             <div className="flex flex-col items-center gap-2">
               <p className="text-lg font-black tracking-tight">{APP_DISPLAY_NAME}</p>
               <h1 className="text-2xl font-black tracking-tight">{title}</h1>
