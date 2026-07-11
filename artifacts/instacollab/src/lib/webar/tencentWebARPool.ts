@@ -33,6 +33,20 @@ let sharedBeautyCovers: Record<string, string> = {};
 let sharedShapeCovers: Record<string, string> = {};
 let sharedShapeEffectByPreset: Record<string, string> = {};
 
+type SharedEffectCatalogs = {
+  makeups: import('./webarTypes').TencentEffectItem[];
+  stickers: import('./webarTypes').TencentEffectItem[];
+  filters: import('./webarTypes').TencentEffectItem[];
+  bodyShapes: import('./webarTypes').TencentEffectItem[];
+};
+
+let sharedEffectCatalogs: SharedEffectCatalogs = {
+  makeups: [],
+  stickers: [],
+  filters: [],
+  bodyShapes: [],
+};
+
 export function getSharedTencentWebARCovers(): {
   beautyCovers: Record<string, string>;
   shapeCovers: Record<string, string>;
@@ -42,6 +56,24 @@ export function getSharedTencentWebARCovers(): {
     beautyCovers: sharedBeautyCovers,
     shapeCovers: sharedShapeCovers,
     shapeEffectByPreset: sharedShapeEffectByPreset,
+  };
+}
+
+export function getSharedTencentWebAREffectCatalogs(): SharedEffectCatalogs {
+  return {
+    makeups: sharedEffectCatalogs.makeups,
+    stickers: sharedEffectCatalogs.stickers,
+    filters: sharedEffectCatalogs.filters,
+    bodyShapes: sharedEffectCatalogs.bodyShapes,
+  };
+}
+
+export function setSharedTencentWebAREffectCatalogs(next: SharedEffectCatalogs): void {
+  sharedEffectCatalogs = {
+    makeups: next.makeups,
+    stickers: next.stickers,
+    filters: next.filters,
+    bodyShapes: next.bodyShapes,
   };
 }
 

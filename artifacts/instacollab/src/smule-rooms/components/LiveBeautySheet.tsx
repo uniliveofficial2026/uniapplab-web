@@ -171,6 +171,11 @@ export function LiveBeautySheet({
           Add <code className="font-mono">VITE_TENCENT_WEBAR_*</code> for full TRTC beauty. CSS fallback active.
         </p>
       ) : null}
+      {webarConfigured && webarLoading ? (
+        <p className="mb-2 px-0.5 text-[10px] font-bold text-cyan-200 drop-shadow">
+          Loading TRTC beauty…
+        </p>
+      ) : null}
       {webarError ? (
         <p className="mb-2 px-0.5 text-[10px] font-bold text-red-300 drop-shadow" role="alert">
           {webarError}
@@ -252,7 +257,11 @@ export function LiveBeautySheet({
           selectedId={effects.makeupId}
           items={catalogs?.makeups ?? []}
           onSelect={(id) => patchEffects({ makeupId: id })}
-          emptyHint="Makeup presets load when TRTC WebAR is ready."
+          emptyHint={
+            webarLoading
+              ? 'Loading makeup presets…'
+              : 'Makeup presets load when TRTC WebAR is ready.'
+          }
           isReady={(id) => variant === 'call' || isEffectReady(id)}
         />
       ) : null}
@@ -263,7 +272,11 @@ export function LiveBeautySheet({
           selectedId={effects.stickerId}
           items={catalogs?.stickers ?? []}
           onSelect={(id) => patchEffects({ stickerId: id })}
-          emptyHint="Stickers load when TRTC WebAR is ready."
+          emptyHint={
+            webarLoading
+              ? 'Loading stickers…'
+              : 'Stickers load when TRTC WebAR is ready.'
+          }
           isReady={(id) => variant === 'call' || isEffectReady(id)}
         />
       ) : null}
@@ -274,7 +287,11 @@ export function LiveBeautySheet({
           selectedId={effects.filterId}
           items={catalogs?.filters ?? []}
           onSelect={(id) => patchEffects({ filterId: id })}
-          emptyHint="Filters load when TRTC WebAR is ready."
+          emptyHint={
+            webarLoading
+              ? 'Loading filters…'
+              : 'Filters load when TRTC WebAR is ready.'
+          }
           isReady={() => true}
         />
       ) : null}

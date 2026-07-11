@@ -108,37 +108,30 @@ export function CreateRoomLivePreview({
     mirror: mirrorPreview,
     keepWarm: enabled && webarConfigured,
     beautyPanelOpen,
-    loadCatalogs: beautyPanelOpen || beautyActive,
-    // Same persistent TRTC path as video calls so last-call beauty applies immediately.
+    // Load makeup/sticker/filter catalogs as soon as Solo/Shop opens — same as a warm video call.
+    loadCatalogs: enabled && webarConfigured,
     persistent: enabled && webarConfigured,
   });
 
   const beautyVideoReady = useVideoFrameReady(
     streamBeauty.outputVideoRef,
-    enabled && beautyActive && streamBeauty.active,
+    enabled && webarConfigured && streamBeauty.ready,
   );
 
   const showBeautyPreview =
-    beautyActive && streamBeauty.configured && streamBeauty.active && beautyVideoReady;
+    beautyActive &&
+    streamBeauty.configured &&
+    streamBeauty.ready &&
+    beautyVideoReady;
+
+  const cssFallbackFilter =
+    beautyActive && !showBeautyPreview ? getBeautyVideoFilter(beautyId) : null;
 
   useEffect(() => {
     if (!enabled || !webarConfigured) return;
     preloadTencentWebARModule();
     warmTencentWebARForVideoCall();
   }, [enabled, webarConfigured]);
-
-  useEffect(() => {
-    const video = camera.videoRef.current;
-    if (!video) return;
-    const filter =
-      beautyActive && !streamBeauty.configured
-        ? getBeautyVideoFilter(beautyId)
-        : null;
-    video.style.filter = filter ?? '';
-    return () => {
-      video.style.filter = '';
-    };
-  }, [beautyId, camera.ready, beautyActive, streamBeauty.configured]);
 
   useEffect(() => {
     onSetupChange?.({
@@ -181,13 +174,18 @@ export function CreateRoomLivePreview({
     >
       {enabled ? (
         <>
-          <CameraCaptureViewport
-            rawStream={inputStream}
-            beautyStream={streamBeauty.outputStream}
-            showBeautyPreview={showBeautyPreview}
-            mirrorRaw={mirrorPreview}
-            beautySinkVideoRef={streamBeauty.outputVideoRef}
-          />
+          <div
+            className="absolute inset-0"
+            style={cssFallbackFilter ? { filter: cssFallbackFilter } : undefined}
+          >
+            <CameraCaptureViewport
+              rawStream={inputStream}
+              beautyStream={streamBeauty.outputStream}
+              showBeautyPreview={showBeautyPreview}
+              mirrorRaw={mirrorPreview}
+              beautySinkVideoRef={streamBeauty.outputVideoRef}
+            />
+          </div>
           <video
             ref={camera.videoRef}
             playsInline
@@ -316,7 +314,7 @@ export function CreateRoomLivePreview({
               readyEffectIds={streamBeauty.readyEffectIds}
               variant="inline"
               webarConfigured={webarConfigured}
-              webarLoading={streamBeauty.loading}
+              webarLoading={streamBeauty.loading || (webarConfigured && !streamBeauty.ready)}
               webarError={streamBeauty.error}
             />
           </div>

@@ -29,9 +29,11 @@ import {
 import {
   ensureSharedTencentWebAR,
   getSharedTencentWebARCovers,
+  getSharedTencentWebAREffectCatalogs,
   markSharedTencentWebARCatalogsLoaded,
   releaseSharedTencentWebAR,
   setSharedTencentWebARCovers,
+  setSharedTencentWebAREffectCatalogs,
   sharedCatalogsLoaded,
 } from './tencentWebARPool';
 import {
@@ -181,7 +183,7 @@ export function useTencentWebAR({
   const outputVideoRef = useRef<HTMLVideoElement | null>(null);
   const outputStreamRef = useRef<MediaStream | null>(null);
   const usingSharedRef = useRef(false);
-  const catalogsLoadedRef = useRef(false);
+  const catalogsLoadedRef = useRef(sharedCatalogsLoaded && getSharedTencentWebAREffectCatalogs().makeups.length > 0);
   const inputTrackIdRef = useRef('');
   const segmentationOnRef = useRef(false);
   const lastApplyKeyRef = useRef('');
@@ -190,9 +192,15 @@ export function useTencentWebAR({
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [makeups, setMakeups] = useState<TencentEffectItem[]>([]);
-  const [stickers, setStickers] = useState<TencentEffectItem[]>([]);
-  const [filters, setFilters] = useState<TencentEffectItem[]>([]);
+  const [makeups, setMakeups] = useState<TencentEffectItem[]>(() =>
+    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().makeups : [],
+  );
+  const [stickers, setStickers] = useState<TencentEffectItem[]>(() =>
+    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().stickers : [],
+  );
+  const [filters, setFilters] = useState<TencentEffectItem[]>(() =>
+    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().filters : [],
+  );
   const [backgrounds] = useState<string[]>([...TRTC_DEFAULT_BACKGROUNDS]);
   const [readyEffectIds, setReadyEffectIds] = useState<string[]>([]);
   const [beautyCovers, setBeautyCovers] = useState<Record<string, string>>(() =>
@@ -204,7 +212,9 @@ export function useTencentWebAR({
   const [shapeEffectByPreset, setShapeEffectByPreset] = useState<Record<string, string>>(() =>
     sharedCatalogsLoaded ? getSharedTencentWebARCovers().shapeEffectByPreset : {},
   );
-  const [bodyShapes, setBodyShapes] = useState<TencentEffectItem[]>([]);
+  const [bodyShapes, setBodyShapes] = useState<TencentEffectItem[]>(() =>
+    sharedCatalogsLoaded ? getSharedTencentWebAREffectCatalogs().bodyShapes : [],
+  );
 
   const beautyOn = persistent || isBeautifyActive(beautify) || hasEffectSelection(effects);
   const needsSegmentation = Boolean(effects.backgroundUrl);
@@ -249,18 +259,24 @@ export function useTencentWebAR({
         fetchEffectCatalog(instance, ['美颜', 'Beauty', 'beauty']),
         fetchEffectCatalog(instance, ['美体', 'Body', 'body']),
       ]);
-      if (!cancelled()) {
-        setMakeups(makeupRows);
-        setStickers(stickerRows);
-        setBodyShapes(bodyRows);
-      }
       let filterRows: TencentEffectItem[] = [];
       try {
         const list = await instance.getCommonFilter?.();
         if (list) filterRows = mapEffectRows(list);
-        if (!cancelled()) setFilters(filterRows);
       } catch {
         /* optional */
+      }
+      if (!cancelled()) {
+        setMakeups(makeupRows);
+        setStickers(stickerRows);
+        setBodyShapes(bodyRows);
+        setFilters(filterRows);
+        setSharedTencentWebAREffectCatalogs({
+          makeups: makeupRows,
+          stickers: stickerRows,
+          filters: filterRows,
+          bodyShapes: bodyRows,
+        });
       }
       if (!cancelled()) {
         const coverSources = [...beautifyRows, ...filterRows, ...bodyRows];
@@ -313,12 +329,12 @@ export function useTencentWebAR({
   };
 
   // Init SDK once — shared pool for custom stream; dedicated instance for built-in camera.
+  // Re-run when an input stream becomes available so Create Room / call preview never stalls.
+  const hasInputStream = Boolean(inputStream);
   useEffect(() => {
     if (!keepWarm) {
       setReady(false);
       setLoading(false);
-      catalogsLoadedRef.current = false;
-      inputTrackIdRef.current = '';
       return undefined;
     }
 
@@ -439,7 +455,7 @@ export function useTencentWebAR({
         setReady(true);
         setError(null);
 
-        if (loadCatalogs) {
+        if (loadCatalogs || !catalogsLoadedRef.current) {
           void loadCatalogsAsync(instance, () => cancelled);
         }
       } catch (err) {
@@ -482,7 +498,7 @@ export function useTencentWebAR({
       }
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [keepWarm, useBuiltinCamera]);
+  }, [keepWarm, useBuiltinCamera, hasInputStream]);
 
   // Mirror updates without tearing down the SDK (keeps face/effect tracking warm).
   useEffect(() => {
