@@ -64,6 +64,16 @@ const CreateRoom = () => {
     });
   }, []);
 
+  // Keep TRTC warm whenever Solo/Shop is selected so beauty applies on first tap.
+  useEffect(() => {
+    if (!LIVE_CAMERA_MODES.has(mode)) return;
+    void import('../../lib/webar/tencentWebARPool').then((m) => {
+      m.hydrateTencentWebARCatalogsFromStorage();
+      m.preloadTencentWebARModule();
+      m.warmTencentWebARForVideoCall();
+    });
+  }, [mode]);
+
   const handleLiveSetupChange = useCallback((setup: PendingCreateRoomBeauty) => {
     liveSetupRef.current = setup;
   }, []);

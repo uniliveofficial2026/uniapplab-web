@@ -104,29 +104,24 @@ export function CreateRoomLivePreview({
   }, [camera.ready, camera.stream, facingMode]);
 
   const streamBeauty = useStreamBeauty({
-    enabled: enabled && camera.ready,
+    enabled: enabled && (camera.ready || Boolean(inputStream)),
     inputStream,
     beautyId,
     effects: beautyEffects,
     bodyShape,
     mirror: mirrorPreview,
     keepWarm: enabled && webarConfigured,
-    beautyPanelOpen,
-    // Load makeup/sticker/filter catalogs as soon as Solo/Shop opens — same as a warm video call.
+    beautyPanelOpen: true,
+    // Always load catalogs in Create Room so makeup/sticker trays stay warm.
     loadCatalogs: enabled && webarConfigured,
     persistent: enabled && webarConfigured,
   });
-
-  const hasCachedCatalogs = Boolean(
-    streamBeauty.catalogs?.makeups?.length ||
-      streamBeauty.catalogs?.stickers?.length ||
-      streamBeauty.catalogs?.filters?.length,
-  );
 
   // Swap to TRTC output as soon as the shared engine is ready — no extra frame-gate delay.
   const showBeautyPreview =
     beautyActive && streamBeauty.configured && streamBeauty.ready && Boolean(streamBeauty.outputStream);
 
+  // CSS look applies on the same tap — TRTC takes over when the engine is ready.
   const cssFallbackFilter =
     beautyActive && !showBeautyPreview
       ? getBeautyVideoFilter(beautyId !== 'none' ? beautyId : 'beauty-natural')
@@ -303,30 +298,26 @@ export function CreateRoomLivePreview({
         <>
           <button
             type="button"
-            className="absolute inset-0 z-[35] cursor-default bg-black/35"
+            className="absolute inset-0 z-[35] cursor-default bg-transparent"
             aria-label="Close beauty panel"
             onClick={() => setBeautyPanelOpen(false)}
           />
           <div
-            className="absolute inset-x-0 bottom-0 z-[40] flex max-h-[min(62%,32rem)] flex-col rounded-t-2xl border border-white/15 border-b-0 bg-slate-950/95 shadow-[0_-16px_48px_rgba(0,0,0,0.65)] backdrop-blur-xl"
+            className="absolute inset-x-0 bottom-0 z-[40] flex max-h-[min(62%,32rem)] flex-col bg-transparent"
             onClick={(event) => event.stopPropagation()}
             role="dialog"
             aria-label="Beauty panel"
           >
-            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5">
-              <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-rose-100">
-                <Sparkles size={12} aria-hidden />
-                Beauty
-              </span>
+            <div className="flex shrink-0 items-center justify-end gap-2 px-3 pt-2">
               <button
                 type="button"
                 onClick={() => setBeautyPanelOpen(false)}
-                className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white/90 transition hover:bg-black/60"
+                className="rounded-full border border-white/25 bg-black/45 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white drop-shadow transition hover:bg-black/60"
               >
                 Done
               </button>
             </div>
-            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-transparent px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <LiveBeautySheet
                 isOpen
                 onClose={() => setBeautyPanelOpen(false)}
@@ -340,11 +331,7 @@ export function CreateRoomLivePreview({
                 readyEffectIds={streamBeauty.readyEffectIds}
                 variant="inline"
                 webarConfigured={webarConfigured}
-                webarLoading={
-                  webarConfigured &&
-                  !hasCachedCatalogs &&
-                  (streamBeauty.loading || !streamBeauty.ready)
-                }
+                webarLoading={false}
                 webarError={streamBeauty.error}
               />
             </div>

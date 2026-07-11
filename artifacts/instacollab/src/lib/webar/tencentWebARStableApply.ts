@@ -52,7 +52,7 @@ export function buildTencentWebARApplyKey(state: TencentWebARApplyState): string
   });
 }
 
-/** Serialize TRTC applies — preload assets, then beautify → stack → filter → background. */
+/** Apply TRTC state. Beautify/filter apply immediately; makeup/sticker assets preload in the background. */
 export function applyTencentWebARState(
   instance: TencentWebARInstance,
   state: TencentWebARApplyState,
@@ -67,15 +67,29 @@ export function applyTencentWebARState(
     return Promise.resolve();
   }
 
+  const { beautify, effects, beautyOn, needsSegmentation, mirror } = state;
+
+  // Instant path — never block Smooth/Soft/Glow/Natural/Clear on asset downloads.
+  try {
+    instance.setCommonConfig?.({ mirror });
+  } catch {
+    /* ignore */
+  }
+  try {
+    instance.setBeautify(beautyOn ? beautify : BEAUTY_OFF_PARAMS);
+    if (beautyOn) instance.enable?.();
+    else instance.disable?.();
+  } catch {
+    /* ignore */
+  }
+  try {
+    if (effects.filterId) instance.setFilter?.(effects.filterId, 1);
+    else instance.setFilter?.(null);
+  } catch {
+    /* ignore */
+  }
+
   return enqueueTencentWebAREffect(async () => {
-    const { beautify, effects, beautyOn, needsSegmentation, mirror } = state;
-
-    try {
-      instance.setCommonConfig?.({ mirror });
-    } catch {
-      /* ignore */
-    }
-
     const segmentationOnRef = options?.segmentationOnRef;
     if (segmentationOnRef && segmentationOnRef.current !== needsSegmentation) {
       segmentationOnRef.current = needsSegmentation;
@@ -100,6 +114,7 @@ export function applyTencentWebARState(
       await preloadEffectIds(instance, preloadIds);
     }
 
+    // Re-assert beautify after preload so a queued older job cannot wipe the latest look.
     instance.setBeautify(beautyOn ? beautify : BEAUTY_OFF_PARAMS);
 
     const stack = buildEffectStack(effects);

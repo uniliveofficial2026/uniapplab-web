@@ -164,11 +164,6 @@ export function LiveBeautySheet({
           Add <code className="font-mono">VITE_TENCENT_WEBAR_*</code> for full TRTC beauty. CSS fallback active.
         </p>
       ) : null}
-      {webarConfigured && webarLoading && !(catalogs?.makeups?.length || catalogs?.stickers?.length) ? (
-        <p className="mb-2 px-0.5 text-[10px] font-bold text-cyan-200 drop-shadow">
-          Loading TRTC beauty…
-        </p>
-      ) : null}
       {webarError ? (
         <p className="mb-2 px-0.5 text-[10px] font-bold text-red-300 drop-shadow" role="alert">
           {webarError}
@@ -251,11 +246,9 @@ export function LiveBeautySheet({
           items={catalogs?.makeups ?? []}
           onSelect={(id) => patchEffects({ makeupId: id })}
           emptyHint={
-            webarLoading
-              ? 'Loading makeup presets…'
-              : catalogs?.makeups?.length
-                ? ''
-                : 'Open Beauty once on a video call to cache makeup presets.'
+            catalogs?.makeups?.length
+              ? ''
+              : 'Makeup presets appear after the first TRTC session.'
           }
           isReady={() => true}
         />
@@ -268,11 +261,9 @@ export function LiveBeautySheet({
           items={catalogs?.stickers ?? []}
           onSelect={(id) => patchEffects({ stickerId: id })}
           emptyHint={
-            webarLoading
-              ? 'Loading stickers…'
-              : catalogs?.stickers?.length
-                ? ''
-                : 'Open Beauty once on a video call to cache stickers.'
+            catalogs?.stickers?.length
+              ? ''
+              : 'Stickers appear after the first TRTC session.'
           }
           isReady={() => true}
         />
@@ -285,11 +276,9 @@ export function LiveBeautySheet({
           items={catalogs?.filters ?? []}
           onSelect={(id) => patchEffects({ filterId: id })}
           emptyHint={
-            webarLoading
-              ? 'Loading filters…'
-              : catalogs?.filters?.length
-                ? ''
-                : 'Open Beauty once on a video call to cache filters.'
+            catalogs?.filters?.length
+              ? ''
+              : 'Filters appear after the first TRTC session.'
           }
           isReady={() => true}
         />
