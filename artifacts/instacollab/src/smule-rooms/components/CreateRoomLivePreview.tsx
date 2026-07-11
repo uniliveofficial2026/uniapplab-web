@@ -213,62 +213,66 @@ export function CreateRoomLivePreview({
         Preview
       </div>
 
-      {isShop ? (
-        <div className="absolute bottom-16 left-3 right-3 z-10 rounded-xl border border-amber-400/30 bg-black/70 p-2 backdrop-blur-md">
-          <div className="flex items-center gap-2">
-            <img
-              src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80"
-              className="h-10 w-10 rounded-lg object-cover"
-              alt=""
-            />
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[10px] font-black text-white">Wireless Earbuds Pro</p>
-              <p className="text-[9px] font-bold text-amber-300">$49.99 · pin products when live</p>
+      {!beautyPanelOpen ? (
+        <>
+          {isShop ? (
+            <div className="absolute bottom-16 left-3 right-3 z-10 rounded-xl border border-amber-400/30 bg-black/70 p-2 backdrop-blur-md">
+              <div className="flex items-center gap-2">
+                <img
+                  src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80"
+                  className="h-10 w-10 rounded-lg object-cover"
+                  alt=""
+                />
+                <div className="min-w-0 flex-1">
+                  <p className="truncate text-[10px] font-black text-white">Wireless Earbuds Pro</p>
+                  <p className="text-[9px] font-bold text-amber-300">$49.99 · pin products when live</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-amber-500 px-2 py-1 text-[8px] font-black text-black">
+                  SHOP
+                </span>
+              </div>
             </div>
-            <span className="shrink-0 rounded-full bg-amber-500 px-2 py-1 text-[8px] font-black text-black">
-              SHOP
-            </span>
-          </div>
-        </div>
-      ) : (
-        <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-3 px-3">
-          {[PREVIEW_AVATARS.guest1, PREVIEW_AVATARS.guest2, null].map((avatar, index) => (
-            <div
-              key={`solo-guest-${index}`}
-              className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/50"
-            >
-              {avatar ? (
-                <img src={avatar} alt="" className="h-full w-full object-cover" />
-              ) : (
-                <span className="text-[8px] font-black text-white/40">NO.{index + 1}</span>
-              )}
+          ) : (
+            <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-3 px-3">
+              {[PREVIEW_AVATARS.guest1, PREVIEW_AVATARS.guest2, null].map((avatar, index) => (
+                <div
+                  key={`solo-guest-${index}`}
+                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/50"
+                >
+                  {avatar ? (
+                    <img src={avatar} alt="" className="h-full w-full object-cover" />
+                  ) : (
+                    <span className="text-[8px] font-black text-white/40">NO.{index + 1}</span>
+                  )}
+                </div>
+              ))}
             </div>
-          ))}
-        </div>
-      )}
+          )}
 
-      <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between gap-2">
-        <button
-          type="button"
-          onClick={() => setBeautyPanelOpen((open) => !open)}
-          className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur-md transition ${
-            beautyPanelOpen || beautyActive
-              ? 'border-fuchsia-400/50 bg-fuchsia-500/25 text-fuchsia-100'
-              : 'border-white/20 bg-black/55 text-white'
-          }`}
-        >
-          <Sparkles size={12} />
-          Beauty
-        </button>
-        <button
-          type="button"
-          onClick={flipCamera}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md"
-          aria-label="Flip camera"
-        >
-          <SwitchCamera size={15} />
-        </button>
-      </div>
+          <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between gap-2">
+            <button
+              type="button"
+              onClick={() => setBeautyPanelOpen(true)}
+              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur-md transition ${
+                beautyActive
+                  ? 'border-fuchsia-400/50 bg-fuchsia-500/25 text-fuchsia-100'
+                  : 'border-white/20 bg-black/55 text-white'
+              }`}
+            >
+              <Sparkles size={12} />
+              Beauty
+            </button>
+            <button
+              type="button"
+              onClick={flipCamera}
+              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md"
+              aria-label="Flip camera"
+            >
+              <SwitchCamera size={15} />
+            </button>
+          </div>
+        </>
+      ) : null}
 
       {permissionDenied ? (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/90 px-4 text-center">
@@ -299,34 +303,51 @@ export function CreateRoomLivePreview({
         <>
           <button
             type="button"
-            className="absolute inset-0 z-[25] cursor-default bg-transparent"
+            className="absolute inset-0 z-[35] cursor-default bg-black/35"
             aria-label="Close beauty panel"
             onClick={() => setBeautyPanelOpen(false)}
           />
           <div
-            className="absolute inset-x-0 bottom-0 z-30 max-h-[55%] overflow-y-auto bg-transparent p-3 pt-2"
+            className="absolute inset-x-0 bottom-0 z-[40] flex max-h-[min(62%,32rem)] flex-col rounded-t-2xl border border-white/15 border-b-0 bg-slate-950/95 shadow-[0_-16px_48px_rgba(0,0,0,0.65)] backdrop-blur-xl"
             onClick={(event) => event.stopPropagation()}
+            role="dialog"
+            aria-label="Beauty panel"
           >
-            <LiveBeautySheet
-              isOpen
-              onClose={() => setBeautyPanelOpen(false)}
-              activeBeautyId={beautyId}
-              onSelectBeauty={handleSelectBeauty}
-              effects={beautyEffects}
-              onEffectsChange={handleBeautyEffectsChange}
-              bodyShape={bodyShape}
-              onBodyShapeChange={setBodyShape}
-              catalogs={streamBeauty.catalogs}
-              readyEffectIds={streamBeauty.readyEffectIds}
-              variant="call"
-              webarConfigured={webarConfigured}
-              webarLoading={
-                webarConfigured &&
-                !hasCachedCatalogs &&
-                (streamBeauty.loading || !streamBeauty.ready)
-              }
-              webarError={streamBeauty.error}
-            />
+            <div className="flex shrink-0 items-center justify-between gap-2 border-b border-white/10 px-3 py-2.5">
+              <span className="inline-flex items-center gap-1.5 text-[11px] font-black uppercase tracking-wider text-rose-100">
+                <Sparkles size={12} aria-hidden />
+                Beauty
+              </span>
+              <button
+                type="button"
+                onClick={() => setBeautyPanelOpen(false)}
+                className="rounded-full border border-white/20 bg-black/40 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white/90 transition hover:bg-black/60"
+              >
+                Done
+              </button>
+            </div>
+            <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-3 py-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+              <LiveBeautySheet
+                isOpen
+                onClose={() => setBeautyPanelOpen(false)}
+                activeBeautyId={beautyId}
+                onSelectBeauty={handleSelectBeauty}
+                effects={beautyEffects}
+                onEffectsChange={handleBeautyEffectsChange}
+                bodyShape={bodyShape}
+                onBodyShapeChange={setBodyShape}
+                catalogs={streamBeauty.catalogs}
+                readyEffectIds={streamBeauty.readyEffectIds}
+                variant="inline"
+                webarConfigured={webarConfigured}
+                webarLoading={
+                  webarConfigured &&
+                  !hasCachedCatalogs &&
+                  (streamBeauty.loading || !streamBeauty.ready)
+                }
+                webarError={streamBeauty.error}
+              />
+            </div>
           </div>
         </>
       ) : null}
