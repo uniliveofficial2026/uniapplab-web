@@ -35,7 +35,7 @@ export function ShopTab() {
 
   // Load balances
   const coinsBalance = useLiveCoinsBalance(appUser.id);
-  const cashBalance = db.load('cash_balance', 180.50);
+  const cashBalance = db.load('cash_balance', 0);
 
   // Sub-sections toggling
   const [shopMode, setShopMode] = useState<'buy' | 'sell'>('buy');

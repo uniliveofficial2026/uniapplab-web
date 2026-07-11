@@ -10,7 +10,6 @@ import {
 import {
   isPlatformApiAvailable,
   sendGiftApi,
-  transferCoins,
   type SendGiftResponse,
 } from './platformApi';
 import { syncServerWalletBalance } from './walletServerSync';
@@ -105,17 +104,8 @@ export async function settlePartyGiftSend(
           return { ok: true, settle };
         }
       } catch {
-        /* fall through to Firebase / legacy */
-        try {
-          await transferCoins(receiverId, totalCost);
-          await syncServerWalletBalance(buyerId);
-          if (typeof window !== 'undefined') {
-            window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
-          }
-          return { ok: true };
-        } catch {
-          /* Firebase next */
-        }
+        /* Do not fall back to transferCoins — server may have already settled. */
+        return { ok: false, reason: 'gift_settle_failed' };
       }
     }
 

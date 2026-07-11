@@ -150,15 +150,39 @@ export async function startStripeCommerceCheckout(input: {
 export async function completeStripeCommerceReturn(sessionId: string): Promise<{
   paid: boolean;
   pendingOrder: unknown | null;
+  amountUsdCents?: number;
+  hostUserId?: string | null;
+  orderId?: string | null;
+  productId?: string | null;
+  productTitle?: string | null;
+  buyerUserId?: string | null;
 }> {
   const verification = await verifyCommerceCheckoutSession(sessionId);
   const raw = sessionStorage.getItem(COMMERCE_PENDING_ORDER_KEY);
   const stored = raw ? (JSON.parse(raw) as { sessionId?: string; pendingOrder?: unknown }) : null;
   if (!stored || stored.sessionId !== sessionId) {
-    return { paid: verification.paid, pendingOrder: null };
+    return {
+      paid: verification.paid,
+      pendingOrder: null,
+      amountUsdCents: verification.amountUsdCents,
+      hostUserId: verification.hostUserId,
+      orderId: verification.orderId,
+      productId: verification.productId,
+      productTitle: verification.productTitle,
+      buyerUserId: verification.buyerUserId,
+    };
   }
   sessionStorage.removeItem(COMMERCE_PENDING_ORDER_KEY);
-  return { paid: verification.paid, pendingOrder: stored.pendingOrder ?? null };
+  return {
+    paid: verification.paid,
+    pendingOrder: stored.pendingOrder ?? null,
+    amountUsdCents: verification.amountUsdCents,
+    hostUserId: verification.hostUserId,
+    orderId: verification.orderId,
+    productId: verification.productId,
+    productTitle: verification.productTitle,
+    buyerUserId: verification.buyerUserId,
+  };
 }
 
 export { createCommerceCheckoutSession, verifyCommerceCheckoutSession };

@@ -1,12 +1,13 @@
 import { Router, type IRouter } from "express";
 import fs from "node:fs";
 import path from "node:path";
+import { requireInternalSecret } from "../middlewares/requireInternalSecret";
 
 const router: IRouter = Router();
 const workspaceRoot = path.resolve(import.meta.dirname, "../../../..");
 const handoffPath = path.join(workspaceRoot, ".local/handoff-queue.jsonl");
 
-router.post("/handoff/task", (req, res) => {
+router.post("/handoff/task", requireInternalSecret, (req, res) => {
   const task = req.body;
   if (!task || typeof task !== "object" || !task.type) {
     res.status(400).json({ error: "task.type required" });

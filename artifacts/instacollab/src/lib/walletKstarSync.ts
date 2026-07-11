@@ -69,7 +69,7 @@ export function creditUserCoins(userId: string, amount: number): number {
 
 export function spendWalletCoins(userId: string, amount: number): boolean {
   const cost = Math.max(0, Math.floor(amount));
-  const prev = loadWalletCoinsBalance();
+  const prev = getLiveCoinsBalance(userId);
   if (prev < cost) return false;
   setUnifiedCoinsForUser(userId, prev - cost);
   return true;

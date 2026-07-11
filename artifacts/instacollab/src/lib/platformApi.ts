@@ -42,10 +42,28 @@ async function authHeaders(): Promise<HeadersInit> {
         'auth.getSession',
       );
       const token = data.session?.access_token;
-      if (token) headers.authorization = `Bearer ${token}`;
+      if (token) {
+        headers.authorization = `Bearer ${token}`;
+        return headers;
+      }
     } catch {
-      /* proceed without bearer — local cache still works */
+      /* try Firebase below */
     }
+  }
+  // Firebase-backup sessions: server auth middleware accepts Firebase ID tokens.
+  try {
+    const { getFirebaseAuth } = await import('./firebase/app');
+    const firebaseUser = getFirebaseAuth()?.currentUser;
+    if (firebaseUser) {
+      const idToken = await withTimeout(
+        firebaseUser.getIdToken(),
+        NET_AUTH_MS,
+        'firebase.getIdToken',
+      );
+      if (idToken) headers.authorization = `Bearer ${idToken}`;
+    }
+  } catch {
+    /* proceed without bearer — local cache still works */
   }
   return headers;
 }
@@ -248,6 +266,9 @@ export async function verifyCommerceCheckoutSession(
   orderId?: string | null;
   hostUserId?: string | null;
   productId?: string | null;
+  productTitle?: string | null;
+  roomId?: string | null;
+  buyerUserId?: string | null;
 }> {
   return apiFetch(
     `/api/payments/commerce/verify-session?sessionId=${encodeURIComponent(sessionId)}`,

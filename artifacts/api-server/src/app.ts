@@ -26,7 +26,16 @@ app.use(
   }),
 );
 app.use(cors());
-app.use(express.json());
+app.use(
+  express.json({
+    verify: (req, _res, buf) => {
+      const url = String((req as express.Request).originalUrl || req.url || "");
+      if (url.includes("/livekit/webhook") || url.includes("/qstash/")) {
+        (req as express.Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
+      }
+    },
+  }),
+);
 app.use(express.urlencoded({ extended: true }));
 
 app.use("/api", router);

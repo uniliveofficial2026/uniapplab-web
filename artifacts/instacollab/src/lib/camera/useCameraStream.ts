@@ -174,6 +174,16 @@ export function useCameraStream({
     return () => {
       cancelled = true;
       if (retryTimer) clearTimeout(retryTimer);
+      const stream = streamRef.current;
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+      streamRef.current = null;
+      setStream(null);
+      setReady(false);
+      if (videoRef.current) {
+        videoRef.current.srcObject = null;
+      }
     };
   }, [enabled, audio, facingMode, videoIdeal.width, videoIdeal.height, frameRate.ideal, frameRate.max, exactFacing]);
 

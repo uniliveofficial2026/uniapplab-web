@@ -242,6 +242,11 @@ router.post("/commerce/checkout-session", auth, requireNotBanned, async (req, re
       res.status(400).json({ error: "Invalid commerce checkout payload" });
       return;
     }
+    // Hard cap — client amount is still used until products are server-priced.
+    if (cents > 500_000) {
+      res.status(400).json({ error: "amount exceeds maximum" });
+      return;
+    }
     if (!successUrl || !cancelUrl) {
       res.status(400).json({ error: "successUrl and cancelUrl are required" });
       return;
@@ -254,12 +259,13 @@ router.post("/commerce/checkout-session", auth, requireNotBanned, async (req, re
       client_reference_id: orderId,
       metadata: {
         commerce: "live",
-        productId,
-        productTitle,
-        roomId,
-        hostUserId,
+        productId: String(productId).slice(0, 120),
+        productTitle: String(productTitle).slice(0, 200),
+        roomId: String(roomId).slice(0, 120),
+        hostUserId: String(hostUserId).slice(0, 120),
         buyerUserId,
-        orderId,
+        orderId: String(orderId).slice(0, 120),
+        amountUsdCents: String(cents),
       },
       line_items: [
         {
@@ -268,8 +274,8 @@ router.post("/commerce/checkout-session", auth, requireNotBanned, async (req, re
             currency: "usd",
             unit_amount: cents,
             product_data: {
-              name: productTitle,
-              metadata: { productId, roomId },
+              name: String(productTitle).slice(0, 200),
+              metadata: { productId: String(productId).slice(0, 120), roomId: String(roomId).slice(0, 120) },
             },
           },
         },
@@ -296,6 +302,7 @@ router.get("/commerce/verify-session", auth, requireNotBanned, async (req, res, 
       return;
     }
 
+    const userId = req.authUser!.id;
     const sessionId = String(req.query.sessionId || "").trim();
     if (!sessionId) {
       res.status(400).json({ error: "sessionId is required" });
@@ -303,13 +310,28 @@ router.get("/commerce/verify-session", auth, requireNotBanned, async (req, res, 
     }
 
     const session = await stripe.checkout.sessions.retrieve(sessionId);
+    if (session.metadata?.commerce !== "live") {
+      res.status(400).json({ error: "not a commerce session" });
+      return;
+    }
+    if (session.metadata?.buyerUserId && session.metadata.buyerUserId !== userId) {
+      res.status(403).json({ error: "session does not belong to this user" });
+      return;
+    }
+
+    const amountUsdCents =
+      session.amount_total ??
+      (session.metadata?.amountUsdCents ? Number(session.metadata.amountUsdCents) : undefined);
     const paid = session.payment_status === "paid";
     res.json({
       paid,
-      amountUsdCents: session.amount_total ?? undefined,
+      amountUsdCents: Number.isFinite(amountUsdCents) ? amountUsdCents : undefined,
       orderId: session.metadata?.orderId ?? session.client_reference_id ?? null,
       hostUserId: session.metadata?.hostUserId ?? null,
       productId: session.metadata?.productId ?? null,
+      productTitle: session.metadata?.productTitle ?? null,
+      roomId: session.metadata?.roomId ?? null,
+      buyerUserId: session.metadata?.buyerUserId ?? null,
     });
   } catch (err) {
     next(err);

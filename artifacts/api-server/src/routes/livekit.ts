@@ -3,6 +3,7 @@ import { WebhookReceiver } from "livekit-server-sdk";
 import { auth } from "../middlewares/auth";
 import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { getSupabaseService } from "../lib/supabase";
+import { fetchFirestorePartyRoom } from "../lib/firestoreAdmin";
 import {
   createLiveKitToken,
   deleteLiveKitRoom,
@@ -181,7 +182,19 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
       res.status(400).json({ error: error.message });
       return;
     }
-    if (partyRoom && partyRoom.status !== "active") {
+
+    let roomStatus = partyRoom?.status as string | undefined;
+
+    if (!partyRoom) {
+      const firestoreRoom = await fetchFirestorePartyRoom(trimmedRoomId);
+      if (!firestoreRoom) {
+        res.status(404).json({ error: "party_room_not_found" });
+        return;
+      }
+      roomStatus = firestoreRoom.status;
+    }
+
+    if (roomStatus && roomStatus !== "active") {
       res.status(400).json({ error: "party_room_ended" });
       return;
     }
@@ -190,7 +203,8 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
     const roomName = partyRoomName(trimmedRoomId);
     await ensureLiveKitRoom(roomName);
 
-    const canPublish = Boolean(publish);
+    // Room must exist (Supabase or Firestore). Publish only for active rooms.
+    const canPublish = Boolean(publish) && (!roomStatus || roomStatus === "active");
     const token = await createLiveKitToken({
       identity: userId,
       name: req.profile?.display_name || req.profile?.username || userId,
@@ -225,12 +239,15 @@ router.post("/livekit/webhook", async (req, res) => {
       res.status(401).json({ error: "missing authorization" });
       return;
     }
+    const rawBody = (req as typeof req & { rawBody?: Buffer }).rawBody;
     const body =
-      req.body instanceof Buffer
-        ? req.body.toString("utf8")
-        : typeof req.body === "string"
-          ? req.body
-          : JSON.stringify(req.body ?? {});
+      rawBody instanceof Buffer
+        ? rawBody.toString("utf8")
+        : req.body instanceof Buffer
+          ? req.body.toString("utf8")
+          : typeof req.body === "string"
+            ? req.body
+            : JSON.stringify(req.body ?? {});
     const event = await receiver.receive(body, authHeader);
 
     if (event.event === "room_finished" && event.room?.name?.startsWith("ic-stream-")) {

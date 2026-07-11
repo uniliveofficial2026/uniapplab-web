@@ -45,7 +45,7 @@ export function CommerceLiveCheckoutModal({
 }: CommerceLiveCheckoutModalProps) {
   const db = useDB();
   const coinsBalance = useLiveCoinsBalance(buyerUserId);
-  const cashBalance = db.load('cash_balance', 180.5);
+  const cashBalance = db.load('cash_balance', 0);
   const normalized = useMemo(() => normalizeCommerceProduct(product), [product]);
   const stripeEnabled = isStripeCommerceConfigured();
 

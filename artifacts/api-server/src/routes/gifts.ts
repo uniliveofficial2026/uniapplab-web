@@ -262,7 +262,7 @@ router.post("/send", auth, requireNotBanned, async (req, res, next) => {
     }
 
     const sb = getSupabaseService();
-    let price = Math.floor(Number(unitPrice) || 0);
+    let price = 0;
     let name = String(giftName || gid);
     let giftTier = String(tier || "normal");
 
@@ -278,12 +278,30 @@ router.post("/send", auth, requireNotBanned, async (req, res, next) => {
         res.status(400).json({ error: "gift not available" });
         return;
       }
-      if (row.vip_only) {
-        // VIP gate reserved for Phase 3 — allow for now, flag in metadata
-      }
       price = Number(row.price);
       name = row.name;
       giftTier = row.tier || giftTier;
+    } else {
+      // Fall back to jsonb catalog — never trust client unitPrice alone.
+      try {
+        const { data: blob } = await sb
+          .from("platform_gift_catalog")
+          .select("gifts")
+          .eq("id", "default")
+          .maybeSingle();
+        const raw = Array.isArray(blob?.gifts) ? (blob.gifts as Record<string, unknown>[]) : [];
+        const match = raw.find((g) => String(g.id ?? "") === gid);
+        if (!match) {
+          res.status(400).json({ error: "unknown gift" });
+          return;
+        }
+        price = Math.floor(Number(match.stars ?? match.price) || 0);
+        name = String(match.name ?? name);
+        giftTier = String(match.tier ?? giftTier);
+      } catch {
+        res.status(400).json({ error: "gift catalog unavailable" });
+        return;
+      }
     }
 
     if (price <= 0) {

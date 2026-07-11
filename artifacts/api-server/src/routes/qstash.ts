@@ -23,12 +23,15 @@ router.post("/qstash/handoff-cycle", async (req, res) => {
       res.status(401).json({ error: "missing signature" });
       return;
     }
+    const rawBody = (req as import("express").Request & { rawBody?: Buffer }).rawBody;
     const body =
-      req.body instanceof Buffer
-        ? req.body.toString("utf8")
-        : typeof req.body === "string"
-          ? req.body
-          : JSON.stringify(req.body ?? {});
+      rawBody instanceof Buffer
+        ? rawBody.toString("utf8")
+        : req.body instanceof Buffer
+          ? req.body.toString("utf8")
+          : typeof req.body === "string"
+            ? req.body
+            : JSON.stringify(req.body ?? {});
     const isValid = await receiver.verify({
       signature,
       body,

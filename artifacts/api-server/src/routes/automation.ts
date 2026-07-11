@@ -1,15 +1,29 @@
+import { createRequire } from "node:module";
 import { Router, type IRouter } from "express";
 import { auth } from "../middlewares/auth";
 import { requireAdmin } from "../middlewares/requireAdmin";
-import {
+
+const require = createRequire(import.meta.url);
+const {
   readAutomationConfig,
   resolveAutomationConfig,
   writeAutomationConfig,
-} from "../../../../scripts/lib/automation-config.mjs";
+} = require("../../../../scripts/lib/automation-config.mjs") as {
+  readAutomationConfig: () => AutomationConfig;
+  resolveAutomationConfig: (config: AutomationConfig) => AutomationConfig;
+  writeAutomationConfig: (patch: Partial<AutomationConfig>) => AutomationConfig;
+};
 
 const router: IRouter = Router();
 
-type AutomationConfig = ReturnType<typeof readAutomationConfig>;
+type AutomationConfig = {
+  autopilot?: boolean;
+  enabled?: boolean;
+  autoPush?: boolean;
+  githubActionsDeploy?: boolean;
+  autoMachineLearning?: boolean;
+  liveCloudSyncAggressive?: boolean;
+};
 
 router.get("/automation", (_req, res) => {
   res.json(resolveAutomationConfig(readAutomationConfig()));

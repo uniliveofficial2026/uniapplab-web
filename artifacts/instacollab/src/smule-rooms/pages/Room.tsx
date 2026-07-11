@@ -1104,7 +1104,12 @@ export function Room() {
           paymentMethod: 'card';
         };
         const normalized = normalizeCommerceProduct(pending.product);
-        creditHostStripeSale(pending.hostUserId, normalized.priceUsd ?? 0);
+        const hostUserId = result.hostUserId || pending.hostUserId;
+        const amountUsd =
+          typeof result.amountUsdCents === 'number' && result.amountUsdCents > 0
+            ? result.amountUsdCents / 100
+            : normalized.priceUsd ?? 0;
+        creditHostStripeSale(hostUserId, amountUsd);
 
         const order: CommerceOrder = {
           id: pending.orderId,

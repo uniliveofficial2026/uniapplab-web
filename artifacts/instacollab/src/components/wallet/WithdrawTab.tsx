@@ -15,7 +15,7 @@ import {
 
 export function WithdrawTab() {
   const db = useDB();
-  const cashBalance = db.load('cash_balance', 180.50);
+  const cashBalance = db.load('cash_balance', 0);
 
   // Form Fields
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
@@ -50,7 +50,7 @@ export function WithdrawTab() {
 
     setTimeout(() => {
       // Deduct cash
-      const currentCash = db.load('cash_balance', 180.50);
+      const currentCash = db.load('cash_balance', 0);
       const nextCash = currentCash - withdrawAmountVal;
       db.save('cash_balance', nextCash);
 

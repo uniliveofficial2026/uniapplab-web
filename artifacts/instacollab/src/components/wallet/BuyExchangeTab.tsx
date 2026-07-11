@@ -44,7 +44,7 @@ export function BuyExchangeTab() {
   const appUser = useCurrentUser();
   
   const coinsBalance = useLiveCoinsBalance(appUser.id);
-  const cashBalance = db.load('cash_balance', 180.50);
+  const cashBalance = db.load('cash_balance', 0);
   const transactions = db.load('wallet_transactions', []);
 
   // Exchange fields state
@@ -73,7 +73,7 @@ export function BuyExchangeTab() {
         setBundles(
           packages.map((pkg) => ({
             id: pkg.id,
-            coins: pkg.coins + (pkg.bonusCoins || 0),
+            coins: pkg.coins,
             bonusCoins: pkg.bonusCoins,
             price: pkg.priceUsdCents / 100,
             label: pkg.title,
@@ -99,9 +99,18 @@ export function BuyExchangeTab() {
         if (result.paid || result.credited) {
           await syncServerWalletBalance(appUser.id);
           window.dispatchEvent(new CustomEvent('wallet-coins-updated'));
+          setPaymentStep('success');
+        } else {
+          setCheckoutError('Payment not completed yet. If you were charged, wait a moment and reopen Wallet.');
         }
-      } catch {
-        /* ignore */
+      } catch (err) {
+        setCheckoutError(err instanceof Error ? err.message : 'Could not verify payment');
+      } finally {
+        const url = new URL(window.location.href);
+        url.searchParams.delete('session_id');
+        url.searchParams.delete('recharge_session');
+        url.searchParams.delete('recharge');
+        window.history.replaceState({}, '', url.toString());
       }
     })();
   }, [appUser.id]);
@@ -140,19 +149,31 @@ export function BuyExchangeTab() {
             window.location.assign(url);
             return;
           }
+          setCheckoutError('Checkout unavailable. Try again.');
+          setPaymentStep('input');
+          return;
         } catch (err) {
-          setCheckoutError(err instanceof Error ? err.message : 'Checkout unavailable — using demo credit');
+          setCheckoutError(err instanceof Error ? err.message : 'Checkout failed');
+          setPaymentStep('input');
+          return;
         }
       }
 
-      // Local/demo credit when Stripe is not configured
+      // Local/dev only — never mint coins when the platform API is available.
+      if (isPlatformApiAvailable() && isCloudAuthUserId(appUser.id)) {
+        setCheckoutError('Stripe checkout is required for this account.');
+        setPaymentStep('input');
+        return;
+      }
+
       window.setTimeout(() => {
-        addWalletCoins(appUser.id, selectedBundle.coins);
+        const credit = selectedBundle.coins + (selectedBundle.bonusCoins || 0);
+        addWalletCoins(appUser.id, credit);
         const currentTrans = db.load('wallet_transactions', []);
         const newTransaction = {
           id: `t_${Date.now()}`,
           type: 'Coins Bought',
-          amount: `+${selectedBundle.coins} Coins`,
+          amount: `+${credit} Coins`,
           status: 'Completed',
           date: new Date().toISOString().replace('T', ' ').substring(0, 16),
           cost: `$${selectedBundle.price.toFixed(2)} USD`,
@@ -200,29 +221,9 @@ export function BuyExchangeTab() {
       setExchangeAmount('');
       setTimeout(() => setExchangeSuccess(null), 4000);
     } else {
-      if (coinsBalance < amtNum) {
-        alert('Insufficient Coins Balance for exchange!');
-        return;
-      }
-      // Deduct coins, add cash
-      const nextCoins = coinsBalance - amtNum;
-      const nextCash = cashBalance + computedReturn;
-      saveWalletCoinsBalance(appUser.id, nextCoins);
-      db.save('cash_balance', nextCash);
-
-      const trans = db.load('wallet_transactions', []);
-      db.save('wallet_transactions', [{
-        id: `t_${Date.now()}`,
-        type: 'Exchanged Coins to Cash',
-        amount: `+$${computedReturn.toFixed(2)} USD`,
-        status: 'Completed',
-        date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-        cost: `-${amtNum} Coins`
-      }, ...trans]);
-
-      setExchangeSuccess(`Exchanged ${amtNum} Coins for $${computedReturn.toFixed(2)} USD!`);
-      setExchangeAmount('');
-      setTimeout(() => setExchangeSuccess(null), 4000);
+      // Coins → cash minting is disabled until a server ledger exists.
+      setExchangeSuccess(null);
+      alert('Coin to cash exchange is temporarily unavailable.');
     }
   };
 
@@ -239,7 +240,7 @@ export function BuyExchangeTab() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           {bundles.map(bundle => (
             <div 
-              key={bundle.coins}
+              key={bundle.id ?? `${bundle.label}-${bundle.price}`}
               onClick={() => handleSelectBundle(bundle)}
               className="relative p-5 bg-card hover:bg-secondary/25 border border-border rounded-2xl cursor-pointer hover:border-amber-500/40 hover:-translate-y-0.5 transition-all flex flex-col justify-between h-40 group"
             >
@@ -254,7 +255,9 @@ export function BuyExchangeTab() {
                   <div className="p-1 px-1.5 bg-amber-500/10 text-amber-500 rounded-lg text-xs font-black flex items-center gap-1">
                     <CoinIcon className="w-3.5 h-3.5 shrink-0" />
                   </div>
-                  <h4 className="text-xl font-black text-foreground">{bundle.coins.toLocaleString()} Coins</h4>
+                  <h4 className="text-xl font-black text-foreground">
+                    {(bundle.coins + (bundle.bonusCoins || 0)).toLocaleString()} Coins
+                  </h4>
                 </div>
               </div>
 

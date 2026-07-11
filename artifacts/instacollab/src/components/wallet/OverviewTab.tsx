@@ -36,7 +36,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   const appUser = useCurrentUser();
   const chartTheme = useRechartsTheme();
   const coinsBalance = useLiveCoinsBalance(appUser.id);
-  const cashBalance = db.load('cash_balance', 180.50);
+  const cashBalance = db.load('cash_balance', 0);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
   const transactions = db.load('wallet_transactions', [
     { id: 't1', type: 'Coins Bought', amount: '+1000 Coins', status: 'Completed', date: '2026-06-02 14:22', cost: '$9.99 USD' },

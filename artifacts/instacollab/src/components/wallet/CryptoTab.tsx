@@ -32,7 +32,7 @@ export function CryptoTab({ cryptoPrices, onPricesChange }: CryptoTabProps) {
   const chartTheme = useRechartsTheme();
 
   // Load balances
-  const cashBalance = db.load('cash_balance', 180.50);
+  const cashBalance = db.load('cash_balance', 0);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
 
   // TABS & ACTIVE TICKERS
