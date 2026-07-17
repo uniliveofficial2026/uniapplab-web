@@ -30,7 +30,11 @@ app.use(
   express.json({
     verify: (req, _res, buf) => {
       const url = String((req as express.Request).originalUrl || req.url || "");
-      if (url.includes("/livekit/webhook") || url.includes("/qstash/")) {
+      if (
+        url.includes("/livekit/webhook") ||
+        url.includes("/qstash/") ||
+        url.includes("/discord/interactions")
+      ) {
         (req as express.Request & { rawBody?: Buffer }).rawBody = Buffer.from(buf);
       }
     },

@@ -19,10 +19,16 @@ import paymentsRouter from "./payments";
 import giftsRouter from "./gifts";
 import platformBrandRouter from "./platformBrand";
 import aiRouter from "./ai";
+import mediaRouter from "./media";
+import mongoRouter from "./mongo";
+import auroraRouter from "./aurora";
+import discordRouter from "./discord";
 import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
 
+// Discord must verify Ed25519 + respond within 3s — keep ahead of rate limiting.
+router.use(discordRouter);
 router.use(upstashRateLimit);
 router.use(healthRouter);
 router.use(upstashRouter);
@@ -31,6 +37,9 @@ router.use(linearRouter);
 router.use(livekitRouter);
 router.use(youtubeRouter);
 router.use(feedRouter);
+router.use(mediaRouter);
+router.use(mongoRouter);
+router.use(auroraRouter);
 router.use("/me", meRouter);
 router.use("/admin", adminRouter);
 router.use("/wallet", walletRouter);
