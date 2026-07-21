@@ -1,0 +1,19 @@
+{
+  "name": "greedy-tap-production",
+  "private": true,
+  "version": "1.0.0",
+  "type": "commonjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "NODE_ENV=production GAME_BASE_PATH=${GAME_BASE_PATH:-/games/greedy-slot} node dist/server.cjs"
+  },
+  "dependencies": {
+    "@google/genai": "^1.29.0",
+    "dotenv": "^17.2.3",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.3",
+    "stripe": "^22.2.0"
+  }
+}
