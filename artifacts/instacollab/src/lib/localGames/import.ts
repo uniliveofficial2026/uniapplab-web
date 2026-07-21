@@ -1,7 +1,9 @@
+import type { LocalGameCatalogEntry } from './catalog';
 import type { LocalGameBundle, LocalGameBundleFile, LocalGameRecord } from './types';
 import { extractBundleCover, extractHtmlInlineCover } from './cover';
 import { gradientForGameName } from './format';
-import { saveLocalGameBundle } from './vault';
+import { deleteLocalGameBundle, saveLocalGameBundle } from './vault';
+import { normalizeBundleFiles } from './vfs';
 import { extractZipArchive } from './zip';
 
 const WEB_ENTRY_CANDIDATES = [
@@ -38,13 +40,21 @@ function extensionOf(fileName: string): string {
   return match ? match[1].toLowerCase() : '';
 }
 
+function fileNameFromPath(path: string): string {
+  const parts = path.split('/');
+  return parts[parts.length - 1] || path;
+}
+
 function pickWebEntryPath(files: LocalGameBundleFile[]): string {
   const normalized = new Map(files.map((f) => [f.path.replace(/^\.?\//, ''), f]));
   for (const candidate of WEB_ENTRY_CANDIDATES) {
     if (normalized.has(candidate)) return candidate;
   }
-  const html = files.find((f) => /\.html?$/i.test(f.path));
-  if (html) return html.path.replace(/^\.?\//, '');
+  const htmlFiles = files
+    .filter((f) => /\.html?$/i.test(f.path))
+    .map((f) => f.path.replace(/^\.?\//, ''))
+    .sort((a, b) => a.split('/').length - b.split('/').length || a.localeCompare(b));
+  if (htmlFiles[0]) return htmlFiles[0];
   throw new Error('No HTML entry point found. Include index.html or upload a single .html game.');
 }
 
@@ -56,13 +66,27 @@ async function fileToBundleFile(file: File, path?: string): Promise<LocalGameBun
   };
 }
 
-export async function importGameFile(file: File): Promise<LocalGameRecord> {
+type ImportFileOptions = {
+  id?: string;
+  catalogId?: string;
+  catalogZipRevision?: string;
+  productionAppUrl?: string;
+};
+
+export async function importGameFile(
+  file: File,
+  options: ImportFileOptions = {},
+): Promise<LocalGameRecord> {
   const ext = extensionOf(file.name);
-  const id = `l_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
+  const id = options.id ?? `l_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
   let bundle: LocalGameBundle;
 
   if (ext === 'zip') {
-    const files = await extractZipArchive(await file.arrayBuffer());
+    const extracted = await extractZipArchive(await file.arrayBuffer());
+    const files = normalizeBundleFiles(extracted);
+    if (files.length === 0) {
+      throw new Error('ZIP archive contains no playable files after cleanup.');
+    }
     const entryPath = pickWebEntryPath(files);
     bundle = { id, playKind: 'web', entryPath, files };
   } else if (ext === 'html' || ext === 'htm') {
@@ -83,10 +107,14 @@ export async function importGameFile(file: File): Promise<LocalGameRecord> {
     };
   } else {
     throw new Error(
-      'Unsupported file type. Upload .html, .zip (web game), or a desktop executable (.exe, .app).'
+      'Unsupported file type. Upload .html, .zip (web game), or a desktop executable (.exe, .app).',
     );
   }
 
+  // Replacing a catalog seed with the same id — clear previous bundle first.
+  if (options.id) {
+    await deleteLocalGameBundle(options.id).catch(() => undefined);
+  }
   await saveLocalGameBundle(bundle);
 
   let coverUrl = (await extractBundleCover(bundle.files)) ?? undefined;
@@ -109,7 +137,30 @@ export async function importGameFile(file: File): Promise<LocalGameRecord> {
     entryPath: bundle.entryPath,
     totalPlayMs: 0,
     importedAt: Date.now(),
+    catalogId: options.catalogId,
+    catalogZipRevision: options.catalogZipRevision,
+    productionAppUrl: options.productionAppUrl,
   };
+}
+
+/** Fetch the shipped production ZIP and import it exactly like a manual upload. */
+export async function importCatalogGame(entry: LocalGameCatalogEntry): Promise<LocalGameRecord> {
+  const res = await fetch(entry.zipUrl, { cache: 'no-store' });
+  if (!res.ok) {
+    throw new Error(`Could not download ${entry.zipFileName} (${res.status}).`);
+  }
+  const blob = await res.blob();
+  const file = new File([blob], entry.zipFileName, {
+    type: blob.type || 'application/zip',
+  });
+  // ZIP bytes untouched — same importGameFile path as the file picker.
+  // Play uses productionAppUrl as a same-origin UniLive embed when set.
+  return importGameFile(file, {
+    id: entry.id,
+    catalogId: entry.id,
+    catalogZipRevision: entry.zipRevision,
+    productionAppUrl: entry.productionAppUrl,
+  });
 }
 
 export async function importGameFolder(files: FileList | File[]): Promise<LocalGameRecord> {
@@ -124,30 +175,30 @@ export async function importGameFolder(files: FileList | File[]): Promise<LocalG
     bundleFiles.push(await fileToBundleFile(file, relative));
   }
 
-  const entryPath = pickWebEntryPath(bundleFiles);
+  const normalized = normalizeBundleFiles(bundleFiles);
+  const entryPath = pickWebEntryPath(normalized);
   const id = `l_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`;
-  const rootName = entryPath.split('/')[0] ?? stripExtension(entryPath);
-  const totalBytes = bundleFiles.reduce((sum, f) => sum + f.data.byteLength, 0);
+  const displayRoot = stripExtension(fileNameFromPath(entryPath));
+  const totalBytes = normalized.reduce((sum, f) => sum + f.data.byteLength, 0);
 
   const bundle: LocalGameBundle = {
     id,
     playKind: 'web',
     entryPath,
-    files: bundleFiles,
+    files: normalized,
   };
   await saveLocalGameBundle(bundle);
 
-  const coverUrl = (await extractBundleCover(bundleFiles)) ?? undefined;
-  const displayName = stripExtension(rootName.includes('/') ? rootName.split('/')[0] : entryPath);
+  const coverUrl = (await extractBundleCover(normalized)) ?? undefined;
 
   return {
     id,
-    name: displayName,
+    name: displayRoot,
     status: 'Ready',
     playtime: '0m',
-    image: gradientForGameName(displayName),
+    image: gradientForGameName(displayRoot),
     coverUrl,
-    fileName: `${displayName} (folder)`,
+    fileName: `${displayRoot} (folder)`,
     sizeBytes: totalBytes,
     playKind: 'web',
     entryPath,

@@ -4,8 +4,9 @@ import { Play, Circle, Clock, BarChart3, ChevronRight, Upload, FolderOpen, Trash
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import type { LocalGameRecord } from '../../lib/localGames/types';
+import { LOCAL_GAME_CATALOG } from '../../lib/localGames/catalog';
 import { extractBundleCover } from '../../lib/localGames/cover';
-import { importGameFile, importGameFolder } from '../../lib/localGames/import';
+import { importCatalogGame, importGameFile, importGameFolder } from '../../lib/localGames/import';
 import {
   deleteLocalGameBundle,
   getLocalGameBundle,
@@ -22,7 +23,7 @@ function GameArtwork({
   className,
   children,
 }: {
-  game: LocalGameRecord;
+  game: Pick<LocalGameRecord, 'coverUrl' | 'image' | 'name'>;
   className: string;
   children?: React.ReactNode;
 }) {
@@ -52,6 +53,7 @@ export function LocalGamesScreen() {
   );
   const [storageBytes, setStorageBytes] = useState(0);
   const [importing, setImporting] = useState(false);
+  const [seedingCatalog, setSeedingCatalog] = useState(false);
   const [playingGame, setPlayingGame] = useState<LocalGameRecord | null>(null);
 
   const persistGames = useCallback(
@@ -71,6 +73,81 @@ export function LocalGamesScreen() {
     void ensureLocalGameServiceWorker();
     void refreshStorage();
   }, [refreshStorage]);
+
+  // Seed bundled catalog games (exact ZIP → same import path as manual upload).
+  const catalogSeedDone = useRef(false);
+  useEffect(() => {
+    if (catalogSeedDone.current) return;
+    catalogSeedDone.current = true;
+
+    let cancelled = false;
+    (async () => {
+      let nextGames = [...games];
+      const toImport: typeof LOCAL_GAME_CATALOG = [];
+      let patched = false;
+
+      for (const entry of LOCAL_GAME_CATALOG) {
+        const existing =
+          nextGames.find((g) => g.id === entry.id || g.catalogId === entry.id) ??
+          nextGames.find((g) => g.fileName === entry.zipFileName);
+        if (!existing) {
+          toImport.push(entry);
+          continue;
+        }
+        // New shipped ZIP revision → re-import exact bytes (no game source edits).
+        if (existing.catalogZipRevision !== entry.zipRevision) {
+          toImport.push(entry);
+          continue;
+        }
+        // Attach same-origin UniLive embed URL without re-importing / altering the ZIP.
+        if (existing.productionAppUrl !== entry.productionAppUrl || existing.catalogId !== entry.id) {
+          nextGames = nextGames.map((g) =>
+            g.id === existing.id
+              ? {
+                  ...g,
+                  catalogId: entry.id,
+                  catalogZipRevision: entry.zipRevision,
+                  productionAppUrl: entry.productionAppUrl,
+                }
+              : g,
+          );
+          patched = true;
+        }
+      }
+
+      if (patched && !cancelled) persistGames(nextGames);
+      if (toImport.length === 0) return;
+
+      setSeedingCatalog(true);
+      try {
+        const added: LocalGameRecord[] = [];
+        for (const entry of toImport) {
+          const record = await importCatalogGame(entry);
+          if (cancelled) return;
+          added.push(record);
+        }
+        if (cancelled || added.length === 0) return;
+        persistGames([...added, ...nextGames.filter((g) => !added.some((a) => a.id === g.id))]);
+        await refreshStorage();
+        showToast(
+          added.length === 1
+            ? `"${added[0].name}" added to your library.`
+            : `${added.length} catalog games added to your library.`,
+        );
+      } catch (err) {
+        if (!cancelled) {
+          showToast(err instanceof Error ? err.message : 'Could not add catalog game.');
+        }
+      } finally {
+        if (!cancelled) setSeedingCatalog(false);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot catalog seed on mount
+  }, []);
 
   // Backfill preview covers for games imported before cover extraction existed.
   const coverBackfillDone = useRef(false);
@@ -109,7 +186,13 @@ export function LocalGamesScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps -- one-shot backfill on mount
   }, []);
 
+  const greedyGame =
+    games.find((g) => g.id === 'catalog_greedy_casino_slot' || g.catalogId === 'catalog_greedy_casino_slot') ??
+    games.find((g) => g.fileName === 'remix_-greedy-casino-slot.zip') ??
+    null;
+
   const featuredGame =
+    greedyGame ??
     [...games].sort((a, b) => (b.lastPlayedAt ?? b.importedAt) - (a.lastPlayedAt ?? a.importedAt))[0] ??
     games[0];
 
@@ -120,8 +203,16 @@ export function LocalGamesScreen() {
 
     setImporting(true);
     try {
-      const record = await importGameFile(file);
-      persistGames([record, ...games]);
+      const catalogMatch = LOCAL_GAME_CATALOG.find((entry) => entry.zipFileName === file.name);
+      const record = catalogMatch
+        ? await importGameFile(file, {
+            id: catalogMatch.id,
+            catalogId: catalogMatch.id,
+            catalogZipRevision: catalogMatch.zipRevision,
+            productionAppUrl: catalogMatch.productionAppUrl,
+          })
+        : await importGameFile(file);
+      persistGames([record, ...games.filter((g) => g.id !== record.id)]);
       await refreshStorage();
       showToast(
         record.playKind === 'web'
@@ -181,6 +272,7 @@ export function LocalGamesScreen() {
   };
 
   const storagePct = Math.min(100, (storageBytes / STORAGE_QUOTA_BYTES) * 100);
+  const catalogGreedy = LOCAL_GAME_CATALOG[0]!;
 
   return (
     <motion.div
@@ -236,50 +328,63 @@ export function LocalGamesScreen() {
 
         <p className="text-[11px] text-muted-foreground font-semibold -mt-2">
           Upload .html or .zip web games to play in-browser, or install .exe / .app files for desktop launch.
+          If Play Now fails after an older import, remove the game and re-import the ZIP once.
         </p>
 
-        {featuredGame ? (
-          <motion.div whileHover={{ scale: 1.01 }}>
-            <GameArtwork
-              game={featuredGame}
-              className="h-64 rounded-3xl text-white"
-            >
-              <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
-              <div className="relative h-full p-8 flex flex-col justify-end">
-                <div className="absolute top-6 left-8 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                  {featuredGame.lastPlayedAt ? 'Recently Played' : 'Ready to Play'}
-                </div>
-                <h2 className="text-3xl font-black">{featuredGame.name}</h2>
-                <p className="text-white/80 font-semibold text-xs mt-1">
-                  {featuredGame.playKind === 'web' ? 'Web game' : 'Desktop executable'} ·{' '}
-                  {featuredGame.playtime}
-                </p>
-                <button
-                  type="button"
-                  onClick={() => launchGame(featuredGame)}
-                  className="mt-4 w-36 bg-white text-black font-black text-xs py-3 rounded-xl hover:bg-white/90 transition-all flex items-center justify-center gap-2"
-                >
-                  <Play className="w-3 h-3 fill-black" />
-                  {featuredGame.playKind === 'web' ? 'Play Now' : 'Open'}
-                </button>
+        {/* Featured: Greedy Casino Slot catalog card */}
+        <motion.div whileHover={{ scale: 1.01 }}>
+          <GameArtwork
+            game={{
+              name: featuredGame?.name ?? catalogGreedy.cardName,
+              coverUrl: featuredGame?.coverUrl,
+              image: featuredGame?.image ?? catalogGreedy.image,
+            }}
+            className="h-64 rounded-3xl text-white"
+          >
+            <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
+            <div className="relative h-full p-8 flex flex-col justify-end">
+              <div className="absolute top-6 left-8 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
+                {seedingCatalog
+                  ? 'Adding…'
+                  : featuredGame?.lastPlayedAt
+                    ? 'Recently Played'
+                    : featuredGame
+                      ? 'Ready to Play'
+                      : 'Featured'}
               </div>
-            </GameArtwork>
-          </motion.div>
-        ) : (
-          <div className="h-48 rounded-3xl border border-dashed border-border bg-secondary/20 flex flex-col items-center justify-center gap-2 text-center px-6">
-            <p className="text-sm font-black text-foreground">No games imported yet</p>
-            <p className="text-[11px] text-muted-foreground font-semibold max-w-sm">
-              Import an HTML5 game, a ZIP web build, or a desktop executable to fill your library.
-            </p>
-          </div>
-        )}
+              <h2 className="text-3xl font-black">
+                {featuredGame?.name ?? catalogGreedy.cardName}
+              </h2>
+              <p className="text-white/80 font-semibold text-xs mt-1 max-w-xl">
+                {featuredGame?.fileName === catalogGreedy.zipFileName || !featuredGame
+                  ? catalogGreedy.description
+                  : `${featuredGame.playKind === 'web' ? 'Web game' : 'Desktop executable'} · ${featuredGame.playtime}`}
+              </p>
+              <button
+                type="button"
+                disabled={!featuredGame || seedingCatalog}
+                onClick={() => featuredGame && launchGame(featuredGame)}
+                className="mt-4 w-36 bg-white text-black font-black text-xs py-3 rounded-xl hover:bg-white/90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+              >
+                {seedingCatalog ? (
+                  <Loader2 className="w-3 h-3 animate-spin" />
+                ) : (
+                  <Play className="w-3 h-3 fill-black" />
+                )}
+                {seedingCatalog ? 'Adding…' : featuredGame?.playKind === 'web' || !featuredGame ? 'Play Now' : 'Open'}
+              </button>
+            </div>
+          </GameArtwork>
+        </motion.div>
       </div>
 
       <div className="space-y-6">
         <h3 className="text-xl font-black text-foreground">Installed Games ({games.length})</h3>
 
         {games.length === 0 ? (
-          <p className="text-xs text-muted-foreground font-semibold">Your imported games will appear here.</p>
+          <p className="text-xs text-muted-foreground font-semibold">
+            {seedingCatalog ? 'Adding catalog games…' : 'Your imported games will appear here.'}
+          </p>
         ) : (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
             <AnimatePresence>

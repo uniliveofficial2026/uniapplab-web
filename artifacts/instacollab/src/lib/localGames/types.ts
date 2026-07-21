@@ -17,6 +17,15 @@ export type LocalGameRecord = {
   totalPlayMs: number;
   lastPlayedAt?: number;
   importedAt: number;
+  /** Stable catalog id when this record was seeded from a bundled game. */
+  catalogId?: string;
+  /** Catalog ZIP revision last imported (used to refresh when the shipped ZIP updates). */
+  catalogZipRevision?: string;
+  /**
+   * Same-origin UniLive path for in-app Play (e.g. `/games/greedy-slot/`).
+   * Must not point at a separate localhost / external game server.
+   */
+  productionAppUrl?: string;
 };
 
 export type LocalGameBundleFile = {
