@@ -15,6 +15,8 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Default home tab — eager so first paint is instant.
 import { Feed } from './components/feed/Feed';
+// Greedy — eager so the tab opens with no lazy-chunk wait.
+import { GreedyTapScreen, prefetchGreedyTap } from './components/games/GreedyTapScreen';
 
 const MessagesScreen = lazy(() =>
   import('./components/messages/MessagesScreen').then((m) => ({ default: m.MessagesScreen }))
@@ -76,9 +78,6 @@ const ThirdPartyGamesScreen = lazy(() =>
 );
 const GameHubScreen = lazy(() =>
   import('./components/games/GameHubScreen').then((m) => ({ default: m.GameHubScreen }))
-);
-const GreedyTapScreen = lazy(() =>
-  import('./components/games/GreedyTapScreen').then((m) => ({ default: m.GreedyTapScreen }))
 );
 const YouTubePage = lazy(() =>
   import('./pages/YouTube').then((m) => ({ default: m.YouTubePage }))
@@ -410,13 +409,24 @@ function MainApp() {
 
   useEffect(() => {
     setVisitedTabs((prev): Tab[] => {
-      // LRU keep-alive: only last 3 tabs stay mounted. Visiting every screen
-      // used to leave all of them alive (polls + useDB) and freeze the app.
-      const MAX_KEEPALIVE = 3;
-      const without = prev.filter((t) => t !== currentTab);
-      return [...without, currentTab].slice(-MAX_KEEPALIVE);
+      // Keep Greedy mounted forever (warm iframe). LRU only for other tabs.
+      const MAX_OTHER = 2;
+      const pool = prev.filter((t) => t !== 'greedy-tap');
+      const without = pool.filter((t) => t !== currentTab);
+      const others =
+        currentTab === 'greedy-tap'
+          ? without.slice(-MAX_OTHER)
+          : [...without, currentTab].slice(-MAX_OTHER);
+      return [...others, 'greedy-tap'];
     });
   }, [currentTab]);
+
+  // Warm Greedy as soon as the main shell is up.
+  useEffect(() => {
+    if (effectiveLaunchRoute !== 'main') return;
+    prefetchGreedyTap();
+    setVisitedTabs((prev) => (prev.includes('greedy-tap') ? prev : [...prev, 'greedy-tap']));
+  }, [effectiveLaunchRoute]);
 
   useEffect(() => {
     applyDocumentTheme(db.settings.theme === 'dark' ? 'dark' : 'light');
