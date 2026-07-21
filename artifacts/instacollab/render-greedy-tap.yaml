@@ -1,0 +1,13 @@
+services:
+  - type: web
+    name: uniapplab-greedy-tap
+    runtime: node
+    plan: free
+    buildCommand: node artifacts/instacollab/scripts/build-greedy-tap-production.mjs
+    startCommand: cd artifacts/instacollab/.local/greedy-tap-production && npm start
+    healthCheckPath: /api/health
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: GAME_BASE_PATH
+        value: /games/greedy-slot

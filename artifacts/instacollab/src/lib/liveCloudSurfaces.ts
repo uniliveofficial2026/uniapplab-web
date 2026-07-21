@@ -36,6 +36,7 @@ import { scheduleLiveSessionSync } from './liveSessionSync';
 import { isNetworkOnline } from './networkStatus';
 import { postPresenceHeartbeat } from './platformApi';
 import { syncServerWalletBalance } from './walletServerSync';
+import { startWalletRealtime, stopWalletRealtime } from './walletRealtime';
 import { onUserSessionActive } from './walletKstarSync';
 import {
   startPlatformGiftCatalogRealtime,
@@ -78,6 +79,8 @@ let stopPostsRealtime: (() => void) | null = null;
 let lastSurfaceRefreshAt = 0;
 let surfaceRefreshTimer: number | null = null;
 let pendingSurfaceRefresh: LiveCloudSurface = 'all';
+let surfaceRefreshInFlight = false;
+let queuedSurfaceAfterFlight: LiveCloudSurface | null = null;
 
 function canRunCloud(userId?: string | null): userId is string {
   return (
@@ -145,6 +148,8 @@ export function liveSurfaceFromTab(tab: string | null | undefined): LiveCloudSur
       return 'dating';
     case 'local-games':
     case 'third-party-games':
+    case 'game-hub':
+    case 'greedy-tap':
       return 'games';
     case 'youtube':
       return 'search';
@@ -173,6 +178,7 @@ export function startLiveCloudSurfaces(userId: string): void {
   initThoughtNoteCloudSync();
   startPlatformGiftCatalogRealtime();
   startPlatformAppBrandRealtime();
+  startWalletRealtime(userId);
 
   void beatPresence();
   presenceTimer = window.setInterval(() => {
@@ -184,7 +190,7 @@ export function startLiveCloudSurfaces(userId: string): void {
     if (!canRunCloud(meId)) return;
     void syncCloudChatInbox();
     void syncCloudNotifications();
-    // Same account on phone + desktop — pull authoritative wallet ledger.
+    // Realtime wallet is primary; poll is a reconnect safety net only.
     void syncServerWalletBalance(meId).then(() => onUserSessionActive(meId));
   }, inboxPollIntervalMs());
 
@@ -212,6 +218,7 @@ export function stopLiveCloudSurfaces(): void {
   stopCloudPostRealtimeSync();
   stopPlatformGiftCatalogRealtime();
   stopPlatformAppBrandRealtime();
+  stopWalletRealtime();
   teardownThoughtNoteCloudSync();
 }
 
@@ -245,9 +252,19 @@ export function refreshLiveCloudSurface(surface: LiveCloudSurface | string, opts
 }
 
 function runLiveCloudSurfaceRefresh(target: LiveCloudSurface): void {
+  if (surfaceRefreshInFlight) {
+    queuedSurfaceAfterFlight = target;
+    return;
+  }
+  surfaceRefreshInFlight = true;
+
   const meId = db.currentUserId;
   if (!canRunCloud(meId)) {
+    surfaceRefreshInFlight = false;
     dispatchSurfaceRefresh(target);
+    const queued = queuedSurfaceAfterFlight;
+    queuedSurfaceAfterFlight = null;
+    if (queued) queueMicrotask(() => refreshLiveCloudSurface(queued));
     return;
   }
 
@@ -261,11 +278,10 @@ function runLiveCloudSurfaceRefresh(target: LiveCloudSurface): void {
 
   switch (target) {
     case 'messages':
-      void startCloudChatRealtime(meId);
+      // Inbox pull only — chat realtime is already started by startLiveCloudSurfaces.
       tasks.push(syncCloudChatInbox());
       break;
     case 'notifications':
-      startCloudNotificationRealtime(meId);
       tasks.push(syncCloudNotifications());
       tasks.push(hydrateCloudFollowsForUser(meId));
       break;
@@ -294,7 +310,6 @@ function runLiveCloudSurfaceRefresh(target: LiveCloudSurface): void {
       tasks.push(hydrateCloudFollowsForUser(meId));
       tasks.push(flushCloudAppStateSync().catch(() => undefined));
       tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
-      stopProfileVisitsRealtime = startCloudProfileVisitsRealtime(meId);
       break;
     case 'thoughts':
       tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
@@ -307,7 +322,9 @@ function runLiveCloudSurfaceRefresh(target: LiveCloudSurface): void {
       void beatPresence();
       break;
     case 'wallet':
+      // Wallet realtime is started once in startLiveCloudSurfaces (idempotent).
       scheduleLiveSessionSync(meId);
+      tasks.push(syncServerWalletBalance(meId).then(() => onUserSessionActive(meId)));
       tasks.push(flushCloudAppStateSync().catch(() => undefined));
       break;
     case 'dating':
@@ -321,22 +338,27 @@ function runLiveCloudSurfaceRefresh(target: LiveCloudSurface): void {
       break;
     case 'all':
     default:
-      void startCloudChatRealtime(meId);
-      startCloudNotificationRealtime(meId);
+      // Realtime channels stay up from startLiveCloudSurfaces; only pull data here.
+      // Re-calling start* on every refresh caused postgres_changes-after-subscribe throws → blank UI.
       pullSocialFeed();
       tasks.push(syncCloudChatInbox());
       tasks.push(syncCloudNotifications());
       tasks.push(hydrateCloudFollowsForUser(meId));
       tasks.push(refreshThoughtNotesFromCloud().catch(() => undefined));
+      tasks.push(syncServerWalletBalance(meId).then(() => onUserSessionActive(meId)));
       scheduleLiveSessionSync(meId);
-      stopBlocksRealtime = startCloudBlocksRealtime(meId);
-      stopProfileVisitsRealtime = startCloudProfileVisitsRealtime(meId);
       void beatPresence();
       break;
   }
 
   void Promise.allSettled(tasks).finally(() => {
+    surfaceRefreshInFlight = false;
     dispatchSurfaceRefresh(target);
+    const queued = queuedSurfaceAfterFlight;
+    queuedSurfaceAfterFlight = null;
+    if (queued && queued !== target) {
+      queueMicrotask(() => refreshLiveCloudSurface(queued));
+    }
   });
 }
 

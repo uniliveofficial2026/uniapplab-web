@@ -1,16 +1,18 @@
 #!/usr/bin/env node
 /**
- * Local dev: Vite on :5173 plus http://localhost:3000 proxy (OAuth / legacy URLs).
+ * Local dev: Vite on :5173, Greedy Tap on :3000 (bundled), plus optional alias proxy.
+ * Default alias is :3010 (not :3000) so Greedy Tap keeps its dedicated port.
  */
 import { spawn, spawnSync } from 'node:child_process';
 import http from 'node:http';
 import net from 'node:net';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { startGreedyTapServer } from './greedy-tap-server.mjs';
 
 const appRoot = path.dirname(path.dirname(fileURLToPath(import.meta.url)));
 const vitePort = Number(process.env.VITE_DEV_PORT ?? process.env.PORT ?? '5173');
-const proxyPort = Number(process.env.DEV_PROXY_PORT ?? '3000');
+const proxyPort = Number(process.env.DEV_PROXY_PORT ?? '3010');
 
 if (!Number.isFinite(vitePort) || vitePort <= 0) {
   console.error(`[dev] Invalid Vite port: ${process.env.VITE_DEV_PORT ?? process.env.PORT}`);
@@ -99,6 +101,8 @@ if (proxyPort !== vitePort) {
 console.log('[dev] Syncing AR assets (DeepAR + TRTC, cached after first install)…');
 spawnSync('node', ['scripts/sync-ar-assets.mjs'], { cwd: appRoot, stdio: 'inherit' });
 
+const greedyTap = startGreedyTapServer(appRoot, { stdio: 'inherit' });
+
 console.log('[dev] Starting Vite…');
 console.log(`[dev] App     http://localhost:${vitePort}`);
 console.log(`[dev] Alias   http://localhost:${proxyPort}`);
@@ -122,8 +126,12 @@ function shutdown(signal) {
   shuttingDown = true;
   if (signal) console.log(`\n[dev] ${signal} — stopping…`);
   proxyServer?.close();
+  greedyTap?.child.kill('SIGTERM');
   vite.kill('SIGTERM');
-  setTimeout(() => vite.kill('SIGKILL'), 1500).unref();
+  setTimeout(() => {
+    greedyTap?.child.kill('SIGKILL');
+    vite.kill('SIGKILL');
+  }, 1500).unref();
 }
 
 vite.on('exit', (code) => {

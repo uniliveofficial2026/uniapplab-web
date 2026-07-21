@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Gamepad2, Globe, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings } from 'lucide-react';
+import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Joystick, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings, Coins } from 'lucide-react';
 import { Tab, User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64, handleAvatarError } from '../../lib/utils';
@@ -36,16 +36,16 @@ import { requestKaraokeStudioOpen } from '../../lib/karaokeSearch';
 import { navTapButtonClass, navTapIconButtonClass, navTapRowButtonClass } from '../../lib/navTap';
 import { ShellCreateModal, type CreateLaunch } from './ShellCreateModal';
 import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
+import { PwaUpdateToast } from '../common/PwaUpdateToast';
 import { MobileDevConnectBanner } from '../common/MobileDevConnectBanner';
 import { AccountSwitcherModal } from '../profile/AccountSwitcherModal';
 import { ProfileEditSettingsModal } from '../profile/ProfileEditSettingsModal';
 import { BlockedUsersModal } from '../profile/BlockedUsersModal';
 import { useAuth } from '../../lib/AuthContext';
-import { useCloudAuth } from '../../contexts/CloudAuthContext';
+import { useCloudAuth } from '../../contexts/cloudAuthStore';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
-import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
+import { commitUserProfile } from '../../lib/auth/userDataFlow';
 import { liveSurfaceFromTab, refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
-import { activeSurfacePollIntervalMs } from '../../lib/liveCloudSyncMode';
 import { isNetworkOnline } from '../../lib/networkStatus';
 import { signalAppShellReady } from '../../lib/appShellReady';
 
@@ -92,32 +92,15 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     setLocalUser(resolveUser(db.users, currentUser));
   }, [db.users, currentUser]);
 
-  // Real-time: keep the visible tab's cloud lane warm while the shell is open.
+  // Real-time: warm the visible tab once on enter — no background poll loop.
+  // Polling every screen (plus KeepAlive mounts) was freezing taps app-wide.
   useEffect(() => {
     const surface = liveSurfaceFromTab(currentTab);
-    refreshLiveCloudSurface(surface, { force: true });
-
-    let timer: number | null = null;
-    const armPoll = () => {
-      if (timer != null) window.clearInterval(timer);
-      timer = null;
+    const timer = window.setTimeout(() => {
       if (document.visibilityState !== 'visible' || !isNetworkOnline()) return;
-      const ms = activeSurfacePollIntervalMs();
-      if (ms <= 0) return;
-      timer = window.setInterval(() => {
-        if (document.visibilityState !== 'visible' || !isNetworkOnline()) return;
-        refreshLiveCloudSurface(surface);
-      }, ms);
-    };
-
-    armPoll();
-    document.addEventListener('visibilitychange', armPoll);
-    window.addEventListener('focus', armPoll);
-    return () => {
-      document.removeEventListener('visibilitychange', armPoll);
-      window.removeEventListener('focus', armPoll);
-      if (timer != null) window.clearInterval(timer);
-    };
+      refreshLiveCloudSurface(surface);
+    }, 120);
+    return () => window.clearTimeout(timer);
   }, [currentTab]);
 
   const openAccountSwitcher = () => {
@@ -147,10 +130,12 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     if (!file || !localUser.id) return;
     try {
       const avatarUrl = await fileToBase64(file);
-      const next = { ...localUser, avatarUrl };
-      setLocalUser(next);
-      db.updateUser(localUser.id, () => next);
-      if (isCloudAuthConfigured()) scheduleCloudProfileSync(next);
+      const result = await commitUserProfile(localUser.id, { avatarUrl });
+      if (!result.ok) {
+        showToast(result.reason);
+        return;
+      }
+      setLocalUser(result.user);
       showToast('Profile photo updated');
     } catch {
       showToast('Failed to update profile photo');
@@ -180,7 +165,11 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
       requestKaraokeStudioOpen();
     }
     setCurrentTab(tab);
-    requestAnimationFrame(() => refreshLiveCloudSurface(liveSurfaceFromTab(tab)));
+    // Deferred soft refresh — never force-stampede on every nav tap.
+    window.setTimeout(() => {
+      if (document.visibilityState !== 'visible' || !isNetworkOnline()) return;
+      refreshLiveCloudSurface(liveSurfaceFromTab(tab));
+    }, 180);
   };
 
   const handleHomeTap = () => {
@@ -259,11 +248,16 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     { id: 'workspace', icon: LayoutDashboard, label: 'Admin Panel' },
     { id: 'dating', icon: Heart, label: 'Dating' },
     { id: 'live', icon: Radio, label: 'Live' },
-    { id: 'local-games', icon: Gamepad2, label: 'Local Games' },
-    { id: 'third-party-games', icon: Globe, label: 'Third Party Games' },
+    { id: 'greedy-tap', icon: Coins, label: 'Greedy Tap' },
+    { id: 'game-hub', icon: Joystick, label: 'Game Hub' },
     { id: 'wallet', icon: Wallet, label: 'Wallet' },
     { id: 'youtube', icon: Youtube, label: 'YouTube' },
   ];
+
+  const isGamesNavActive =
+    currentTab === 'game-hub' ||
+    currentTab === 'local-games' ||
+    currentTab === 'third-party-games';
 
   const hideShellMobileTopNav =
     showSettings ||
@@ -279,11 +273,15 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     currentTab !== 'rooms';
 
   const isFullHeightTab =
-    currentTab === 'messages' || currentTab === 'karaoke' || currentTab === 'rooms' || currentTab === 'reels';
+    currentTab === 'messages' ||
+    currentTab === 'karaoke' ||
+    currentTab === 'rooms' ||
+    currentTab === 'reels' ||
+    currentTab === 'greedy-tap';
   const isReelsTab = currentTab === 'reels';
 
   return (
-    <div className="flex h-[100dvh] w-full bg-background text-foreground overflow-hidden font-sans">
+    <div className="flex h-vv max-h-vv w-full max-w-[100%] bg-background text-foreground overflow-hidden font-sans min-h-0">
       <PostAudioPlaybackRoot />
 
       <ShellCreateModal
@@ -456,7 +454,8 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
         <nav className="flex-1 min-h-0 overflow-y-auto no-scrollbar space-y-2">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = currentTab === item.id;
+            const isActive =
+              item.id === 'game-hub' ? isGamesNavActive : currentTab === item.id;
             return (
               <button
                 key={item.id}
@@ -659,7 +658,8 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                <div className="flex-1 overflow-y-auto px-4 space-y-2">
                  {navItems.map((item) => {
                    const Icon = item.icon;
-                   const isActive = currentTab === item.id;
+                   const isActive =
+                     item.id === 'game-hub' ? isGamesNavActive : currentTab === item.id;
                    return (
                      <button
                        key={item.id}
@@ -774,6 +774,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
       )}
       <MobileDevConnectBanner />
       <PwaInstallPrompt />
+      <PwaUpdateToast />
 
       {showSettings ? (
         <ProfileEditSettingsModal
@@ -812,14 +813,8 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
         onClose={() => setShowAccountSwitcher(false)}
         onRefreshAccounts={refreshAccountSwitcher}
         onSelectAccount={async (uid, password) => {
-          try {
-            await selectAccount(uid, password);
-            setLocalUser(resolveUser(db.users, db.currentUser));
-            setShowAccountSwitcher(false);
-          } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to switch account.';
-            showToast(message);
-          }
+          await selectAccount(uid, password);
+          setLocalUser(resolveUser(db.users, db.currentUser));
         }}
         onRemoveAccount={(uid) => {
           removeAccount(uid);

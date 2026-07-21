@@ -1,4 +1,4 @@
-export type Tab = 'home' | 'search' | 'reels' | 'messages' | 'notifications' | 'workspace' | 'dating' | 'profile' | 'live' | 'karaoke' | 'rooms' | 'local-games' | 'third-party-games' | 'wallet' | 'youtube';
+export type Tab = 'home' | 'search' | 'reels' | 'messages' | 'notifications' | 'workspace' | 'dating' | 'profile' | 'live' | 'karaoke' | 'rooms' | 'game-hub' | 'greedy-tap' | 'local-games' | 'third-party-games' | 'wallet' | 'youtube';
 
 /** Live ring style when `status` is `live`. */
 export type LiveKind =

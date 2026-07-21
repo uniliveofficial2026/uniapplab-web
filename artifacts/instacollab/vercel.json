@@ -1,5 +1,5 @@
 {
-  "installCommand": "cd ../.. && pnpm install && pnpm --filter @workspace/api-server run build && node artifacts/instacollab/scripts/stage-api-for-vercel.mjs",
+  "installCommand": "cd ../.. && node artifacts/instacollab/scripts/vercel-install.mjs",
   "buildCommand": "pnpm build",
   "outputDirectory": "dist/public",
   "rewrites": [
@@ -8,7 +8,7 @@
       "destination": "/api"
     },
     {
-      "source": "/((?!api/).*)",
+      "source": "/((?!api/|__local_game__/|local-games/|home/|privacy-policy\\.html|terms-of-service\\.html|local-game-sw\\.js|sw\\.js|workbox-|assets/|deepar-resources/|effects/).*)",
       "destination": "/index.html"
     }
   ],

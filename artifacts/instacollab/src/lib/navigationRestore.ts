@@ -34,12 +34,14 @@ const MAIN_TABS = new Set<Tab>([
   'live',
   'karaoke',
   'rooms',
+  'game-hub',
+  'greedy-tap',
   'local-games',
   'third-party-games',
   'wallet',
 ]);
 
-const SEARCH_TABS = new Set<SearchTab>(['top', 'accounts', 'audio', 'tags', 'places']);
+const SEARCH_TABS = new Set<SearchTab>(['top', 'accounts', 'audio', 'tags', 'places', 'youtube']);
 
 function readJson<T>(key: string): T | null {
   if (typeof window === 'undefined') return null;

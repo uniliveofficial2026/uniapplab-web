@@ -1,3 +1,4 @@
+import { mergeViteProxyConfig } from "./scripts/greedyTapProxyRoutes.mjs";
 import tailwindcss from "@tailwindcss/vite";
 import react from "@vitejs/plugin-react";
 import basicSsl from "@vitejs/plugin-basic-ssl";
@@ -6,9 +7,13 @@ import os from "node:os";
 import path from "path";
 import runtimeErrorOverlay from "@replit/vite-plugin-runtime-error-modal";
 import { VitePWA } from "vite-plugin-pwa";
-import { defineConfig, loadEnv } from "vite";
+import { createLogger, defineConfig, loadEnv } from "vite";
 import { agentIngestPlugin } from "./vite-plugins/agentIngest";
 import { youtubeApiPlugin } from "./vite-plugins/youtubeApi";
+import { readDeeparEnabled } from "./scripts/read-deepar-enabled.mjs";
+import {
+  isStaleSupabaseUrl,
+} from "./scripts/stale-supabase-refs.mjs";
 
 const appRoot = path.resolve(import.meta.dirname);
 const workspaceRoot = path.resolve(import.meta.dirname, "../..");
@@ -16,6 +21,7 @@ const legacyEnvRoot = path.resolve(
   workspaceRoot,
   "attached_assets/extracted/remix_-instacollab",
 );
+const deeparEnabled = readDeeparEnabled(appRoot);
 
 const envSourceDirs = [appRoot, workspaceRoot, legacyEnvRoot];
 
@@ -34,13 +40,41 @@ function resolveEnvDir(): string {
   return appRoot;
 }
 
+function applyPublicSupabaseConfig(merged: Record<string, string>) {
+  const cfgPath = path.join(appRoot, "public", "supabase-config.json");
+  if (!fs.existsSync(cfgPath)) return;
+  try {
+    const cfg = JSON.parse(fs.readFileSync(cfgPath, "utf8")) as {
+      supabaseUrl?: string;
+      supabaseAnonKey?: string;
+    };
+    if (cfg.supabaseUrl && !isStaleSupabaseUrl(cfg.supabaseUrl)) {
+      merged.VITE_SUPABASE_URL = cfg.supabaseUrl.replace(/\/$/, "");
+      if (cfg.supabaseAnonKey) {
+        merged.VITE_SUPABASE_ANON_KEY = cfg.supabaseAnonKey;
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 /** Merge VITE_* (and GEMINI in dev only) from every known env location; app `.env` wins over root/legacy. */
 function loadMergedViteEnv(mode: string): Record<string, string> {
   let merged: Record<string, string> = {};
   const allowGemini = mode !== "production";
   for (const dir of [...envSourceDirs].reverse()) {
     if (!fs.existsSync(dir)) continue;
-    merged = { ...merged, ...loadEnv(mode, dir, "VITE_") };
+    const next = loadEnv(mode, dir, "VITE_");
+    for (const [key, value] of Object.entries(next)) {
+      if (
+        (key === "VITE_SUPABASE_URL" || key === "SUPABASE_URL") &&
+        isStaleSupabaseUrl(value)
+      ) {
+        continue;
+      }
+      merged[key] = value;
+    }
     const all = loadEnv(mode, dir, "");
     if (allowGemini && all.GEMINI_API_KEY?.trim()) {
       merged.VITE_GEMINI_API_KEY = all.GEMINI_API_KEY.trim();
@@ -49,8 +83,39 @@ function loadMergedViteEnv(mode: string): Record<string, string> {
       merged.VITE_YOUTUBE_API_KEY = merged.VITE_YOUTUBE_API_KEY?.trim() || all.YOUTUBE_API_KEY.trim();
     }
   }
+  if (isStaleSupabaseUrl(merged.VITE_SUPABASE_URL || "")) {
+    delete merged.VITE_SUPABASE_URL;
+  }
+  applyPublicSupabaseConfig(merged);
+
+  // Production builds must never bake localhost as the OAuth return URL.
+  if (mode === "production") {
+    const origin = (merged.VITE_APP_ORIGIN || "").trim();
+    if (
+      !origin ||
+      /localhost|127\.0\.0\.1|\[::1\]/i.test(origin)
+    ) {
+      merged.VITE_APP_ORIGIN = "https://app.uniapplab.com";
+      if (origin) {
+        console.warn(
+          `[vite] Ignoring loopback VITE_APP_ORIGIN (${origin}); using https://app.uniapplab.com for production OAuth redirects.`,
+        );
+      }
+    }
+  }
   return merged;
 }
+
+const viteLogger = createLogger();
+const loggerWarn = viteLogger.warn.bind(viteLogger);
+viteLogger.warn = (msg, options) => {
+  if (typeof msg === "string") {
+    if (msg.includes("dynamically imported") && msg.includes("statically imported")) return;
+    if (msg.includes("Use of eval")) return;
+    if (msg.includes("Generated an empty chunk")) return;
+  }
+  loggerWarn(msg, options);
+};
 
 const envDir = resolveEnvDir();
 
@@ -113,7 +178,7 @@ const replitPlugins =
       ]
     : [];
 
-export default defineConfig(({ mode }) => {
+export default defineConfig(async ({ mode }) => {
   const isProd = mode === "production";
   const viteEnv = loadMergedViteEnv(mode);
   const unifiedLive =
@@ -133,6 +198,25 @@ export default defineConfig(({ mode }) => {
     "";
   const youtubePlugin = youtubeApiPlugin(youtubeApiKey);
 
+  const analyzePlugins =
+    process.env.ANALYZE === "1"
+      ? await import("rollup-plugin-visualizer")
+          .then((m) => [
+            m.visualizer({
+              filename: path.resolve(appRoot, "dist/stats.html"),
+              gzipSize: true,
+              brotliSize: true,
+              open: false,
+            }),
+          ])
+          .catch(() => {
+            console.warn(
+              "[vite] ANALYZE=1 set but rollup-plugin-visualizer is not installed; skipping.",
+            );
+            return [];
+          })
+      : [];
+
   return {
   base: basePath,
   envDir,
@@ -141,19 +225,63 @@ export default defineConfig(({ mode }) => {
     tailwindcss(),
     runtimeErrorOverlay(),
     ...(useDevHttps ? [basicSsl()] : []),
+    ...analyzePlugins,
     VitePWA({
-      registerType: "prompt",
-      includeAssets: ["brand/app-logo.png", "pwa-icon.png", "robots.txt", "opengraph.jpg"],
+      registerType: "autoUpdate",
+      includeAssets: [
+        "brand/app-logo.png",
+        "pwa-icon.png",
+        "icons/icon-192.png",
+        "icons/icon-512.png",
+        "icons/icon-192-maskable.png",
+        "icons/icon-512-maskable.png",
+        "local-game-sw.js",
+        "robots.txt",
+        "opengraph.jpg",
+      ],
       devOptions: {
         enabled: pwaDevEnabled,
       },
       workbox: {
-        skipWaiting: false,
-        clientsClaim: false,
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         maximumFileSizeToCacheInBytes: 5 * 1024 * 1024,
         navigateFallback: `${normalizedBase}index.html`,
-        navigateFallbackDenylist: [/^\/api\//, /\/__local_game__\//, /^\/assets\//],
+        navigateFallbackDenylist: [
+          /^\/api\//,
+          /\/__local_game__\//,
+          /^\/assets\//,
+          /^\/live-version\.json$/,
+        ],
+        // Never precache version probe or API shell responses.
+        globIgnores: ["**/live-version.json", "**/api/**"],
         globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}"],
+        runtimeCaching: [
+          {
+            urlPattern: ({ url }) =>
+              url.pathname.startsWith("/api/") ||
+              url.pathname === "/live-version.json" ||
+              url.hostname.endsWith("supabase.co") ||
+              url.hostname.includes("supabase") ||
+              url.hostname.endsWith("googleapis.com") ||
+              url.hostname.endsWith("firebaseio.com") ||
+              url.hostname.endsWith("livekit.cloud") ||
+              url.hostname.includes("livekit"),
+            handler: "NetworkOnly",
+          },
+          {
+            urlPattern: ({ request, url }) =>
+              request.destination === "image" &&
+              (url.hostname.endsWith("uniapplab.com") ||
+                url.hostname.endsWith("supabase.co")),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "media-swr",
+              expiration: { maxEntries: 80, maxAgeSeconds: 7 * 24 * 60 * 60 },
+            },
+          },
+        ],
       },
       manifest: {
         id: normalizedBase,
@@ -171,22 +299,28 @@ export default defineConfig(({ mode }) => {
         categories: ["social", "entertainment"],
         icons: [
           {
-            src: `${normalizedBase}brand/app-logo.png`,
+            src: `${normalizedBase}icons/icon-192.png`,
+            sizes: "192x192",
+            type: "image/png",
+            purpose: "any",
+          },
+          {
+            src: `${normalizedBase}icons/icon-512.png`,
             sizes: "512x512",
             type: "image/png",
             purpose: "any",
           },
           {
-            src: `${normalizedBase}brand/app-logo.png`,
-            sizes: "512x512",
+            src: `${normalizedBase}icons/icon-192-maskable.png`,
+            sizes: "192x192",
             type: "image/png",
             purpose: "maskable",
           },
           {
-            src: `${normalizedBase}brand/app-logo.png`,
-            sizes: "1254x1254",
+            src: `${normalizedBase}icons/icon-512-maskable.png`,
+            sizes: "512x512",
             type: "image/png",
-            purpose: "any",
+            purpose: "maskable",
           },
         ],
       },
@@ -194,6 +328,40 @@ export default defineConfig(({ mode }) => {
     ...replitPlugins,
     agentIngestPlugin(workspaceRoot),
     ...(youtubePlugin ? [youtubePlugin] : []),
+    {
+      name: 'local-game-dev-guard',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const url = req.url || '';
+          if (url.includes('/__local_game__/')) {
+            // Without the local-game service worker this would wrongly fall through to index.html.
+            res.statusCode = 404;
+            res.setHeader('Content-Type', 'text/plain');
+            res.setHeader('X-Local-Game', '1');
+            res.end('Local game asset — register local-game-sw.js to serve this path.');
+            return;
+          }
+          next();
+        });
+      },
+    },
+    {
+      name: 'strip-heavy-vendor-entry-side-effects',
+      generateBundle(_options, bundle) {
+        const heavy =
+          /vendor-(?:firebase|livekit|webar|three|deepar|ai|emoji|charts)-[^"']+/;
+        for (const chunk of Object.values(bundle)) {
+          if (chunk.type !== 'chunk' || !chunk.isEntry) continue;
+          const before = chunk.code;
+          chunk.code = chunk.code.replace(
+            new RegExp(String.raw`import\s*["']\./(${heavy.source})["'];?`, 'g'),
+            '',
+          );
+          if (chunk.code === before) continue;
+          chunk.imports = chunk.imports.filter((id) => !heavy.test(id));
+        }
+      },
+    },
   ],
   define: {
     ...envDefine,
@@ -216,22 +384,67 @@ export default defineConfig(({ mode }) => {
   },
   assetsInclude: ['**/*.wasm', '**/*.bin', '**/*.deepar'],
   root: appRoot,
+  customLogger: viteLogger,
   build: {
     outDir: path.resolve(appRoot, "dist/public"),
     emptyOutDir: true,
-    chunkSizeWarningLimit: 600,
+    // vendor-webar / livekit / firebase are intentionally large async chunks
+    chunkSizeWarningLimit: 4000,
+    // Keep Vite's default dependency preloads, but strip heavy async-only vendors.
+    modulePreload: {
+      resolveDependencies: (_filename, deps) =>
+        deps.filter(
+          (dep) =>
+            !dep.includes('vendor-livekit') &&
+            !dep.includes('vendor-webar') &&
+            !dep.includes('vendor-three') &&
+            !dep.includes('vendor-deepar') &&
+            !dep.includes('vendor-ai') &&
+            !dep.includes('vendor-emoji') &&
+            !dep.includes('vendor-charts') &&
+            !dep.includes('firebase'),
+        ),
+    },
     rollupOptions: {
+      onwarn(warning, warn) {
+        if (warning.code === "EVAL" && warning.id?.includes("svga")) return;
+        if (warning.code === "EMPTY_BUNDLE") return;
+        warn(warning);
+      },
       output: {
         manualChunks(id) {
+          // Shared Firebase config (no SDK) — breaks entry ↔ async app circular hoist.
+          if (
+            id.includes('/lib/firebase/config') ||
+            id.includes('/lib/firebase/runtimeAuthConfig') ||
+            id.includes('/lib/firebase/firebaseConfig') ||
+            id.includes('firebase-config.json')
+          ) {
+            return 'firebase-config';
+          }
           if (!id.includes('node_modules')) return;
           if (id.includes('livekit-client')) return 'vendor-livekit';
-          if (id.includes('three')) return 'vendor-three';
+          if (id.includes('/three/') || id.includes('\\three\\') || id.endsWith('/three') || id.endsWith('\\three'))
+            return 'vendor-three';
           if (id.includes('tencentcloud-webar')) return 'vendor-webar';
           if (id.includes('svga')) return 'vendor-svga';
-          if (id.includes('deepar')) return 'vendor-deepar';
+          // Avoid empty vendor-deepar when DeepAR is compile-disabled
+          if (deeparEnabled && id.includes('deepar')) return 'vendor-deepar';
+          if (id.includes('@mediapipe') || id.includes('@google/genai')) return 'vendor-ai';
+          if (id.includes('emoji-picker-react')) return 'vendor-emoji';
           if (id.includes('motion')) return 'vendor-motion';
-          if (id.includes('recharts')) return 'vendor-charts';
-          if (id.includes('firebase')) return 'vendor-firebase';
+          // Keep shared class helpers out of vendor-charts (recharts also depends on clsx).
+          if (id.includes('clsx') || id.includes('tailwind-merge')) return 'vendor-utils';
+          // Match package only — not local files like useRechartsTheme.ts
+          if (id.includes('node_modules') && id.includes('recharts')) return 'vendor-charts';
+          if (
+            id.includes('node_modules/firebase/') ||
+            id.includes('node_modules\\firebase\\') ||
+            id.includes('/.pnpm/firebase@') ||
+            id.includes('/.pnpm/@firebase+')
+          ) {
+            return 'vendor-firebase';
+          }
           if (id.includes('@supabase')) return 'vendor-supabase';
           if (id.includes('lucide-react')) return 'vendor-icons';
           if (id.includes('react-router')) return 'vendor-router';
@@ -251,15 +464,8 @@ export default defineConfig(({ mode }) => {
           interval: Number(process.env.DEV_POLL_INTERVAL_MS ?? 300),
         }
       : undefined,
-    proxy: unifiedLive
-      ? {
-          "/api": {
-            target: unifiedApiOrigin,
-            changeOrigin: true,
-            secure: unifiedLive,
-          },
-        }
-      : undefined,
+    // Greedy Tap + optional unified live API proxy.
+    proxy: mergeViteProxyConfig(unifiedLive, unifiedApiOrigin),
     hmr: disableHmr
       ? false
       : lanHost
@@ -277,6 +483,7 @@ export default defineConfig(({ mode }) => {
     strictPort: false,
     host: "0.0.0.0",
     allowedHosts: true,
+    proxy: mergeViteProxyConfig(unifiedLive, unifiedApiOrigin),
   },
 };
 });

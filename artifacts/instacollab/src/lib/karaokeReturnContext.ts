@@ -72,10 +72,14 @@ export function appTabBackLabel(tab: Tab): string {
       return 'YouTube';
     case 'rooms':
       return 'Party';
+    case 'game-hub':
+      return 'Game Hub';
+    case 'greedy-tap':
+      return 'Greedy Tap';
     case 'local-games':
-      return 'Games';
+      return 'Local Games';
     case 'third-party-games':
-      return 'Games';
+      return 'Third Party Games';
     default:
       return 'Previous';
   }

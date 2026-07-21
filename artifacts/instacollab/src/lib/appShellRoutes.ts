@@ -1,7 +1,7 @@
 import type { SearchTab } from '../components/search/SearchScreen';
 import type { Tab } from '../types';
 
-const SEARCH_TABS = new Set<SearchTab>(['top', 'accounts', 'audio', 'tags', 'places']);
+const SEARCH_TABS = new Set<SearchTab>(['top', 'accounts', 'audio', 'tags', 'places', 'youtube']);
 
 export type AppShellState = {
   currentTab: Tab;
@@ -36,7 +36,9 @@ export const TAB_PATH: Record<Tab, string> = {
   live: '/live',
   karaoke: '/karaoke',
   rooms: '/party',
-  'local-games': '/games',
+  'game-hub': '/games',
+  'greedy-tap': '/greedy-tap',
+  'local-games': '/games/local',
   'third-party-games': '/games/web',
   wallet: '/wallet',
   youtube: '/youtube',
@@ -57,7 +59,10 @@ const STATIC_PATH_TAB: Record<string, Tab> = {
   '/live': 'live',
   '/karaoke': 'karaoke',
   '/party': 'rooms',
-  '/games': 'local-games',
+  '/games': 'game-hub',
+  '/games/hub': 'game-hub',
+  '/greedy-tap': 'greedy-tap',
+  '/games/local': 'local-games',
   '/games/web': 'third-party-games',
   '/wallet': 'wallet',
   '/youtube': 'youtube',

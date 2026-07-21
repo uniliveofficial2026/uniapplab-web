@@ -74,6 +74,12 @@ const ThirdPartyGamesScreen = lazy(() =>
     default: m.ThirdPartyGamesScreen,
   }))
 );
+const GameHubScreen = lazy(() =>
+  import('./components/games/GameHubScreen').then((m) => ({ default: m.GameHubScreen }))
+);
+const GreedyTapScreen = lazy(() =>
+  import('./components/games/GreedyTapScreen').then((m) => ({ default: m.GreedyTapScreen }))
+);
 const YouTubePage = lazy(() =>
   import('./pages/YouTube').then((m) => ({ default: m.YouTubePage }))
 );
@@ -107,8 +113,9 @@ import { LaunchShell } from './components/launch/launchUi';
 import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
 import { useSupabaseAuth } from './contexts/SupabaseAuthContext';
 import { useAuth } from './lib/AuthContext';
-import { getFirebaseAuth } from './lib/firebase/app';
+import { isFirebaseConfigured } from './lib/firebase/config';
 import { isPrimarySupabaseCloud } from './lib/auth/config';
+import { InstantRoomEntryHost } from './components/live/InstantRoomEntryHost';
 const SplashScreen = lazy(() =>
   import('./components/auth/SplashScreen').then((m) => ({ default: m.SplashScreen }))
 );
@@ -152,12 +159,23 @@ import { stripAppBasePath } from './lib/appShellRoutes';
 const AdminEmbedRoomHost = lazy(() =>
   import('./components/admin/AdminEmbedRoomHost').then((m) => ({ default: m.AdminEmbedRoomHost })),
 );
+const AdminEmbedGiftPreviewHost = lazy(() =>
+  import('./components/admin/AdminEmbedGiftPreviewHost').then((m) => ({
+    default: m.AdminEmbedGiftPreviewHost,
+  })),
+);
 
 function parseAdminEmbedRoomId(): string | null {
   if (typeof window === 'undefined') return null;
   const path = stripAppBasePath(window.location.pathname);
   const match = path.match(/^\/admin-embed\/room\/([^/]+)$/);
   return match?.[1] ? decodeURIComponent(match[1]) : null;
+}
+
+function isAdminGiftPreviewEmbed(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = stripAppBasePath(window.location.pathname);
+  return path === '/admin-embed/gift-preview' || path === '/admin-embed/gift-preview/';
 }
 
 function ToastListener() {
@@ -178,10 +196,15 @@ function ToastListener() {
 
 export default function App() {
   const adminEmbedRoomId = useMemo(() => parseAdminEmbedRoomId(), []);
+  const adminGiftPreview = useMemo(() => isAdminGiftPreviewEmbed(), []);
   return (
     <AppCameraShell>
       <ToastListener />
-      {adminEmbedRoomId ? (
+      {adminGiftPreview ? (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <AdminEmbedGiftPreviewHost />
+        </Suspense>
+      ) : adminEmbedRoomId ? (
         <Suspense fallback={instantSuspenseFallback()}>
           <AdminEmbedRoomHost roomId={adminEmbedRoomId} />
         </Suspense>
@@ -290,7 +313,11 @@ function MainApp() {
     roomsBootstrappedRef.current = true;
     openRoomsInKaraoke(roomsInitialPath);
     setCurrentTab('karaoke');
-    setVisitedTabs((tabs) => (tabs.includes('karaoke') ? tabs : [...tabs, 'karaoke']));
+    setVisitedTabs((tabs): Tab[] => {
+      const karaokeTab: Tab = 'karaoke';
+      const without = tabs.filter((t) => t !== karaokeTab);
+      return [...without, karaokeTab].slice(-3);
+    });
   }, [currentTab, roomsInitialPath]);
 
   useEffect(() => {
@@ -363,7 +390,13 @@ function MainApp() {
   }, [effectiveLaunchRoute, db.users]);
 
   useEffect(() => {
-    setVisitedTabs((prev) => (prev.includes(currentTab) ? prev : [...prev, currentTab]));
+    setVisitedTabs((prev): Tab[] => {
+      // LRU keep-alive: only last 3 tabs stay mounted. Visiting every screen
+      // used to leave all of them alive (polls + useDB) and freeze the app.
+      const MAX_KEEPALIVE = 3;
+      const without = prev.filter((t) => t !== currentTab);
+      return [...without, currentTab].slice(-MAX_KEEPALIVE);
+    });
   }, [currentTab]);
 
   useEffect(() => {
@@ -520,7 +553,8 @@ function MainApp() {
             detail.searchTab === 'accounts' ||
             detail.searchTab === 'audio' ||
             detail.searchTab === 'tags' ||
-            detail.searchTab === 'places'
+            detail.searchTab === 'places' ||
+            detail.searchTab === 'youtube'
               ? detail.searchTab
               : undefined;
           nextSearchContext = { query: detail.searchQuery, tab };
@@ -601,6 +635,16 @@ function MainApp() {
       case 'karaoke':
       case 'rooms':
         return screen('karaoke', <KaraokeScreen />);
+      case 'game-hub':
+        return screen(
+          'game-hub',
+          <GameHubScreen
+            onOpenLocalGames={() => setCurrentTab('local-games')}
+            onOpenThirdParty={() => setCurrentTab('third-party-games')}
+          />,
+        );
+      case 'greedy-tap':
+        return screen('greedy-tap', <GreedyTapScreen />);
       case 'local-games':
         return screen('local-games', <LocalGamesScreen />);
       case 'third-party-games':
@@ -616,7 +660,6 @@ function MainApp() {
 
   const keepAliveKeyForTab = (tab: Tab): string => {
     if (tab === 'profile') return `profile-${profileUserId ?? 'me'}`;
-    if (tab === 'rooms') return 'karaoke';
     return tab;
   };
 
@@ -650,7 +693,7 @@ function MainApp() {
     );
   }
 
-  const firebaseConfigured = !!getFirebaseAuth();
+  const firebaseConfigured = isFirebaseConfigured();
   if (!supabasePrimary && firebaseConfigured && !firebaseLoading && !firebaseUser && !canPaintMainFromCache) {
     return (
       <Suspense fallback={instantSuspenseFallback()}>
@@ -696,8 +739,9 @@ function MainApp() {
     <>
       <OfflineStatusBanner insetBelowNav />
       <Suspense fallback={null}>
-        <YoutubeMiniPlayerHost />
+        <YoutubeMiniPlayerHost currentTab={currentTab} />
       </Suspense>
+      <InstantRoomEntryHost />
       <ChatCallProvider
         currentUserId={currentUser?.id}
         currentUserAvatarUrl={currentUser?.avatarUrl}
