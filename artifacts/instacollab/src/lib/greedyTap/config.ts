@@ -18,7 +18,7 @@ export function resolveGreedyTapAppUrl(): string {
   if (override) return normalizeTrailingSlash(override);
 
   if (import.meta.env.DEV) {
-    // Local game server started by `pnpm dev` / `pnpm live`.
+    // Greedy Tap tab = the fixed package UI on :3000.
     return 'http://127.0.0.1:3000/';
   }
 
