@@ -1,47 +1,237 @@
 {
   "version": 2,
   "ignoreCommand": "node scripts/vercel-should-build.mjs",
-  "installCommand": "pnpm install && pnpm --filter @workspace/api-server run build",
+  "installCommand": "pnpm install && pnpm --filter @workspace/api-server run build && node artifacts/instacollab/scripts/stage-api-for-vercel.mjs",
   "env": {
-    "NODE_ENV": "sandbox"
+    "NODE_ENV": "production"
   },
   "headers": [
     {
       "source": "/",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/index.html",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/sw.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/workbox-(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     }
   ],
   "builds": [
     {
       "src": "artifacts/instacollab/package.json",
       "use": "@vercel/static-build",
-      "config": { "distDir": "dist/public" }
+      "config": {
+        "distDir": "dist/public"
+      }
     },
-    { "src": "artifacts/api-server/index.js", "use": "@vercel/node" }
+    {
+      "src": "artifacts/instacollab/api/index.js",
+      "use": "@vercel/node"
+    }
   ],
   "routes": [
-    { "src": "/api/(.*)", "dest": "artifacts/api-server/index.js" },
+    {
+      "src": "/socket.io/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/socket.io/$1"
+    },
+    {
+      "src": "/uploads/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/uploads/$1"
+    },
+    {
+      "src": "/api/items",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/items"
+    },
+    {
+      "src": "/api/items/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/items/$1"
+    },
+    {
+      "src": "/api/leaderboard",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/leaderboard"
+    },
+    {
+      "src": "/api/leaderboard/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/leaderboard/$1"
+    },
+    {
+      "src": "/api/jackpot",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/jackpot"
+    },
+    {
+      "src": "/api/jackpot/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/jackpot/$1"
+    },
+    {
+      "src": "/api/shop",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/shop"
+    },
+    {
+      "src": "/api/shop/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/shop/$1"
+    },
+    {
+      "src": "/api/user",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/user"
+    },
+    {
+      "src": "/api/user/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/user/$1"
+    },
+    {
+      "src": "/api/seller",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/seller"
+    },
+    {
+      "src": "/api/seller/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/seller/$1"
+    },
+    {
+      "src": "/api/seller-applications",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/seller-applications"
+    },
+    {
+      "src": "/api/seller-applications/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/seller-applications/$1"
+    },
+    {
+      "src": "/api/admin/verify",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/verify"
+    },
+    {
+      "src": "/api/admin/verify/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/verify/$1"
+    },
+    {
+      "src": "/api/admin/upload-icon",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/upload-icon"
+    },
+    {
+      "src": "/api/admin/upload-icon/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/upload-icon/$1"
+    },
+    {
+      "src": "/api/admin/toggle-ai",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/toggle-ai"
+    },
+    {
+      "src": "/api/admin/toggle-ai/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/toggle-ai/$1"
+    },
+    {
+      "src": "/api/admin/ai-settings",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/ai-settings"
+    },
+    {
+      "src": "/api/admin/ai-settings/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/ai-settings/$1"
+    },
+    {
+      "src": "/api/admin/force-win",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/force-win"
+    },
+    {
+      "src": "/api/admin/force-win/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/force-win/$1"
+    },
+    {
+      "src": "/api/admin/seller-applications",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller-applications"
+    },
+    {
+      "src": "/api/admin/seller-applications/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller-applications/$1"
+    },
+    {
+      "src": "/api/admin/reward",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/reward"
+    },
+    {
+      "src": "/api/admin/reward/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/reward/$1"
+    },
+    {
+      "src": "/api/admin/transactions",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/transactions"
+    },
+    {
+      "src": "/api/admin/transactions/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/transactions/$1"
+    },
+    {
+      "src": "/api/admin/bets-history",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/bets-history"
+    },
+    {
+      "src": "/api/admin/bets-history/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/bets-history/$1"
+    },
+    {
+      "src": "/api/admin/shop-settings",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/shop-settings"
+    },
+    {
+      "src": "/api/admin/shop-settings/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/shop-settings/$1"
+    },
+    {
+      "src": "/api/admin/seller",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller"
+    },
+    {
+      "src": "/api/admin/seller/(.*)",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller/$1"
+    },
+    {
+      "src": "/api/(.*)",
+      "dest": "artifacts/instacollab/api/index.js"
+    },
     {
       "src": "/supabase-config\\.json",
       "dest": "artifacts/instacollab/dist/public/supabase-config.json"
     },
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "artifacts/instacollab/dist/public/index.html" }
+    {
+      "handle": "filesystem"
+    },
+    {
+      "src": "/(.*)",
+      "dest": "artifacts/instacollab/dist/public/index.html"
+    }
   ]
 }

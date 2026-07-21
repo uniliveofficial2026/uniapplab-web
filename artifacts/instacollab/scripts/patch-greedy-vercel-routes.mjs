@@ -7,8 +7,36 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../../..');
 const origin = (process.env.GREEDY_TAP_ORIGIN || '').replace(/\/$/, '');
+
+function stripExistingGreedyRoutes(routes, key = 'src') {
+  return (routes || []).filter((r) => {
+    const pathKey = r[key] || '';
+    return !(
+      pathKey.includes('socket.io') ||
+      pathKey.includes('/uploads/') ||
+      pathKey.includes('/api/items') ||
+      pathKey.includes('/api/leaderboard') ||
+      pathKey.includes('/api/jackpot') ||
+      pathKey.includes('/api/shop') ||
+      pathKey.includes('/api/user') ||
+      pathKey.includes('/api/seller') ||
+      pathKey.includes('/api/admin/verify') ||
+      pathKey.includes('/api/admin/upload-icon') ||
+      pathKey.includes('/api/admin/toggle-ai') ||
+      pathKey.includes('/api/admin/ai-settings') ||
+      pathKey.includes('/api/admin/force-win') ||
+      pathKey.includes('/api/admin/seller-applications') ||
+      pathKey.includes('/api/admin/reward') ||
+      pathKey.includes('/api/admin/transactions') ||
+      pathKey.includes('/api/admin/bets-history') ||
+      pathKey.includes('/api/admin/shop-settings') ||
+      (typeof r.dest === 'string' && r.dest.includes('greedy-tap')) ||
+      (typeof r.destination === 'string' && r.destination.includes('greedy-tap'))
+    );
+  });
+}
 
 const GREEDY_API_PREFIXES = [
   '/api/items',
@@ -28,6 +56,7 @@ const GREEDY_API_PREFIXES = [
   '/api/admin/transactions',
   '/api/admin/bets-history',
   '/api/admin/shop-settings',
+  '/api/admin/seller',
 ];
 
 function greedyRoutes() {
@@ -43,10 +72,13 @@ function greedyRoutes() {
     },
   ];
   for (const prefix of GREEDY_API_PREFIXES) {
-    const stripped = prefix.replace(/^\//, '');
     routes.push({
-      src: `/${stripped}(.*)`,
-      dest: `${origin}/${stripped}$1`,
+      src: `${prefix}`,
+      dest: `${origin}${prefix}`,
+    });
+    routes.push({
+      src: `${prefix}/(.*)`,
+      dest: `${origin}${prefix}/$1`,
     });
   }
   return routes;
@@ -62,28 +94,39 @@ function patchVercelJson(filePath) {
   }
 
   if (Array.isArray(config.routes)) {
-    const apiIdx = config.routes.findIndex(
+    const cleaned = stripExistingGreedyRoutes(config.routes, 'src');
+    const apiIdx = cleaned.findIndex(
       (r) => r.src === '/api/(.*)' || r.src?.startsWith('/api/'),
     );
-    const insertAt = apiIdx >= 0 ? apiIdx : config.routes.length;
+    const insertAt = apiIdx >= 0 ? apiIdx : cleaned.length;
     config.routes = [
-      ...config.routes.slice(0, insertAt),
+      ...cleaned.slice(0, insertAt),
       ...greedy,
-      ...config.routes.slice(insertAt),
+      ...cleaned.slice(insertAt),
     ];
   }
 
   if (Array.isArray(config.rewrites)) {
-    const rewrites = greedy.map((r) => ({
-      source: r.src.replace('(.*)', ':path*').replace(/\(\.\*\)/g, ':path*'),
-      destination: r.dest.replace('$1', ':path*'),
-    }));
-    const apiIdx = config.rewrites.findIndex((r) => r.source?.startsWith('/api'));
+    const cleaned = stripExistingGreedyRoutes(config.rewrites, 'source');
+    const rewrites = greedy.map((r) => {
+      if (r.src.includes('(.*)')) {
+        const base = r.src.replace('/(.*)', '').replace('(.*)', '');
+        return {
+          source: `${base}/:path*`,
+          destination: `${r.dest.replace('/$1', '').replace('$1', '')}/:path*`,
+        };
+      }
+      return {
+        source: r.src,
+        destination: r.dest,
+      };
+    });
+    const apiIdx = cleaned.findIndex((r) => r.source?.startsWith('/api'));
     const insertAt = apiIdx >= 0 ? apiIdx : 0;
     config.rewrites = [
-      ...config.rewrites.slice(0, insertAt),
+      ...cleaned.slice(0, insertAt),
       ...rewrites,
-      ...config.rewrites.slice(insertAt),
+      ...cleaned.slice(insertAt),
     ];
   }
 

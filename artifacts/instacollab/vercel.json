@@ -4,6 +4,158 @@
   "outputDirectory": "dist/public",
   "rewrites": [
     {
+      "source": "/socket.io/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/socket.io/:path*"
+    },
+    {
+      "source": "/uploads/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/uploads/:path*"
+    },
+    {
+      "source": "/api/items",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/items"
+    },
+    {
+      "source": "/api/items/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/items/:path*"
+    },
+    {
+      "source": "/api/leaderboard",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/leaderboard"
+    },
+    {
+      "source": "/api/leaderboard/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/leaderboard/:path*"
+    },
+    {
+      "source": "/api/jackpot",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/jackpot"
+    },
+    {
+      "source": "/api/jackpot/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/jackpot/:path*"
+    },
+    {
+      "source": "/api/shop",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/shop"
+    },
+    {
+      "source": "/api/shop/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/shop/:path*"
+    },
+    {
+      "source": "/api/user",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/user"
+    },
+    {
+      "source": "/api/user/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/user/:path*"
+    },
+    {
+      "source": "/api/seller",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/seller"
+    },
+    {
+      "source": "/api/seller/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/seller/:path*"
+    },
+    {
+      "source": "/api/seller-applications",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/seller-applications"
+    },
+    {
+      "source": "/api/seller-applications/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/seller-applications/:path*"
+    },
+    {
+      "source": "/api/admin/verify",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/verify"
+    },
+    {
+      "source": "/api/admin/verify/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/verify/:path*"
+    },
+    {
+      "source": "/api/admin/upload-icon",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/upload-icon"
+    },
+    {
+      "source": "/api/admin/upload-icon/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/upload-icon/:path*"
+    },
+    {
+      "source": "/api/admin/toggle-ai",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/toggle-ai"
+    },
+    {
+      "source": "/api/admin/toggle-ai/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/toggle-ai/:path*"
+    },
+    {
+      "source": "/api/admin/ai-settings",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/ai-settings"
+    },
+    {
+      "source": "/api/admin/ai-settings/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/ai-settings/:path*"
+    },
+    {
+      "source": "/api/admin/force-win",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/force-win"
+    },
+    {
+      "source": "/api/admin/force-win/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/force-win/:path*"
+    },
+    {
+      "source": "/api/admin/seller-applications",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller-applications"
+    },
+    {
+      "source": "/api/admin/seller-applications/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller-applications/:path*"
+    },
+    {
+      "source": "/api/admin/reward",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/reward"
+    },
+    {
+      "source": "/api/admin/reward/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/reward/:path*"
+    },
+    {
+      "source": "/api/admin/transactions",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/transactions"
+    },
+    {
+      "source": "/api/admin/transactions/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/transactions/:path*"
+    },
+    {
+      "source": "/api/admin/bets-history",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/bets-history"
+    },
+    {
+      "source": "/api/admin/bets-history/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/bets-history/:path*"
+    },
+    {
+      "source": "/api/admin/shop-settings",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/shop-settings"
+    },
+    {
+      "source": "/api/admin/shop-settings/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/shop-settings/:path*"
+    },
+    {
+      "source": "/api/admin/seller",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller"
+    },
+    {
+      "source": "/api/admin/seller/:path*",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/api/admin/seller/:path*"
+    },
+    {
       "source": "/api/(.*)",
       "destination": "/api"
     },
@@ -21,39 +173,84 @@
   "headers": [
     {
       "source": "/",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/index.html",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/sw.js",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/workbox-(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/live-version.json",
-      "headers": [{ "key": "Cache-Control", "value": "no-cache, no-store, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-cache, no-store, must-revalidate"
+        }
+      ]
     },
     {
       "source": "/deepar-resources/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, immutable"
+        }
+      ]
     },
     {
       "source": "/effects/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=604800, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=604800, immutable"
+        }
+      ]
     },
     {
       "source": "/assets/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "public, max-age=31536000, immutable" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=31536000, immutable"
+        }
+      ]
     },
     {
       "source": "/api/(.*)",
-      "headers": [{ "key": "Cache-Control", "value": "no-store, no-cache, must-revalidate" }]
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "no-store, no-cache, must-revalidate"
+        }
+      ]
     }
   ]
 }
