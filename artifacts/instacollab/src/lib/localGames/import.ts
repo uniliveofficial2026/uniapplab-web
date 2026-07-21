@@ -71,6 +71,7 @@ type ImportFileOptions = {
   catalogId?: string;
   catalogZipRevision?: string;
   productionAppUrl?: string;
+  embeddedAppUrl?: string;
 };
 
 export async function importGameFile(
@@ -140,6 +141,7 @@ export async function importGameFile(
     catalogId: options.catalogId,
     catalogZipRevision: options.catalogZipRevision,
     productionAppUrl: options.productionAppUrl,
+    embeddedAppUrl: options.embeddedAppUrl,
   };
 }
 
@@ -154,12 +156,13 @@ export async function importCatalogGame(entry: LocalGameCatalogEntry): Promise<L
     type: blob.type || 'application/zip',
   });
   // ZIP bytes untouched — same importGameFile path as the file picker.
-  // Play uses productionAppUrl as a same-origin UniLive embed when set.
+  // Prefer :3000 fixed UI; fall back to UniLive embed built from the same package.
   return importGameFile(file, {
     id: entry.id,
     catalogId: entry.id,
     catalogZipRevision: entry.zipRevision,
     productionAppUrl: entry.productionAppUrl,
+    embeddedAppUrl: entry.embeddedAppUrl,
   });
 }
 

@@ -10,13 +10,18 @@ export type LocalGameCatalogEntry = {
   zipRevision: string;
   image: string;
   /**
-   * Same-origin UniLive path for Play Now (in-app iframe).
-   * Never localhost / separate servers — the game is part of UniLive.
+   * Preferred Play URL — the fixed game on the local package server
+   * (`http://127.0.0.1:3000/`). Used when that server is reachable.
    */
   productionAppUrl: string;
+  /**
+   * Same-origin UniLive fallback when :3000 is not available (production).
+   * Built from the same remix package that runs on :3000.
+   */
+  embeddedAppUrl: string;
 };
 
-/** Bundled games: Play opens UniLive’s embedded production build. */
+/** Bundled games: prefer the fixed :3000 server; fall back to UniLive embed. */
 export const LOCAL_GAME_CATALOG: LocalGameCatalogEntry[] = [
   {
     id: 'catalog_greedy_casino_slot',
@@ -25,10 +30,11 @@ export const LOCAL_GAME_CATALOG: LocalGameCatalogEntry[] = [
       'Food roulette with multipliers — desktop, mobile, and tablet wheel layout.',
     zipUrl: '/local-games/remix_-greedy-casino-slot.zip',
     zipFileName: 'remix_-greedy-casino-slot.zip',
-    // Points Play at UniLive embed (fixed wheel), not an external :3000 server.
-    zipRevision: '2026-07-21-wheel-embed',
+    zipRevision: '2026-07-21-from-3000',
     image: 'bg-gradient-to-tr from-amber-500 to-red-700',
-    productionAppUrl: '/games/greedy-slot/',
+    // Exact fixed UI the user verified at http://127.0.0.1:3000/
+    productionAppUrl: 'http://127.0.0.1:3000/',
+    embeddedAppUrl: '/games/greedy-slot/',
   },
 ];
 

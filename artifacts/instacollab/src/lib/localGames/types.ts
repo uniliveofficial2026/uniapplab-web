@@ -22,10 +22,12 @@ export type LocalGameRecord = {
   /** Catalog ZIP revision last imported (used to refresh when the shipped ZIP updates). */
   catalogZipRevision?: string;
   /**
-   * Same-origin UniLive path for in-app Play (e.g. `/games/greedy-slot/`).
-   * Must not point at a separate localhost / external game server.
+   * Preferred Play URL (e.g. `http://127.0.0.1:3000/` — the verified fixed UI).
+   * Used when that host is reachable; otherwise `embeddedAppUrl`.
    */
   productionAppUrl?: string;
+  /** Same-origin UniLive path built from the same package (production fallback). */
+  embeddedAppUrl?: string;
 };
 
 export type LocalGameBundleFile = {

@@ -100,7 +100,11 @@ export function LocalGamesScreen() {
           continue;
         }
         // Attach same-origin UniLive embed URL without re-importing / altering the ZIP.
-        if (existing.productionAppUrl !== entry.productionAppUrl || existing.catalogId !== entry.id) {
+        if (
+          existing.productionAppUrl !== entry.productionAppUrl ||
+          existing.embeddedAppUrl !== entry.embeddedAppUrl ||
+          existing.catalogId !== entry.id
+        ) {
           nextGames = nextGames.map((g) =>
             g.id === existing.id
               ? {
@@ -108,6 +112,7 @@ export function LocalGamesScreen() {
                   catalogId: entry.id,
                   catalogZipRevision: entry.zipRevision,
                   productionAppUrl: entry.productionAppUrl,
+                  embeddedAppUrl: entry.embeddedAppUrl,
                 }
               : g,
           );
@@ -210,6 +215,7 @@ export function LocalGamesScreen() {
             catalogId: catalogMatch.id,
             catalogZipRevision: catalogMatch.zipRevision,
             productionAppUrl: catalogMatch.productionAppUrl,
+            embeddedAppUrl: catalogMatch.embeddedAppUrl,
           })
         : await importGameFile(file);
       persistGames([record, ...games.filter((g) => g.id !== record.id)]);

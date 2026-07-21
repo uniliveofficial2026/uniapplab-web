@@ -14,13 +14,43 @@ type LocalGamePlayerProps = {
   onSessionEnd: (gameId: string, playedMs: number) => void;
 };
 
-/** Same-origin UniLive game path only — rejects localhost / external hosts. */
+/** Same-origin UniLive path — used when the :3000 fixed server is offline. */
 function resolveInAppEmbedUrl(raw: string | undefined): string | null {
   if (!raw?.trim()) return null;
   try {
     const url = new URL(raw, window.location.origin);
     if (url.origin !== window.location.origin) return null;
     return `${url.pathname}${url.search}${url.hash}`;
+  } catch {
+    return null;
+  }
+}
+
+async function tryLocalFixedServer(raw: string | undefined): Promise<string | null> {
+  if (!raw?.trim()) return null;
+  let url: URL;
+  try {
+    url = new URL(raw, window.location.origin);
+  } catch {
+    return null;
+  }
+  // Only auto-probe the verified local fixed UI host.
+  if (url.hostname !== '127.0.0.1' && url.hostname !== 'localhost') return null;
+  try {
+    const health = await fetch(new URL('/api/health', url).toString(), {
+      cache: 'no-store',
+      signal: AbortSignal.timeout(2500),
+    });
+    if (!health.ok) return null;
+    const body: unknown = await health.json().catch(() => null);
+    if (
+      !body ||
+      typeof body !== 'object' ||
+      (body as { status?: string }).status !== 'ok'
+    ) {
+      return null;
+    }
+    return url.toString().replace(/\/?$/, '/');
   } catch {
     return null;
   }
@@ -54,9 +84,18 @@ export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayer
       setFrameHint(null);
       try {
         if (game.playKind === 'web') {
-          // Catalog embeds (e.g. Greedy) play inside UniLive — same-origin path only.
-          // Never require a separate localhost game server.
-          const embedUrl = resolveInAppEmbedUrl(game.productionAppUrl);
+          // Prefer the verified fixed UI on http://127.0.0.1:3000/ when it is up.
+          const localFixed = await tryLocalFixedServer(game.productionAppUrl);
+          if (localFixed) {
+            setLaunch({ mode: 'sw', url: localFixed });
+            return;
+          }
+          // Production / offline: UniLive embed built from that same remix package.
+          const embedUrl =
+            resolveInAppEmbedUrl(game.embeddedAppUrl) ||
+            resolveInAppEmbedUrl(
+              game.productionAppUrl?.startsWith('/') ? game.productionAppUrl : undefined,
+            );
           if (embedUrl) {
             setLaunch({ mode: 'sw', url: embedUrl });
             return;
@@ -99,7 +138,7 @@ export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayer
       // Do not revoke here during React Strict Mode remounts mid-prepare;
       // handleClose / final unmount path below covers active sessions.
     };
-  }, [game.id, game.entryPath, game.playKind, game.productionAppUrl]);
+  }, [game.id, game.entryPath, game.playKind, game.productionAppUrl, game.embeddedAppUrl]);
 
   useEffect(() => {
     return () => {
