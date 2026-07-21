@@ -65,4 +65,46 @@ fs.writeFileSync(path.join(outDir, 'package.json'), `${JSON.stringify(pkg, null,
 console.log('[build-greedy-tap] Installing production runtime deps…');
 run(process.platform === 'win32' ? 'npm.cmd' : 'npm', ['install', '--omit=dev'], outDir);
 
+// Also sync a slim vendored runtime for Render (no Vite require at boot).
+const vendorDir = path.join(appRoot, 'vendor/greedy-tap');
+fs.mkdirSync(path.join(vendorDir, 'uploads'), { recursive: true });
+fs.cpSync(path.join(outDir, 'dist'), path.join(vendorDir, 'dist'), { recursive: true });
+const serverCjs = path.join(vendorDir, 'dist/server.cjs');
+if (fs.existsSync(serverCjs)) {
+  let code = fs.readFileSync(serverCjs, 'utf8');
+  code = code.replace(
+    /var import_vite = require\("vite"\);/,
+    `var import_vite = { createServer: async () => { throw new Error("Vite is not available in Greedy Tap production builds"); } };`,
+  );
+  fs.writeFileSync(serverCjs, code);
+}
+if (fs.existsSync(path.join(outDir, 'data.json'))) {
+  fs.copyFileSync(path.join(outDir, 'data.json'), path.join(vendorDir, 'data.json'));
+}
+fs.writeFileSync(
+  path.join(vendorDir, 'package.json'),
+  `${JSON.stringify(
+    {
+      name: 'greedy-tap-production',
+      private: true,
+      version: '1.0.0',
+      type: 'commonjs',
+      engines: { node: '>=20' },
+      scripts: {
+        start: 'NODE_ENV=production node dist/server.cjs',
+      },
+      dependencies: {
+        '@google/genai': '^1.29.0',
+        dotenv: '^17.2.3',
+        express: '^4.21.2',
+        'socket.io': '^4.8.3',
+        stripe: '^22.2.0',
+      },
+    },
+    null,
+    2,
+  )}\n`,
+);
+
 console.log(`[build-greedy-tap] ✓ ${outDir}`);
+console.log(`[build-greedy-tap] ✓ ${vendorDir}`);

@@ -25,7 +25,11 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_express = __toESM(require("express"), 1);
 var import_async_hooks = require("async_hooks");
 var import_path = __toESM(require("path"), 1);
-var import_vite = require("vite");
+var import_vite = {
+  createServer: async () => {
+    throw new Error("Vite is not available in Greedy Tap production builds");
+  }
+};
 var import_http = __toESM(require("http"), 1);
 var import_socket = require("socket.io");
 var import_fs = __toESM(require("fs"), 1);
