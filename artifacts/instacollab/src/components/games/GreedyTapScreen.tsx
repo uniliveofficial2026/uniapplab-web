@@ -52,13 +52,13 @@ export function GreedyTapScreen() {
       {loading && (
         <div className="absolute inset-0 z-10 flex flex-col items-center justify-center gap-3 bg-black text-white">
           <Loader2 className="h-8 w-8 animate-spin text-primary" />
-          <p className="text-xs font-bold">Starting Greedy Tap…</p>
+          <p className="text-xs font-bold">Starting Greedy…</p>
         </div>
       )}
 
       {!loading && appUrl && (
         <iframe
-          title="Greedy Tap"
+          title="Greedy"
           src={appUrl}
           className="h-full min-h-0 w-full flex-1 border-0 bg-black"
           allow="fullscreen; gamepad; autoplay; clipboard-read; clipboard-write"

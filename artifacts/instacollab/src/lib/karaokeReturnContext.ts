@@ -75,7 +75,7 @@ export function appTabBackLabel(tab: Tab): string {
     case 'game-hub':
       return 'Game Hub';
     case 'greedy-tap':
-      return 'Greedy Tap';
+      return 'Greedy';
     case 'local-games':
       return 'Local Games';
     case 'third-party-games':

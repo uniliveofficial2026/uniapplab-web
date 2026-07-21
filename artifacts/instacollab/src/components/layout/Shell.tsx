@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Joystick, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings, Coins } from 'lucide-react';
+import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Joystick, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings, Carrot, Beef } from 'lucide-react';
 import { Tab, User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64, handleAvatarError } from '../../lib/utils';
@@ -9,6 +9,19 @@ import { SafeMediaImage } from '../common/SafeMediaImage';
 import { getProfileDisplayName } from '../../lib/profileDisplay';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { requestWorkspaceAdminTab } from '../../lib/appBrandRuntime';
+
+/** Veggie + meat mark for the Greedy nav item (matches food-roulette game). */
+function GreedyNavIcon({ className }: { className?: string }) {
+  return (
+    <span
+      className={`relative inline-flex shrink-0 items-center justify-center ${className ?? 'w-5 h-5'}`}
+      aria-hidden="true"
+    >
+      <Carrot className="absolute left-0 top-0 size-[62%] stroke-[2.25px]" />
+      <Beef className="absolute right-0 bottom-0 size-[62%] stroke-[2.25px]" />
+    </span>
+  );
+}
 
 /** Stable marketplace images (no fragile query params). */
 const MARKETPLACE_PRESET_IMAGES = [
@@ -248,7 +261,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     { id: 'workspace', icon: LayoutDashboard, label: 'Admin Panel' },
     { id: 'dating', icon: Heart, label: 'Dating' },
     { id: 'live', icon: Radio, label: 'Live' },
-    { id: 'greedy-tap', icon: Coins, label: 'Greedy Tap' },
+    { id: 'greedy-tap', icon: GreedyNavIcon, label: 'Greedy' },
     { id: 'game-hub', icon: Joystick, label: 'Game Hub' },
     { id: 'wallet', icon: Wallet, label: 'Wallet' },
     { id: 'youtube', icon: Youtube, label: 'YouTube' },
