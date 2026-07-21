@@ -4,6 +4,14 @@
   "outputDirectory": "dist/public",
   "rewrites": [
     {
+      "source": "/socket.io",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/socket.io"
+    },
+    {
+      "source": "/socket.io/",
+      "destination": "https://uniapplab-greedy-tap.onrender.com/socket.io/"
+    },
+    {
       "source": "/socket.io/:path*",
       "destination": "https://uniapplab-greedy-tap.onrender.com/socket.io/:path*"
     },

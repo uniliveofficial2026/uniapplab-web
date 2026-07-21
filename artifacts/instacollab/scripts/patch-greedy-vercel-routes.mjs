@@ -63,6 +63,14 @@ function greedyRoutes() {
   if (!origin) return [];
   const routes = [
     {
+      src: '/socket.io',
+      dest: `${origin}/socket.io`,
+    },
+    {
+      src: '/socket.io/',
+      dest: `${origin}/socket.io/`,
+    },
+    {
       src: '/socket.io/(.*)',
       dest: `${origin}/socket.io/$1`,
     },

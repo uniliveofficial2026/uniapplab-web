@@ -103,6 +103,14 @@
   ],
   "routes": [
     {
+      "src": "/socket.io",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/socket.io"
+    },
+    {
+      "src": "/socket.io/",
+      "dest": "https://uniapplab-greedy-tap.onrender.com/socket.io/"
+    },
+    {
       "src": "/socket.io/(.*)",
       "dest": "https://uniapplab-greedy-tap.onrender.com/socket.io/$1"
     },
