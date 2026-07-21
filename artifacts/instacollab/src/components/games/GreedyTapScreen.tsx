@@ -1,13 +1,26 @@
-import React, { useMemo } from 'react';
+import React, { useEffect, useMemo } from 'react';
 import { resolveGreedyTapAppUrl } from '../../lib/greedyTap/config';
 
 /**
  * Greedy tab — same-origin iframe on first paint for instant load on
- * http://localhost:5173/greedy-tap (and production). Live APIs/socket still
- * proxy to the package server on :3000 in dev.
+ * http://localhost:5173/greedy-tap and https://app.uniapplab.com/greedy-tap.
  */
 export function GreedyTapScreen() {
   const appUrl = useMemo(() => resolveGreedyTapAppUrl(), []);
+
+  useEffect(() => {
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if ((data as { source?: string }).source !== 'uniapplab-greedy') return;
+      if ((data as { type?: string }).type !== 'navigate') return;
+      const tab = (data as { tab?: string }).tab;
+      if (!tab) return;
+      window.dispatchEvent(new CustomEvent('navigate', { detail: { tab } }));
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, []);
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col bg-black">
