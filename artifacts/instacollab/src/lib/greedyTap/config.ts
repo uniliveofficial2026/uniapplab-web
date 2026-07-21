@@ -1,9 +1,15 @@
 import { appBasePath } from '../appShellRoutes';
 
-/** Same-origin path for the Greedy Tap SPA shell on UniLive. */
-const GREEDY_TAP_GAME_SUBPATH = '/games/greedy-slot/';
+/** Same-origin path for the Greedy Tap SPA shell on UniLive.
+ * Use explicit index.html — Vite's SPA fallback steals `/games/greedy-slot/`.
+ */
+const GREEDY_TAP_GAME_SUBPATH = '/games/greedy-slot/index.html';
 
 function normalizeTrailingSlash(url: string): string {
+  // Keep explicit index.html URLs intact (needed for Vite public/ SPA conflict).
+  if (/\/index\.html\/?$/i.test(url)) {
+    return url.replace(/\/index\.html\/?$/i, '/index.html');
+  }
   return url.replace(/\/?$/, '/');
 }
 
@@ -17,13 +23,14 @@ export function resolveGreedyTapAppUrl(): string {
   const override = (import.meta.env.VITE_GREEDY_TAP_APP_URL as string | undefined)?.trim();
   if (override) return normalizeTrailingSlash(override);
 
-  if (import.meta.env.DEV) {
-    // Greedy Tap tab = the fixed package UI on :3000.
-    return 'http://127.0.0.1:3000/';
-  }
-
+  // Same-origin shell everywhere (incl. localhost:5173/greedy-tap) for instant load.
+  // Dev APIs + socket.io still proxy to the package server on :3000.
   if (typeof window !== 'undefined') {
     return normalizeTrailingSlash(`${window.location.origin}${joinAppPath(GREEDY_TAP_GAME_SUBPATH)}`);
+  }
+
+  if (import.meta.env.DEV) {
+    return normalizeTrailingSlash(`http://localhost:5173${GREEDY_TAP_GAME_SUBPATH}`);
   }
 
   const origin = (import.meta.env.VITE_APP_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');

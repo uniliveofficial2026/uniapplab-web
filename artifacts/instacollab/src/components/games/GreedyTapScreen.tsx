@@ -1,20 +1,13 @@
 import React, { useMemo } from 'react';
 import { resolveGreedyTapAppUrl } from '../../lib/greedyTap/config';
 
-/** Local package server — same fixed UI as http://127.0.0.1:3000/ */
-const LOCAL_FIXED_GREEDY_URL = 'http://127.0.0.1:3000/';
-
-function greedyAppUrl(): string {
-  if (import.meta.env.DEV) return LOCAL_FIXED_GREEDY_URL;
-  return resolveGreedyTapAppUrl();
-}
-
 /**
- * Greedy tab — iframe mounts with src on first paint (no boot spinner).
- * KeepAlive + early warm-mount keep the game resident for instant tab switches.
+ * Greedy tab — same-origin iframe on first paint for instant load on
+ * http://localhost:5173/greedy-tap (and production). Live APIs/socket still
+ * proxy to the package server on :3000 in dev.
  */
 export function GreedyTapScreen() {
-  const appUrl = useMemo(() => greedyAppUrl(), []);
+  const appUrl = useMemo(() => resolveGreedyTapAppUrl(), []);
 
   return (
     <div className="relative flex h-full min-h-0 w-full flex-col bg-black">
@@ -32,7 +25,7 @@ export function GreedyTapScreen() {
 /** Prefetch Greedy so the browser starts loading before the tab is opened. */
 export function prefetchGreedyTap(): void {
   if (typeof document === 'undefined') return;
-  const href = greedyAppUrl();
+  const href = resolveGreedyTapAppUrl();
   if (document.querySelector(`link[data-greedy-prefetch="${href}"]`)) return;
   const link = document.createElement('link');
   link.rel = 'prefetch';

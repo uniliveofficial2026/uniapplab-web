@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Joystick, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings, Carrot, Beef } from 'lucide-react';
+import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Joystick, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings, Carrot, Drumstick } from 'lucide-react';
 import { Tab, User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64, handleAvatarError } from '../../lib/utils';
@@ -14,11 +14,11 @@ import { requestWorkspaceAdminTab } from '../../lib/appBrandRuntime';
 function GreedyNavIcon({ className }: { className?: string }) {
   return (
     <span
-      className={`relative inline-flex shrink-0 items-center justify-center ${className ?? 'w-5 h-5'}`}
+      className={`relative inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-visible ${className ?? ''}`}
       aria-hidden="true"
     >
-      <Carrot className="absolute left-0 top-0 size-[62%] stroke-[2.25px]" />
-      <Beef className="absolute right-0 bottom-0 size-[62%] stroke-[2.25px]" />
+      <Carrot className="absolute -left-0.5 -top-0.5 h-3.5 w-3.5" strokeWidth={2.25} />
+      <Drumstick className="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5" strokeWidth={2.25} />
     </span>
   );
 }
@@ -447,8 +447,11 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
 
       {/* Desktop Sidebar */}
       {currentTab !== 'karaoke' && currentTab !== 'rooms' && (
-      <div className="hidden md:flex flex-col w-[72px] lg:w-[244px] h-full border-r border-border bg-background pt-[calc(2rem+var(--app-safe-top))] pb-[calc(1rem+var(--app-safe-bottom))] px-3 lg:px-4 shrink-0 transition-all relative z-40 overflow-hidden min-h-0">
-        {/* Logo — keep outside scroll region so italic wordmark is not clipped */}
+      <div
+        className={`${
+          currentTab === 'greedy-tap' ? 'hidden' : 'hidden md:flex'
+        } flex-col w-[72px] lg:w-[244px] h-full border-r border-border bg-background pt-[calc(2rem+var(--app-safe-top))] pb-[calc(1rem+var(--app-safe-bottom))] px-3 lg:px-4 shrink-0 transition-all relative z-40 overflow-hidden min-h-0`}
+      >        {/* Logo — keep outside scroll region so italic wordmark is not clipped */}
         <div className="mb-10 px-2 shrink-0 overflow-visible flex items-center justify-center lg:justify-start">
           <button
             type="button"
