@@ -1,49 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import { Loader2 } from 'lucide-react';
-import {
-  greedyTapHealthUrl,
-  isGreedyTapReadyPayload,
-  resolveGreedyTapAppUrl,
-} from '../../lib/greedyTap/config';
-
-const HEALTH_POLL_MS = 600;
-const HEALTH_TIMEOUT_MS = 20_000;
-/** Verified fixed UI — Greedy Tap must show this when the package server is up. */
-const LOCAL_FIXED_GREEDY_URL = 'http://127.0.0.1:3000/';
-
-async function probeLocalFixedServer(): Promise<boolean> {
-  try {
-    const health = await fetch(`${LOCAL_FIXED_GREEDY_URL}api/health`, {
-      cache: 'no-store',
-      signal: AbortSignal.timeout(2500),
-    });
-    if (!health.ok) return false;
-    const body: unknown = await health.json();
-    return isGreedyTapReadyPayload(body, `${LOCAL_FIXED_GREEDY_URL}api/health`);
-  } catch {
-    return false;
-  }
-}
-
-async function waitForUrlReady(healthUrl: string): Promise<void> {
-  const deadline = Date.now() + HEALTH_TIMEOUT_MS;
-  while (Date.now() < deadline) {
-    try {
-      const health = await fetch(healthUrl, { cache: 'no-store' });
-      if (health.ok) {
-        const body: unknown = await health.json();
-        if (isGreedyTapReadyPayload(body, healthUrl)) return;
-      }
-    } catch {
-      /* keep polling */
-    }
-    await new Promise((resolve) => window.setTimeout(resolve, HEALTH_POLL_MS));
-  }
-}
+import { resolveGreedyTapAppUrl } from '../../lib/greedyTap/config';
 
 /**
- * Greedy Tap tab always prefers the fixed package UI at http://127.0.0.1:3000/.
- * Production falls back to the UniLive embed built from that same package.
+ * Verified fixed UI from the remix package server.
+ * Greedy Tap tab must show this on local UniLive (`localhost:5173/greedy-tap`).
+ */
+const LOCAL_FIXED_GREEDY_URL = 'http://127.0.0.1:3000/';
+
+/**
+ * Greedy Tap tab:
+ * - Local: always iframe the fixed package at :3000 (no CORS health gate).
+ * - Production: UniLive embed built from that same package.
  */
 export function GreedyTapScreen() {
   const [loading, setLoading] = useState(true);
@@ -55,18 +23,10 @@ export function GreedyTapScreen() {
     async function boot() {
       setLoading(true);
 
-      // 1) Local fixed server (exact UI the user verified).
-      if (await probeLocalFixedServer()) {
-        if (!cancelled) {
-          setAppUrl(LOCAL_FIXED_GREEDY_URL);
-          setLoading(false);
-        }
-        return;
-      }
-
-      // 2) Dev: keep targeting :3000 while the package boots with UniLive.
       if (import.meta.env.DEV) {
-        await waitForUrlReady(`${LOCAL_FIXED_GREEDY_URL}api/health`);
+        // Do not fetch :3000 from the browser — cross-origin health checks hang
+        // behind CORS and leave this screen on “Starting…”. The iframe itself
+        // loads cross-origin fine.
         if (!cancelled) {
           setAppUrl(LOCAL_FIXED_GREEDY_URL);
           setLoading(false);
@@ -74,9 +34,7 @@ export function GreedyTapScreen() {
         return;
       }
 
-      // 3) Production: same remix build shipped under /games/greedy-slot/.
       const fallback = resolveGreedyTapAppUrl();
-      await waitForUrlReady(greedyTapHealthUrl());
       if (!cancelled) {
         setAppUrl(fallback);
         setLoading(false);

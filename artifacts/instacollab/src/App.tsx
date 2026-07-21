@@ -238,7 +238,11 @@ function MainApp() {
   const [roomsInitialPath, setRoomsInitialPath] = useState(initialShell.roomsInitialPath);
   const [visitedTabs, setVisitedTabs] = useState<Tab[]>(() => [initialShell.currentTab]);
   const [mainShellPinned, setMainShellPinned] = useState(
-    () => Boolean(readSessionCache()) || hasInstantSessionCache(),
+    () =>
+      Boolean(readSessionCache()) ||
+      hasInstantSessionCache() ||
+      // Local deep link: /greedy-tap must open the game, not the marketing funnel.
+      (import.meta.env.DEV && initialShell.currentTab === 'greedy-tap'),
   );
   const deepLinkBootstrappedRef = useRef(false);
   const roomsBootstrappedRef = useRef(false);
@@ -294,14 +298,29 @@ function MainApp() {
         : dbUser;
 
   // Show main app from cache while IDB loads; once pinned, never flash back to launch funnel.
+  // DEV /greedy-tap deep link always enters the shell so Greedy Tap can iframe :3000.
+  const greedyTapDevDeepLink = import.meta.env.DEV && currentTab === 'greedy-tap';
   const effectiveLaunchRoute: LaunchRoute =
     launchRoute === 'banned'
       ? 'banned'
-      : mainShellPinned ||
+      : greedyTapDevDeepLink ||
+          mainShellPinned ||
           hasInstantSessionCache() ||
           (sessionHint && (!storageReady || db.isLoggedIn))
         ? 'main'
         : launchRoute;
+
+  useEffect(() => {
+    if (!greedyTapDevDeepLink) return;
+    setMainShellPinned(true);
+    try {
+      const progress = db.getLaunchProgress();
+      if (!progress.hasSeenSplash) db.markSplashSeen();
+      if (!progress.hasCompletedOnboarding) db.completeOnboarding();
+    } catch {
+      /* launch helpers may not be ready on first paint */
+    }
+  }, [greedyTapDevDeepLink, db]);
 
   useEffect(() => {
     registerAppTabGetter(() => currentTabRef.current);
