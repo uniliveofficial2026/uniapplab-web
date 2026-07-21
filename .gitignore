@@ -2,6 +2,8 @@
 
 # compiled output
 dist
+!artifacts/instacollab/vendor/greedy-tap/dist/
+!artifacts/instacollab/vendor/greedy-tap/dist/**
 tmp
 out-tsc
 *.tsbuildinfo
@@ -56,7 +58,18 @@ Thumbs.db
 # Vercel staging mirror (local deploy prep — never push)
 .vercel/
 
+# Capacitor native build artifacts (keep ios/ android project sources)
+artifacts/instacollab/ios/App/Pods/
+artifacts/instacollab/ios/App/build/
+artifacts/instacollab/ios/DerivedData/
+artifacts/instacollab/android/.gradle/
+artifacts/instacollab/android/app/build/
+artifacts/instacollab/android/build/
+artifacts/instacollab/android/local.properties
+artifacts/instacollab/android/.idea/
+
 # Large vendor archives / media (CDN or download at build — not in git)
 **/vendor/archives/*.zip
 artifacts/instacollab/vendor/archives/
 artifacts/instacollab/public/trtc-webar/backgrounds/video-bg-2.mp4
+.env*
