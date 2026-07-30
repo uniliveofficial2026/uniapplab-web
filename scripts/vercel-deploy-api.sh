@@ -15,6 +15,18 @@ vercel_env() {
 
 PROJECT="$(node scripts/vercel-project-name.mjs)"
 
+verify_deployment_health() {
+  local deployment_url="$1"
+  local health_url="${deployment_url%/}/api/healthz"
+
+  echo "[vercel] Verifying deployment API health before aliasing…"
+  if ! curl --fail --silent --show-error --max-time 20 --retry 3 --retry-delay 2 "$health_url" >/dev/null; then
+    echo "[vercel] Refusing to alias production domains because API health failed: $health_url" >&2
+    return 1
+  fi
+  echo "[vercel] ✓ Deployment API health passed"
+}
+
 echo "[vercel] Deploying monorepo (SPA + API) from staged source…"
 node scripts/sync-vercel-config.mjs
 node scripts/prepare-vercel-source.mjs
@@ -43,6 +55,10 @@ fi
 
 deployment_url="$(grep -oE 'https://uniapplab-web-instacollab-[a-z0-9-]+\.vercel\.app' "$deploy_log" | tail -1)"
 if [[ -n "$deployment_url" ]]; then
+  if ! verify_deployment_health "$deployment_url"; then
+    rm -f "$deploy_log"
+    exit 1
+  fi
   echo "[vercel] Aliasing production domains → $deployment_url"
   for host in app.uniapplab.com uniapplab.com www.uniapplab.com; do
     vercel_env pnpm dlx vercel@latest alias set "$deployment_url" "$host" --project "$PROJECT" || true

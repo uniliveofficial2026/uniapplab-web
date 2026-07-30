@@ -1,7 +1,7 @@
 /**
  * Vercel env sync helpers (CLI v54+ — fully non-interactive).
  */
-import { spawnSync } from 'node:child_process';
+import { spawnSync as defaultSpawnSync } from 'node:child_process';
 
 export function vercelEnv() {
   return {
@@ -14,13 +14,7 @@ export function vercelEnv() {
 }
 
 /** Set one env var for production | preview | development. */
-export function vercelEnvSet(cwd, name, value, target) {
-  spawnSync('pnpm', ['dlx', 'vercel@latest', 'env', 'rm', name, target, '--yes'], {
-    cwd,
-    stdio: 'ignore',
-    env: vercelEnv(),
-  });
-
+export function vercelEnvSet(cwd, name, value, target, { spawnSync = defaultSpawnSync } = {}) {
   const add = spawnSync(
     'pnpm',
     [
@@ -31,6 +25,7 @@ export function vercelEnvSet(cwd, name, value, target) {
       name,
       target,
       '--yes',
+      // --force updates an existing value in place; deleting first can leave secrets missing.
       '--force',
       '--value',
       value,
@@ -49,12 +44,16 @@ export function vercelEnvSet(cwd, name, value, target) {
 }
 
 /** Sync many vars to all standard Vercel targets. */
-export function vercelEnvSyncAll(cwd, vars, { label = 'vercel' } = {}) {
+export function vercelEnvSyncAll(
+  cwd,
+  vars,
+  { label = 'vercel', spawnSync = defaultSpawnSync } = {},
+) {
   const targets = ['production', 'preview', 'development'];
   for (const target of targets) {
     for (const [name, value] of vars) {
       if (!value) continue;
-      const code = vercelEnvSet(cwd, name, value, target);
+      const code = vercelEnvSet(cwd, name, value, target, { spawnSync });
       if (code !== 0) {
         console.error(`[${label}] Failed ${name} (${target})`);
         return code;
