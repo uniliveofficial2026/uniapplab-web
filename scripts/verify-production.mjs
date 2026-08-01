@@ -32,6 +32,11 @@ const STATIC_CHECKS = [
     url: `${ORIGIN}/index.html`,
     expect: (r, t) => r.ok && /\/assets\/index-[^"]+\.js/.test(t),
   },
+  {
+    name: 'SPA deep link fallback',
+    url: `${ORIGIN}/messages`,
+    expect: (r, t) => r.ok && t.includes('InstaCollab') && /\/assets\/index-[^"]+\.js/.test(t),
+  },
 ];
 
 const API_CHECKS = [
