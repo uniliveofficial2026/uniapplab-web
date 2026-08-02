@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { fetchStreamViewers, isPlatformApiAvailable, postStreamViewer } from '../platformApi';
 
 const POLL_MS = 15_000;
@@ -6,7 +6,6 @@ const POLL_MS = 15_000;
 /** Report join/leave and poll viewer count for a live platform stream. */
 export function useStreamViewerPresence(streamId: string | null, watching: boolean) {
   const [viewers, setViewers] = useState(0);
-  const joinedRef = useRef(false);
 
   useEffect(() => {
     if (!streamId || !watching || !isPlatformApiAvailable()) {
@@ -15,7 +14,9 @@ export function useStreamViewerPresence(streamId: string | null, watching: boole
     }
 
     let cancelled = false;
+    let joined = false;
     let pollTimer: number | null = null;
+    const leave = () => postStreamViewer(streamId, 'leave').catch(() => {});
 
     const refresh = async () => {
       try {
@@ -29,11 +30,16 @@ export function useStreamViewerPresence(streamId: string | null, watching: boole
     void (async () => {
       try {
         const data = await postStreamViewer(streamId, 'join');
-        joinedRef.current = true;
+        if (cancelled) {
+          void leave();
+          return;
+        }
+        joined = true;
         if (!cancelled) setViewers(data.viewers ?? 0);
       } catch {
         /* ignore */
       }
+      if (cancelled) return;
       pollTimer = window.setInterval(() => {
         void refresh();
       }, POLL_MS);
@@ -42,9 +48,9 @@ export function useStreamViewerPresence(streamId: string | null, watching: boole
     return () => {
       cancelled = true;
       if (pollTimer) window.clearInterval(pollTimer);
-      if (joinedRef.current) {
-        joinedRef.current = false;
-        void postStreamViewer(streamId, 'leave').catch(() => {});
+      if (joined) {
+        joined = false;
+        void leave();
       }
     };
   }, [streamId, watching]);
