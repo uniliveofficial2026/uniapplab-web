@@ -67,7 +67,7 @@ const CONTACT_SEED: ContactItem[] = [
 ];
 
 export function GoogleContactsTab() {
-  const { googleAccessToken, loginWithGoogle } = useAuth();
+  const { googleAccessToken, connectGoogleWorkspace } = useAuth();
   const contactsStorageKey = `google_contacts_cache_${getAppUserId()}`;
   const [contacts, setContacts] = useState<ContactItem[]>(CONTACT_SEED);
   const [manualRefresh, setManualRefresh] = useState(false);
@@ -392,7 +392,7 @@ export function GoogleContactsTab() {
         <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 text-[11px] font-semibold text-foreground flex justify-between items-center gap-3">
           <span>Viewing internal offline contact cards. Connect to sync live Google Contacts.</span>
           <button 
-            onClick={loginWithGoogle}
+            onClick={connectGoogleWorkspace}
             className="bg-primary hover:bg-primary/95 text-primary-foreground text-[10px] py-1 px-3 rounded-lg font-bold shadow-sm whitespace-nowrap"
           >
             Link Google Account

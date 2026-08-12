@@ -6,9 +6,9 @@
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
-    <meta name="apple-mobile-web-app-title" content="UniLive" />
-    <meta name="application-name" content="UniLive" />
-    <meta name="theme-color" content="#020617" />
+    <meta name="apple-mobile-web-app-title" content="UniLive’s" />
+    <meta name="application-name" content="UniLive’s" />
+    <meta name="theme-color" content="#000000" />
     <script>
       (function () {
         try {
@@ -22,10 +22,8 @@
           var root = document.documentElement;
           if (theme === 'dark') root.classList.add('dark');
           root.style.colorScheme = theme;
-          // Instant paint colors before CSS/JS load
-          document.documentElement.style.backgroundColor = theme === 'dark' ? '#020617' : '#f8fafc';
-          document.documentElement.style.color = theme === 'dark' ? '#ffffff' : '#000000';
-          // Custom app logo → favicon / home-screen icon before React boots
+          document.documentElement.style.backgroundColor = '#060821';
+          document.documentElement.style.color = '#ffffff';
           var brandHref = null;
           try {
             var platformRaw = localStorage.getItem('platform_app_brand_remote');
@@ -39,9 +37,7 @@
           if (!brandHref && s && typeof s.appLogoUrl === 'string' && s.appLogoUrl && s.appLogoMediaType !== 'video') {
             brandHref = s.appLogoUrl.indexOf('data:') === 0 ? '/api/platform/brand-icon' : s.appLogoUrl;
           }
-          if (!brandHref) {
-            brandHref = '/brand/app-logo.png';
-          }
+          if (!brandHref) brandHref = '/brand/app-logo.png';
           if (brandHref) {
             var href = brandHref;
             var icon = document.createElement('link');
@@ -62,7 +58,7 @@
     </script>
     <link rel="icon" href="/brand/app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="/brand/app-logo.png" />
-    <!-- Non-blocking fonts — UI paints with system font first -->
+    <link rel="preload" href="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg" as="image" />
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
@@ -74,169 +70,142 @@
     <noscript>
       <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
     </noscript>
-    <title>UniLive</title>
+    <title>UniLive’s</title>
     <meta
       name="description"
-      content="UniLive is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time. Sign in with Google to use UniLive on web and mobile."
+      content="UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
     />
-    <meta property="og:title" content="UniLive" />
+    <meta property="og:title" content="UniLive’s" />
     <meta
       property="og:description"
-      content="UniLive is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
+      content="UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
     />
     <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="UniLive" />
+    <meta property="og:site_name" content="UniLive’s" />
+    <meta property="og:url" content="https://app.uniapplab.com/" />
+    <meta property="og:image" content="https://app.uniapplab.com/brand/app-logo.png" />
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="UniLive" />
+    <meta name="twitter:title" content="UniLive’s" />
     <meta
       name="twitter:description"
-      content="UniLive is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
+      content="UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
     />
+    <meta name="twitter:image" content="https://app.uniapplab.com/brand/app-logo.png" />
     <style>
-      /* Visible before any JS — Google OAuth reviewers read this static homepage. */
       html, body {
         margin: 0;
         min-height: 100dvh;
-        background: #020617;
+        background: #060821;
         color: #fff;
         font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
       }
-      html:not(.dark), html:not(.dark) body {
-        background: #f8fafc;
-        color: #000;
-      }
+      /* Boot splash — first locked 9:16 video (always on cold start) */
       #boot-shell {
         position: fixed;
         inset: 0;
-        overflow: auto;
-        display: flex;
-        flex-direction: column;
-        background: inherit;
-        color: inherit;
         z-index: 9999;
-        -webkit-overflow-scrolling: touch;
-      }
-      #boot-shell .home {
-        flex: 1;
-        max-width: 40rem;
-        margin: 0 auto;
-        padding: 2.5rem 1.25rem 3rem;
-        display: flex;
-        flex-direction: column;
-        gap: 1.25rem;
-      }
-      #boot-shell .home-brand {
         display: flex;
         align-items: center;
-        gap: 0.85rem;
+        justify-content: center;
+        overflow: hidden;
+        background: #060821;
+        pointer-events: none;
       }
-      #boot-shell .home-logo {
-        width: 3.25rem;
-        height: 3.25rem;
-        border-radius: 0.9rem;
-        object-fit: contain;
-        background: rgba(148, 163, 184, 0.12);
+      #boot-shell .boot-extend {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
       }
-      #boot-shell h1 {
-        margin: 0;
-        font-size: 2rem;
-        font-weight: 900;
-        letter-spacing: -0.03em;
-        line-height: 1.1;
+      #boot-shell .boot-extend img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
       }
-      #boot-shell .home-lead {
-        margin: 0;
-        font-size: 1.05rem;
-        line-height: 1.55;
-        color: #cbd5e1;
+      #boot-shell .boot-frame {
+        position: relative;
+        z-index: 1;
+        height: 100dvh;
+        width: calc(100dvh * 720 / 1280);
+        max-height: 100dvh;
+        overflow: hidden;
+        background: #060821;
+        flex-shrink: 0;
       }
-      html:not(.dark) #boot-shell .home-lead {
-        color: #475569;
-      }
-      #boot-shell .home-purpose,
-      #boot-shell .home-list {
-        margin: 0;
-        font-size: 0.95rem;
-        line-height: 1.65;
-        color: #94a3b8;
-      }
-      html:not(.dark) #boot-shell .home-purpose,
-      html:not(.dark) #boot-shell .home-list {
-        color: #64748b;
-      }
-      #boot-shell .home-list {
-        padding-left: 1.15rem;
-      }
-      #boot-shell .home-list li {
-        margin: 0.35rem 0;
-      }
-      #boot-shell .home-links {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem 1.25rem;
-        margin-top: 0.5rem;
-        font-size: 0.9rem;
-      }
-      #boot-shell a {
-        color: #e879f9;
-        font-weight: 600;
-        text-decoration: none;
-      }
-      #boot-shell a:hover {
-        text-decoration: underline;
-      }
-      #boot-shell .home-cta {
-        margin-top: 0.5rem;
-        font-size: 0.85rem;
-        color: #64748b;
+      #boot-shell .boot-art {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        object-position: center center;
+        background: #060821;
       }
     </style>
   </head>
   <body>
     <div id="root"></div>
-    <!--
-      Static UniLive homepage for OAuth verification / crawlers.
-      Removed once the React app shell paints (see main.tsx).
-    -->
-    <div id="boot-shell">
-      <main class="home" role="main">
-        <div class="home-brand">
-          <img class="home-logo" src="/brand/app-logo.png" width="52" height="52" alt="UniLive logo" />
-          <h1>UniLive</h1>
-        </div>
-        <p class="home-lead">
-          UniLive is a live social application for going live, chatting with friends, sharing posts and stories,
-          discovering creators, and collaborating in real time.
-        </p>
-        <p class="home-purpose">
-          The purpose of UniLive is to help people connect through live streaming rooms, direct messages,
-          a social feed, karaoke and creator tools, and optional Google sign-in so you can securely access your
-          UniLive account on the web.
-        </p>
-        <ul class="home-list">
-          <li>Go live and join live rooms with chat, gifts, and multi-guest sessions</li>
-          <li>Share photos, reels, and stories with your audience</li>
-          <li>Message friends and discover trending creators</li>
-          <li>Manage your UniLive profile, wallet, and creator workspace in one place</li>
-        </ul>
-        <nav class="home-links" aria-label="Legal">
-          <a href="/privacy-policy.html">Privacy Policy</a>
-          <a href="/terms-of-service.html">Terms of Service</a>
-        </nav>
-        <p class="home-cta">Loading UniLive…</p>
-      </main>
+    <div id="boot-shell" data-unilives-boot-splash="" aria-busy="true" aria-label="UniLive’s splash">
+      <div class="boot-extend" aria-hidden="true">
+        <img src="/unilives-assets/brand/loading/princess-loading-refresh-bg-extend.svg" alt="" />
+        <img
+          src="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg"
+          alt=""
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0.55;filter:blur(28px) saturate(1.15);transform:scale(1.12)"
+        />
+      </div>
+      <div class="boot-frame">
+        <img
+          class="boot-art"
+          src="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg"
+          alt=""
+          width="720"
+          height="1280"
+          decoding="async"
+          fetchpriority="high"
+          aria-hidden="true"
+        />
+        <video
+          id="unilives-splash-video"
+          class="boot-art"
+          src="/unilives-assets/brand/loading/princess-boot-splash-locked.mp4"
+          poster="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg"
+          width="720"
+          height="1280"
+          autoplay
+          muted
+          playsinline
+          preload="auto"
+          data-playing="1"
+          style="z-index:1"
+          aria-label="UniLive’s splash"
+        ></video>
+      </div>
     </div>
-    <noscript>
-      <main style="max-width:40rem;margin:0 auto;padding:2.5rem 1.25rem;font-family:system-ui,sans-serif">
-        <h1>UniLive</h1>
-        <p>
-          UniLive is a live social application for going live, chatting with friends, sharing posts and stories,
-          discovering creators, and collaborating in real time. Enable JavaScript to open the UniLive app, or read
-          our <a href="/privacy-policy.html">Privacy Policy</a> and
-          <a href="/terms-of-service.html">Terms of Service</a>.
-        </p>
-      </main>
-    </noscript>
     <script type="module" src="/src/main.tsx"></script>
+    <script>
+      (function () {
+        // Boot splash: online = single play; offline = loop. React advances & removes shell.
+        var v = document.getElementById('unilives-splash-video');
+        if (!v) return;
+        v.muted = true;
+        v.dataset.playing = '1';
+        var syncLoop = function () {
+          v.loop = !navigator.onLine;
+        };
+        syncLoop();
+        var play = function () {
+          var p = v.play();
+          if (p && typeof p.catch === 'function') p.catch(function () {});
+        };
+        play();
+        document.addEventListener('touchstart', play, { once: true, passive: true });
+        window.addEventListener('online', syncLoop);
+        window.addEventListener('offline', function () {
+          syncLoop();
+          play();
+        });
+      })();
+    </script>
   </body>
 </html>

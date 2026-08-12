@@ -1,11 +1,17 @@
-import { getFirebaseAuth } from '../firebase/app';
 import { isFirebaseConfigured } from '../firebase/config';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
 import { shouldUseFirebaseForCloudData } from './cloudDataBackend';
+import { readFirebaseBackupLink } from './firebaseBackupLink';
 
 const SUPABASE_USER_ID =
   /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+async function readFirebaseUid(): Promise<string | null> {
+  if (!isFirebaseConfigured()) return null;
+  const { getFirebaseAuth } = await import('../firebase/app');
+  return getFirebaseAuth()?.currentUser?.uid ?? null;
+}
 
 /** True when Supabase Auth has a session for this user (refresh-safe). */
 export async function hasSupabaseSessionForUser(userId: string): Promise<boolean> {
@@ -34,18 +40,29 @@ async function refreshSupabaseSessionIfNeeded(userId: string): Promise<boolean> 
 export async function resolveActiveProfileBackend(
   userId: string
 ): Promise<'supabase' | 'firebase'> {
+  // Prefer live Supabase session even when a Firebase backup link exists.
+  if (await hasSupabaseSessionForUser(userId)) return 'supabase';
+
   if (shouldUseFirebaseForCloudData(userId) && isFirebaseConfigured()) {
     return 'firebase';
   }
 
-  if (await hasSupabaseSessionForUser(userId)) return 'supabase';
-
-  const fbAuth = getFirebaseAuth();
-  if (fbAuth?.currentUser?.uid === userId) return 'firebase';
+  const fbUid = await readFirebaseUid();
+  if (fbUid === userId) return 'firebase';
 
   if (SUPABASE_USER_ID.test(userId)) {
     if (isSupabaseConfigured()) {
       if (await refreshSupabaseSessionIfNeeded(userId)) return 'supabase';
+      // Linked Firebase OAuth can keep the same account online without a Supabase session.
+      const link = readFirebaseBackupLink();
+      if (
+        isFirebaseConfigured() &&
+        link?.supabaseUserId === userId &&
+        fbUid &&
+        fbUid === link.firebaseUid
+      ) {
+        return 'firebase';
+      }
       if (shouldUseFirebaseForCloudData(userId) && isFirebaseConfigured()) {
         return 'firebase';
       }
@@ -54,7 +71,7 @@ export async function resolveActiveProfileBackend(
     throw new Error('Supabase is not configured for this account.');
   }
 
-  if (isFirebaseConfigured() && fbAuth?.currentUser) {
+  if (isFirebaseConfigured() && fbUid) {
     return 'firebase';
   }
 

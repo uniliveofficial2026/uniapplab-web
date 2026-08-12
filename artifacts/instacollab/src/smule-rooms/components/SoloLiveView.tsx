@@ -48,11 +48,7 @@ import {
 } from '../hooks/useMultiGuestLiveKit';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
 import { EMPTY_PK_AUDIO_SEATS } from '../utils/pkBattleLayout';
-import {
-  readSoloLiveGuestRailBottom,
-  writeSoloLiveGuestRailBottom,
-} from '../utils/soloLiveGuestRailLayout';
-import type { PKFighter, PKPayload } from '../utils/liveRoomTypes';
+import type { PKBattleState, PKPayload } from '../utils/liveRoomTypes';
 import type { RoomExpProgress } from '../utils/roomExp';
 import type { RoomGiftSummary } from '../utils/roomGifts';
 import {
@@ -186,6 +182,8 @@ export type SoloLiveViewProps = {
   onDeeparSelectionChange?: (selection: DeepAREffectSelection) => void;
   effectsLoading?: boolean;
   effectsCameraReady?: boolean;
+  cameraError?: string | null;
+  onRetryCamera?: () => void;
   effectsArReady?: boolean;
   cameraFacingMode?: CameraFacingMode;
   onToggleCameraFacing?: () => void;
@@ -210,9 +208,7 @@ export type SoloLiveViewProps = {
   onPkClick?: () => void;
   onGameClick?: () => void;
   pkEnabled?: boolean;
-  pkTeamA?: PKFighter[];
-  pkTeamB?: PKFighter[];
-  lastPk?: PKPayload | null;
+  pkBattle?: PKBattleState | null;
   onEmitPk?: (payload: PKPayload) => void;
   onStartPk?: () => void;
   onDisconnectPk?: () => void;
@@ -336,9 +332,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   onPkClick,
   onGameClick,
   pkEnabled = false,
-  pkTeamA = [],
-  pkTeamB = [],
-  lastPk = null,
+  pkBattle = null,
   onEmitPk,
   onStartPk,
   onDisconnectPk,
@@ -376,6 +370,8 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   commerceHostUserId = '',
   effectsLoading = false,
   effectsCameraReady = false,
+  cameraError = null,
+  onRetryCamera,
   effectsArReady = false,
   cameraFacingMode = 'user',
   onToggleCameraFacing,
@@ -391,7 +387,6 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   onSelectEffect,
 }) => {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
-  const shellRef = useRef<HTMLDivElement>(null);
   const guestStageRef = useRef<HTMLDivElement>(null);
   const arenaSlotRef = useRef<HTMLDivElement>(null);
   const selfGuestAnchorRef = useRef<HTMLDivElement>(null);
@@ -412,7 +407,8 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       beautyEffects.makeupId ||
         beautyEffects.stickerId ||
         beautyEffects.filterId ||
-        beautyEffects.backgroundUrl,
+        beautyEffects.backgroundUrl ||
+        beautyEffects.shapeEffectId,
     );
   const isSelfGuest = Boolean(userSeatKey && isSoloLiveGuestSeat(userSeatKey));
   const isSelfSeated = isSelfHost || isSelfGuest;
@@ -477,7 +473,9 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   );
 
   const showHostRemote = !isSelfHost && Boolean(hostRemoteTrack);
-  const showStatusText = !selfCameraActive && !showHostRemote;
+  const showStatusText =
+    !showHostRemote &&
+    (isSelfHost ? !userCameraOn || !effectsCameraReady : true);
 
   // Poster always available for viewers (and host before camera) — LiveKit upgrades on top.
   const hostPoster = useMemo(() => {
@@ -487,11 +485,11 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
 
   const statusText = useMemo(() => {
     if (!showStatusText) return '';
-    if (isSelfHost) {
-      return userCameraOn ? 'Starting camera…' : 'Turn on your camera to go live';
-    }
-    return 'Waiting for host to go live';
-  }, [isSelfHost, showStatusText, userCameraOn]);
+    if (!isSelfHost) return 'Waiting for host to go live';
+    if (!userCameraOn) return 'Turn on your camera to go live';
+    if (cameraError) return cameraError;
+    return 'Starting camera…';
+  }, [cameraError, isSelfHost, showStatusText, userCameraOn]);
 
   const videoStageProps = useMemo(
     () => ({
@@ -505,6 +503,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       showHostRemote,
       showStatusText,
       statusText,
+      onRetryCamera: cameraError ? onRetryCamera : undefined,
       hostPoster,
     }),
     [
@@ -518,56 +517,17 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       showHostRemote,
       showStatusText,
       statusText,
+      cameraError,
+      onRetryCamera,
       hostPoster,
     ],
   );
   const footerRef = useRef<HTMLDivElement>(null);
   const [footerHeight, setFooterHeight] = useState(0);
-  const [guestRailBottom, setGuestRailBottom] = useState(() =>
-    readSoloLiveGuestRailBottom(roomDisplayId),
-  );
   const handleSeatTileTap = useSeatTileTap();
   const [seatFullscreenTarget, setSeatFullscreenTarget] = useState<LiveSeatFullscreenTarget | null>(
     null,
   );
-
-  useEffect(() => {
-    const stored = readSoloLiveGuestRailBottom(roomDisplayId);
-    setGuestRailBottom(stored);
-    shellRef.current?.style.setProperty('--solo-live-guest-rail-bottom', `${stored}px`);
-  }, [roomDisplayId]);
-
-  useLayoutEffect(() => {
-    const shell = shellRef.current;
-    const arena = arenaSlotRef.current;
-    if (!shell) return undefined;
-
-    const syncGuestRailBottom = () => {
-      const shellRect = shell.getBoundingClientRect();
-      const arenaRect = arena?.getBoundingClientRect();
-      const stored = readSoloLiveGuestRailBottom(roomDisplayId);
-      const next =
-        arenaRect && arenaRect.height > 0
-          ? Math.max(112, shellRect.bottom - arenaRect.top + 8)
-          : stored;
-      writeSoloLiveGuestRailBottom(roomDisplayId, next);
-      shell.style.setProperty('--solo-live-guest-rail-bottom', `${next}px`);
-      setGuestRailBottom(next);
-    };
-
-    syncGuestRailBottom();
-    const observer = new ResizeObserver(syncGuestRailBottom);
-    observer.observe(shell);
-    if (arena) observer.observe(arena);
-    const footer = footerRef.current;
-    if (footer) observer.observe(footer);
-    window.addEventListener('resize', syncGuestRailBottom);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener('resize', syncGuestRailBottom);
-    };
-  }, [footerHeight, roomDisplayId]);
 
   useLayoutEffect(() => {
     const footer = footerRef.current;
@@ -763,15 +723,9 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
     >
       <RoomBackgroundLayer mode={backgroundMode} />
       <div
-        ref={shellRef}
         className={`solo-live-shell relative h-full min-h-0 w-full flex-1 ${
           effectsPanelOpen || beautyPanelOpen ? 'overflow-visible' : 'overflow-hidden'
         }`}
-        style={
-          {
-            '--solo-live-guest-rail-bottom': `${guestRailBottom}px`,
-          } as React.CSSProperties
-        }
       >
         <SoloLiveVideoStage
           {...videoStageProps}
@@ -883,20 +837,20 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                 type="button"
                 onClick={() => setIsRoomViewersOpen(true)}
                 aria-label={`${viewers.length} viewers in room`}
-                className="party-viewers-chip party-glass-chip flex min-h-[32px] cursor-pointer items-center space-x-2 rounded-full px-2.5 py-1.5 sm:px-3 transition"
+                className="party-viewers-chip party-glass-chip flex min-h-[32px] shrink-0 cursor-pointer items-center space-x-2 rounded-full px-2.5 py-1.5 sm:px-3 transition"
               >
                 <div className="-space-x-2 mr-0.5 flex">
                   {viewers.slice(0, 3).map((viewer) => (
                     <img
                       key={viewer.id}
                       src={safeAvatarUrl(viewer.avatar)}
-                      className="rounded-full border-2 border-[#07010a] object-cover"
+                      className="h-6 w-6 shrink-0 rounded-full border-2 border-[#07010a] object-cover sm:h-7 sm:w-7"
                       alt=""
                     />
                   ))}
                 </div>
                 <div className="flex items-center space-x-1.5 opacity-90">
-                  <Users size={16} className="text-gray-300" />
+                  <Users size={16} className="shrink-0 text-gray-300" />
                   <span className="party-viewers-count font-black text-gray-100">{viewers.length}</span>
                 </div>
               </button>
@@ -914,27 +868,25 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           </div>
         </header>
 
-        {pkEnabled && onEmitPk ? (
+        {pkEnabled && onEmitPk && pkBattle && pkBattle.phase !== 'idle' ? (
           <div className="pointer-events-auto absolute inset-x-2 top-[5.25rem] z-[28] max-h-[38%] sm:inset-x-4">
             <PKBattleStage
               selfUserId={pkSelfUserId}
-              teamA={pkTeamA}
-              teamB={pkTeamB}
+              battle={pkBattle}
               audioSeats={EMPTY_PK_AUDIO_SEATS}
-              lastPk={lastPk}
               isOwner={pkIsOwner}
               onEmitPk={onEmitPk}
               onStartPk={onStartPk}
               onDisconnectPk={onDisconnectPk}
               variant="stage"
-              className="overflow-hidden rounded-2xl border border-blue-400/25 bg-black/75 shadow-xl backdrop-blur-md"
+              className="overflow-hidden"
             />
           </div>
         ) : null}
 
         <div
           ref={guestStageRef}
-          className="solo-live-guest-rail absolute right-2 z-20 sm:right-3"
+          className="solo-live-guest-rail"
         >
           <div className="solo-live-guest-grid">
             {SOLO_LIVE_GUEST_SEAT_KEYS.map((seatKey) => renderGuestSeat(seatKey))}

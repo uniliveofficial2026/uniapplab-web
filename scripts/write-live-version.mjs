@@ -9,7 +9,10 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
-const reason = process.argv[2] || 'build';
+/** Prefer explicit argv; on Vercel remote builds default to "deploy". */
+const reason =
+  process.argv[2] ||
+  (process.env.VERCEL || process.env.VERCEL_ENV ? 'deploy' : 'build');
 const OUT = path.join(ROOT, 'artifacts/instacollab/dist/public/live-version.json');
 
 const payload = {

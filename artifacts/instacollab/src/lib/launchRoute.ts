@@ -1,5 +1,11 @@
 import type { LaunchProgress } from './dbTypes';
 import type { LocalDB } from './db/localDbType';
+import { shouldSkipLaunchFunnelForDemoBootstrap } from './devSessionUser';
+import {
+  hasCompletedOnboardingThisSession,
+  hasPassedAuthGateThisSession,
+  hasSeenSplashThisSession,
+} from './splashSession';
 
 export type LaunchRoute =
   | 'splash'
@@ -30,23 +36,32 @@ export function resolveLaunchRoute(
   db?: LocalDB,
 ): LaunchRoute {
   if (db && isLoggedIn && isUserBanned(db)) return 'banned';
+
+  if (shouldSkipLaunchFunnelForDemoBootstrap()) return 'main';
+
+  // Cold-start session gates (every open): splash → onboarding → auth.
+  // First video (boot splash) plays on `splash`.
+  if (!hasSeenSplashThisSession()) return 'splash';
+  if (!hasCompletedOnboardingThisSession()) return 'onboarding';
+  if (!hasPassedAuthGateThisSession()) return 'auth';
+
+  // Returning users → main (second video only for in-app loads there).
   if (isReturningLaunchUser(progress, isLoggedIn)) return 'main';
 
-  if (!progress.hasSeenSplash) return 'splash';
+  // Newcomer after auth: profile creation → trending → main.
   if (!progress.hasCompletedOnboarding) return 'onboarding';
   if (!isLoggedIn) return 'auth';
-  // Every account must accept Privacy + Terms and confirm 18+ on profile setup.
   if (!progress.legalAgreementAccepted || !progress.profileSetupComplete) return 'profile_setup';
   if (!progress.hasSeenTrending) return 'trending';
   return 'main';
 }
 
-/** After IDB restore — persist device splash/onboarding flags for returning sessions. */
+/** After IDB restore — persist device onboarding flags for returning sessions. */
 export function healLaunchProgressForReturningUser(db: LocalDB): void {
   if (!db.isLoggedIn || !db.currentUserId) return;
   const progress = db.getLaunchProgress();
   if (!isReturningLaunchUser(progress, true)) return;
-  if (!progress.hasSeenSplash) db.markSplashSeen();
+  // Do not clear the session funnel — splash/onboarding/auth still play once per open.
   if (!progress.hasCompletedOnboarding) db.completeOnboarding();
 }
 

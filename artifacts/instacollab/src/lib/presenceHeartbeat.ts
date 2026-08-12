@@ -4,6 +4,7 @@
 import { isPlatformApiAvailable, postPresenceHeartbeat } from './platformApi';
 import { isSupabaseConfigured } from './supabase/config';
 import { getSupabaseClient } from './supabase/client';
+import { realtimeLifecycleDebug } from './realtime/realtimeLifecycleDebug';
 
 const HEARTBEAT_MS = 60_000;
 
@@ -23,29 +24,44 @@ async function sendHeartbeat(): Promise<void> {
   }
 }
 
-export function installPresenceHeartbeat(): void {
-  if (typeof window === 'undefined') return;
+function startTimer(): void {
   if (timer) return;
-
   void sendHeartbeat();
   timer = window.setInterval(() => {
     void sendHeartbeat();
   }, HEARTBEAT_MS);
-
-  const supabase = getSupabaseClient();
-  if (supabase && !authUnsub) {
-    const { data } = supabase.auth.onAuthStateChange((_event, session) => {
-      if (session) void sendHeartbeat();
-    });
-    authUnsub = () => data.subscription.unsubscribe();
-  }
 }
 
-export function stopPresenceHeartbeat(): void {
+function clearTimer(): void {
   if (timer) {
     window.clearInterval(timer);
     timer = null;
   }
+}
+
+export function installPresenceHeartbeat(): void {
+  if (typeof window === 'undefined') return;
+  startTimer();
+
+  const supabase = getSupabaseClient();
+  if (supabase && !authUnsub) {
+    const { data } = supabase.auth.onAuthStateChange((event, session) => {
+      if (event === 'SIGNED_OUT' || !session) {
+        clearTimer();
+        realtimeLifecycleDebug('presence-heartbeat-paused', { reason: event || 'no-session' });
+        return;
+      }
+      startTimer();
+      void sendHeartbeat();
+    });
+    authUnsub = () => data.subscription.unsubscribe();
+  }
+  realtimeLifecycleDebug('presence-heartbeat-installed', {});
+}
+
+export function stopPresenceHeartbeat(): void {
+  clearTimer();
   authUnsub?.();
   authUnsub = null;
+  realtimeLifecycleDebug('presence-heartbeat-stopped', {});
 }

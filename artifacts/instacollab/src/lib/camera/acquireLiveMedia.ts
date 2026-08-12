@@ -1,37 +1,45 @@
 import { WEBAR_CAMERA_FRAME_RATE, WEBAR_CAMERA_IDEAL } from '../webar/webarCameraConfig';
-import type { CameraFacingMode } from './useCameraStream';
+import {
+  acquireAppCamera,
+  type CameraFacingMode,
+} from './appCameraOwner';
 
 export type AcquireLiveMediaOptions = {
   video?: boolean;
   audio?: boolean;
   facingMode?: CameraFacingMode;
+  /** Stable lease id — callers that own the stream for a session should reuse + releaseAppCamera. */
+  leaseId?: string;
 };
 
-/** Imperative getUserMedia — same constraints as TRTC Beauty AR / CallKit pipeline. */
+/**
+ * Imperative camera acquire through the single app camera owner.
+ * Prefer useCameraStream in React; use this for non-hook call sites.
+ */
 export async function acquireLiveMediaStream(
   options: AcquireLiveMediaOptions = {},
 ): Promise<MediaStream> {
-  const { video = true, audio = true, facingMode = 'user' } = options;
+  const {
+    video = true,
+    audio = true,
+    facingMode = 'user',
+    leaseId = `live-media:${Date.now()}`,
+  } = options;
 
-  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
-    throw new Error('Camera is not supported in this browser.');
+  if (!video) {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
+      throw new Error('Microphone is not supported in this browser.');
+    }
+    return navigator.mediaDevices.getUserMedia({ audio: true, video: false });
   }
 
-  const stream = await navigator.mediaDevices.getUserMedia({
-    video: video
-      ? {
-          facingMode,
-          width: { ideal: WEBAR_CAMERA_IDEAL.width },
-          height: { ideal: WEBAR_CAMERA_IDEAL.height },
-          frameRate: WEBAR_CAMERA_FRAME_RATE,
-        }
-      : false,
+  return acquireAppCamera(leaseId, {
+    facingMode,
     audio,
+    videoIdeal: WEBAR_CAMERA_IDEAL,
+    frameRate: WEBAR_CAMERA_FRAME_RATE,
+    exactFacing: false,
   });
-
-  stream.getVideoTracks().forEach((track) => {
-    track.contentHint = 'motion';
-  });
-
-  return stream;
 }
+
+export { releaseAppCamera } from './appCameraOwner';

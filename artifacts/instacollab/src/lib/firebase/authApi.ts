@@ -110,10 +110,13 @@ export async function firebaseUpdatePassword(newPassword: string): Promise<AuthR
   }
 }
 
-export async function firebaseSignInWithGoogle(): Promise<AuthResult> {
+export async function firebaseSignInWithGoogle(options?: {
+  workspaceScopes?: boolean;
+  selectAccount?: boolean;
+}): Promise<AuthResult> {
   const gate = authOrReason();
   if ('ok' in gate) return gate;
-  return firebaseSignInWithGooglePopup(gate.auth);
+  return firebaseSignInWithGooglePopup(gate.auth, options);
 }
 
 export async function firebaseSignInWithApple(): Promise<AuthResult> {

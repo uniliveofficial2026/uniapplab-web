@@ -1,7 +1,7 @@
 import { PARTY_GUEST_SEAT_KEYS, type PartySeatMap, type RoomGuest, type RoomSeatKey } from './roomSeats';
 import type { PKFighter, PKMode } from './liveRoomTypes';
 
-/** PK battles are only enabled on solo live and shop (commerce) live streams. */
+/** PK battles are only enabled on Solo Live and Shop (Commerce) Live — never Party rooms. */
 export function isPkEligibleRoomMode(roomMode: string | undefined): boolean {
   const mode = String(roomMode || '').trim();
   return mode === 'Solo-Live' || mode === 'Commerce-Live';

@@ -125,7 +125,7 @@ export function ARCameraCapture({ open, onClose, onCaptured }: ARCameraCapturePr
     facingMode,
     videoIdeal: captureIdealRef.current,
     frameRate: WEBAR_CAMERA_FRAME_RATE,
-    exactFacing: true,
+    exactFacing: false,
   });
 
   const [inputStream, setInputStream] = useState<MediaStream | null>(null);
@@ -151,8 +151,8 @@ export function ARCameraCapture({ open, onClose, onCaptured }: ARCameraCapturePr
     beautyId,
     effects: beautyEffects,
     bodyShape,
-    mirror: mirrorPreview,
-    keepWarm: open && webarConfigured,
+    mirror: false,
+    keepWarm: open && webarConfigured && (beautyActive || beautyPanelOpen) && !faceArActive,
     beautyPanelOpen,
     loadCatalogs: beautyPanelOpen || beautyActive,
   });
@@ -168,7 +168,7 @@ export function ARCameraCapture({ open, onClose, onCaptured }: ARCameraCapturePr
     enabled: open && available && camera.ready && faceArActive,
     preload: open && available && camera.ready,
     initialEffectId: faceEffectId,
-    mirror: mirrorPreview,
+    mirror: false,
   });
 
   useEffect(() => {
@@ -360,20 +360,27 @@ export function ARCameraCapture({ open, onClose, onCaptured }: ARCameraCapturePr
             <div className="absolute inset-0 flex flex-col items-center justify-center p-6 text-center text-white/90 gap-4 bg-black">
               <p className="font-semibold">Camera permission required</p>
               <p className="text-sm text-white/70 max-w-sm">
-                Allow camera access in your browser settings, then reload.
+                Allow camera in the address-bar icon, then tap Retry.
               </p>
               <button
                 type="button"
-                onClick={() => window.location.reload()}
+                onClick={camera.retry}
                 className="px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-bold"
               >
-                Reload
+                Retry
               </button>
             </div>
           ) : null}
           {error && !permissionDenied ? (
-            <div className="absolute inset-0 flex items-center justify-center p-6 text-center text-red-300 text-sm bg-black/80 z-30">
-              {error}
+            <div className="absolute inset-0 flex flex-col items-center justify-center gap-3 p-6 text-center text-red-300 text-sm bg-black/80 z-30">
+              <p>{error}</p>
+              <button
+                type="button"
+                onClick={camera.retry}
+                className="px-4 py-2 rounded-lg bg-white/15 text-white text-sm font-bold"
+              >
+                Retry
+              </button>
             </div>
           ) : null}
 

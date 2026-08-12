@@ -34,7 +34,10 @@ const TEXT_TEMPLATES = [
   { id: 'sunset', label: 'Sunset', font: 'font-sans', bg: 'bg-gradient-to-br from-orange-400 to-red-500', align: 'text-center' },
 ];
 
-const STICKER_EMOJIS = ['🔥', '✨', '💯', '🎉', '❤️', '😂', '🏔️', '📸', '🎵', '⭐', '👀', '🚀'];
+import { UniLivesStickerThumbnail } from '../stickers/brand';
+import { EDITOR_STICKER_CATALOG } from '../../lib/unilives-assets/stickerResolve';
+
+const STICKER_EMOJIS = EDITOR_STICKER_CATALOG.map((s) => s.emoji);
 
 export type EditorToolPanelsProps = {
   activeTab: EditorToolTabId;
@@ -312,9 +315,22 @@ export function EditorToolPanels(props: EditorToolPanelsProps) {
       {activeTab === 'stickers' && (
         <div className="space-y-3 px-1">
           <div className="flex flex-wrap gap-2">
-            {STICKER_EMOJIS.map((emoji) => (
-              <button key={emoji} type="button" onClick={() => onStickerChange(sticker === emoji ? '' : emoji)} className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 transition-colors ${sticker === emoji ? 'border-primary bg-primary/10' : 'border-border bg-secondary/50 hover:bg-secondary'}`}>
-                {emoji}
+            {EDITOR_STICKER_CATALOG.map((entry) => (
+              <button
+                key={entry.id}
+                type="button"
+                onClick={() => onStickerChange(sticker === entry.emoji ? '' : entry.emoji)}
+                className={`w-10 h-10 rounded-xl text-xl flex items-center justify-center border-2 transition-colors ${sticker === entry.emoji ? 'border-primary bg-primary/10' : 'border-border bg-secondary/50 hover:bg-secondary'}`}
+                aria-label={entry.name}
+                aria-pressed={sticker === entry.emoji}
+              >
+                <UniLivesStickerThumbnail
+                  businessStickerId={entry.id}
+                  legacyIcon={entry.emoji}
+                  className="leading-none"
+                  imgClassName="h-7 w-7 object-contain"
+                  alt=""
+                />
               </button>
             ))}
           </div>

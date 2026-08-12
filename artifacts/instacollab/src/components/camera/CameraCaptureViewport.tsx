@@ -15,7 +15,11 @@ export type CameraCaptureViewportProps = {
   beautySinkVideoRef?: RefObject<HTMLVideoElement | null>;
 };
 
-/** Edge-to-edge fullscreen camera stage (calls / capture / messages). */
+/**
+ * Edge-to-edge camera stage.
+ * Raw camera ALWAYS stays mounted underneath. Beauty overlays with the SAME CSS mirror +
+ * object-fit cover so FOV does not jump when effects turn on (SDK mirror stays off).
+ */
 export function CameraCaptureViewport({
   rawStream,
   beautyStream = null,
@@ -27,6 +31,8 @@ export function CameraCaptureViewport({
 }: CameraCaptureViewportProps) {
   const showTrtcSink = Boolean(showBeautyPreview && beautySinkVideoRef);
   const showTrtcStreamSurface = Boolean(showBeautyPreview && beautyStream && !beautySinkVideoRef);
+  const coverRaw = showTrtcSink || showTrtcStreamSurface || showFacePreview;
+  const mirrorClass = mirrorRaw ? ' origin-center [transform:scaleX(-1)_translateZ(0)]' : '';
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-black">
@@ -34,11 +40,9 @@ export function CameraCaptureViewport({
         stream={rawStream}
         layout="fullscreen"
         framing="cover"
-        mirrored={mirrorRaw && !showBeautyPreview && !showFacePreview}
+        mirrored={mirrorRaw}
         label="Camera preview"
-        className={
-          showBeautyPreview || showFacePreview ? 'pointer-events-none opacity-0' : 'opacity-100'
-        }
+        className={coverRaw ? 'opacity-100' : 'opacity-100'}
       />
       {beautySinkVideoRef ? (
         <video
@@ -49,7 +53,7 @@ export function CameraCaptureViewport({
           aria-hidden={!showTrtcSink}
           className={
             showTrtcSink
-              ? 'absolute inset-0 z-[1] h-full w-full object-cover'
+              ? `absolute inset-0 z-[1] h-full w-full object-cover object-center${mirrorClass}`
               : 'fixed h-px w-px opacity-0 pointer-events-none'
           }
           style={showTrtcSink ? undefined : { left: -9999, top: -9999 }}
@@ -60,15 +64,15 @@ export function CameraCaptureViewport({
           stream={beautyStream}
           layout="fullscreen"
           framing="cover"
-          mirrored={false}
+          mirrored={mirrorRaw}
           label="Beauty preview"
-          className={CALL_VIDEO_FULLSCREEN_CLASS}
+          className={`${CALL_VIDEO_FULLSCREEN_CLASS} z-[1]`}
         />
       ) : null}
       {facePreviewRef ? (
         <div
           ref={facePreviewRef}
-          className={`absolute inset-0 h-full w-full ${showFacePreview ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          className={`absolute inset-0 z-[2] h-full w-full ${showFacePreview ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
           aria-hidden={!showFacePreview}
         />
       ) : null}
@@ -77,7 +81,7 @@ export function CameraCaptureViewport({
 }
 
 export const CAMERA_CAPTURE_ROOT_CLASS =
-  'fixed inset-0 z-[3200] h-[100dvh] w-[100dvw] max-h-[100dvh] max-w-[100dvw] overflow-hidden bg-black touch-none overscroll-none';
+  'fixed inset-0 z-[3200] h-vv w-[100dvw] max-h-vv max-w-[100dvw] overflow-hidden bg-black touch-none overscroll-none';
 
 export const CAMERA_CAPTURE_CHROME_CLASS =
   'absolute inset-x-0 bottom-0 z-20 p-3 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-2 pointer-events-none';

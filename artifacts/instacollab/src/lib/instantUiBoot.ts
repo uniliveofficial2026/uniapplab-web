@@ -9,7 +9,7 @@ let started = false;
 let entireWarmed = false;
 let heavyWarmed = false;
 
-/** Every primary tab lazy chunk in App.tsx */
+/** Every primary tab lazy chunk in App.tsx — listed for documentation; not auto-preloaded. */
 const ALL_TAB_IMPORTS: Array<() => Promise<unknown>> = [
   () => import('../components/messages/MessagesScreen'),
   () => import('../components/notifications/NotificationsScreen'),
@@ -19,6 +19,7 @@ const ALL_TAB_IMPORTS: Array<() => Promise<unknown>> = [
   () => import('../components/live/LiveScreen'),
   () => import('../components/karaoke/KaraokeScreen'),
   () => import('../smule-rooms/RoomsHost'),
+  () => import('../components/games/GameHubScreen'),
   () => import('../components/games/LocalGamesScreen'),
   () => import('../components/games/ThirdPartyGamesScreen'),
   () => import('../pages/YouTube'),
@@ -27,47 +28,14 @@ const ALL_TAB_IMPORTS: Array<() => Promise<unknown>> = [
   () => import('../components/dating/DatingScreen'),
 ];
 
+void ALL_TAB_IMPORTS;
+
 /** Hot-path tabs — messages, feed, reels, notifications. */
 const HOT_TAB_IMPORTS: Array<() => Promise<unknown>> = [
   () => import('../components/messages/MessagesScreen'),
   () => import('../components/notifications/NotificationsScreen'),
   () => import('../components/reels/ReelsScreen'),
   () => import('../components/profile/ProfileScreen'),
-];
-
-/** Overlays, launch/auth, and global hosts */
-const ALL_OVERLAY_IMPORTS: Array<() => Promise<unknown>> = [
-  () => import('../components/launch/LaunchFlowHost'),
-  () => import('../components/profile/UserProfilePreview'),
-  () => import('../components/feed/StoryRing'),
-  () => import('../components/youtube/YoutubeMiniPlayerHost'),
-  () => import('../components/auth/SplashScreen'),
-  () => import('../components/auth/AuthScreen'),
-  () => import('../components/auth/ProfileSetup'),
-  () => import('../contexts/ChatCallContext'),
-  () => import('../contexts/ChatCallVideoEffectsHost'),
-  () => import('../components/messages/MessagesActiveCallOverlay'),
-  () => import('../components/messages/ChatCallPipWindow'),
-];
-
-/** Smule-rooms sub-routes (RoomsHost is lazy; pages are eager but warm route CSS/logic). */
-const SMULE_ROOM_IMPORTS: Array<() => Promise<unknown>> = [
-  () => import('../smule-rooms/pages/Party'),
-  () => import('../smule-rooms/pages/Room'),
-  () => import('../smule-rooms/pages/EditRoom'),
-  () => import('../smule-rooms/pages/RoomDetails'),
-  () => import('../smule-rooms/pages/CreateRoom'),
-];
-
-/** Shell modals and heavy feature stacks */
-const HEAVY_SURFACE_IMPORTS: Array<() => Promise<unknown>> = [
-  () => import('../components/layout/ShellCreateModal'),
-  () => import('../components/profile/AccountSwitcherModal'),
-  () => import('../components/profile/ProfileEditSettingsModal'),
-  () => import('../components/karaoke/RecordingStudio'),
-  () => import('../components/feed/PostModal'),
-  () => import('../components/messages/ChatFileInAppViewer'),
-  () => import('./ar/ensureArStack'),
 ];
 
 function preloadAll(factories: Array<() => Promise<unknown>>): void {
@@ -91,32 +59,38 @@ export function warmCoreScreenChunks(): void {
   preloadAll(HOT_TAB_IMPORTS);
 }
 
-/** Chat / video call + AR surfaces — only when a call is likely. */
+/** Chat / video call surfaces — only when a call is likely. */
 export function warmCallSurfaceChunks(): void {
   preloadAll([
+    () => import('../contexts/ChatCallProviderImpl'),
     () => import('../contexts/ChatCallVideoEffectsHost'),
     () => import('../components/messages/MessagesActiveCallOverlay'),
     () => import('../components/messages/ChatCallPipWindow'),
   ]);
 }
 
-function warmHeavyAppChunksDeferred(): void {
-  if (heavyWarmed || typeof window === 'undefined') return;
-  heavyWarmed = true;
-
-  preloadAll(ALL_TAB_IMPORTS.filter(
-    (factory) => !HOT_TAB_IMPORTS.includes(factory),
-  ));
-  preloadAll(ALL_OVERLAY_IMPORTS);
-  preloadAll(SMULE_ROOM_IMPORTS);
-  preloadAll(HEAVY_SURFACE_IMPORTS);
-
-  void import('./preloadAppSurfaces').then((m) => {
-    m.preloadHeavyAppSurfaces();
-  });
+function connectionSaveData(): boolean {
+  if (typeof navigator === 'undefined') return false;
+  const conn = (navigator as Navigator & { connection?: { saveData?: boolean; effectiveType?: string } })
+    .connection;
+  if (conn?.saveData) return true;
+  const t = conn?.effectiveType;
+  return t === 'slow-2g' || t === '2g';
 }
 
-/** Entire app — hot tabs first; heavy stacks idle-deferred. */
+function warmHeavyAppChunksDeferred(): void {
+  if (heavyWarmed || typeof window === 'undefined') return;
+  if (connectionSaveData()) return;
+  heavyWarmed = true;
+
+  // Tabs only — never AR / RecordingStudio / ensureArStack here.
+  preloadAll([
+    () => import('../components/wallet/WalletScreen'),
+    () => import('../pages/YouTube'),
+  ]);
+}
+
+/** Entire app — hot tabs only; live/karaoke/AR load on navigation or explicit intent. */
 export function warmEntireAppChunks(): void {
   if (entireWarmed || typeof window === 'undefined') return;
   entireWarmed = true;
@@ -125,17 +99,16 @@ export function warmEntireAppChunks(): void {
   preloadAll([
     () => import('../components/search/SearchScreen'),
     () => import('../components/feed/StoryRing'),
-    () => import('../contexts/ChatCallContext'),
   ]);
 
   scheduleIdle(() => {
-    warmCallSurfaceChunks();
     void import('./preloadAppSurfaces').then((m) => {
       m.preloadCoreAppSurfaces();
     });
-  }, 2500);
+  }, 2_000);
 
-  scheduleIdle(warmHeavyAppChunksDeferred, 5000);
+  // Optional light warm much later — never Live/Karaoke/AR.
+  scheduleIdle(warmHeavyAppChunksDeferred, 60_000);
 }
 
 /**

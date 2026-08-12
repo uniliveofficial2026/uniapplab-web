@@ -104,6 +104,9 @@ export const CHORUS_GUEST_SEAT_KEYS: RoomSeatKey[] = GUEST_SEAT_KEYS.slice(0, 12
 /** Watch Together stage — 9 guest seats around the host (no1–no9). */
 export const WATCH_TOGETHER_GUEST_SEAT_KEYS: RoomSeatKey[] = GUEST_SEAT_KEYS.slice(0, 9);
 
+/** Game Live — 10 guest sofas (no1–no10); host is cast/PiP, not a seat. */
+export const GAME_LIVE_GUEST_SEAT_KEYS: RoomSeatKey[] = GUEST_SEAT_KEYS.slice(0, 10);
+
 /** Multi-Guest — 12 guest video tiles (5×3 grid with staff). */
 export const MULTI_GUEST_GUEST_SEAT_KEYS: RoomSeatKey[] = GUEST_SEAT_KEYS.slice(0, 12);
 
@@ -385,8 +388,9 @@ export function getGuestSeatKeysForRoomMode(mode: RoomLayoutMode): RoomSeatKey[]
     case 'Chorus':
       return CHORUS_GUEST_SEAT_KEYS;
     case 'WatchTogether':
-    case 'GameLive':
       return WATCH_TOGETHER_GUEST_SEAT_KEYS;
+    case 'GameLive':
+      return GAME_LIVE_GUEST_SEAT_KEYS;
     case 'MultiGuest':
       return MULTI_GUEST_GUEST_SEAT_KEYS;
     case 'SoloLive':
@@ -407,7 +411,7 @@ export function getGuestSeatKeysForSettingsMode(
     case 'Radio':
       return WATCH_TOGETHER_GUEST_SEAT_KEYS;
     case 'Game-Live':
-      return WATCH_TOGETHER_GUEST_SEAT_KEYS;
+      return GAME_LIVE_GUEST_SEAT_KEYS;
     case 'Multi-Guest':
       return MULTI_GUEST_GUEST_SEAT_KEYS;
     case 'Solo-Live':

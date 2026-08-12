@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { Crown, Mic2, Shield, User, UserMinus, UserPlus, UserX } from 'lucide-react';
+import { Crown, Mic2, Shield, User, UserMinus, UserPlus, UserX, Ban } from 'lucide-react';
 import { ShareIcon } from '../../components/common/ShareIcon';
 import { ShareModal } from '../../components/feed/ShareModal';
 import type { ProfileSharePayload } from '../../lib/profileShare';
@@ -24,6 +24,9 @@ type RoomProfilePreviewModalProps = {
   onMention?: () => void;
   onKick?: () => void;
   showKick?: boolean;
+  showBanFromSeats?: boolean;
+  isSeatBanned?: boolean;
+  onBanFromSeats?: () => void;
 };
 
 function StatButton({
@@ -68,6 +71,9 @@ export function RoomProfilePreviewModal({
   onMention,
   onKick,
   showKick = false,
+  showBanFromSeats = false,
+  isSeatBanned = false,
+  onBanFromSeats,
 }: RoomProfilePreviewModalProps) {
   useDbRevision();
   const [mounted, setMounted] = useState(false);
@@ -363,6 +369,21 @@ export function RoomProfilePreviewModal({
             >
               <UserX size={13} />
               <span>Kick User from Room</span>
+            </button>
+          ) : null}
+
+          {showBanFromSeats && onBanFromSeats ? (
+            <button
+              type="button"
+              onClick={onBanFromSeats}
+              className={`mt-3 flex w-full cursor-pointer items-center justify-center space-x-1.5 rounded-full border py-2.5 text-xs font-bold text-white shadow-lg transition active:scale-95 ${
+                isSeatBanned
+                  ? 'border-emerald-500/20 bg-gradient-to-r from-emerald-600 to-teal-700 shadow-emerald-500/20 hover:from-emerald-500 hover:to-teal-600'
+                  : 'border-orange-500/20 bg-gradient-to-r from-orange-600 to-amber-700 shadow-orange-500/20 hover:from-orange-500 hover:to-amber-600'
+              }`}
+            >
+              <Ban size={13} />
+              <span>{isSeatBanned ? 'Unban from Seats' : 'Ban from Seats'}</span>
             </button>
           ) : null}
         </div>

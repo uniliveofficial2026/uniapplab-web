@@ -359,7 +359,13 @@ export class DbCore {
       this.notifyFlushScheduled = true;
       queueMicrotask(() => {
         this.notifyFlushScheduled = false;
-        this.listeners.forEach((l) => l());
+        this.listeners.forEach((l) => {
+          try {
+            l();
+          } catch (err) {
+            console.warn('[db] listener failed:', err);
+          }
+        });
       });
     }
 

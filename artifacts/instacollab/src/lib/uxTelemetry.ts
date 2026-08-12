@@ -99,6 +99,14 @@ export function getCurrentScreen(): string {
   return currentScreen;
 }
 
+function canIngestUxSignals(): boolean {
+  if (import.meta.env.DEV) return true;
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname.toLowerCase();
+  // Vite preview on localhost has no ingest route — keep signals buffered locally.
+  return host !== 'localhost' && host !== '127.0.0.1' && host !== '[::1]';
+}
+
 function ingestUrl(): string {
   if (import.meta.env.DEV) return '/__ux/signal';
   return '/api/ux/signals';
@@ -106,6 +114,7 @@ function ingestUrl(): string {
 
 export async function flushUxSignals(force = false): Promise<void> {
   if (typeof window === 'undefined') return;
+  if (!canIngestUxSignals()) return;
   const buf = readBuffer();
   if (!buf.length) return;
   if (!force && buf.length < 15) return;

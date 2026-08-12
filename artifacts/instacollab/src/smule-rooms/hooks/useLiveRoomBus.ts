@@ -34,6 +34,7 @@ export function useLiveRoomBus({
   const seenIdsRef = useRef(new Set<string>());
   const [lastGiftPlay, setLastGiftPlay] = useState<GiftPlayPayload | null>(null);
   const [lastPk, setLastPk] = useState<PKPayload | null>(null);
+  const [lastPkId, setLastPkId] = useState<string | null>(null);
   const [lastCommerce, setLastCommerce] = useState<CommercePayload | null>(null);
   const [lastGame, setLastGame] = useState<GamePayload | null>(null);
   const [lastSeats, setLastSeats] = useState<SeatsSyncPayload | null>(null);
@@ -52,6 +53,7 @@ export function useLiveRoomBus({
         break;
       case 'pk':
         setLastPk(event.payload as PKPayload);
+        setLastPkId(event.id);
         break;
       case 'commerce':
         setLastCommerce(event.payload as CommercePayload);
@@ -91,7 +93,7 @@ export function useLiveRoomBus({
       payload: Record<string, unknown>,
     ): Promise<LiveRoomEnvelope | null> => {
       if (!roomId || !userId) return null;
-      return persistAndBroadcastLiveRoomEvent(
+      const envelope = await persistAndBroadcastLiveRoomEvent(
         roomId,
         {
           senderId: userId,
@@ -99,14 +101,22 @@ export function useLiveRoomBus({
           type,
           payload,
         },
-        (envelope) =>
+        (partial) =>
           publishLiveRoomEvent(roomId, {
-            ...envelope,
-            payload: envelope.payload,
+            ...partial,
+            payload: partial.payload,
           }),
       );
+      // Local publish already dispatched; keep id marked so cloud/LiveKit echoes are ignored.
+      // If publish was skipped (no LiveKit room yet), apply once here so the sender still updates.
+      if (envelope?.id && !seenIdsRef.current.has(envelope.id)) {
+        handleEnvelope(envelope);
+      } else if (envelope?.id) {
+        seenIdsRef.current.add(envelope.id);
+      }
+      return envelope;
     },
-    [roomId, userId, userName],
+    [roomId, userId, userName, handleEnvelope],
   );
 
   const emitGiftPlay = useCallback(
@@ -137,6 +147,7 @@ export function useLiveRoomBus({
   return {
     lastGiftPlay,
     lastPk,
+    lastPkId,
     lastCommerce,
     lastGame,
     lastSeats,

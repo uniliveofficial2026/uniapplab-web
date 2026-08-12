@@ -1,0 +1,1 @@
+Approved design references live in unilives_master_source/references/. Copy individual approved files here when promoting; never whole boards into public runtime.

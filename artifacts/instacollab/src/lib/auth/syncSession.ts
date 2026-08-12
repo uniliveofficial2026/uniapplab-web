@@ -2,7 +2,6 @@ import { db } from '../db/localDb';
 import { isSupabaseConfigured } from '../supabase/config';
 import { applySupabaseSessionToLocalDb, restoreSupabaseSession } from './sessionManager';
 import { isFirebaseConfigured } from '../firebase/config';
-import { getFirebaseAuth } from '../firebase/app';
 import { withTimeout } from '../supabase/withTimeout';
 import { writeStoredAuthBackend } from './providerState';
 import { applyFirebaseOAuthSessionToLocalDb } from './applyFirebaseBackupSession';
@@ -41,6 +40,7 @@ export async function syncCloudSessionNow(): Promise<{ ok: true } | { ok: false;
   }
 
   if (isFirebaseConfigured()) {
+    const { getFirebaseAuth } = await import('../firebase/app');
     const auth = getFirebaseAuth();
     const user = auth?.currentUser;
     if (user) {

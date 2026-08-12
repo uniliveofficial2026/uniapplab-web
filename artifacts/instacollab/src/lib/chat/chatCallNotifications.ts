@@ -15,6 +15,7 @@ import {
   isPopoutNotificationSupported,
   requestChatPopoutPermission,
 } from './chatPopoutNotifications';
+import { resolveAppNotificationIcon } from '../appBrand';
 
 export { requestChatPopoutPermission };
 
@@ -62,7 +63,7 @@ export function notifyIncomingChatCall(detail: IncomingChatCall): void {
       const notification = new Notification(title, {
         body: body.slice(0, 240),
         tag: `chat-call-${detail.chatId}-${detail.callRoomName ?? callKind}`,
-        icon: '/brand/app-logo.png',
+        icon: resolveAppNotificationIcon(),
         requireInteraction: true,
         silent: false,
       });

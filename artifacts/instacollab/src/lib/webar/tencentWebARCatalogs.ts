@@ -52,13 +52,15 @@ async function fetchEffectListByLabels(
   instance: TencentWebARInstance,
   labels: string[],
 ): Promise<TencentEffectItem[]> {
+  // Cap page size — PageSize 1000 froze the main thread for multiple seconds on panel open.
+  const PAGE_SIZE = 32;
   for (const lb of labels) {
     try {
       const labeled = await instance.getEffectList?.({
         Type: 'Preset',
         Label: lb,
         PageNumber: 0,
-        PageSize: 1000,
+        PageSize: PAGE_SIZE,
       });
       if (labeled?.length) return mapEffectRows(labeled);
     } catch {
@@ -70,7 +72,7 @@ async function fetchEffectListByLabels(
       Type: 'Preset',
       Label: labels,
       PageNumber: 0,
-      PageSize: 1000,
+      PageSize: PAGE_SIZE,
     });
     if (labeled?.length) return mapEffectRows(labeled);
   } catch {
@@ -84,7 +86,7 @@ async function fetchAllPresetEffects(instance: TencentWebARInstance): Promise<Te
     const all = await instance.getEffectList?.({
       Type: 'Preset',
       PageNumber: 0,
-      PageSize: 1000,
+      PageSize: 48,
     });
     if (all?.length) return mapEffectRows(all);
   } catch {
@@ -182,11 +184,9 @@ export async function refreshSharedEffectCatalogs(
   instance: TencentWebARInstance,
   attempts = 4,
 ): Promise<boolean> {
+  // If we already have a session/local catalog, NEVER refresh mid-session.
+  // Background getEffectList(PageSize huge) was the 4–9s freeze on beauty taps.
   if (hasSharedEffectCatalogRows() && sharedCatalogsLoaded) {
-    // Still refresh in background once, but report ready immediately.
-    void loadEffectCatalogsFromInstance(instance).then((payload) => {
-      commitEffectCatalogsToShared(payload);
-    });
     return true;
   }
 

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { TrendingUp, Hash, Users, Zap, ArrowRight, Play, Heart, MessageCircle } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 
 interface Props {
   onContinue: () => void;
@@ -34,13 +35,13 @@ export function TrendingScreen({ onContinue }: Props) {
 
   const viralTopics = [
     { name: 'AIArtRevolution', posts: '1.2M', growth: '+45%' },
-    { name: 'UniLiveGlobal', posts: '850K', growth: '+12%' },
+    { name: 'UniLive’s', posts: '850K', growth: '+12%' },
     { name: 'CreativeCoding', posts: '420K', growth: '+88%' },
     { name: 'FutureOfDesign', posts: '310K', growth: '+5%' },
   ];
 
   return (
-    <div className="fixed inset-0 bg-background z-[1200] flex flex-col">
+    <div className="fixed inset-0 bg-[color:var(--color-unilives-discovery-background)] z-[1200] flex flex-col" data-unilives-trending-legacy="">
       <div className="flex-1 overflow-y-auto no-scrollbar pt-16 px-6 pb-24 max-w-lg mx-auto w-full">
         <motion.div 
           initial={{ opacity: 0, y: 10 }}
@@ -128,7 +129,14 @@ export function TrendingScreen({ onContinue }: Props) {
                           <img src={user.avatarUrl || undefined} alt="Avatar" className="w-full h-full object-cover" />
                         </div>
                         <div>
-                          <h4 className="font-bold text-foreground">@{user.username} {user.isVerified && '✓'}</h4>
+                          <h4 className="font-bold text-foreground flex items-center gap-1">
+                            @{user.username}
+                            <UniLivesVerificationBadge
+                              isVerified={!!user.isVerified}
+                              userId={user.id}
+                              iconClassName="w-3.5 h-3.5 text-primary"
+                            />
+                          </h4>
                           <p className="text-xs text-muted-foreground">{user.followers} followers</p>
                         </div>
                       </div>

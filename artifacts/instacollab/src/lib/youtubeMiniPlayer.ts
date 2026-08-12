@@ -22,7 +22,11 @@ const STORAGE_KEY = 'youtube-mini-player-v1';
 const CHANGE_EVENT = 'youtube-mini-player:change';
 const OPEN_PICKER_EVENT = 'youtube-mini-player:open-picker';
 
-const DEFAULT_SIZE = { width: 380, height: 232 };
+const DEFAULT_SIZE = { width: 380, height: 300 };
+
+export function getYoutubeMiniPlayerDefaultSize(): { width: number; height: number } {
+  return { ...DEFAULT_SIZE };
+}
 
 function defaultPosition(): { x: number; y: number } {
   if (typeof window === 'undefined') return { x: 16, y: 96 };
@@ -167,31 +171,76 @@ export function playYoutubeMiniVideo(
     minimized: false,
     pickerOpen: false,
     videoId: current.videoId,
-    playlistId: options?.playlistId ?? null,
+    // Native playlist embed only when we don't have a multi-item app queue to drive.
+    playlistId:
+      options?.queue && options.queue.length > 1
+        ? null
+        : options?.playlistId ?? null,
     queue,
     queueIndex,
     title: current.title || 'YouTube',
     channelTitle: current.channelTitle || '',
+    width: DEFAULT_SIZE.width,
+    height: DEFAULT_SIZE.height,
     x: pos.x,
     y: pos.y,
   });
 }
 
-/** Advance to the next queued video. Returns false when nothing left to play. */
+/** Advance to the next queued video (loops the playlist/feed). Returns false only when empty. */
 export function playYoutubeMiniNext(): boolean {
-  const { queue, queueIndex, playlistId } = memoryState;
-  // Native playlist auto-advances inside the iframe — don't force a reload.
-  if (playlistId) return false;
-  const nextIndex = queueIndex + 1;
-  if (nextIndex >= queue.length) return false;
+  const { queue, queueIndex } = memoryState;
+  if (queue.length === 0) return false;
+  // Prefer app queue over native playlist — keeps title/chrome in sync and works for search feeds.
+  const nextIndex = queue.length === 1 ? 0 : (queueIndex + 1) % queue.length;
   const next = queue[nextIndex];
   if (!next) return false;
+  // Same video (single-item loop) — force a remount so autoplay restarts.
+  if (next.videoId === memoryState.videoId && queue.length === 1) {
+    patchYoutubeMiniPlayerState({
+      open: true,
+      videoId: null,
+      queueIndex: 0,
+    });
+    // Microtask so react-youtube unmounts before we set the same id again.
+    queueMicrotask(() => {
+      patchYoutubeMiniPlayerState({
+        open: true,
+        videoId: next.videoId,
+        queueIndex: 0,
+        title: next.title || 'YouTube',
+        channelTitle: next.channelTitle || '',
+        playlistId: null,
+      });
+    });
+    return true;
+  }
   patchYoutubeMiniPlayerState({
     open: true,
     videoId: next.videoId,
     queueIndex: nextIndex,
     title: next.title || 'YouTube',
     channelTitle: next.channelTitle || '',
+    // App-managed queue owns advancement — drop native list so ENDED doesn't double-skip.
+    playlistId: queue.length > 1 ? null : memoryState.playlistId,
+  });
+  return true;
+}
+
+/** Go to the previous queued video (wraps within the playlist/feed). */
+export function playYoutubeMiniPrev(): boolean {
+  const { queue, queueIndex } = memoryState;
+  if (queue.length === 0) return false;
+  const prevIndex = queue.length === 1 ? 0 : (queueIndex - 1 + queue.length) % queue.length;
+  const prev = queue[prevIndex];
+  if (!prev) return false;
+  patchYoutubeMiniPlayerState({
+    open: true,
+    videoId: prev.videoId,
+    queueIndex: prevIndex,
+    title: prev.title || 'YouTube',
+    channelTitle: prev.channelTitle || '',
+    playlistId: queue.length > 1 ? null : memoryState.playlistId,
   });
   return true;
 }
@@ -201,7 +250,14 @@ export function toggleYoutubeMiniPlayerMinimized(): void {
     openYoutubeMiniPlayerPicker();
     return;
   }
-  patchYoutubeMiniPlayerState({ minimized: !memoryState.minimized, open: true });
+  const nextMinimized = !memoryState.minimized;
+  patchYoutubeMiniPlayerState({
+    minimized: nextMinimized,
+    open: true,
+    ...(nextMinimized
+      ? {}
+      : { width: DEFAULT_SIZE.width, height: DEFAULT_SIZE.height }),
+  });
 }
 
 export function closeYoutubeMiniPlayer(): void {

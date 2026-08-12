@@ -1,9 +1,14 @@
-/** Max length for data-URL avatars stored in Supabase `profiles.avatar_url`. */
-export const MAX_CLOUD_AVATAR_DATA_URL_CHARS = 350_000;
+/**
+ * Avatars must be https URLs (R2 CDN), never large data: URLs in Postgres.
+ */
+import { uploadDataUrlToR2 } from '../media/r2Upload';
+
+/** Soft cap for accidental leftover data URLs — prefer R2 always. */
+export const MAX_CLOUD_AVATAR_DATA_URL_CHARS = 80_000;
 
 const MAX_AVATAR_EDGE_PX = 512;
 const JPEG_QUALITY_START = 0.85;
-const TARGET_MAX_CHARS = 280_000;
+const TARGET_MAX_CHARS = 60_000;
 
 function isOversizedDataUrl(url: string): boolean {
   return url.startsWith('data:') && url.length > MAX_CLOUD_AVATAR_DATA_URL_CHARS;
@@ -32,7 +37,7 @@ export function cloudSafeAvatarUrl(
   return { url: safeFallback, trimmedForSize: true };
 }
 
-/** Resize/compress uploaded photos so they fit in Supabase text column. */
+/** Resize/compress uploaded photos before R2 upload. */
 export function compressAvatarDataUrl(dataUrl: string): Promise<string> {
   if (!dataUrl.startsWith('data:image/')) return Promise.resolve(dataUrl);
   if (dataUrl.length <= 80_000) return Promise.resolve(dataUrl);
@@ -68,7 +73,10 @@ export function compressAvatarDataUrl(dataUrl: string): Promise<string> {
   });
 }
 
-/** Prepare avatar for cloud profile row (compress uploads, keep https URLs as-is). */
+/**
+ * Prepare avatar for cloud profile row.
+ * data: images → compress → upload to R2 → store https URL only.
+ */
 export async function avatarUrlForCloudUpload(
   avatarUrl: string,
   fallback: string
@@ -76,8 +84,21 @@ export async function avatarUrlForCloudUpload(
   const trimmed = avatarUrl.trim() || fallback.trim();
   if (!trimmed) return { url: '', trimmedForSize: false };
 
+  if (trimmed.startsWith('https://') || trimmed.startsWith('http://')) {
+    return { url: trimmed, trimmedForSize: false };
+  }
+
   if (trimmed.startsWith('data:')) {
     const compressed = await compressAvatarDataUrl(trimmed);
+    const r2Url = await uploadDataUrlToR2({
+      folder: 'avatars',
+      dataUrl: compressed,
+      fileName: 'avatar.jpg',
+    });
+    if (r2Url) {
+      return { url: r2Url, trimmedForSize: true };
+    }
+    // Dev fallback only when R2 is not configured — keep a small data URL.
     const safe = cloudSafeAvatarUrl(compressed, fallback);
     return {
       url: safe.url,

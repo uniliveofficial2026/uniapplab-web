@@ -1,9 +1,5 @@
 import { db } from '../db/localDb';
-import { getFirebaseAuth } from '../firebase/app';
-import {
-  getLinkedSupabaseUserIdForFirebase,
-  readFirebaseBackupLink,
-} from './firebaseBackupLink';
+import { readFirebaseBackupLink } from './firebaseBackupLink';
 import { isSupabaseAuthUserId } from './activeBackend';
 import { isSupabaseOAuthDegraded } from './providerState';
 
@@ -21,12 +17,8 @@ export function shouldIgnoreSupabaseSignedOut(): boolean {
   const link = readFirebaseBackupLink();
   if (link?.supabaseUserId === userId) return true;
 
-  const fbUser = getFirebaseAuth()?.currentUser;
-  if (fbUser && getLinkedSupabaseUserIdForFirebase(fbUser.uid) === userId) {
-    return true;
-  }
-
-  if (isSupabaseOAuthDegraded() && fbUser) {
+  // Live Auth.currentUser requires Firebase SDK — only gate on session link + degraded flag.
+  if (isSupabaseOAuthDegraded() && link?.supabaseUserId === userId) {
     return true;
   }
 

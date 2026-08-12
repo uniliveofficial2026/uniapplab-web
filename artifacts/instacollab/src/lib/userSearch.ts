@@ -1,16 +1,18 @@
 import type { User } from '../types';
 import { isFirebaseConfigured } from './firebase/config';
-import { searchFirebaseProfiles } from './firebase/profileSearch';
 import { isSupabaseConfigured } from './supabase/config';
 import { searchSupabaseProfiles } from './supabase/profileSearch';
 import { safeString } from './safe';
 import { isCloudAuthUserId } from './auth/cloudProfile';
+import { normalizeSearchTerm } from './searchNormalize';
 
-function normalizeSearchTerm(query: string): string {
-  return query.trim().toLowerCase();
+export { normalizeSearchTerm } from './searchNormalize';
+
+function searchableUserPart(value: unknown): string {
+  return safeString(value).toLowerCase().replace(/^@+/, '');
 }
 
-/** Match username, display name, or public user id (case-insensitive). */
+/** Match username, display name, or public user id (case-insensitive; `@` optional). */
 export function userMatchesSearchQuery(user: User, query: string): boolean {
   const term = normalizeSearchTerm(query);
   if (!term) return true;
@@ -20,7 +22,7 @@ export function userMatchesSearchQuery(user: User, query: string): boolean {
     user.publicUserId,
     user.id,
   ]
-    .map((part) => safeString(part).toLowerCase())
+    .map(searchableUserPart)
     .join(' ');
   return haystack.includes(term);
 }
@@ -72,6 +74,7 @@ export async function searchCloudProfiles(
     return searchSupabaseProfiles(term, limit);
   }
   if (isFirebaseConfigured()) {
+    const { searchFirebaseProfiles } = await import('./firebase/profileSearch');
     return searchFirebaseProfiles(term, limit);
   }
   return [];

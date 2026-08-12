@@ -3,9 +3,10 @@ import { db } from '../db/localDb';
 import { authSignOut } from './authService';
 import { flushCloudAppStateSync } from './cloudAppState';
 import { flushCloudProfileSync } from './cloudProfile';
-import { clearActiveDeviceUid } from './deviceAccounts';
+import { clearActiveDeviceUid, clearGoogleAccessToken } from './deviceAccounts';
 import { clearStoredAccountSession } from './storedAccountSessions';
 import { teardownCloudSession } from './sessionManager';
+import { clearSessionCache } from '../sessionCache';
 
 /** Max wait for cloud flush before switch/logout — UX must not hang on slow networks. */
 const AUTH_HANDOFF_FLUSH_MS = 800;
@@ -44,14 +45,17 @@ export type FastSignOutOptions = {
 };
 
 /**
- * Instant local logout; cloud flush + provider sign-out continue in background.
+ * Complete device logout: wipe local session/cache pin, stored tokens, Google token,
+ * then sign out Supabase + Firebase in the background.
  */
 export function signOutFast(options: FastSignOutOptions = {}): void {
   const uid = options.userId ?? db.currentUserId;
-  finalizeLocalAuthSession();
   if (options.clearStoredSession && uid) {
     clearStoredAccountSession(uid);
+    clearGoogleAccessToken(uid);
   }
+  clearSessionCache();
+  finalizeLocalAuthSession();
   flushAuthHandoffInBackground();
   runProviderSignOutInBackground();
 }

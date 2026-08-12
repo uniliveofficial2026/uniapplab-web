@@ -6,13 +6,20 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { findEnvFile, getAppRoot, getWorkspaceRoot, readEnvFile } from './resolveProjectEnv.mjs';
-
-const STALE_PROJECT_REFS = new Set(['kgiaflmukkguzjtmcuqd']);
+import {
+  STALE_PROJECT_REFS,
+  assignEnvUnlessStale,
+  isStaleSupabaseUrl,
+  supabaseProjectRef,
+} from './stale-supabase-refs.mjs';
 
 function loadBuildEnv() {
   const appRoot = getAppRoot(import.meta.dirname);
   const repoRoot = getWorkspaceRoot(appRoot);
-  const merged = { ...readEnvFile(findEnvFile(import.meta.dirname)) };
+  const merged = {};
+  for (const [key, value] of Object.entries(readEnvFile(findEnvFile(import.meta.dirname)))) {
+    assignEnvUnlessStale(merged, key, value);
+  }
   for (const dir of [appRoot, repoRoot]) {
     for (const name of ['.env.production', '.env.production.local', '.env', '.env.local']) {
       const file = path.join(dir, name);
@@ -22,30 +29,22 @@ function loadBuildEnv() {
         if (!trimmed || trimmed.startsWith('#')) continue;
         const m = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
         if (!m) continue;
-        merged[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+        assignEnvUnlessStale(merged, m[1], m[2]);
       }
     }
   }
   for (const [key, value] of Object.entries(process.env)) {
     if ((key.startsWith('VITE_') || key.startsWith('SUPABASE_')) && value) {
-      merged[key] = value;
+      assignEnvUnlessStale(merged, key, value);
     }
   }
   return merged;
 }
 
-function projectRef(url) {
-  try {
-    return new URL(url).hostname.split('.')[0];
-  } catch {
-    return null;
-  }
-}
-
 const appRoot = getAppRoot(import.meta.dirname);
 const outPath = path.join(appRoot, 'public', 'supabase-config.json');
 const existing =
-  fs.existsSync(outPath) && STALE_PROJECT_REFS.has(projectRef(JSON.parse(fs.readFileSync(outPath, 'utf8')).supabaseUrl || ''))
+  fs.existsSync(outPath) && isStaleSupabaseUrl(JSON.parse(fs.readFileSync(outPath, 'utf8')).supabaseUrl || '')
     ? null
     : fs.existsSync(outPath)
       ? JSON.parse(fs.readFileSync(outPath, 'utf8'))
@@ -65,12 +64,14 @@ let anonKey =
   existing?.supabaseAnonKey ||
   '';
 
-const ref = projectRef(url);
+const ref = supabaseProjectRef(url);
 if (ref && STALE_PROJECT_REFS.has(ref)) {
-  if (existing?.supabaseUrl && !STALE_PROJECT_REFS.has(projectRef(existing.supabaseUrl))) {
+  if (existing?.supabaseUrl && !isStaleSupabaseUrl(existing.supabaseUrl)) {
     url = existing.supabaseUrl;
     anonKey = existing.supabaseAnonKey || anonKey;
-    console.warn(`[supabase-config] Ignoring stale Vercel project ${ref}; keeping ${projectRef(url)} from public/supabase-config.json`);
+    console.warn(
+      `[supabase-config] Ignoring stale Vercel project ${ref}; keeping ${supabaseProjectRef(url)} from public/supabase-config.json`,
+    );
   } else {
     console.error(`[supabase-config] Refusing to write stale Supabase project ${ref}.`);
     console.error('  Update Vercel Production env to the active Supabase project, or commit public/supabase-config.json.');
@@ -81,7 +82,7 @@ if (ref && STALE_PROJECT_REFS.has(ref)) {
 if (!url || !anonKey || /your[_-]?(project|anon|publishable)/i.test(url + anonKey)) {
   if (existing?.supabaseUrl && existing?.supabaseAnonKey) {
     fs.writeFileSync(outPath, `${JSON.stringify(existing, null, 2)}\n`);
-    console.log(`[supabase-config] Kept existing ${outPath} (${projectRef(existing.supabaseUrl)})`);
+    console.log(`[supabase-config] Kept existing ${outPath} (${supabaseProjectRef(existing.supabaseUrl)})`);
     process.exit(0);
   }
   console.warn('[supabase-config] Supabase env missing — skipping write (demo build OK)');
@@ -90,4 +91,4 @@ if (!url || !anonKey || /your[_-]?(project|anon|publishable)/i.test(url + anonKe
 
 const payload = { supabaseUrl: url, supabaseAnonKey: anonKey };
 fs.writeFileSync(outPath, `${JSON.stringify(payload, null, 2)}\n`);
-console.log(`[supabase-config] Wrote ${outPath} (${projectRef(url)})`);
+console.log(`[supabase-config] Wrote ${outPath} (${supabaseProjectRef(url)})`);

@@ -63,12 +63,47 @@ export function publicUserIdCooldownMessage(
 export function isLocalPublicUserIdAvailable(
   users: User[],
   publicUserId: string,
-  exceptAuthId?: string
+  exceptAuthId?: string | string[]
 ): boolean {
   const normalized = normalizePublicUserId(publicUserId);
+  const except = new Set(
+    (Array.isArray(exceptAuthId) ? exceptAuthId : exceptAuthId ? [exceptAuthId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
   return !users.some((u) => {
-    if (exceptAuthId && u.id === exceptAuthId) return false;
+    if (except.has(u.id)) return false;
     const other = resolvePublicUserId(u);
-    return other === normalized;
+    if (other === normalized) return true;
+    // Also block against another account's raw username.
+    const username = (u.username || '').trim().toLowerCase();
+    return username === normalized;
   });
+}
+
+export type PublicUserIdAvailabilityStatus =
+  | 'idle'
+  | 'invalid'
+  | 'checking'
+  | 'available'
+  | 'taken'
+  | 'unreachable';
+
+export function publicUserIdAvailabilityMessage(
+  status: PublicUserIdAvailabilityStatus,
+): string | null {
+  switch (status) {
+    case 'invalid':
+      return null;
+    case 'checking':
+      return 'Checking if this User ID is available…';
+    case 'available':
+      return 'User ID is available.';
+    case 'taken':
+      return 'This User ID is already taken. Choose a different one.';
+    case 'unreachable':
+      return 'Could not verify User ID. Check your connection and try again.';
+    default:
+      return null;
+  }
 }

@@ -1,0 +1,941 @@
+{
+  "version": 1,
+  "category": "discovery",
+  "brand": "UniLive’s",
+  "assets": [
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.trending.background",
+      "name": "trending background",
+      "formats": {
+        "webp": "/unilives-assets/discovery/trending/background.webp",
+        "png": "/unilives-assets/discovery/trending/background.png"
+      },
+      "tags": [
+        "trending",
+        "background"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.trending.header",
+      "name": "trending header",
+      "formats": {
+        "webp": "/unilives-assets/discovery/trending/header.webp",
+        "png": "/unilives-assets/discovery/trending/header.png"
+      },
+      "tags": [
+        "trending",
+        "header"
+      ],
+      "priority": 70,
+      "width": 640,
+      "height": 160
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.trending.empty",
+      "name": "trending empty",
+      "formats": {
+        "svg": "/unilives-assets/discovery/trending/empty.svg",
+        "png": "/unilives-assets/discovery/trending/empty.png"
+      },
+      "tags": [
+        "trending",
+        "empty"
+      ],
+      "priority": 70,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.trending.loading",
+      "name": "trending loading",
+      "formats": {
+        "svg": "/unilives-assets/discovery/trending/loading.svg",
+        "png": "/unilives-assets/discovery/trending/loading.png"
+      },
+      "tags": [
+        "trending",
+        "loading"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.trending.error",
+      "name": "trending error",
+      "formats": {
+        "svg": "/unilives-assets/discovery/trending/error.svg",
+        "png": "/unilives-assets/discovery/trending/error.png"
+      },
+      "tags": [
+        "trending",
+        "error"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.search.background",
+      "name": "search background",
+      "formats": {
+        "webp": "/unilives-assets/discovery/search/background.webp",
+        "png": "/unilives-assets/discovery/search/background.png"
+      },
+      "tags": [
+        "search",
+        "background"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.search.empty",
+      "name": "search empty",
+      "formats": {
+        "svg": "/unilives-assets/discovery/search/empty.svg",
+        "png": "/unilives-assets/discovery/search/empty.png"
+      },
+      "tags": [
+        "search",
+        "empty"
+      ],
+      "priority": 70,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.search.loading",
+      "name": "search loading",
+      "formats": {
+        "svg": "/unilives-assets/discovery/search/loading.svg",
+        "png": "/unilives-assets/discovery/search/loading.png"
+      },
+      "tags": [
+        "search",
+        "loading"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.search.error",
+      "name": "search error",
+      "formats": {
+        "svg": "/unilives-assets/discovery/search/error.svg",
+        "png": "/unilives-assets/discovery/search/error.png"
+      },
+      "tags": [
+        "search",
+        "error"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.search.no-results",
+      "name": "search no results",
+      "formats": {
+        "svg": "/unilives-assets/discovery/search/no-results.svg",
+        "png": "/unilives-assets/discovery/search/no-results.png"
+      },
+      "tags": [
+        "search",
+        "no-results"
+      ],
+      "priority": 70,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.explore.background",
+      "name": "explore background",
+      "formats": {
+        "webp": "/unilives-assets/discovery/explore/background.webp",
+        "png": "/unilives-assets/discovery/explore/background.png"
+      },
+      "tags": [
+        "explore",
+        "background"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.explore.empty",
+      "name": "explore empty",
+      "formats": {
+        "svg": "/unilives-assets/discovery/explore/empty.svg",
+        "png": "/unilives-assets/discovery/explore/empty.png"
+      },
+      "tags": [
+        "explore",
+        "empty"
+      ],
+      "priority": 70,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.explore.loading",
+      "name": "explore loading",
+      "formats": {
+        "svg": "/unilives-assets/discovery/explore/loading.svg",
+        "png": "/unilives-assets/discovery/explore/loading.png"
+      },
+      "tags": [
+        "explore",
+        "loading"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.explore.error",
+      "name": "explore error",
+      "formats": {
+        "svg": "/unilives-assets/discovery/explore/error.svg",
+        "png": "/unilives-assets/discovery/explore/error.png"
+      },
+      "tags": [
+        "explore",
+        "error"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.background",
+      "name": "live discovery background",
+      "formats": {
+        "webp": "/unilives-assets/discovery/live/background.webp",
+        "png": "/unilives-assets/discovery/live/background.png"
+      },
+      "tags": [
+        "live",
+        "background"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.header",
+      "name": "live discovery header",
+      "formats": {
+        "webp": "/unilives-assets/discovery/live/header.webp",
+        "png": "/unilives-assets/discovery/live/header.png"
+      },
+      "tags": [
+        "live",
+        "header"
+      ],
+      "priority": 70,
+      "width": 640,
+      "height": 160
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.empty",
+      "name": "live empty",
+      "formats": {
+        "svg": "/unilives-assets/discovery/live/empty.svg",
+        "png": "/unilives-assets/discovery/live/empty.png"
+      },
+      "tags": [
+        "live",
+        "empty"
+      ],
+      "priority": 70,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.loading",
+      "name": "live loading",
+      "formats": {
+        "svg": "/unilives-assets/discovery/live/loading.svg",
+        "png": "/unilives-assets/discovery/live/loading.png"
+      },
+      "tags": [
+        "live",
+        "loading"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.error",
+      "name": "live error",
+      "formats": {
+        "svg": "/unilives-assets/discovery/live/error.svg",
+        "png": "/unilives-assets/discovery/live/error.png"
+      },
+      "tags": [
+        "live",
+        "error"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.card-placeholder",
+      "name": "live card placeholder",
+      "formats": {
+        "webp": "/unilives-assets/discovery/live/card-placeholder.webp",
+        "png": "/unilives-assets/discovery/live/card-placeholder.png"
+      },
+      "tags": [
+        "live",
+        "card"
+      ],
+      "priority": 70,
+      "width": 300,
+      "height": 400
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.viewer-count",
+      "name": "live viewer count mark",
+      "formats": {
+        "svg": "/unilives-assets/discovery/live/viewer-count.svg",
+        "png": "/unilives-assets/discovery/live/viewer-count.png"
+      },
+      "tags": [
+        "live",
+        "viewer"
+      ],
+      "priority": 70,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.live.live-indicator",
+      "name": "live indicator",
+      "formats": {
+        "svg": "/unilives-assets/discovery/live/live-indicator.svg",
+        "png": "/unilives-assets/discovery/live/live-indicator.png"
+      },
+      "tags": [
+        "live",
+        "indicator"
+      ],
+      "priority": 70,
+      "width": 48,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.background",
+      "name": "party lobby background",
+      "formats": {
+        "webp": "/unilives-assets/discovery/party/background.webp",
+        "png": "/unilives-assets/discovery/party/background.png"
+      },
+      "tags": [
+        "party",
+        "background"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.header",
+      "name": "party header",
+      "formats": {
+        "webp": "/unilives-assets/discovery/party/header.webp",
+        "png": "/unilives-assets/discovery/party/header.png"
+      },
+      "tags": [
+        "party",
+        "header"
+      ],
+      "priority": 70,
+      "width": 640,
+      "height": 160
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.empty",
+      "name": "party empty",
+      "formats": {
+        "svg": "/unilives-assets/discovery/party/empty.svg",
+        "png": "/unilives-assets/discovery/party/empty.png"
+      },
+      "tags": [
+        "party",
+        "empty"
+      ],
+      "priority": 70,
+      "width": 256,
+      "height": 256
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.loading",
+      "name": "party loading",
+      "formats": {
+        "svg": "/unilives-assets/discovery/party/loading.svg",
+        "png": "/unilives-assets/discovery/party/loading.png"
+      },
+      "tags": [
+        "party",
+        "loading"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.error",
+      "name": "party error",
+      "formats": {
+        "svg": "/unilives-assets/discovery/party/error.svg",
+        "png": "/unilives-assets/discovery/party/error.png"
+      },
+      "tags": [
+        "party",
+        "error"
+      ],
+      "priority": 70,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.card-placeholder",
+      "name": "party card placeholder",
+      "formats": {
+        "webp": "/unilives-assets/discovery/party/card-placeholder.webp",
+        "png": "/unilives-assets/discovery/party/card-placeholder.png"
+      },
+      "tags": [
+        "party",
+        "card"
+      ],
+      "priority": 70,
+      "width": 400,
+      "height": 200
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.audio-indicator",
+      "name": "party audio indicator",
+      "formats": {
+        "svg": "/unilives-assets/discovery/party/audio-indicator.svg",
+        "png": "/unilives-assets/discovery/party/audio-indicator.png"
+      },
+      "tags": [
+        "party",
+        "audio"
+      ],
+      "priority": 70,
+      "width": 24,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.video-indicator",
+      "name": "party video indicator",
+      "formats": {
+        "svg": "/unilives-assets/discovery/party/video-indicator.svg",
+        "png": "/unilives-assets/discovery/party/video-indicator.png"
+      },
+      "tags": [
+        "party",
+        "video"
+      ],
+      "priority": 70,
+      "width": 24,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.pk-indicator",
+      "name": "party PK indicator",
+      "formats": {
+        "svg": "/unilives-assets/discovery/party/pk-indicator.svg",
+        "png": "/unilives-assets/discovery/party/pk-indicator.png"
+      },
+      "tags": [
+        "party",
+        "pk"
+      ],
+      "priority": 70,
+      "width": 48,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.party.team-pk-indicator",
+      "name": "party team PK indicator",
+      "formats": {
+        "svg": "/unilives-assets/discovery/party/team-pk-indicator.svg",
+        "png": "/unilives-assets/discovery/party/team-pk-indicator.png"
+      },
+      "tags": [
+        "party",
+        "team-pk"
+      ],
+      "priority": 70,
+      "width": 48,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.creator.placeholder",
+      "name": "creator placeholder",
+      "formats": {
+        "webp": "/unilives-assets/discovery/creator/placeholder.webp",
+        "png": "/unilives-assets/discovery/creator/placeholder.png"
+      },
+      "tags": [
+        "creator"
+      ],
+      "priority": 70,
+      "width": 112,
+      "height": 112
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.creator.verified",
+      "name": "creator verified",
+      "formats": {
+        "svg": "/unilives-assets/discovery/creator/verified.svg",
+        "png": "/unilives-assets/discovery/creator/verified.png"
+      },
+      "tags": [
+        "creator",
+        "verified"
+      ],
+      "priority": 70,
+      "width": 24,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.creator.following",
+      "name": "creator following",
+      "formats": {
+        "svg": "/unilives-assets/discovery/creator/following.svg",
+        "png": "/unilives-assets/discovery/creator/following.png"
+      },
+      "tags": [
+        "creator",
+        "following"
+      ],
+      "priority": 70,
+      "width": 24,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.creator.recommended",
+      "name": "creator recommended",
+      "formats": {
+        "svg": "/unilives-assets/discovery/creator/recommended.svg",
+        "png": "/unilives-assets/discovery/creator/recommended.png"
+      },
+      "tags": [
+        "creator",
+        "recommended"
+      ],
+      "priority": 70,
+      "width": 24,
+      "height": 24
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.category.trending",
+      "name": "category trending",
+      "formats": {
+        "svg": "/unilives-assets/discovery/category/trending.svg",
+        "png": "/unilives-assets/discovery/category/trending.png"
+      },
+      "tags": [
+        "category",
+        "trending"
+      ],
+      "priority": 70,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.category.live",
+      "name": "category live",
+      "formats": {
+        "svg": "/unilives-assets/discovery/category/live.svg",
+        "png": "/unilives-assets/discovery/category/live.png"
+      },
+      "tags": [
+        "category",
+        "live"
+      ],
+      "priority": 70,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.category.party",
+      "name": "category party",
+      "formats": {
+        "svg": "/unilives-assets/discovery/category/party.svg",
+        "png": "/unilives-assets/discovery/category/party.png"
+      },
+      "tags": [
+        "category",
+        "party"
+      ],
+      "priority": 70,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.category.music",
+      "name": "category music",
+      "formats": {
+        "svg": "/unilives-assets/discovery/category/music.svg",
+        "png": "/unilives-assets/discovery/category/music.png"
+      },
+      "tags": [
+        "category",
+        "music"
+      ],
+      "priority": 70,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.category.games",
+      "name": "category games",
+      "formats": {
+        "svg": "/unilives-assets/discovery/category/games.svg",
+        "png": "/unilives-assets/discovery/category/games.png"
+      },
+      "tags": [
+        "category",
+        "games"
+      ],
+      "priority": 70,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.category.pk",
+      "name": "category pk",
+      "formats": {
+        "svg": "/unilives-assets/discovery/category/pk.svg",
+        "png": "/unilives-assets/discovery/category/pk.png"
+      },
+      "tags": [
+        "category",
+        "pk"
+      ],
+      "priority": 70,
+      "width": 32,
+      "height": 32
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "discovery",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "discovery.fallback.default",
+      "name": "discovery fallback",
+      "formats": {
+        "png": "/unilives-assets/discovery/fallback/default.png",
+        "webp": "/unilives-assets/discovery/fallback/default.webp"
+      },
+      "tags": [
+        "fallback"
+      ],
+      "priority": 70,
+      "width": 256,
+      "height": 256
+    }
+  ]
+}

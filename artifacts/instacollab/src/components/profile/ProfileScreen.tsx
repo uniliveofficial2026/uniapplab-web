@@ -8,10 +8,9 @@ import { buildContextualProfileSharePayload } from '../../lib/profileShare';
 import { Post } from '../feed/Post';
 import { useToast } from '../../lib/ToastContext';
 import { useAuth } from '../../lib/AuthContext';
-import { useCloudAuth } from '../../contexts/CloudAuthContext';
+import { useCloudAuth } from '../../contexts/cloudAuthStore';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
-import { scheduleCloudProfileSync } from '../../lib/auth/cloudProfile';
-import { syncDeviceAccountForAppUser } from '../../lib/auth/deviceAccounts';
+import { commitUserProfile } from '../../lib/auth/userDataFlow';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { getFirestoreDB, handleFirestoreError, OperationType } from '../../lib/firebase';
@@ -69,13 +68,12 @@ export function ProfileScreen({
   const { showToast } = useToast();
   
   const handleLogout = () => {
-    if (!window.confirm(`Log out of ${APP_DISPLAY_NAME} on this device?`)) return;
+    if (!window.confirm(`Completely log out of ${APP_DISPLAY_NAME} on this device?`)) return;
     void (async () => {
       if (isCloudAuthConfigured()) {
         await cloudSignOut();
-      } else {
-        await firebaseLogout();
       }
+      await firebaseLogout();
       showToast('Logged out');
     })();
   };
@@ -313,40 +311,20 @@ export function ProfileScreen({
     </>
   );
 
-  const updateUserProfile = async (fieldUpdates: any) => {
-    const updatedUser = { ...localUser, ...fieldUpdates, updatedAt: new Date().toISOString() };
-    setLocalUser(updatedUser);
-    
-    // 1. Update local DB
-    db.updateUser(localUser.id, () => updatedUser);
-    
-    // 2. Update AuthContext profile state (only if it matches logged-in user)
-    if (isCurrentUser) {
-      setProfile(updatedUser);
-      // 3. Save to localStorage backup
-      try {
-        localStorage.setItem('local_profile_' + localUser.id, JSON.stringify(updatedUser));
-      } catch (e) {
-        console.warn("Storage quota exceeded or error occurred while updating profile in localStorage:", e);
-      }
-      // 4. Keep device account switcher list in sync (name / avatar)
-      syncDeviceAccountForAppUser(updatedUser);
-      // 5. Sync to Supabase profile (shared with karaoke / live ring / discovery)
-      if (isCloudAuthConfigured()) scheduleCloudProfileSync(updatedUser);
+  const updateUserProfile = async (fieldUpdates: Partial<typeof localUser>) => {
+    const result = await commitUserProfile(localUser.id, fieldUpdates);
+    if (!result.ok) {
+      showToast(result.reason);
+      return;
     }
-    
-    // 5. Update Firestore in the background
-    try {
-      const dbInstance = getFirestoreDB();
-      if (dbInstance) {
-        const { doc, setDoc, serverTimestamp } = await import('firebase/firestore');
-        await setDoc(doc(dbInstance, 'users', localUser.id), {
-          ...updatedUser,
-          updatedAt: serverTimestamp()
-        }, { merge: true });
+    setLocalUser(result.user);
+    if (isCurrentUser) {
+      setProfile(result.user);
+      try {
+        localStorage.setItem('local_profile_' + localUser.id, JSON.stringify(result.user));
+      } catch (e) {
+        console.warn('Storage quota exceeded or error occurred while updating profile in localStorage:', e);
       }
-    } catch (error) {
-      console.warn("Background Firestore profile sync failed:", error);
     }
   };
   
@@ -984,13 +962,7 @@ export function ProfileScreen({
         onClose={() => setShowAccountSwitcher(false)}
         onRefreshAccounts={refreshAccountSwitcher}
         onSelectAccount={async (uid, password) => {
-          try {
-            await selectAccount(uid, password);
-            setShowAccountSwitcher(false);
-          } catch (err) {
-            const message = err instanceof Error ? err.message : 'Failed to switch account.';
-            showToast(message);
-          }
+          await selectAccount(uid, password);
         }}
         onRemoveAccount={(uid) => {
           removeAccount(uid);

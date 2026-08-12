@@ -3,6 +3,7 @@ import {
   chunkLoadUserMessage,
   invalidHookUserMessage,
   isChunkLoadError,
+  isFirestoreStorageQuotaError,
   isRecoverableRenderError,
 } from '../../lib/lazyWithRetry';
 import { refreshCloudSystemsInPlace } from '../../lib/appCloudSystems';
@@ -20,19 +21,16 @@ interface ErrorBoundaryState {
   recovering: boolean;
 }
 
-const RENDER_RECOVERY_KEY = 'instacollab-render-recovery';
-
-function recoverFromStaleRender(): boolean {
-  if (typeof window === 'undefined') return false;
+/**
+ * Soft recover only — hard location.reload() caused blank-screen loops during HMR/dev.
+ */
+function softRecoverHint(): void {
+  if (typeof window === 'undefined') return;
   try {
-    const last = Number(sessionStorage.getItem(RENDER_RECOVERY_KEY) || '0');
-    if (Date.now() - last < 15_000) return false;
-    sessionStorage.setItem(RENDER_RECOVERY_KEY, String(Date.now()));
+    refreshCloudSystemsInPlace('render-soft-recover');
   } catch {
     /* ignore */
   }
-  window.location.reload();
-  return true;
 }
 
 export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
@@ -40,6 +38,9 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
 
   static getDerivedStateFromError(error: unknown): ErrorBoundaryState {
     const raw = error instanceof Error ? error.message : 'Something went wrong';
+    if (isFirestoreStorageQuotaError(error) || isFirestoreStorageQuotaError(raw)) {
+      return { hasError: true, message: raw, recovering: true };
+    }
     if (isRecoverableRenderError(error) || isRecoverableRenderError(raw)) {
       return { hasError: true, message: invalidHookUserMessage(), recovering: true };
     }
@@ -48,15 +49,11 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
   }
 
   private handleRetry = () => {
-    if (isChunkLoadError(this.state.message) || this.state.recovering) {
-      stageAppUpdate(this.state.recovering ? 'render-retry' : 'chunk-retry');
-      refreshCloudSystemsInPlace(this.state.recovering ? 'render-retry' : 'chunk-retry');
-      if (this.state.recovering) {
-        recoverFromStaleRender();
-        return;
-      }
-      this.setState({ hasError: false, message: '', recovering: false });
-      return;
+    if (isChunkLoadError(this.state.message)) {
+      stageAppUpdate('chunk-retry');
+      refreshCloudSystemsInPlace('chunk-retry');
+    } else if (this.state.recovering) {
+      softRecoverHint();
     }
     this.setState({ hasError: false, message: '', recovering: false });
   };
@@ -65,17 +62,41 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
     const label = this.props.screen ? `[${this.props.screen}]` : '';
     console.error(`UI error boundary${label}:`, error, info.componentStack);
 
-    if (isRecoverableRenderError(error) || this.state.recovering) {
-      recoverFromStaleRender();
+    if (isFirestoreStorageQuotaError(error) || isFirestoreStorageQuotaError(this.state.message)) {
+      void import('../../lib/firebase/app')
+        .then((m) => m.purgeFirestoreWebStorage())
+        .catch(() => {
+          /* ignore */
+        });
+      this.setState({ recovering: true });
+      window.setTimeout(() => {
+        this.setState({ hasError: false, message: '', recovering: false });
+      }, 50);
+      return;
+    }
+
+    // Auto soft-retry once for HMR/hook desync — never hard-reload (that blanks the app).
+    if (this.state.recovering) {
+      window.setTimeout(() => {
+        this.setState({ hasError: false, message: '', recovering: false });
+      }, 50);
     }
   }
 
   render() {
     if (this.state.hasError) {
       if (this.props.fallback) return this.props.fallback;
+      // Still recovering — keep a painted shell, not a white void.
+      if (this.state.recovering) {
+        return (
+          <div className="flex min-h-[40vh] w-full flex-1 items-center justify-center bg-background">
+            <div className="h-9 w-9 animate-pulse rounded-full bg-muted/80" />
+          </div>
+        );
+      }
       return (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 p-6 text-center">
-          <p className="text-lg font-bold text-foreground">Something went wrong</p>
+        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 bg-background p-6 text-center text-foreground">
+          <p className="text-lg font-bold">Something went wrong</p>
           {this.props.screen ? (
             <p className="text-xs text-muted-foreground">Screen: {this.props.screen}</p>
           ) : null}
@@ -85,7 +106,7 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"
             onClick={this.handleRetry}
           >
-            {isChunkLoadError(this.state.message) || this.state.recovering ? 'Reload app' : 'Try again'}
+            Try again
           </button>
         </div>
       );

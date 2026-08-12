@@ -1,8 +1,9 @@
 import { giftTierFromStars } from './giftTiers';
 import type { GiftEffectDefinition } from './giftEffectCatalogTypes';
+import { listStudioExtraGiftDefinitions } from './giftStudioCatalog';
 
 /** Builtin showcase catalog — tiers follow coin ranges in giftTiers.ts. */
-export const GIFT_EFFECT_CATALOG_BASE: GiftEffectDefinition[] = [
+const BUILTIN_GIFT_EFFECT_CATALOG: GiftEffectDefinition[] = [
   // Normal · 1–99 · small icon
   { id: 'rose', name: 'Rose', icon: '🌹', stars: 5, tier: giftTierFromStars(5), particleColor: '#fb7185' },
   { id: 'heart', name: 'Heart', icon: '💖', stars: 10, tier: giftTierFromStars(10), particleColor: '#f472b6' },
@@ -128,3 +129,12 @@ export const GIFT_EFFECT_CATALOG_BASE: GiftEffectDefinition[] = [
     particleColor: '#fde68a',
   },
 ];
+
+/** Builtin + live-gift-studio catalog (studio ids never overwrite builtin SVGA gifts). */
+export const GIFT_EFFECT_CATALOG_BASE: GiftEffectDefinition[] = (() => {
+  const byId = new Map(BUILTIN_GIFT_EFFECT_CATALOG.map((gift) => [gift.id, gift]));
+  for (const gift of listStudioExtraGiftDefinitions()) {
+    if (!byId.has(gift.id)) byId.set(gift.id, gift);
+  }
+  return Array.from(byId.values()).sort((a, b) => a.stars - b.stars);
+})();

@@ -1,6 +1,6 @@
 import type { LocalGameBundle } from './types';
 
-const DB_NAME = 'InstaCollabLocalGames';
+const DB_NAME = 'UniLiveLocalGames';
 const DB_VERSION = 1;
 const STORE = 'bundles';
 

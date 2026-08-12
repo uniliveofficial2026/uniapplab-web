@@ -24,6 +24,8 @@ export type SettlePartyGiftOptions = {
   combo?: number;
   clientRequestId?: string;
   tier?: string;
+  /** Caller already debited local coins for instant UI; settle must not debit again. */
+  alreadyDebitedLocally?: boolean;
 };
 
 /** Debit sender and credit receiver for a party-room gift (API → Firebase → local). */
@@ -38,6 +40,7 @@ export async function settlePartyGiftSend(
   const quantity = Math.max(1, Math.floor(options?.quantity ?? 1));
   const unitPrice = Math.max(1, Math.floor(cost / quantity) || cost);
   const totalCost = unitPrice * quantity;
+  const alreadyDebited = Boolean(options?.alreadyDebitedLocally);
 
   if (!buyerId || totalCost <= 0) {
     return { ok: false, reason: 'Invalid gift' };
@@ -45,7 +48,7 @@ export async function settlePartyGiftSend(
   if (buyerId !== db.currentUserId?.trim()) {
     return { ok: false, reason: 'Gift send requires the active account' };
   }
-  if (getLiveCoinsBalance(buyerId) < totalCost) {
+  if (!alreadyDebited && getLiveCoinsBalance(buyerId) < totalCost) {
     return { ok: false, reason: 'Not enough coins' };
   }
 
@@ -112,7 +115,12 @@ export async function settlePartyGiftSend(
     // 2) Firebase dual-lane settle
     if (isFirebaseGiftWalletAvailable()) {
       try {
-        await ensureFirebaseWallet(buyerId, getLiveCoinsBalance(buyerId));
+        await ensureFirebaseWallet(
+          buyerId,
+          alreadyDebited
+            ? getLiveCoinsBalance(buyerId) + totalCost
+            : getLiveCoinsBalance(buyerId),
+        );
         const settle = await settleFirebaseGiftSend({
           senderId: buyerId,
           receiverId,
@@ -129,7 +137,7 @@ export async function settlePartyGiftSend(
           const nextCoins = settle.balances?.senderCoins;
           if (typeof nextCoins === 'number') {
             saveWalletCoinsBalance(buyerId, nextCoins);
-          } else {
+          } else if (!alreadyDebited) {
             spendWalletCoins(buyerId, totalCost);
           }
           if (typeof window !== 'undefined') {
@@ -173,8 +181,10 @@ export async function settlePartyGiftSend(
     }
   }
 
-  if (!spendWalletCoins(buyerId, totalCost)) {
-    return { ok: false, reason: 'Not enough coins' };
+  if (!alreadyDebited) {
+    if (!spendWalletCoins(buyerId, totalCost)) {
+      return { ok: false, reason: 'Not enough coins' };
+    }
   }
   if (receiverId && receiverId !== buyerId) {
     creditUserCoins(receiverId, totalCost);

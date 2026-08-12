@@ -200,7 +200,7 @@ async function buildPkLiveHosts(
         if (!userId || userId === selfUserId) continue;
         const liveKind = String(row.liveKind ?? row.live_kind ?? 'solo');
         const roomMode = roomModeFromLiveKind(
-          liveKind as 'solo' | 'commerce' | 'game' | 'audio-room' | 'video-multi' | 'pk',
+          liveKind as 'solo' | 'commerce' | 'game' | 'audio-room' | 'video-multi' | 'pk' | 'party',
         );
         if (!isPkEligibleRoomMode(roomMode)) continue;
         const profile = await readProfile(userId);

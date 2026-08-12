@@ -2,7 +2,7 @@
  * Apply custom app logo to document head (favicon, apple-touch-icon, PWA manifest)
  * so every shell — browser tab, home screen, install prompt — uses the same mark.
  */
-import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME, APP_SHORT_NAME } from './appBrand';
+import { APP_BRAND_FALLBACK_ICON, APP_DISPLAY_NAME, APP_SHORT_NAME, resolveAppBrandFallbackIcon } from './appBrand';
 import { readPlatformAppBrandCache } from './cloudSocial/platformAppBrandCloud';
 import { isUniapplabHost } from './domains/uniapplab';
 import { db } from './db/localDb';
@@ -77,10 +77,12 @@ function readPlatformBrandFromLocalStorage(): AppBrandSnapshot | null {
 }
 
 function hasCustomLogo(brand: AppBrandSnapshot): boolean {
+  const fallback = resolveAppBrandFallbackIcon();
   return Boolean(
     brand.logoUrl &&
       brand.mediaType !== 'video' &&
-      brand.logoUrl !== APP_BRAND_FALLBACK_ICON,
+      brand.logoUrl !== APP_BRAND_FALLBACK_ICON &&
+      brand.logoUrl !== fallback,
   );
 }
 
@@ -102,7 +104,7 @@ export function readAppBrandSnapshot(): AppBrandSnapshot {
   if (settings.logoUrl) return settings;
 
   return {
-    logoUrl: APP_BRAND_FALLBACK_ICON,
+    logoUrl: resolveAppBrandFallbackIcon(),
     mediaType: 'image',
   };
 }
@@ -115,7 +117,7 @@ function canUseApiBrandRoutes(): boolean {
 
 /** Install/PWA requires fetchable URLs — route data URLs through the API icon endpoint. */
 function resolveHeadIconHref(brand: AppBrandSnapshot): string {
-  if (!hasCustomLogo(brand)) return APP_BRAND_FALLBACK_ICON;
+  if (!hasCustomLogo(brand)) return resolveAppBrandFallbackIcon();
   const logo = brand.logoUrl!;
   if (canUseApiBrandRoutes() && (logo.startsWith('data:') || logo.length > 2048)) {
     return API_BRAND_ICON;
@@ -197,6 +199,15 @@ export function initAppBrandRuntime(): void {
   window.addEventListener('app-brand:updated', refreshBrand);
   window.addEventListener('platform-app-brand-updated', refreshBrand);
 
+  // On every app access / tab focus, re-read snapshot so logo surfaces stay current.
+  const refreshOnAccess = () => {
+    if (document.visibilityState && document.visibilityState !== 'visible') return;
+    refreshBrand();
+  };
+  window.addEventListener('focus', refreshOnAccess);
+  document.addEventListener('visibilitychange', refreshOnAccess);
+  window.addEventListener('pageshow', refreshOnAccess);
+
   db.subscribe(() => {
     const next = resolveHeadIconHref(readAppBrandSnapshot());
     if (next !== lastAppliedLogo) {
@@ -207,10 +218,28 @@ export function initAppBrandRuntime(): void {
 
 /** Session hint: open Workspace on the admin & brand portal tab. */
 export const WORKSPACE_ADMIN_TAB_HINT = 'workspace_open_admin_tab';
+/** Session hint: after workspace unlock, open Admin Control → Greedy Tap Admin. */
+export const WORKSPACE_GREEDY_ADMIN_HINT = 'workspace_open_greedy_admin';
+export const WORKSPACE_GREEDY_ADMIN_EVENT = 'workspace-open-greedy-admin';
 
 export function requestWorkspaceAdminTab(): void {
   try {
     sessionStorage.setItem(WORKSPACE_ADMIN_TAB_HINT, '1');
+  } catch {
+    /* ignore */
+  }
+}
+
+/** Admin Panel nav: unlock workspace, then land on Greedy admin inside Admin & Portal. */
+export function requestWorkspaceGreedyAdmin(): void {
+  try {
+    sessionStorage.setItem(WORKSPACE_ADMIN_TAB_HINT, '1');
+    sessionStorage.setItem(WORKSPACE_GREEDY_ADMIN_HINT, '1');
+  } catch {
+    /* ignore */
+  }
+  try {
+    window.dispatchEvent(new CustomEvent(WORKSPACE_GREEDY_ADMIN_EVENT));
   } catch {
     /* ignore */
   }
@@ -221,6 +250,32 @@ export function consumeWorkspaceAdminTabHint(): boolean {
     const hit = sessionStorage.getItem(WORKSPACE_ADMIN_TAB_HINT) === '1';
     if (hit) sessionStorage.removeItem(WORKSPACE_ADMIN_TAB_HINT);
     return hit;
+  } catch {
+    return false;
+  }
+}
+
+export function consumeWorkspaceGreedyAdminHint(): boolean {
+  try {
+    const hit = sessionStorage.getItem(WORKSPACE_GREEDY_ADMIN_HINT) === '1';
+    if (hit) sessionStorage.removeItem(WORKSPACE_GREEDY_ADMIN_HINT);
+    return hit;
+  } catch {
+    return false;
+  }
+}
+
+export function peekWorkspaceAdminTabHint(): boolean {
+  try {
+    return sessionStorage.getItem(WORKSPACE_ADMIN_TAB_HINT) === '1';
+  } catch {
+    return false;
+  }
+}
+
+export function peekWorkspaceGreedyAdminHint(): boolean {
+  try {
+    return sessionStorage.getItem(WORKSPACE_GREEDY_ADMIN_HINT) === '1';
   } catch {
     return false;
   }

@@ -585,12 +585,27 @@ function ReelItem({ reel, reelIndex, isActive, isLastReel, scrollToNextReel, db,
     }
 
     if (showVideoSlide) {
+      const videoSrc = (resolvedVideoUrl || displayMedia.url || '').trim();
+      if (!videoSrc) {
+        const poster = (resolvedPosterUrl || displayMedia.posterUrl || '').trim() || undefined;
+        return poster ? (
+          <img
+            key={`reel-poster-${liveReel.id}-${currentMediaIdx}`}
+            src={poster}
+            alt=""
+            style={filterStyle}
+            className="absolute inset-0 w-full h-full object-cover z-10 pointer-events-none"
+            loading="lazy"
+            onError={handleMediaError}
+          />
+        ) : null;
+      }
       return (
         <AppNativeVideo
           playbackScope={PLAYBACK_SCOPE.MANAGED}
           ref={videoRef}
-          src={resolvedVideoUrl || displayMedia.url}
-          poster={resolvedPosterUrl || displayMedia.posterUrl}
+          src={videoSrc}
+          poster={(resolvedPosterUrl || displayMedia.posterUrl || '').trim() || undefined}
           preload={isActive ? 'auto' : 'metadata'}
           loop={false}
           muted={soundtrackUrl ? true : db.globalMuted}
@@ -612,9 +627,11 @@ function ReelItem({ reel, reelIndex, isActive, isLastReel, scrollToNextReel, db,
       <img
         key={`reel-image-${liveReel.id}-${currentMediaIdx}`}
         src={
-          displayMedia.type === 'video' || videoError
-            ? displayMedia.posterUrl
-            : displayMedia.url
+          (
+            displayMedia.type === 'video' || videoError
+              ? displayMedia.posterUrl
+              : displayMedia.url
+          ) || undefined
         }
         alt=""
         style={filterStyle}

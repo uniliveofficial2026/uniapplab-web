@@ -113,7 +113,7 @@ export function Avatar({
         {hasRing && (
           <div className={`absolute -inset-[3px] rounded-full bg-gradient-to-tr ${ringColor} ${isLive ? 'animate-pulse shadow-[0_0_15px_rgba(239,68,68,0.5)]' : 'shadow-[0_0_8px_rgba(255,165,0,0.4)]'}`} />
         )}
-        <div className="absolute inset-0 bg-background rounded-full border border-border p-[2px]">
+        <div className="absolute inset-0 bg-[color:var(--color-unilives-background)] rounded-full border border-[color:var(--color-unilives-border)] p-[2px]">
           <img
             src={resolveAvatarSrc(resolvedUser.avatarUrl)}
             alt={resolvedUser.username}

@@ -4,7 +4,7 @@ import { ArrowLeft, KeyRound, Lock } from 'lucide-react';
 type RoomKeyGateProps = {
   roomTitle: string;
   roomDisplayId: string;
-  onSubmit: (key: string) => boolean;
+  onSubmit: (key: string) => boolean | Promise<boolean>;
   onLeave: () => void;
 };
 
@@ -24,10 +24,11 @@ export function RoomKeyGate({
       setError('Enter the room key to continue.');
       return;
     }
-    const accepted = onSubmit(trimmed);
-    if (!accepted) {
-      setError('Incorrect room key. Nobody can enter without the correct key.');
-    }
+    void Promise.resolve(onSubmit(trimmed)).then((accepted) => {
+      if (!accepted) {
+        setError('Incorrect room key. Nobody can enter without the correct key.');
+      }
+    });
   };
 
   return (

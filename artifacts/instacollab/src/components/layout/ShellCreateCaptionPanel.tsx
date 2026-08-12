@@ -14,6 +14,7 @@ import {
   type PlaceSearchResult,
 } from '../messages/messages/chatLocationGeo';
 import { geolocationErrorMessage, getLocationPreviewLabel } from '../messages/messages/chatLocationUtils';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 
 export type ShellCreateCaptionPanelProps = {
   currentUser: User;
@@ -353,7 +354,11 @@ export function ShellCreateCaptionPanel({
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-bold text-foreground truncate flex items-center gap-1">
                               {u.username}
-                              {u.isVerified && <span className="text-blue-500">✓</span>}
+                              <UniLivesVerificationBadge
+                                isVerified={!!u.isVerified}
+                                userId={u.id}
+                                iconClassName="w-3 h-3 text-blue-500"
+                              />
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate">
                               {u.displayName}

@@ -1,5 +1,5 @@
 /**
- * UniAppLab production domain map.
+ * UniLive production domain map (hosts on uniapplab.com).
  * Override any URL via VITE_* env vars in `.env` (see .env.example).
  */
 
@@ -68,17 +68,31 @@ export function isLocalDevHost(hostname: string): boolean {
 /** Primary app URL — production app subdomain or local dev server. */
 export function getAppOrigin(): string {
   const fromEnv = String(import.meta.env.VITE_APP_ORIGIN || '').trim().replace(/\/$/, '');
-  if (fromEnv) return fromEnv;
+  const production = uniapplabOrigin('app');
 
   if (typeof window !== 'undefined') {
     const { hostname, origin } = window.location;
-    if (isLocalDevHost(hostname)) {
+    if (isLocalDevHost(hostname) && import.meta.env.DEV) {
       return origin.replace(/^https?:\/\/127\.0\.0\.1/, 'http://localhost');
     }
     if (isUniapplabHost(hostname)) return origin;
   }
 
-  return uniapplabOrigin('app');
+  // Never bake/ship localhost as the product origin (breaks Google OAuth redirects).
+  if (fromEnv) {
+    try {
+      const host = new URL(fromEnv).hostname.toLowerCase();
+      if (host === 'localhost' || host === '127.0.0.1' || host === '[::1]') {
+        if (import.meta.env.DEV) return fromEnv;
+        return production;
+      }
+    } catch {
+      /* fall through */
+    }
+    return fromEnv;
+  }
+
+  return production;
 }
 
 /** All origins to allowlist in Supabase + Google OAuth. */
@@ -90,6 +104,7 @@ export function getOAuthAllowlistOrigins(): string[] {
     uniapplabOrigin('landing'),
     'http://localhost:5173',
     'http://127.0.0.1:5173',
+    'com.uniapplab.unilive://auth/callback',
   ]);
 
   if (typeof window !== 'undefined') {

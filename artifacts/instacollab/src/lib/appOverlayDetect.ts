@@ -11,6 +11,7 @@ const OVERLAY_ROOT_IDS = [
   'archive-modal',
   'verification-modal',
   'cloud-systems-modal',
+  'software-update-modal',
   'story-modal',
   'story-create-modal',
   'story-create-modal-root',

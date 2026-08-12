@@ -3,7 +3,7 @@ import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
 import {
   isPartyRoomPresenceCloudAvailable,
   subscribePartyRoomPresence,
-  unsubscribePartyRoomPresence,
+  watchPartyRoomPresence,
   type PartyRoomPresencePayload,
 } from '../../lib/supabase/partyRoomPresence';
 import type { RoomViewerEntry } from '../utils/roomViewers';
@@ -16,11 +16,16 @@ type UsePartyRoomPresenceOptions = {
     roomName: string;
     avatarUrl: string;
   };
+  /**
+   * Observe presence without tracking self or bumping participant_count.
+   * Used for backend admin silent watch (private rooms included).
+   */
+  silent?: boolean;
 };
 
 function presenceToViewer(
   member: PartyRoomPresencePayload,
-  roomId: string,
+  _roomId: string,
 ): RoomViewerEntry {
   return {
     id: member.user_id,
@@ -34,34 +39,49 @@ function presenceToViewer(
   };
 }
 
-export function usePartyRoomPresence({ roomId, enabled, self }: UsePartyRoomPresenceOptions) {
+export function usePartyRoomPresence({
+  roomId,
+  enabled,
+  self,
+  silent = false,
+}: UsePartyRoomPresenceOptions) {
   const cloudActive =
-    enabled && isPartyRoomPresenceCloudAvailable() && isCloudAuthUserId(self.id);
+    enabled &&
+    isPartyRoomPresenceCloudAvailable() &&
+    (silent || isCloudAuthUserId(self.id));
   const [remoteViewers, setRemoteViewers] = useState<RoomViewerEntry[]>([]);
   const channelRef = useRef<ReturnType<typeof subscribePartyRoomPresence>>(null);
+  /** Display fields — do not resubscribe presence when only name/avatar cosmetics change. */
+  const selfMetaRef = useRef({ roomName: self.roomName, avatarUrl: self.avatarUrl });
+  selfMetaRef.current = { roomName: self.roomName, avatarUrl: self.avatarUrl };
 
   useEffect(() => {
     setRemoteViewers([]);
     if (!cloudActive) return undefined;
 
-    channelRef.current = subscribePartyRoomPresence(
-      roomId,
-      {
-        user_id: self.id,
-        name: self.roomName,
-        avatar_url: self.avatarUrl,
-        joined_at: Date.now(),
-      },
-      (members) => {
-        setRemoteViewers(members.map((member) => presenceToViewer(member, roomId)));
-      },
-    );
+    const onSync = (members: PartyRoomPresencePayload[]) => {
+      setRemoteViewers(members.map((member) => presenceToViewer(member, roomId)));
+    };
+
+    const handle = silent
+      ? watchPartyRoomPresence(roomId, onSync)
+      : subscribePartyRoomPresence(
+          roomId,
+          {
+            user_id: self.id,
+            name: selfMetaRef.current.roomName,
+            avatar_url: selfMetaRef.current.avatarUrl,
+            joined_at: Date.now(),
+          },
+          onSync,
+        );
+    channelRef.current = handle;
 
     return () => {
-      unsubscribePartyRoomPresence(channelRef.current);
+      handle?.unsubscribe();
       channelRef.current = null;
     };
-  }, [cloudActive, roomId, self.avatarUrl, self.id, self.roomName]);
+  }, [cloudActive, roomId, self.id, silent]);
 
   return { remoteViewers, cloudActive };
 }

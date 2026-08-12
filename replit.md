@@ -1,10 +1,10 @@
-# InstaCollab
+# UniLive's
 
-A social media platform to create, connect, and collaborate in real time — with posts, reels, stories, messages, notifications, a creator workspace, dating, live, games, and a wallet.
+A live social app to create, connect, and collaborate in real time — with posts, reels, stories, messages, notifications, a creator workspace, dating, live, games, and a wallet.
 
 ## Run & Operate
 
-- `pnpm --filter @workspace/instacollab run dev` — run the InstaCollab web app (port 25173)
+- `pnpm --filter @workspace/instacollab run dev` — run the UniLive web app (port 25173)
 - `pnpm --filter @workspace/instacollab run typecheck` — typecheck the app
 - `pnpm --filter @workspace/api-server run dev` — run the API server (port 5000)
 - `pnpm run typecheck` — full typecheck across all packages
@@ -24,7 +24,7 @@ A social media platform to create, connect, and collaborate in real time — wit
 
 ## Where things live
 
-- `artifacts/instacollab/src/` — all InstaCollab source files
+- `artifacts/instacollab/src/` — all UniLive source files
 - `artifacts/instacollab/src/App.tsx` — root component, tab routing
 - `artifacts/instacollab/src/components/layout/Shell.tsx` — responsive layout shell (desktop sidebar + mobile top/bottom nav)
 - `artifacts/instacollab/src/lib/useDB.ts` — in-memory local data store (demo mode)

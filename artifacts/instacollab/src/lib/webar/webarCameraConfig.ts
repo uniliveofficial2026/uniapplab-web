@@ -1,10 +1,8 @@
 /**
  * Tencent Beauty AR Web — official camera parameters.
+ * Custom stream and built-in camera samples both use 1280×720@30.
  * @see https://www.tencentcloud.com/document/product/1143/50102 (Custom Stream)
  * @see https://www.tencentcloud.com/document/product/1143/50101 (Built-in Camera)
- *
- * Custom stream: getUserMedia({ video: { width: 1280, height: 720 } }) → ArSdk input.
- * Built-in camera: ArSdk({ camera: { width: 1280, height: 720, mirror, frameRate: 30 } }).
  */
 export const WEBAR_CAMERA_WIDTH = 1280;
 export const WEBAR_CAMERA_HEIGHT = 720;
@@ -24,9 +22,10 @@ export const WEBAR_CAMERA_FRAME_RATE = {
 export const WEBAR_BUILTIN_CAMERA = {
   width: WEBAR_CAMERA_WIDTH,
   height: WEBAR_CAMERA_HEIGHT,
-  mirror: true,
+  /** Keep false — CSS mirrors local preview so FOV matches effects on/off. */
+  mirror: false,
   frameRate: WEBAR_CAMERA_FPS,
 } as const;
 
-/** Live publish output FPS — matches getOutput(fps) in Tencent docs. */
+/** Beauty output FPS — matches getOutput(fps) in Tencent docs. */
 export const WEBAR_OUTPUT_FPS = 30;

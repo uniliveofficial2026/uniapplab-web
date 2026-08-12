@@ -1,12 +1,14 @@
 import React, { useState } from 'react';
 import { createPortal } from 'react-dom';
 import { motion, AnimatePresence } from 'motion/react';
-import { Link, CheckCircle2, Copy, Search, Check } from 'lucide-react';
+import { Link, Copy, Search, Check } from 'lucide-react';
 import { useToast } from '../../lib/ToastContext';
 import { handleAvatarError } from '../../lib/utils';
 import { useDB } from '../../lib/useDB';
 import type { SharePayload } from '../../lib/shareLinks';
 import { sendShareToUsers } from '../../lib/shareDispatch';
+import { UniLivesShareSheetChrome } from '../sharing/brand/UniLivesShareSheetChrome';
+import { UniLivesShareSuccessState } from '../sharing/brand/UniLivesShareStates';
 
 export type ShareModalProps = {
   isOpen: boolean;
@@ -78,8 +80,7 @@ export function ShareModal({
             exit={{ opacity: 0, scale: 0.95 }}
             className="w-full max-w-sm bg-black/60 dark:bg-zinc-900/70 backdrop-blur-xl border border-white/15 rounded-2xl p-5 relative z-10 pointer-events-auto shadow-2xl overflow-hidden text-white"
           >
-            <h3 className="text-lg font-bold mb-4 text-center">{itemTitle}</h3>
-
+            <UniLivesShareSheetChrome title={itemTitle}>
             <div className="relative mb-4">
               <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
               <input
@@ -143,10 +144,15 @@ export function ShareModal({
                 onClick={handleCopyLink}
                 className="px-3 py-1.5 bg-foreground text-background rounded-md text-xs font-bold shrink-0 hover:opacity-90 transition-opacity flex items-center gap-1.5"
               >
-                {copied ? <CheckCircle2 className="w-3.5 h-3.5" /> : <Copy className="w-3.5 h-3.5" />}
-                {copied ? 'Copied' : 'Copy'}
+                {copied ? <UniLivesShareSuccessState label="Copied" /> : (
+                  <>
+                    <Copy className="w-3.5 h-3.5" />
+                    Copy
+                  </>
+                )}
               </button>
             </div>
+            </UniLivesShareSheetChrome>
           </motion.div>
         </div>
       )}

@@ -6,19 +6,20 @@ import {
 } from '../lib/liveCloudSurfaces';
 import { activeSurfacePollIntervalMs } from '../lib/liveCloudSyncMode';
 import { isNetworkOnline } from '../lib/networkStatus';
+import { useKeepAliveTabActive } from '../lib/keepAliveTabContext';
 
 export type UseLiveCloudSurfaceOptions = {
   /** Silent pull when the surface refreshes (realtime event or poll). */
   onSync?: () => void | Promise<void>;
   /** Which refresh events trigger `onSync` (default: current surface + `all`). */
   listen?: LiveCloudSurface[];
-  /** Background poll while mounted and tab visible (default: true). */
+  /** Background poll while mounted and tab visible (default: false — Realtime is primary). */
   poll?: boolean;
 };
 
 /**
- * Keeps a screen live: Supabase/Firebase Realtime + coalesced surface refresh + silent poll.
- * UI always paints from local cache first; cloud merges in place with no loaders.
+ * Keeps a screen live: Supabase/Firebase Realtime + coalesced surface refresh.
+ * Inactive KeepAlive tabs do not refresh or poll (was freezing the whole app).
  */
 export function useLiveCloudSurface(
   surface: LiveCloudSurface,
@@ -27,30 +28,30 @@ export function useLiveCloudSurface(
   const opts: UseLiveCloudSurfaceOptions =
     typeof options === 'function' ? { onSync: options } : options ?? {};
   const listen = opts.listen ?? [surface, 'all'];
-  const poll = opts.poll !== false;
+  const poll = opts.poll === true;
   const onSyncRef = useRef(opts.onSync);
   onSyncRef.current = opts.onSync;
+  const tabActive = useKeepAliveTabActive();
 
   const listenKey = listen.join('|');
 
   useEffect(() => {
+    if (!tabActive) return undefined;
+
     const runSync = () => {
       void onSyncRef.current?.();
     };
 
-    refreshLiveCloudSurface(surface, { force: true });
+    // Soft refresh — Shell also warms the active tab; avoid force stampede.
+    refreshLiveCloudSurface(surface);
     runSync();
 
-    const unsub = subscribeLiveCloudSurfaceRefresh(listen, () => {
-      refreshLiveCloudSurface(surface);
-      runSync();
-    });
-
+    const unsub = subscribeLiveCloudSurfaceRefresh(listen, runSync);
     return unsub;
-  }, [surface, listenKey]);
+  }, [surface, listenKey, tabActive]);
 
   useEffect(() => {
-    if (!poll || typeof document === 'undefined') return;
+    if (!poll || !tabActive || typeof document === 'undefined') return undefined;
 
     let timer: number | null = null;
 
@@ -78,5 +79,5 @@ export function useLiveCloudSurface(
       window.removeEventListener('focus', armPoll);
       if (timer != null) window.clearInterval(timer);
     };
-  }, [surface, poll]);
+  }, [surface, poll, tabActive]);
 }

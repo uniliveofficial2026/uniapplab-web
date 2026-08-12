@@ -19,7 +19,7 @@ interface CalendarEvent {
 }
 
 export function GoogleCalendarTab() {
-  const { googleAccessToken, loginWithGoogle } = useAuth();
+  const { googleAccessToken, connectGoogleWorkspace } = useAuth();
   const db = useDB();
   
   const [subTab, setSubTab] = useState<'calendar' | 'meet'>('calendar');
@@ -388,7 +388,7 @@ export function GoogleCalendarTab() {
             <div className="p-3 bg-primary/5 rounded-xl border border-primary/10 text-[11px] font-semibold text-foreground flex justify-between items-center gap-3">
               <span>Displaying local system timetable. Connect your Google account for live Google Calendar read/writes.</span>
               <button 
-                onClick={loginWithGoogle}
+                onClick={connectGoogleWorkspace}
                 className="bg-primary hover:bg-primary/95 text-primary-foreground text-[10px] py-1 px-3 rounded-lg font-bold shadow-sm whitespace-nowrap"
               >
                 Link Calendar

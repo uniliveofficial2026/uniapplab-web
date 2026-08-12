@@ -19,7 +19,7 @@ import {
   type RoomLayoutMode,
   type RoomSeatKey,
 } from '../utils/roomSeats';
-import { X, Users, Mic, MicOff, Crown, Shield, UserMinus, Check, AlertCircle, Settings, Lock, Unlock, Sofa, Sparkles } from "lucide-react";
+import { X, Users, Mic, MicOff, Crown, Shield, UserMinus, Check, AlertCircle, Settings, Lock, Unlock, Sofa, Sparkles, Ban } from "lucide-react";
 
 interface Guest {
   userId?: string;
@@ -66,6 +66,10 @@ interface GuestManagementOverlayProps {
   roomLayoutMode?: RoomLayoutMode;
   multiGuestSeatCount?: MultiGuestSeatCount;
   onMultiGuestSeatCountChange?: (count: MultiGuestSeatCount) => void;
+  canBanFromSeats?: boolean;
+  seatBannedUserIds?: string[];
+  onBanFromSeats?: (userId: string, displayName: string) => void;
+  onUnbanFromSeats?: (userId: string, displayName: string) => void;
 }
 
 export function GuestManagementOverlay({ 
@@ -80,6 +84,10 @@ export function GuestManagementOverlay({
   roomLayoutMode = 'Party',
   multiGuestSeatCount = 15,
   onMultiGuestSeatCountChange,
+  canBanFromSeats = false,
+  seatBannedUserIds = [],
+  onBanFromSeats,
+  onUnbanFromSeats,
 }: GuestManagementOverlayProps) {
   const self = useRoomSelf();
   const [activeTab, setActiveTab] = useState<"seated" | "requests" | "settings">("seated");
@@ -273,6 +281,11 @@ export function GuestManagementOverlay({
                 const isSelf = isRoomSelfName(guest.name, self);
                 const canMute = isSelf || isAdminOrHost;
                 const canRemove = !isHost && isAdminOrHost;
+                const guestUserId = guest.userId?.trim() || null;
+                const guestSeatBanned =
+                  Boolean(guestUserId) && seatBannedUserIds.includes(guestUserId!);
+                const canShowSeatBan =
+                  canBanFromSeats && !isSelf && !isHost && Boolean(guestUserId);
 
                 return (
                   <div key={seatKey} className="flex justify-between items-center bg-black/40 border border-white/5 rounded-2xl p-3 animate-fade-in">
@@ -299,6 +312,9 @@ export function GuestManagementOverlay({
                         <h3 className="text-xs font-bold text-gray-100 max-w-[120px] truncate">{guest.name}</h3>
                         <p className="text-[10px] text-gray-500">
                           {isHost ? "Host Room" : isCoOwner ? "Co-owner" : isAdminSeat ? (formatStaffSeatLabel('admin') ?? 'Boss') : labelForSeat(seatKey)}
+                          {guestSeatBanned ? (
+                            <span className="text-orange-400 font-medium ml-1.5">Seat banned</span>
+                          ) : null}
                           {guest.isAdminMuted && (
                             <span className="text-red-400 font-medium ml-1.5 inline-flex items-center">
                               <span className="inline-block w-1.5 h-1.5 bg-red-500 rounded-full mr-1 animate-pulse" />
@@ -337,6 +353,27 @@ export function GuestManagementOverlay({
                           <UserMinus size={14} />
                         </button>
                       )}
+
+                      {canShowSeatBan ? (
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (guestSeatBanned) {
+                              onUnbanFromSeats?.(guestUserId!, guest.name);
+                            } else {
+                              onBanFromSeats?.(guestUserId!, guest.name);
+                            }
+                          }}
+                          className={`w-8 h-8 rounded-full border transition active:scale-95 flex items-center justify-center ${
+                            guestSeatBanned
+                              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-400 hover:bg-emerald-500/20'
+                              : 'bg-orange-500/10 border-orange-500/30 text-orange-400 hover:bg-orange-500/20'
+                          }`}
+                          title={guestSeatBanned ? 'Unban from seats' : 'Ban from seats'}
+                        >
+                          <Ban size={14} />
+                        </button>
+                      ) : null}
                     </div>
                   </div>
                 );
@@ -422,7 +459,7 @@ export function GuestManagementOverlay({
                       {joinPolicySummary ?? `Join: ${whoCanJoin} · Seats: ${whoCanBeSeated}`}
                     </p>
                     <p className="mt-2 text-[10px] text-gray-500">
-                      Edit Room settings sync here. Quick toggle below updates who can be seated.
+                      Eligibility (who can sit) is set in Edit Room. Quick toggle below only switches free sit vs approval.
                     </p>
                   </div>
 
@@ -430,7 +467,9 @@ export function GuestManagementOverlay({
                     <div className="flex justify-between items-center">
                       <div>
                         <h3 className="text-xs font-bold text-gray-100">Guest Seats Entry Policy</h3>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Control how audience members join empty seats</p>
+                        <p className="text-[10px] text-gray-500 mt-0.5">
+                          Seats: {whoCanBeSeated} · {joinWithoutRequest ? 'Free sit' : 'Approval queue'}
+                        </p>
                       </div>
                       <button 
                         onClick={onToggleJoinMode}

@@ -6,7 +6,7 @@ import {
   Crown, Shield, Pencil, ChevronRight, LayoutGrid,
   Volume2, Sparkle, FolderClosed, Sofa, User, Activity, Music,
   UserPlus, UserMinus, LogOut, Eye, ShieldAlert, UserX, Lock, Unlock, Search, HelpCircle,
-  Info, Settings2,
+  Info, Settings2, Ban,
 } from "lucide-react";
 
 import { ShareIcon } from "../../components/common/ShareIcon";
@@ -56,6 +56,8 @@ import {
   type SeatHeartbeatLink,
 } from "../components/SeatHeartbeatRowOverlay";
 import { useRoomOwnerSocial } from "../hooks/useRoomOwnerSocial";
+import { useRoomSelf } from "../context/RoomSelfContext";
+import { useRoomFlowEntry, useRoomFlowExit } from "../context/roomFlowHooks";
 import { getRoomSettings, ensureRoomSettingsSeeded, saveRoomSettings, type RoomMode } from "../utils/storage";
 import { resolveWatchTogetherMedia, hydrateWatchTogetherMedia } from "../utils/watchTogetherMedia";
 import { activateRoomContext, clearActiveRoomSession, formatRoomModeLabel, getManagedRoomById, syncManagedRoomFromActiveSession } from "../utils/managedRooms";
@@ -67,7 +69,8 @@ import { isCloudAuthUserId } from "../../lib/auth/cloudProfile";
 import { db } from "../../lib/db/localDb";
 import {
   isLiveRingRoomMode,
-  liveKindFromRoomMode,
+  isDiscoverableLiveRoomMode,
+  liveKindForPkPresence,
 } from "../../lib/liveRing";
 import {
   isPrivateRoom,
@@ -76,7 +79,9 @@ import {
   roomPrivacyPatch,
   validateRoomKeyInput,
   verifyRoomKey,
+  verifyRoomKeyAccess,
 } from "../utils/roomPrivacy";
+import { hydrateRoomPrivacyFromCloud } from "../utils/hydrateRoomPrivacyFromCloud";
 import { canChangeRoomBackground as roleCanChangeRoomBackground, isRoomAdminOrOwner, isRoomCoOwner, isRoomEditorRole, isRoomOwner, normalizeRoomRole, type RoomMemberRole } from "../utils/roles";
 import { isRoomSavedById, toggleSavedRoom } from "../utils/savedRooms";
 import { formatRoomHostMeta, resolveRoomHostDisplay } from "../utils/roomHostDisplay";
@@ -86,7 +91,7 @@ import {
 } from "../utils/roomProfilePreview";
 import { settlePartyGiftSend } from "../../lib/partyGiftPayments";
 import { mergeRemotePartySeats } from "../../lib/party/partySeatCloudSync";
-import { getLiveCoinsBalance } from "../../lib/walletKstarSync";
+import { creditUserCoins, getLiveCoinsBalance, spendWalletCoins } from "../../lib/walletKstarSync";
 import { useDbRevision, useDB } from "../../lib/useDB";
 import { getChorusPanelSongs, CHORUS_SONG_TABS, type ChorusSongTab } from "../utils/songCatalog";
 import { isKaraokeUploadSongId } from "../utils/karaokeUploadBridge";
@@ -104,8 +109,10 @@ import {
   canUserJoinRoom,
   canUserTakeSeat,
   formatJoinPolicySummary,
+  mergeGuestSeatRequests,
+  resolveSeatJoinMode,
+  seatJoinModeFromApprovalRequired,
   seatJoinRequiresApproval,
-  whoCanBeSeatedFromApprovalRequired,
   type RoomJoinContext,
 } from "../utils/roomJoinPolicy";
 import { buildSelfRoomJoinContext } from "../utils/roomFollowContext";
@@ -148,8 +155,22 @@ import {
   type PartyGiftDefinition,
   type RoomGiftSummary,
 } from "../utils/roomGifts";
-import { useRoomSelf } from "../context/RoomSelfContext";
-import { useRoomFlowExit } from "../context/RoomFlowContext";
+import {
+  banUserFromSeats,
+  formatSeatBanDurationLabel,
+  formatSeatBanRemaining,
+  getSeatBanForUser,
+  getSeatBannedUserIds,
+  getSeatBans,
+  isUserSeatBanned,
+  setSeatBannedUserIds,
+  setSeatBans,
+  sweepExpiredSeatBans,
+  unbanUserFromSeats,
+} from "../utils/roomSeatBans";
+import { SeatBanDurationPicker } from "../components/SeatBanDurationPicker";
+import { SeatBanCountdownBanner } from "../components/SeatBanCountdownBanner";
+import { PlatformAdminModerationListener } from "../components/PlatformAdminModerationListener";
 import {
   formatRoomSelfLabel,
   isRoomSelfGuest,
@@ -204,6 +225,8 @@ import {
 } from "../../lib/commercePayments";
 import { PartyGiftPickerPanel } from "../components/PartyGiftPickerPanel";
 import { GiftPlayOverlay } from "../components/GiftPlayOverlay";
+import { useGiftRechargeReturnSync } from "../components/LiveGiftRechargeModal";
+import { giftTierFromStars } from "../../lib/live/giftTiers";
 import { buildLiveViewMediaProps, RoomLiveMediaSession } from "../components/RoomLiveMediaSession";
 import {
   LiveSeatFullscreenOverlay,
@@ -218,8 +241,13 @@ import {
   type DeepAREffectSelection,
 } from "../../lib/deepar/deeparEffectSelection";
 import { DEEPAR_ENABLED } from "../../lib/deepar/deeparEnabled";
-import { EMPTY_BODY_SHAPE, type TencentBodyShapeParams } from "../../lib/webar/webarTypes";
-import { consumePendingCreateRoomBeauty, peekPendingCreateRoomBeauty } from "../utils/pendingCreateRoomBeauty";
+import {
+  EMPTY_BODY_SHAPE,
+  EMPTY_TENCENT_EFFECT_SELECTION,
+  type TencentBodyShapeParams,
+  type TencentEffectSelection,
+} from "../../lib/webar/webarTypes";
+import { takePendingCreateRoomBeauty } from "../utils/pendingCreateRoomBeauty";
 import { useSongPerformanceTimer } from "../hooks/useSongPerformanceTimer";
 import { useSingingSession } from "../hooks/useSingingSession";
 import { usePerformanceBackingTrack } from "../hooks/usePerformanceBackingTrack";
@@ -233,8 +261,10 @@ import { VoiceChangerSheet } from "../components/VoiceChangerSheet";
 import { PKInviteSheet, type PKConnectOptions } from "../components/PKInviteSheet";
 import { buildPkInvitePayload, pkScoreFromGift } from "../components/PKBattleStage";
 import { buildSoloLivePkTeams, isPkEligibleRoomMode } from "../utils/pkBattleLayout";
+import { applyPkPayload, buildPkAcceptPayload } from "../utils/pkBattleReducer";
 import { usePkLiveHosts } from "../hooks/usePkLiveHosts";
-import type { PKFighter, PKPayload } from "../utils/liveRoomTypes";
+import type { PKBattleState, PKFighter, PKPayload } from "../utils/liveRoomTypes";
+import { DEFAULT_PK_STATE } from "../utils/liveRoomTypes";
 
 interface Guest extends RoomGuest {}
 
@@ -266,8 +296,16 @@ export function Room() {
   const [searchParams, setSearchParams] = useSearchParams();
   const self = useRoomSelf();
   const db = useDB();
+  useGiftRechargeReturnSync(self.id);
   const dbRevision = useDbRevision();
   const exitRoomFlow = useRoomFlowExit();
+  const flowEntry = useRoomFlowEntry();
+  /**
+   * Platform Control Center silent watch only (`admin-embed`).
+   * Watcher stays invisible to guests, but has full platform moderation control.
+   * Unrelated to in-room moderation role `admin` for normal joins.
+   */
+  const isSilentAdminWatch = flowEntry === 'admin-embed';
   const roomDisplayId = id ?? "1181033";
   const [liveSettings, setLiveSettings] = useState(() =>
     ensureRoomRoleUserIds(roomDisplayId),
@@ -397,17 +435,32 @@ export function Room() {
   const processedGiftPlayIdsRef = useRef<Set<string>>(new Set());
   const [activeGiftPlay, setActiveGiftPlay] = useState<GiftPlayPayload | null>(null);
   const liveChatMsgs = partyRoomChat.messages;
-  const appendLiveChatMsg = partyRoomChat.appendMessage;
+  const appendLiveChatMsgRaw = partyRoomChat.appendMessage;
+  const appendLiveChatMsg = useCallback(
+    ((message: Parameters<typeof appendLiveChatMsgRaw>[0]) => {
+      // Silent platform watch: block normal chatter, allow moderation system notices.
+      if (isSilentAdminWatch) {
+        const row = message as { isSystem?: boolean; iconBadge?: string };
+        if (!row.isSystem && !row.iconBadge) return;
+      }
+      return appendLiveChatMsgRaw(message);
+    }) as typeof appendLiveChatMsgRaw,
+    [appendLiveChatMsgRaw, isSilentAdminWatch],
+  );
 
   const showToast = useCallback(
     (message: string) => {
+      if (isSilentAdminWatch) {
+        window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
+        return;
+      }
       if (roomMode === 'WatchTogether' || roomMode === 'GameLive') {
         appendLiveChatMsg({ id: Date.now(), isSystem: true, text: message });
         return;
       }
       window.dispatchEvent(new CustomEvent('app-toast', { detail: message }));
     },
-    [appendLiveChatMsg, roomMode],
+    [appendLiveChatMsg, isSilentAdminWatch, roomMode],
   );
   
   // Custom states
@@ -467,6 +520,7 @@ export function Room() {
   const [isAnnouncementEditorOpen, setIsAnnouncementEditorOpen] = useState(false);
   const [isRoomModePickerOpen, setIsRoomModePickerOpen] = useState(false);
   const [hasPrivateKeyAccess, setHasPrivateKeyAccess] = useState(() => {
+    if (flowEntry === 'admin-embed') return true;
     const settings = ensureRoomRoleUserIds(roomDisplayId);
     return !isPrivateRoom(settings);
   });
@@ -699,20 +753,17 @@ export function Room() {
     useState<DeepAREffectSelection>(EMPTY_DEEPAR_EFFECT_SELECTION);
   const [isMultiGuestEffectsOpen, setIsMultiGuestEffectsOpen] = useState(false);
   const [liveBeautyEffectId, setLiveBeautyEffectId] = useState<BeautyPresetId>(() => {
-    return peekPendingCreateRoomBeauty()?.beautyId ?? 'none';
+    return takePendingCreateRoomBeauty()?.beautyId ?? 'none';
   });
-  const [liveBeautyEffects, setLiveBeautyEffects] = useState(() => {
-    const pending = peekPendingCreateRoomBeauty();
+  const [liveBeautyEffects, setLiveBeautyEffects] = useState<TencentEffectSelection>(() => {
+    const pending = takePendingCreateRoomBeauty();
     return {
-      makeupId: pending?.beautyEffects.makeupId ?? (null as string | null),
-      stickerId: pending?.beautyEffects.stickerId ?? (null as string | null),
-      filterId: pending?.beautyEffects.filterId ?? (null as string | null),
-      backgroundUrl: pending?.beautyEffects.backgroundUrl ?? (null as string | null),
-      shapeEffectId: pending?.beautyEffects.shapeEffectId ?? (null as string | null),
+      ...EMPTY_TENCENT_EFFECT_SELECTION,
+      ...(pending?.beautyEffects ?? {}),
     };
   });
   const [liveBodyShape, setLiveBodyShape] = useState<TencentBodyShapeParams>(() => {
-    const pending = peekPendingCreateRoomBeauty();
+    const pending = takePendingCreateRoomBeauty();
     return pending?.bodyShape
       ? { ...EMPTY_BODY_SHAPE, ...pending.bodyShape }
       : EMPTY_BODY_SHAPE;
@@ -743,6 +794,8 @@ export function Room() {
   const [currentUserRole, setCurrentUserRole] = useState<RoomMemberRole>(() =>
     normalizeRoomRole(localStorage.getItem('currentUserRole') || 'user')
   );
+  /** Platform silent watch uses owner-level moderation without adopting a visible room role. */
+  const moderationRole: RoomMemberRole = isSilentAdminWatch ? 'owner' : currentUserRole;
 
   useEffect(() => {
     const refreshUploads = () => setKaraokeUploadsVersion((version) => version + 1);
@@ -751,12 +804,11 @@ export function Room() {
   }, []);
 
   useEffect(() => {
-    consumePendingCreateRoomBeauty();
-  }, []);
-
-  useEffect(() => {
     if (roomMode === 'SoloLive' || roomMode === 'MultiGuest' || roomMode === 'GameLive') {
-      void import('../../lib/preloadAppSurfaces').then((m) => m.preloadHeavyAppSurfaces());
+      void import('../../lib/preloadAppSurfaces').then((m) => {
+        m.preloadHeavyAppSurfaces();
+        m.warmWebARForLiveIntent();
+      });
     }
   }, [roomMode]);
 
@@ -766,6 +818,12 @@ export function Room() {
     setLiveSettings(settings);
     if (settings.ownerUserId && settings.ownerUserId === self.id) {
       setStoredOwnerPartyRoomId(settings.ownerUserId, roomDisplayId);
+    }
+    // Platform Control Center watch is view-only and must not adopt / persist
+    // in-room owner·co-owner·admin moderation roles for this session.
+    if (isSilentAdminWatch) {
+      setCurrentUserRole('user');
+      return;
     }
     const managed = getManagedRoomById(roomDisplayId);
     if (managed) {
@@ -777,9 +835,11 @@ export function Room() {
         sessionUserId: self.id,
       }),
     );
-  }, [roomDisplayId, self.id]);
+  }, [roomDisplayId, self.id, isSilentAdminWatch]);
 
   useEffect(() => {
+    // Never clobber the user's real in-room moderation role from an admin embed.
+    if (isSilentAdminWatch) return;
     localStorage.setItem('currentUserRole', currentUserRole);
     const managed = getManagedRoomById(roomDisplayId);
     if (managed && managed.role !== currentUserRole) {
@@ -796,35 +856,58 @@ export function Room() {
         roomMode: settings.roomMode as 'Chat' | 'Radio' | 'Karaoke' | 'Multi-Guest',
       });
     }
-  }, [currentUserRole, roomDisplayId, liveSettings]);
+  }, [currentUserRole, roomDisplayId, liveSettings, isSilentAdminWatch]);
 
   // Room Management Rules
   const [lockedSeats, setLockedSeats] = useState<Record<string, boolean>>({});
-  const joinWithoutRequest = !seatJoinRequiresApproval(liveSettings.whoCanBeSeated);
+  const joinWithoutRequest = !seatJoinRequiresApproval(liveSettings);
   const joinPolicySummary = formatJoinPolicySummary(liveSettings);
   const roomIsPrivate = isPrivateRoom(liveSettings);
 
   useEffect(() => {
+    if (isSilentAdminWatch) {
+      setHasPrivateKeyAccess(true);
+      return;
+    }
     const settings = ensureRoomRoleUserIds(roomDisplayId);
     setHasPrivateKeyAccess(!isPrivateRoom(settings));
-  }, [roomDisplayId]);
+  }, [roomDisplayId, isSilentAdminWatch]);
 
   useEffect(() => {
-    if (!roomIsPrivate) {
+    if (isSilentAdminWatch) {
+      setHasPrivateKeyAccess(true);
+      return;
+    }
+    let cancelled = false;
+    void hydrateRoomPrivacyFromCloud(roomDisplayId, {
+      viewerUserId: self.id,
+    }).then((settings) => {
+      if (cancelled || !settings) return;
+      refreshLiveSettings();
+      setHasPrivateKeyAccess(!isPrivateRoom(settings));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [roomDisplayId, self.id, refreshLiveSettings, isSilentAdminWatch]);
+
+  useEffect(() => {
+    if (!roomIsPrivate || isSilentAdminWatch) {
       setHasPrivateKeyAccess(true);
     }
-  }, [roomIsPrivate]);
+  }, [roomIsPrivate, isSilentAdminWatch]);
 
   const handleToggleJoinMode = () => {
-    const currentlyFree = !seatJoinRequiresApproval(liveSettings.whoCanBeSeated);
-    const nextWhoCanBeSeated = currentlyFree
-      ? whoCanBeSeatedFromApprovalRequired(true)
-      : 'Anyone';
-    saveRoomSettings(roomDisplayId, { whoCanBeSeated: nextWhoCanBeSeated });
+    const currentlyFree = !seatJoinRequiresApproval(liveSettings);
+    const nextMode = seatJoinModeFromApprovalRequired(currentlyFree);
+    saveRoomSettings(roomDisplayId, { seatJoinMode: nextMode });
+    const updated = getRoomSettings(roomDisplayId);
+    setLiveSettings(ensureRoomRoleUserIds(roomDisplayId));
+    syncPartyRoomToCloud(roomDisplayId, updated.ownerUserId ?? self.id, updated);
     showToast(
-      nextWhoCanBeSeated === 'Anyone'
-        ? 'Join policy updated: Anyone can join freely!'
-        : 'Join policy updated: Approval required to sit!',
+      nextMode === 'free'
+        ? 'Seat entry updated: guests can sit freely.'
+        : 'Seat entry updated: guests must request approval to sit.',
     );
   };
 
@@ -844,7 +927,7 @@ export function Room() {
   }, [roomMode, multiGuestSeatCount]);
 
   const handleToggleSeatLock = (seatKey: string) => {
-    if (!canRoleLockSeat(seatKey, currentUserRole)) {
+    if (!canRoleLockSeat(seatKey, moderationRole)) {
       showToast('You do not have permission to lock this seat.');
       return;
     }
@@ -1357,52 +1440,65 @@ export function Room() {
   const handleCommercePurchase = handleCommerceStartCheckout;
 
   const handleSendPartyGift = useCallback(
-    (gift: PartyGiftDefinition, receiver?: Guest | null) => {
-      const target = receiver ?? giftPickerReceiver ?? defaultGiftReceiver();
+    (gift: PartyGiftDefinition, quantity = 1, isComboSend = false) => {
+      const target = giftPickerReceiver ?? defaultGiftReceiver();
       if (!target) {
         showToast('No seated guest to receive a gift right now');
         return;
       }
-      void (async () => {
-        const clientRequestId = `gift_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
-        const settled = await settlePartyGiftSend(self.id, target.userId, gift.stars, {
-          giftId: gift.id ?? gift.name,
-          giftName: gift.name,
+      const qty = Math.max(1, Math.min(999, Math.floor(quantity) || 1));
+      const clientRequestId = `gift_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+      const totalStars = gift.stars * qty;
+      if (getLiveCoinsBalance(self.id) < totalStars) {
+        showToast('Not enough coins');
+        return;
+      }
+      if (!spendWalletCoins(self.id, totalStars)) {
+        showToast('Not enough coins');
+        return;
+      }
+
+      // Optimistic: close picker, play effect, broadcast peers immediately.
+      setGiftPickerReceiver(null);
+      setIsGiftPickerOpen(false);
+      applyRoomGift({
+        senderName: self.roomName,
+        receiverName: target.name,
+        receiverUserId: target.userId,
+        giftName: gift.name,
+        giftIcon: gift.icon,
+        starValue: totalStars,
+      });
+      const playPayload = giftFromDefinition(
+        gift,
+        { id: self.id, name: self.roomName || self.chatLabel },
+        { name: target.name, userId: target.userId },
+        {
+          quantity: qty,
+          combo: isComboSend ? qty : 1,
           roomId: roomDisplayId,
-          quantity: 1,
-          combo: 1,
-          clientRequestId,
-        });
-        if (!settled.ok) {
-          showToast(settled.reason ?? 'Not enough coins');
-          return;
-        }
-        applyRoomGift({
-          senderName: self.roomName,
-          receiverName: target.name,
-          receiverUserId: target.userId,
-          giftName: gift.name,
-          giftIcon: gift.icon,
-          starValue: gift.stars,
-        });
-        const playPayload = giftFromDefinition(
-          gift,
-          { id: self.id, name: self.roomName || self.chatLabel },
-          { name: target.name, userId: target.userId },
-          {
-            quantity: 1,
-            combo: 1,
-            roomId: roomDisplayId,
-            giftTransactionId: settled.settle?.giftTransactionId,
-          },
-        );
-        processedGiftPlayIdsRef.current.add(playPayload.playId ?? `local_${Date.now()}`);
-        setActiveGiftPlay(playPayload);
-        void liveRoomBus.emitGiftPlay(playPayload);
-        setGiftPickerReceiver(null);
-        setIsGiftPickerOpen(false);
-        showToast(`Sent ${gift.icon} ${gift.name} to ${target.name} (+${gift.stars} coins)`);
-      })();
+        },
+      );
+      processedGiftPlayIdsRef.current.add(playPayload.playId ?? `local_${Date.now()}`);
+      setActiveGiftPlay(playPayload);
+      void liveRoomBus.emitGiftPlay(playPayload);
+      const qtyLabel = qty > 1 ? ` x${qty}` : '';
+      showToast(`Sent ${gift.icon} ${gift.name}${qtyLabel} to ${target.name} (+${totalStars} coins)`);
+
+      void settlePartyGiftSend(self.id, target.userId, totalStars, {
+        giftId: gift.id ?? gift.name,
+        giftName: gift.name,
+        roomId: roomDisplayId,
+        quantity: qty,
+        combo: isComboSend ? qty : 1,
+        clientRequestId,
+        tier: gift.tier ?? giftTierFromStars(gift.stars),
+        alreadyDebitedLocally: true,
+      }).then((settled) => {
+        if (settled.ok) return;
+        creditUserCoins(self.id, totalStars);
+        showToast(settled.reason ?? 'Gift failed — coins restored');
+      });
     },
     [applyRoomGift, defaultGiftReceiver, giftPickerReceiver, liveRoomBus, roomDisplayId, self.chatLabel, self.id, self.roomName, showToast],
   );
@@ -1474,9 +1570,11 @@ export function Room() {
   usePartyRoomLiveKit({
     roomId: roomDisplayId,
     enabled: roomMode !== 'MultiGuest' && roomMode !== 'SoloLive' && roomMode !== 'GameLive',
-    canPublish: isUserSeated,
-    publishMic: voiceMicPublishing,
-    processedAudioTrack: voiceMicPublishing ? roomVoiceProcessedTrack : null,
+    canPublish: isSilentAdminWatch ? false : isUserSeated,
+    publishMic: isSilentAdminWatch ? false : voiceMicPublishing,
+    processedAudioTrack:
+      isSilentAdminWatch || !voiceMicPublishing ? null : roomVoiceProcessedTrack,
+    hidden: isSilentAdminWatch,
   });
 
   const isSelfSoloHost =
@@ -1526,13 +1624,7 @@ export function Room() {
     setMultiGuestDeeparSelection(selection);
     if (deeparSelectionActive(selection)) {
       setLiveBeautyEffectId('none');
-      setLiveBeautyEffects({
-        makeupId: null,
-        stickerId: null,
-        filterId: null,
-        backgroundUrl: null,
-        shapeEffectId: null,
-      });
+      setLiveBeautyEffects({ ...EMPTY_TENCENT_EFFECT_SELECTION });
     }
   }, []);
 
@@ -1544,19 +1636,10 @@ export function Room() {
   }, []);
 
   const handleLiveBeautyEffectsChange = useCallback(
-    (effects: {
-      makeupId: string | null;
-      stickerId: string | null;
-      filterId: string | null;
-      backgroundUrl: string | null;
-      shapeEffectId?: string | null;
-    }) => {
+    (effects: TencentEffectSelection) => {
       setLiveBeautyEffects({
-        makeupId: effects.makeupId,
-        stickerId: effects.stickerId,
-        filterId: effects.filterId,
-        backgroundUrl: effects.backgroundUrl,
-        shapeEffectId: effects.shapeEffectId ?? null,
+        ...EMPTY_TENCENT_EFFECT_SELECTION,
+        ...effects,
       });
       const active = Boolean(
         effects.makeupId ||
@@ -1579,24 +1662,49 @@ export function Room() {
       }
     : {};
 
+  const isOwnerHost =
+    currentUserRole === 'owner' || liveSettings.ownerUserId === self.id;
+  const isDiscoverableRoom = isDiscoverableLiveRoomMode(
+    String(liveSettings.roomMode || roomMode),
+  );
+  /** Discovery heartbeat reads PK phase without reordering hooks above pkBattle state. */
+  const pkPhaseForDiscoveryRef = useRef<string>('idle');
+
   useEffect(() => {
-    const isOwnerHost =
-      currentUserRole === 'owner' || liveSettings.ownerUserId === self.id;
-    if (!isOwnerHost || !self.id) return undefined;
+    if (!isOwnerHost || !self.id || !isDiscoverableRoom) return undefined;
 
-    const settingsMode = String(liveSettings.roomMode || '');
-    const liveKind = liveKindFromRoomMode(settingsMode);
-    const isPublishingLive = isLiveRingRoomMode(settingsMode);
-
-    db.setUserLiveStatus(self.id, isPublishingLive, liveKind);
-    return () => {
-      db.setUserLiveStatus(self.id, false);
+    const settingsMode = String(liveSettings.roomMode || roomMode);
+    const publishPresence = () => {
+      const liveKind = liveKindForPkPresence(settingsMode, pkPhaseForDiscoveryRef.current);
+      const pkActive = pkPhaseForDiscoveryRef.current === 'active';
+      db.setUserLiveStatus(self.id!, true, liveKind);
+      syncPartyRoomToCloud(roomDisplayId, liveSettings.ownerUserId ?? self.id, liveSettings, {
+        pkActive,
+      });
     };
+
+    publishPresence();
+
+    // Sticky presence — do NOT clear on React remount; only on explicit leave.
+    const heartbeat = window.setInterval(publishPresence, 25_000);
+
+    return () => window.clearInterval(heartbeat);
   }, [
     self.id,
     currentUserRole,
     liveSettings.ownerUserId,
     liveSettings.roomMode,
+    liveSettings.roomName,
+    liveSettings.privacy,
+    liveSettings.whoCanJoin,
+    liveSettings.whoCanBeSeated,
+    liveSettings.seatJoinMode,
+    liveSettings.coverPhoto,
+    liveSettings.roomKey,
+    roomDisplayId,
+    roomMode,
+    isOwnerHost,
+    isDiscoverableRoom,
   ]);
 
   const performanceKey = isSingingMode && currentlySinging ? currentlySinging.id : null;
@@ -1660,33 +1768,66 @@ export function Room() {
     setIsRoomSaved(nextSaved);
   };
 
-  const [isPKActive, setIsPKActive] = useState(false);
   const [pkBattleStarted, setPkBattleStarted] = useState(false);
   const [isPkInviteOpen, setIsPkInviteOpen] = useState(false);
   const [pkConnecting, setPkConnecting] = useState(false);
   const [pkConnectedOpponentName, setPkConnectedOpponentName] = useState<string | null>(null);
-  const [pkTeams, setPkTeams] = useState<{ teamA: PKFighter[]; teamB: PKFighter[] }>({
-    teamA: [],
-    teamB: [],
-  });
+  const [pkBattle, setPkBattle] = useState<PKBattleState>(() => ({ ...DEFAULT_PK_STATE }));
+  const appliedPkEventIdsRef = useRef(new Set<string>());
+  const processedPkGiftPlayIdsRef = useRef(new Set<string>());
+  pkPhaseForDiscoveryRef.current = pkBattle.phase;
+
+  // Push Live feed presence as soon as PK phase changes (don't wait for heartbeat).
+  useEffect(() => {
+    if (!isOwnerHost || !self.id || !isDiscoverableRoom || !isPkEligibleStream) return;
+    const settingsMode = String(liveSettings.roomMode || roomMode);
+    const liveKind = liveKindForPkPresence(settingsMode, pkBattle.phase);
+    const pkActive = pkBattle.phase === 'active';
+    db.setUserLiveStatus(self.id, true, liveKind);
+    syncPartyRoomToCloud(roomDisplayId, liveSettings.ownerUserId ?? self.id, liveSettings, {
+      pkActive,
+    });
+  }, [
+    isOwnerHost,
+    self.id,
+    isDiscoverableRoom,
+    isPkEligibleStream,
+    pkBattle.phase,
+    liveSettings,
+    roomDisplayId,
+    roomMode,
+  ]);
+
   const [backgroundMode, setBackgroundMode] = useState<RoomBackgroundMode>(() =>
     parseRoomBackground(ensureRoomSettingsSeeded(roomDisplayId).background),
   );
   const [pendingBackgroundMode, setPendingBackgroundMode] = useState<RoomBackgroundMode | null>(null);
   const [isRoomBackgroundMenuOpen, setIsRoomBackgroundMenuOpen] = useState(false);
 
-  const canChangeRoomBackground = roleCanChangeRoomBackground(currentUserRole);
+  const canChangeRoomBackground =
+    isSilentAdminWatch || roleCanChangeRoomBackground(moderationRole);
 
-  const canManageRoomKey = isRoomOwner(currentUserRole);
+  const canManageRoomKey = isSilentAdminWatch || isRoomOwner(moderationRole);
+
+  const canBanFromSeats = isSilentAdminWatch;
+  const [pendingSeatBanTarget, setPendingSeatBanTarget] = useState<{
+    userId: string;
+    name: string;
+  } | null>(null);
+  const selfSeatBan = useMemo(
+    () => getSeatBanForUser(roomDisplayId, self.id),
+    [roomDisplayId, self.id, liveSettings.seatBans, liveSettings.seatBannedUserIds],
+  );
 
   const sessionRole = getManagedRoomById(roomDisplayId)?.role ?? currentUserRole;
 
   const canEditRoomAnnouncement = useMemo(
     () =>
+      isSilentAdminWatch ||
       canEditRoomForUser(liveSettings, self.id, {
         sessionRole,
       }),
-    [liveSettings, self.id, sessionRole],
+    [isSilentAdminWatch, liveSettings, self.id, sessionRole],
   );
 
   const handleOpenAnnouncementEditor = useCallback(() => {
@@ -1894,6 +2035,7 @@ export function Room() {
     roomId: roomDisplayId,
     enabled: usesLivePartyFeed,
     self: { id: self.id, roomName: self.roomName, avatarUrl: self.avatarUrl },
+    silent: isSilentAdminWatch,
   });
 
   const getSelfJoinContext = useCallback((): RoomJoinContext => {
@@ -1908,7 +2050,9 @@ export function Room() {
     if (partyPresence.cloudActive) return;
     setViewers((prev) =>
       mergeViewerJoinTimestamps(
-        buildViewersFromPartyState(liveSettings, activeSeats, self, roomDisplayId),
+        buildViewersFromPartyState(liveSettings, activeSeats, self, roomDisplayId, {
+          includeSelf: !isSilentAdminWatch,
+        }),
         prev,
       ),
     );
@@ -1921,15 +2065,19 @@ export function Room() {
     self.avatarUrl,
     roomDisplayId,
     self,
+    isSilentAdminWatch,
   ]);
 
   useEffect(() => {
     if (!partyPresence.cloudActive) return;
     setViewers((prev) => {
-      const seated = buildViewersFromPartyState(liveSettings, activeSeats, self, roomDisplayId);
+      const seated = buildViewersFromPartyState(liveSettings, activeSeats, self, roomDisplayId, {
+        includeSelf: !isSilentAdminWatch,
+      });
       const byId = new Map<string, RoomViewerEntry>();
       for (const entry of seated) byId.set(entry.id, entry);
       for (const entry of partyPresence.remoteViewers) {
+        if (isSilentAdminWatch && entry.id === self.id) continue;
         if (!byId.has(entry.id)) byId.set(entry.id, entry);
       }
       return mergeViewerJoinTimestamps(Array.from(byId.values()), prev);
@@ -1941,14 +2089,16 @@ export function Room() {
     activeSeats,
     self,
     roomDisplayId,
+    isSilentAdminWatch,
   ]);
 
   useEffect(() => {
-    if (!usesLivePartyFeed) return;
+    if (!isDiscoverableRoom || !isOwnerHost) return;
     syncPartyRoomToCloud(roomDisplayId, liveSettings.ownerUserId ?? self.id, liveSettings);
-  }, [usesLivePartyFeed, roomDisplayId, liveSettings, self.id]);
+  }, [isDiscoverableRoom, isOwnerHost, roomDisplayId, liveSettings, self.id]);
 
   useEffect(() => {
+    if (isSilentAdminWatch) return;
     seedDemoRoomMedia(roomDisplayId, []);
     const seatMembers = Object.values(activeSeats)
       .filter((guest): guest is Guest => guest !== null)
@@ -1958,7 +2108,7 @@ export function Room() {
       avatar: viewer.avatar,
     }));
     syncRoomMemberAvatars(roomDisplayId, [...seatMembers, ...viewerMembers]);
-  }, [roomDisplayId, activeSeats, viewers]);
+  }, [roomDisplayId, activeSeats, viewers, isSilentAdminWatch]);
 
   const [profilePreviewViewerId, setProfilePreviewViewerId] = useState<string | null>(null);
   const profilePreviewSuppressUntilRef = useRef(0);
@@ -2034,7 +2184,7 @@ export function Room() {
 
   const handleToggleCoOwner = (viewerId: string) => {
     const viewer = viewers.find((entry) => entry.id === viewerId);
-    if (!viewer || !isRoomOwner(currentUserRole)) return;
+    if (!viewer || !isRoomOwner(moderationRole)) return;
     if (viewer.isOwner) {
       showToast('The room owner cannot be assigned as co-owner.');
       return;
@@ -2110,6 +2260,111 @@ export function Room() {
       setProfilePreviewViewerId(null);
     }
   };
+
+  const requestBanFromSeats = useCallback(
+    (userId: string, displayName: string) => {
+      if (!canBanFromSeats) {
+        showToast('Only platform admin can ban users from seats.');
+        return;
+      }
+      const id = userId.trim();
+      if (!id) {
+        showToast('Could not ban this user from seats.');
+        return;
+      }
+      setPendingSeatBanTarget({ userId: id, name: displayName.trim() || 'User' });
+    },
+    [canBanFromSeats, showToast],
+  );
+
+  const handleBanFromSeats = useCallback(
+    (userId: string, displayName: string, durationMs: number) => {
+      if (!canBanFromSeats) {
+        showToast('Only platform admin can ban users from seats.');
+        return;
+      }
+      const id = userId.trim();
+      const name = displayName.trim() || 'User';
+      if (!id) {
+        showToast('Could not ban this user from seats.');
+        return;
+      }
+      banUserFromSeats(roomDisplayId, id, durationMs);
+      refreshLiveSettings();
+      setActiveSeats((prev) => {
+        const copy = { ...prev };
+        for (const key of Object.keys(copy)) {
+          // Host seat always survives seat bans — never clear it.
+          if (key === 'host') continue;
+          const occupant = copy[key as keyof PartySeatMap];
+          if (
+            occupant &&
+            (occupant.userId === id || occupant.name === name)
+          ) {
+            copy[key as keyof PartySeatMap] = null;
+          }
+        }
+        return copy;
+      });
+      const durationLabel = formatSeatBanDurationLabel(durationMs);
+      appendLiveChatMsg({
+        id: Date.now(),
+        user: 'SYSTEM',
+        isOwner: false,
+        isAdmin: true,
+        isSystem: true,
+        text: isSilentAdminWatch
+          ? `🚫 @${name} was banned from seats for ${durationLabel} by platform administration`
+          : `🚫 @${name} was banned from seats for ${durationLabel} by the room owner`,
+        iconBadge: 'ban',
+      });
+      showToast(`${name} banned from seats for ${durationLabel}.`);
+      setPendingSeatBanTarget(null);
+      if (profilePreviewViewerId === id) {
+        setProfilePreviewViewerId(null);
+      }
+    },
+    [
+      appendLiveChatMsg,
+      canBanFromSeats,
+      isSilentAdminWatch,
+      profilePreviewViewerId,
+      refreshLiveSettings,
+      roomDisplayId,
+      showToast,
+    ],
+  );
+
+  const handleUnbanFromSeats = useCallback(
+    (userId: string, displayName: string) => {
+      if (!canBanFromSeats) return;
+      const id = userId.trim();
+      if (!id) return;
+      unbanUserFromSeats(roomDisplayId, id);
+      refreshLiveSettings();
+      showToast(`${displayName || 'User'} can take seats again.`);
+    },
+    [canBanFromSeats, refreshLiveSettings, roomDisplayId, showToast],
+  );
+
+  const handleSelfSeatBanExpired = useCallback(() => {
+    if (sweepExpiredSeatBans(roomDisplayId)) {
+      refreshLiveSettings();
+    }
+    showToast('Your seat ban has ended. You can take a seat again.');
+  }, [refreshLiveSettings, roomDisplayId, showToast]);
+
+  // Prune expired seat bans so countdowns auto-clear for everyone in the room.
+  useEffect(() => {
+    const tick = () => {
+      if (sweepExpiredSeatBans(roomDisplayId)) {
+        refreshLiveSettings();
+      }
+    };
+    tick();
+    const timer = window.setInterval(tick, 1000);
+    return () => window.clearInterval(timer);
+  }, [roomDisplayId, refreshLiveSettings]);
 
   const [isAllGuestMuted, setIsAllGuestMuted] = useState(false);
 
@@ -2570,10 +2825,10 @@ export function Room() {
 
     const isSelf =
       isRoomSelfGuest(seatValue, self) ||
-      (seatKey === "host" && isRoomOwner(currentUserRole)) ||
-      (seatKey === "coowner" && (isRoomCoOwner(currentUserRole) || isRoomOwner(currentUserRole))) ||
-      (seatKey === "admin" && (selfCanTakeAdminSeat || isRoomOwner(currentUserRole)));
-    const isAdminOrHost = isRoomAdminOrOwner(currentUserRole);
+      (seatKey === "host" && isRoomOwner(moderationRole)) ||
+      (seatKey === "coowner" && (isRoomCoOwner(moderationRole) || isRoomOwner(moderationRole))) ||
+      (seatKey === "admin" && (selfCanTakeAdminSeat || isRoomOwner(moderationRole)));
+    const isAdminOrHost = isRoomAdminOrOwner(moderationRole);
     const isAllowedToManage = isSelf || isAdminOrHost;
 
     if (!isAllowedToManage) {
@@ -2740,6 +2995,7 @@ export function Room() {
     isAdmin?: boolean;
     isBurmese?: boolean;
   }) => {
+    if (isSilentAdminWatch) return;
     if (roomMode === 'Chorus' || usesLivePartyFeed) {
       appendLiveChatMsg(message);
       return;
@@ -2757,7 +3013,7 @@ export function Room() {
         isBurmese: message.isBurmese ?? false,
       },
     ]);
-  }, [appendLiveChatMsg, roomMode, usesLivePartyFeed]);
+  }, [appendLiveChatMsg, isSilentAdminWatch, roomMode, usesLivePartyFeed]);
 
   const announceUserJoinedRoom = useCallback((
     userId: string,
@@ -2835,10 +3091,18 @@ export function Room() {
   }, [roomDisplayId]);
 
   useEffect(() => {
+    if (isSilentAdminWatch) return;
     if (!hasPrivateKeyAccess) return;
     if (!self.id || !self.roomName.trim()) return;
     announceUserJoinedRoom(self.id, self.roomName);
-  }, [roomDisplayId, announceUserJoinedRoom, self.id, self.roomName, hasPrivateKeyAccess]);
+  }, [
+    roomDisplayId,
+    announceUserJoinedRoom,
+    self.id,
+    self.roomName,
+    hasPrivateKeyAccess,
+    isSilentAdminWatch,
+  ]);
 
   const announceSongStart = useCallback((song: { title: string }, singerName: string) => {
     appendLiveChatMsg({
@@ -3241,7 +3505,7 @@ export function Room() {
   const lastAppliedSeatRevisionRef = useRef(0);
   const applyingRemoteSeatsRef = useRef(false);
 
-  // Cross-device seat sync — broadcast snapshot to other clients in this room.
+  // Cross-device seat sync — broadcast seats + join requests + seat policy.
   useEffect(() => {
     if (!usesLivePartyFeed || !isCloudAuthUserId(self.id)) return undefined;
     const timer = window.setTimeout(() => {
@@ -3253,10 +3517,31 @@ export function Room() {
         seats: activeSeatsRef.current,
         revision,
         senderId: self.id,
+        guestRequests,
+        seatJoinMode: resolveSeatJoinMode(liveSettings),
+        whoCanBeSeated: liveSettings.whoCanBeSeated,
+        forceApply: isSilentAdminWatch || isRoomOwner(moderationRole),
+        seatBannedUserIds: getSeatBannedUserIds(roomDisplayId),
+        seatBans: getSeatBans(roomDisplayId),
+        lockedSeats,
       });
-    }, 400);
+    }, 0);
     return () => window.clearTimeout(timer);
-  }, [activeSeats, usesLivePartyFeed, self.id, liveRoomBus]);
+  }, [
+    activeSeats,
+    guestRequests,
+    liveSettings.seatJoinMode,
+    liveSettings.whoCanBeSeated,
+    liveSettings.seatBannedUserIds,
+    liveSettings.seatBans,
+    lockedSeats,
+    usesLivePartyFeed,
+    self.id,
+    liveRoomBus,
+    isSilentAdminWatch,
+    moderationRole,
+    roomDisplayId,
+  ]);
 
   // Apply seat snapshots from other devices / viewers in the same room.
   useEffect(() => {
@@ -3269,21 +3554,64 @@ export function Room() {
     }
 
     applyingRemoteSeatsRef.current = true;
+    const ownerUserId = resolveOwnerUserId(liveSettings) ?? '';
     setActiveSeats((prev) => {
       const merged = mergeRemotePartySeats(prev, remote.seats, {
         senderId: remote.senderId ?? '',
-        ownerUserId: resolveOwnerUserId(liveSettings) ?? '',
+        ownerUserId,
+        forceApply: Boolean(remote.forceApply),
       });
       return hydratePartySeatsWithStars(roomDisplayId, liveSettings, merged);
     });
+    setGuestRequests((prev) =>
+      mergeGuestSeatRequests(prev, remote.guestRequests, {
+        senderId: remote.senderId ?? '',
+        ownerUserId,
+      }),
+    );
+    if (remote.lockedSeats) {
+      setLockedSeats(remote.lockedSeats);
+    }
+    if (Array.isArray(remote.seatBans)) {
+      setSeatBans(roomDisplayId, remote.seatBans);
+      refreshLiveSettings();
+    } else if (Array.isArray(remote.seatBannedUserIds)) {
+      setSeatBannedUserIds(roomDisplayId, remote.seatBannedUserIds);
+      refreshLiveSettings();
+    }
+    if (
+      remote.senderId &&
+      ownerUserId &&
+      (remote.senderId === ownerUserId || remote.forceApply) &&
+      (remote.seatJoinMode || remote.whoCanBeSeated)
+    ) {
+      saveRoomSettings(roomDisplayId, {
+        ...(remote.seatJoinMode ? { seatJoinMode: remote.seatJoinMode } : {}),
+        ...(remote.whoCanBeSeated ? { whoCanBeSeated: remote.whoCanBeSeated } : {}),
+      });
+      refreshLiveSettings();
+    }
     lastAppliedSeatRevisionRef.current = remote.revision;
     queueMicrotask(() => {
       applyingRemoteSeatsRef.current = false;
     });
-  }, [liveRoomBus.lastSeats, usesLivePartyFeed, liveSettings, roomDisplayId, self.id]);
+  }, [
+    liveRoomBus.lastSeats,
+    usesLivePartyFeed,
+    liveSettings,
+    roomDisplayId,
+    self.id,
+    refreshLiveSettings,
+  ]);
 
   // Handle seat clicks (join empty seats; gift / seat menu for occupied).
   const handleSeatClick = (seatKey: string) => {
+    const occupantEarly = activeSeats[seatKey as keyof PartySeatMap];
+    // Platform silent watch: stay off empty seats, but manage occupied seats.
+    if (isSilentAdminWatch && !occupantEarly) {
+      showToast('Admin watch — you stay off seats (open an occupied seat to moderate).');
+      return;
+    }
     if (roomMode === 'SoloLive' && !isSoloLiveActiveSeat(seatKey)) {
       showToast('That seat is not available in Solo Live.');
       return;
@@ -3344,6 +3672,18 @@ export function Room() {
         return;
       }
 
+      // Seat bans block every seat except host — host always survives.
+      if (seatKey !== 'host' && isUserSeatBanned(roomDisplayId, self.id)) {
+        const ban = getSeatBanForUser(roomDisplayId, self.id);
+        const left = ban ? formatSeatBanRemaining(ban.expiresAt - Date.now()) : null;
+        showToast(
+          left
+            ? `You are banned from seats (${left} left).`
+            : 'You are banned from seats in this room.',
+        );
+        return;
+      }
+
       if (roomIsPrivate && !hasPrivateKeyAccess) {
         showToast('Enter the room key before taking a seat.');
         return;
@@ -3366,7 +3706,11 @@ export function Room() {
 
         if (!joinWithoutRequest) {
           // Check if user already has a pending request
-          if (guestRequests.some(r => r.name === self.roomName)) {
+          if (
+            guestRequests.some(
+              (r) => r.userId === self.id || r.name === self.roomName,
+            )
+          ) {
             showToast("You already have a pending join request!");
             return;
           }
@@ -3374,7 +3718,7 @@ export function Room() {
           setGuestRequests(prev => [
             ...prev,
             {
-              id: `req_user_${Date.now()}`,
+              id: `req_${self.id}_${Date.now()}`,
               userId: self.id,
               name: self.roomName,
               avatar: self.avatarUrl,
@@ -3532,14 +3876,17 @@ export function Room() {
   };
 
   const handleOpenPkPanel = useCallback(() => {
-    if (!isPkEligibleStream || roomMode !== 'SoloLive') return;
+    if (!isPkEligibleStream) {
+      showToast('PK is only available in Solo Live and Shop Live');
+      return;
+    }
     if (!isSelfSoloHost) {
       showToast('Only the host can start PK');
       return;
     }
     setIsPkInviteOpen(true);
     setPkInviteRefreshKey((key) => key + 1);
-  }, [isPkEligibleStream, isSelfSoloHost, roomMode, showToast]);
+  }, [isPkEligibleStream, isSelfSoloHost, showToast]);
 
   const handleConnectPk = useCallback(
     async (options: PKConnectOptions) => {
@@ -3558,7 +3905,6 @@ export function Room() {
           avatarUrl: options.opponentAvatar,
         };
         const teams = buildSoloLivePkTeams(activeSeats, hostFighter, opponentFighter, options.mode);
-        setPkTeams(teams);
         setPkConnectedOpponentName(options.opponentName);
         await liveRoomBus.emitPk(
           buildPkInvitePayload(options.opponentUserId, options.opponentName, {
@@ -3567,8 +3913,6 @@ export function Room() {
             teamB: teams.teamB,
           }),
         );
-        setIsPKActive(true);
-        setPkBattleStarted(false);
         setIsPkInviteOpen(false);
         showToast(
           options.matchType === 'random'
@@ -3583,18 +3927,14 @@ export function Room() {
   );
 
   const handleStartPkBattle = useCallback(async () => {
-    await liveRoomBus.emitPk({ action: 'accept' });
-    setPkBattleStarted(true);
+    const accept = buildPkAcceptPayload(pkBattle);
+    await liveRoomBus.emitPk(accept);
     setIsPkInviteOpen(false);
     showToast('PK battle started');
-  }, [liveRoomBus, showToast]);
+  }, [liveRoomBus, pkBattle, showToast]);
 
   const handleDisconnectPk = useCallback(async () => {
     await liveRoomBus.emitPk({ action: 'decline' });
-    setIsPKActive(false);
-    setPkBattleStarted(false);
-    setPkConnectedOpponentName(null);
-    setPkTeams({ teamA: [], teamB: [] });
     setIsPkInviteOpen(false);
     showToast('PK disconnected');
   }, [liveRoomBus, showToast]);
@@ -3602,77 +3942,82 @@ export function Room() {
   const handleEmitPk = useCallback(
     (payload: PKPayload) => {
       void liveRoomBus.emitPk(payload);
-      if (payload.action === 'accept') {
-        setPkBattleStarted(true);
-      }
-      if (payload.action === 'end' || payload.action === 'decline') {
-        setIsPKActive(false);
-        setPkBattleStarted(false);
-        setPkConnectedOpponentName(null);
-        setPkTeams({ teamA: [], teamB: [] });
-      }
     },
     [liveRoomBus],
   );
 
+  // Single source of truth: apply each PK bus event once by id.
   useEffect(() => {
+    if (!isPkEligibleStream) return;
     const pk = liveRoomBus.lastPk;
-    if (!pk) return;
-    if (pk.action === 'decline' || pk.action === 'end') {
-      setIsPKActive(false);
+    const eventId = liveRoomBus.lastPkId;
+    if (!pk || !eventId) return;
+    if (appliedPkEventIdsRef.current.has(eventId)) return;
+    appliedPkEventIdsRef.current.add(eventId);
+    if (appliedPkEventIdsRef.current.size > 400) {
+      appliedPkEventIdsRef.current = new Set(Array.from(appliedPkEventIdsRef.current).slice(-200));
+    }
+
+    setPkBattle((prev) => applyPkPayload(prev, pk));
+
+    // Derive room flags from the same payload (avoid setState-inside-updater).
+    if (pk.action === 'decline') {
       setPkBattleStarted(false);
       setPkConnectedOpponentName(null);
-      return;
-    }
-    if (pk.action === 'accept') {
+    } else if (pk.action === 'end') {
+      setPkBattleStarted(false);
+    } else if (pk.action === 'accept') {
       setPkBattleStarted(true);
+    } else if (pk.action === 'invite') {
+      setPkBattleStarted(false);
+      setPkConnectedOpponentName(pk.opponentName ?? pk.teamB?.[0]?.name ?? null);
+    } else if (pk.action === 'sync') {
+      setPkBattleStarted(pk.state.phase === 'active');
+      setPkConnectedOpponentName(pk.state.teamB[0]?.name ?? null);
     }
-    if (pk.action === 'invite' || pk.action === 'accept' || pk.action === 'sync') {
-      setIsPKActive(true);
-      if (pk.action === 'invite') {
-        if (pk.teamA && pk.teamB) {
-          setPkTeams({ teamA: pk.teamA, teamB: pk.teamB });
-          setPkConnectedOpponentName(pk.opponentName ?? pk.teamB[0]?.name ?? null);
-        }
-      } else if (pk.action === 'sync') {
-        setPkTeams({ teamA: pk.state.teamA, teamB: pk.state.teamB });
-        setPkConnectedOpponentName(pk.state.teamB[0]?.name ?? null);
-      }
-    }
-  }, [liveRoomBus.lastPk]);
-
-  const processedPkGiftPlayIdsRef = useRef(new Set<string>());
+    // score: battle flags unchanged; reducer updates points only while active
+  }, [isPkEligibleStream, liveRoomBus.lastPk, liveRoomBus.lastPkId]);
 
   useEffect(() => {
     if (isPkEligibleStream) return;
     setIsPkInviteOpen(false);
-    setIsPKActive(false);
     setPkBattleStarted(false);
     setPkConnecting(false);
     setPkConnectedOpponentName(null);
-    setPkTeams({ teamA: [], teamB: [] });
+    setPkBattle({ ...DEFAULT_PK_STATE });
+    appliedPkEventIdsRef.current.clear();
+    processedPkGiftPlayIdsRef.current.clear();
   }, [isPkEligibleStream]);
 
+  // Host-only gift → score so every peer does not multi-emit the same delta.
   useEffect(() => {
-    if (!pkBattleStarted || !isPkEligibleStream) return;
+    if (!pkBattleStarted || !isPkEligibleStream || !isSelfSoloHost) return;
     const gift = liveRoomBus.lastGiftPlay;
     if (!gift?.playId || processedPkGiftPlayIdsRef.current.has(gift.playId)) return;
     if (!gift.receiverUserId) return;
+    const onTeam =
+      pkBattle.teamA.some((fighter) => fighter.userId === gift.receiverUserId) ||
+      pkBattle.teamB.some((fighter) => fighter.userId === gift.receiverUserId);
+    if (!onTeam) return;
     processedPkGiftPlayIdsRef.current.add(gift.playId);
     void liveRoomBus.emitPk({
       action: 'score',
       userId: gift.receiverUserId,
       delta: pkScoreFromGift(gift.starValue),
     });
-  }, [isPkEligibleStream, pkBattleStarted, liveRoomBus, liveRoomBus.lastGiftPlay]);
+  }, [
+    isPkEligibleStream,
+    isSelfSoloHost,
+    pkBattle.teamA,
+    pkBattle.teamB,
+    pkBattleStarted,
+    liveRoomBus,
+    liveRoomBus.lastGiftPlay,
+  ]);
 
   const handleGameClick = useCallback(() => {
-    if (roomMode === 'GameLive') {
-      setGamePanelOpen(true);
-      return;
-    }
     showToast('Games — coming soon!');
-  }, [roomMode, showToast]);
+  }, [showToast]);
 
   const broadcastGameState = useCallback(
     (next: GameLiveState) => {
@@ -3744,12 +4089,18 @@ export function Room() {
   const handleLeaveRoom = useCallback(() => {
     cancelCurrentSong();
 
+    const ownerLeaving =
+      currentUserRole === 'owner' || liveSettings.ownerUserId === self.id;
+    if (ownerLeaving && self.id) {
+      db.setUserLiveStatus(self.id, false);
+    }
+
     const clearedSeats = clearSelfFromPartySeats(roomDisplayId, activeSeatsRef.current, self);
     setActiveSeats(clearedSeats);
 
     clearActiveRoomSession(roomDisplayId);
     exitRoomFlow();
-  }, [exitRoomFlow, roomDisplayId, self]);
+  }, [exitRoomFlow, roomDisplayId, self, currentUserRole, liveSettings.ownerUserId]);
 
   useEffect(() => {
     return () => {
@@ -3763,7 +4114,7 @@ export function Room() {
       const target = prev[targetIndex];
       if (!target) return prev;
       const canRemove =
-        isRoomAdminOrOwner(currentUserRole) ||
+        isRoomAdminOrOwner(moderationRole) ||
         (target.requestedByUserId
           ? target.requestedByUserId === self.id
           : isRoomSelfName(target.requestedBy, self));
@@ -3772,7 +4123,7 @@ export function Room() {
       showToast(`Removed "${target.title}" from queue.`);
       return next;
     });
-  }, [currentUserRole, self]);
+  }, [moderationRole, self]);
 
   const handleRemoveGuest = (seatKey: string) => {
     setActiveSeats(prev => ({
@@ -3824,7 +4175,12 @@ export function Room() {
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
     if (!chatInput.trim()) return;
-    
+    if (isSilentAdminWatch) {
+      showToast('Admin watch is view-only — messages stay invisible to the room.');
+      setChatInput('');
+      return;
+    }
+
     // Resume auto-scroll when user sends a message
     isAutoScrollEnabled.current = true;
 
@@ -3918,17 +4274,17 @@ export function Room() {
     [chorusSongTab, chorusSongSearch, currentlySinging?.id, songQueue, karaokeUploadsVersion],
   );
 
-  if (roomIsPrivate && !hasPrivateKeyAccess) {
+  if (roomIsPrivate && !hasPrivateKeyAccess && !isSilentAdminWatch) {
     return (
       <RoomKeyGate
         roomTitle={roomTitle}
         roomDisplayId={roomDisplayId}
         onSubmit={(enteredKey) => {
-          if (!verifyRoomKey(liveSettings.roomKey, enteredKey)) {
-            return false;
-          }
-          setHasPrivateKeyAccess(true);
-          return true;
+          return verifyRoomKeyAccess(liveSettings.roomKey, enteredKey).then((ok) => {
+            if (!ok) return false;
+            setHasPrivateKeyAccess(true);
+            return true;
+          });
         }}
         onLeave={handleLeaveRoom}
       />
@@ -4008,9 +4364,26 @@ export function Room() {
         const seatKey = selectedSeatAction;
         const occupant = activeSeats[seatKey]!;
         const isSelfSeat = isRoomSelfGuest(occupant, self);
-        const canManageMic = isSelfSeat || isRoomAdminOrOwner(currentUserRole);
+        const canManageMic = isSelfSeat || isRoomAdminOrOwner(moderationRole);
         const canRemoveFromSeat =
-          isSelfSeat || (isRoomAdminOrOwner(currentUserRole) && seatKey !== "host");
+          isSelfSeat || (isRoomAdminOrOwner(moderationRole) && seatKey !== "host");
+        const occupantUserId =
+          occupant.userId?.trim() ||
+          resolveRoomViewerUserId(
+            {
+              id: occupant.userId || seatKey,
+              name: occupant.name,
+              isOwner: seatKey === 'host',
+              isCoOwner: seatKey === 'coowner',
+              isAdmin: Boolean(occupant.isAdmin),
+            },
+            liveSettings,
+          ) ||
+          viewers.find((viewer) => viewer.name === occupant.name)?.id ||
+          null;
+        const occupantSeatBanned = Boolean(
+          occupantUserId && isUserSeatBanned(roomDisplayId, occupantUserId),
+        );
         const isFollowingOccupant =
           viewers.find((viewer) => viewer.name === occupant.name)?.isFollowing ?? false;
 
@@ -4140,6 +4513,28 @@ export function Room() {
             <span>{isSelfSeat ? 'Leave Seat' : 'Remove from Seat'}</span>
           </button>
           ) : null}
+
+          {canBanFromSeats && !isSelfSeat && occupantUserId && seatKey !== 'host' ? (
+          <button
+            type="button"
+            onClick={() => {
+              if (occupantSeatBanned) {
+                handleUnbanFromSeats(occupantUserId, occupant.name);
+              } else {
+                requestBanFromSeats(occupantUserId, occupant.name);
+              }
+              setSelectedSeatAction(null);
+            }}
+            className={`w-full py-3 rounded-xl flex items-center justify-center space-x-2 font-medium transition mt-1 cursor-pointer border ${
+              occupantSeatBanned
+                ? 'bg-emerald-500/15 hover:bg-emerald-500/25 border-emerald-500/30 text-emerald-300'
+                : 'bg-orange-500/15 hover:bg-orange-500/25 border-orange-500/30 text-orange-300'
+            }`}
+          >
+            <Ban size={16} />
+            <span>{occupantSeatBanned ? 'Unban from Seats' : 'Ban from Seats'}</span>
+          </button>
+          ) : null}
         </div>
       </div>
         );
@@ -4154,7 +4549,7 @@ export function Room() {
         guestRequests={guestRequests}
         onAcceptRequest={handleAcceptRequest}
         onDeclineRequest={handleDeclineRequest}
-        currentUserRole={currentUserRole}
+        currentUserRole={moderationRole}
         isAllGuestMuted={isAllGuestMuted}
         onToggleAllMics={handleToggleAllMics}
         joinWithoutRequest={joinWithoutRequest}
@@ -4163,7 +4558,9 @@ export function Room() {
         onToggleSeatLock={handleToggleSeatLock}
         isUserSeated={isUserSeated}
         onJoinSeat={handleGuestSeatTap}
-        hasPendingJoinRequest={guestRequests.some((request) => request.name === self.roomName)}
+        hasPendingJoinRequest={guestRequests.some(
+          (request) => request.userId === self.id || request.name === self.roomName,
+        )}
         whoCanJoin={liveSettings.whoCanJoin}
         whoCanBeSeated={liveSettings.whoCanBeSeated}
         roomPriority={liveSettings.roomPriority}
@@ -4172,17 +4569,25 @@ export function Room() {
         roomLayoutMode={roomMode}
         multiGuestSeatCount={multiGuestSeatCount}
         onMultiGuestSeatCountChange={handleMultiGuestSeatCountChange}
+        canBanFromSeats={canBanFromSeats}
+        seatBannedUserIds={liveSettings.seatBannedUserIds ?? []}
+        onBanFromSeats={requestBanFromSeats}
+        onUnbanFromSeats={handleUnbanFromSeats}
       />
 
       <RoomViewersOverlay
         isOpen={isRoomViewersOpen}
         onClose={() => setIsRoomViewersOpen(false)}
         viewers={viewers}
-        currentUserRole={currentUserRole}
+        currentUserRole={moderationRole}
         onToggleAdmin={handleToggleAdmin}
         onToggleCoOwner={handleToggleCoOwner}
         onToggleFollow={handleToggleFollow}
         onKickUser={handleKickUser}
+        canBanFromSeats={canBanFromSeats}
+        seatBannedUserIds={liveSettings.seatBannedUserIds ?? []}
+        onBanFromSeats={requestBanFromSeats}
+        onUnbanFromSeats={handleUnbanFromSeats}
         onSelectViewer={(viewer) => {
           handleSelectViewer(viewer);
           setIsRoomViewersOpen(false); // smoothly auto-close viewers overlay when profile pre-view is selected
@@ -4460,7 +4865,7 @@ export function Room() {
           arenaCountdownText={formatCountdown(countdown)}
           onOpenArenaRankings={() => setIsArenaRankingsOpen(true)}
           lockedSeats={lockedSeats}
-          canManageMedia={isRoomAdminOrOwner(currentUserRole)}
+          canManageMedia={isRoomAdminOrOwner(moderationRole)}
           showToast={showToast}
           canEditAnnouncement={canEditRoomAnnouncement}
           onEditAnnouncement={handleOpenAnnouncementEditor}
@@ -4488,15 +4893,22 @@ export function Room() {
           onToggleSaveRoom={handleToggleSaveRoom}
           hostUserId={liveSettings.ownerUserId?.trim() || self.id}
           isSelfHost={isSelfGameHost}
+          silentAdminWatch={isSilentAdminWatch}
           onLeaveRoom={handleLeaveRoom}
           onShareRoom={() => setIsShareRoomOpen(true)}
           onOpenRoomDetails={openRoomDetails}
           onOpenRoomEdit={openRoomEdit}
           activeSeats={activeSeats}
           handleSeatClick={handleGuestSeatTap}
+          handleToggleSeatMic={handleToggleSeatMic}
           buildViewerFromGuest={buildViewerFromGuest}
           handleSelectViewer={handleSelectViewer}
-          ownerSocial={ownerSocial}
+          lockedSeats={lockedSeats}
+          mutuallyFollowing={mutuallyFollowing}
+          toggleHeartbeat={toggleHeartbeat}
+          userMicLevel={userMicLevel}
+          audioPulse={audioPulse}
+          viewerUserId={self.id}
           viewers={viewers}
           roomExpProgress={roomExpProgress}
           roomGiftSummary={roomGiftSummary}
@@ -4535,6 +4947,7 @@ export function Room() {
           backgroundMode={backgroundMode}
           pendingBackgroundMode={pendingBackgroundMode}
           arenaParticipants={arenaParticipants}
+          arenaCountdownText={formatCountdown(countdown)}
           onOpenArenaRankings={() => setIsArenaRankingsOpen(true)}
           showToast={showToast}
           canEditAnnouncement={canEditRoomAnnouncement}
@@ -4547,6 +4960,7 @@ export function Room() {
           hideSingMenu={isLyricsOverlayOpen}
           onOpenGiftSenders={openGiftSendersForGuest}
           onOpenGame={() => setGamePanelOpen(true)}
+          onGameClick={handleGameClick}
           gamePhase={gameLiveState.phase}
           beautyEffectId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
@@ -4593,6 +5007,7 @@ export function Room() {
           bodyShape={liveBodyShape}
           beautyPanelOpen={isLiveBeautyOpen}
           effectsPanelOpen={DEEPAR_ENABLED && isMultiGuestEffectsOpen}
+          hiddenLiveKit={isSilentAdminWatch}
         >
           {(media) => (
         <SoloLiveView
@@ -4678,9 +5093,7 @@ export function Room() {
           }
           onGameClick={handleGameClick}
           pkEnabled={isPkEligibleStream}
-          pkTeamA={pkTeams.teamA}
-          pkTeamB={pkTeams.teamB}
-          lastPk={isPkEligibleStream ? liveRoomBus.lastPk : null}
+          pkBattle={isPkEligibleStream ? pkBattle : null}
           onEmitPk={isPkEligibleStream ? handleEmitPk : undefined}
           onStartPk={isPkEligibleStream && isSelfSoloHost ? handleStartPkBattle : undefined}
           onDisconnectPk={isPkEligibleStream && isSelfSoloHost ? handleDisconnectPk : undefined}
@@ -4733,6 +5146,7 @@ export function Room() {
           bodyShape={liveBodyShape}
           beautyPanelOpen={isLiveBeautyOpen}
           effectsPanelOpen={DEEPAR_ENABLED && isMultiGuestEffectsOpen}
+          hiddenLiveKit={isSilentAdminWatch}
         >
           {(media) => (
         <MultiGuestView
@@ -4852,7 +5266,7 @@ export function Room() {
                             <img 
                               key={v.id} 
                               src={safeAvatarUrl(v.avatar)} 
-                              className="rounded-full border-2 border-[#07010a] object-cover" 
+                              className="h-6 w-6 shrink-0 rounded-full border-2 border-[#07010a] object-cover sm:h-7 sm:w-7" 
                               alt="" 
                             />
                           ))}
@@ -4942,7 +5356,7 @@ export function Room() {
                 onCancel={cancelCurrentSong}
               />
             ) : (
-              <div className="chorus-song-picker mx-3 sm:mx-4 mt-2 flex-1 min-h-0 bg-purple-900/20 backdrop-blur-md rounded-[28px] border border-white/5 flex flex-col overflow-hidden max-h-none sm:max-h-[min(320px,36vh)]">
+              <div className="chorus-song-picker mx-3 sm:mx-4 mt-2 flex-none max-[767px]:!h-[min(280px,38dvh)] max-[767px]:!max-h-[min(280px,38dvh)] bg-purple-900/20 backdrop-blur-md rounded-[28px] border border-white/5 flex flex-col overflow-hidden">
                   <div className="chorus-song-picker-toolbar px-3 py-2 sm:px-5 sm:py-3 flex items-center space-x-3 sm:space-x-4 shrink-0">
                       <label className="flex-1 bg-white/10 rounded-full h-8 flex items-center px-4 min-w-0">
                           <Search size={14} className="text-gray-400 shrink-0" />
@@ -5176,7 +5590,7 @@ export function Room() {
                         <img 
                           key={v.id} 
                           src={safeAvatarUrl(v.avatar)} 
-                          className="rounded-full border-2 border-[#07010a] object-cover" 
+                          className="h-6 w-6 shrink-0 rounded-full border-2 border-[#07010a] object-cover sm:h-7 sm:w-7" 
                           alt="" 
                         />
                       ))}
@@ -5185,7 +5599,7 @@ export function Room() {
                       <Users size={16} className="text-gray-300 sm:w-[18px] sm:h-[18px]" />
                       <span className="party-viewers-count font-black text-gray-100">{viewers.length}</span>
                     </div>
-                </div>
+                  </div>
                 <RoomHeaderYoutubeMiniButton />
                 <RoomHeaderActionsMenu items={partyHeaderMenuItems} />
                 <button
@@ -5906,8 +6320,8 @@ export function Room() {
                 }
           }
           showKick={
-            (isRoomOwner(currentUserRole) && !isRoomSelfName(profilePreviewUser.displayName, self)) ||
-            (currentUserRole === 'admin' &&
+            (isRoomOwner(moderationRole) && !isRoomSelfName(profilePreviewUser.displayName, self)) ||
+            (moderationRole === 'admin' &&
               !isRoomSelfName(profilePreviewUser.displayName, self) &&
               !profilePreviewUser.isOwner &&
               !profilePreviewUser.isAdmin)
@@ -5915,6 +6329,64 @@ export function Room() {
           onKick={() => {
             handleKickUser(profilePreviewUser.id, profilePreviewUser.displayName);
           }}
+          showBanFromSeats={
+            canBanFromSeats &&
+            !profilePreviewUser.isSelf &&
+            !profilePreviewUser.isOwner &&
+            Boolean(profilePreviewUser.resolvedUserId || profilePreviewUser.id)
+          }
+          isSeatBanned={
+            Boolean(
+              (profilePreviewUser.resolvedUserId || profilePreviewUser.id) &&
+                isUserSeatBanned(
+                  roomDisplayId,
+                  profilePreviewUser.resolvedUserId || profilePreviewUser.id,
+                ),
+            )
+          }
+          onBanFromSeats={() => {
+            const banId = profilePreviewUser.resolvedUserId || profilePreviewUser.id;
+            if (!banId) return;
+            if (isUserSeatBanned(roomDisplayId, banId)) {
+              handleUnbanFromSeats(banId, profilePreviewUser.displayName);
+              closeProfilePreview();
+            } else {
+              closeProfilePreview();
+              requestBanFromSeats(banId, profilePreviewUser.displayName);
+            }
+          }}
+        />
+      ) : null}
+
+      {isSilentAdminWatch ? (
+        <PlatformAdminModerationListener
+          enabled
+          roomId={roomDisplayId}
+          activeSeats={activeSeats}
+          onOpenGuests={() => setIsGuestManagementOpen(true)}
+          onOpenViewers={() => setIsRoomViewersOpen(true)}
+          onRequestBanFromSeats={requestBanFromSeats}
+        />
+      ) : null}
+
+      {pendingSeatBanTarget ? (
+        <SeatBanDurationPicker
+          userName={pendingSeatBanTarget.name}
+          onClose={() => setPendingSeatBanTarget(null)}
+          onConfirm={(durationMs) => {
+            handleBanFromSeats(
+              pendingSeatBanTarget.userId,
+              pendingSeatBanTarget.name,
+              durationMs,
+            );
+          }}
+        />
+      ) : null}
+
+      {!isSilentAdminWatch && selfSeatBan ? (
+        <SeatBanCountdownBanner
+          ban={selfSeatBan}
+          onExpired={handleSelfSeatBanExpired}
         />
       ) : null}
 
@@ -5966,7 +6438,7 @@ export function Room() {
                           {queuedSong.artist} · {formatRoomSelfLabel(queuedSong.requestedBy, self)}
                         </p>
                       </div>
-                      {(isRoomAdminOrOwner(currentUserRole) ||
+                      {(isRoomAdminOrOwner(moderationRole) ||
                         (queuedSong.requestedByUserId
                           ? queuedSong.requestedByUserId === self.id
                           : isRoomSelfName(queuedSong.requestedBy, self))) && (

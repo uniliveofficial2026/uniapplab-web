@@ -59,6 +59,7 @@ export async function migrateFirebaseNewcomerToSupabase(firebaseUid: string): Pr
         displayName: profile?.display_name,
         profileSetupComplete: profile?.profile_setup_complete,
         avatarUrl: profile?.avatar_url,
+        publicUserId: profile?.public_user_id,
       }),
     }),
     MIGRATE_MS,

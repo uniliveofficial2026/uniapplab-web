@@ -1,0 +1,684 @@
+/* Locked UniLive’s princess auth layout.
+   Mobile matches approved artwork. Larger screens only scale/reposition and extend the same background. */
+
+.upa-root {
+  --upa-bg: #14061f;
+  --upa-gold: #d4af37;
+  --upa-gold-bright: #f0d78c;
+  --upa-ink: #1a1224;
+  --upa-violet: #8e24aa;
+  --upa-magenta: #c2185b;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  background: var(--upa-bg);
+  color: #fff;
+}
+
+.upa-extend {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.upa-extend img,
+.upa-extend svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.upa-frame {
+  position: relative;
+  z-index: 1;
+  /* Lock to approved art aspect so hotspots stay pixel-true; letterbox with extend bg */
+  width: min(100vw, calc(100dvh * 576 / 1024));
+  height: min(100dvh, calc(100vw * 1024 / 576));
+  max-width: 100%;
+  max-height: 100dvh;
+  margin: auto;
+  flex-shrink: 0;
+}
+
+.upa-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: fill;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+.upa-actions {
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none; /* only hit buttons receive events */
+}
+
+/* Hotspot regions — measured from locked 576×1024 art (gold frames / text bounds) */
+.upa-hit {
+  position: absolute;
+  border: 0;
+  padding: 0;
+  margin: 0;
+  background: transparent;
+  cursor: pointer;
+  pointer-events: auto;
+  -webkit-tap-highlight-color: transparent;
+  touch-action: manipulation;
+}
+
+.upa-hit:disabled {
+  cursor: not-allowed;
+}
+
+.upa-hit:focus-visible {
+  outline: 2px solid var(--upa-gold-bright);
+  outline-offset: 2px;
+  border-radius: 12px;
+}
+
+/*
+ * Google + Email ornate strip
+ * Gold frames: left ~3%→48%, right ~50%→96%, top ~82%, height ~5.4%
+ */
+.upa-buttons-row {
+  position: absolute;
+  left: 2.95%;
+  top: 82.03%;
+  width: 93.4%;
+  height: 5.37%;
+  display: flex;
+  align-items: stretch;
+  justify-content: space-between;
+  gap: 2.4%;
+  pointer-events: none;
+  z-index: 2;
+}
+
+.upa-buttons-row .upa-hit-google,
+.upa-buttons-row .upa-hit-email {
+  position: relative;
+  left: auto;
+  top: auto;
+  right: auto;
+  bottom: auto;
+  width: auto;
+  height: 100%;
+  flex: 1 1 0;
+  min-width: 0;
+  border-radius: 10px;
+  pointer-events: auto;
+}
+
+/* Forgot Password? — measured text bounds + slight tap pad */
+.upa-hit-forgot {
+  left: 35.5%;
+  top: 89.6%;
+  width: 29%;
+  height: 3.1%;
+}
+
+/*
+ * Legal line — measured from princess-auth-locked.jpg (576×1024).
+ * Checkbox square: x 143–163, y 954–974.
+ * Terms underline: x 274–316. Privacy underline: x 350–443.
+ * Checkmark MUST stay inside the painted checkbox bbox (overflow clipped).
+ */
+.upa-hit-checkbox {
+  left: 24.83%;
+  top: 93.16%;
+  width: 3.65%;
+  height: 2.05%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  overflow: hidden;
+  box-sizing: border-box;
+  border-radius: 2px;
+}
+
+.upa-check {
+  display: block;
+  width: 72%;
+  height: 72%;
+  margin: 0;
+  opacity: 0;
+  pointer-events: none;
+  box-sizing: border-box;
+  line-height: 0;
+  overflow: hidden;
+}
+
+.upa-check svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+}
+
+.upa-check[data-checked='true'] {
+  opacity: 1;
+}
+
+/* Dim Google / Email until Terms are accepted; nudge checkbox when blocked */
+.upa-actions[data-agreed='false'] .upa-hit-google,
+.upa-actions[data-agreed='false'] .upa-hit-email {
+  opacity: 0.55;
+  filter: grayscale(0.25);
+}
+
+.upa-actions[data-nudge-agree='true'] .upa-hit-checkbox {
+  box-shadow: 0 0 0 2px #f0d78c, 0 0 16px rgba(240, 215, 140, 0.85);
+  border-radius: 3px;
+  animation: upa-agree-nudge 0.45s ease-in-out 0s 3;
+}
+
+@keyframes upa-agree-nudge {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.18);
+  }
+}
+
+/* “I agree to the” (between checkbox and Terms) */
+.upa-hit-agree-label {
+  left: 29.5%;
+  top: 92.9%;
+  width: 17.5%;
+  height: 3.1%;
+}
+
+/* Underlined “Terms” */
+.upa-hit-terms-link {
+  left: 47.4%;
+  top: 92.9%;
+  width: 8%;
+  height: 3.1%;
+}
+
+/* Underlined “Privacy Policy” */
+.upa-hit-privacy-link {
+  left: 60.5%;
+  top: 92.9%;
+  width: 17%;
+  height: 3.1%;
+}
+
+.upa-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Email signup / secondary forms: princess glass sheet over locked world */
+.upa-panel {
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  z-index: 3;
+  max-height: min(78dvh, 720px);
+  overflow: hidden;
+  padding: 0.55rem 0.7rem max(0.75rem, env(safe-area-inset-bottom));
+  background: linear-gradient(
+    180deg,
+    rgba(14, 6, 28, 0) 0%,
+    rgba(18, 8, 36, 0.55) 8%,
+    rgba(16, 6, 32, 0.88) 22%,
+    rgba(12, 4, 26, 0.97) 100%
+  );
+}
+
+.upa-panel-card {
+  width: 100%;
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 0.7rem;
+  color: #f5f0fa;
+  padding: 1.05rem 1rem 1.15rem;
+  border-radius: 22px;
+  border: 1.5px solid rgba(212, 175, 55, 0.55);
+  background:
+    linear-gradient(160deg, rgba(90, 30, 120, 0.35) 0%, rgba(28, 12, 52, 0.92) 42%, rgba(16, 8, 36, 0.96) 100%);
+  box-shadow:
+    0 0 0 1px rgba(240, 215, 140, 0.12) inset,
+    0 12px 40px rgba(0, 0, 0, 0.45),
+    0 0 48px rgba(142, 36, 170, 0.22);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+
+/* Signup sheet: compact so the full card fits with no scrolling */
+.upa-panel:has([data-panel-mode='signup']) {
+  overflow: hidden;
+  max-height: none;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.upa-panel-card[data-panel-mode='signup'] {
+  gap: 0.4rem;
+  padding: 0.7rem 0.8rem 0.75rem;
+  border-radius: 18px;
+  border-color: rgba(240, 215, 140, 0.62);
+  box-shadow:
+    0 0 0 1px rgba(240, 215, 140, 0.16) inset,
+    0 14px 44px rgba(0, 0, 0, 0.5),
+    0 0 56px rgba(194, 24, 91, 0.18);
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-panel-title {
+  font-size: clamp(1.05rem, 3.6vw, 1.25rem);
+  margin: 0;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-panel-sub {
+  display: none;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-seg {
+  padding: 0.18rem;
+  gap: 0.25rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-seg-btn {
+  padding: 0.4rem 0.3rem;
+  font-size: 0.62rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-field {
+  gap: 0.15rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-field-label {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-input {
+  padding: 0.55rem 0.9rem;
+  font-size: 0.86rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-cta {
+  margin-top: 0.05rem;
+  padding: 0.62rem 0.9rem;
+  font-size: 0.95rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-foot {
+  gap: 0.2rem;
+  padding-top: 0;
+  font-size: 0.78rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-legal {
+  padding-top: 0.3rem;
+  margin-top: 0;
+  gap: 0.15rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-legal p {
+  display: none;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-back {
+  padding: 0.15rem 0.4rem;
+  font-size: 0.78rem;
+}
+
+.upa-panel-card[data-panel-mode='signup'] .upa-row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.4rem;
+  width: 100%;
+}
+
+.upa-panel-card[data-panel-mode='signup'] form.flex {
+  gap: 0.4rem !important;
+}
+
+.upa-panel-card[data-panel-mode='signup'] > .flex {
+  gap: 0.4rem !important;
+}
+
+/* Login / other modes may still scroll if needed */
+.upa-panel:has([data-panel-mode='login']),
+.upa-panel:has([data-panel-mode='reset']) {
+  overflow: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.upa-panel-card label > span,
+.upa-field-label {
+  color: rgba(240, 215, 140, 0.88) !important;
+}
+
+.upa-panel-title {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(1.25rem, 4.2vw, 1.55rem);
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.01em;
+  color: #f0d78c;
+  text-shadow:
+    0 1px 0 rgba(80, 40, 10, 0.55),
+    0 0 18px rgba(240, 215, 140, 0.35);
+}
+
+.upa-panel-sub {
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(245, 240, 250, 0.78);
+  line-height: 1.4;
+  margin-top: -0.2rem;
+}
+
+.upa-field {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  width: 100%;
+  position: relative;
+}
+
+.upa-field-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.upa-input {
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0;
+  border-radius: 999px;
+  border: 1.5px solid rgba(212, 175, 55, 0.45);
+  background: rgba(18, 10, 36, 0.88) !important;
+  color: #f5f0fa !important;
+  -webkit-text-fill-color: #f5f0fa;
+  caret-color: #f0d78c;
+  padding: 0.72rem 1.05rem;
+  font-size: 0.92rem;
+  font-weight: 500;
+  line-height: 1.25;
+  outline: none !important;
+  box-shadow:
+    0 0 0 1px rgba(255, 255, 255, 0.04) inset,
+    0 4px 16px rgba(0, 0, 0, 0.25);
+  -webkit-appearance: none;
+  appearance: none;
+  transition: border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.upa-input::placeholder {
+  color: rgba(245, 240, 250, 0.38);
+  -webkit-text-fill-color: rgba(245, 240, 250, 0.38);
+}
+
+.upa-input:focus,
+.upa-input:focus-visible {
+  border-color: rgba(240, 215, 140, 0.85);
+  box-shadow:
+    0 0 0 1px rgba(240, 215, 140, 0.25) inset,
+    0 0 0 3px rgba(194, 24, 91, 0.18),
+    0 4px 18px rgba(0, 0, 0, 0.28);
+}
+
+.upa-input:-webkit-autofill,
+.upa-input:-webkit-autofill:hover,
+.upa-input:-webkit-autofill:focus {
+  -webkit-text-fill-color: #f5f0fa !important;
+  caret-color: #f0d78c;
+  transition: background-color 99999s ease-out 0s;
+  box-shadow: 0 0 0 1000px rgba(18, 10, 36, 0.95) inset !important;
+}
+
+.upa-seg {
+  display: flex;
+  gap: 0.35rem;
+  padding: 0.28rem;
+  border-radius: 999px;
+  border: 1px solid rgba(212, 175, 55, 0.35);
+  background: rgba(12, 6, 28, 0.55);
+}
+
+.upa-seg-btn {
+  flex: 1 1 0;
+  min-width: 0;
+  border: 0;
+  border-radius: 999px;
+  padding: 0.55rem 0.4rem;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  cursor: pointer;
+  color: rgba(245, 240, 250, 0.62);
+  background: transparent;
+  transition: background 0.15s ease, color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.upa-seg-btn[data-active='true'] {
+  color: #1a1224;
+  background: linear-gradient(180deg, #f0d78c 0%, #d4af37 55%, #b8922e 100%);
+  box-shadow: 0 2px 10px rgba(212, 175, 55, 0.35);
+}
+
+.upa-cta {
+  width: 100%;
+  margin-top: 0.15rem;
+  border: 1.5px solid rgba(240, 215, 140, 0.75);
+  border-radius: 999px;
+  padding: 0.85rem 1rem;
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: 1.05rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  color: #fff;
+  cursor: pointer;
+  background:
+    linear-gradient(180deg, rgba(194, 24, 91, 0.95) 0%, rgba(142, 36, 170, 0.95) 55%, rgba(88, 24, 140, 0.98) 100%);
+  box-shadow:
+    0 0 0 1px rgba(240, 215, 140, 0.2) inset,
+    0 6px 22px rgba(142, 36, 170, 0.4),
+    0 0 24px rgba(194, 24, 91, 0.25);
+  text-shadow: 0 1px 6px rgba(0, 0, 0, 0.35);
+  transition: transform 0.12s ease, filter 0.12s ease, opacity 0.12s ease;
+}
+
+.upa-cta:hover:not(:disabled) {
+  filter: brightness(1.06);
+}
+
+.upa-cta:active:not(:disabled) {
+  transform: scale(0.985);
+}
+
+.upa-cta:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.upa-cta:focus-visible {
+  outline: 2px solid var(--upa-gold-bright);
+  outline-offset: 3px;
+}
+
+.upa-foot {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.55rem;
+  text-align: center;
+  font-size: 0.82rem;
+  color: rgba(245, 240, 250, 0.72);
+  padding-top: 0.15rem;
+}
+
+.upa-link,
+.upa-back {
+  align-self: center;
+  background: none;
+  border: 0;
+  color: #f0d78c;
+  text-decoration: underline;
+  text-underline-offset: 3px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  cursor: pointer;
+  padding: 0.3rem 0.45rem;
+}
+
+.upa-link:disabled,
+.upa-back:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.upa-link:focus-visible,
+.upa-back:focus-visible {
+  outline: 2px solid var(--upa-gold-bright);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+.upa-legal {
+  width: 100%;
+  padding-top: 0.55rem;
+  margin-top: 0.15rem;
+  border-top: 1px solid rgba(212, 175, 55, 0.22);
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+}
+
+.upa-legal p {
+  margin: 0 auto;
+  max-width: 320px;
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: rgba(245, 240, 250, 0.55);
+}
+
+.upa-divider {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: 100%;
+  color: rgba(240, 215, 140, 0.55);
+  font-size: 0.65rem;
+  font-weight: 700;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.upa-divider::before,
+.upa-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(212, 175, 55, 0.45), transparent);
+}
+
+.upa-social {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.55rem;
+  border-radius: 999px;
+  border: 1.5px solid rgba(212, 175, 55, 0.4);
+  background: rgba(255, 255, 255, 0.94);
+  color: #1a1224;
+  font-size: 0.88rem;
+  font-weight: 700;
+  padding: 0.7rem 1rem;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.2);
+}
+
+.upa-social:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.upa-social:focus-visible {
+  outline: 2px solid var(--upa-gold-bright);
+  outline-offset: 2px;
+}
+
+/* —— Responsive: only scale / reposition / extend —— */
+
+/* 375×812 & 430×932 — same locked aspect, centered in viewport */
+@media (min-width: 375px) and (max-width: 767.98px) {
+  .upa-frame {
+    width: min(100vw, calc(100dvh * 576 / 1024));
+    height: min(100dvh, calc(100vw * 1024 / 576));
+  }
+}
+
+/* 768×1024 tablet — larger centered column; bg extends */
+@media (min-width: 768px) and (max-width: 1439.98px) {
+  .upa-frame {
+    width: min(100vw, 520px, calc(100dvh * 576 / 1024));
+    height: min(100dvh, calc(min(100vw, 520px) * 1024 / 576));
+    box-shadow: 0 0 80px rgba(80, 20, 120, 0.35);
+  }
+}
+
+/* 1440×900+ desktop — centered art; natural side extend of same world */
+@media (min-width: 1440px) {
+  .upa-frame {
+    width: min(560px, calc(100dvh * 576 / 1024));
+    height: min(100dvh, calc(min(560px, 100vw) * 1024 / 576));
+    box-shadow: 0 0 120px rgba(90, 30, 140, 0.4);
+  }
+
+  .upa-panel {
+    max-height: min(82dvh, 700px);
+    overflow: hidden;
+  }
+}
+
+/* Short landscape desktops (~1440×900): keep art readable without redesign */
+@media (min-width: 1024px) and (max-height: 920px) {
+  .upa-frame {
+    width: min(480px, calc(100dvh * 576 / 1024));
+    height: min(100dvh, calc(min(480px, 100vw) * 1024 / 576));
+  }
+}

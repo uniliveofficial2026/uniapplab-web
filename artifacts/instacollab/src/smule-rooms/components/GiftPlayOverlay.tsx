@@ -10,6 +10,9 @@ import { giftTierMeta } from '../../lib/live/giftTiers';
 import { GIFT_QUEUE_PRIORITY } from '../../lib/live/giftEconomy';
 import type { GiftPlayPayload } from '../utils/liveRoomTypes';
 import { GiftSvgaPlayer } from './GiftSvgaPlayer';
+import { UniLivesGiftThumbnail } from '../../components/gifts/brand';
+import { resolveGiftPlayMedia } from '../../lib/unilives-assets/giftResolve';
+import { UniLivesGiftFallback } from '../../components/gifts/brand/UniLivesGiftFallback';
 
 type GiftPlayOverlayProps = {
   gift: GiftPlayPayload | null;
@@ -23,6 +26,7 @@ type ComboState = {
   senderName: string;
   giftName: string;
   giftIcon: string;
+  giftId?: string;
   count: number;
   expiresAt: number;
 };
@@ -77,7 +81,11 @@ function ComboBarrage({ combo }: { combo: ComboState }) {
         sent
       </span>
       <span className="shrink-0 text-xl leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]">
-        {combo.giftIcon}
+        <UniLivesGiftThumbnail
+          businessGiftId={combo.giftId}
+          legacyIcon={combo.giftIcon}
+          imgClassName="inline-block h-5 w-5 object-contain align-middle"
+        />
       </span>
       {combo.count > 1 ? (
         <motion.span
@@ -107,7 +115,11 @@ function StandardFlyIn({ gift }: { gift: QueuedGift }) {
       transition={{ duration: 2.8, ease: 'easeInOut', times: [0, 0.22, 0.72, 1] }}
       className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl sm:text-7xl drop-shadow-[0_6px_20px_rgba(0,0,0,0.55)]"
     >
-      {gift.giftIcon}
+      <UniLivesGiftThumbnail
+        businessGiftId={gift.giftId}
+        legacyIcon={gift.giftIcon}
+        imgClassName="h-20 w-20 sm:h-24 sm:w-24 object-contain"
+      />
     </motion.div>
   );
 }
@@ -186,7 +198,11 @@ function FullscreenSvgaEffect({
         className="pointer-events-none absolute inset-0 flex items-center justify-center"
       >
         <span className="text-[clamp(4.5rem,20vw,8rem)] drop-shadow-[0_10px_32px_rgba(0,0,0,0.55)]">
-          {gift.giftIcon}
+          <UniLivesGiftThumbnail
+            businessGiftId={gift.giftId}
+            legacyIcon={gift.giftIcon}
+            imgClassName="h-[clamp(4.5rem,20vw,8rem)] w-[clamp(4.5rem,20vw,8rem)] object-contain"
+          />
         </span>
       </motion.div>
       <motion.p
@@ -254,7 +270,7 @@ function MythicGiftEffect({
   const [stage, setStage] = useState<'announce' | 'effect'>('announce');
 
   useEffect(() => {
-    const timer = window.setTimeout(() => setStage('effect'), 1600);
+    const timer = window.setTimeout(() => setStage('effect'), 500);
     return () => window.clearTimeout(timer);
   }, [gift.queueKey]);
 
@@ -274,8 +290,14 @@ function MythicGiftEffect({
               <p className="text-[10px] font-black uppercase tracking-[0.28em] text-fuchsia-100">
                 Global Mythic Gift
               </p>
-              <p className="mt-1 text-sm font-black text-white">
-                {gift.senderName} sent {gift.giftIcon} {gift.giftName}
+              <p className="mt-1 text-sm font-black text-white inline-flex items-center justify-center gap-1.5 flex-wrap">
+                {gift.senderName} sent{' '}
+                <UniLivesGiftThumbnail
+                  businessGiftId={gift.giftId}
+                  legacyIcon={gift.giftIcon}
+                  imgClassName="h-5 w-5 object-contain"
+                />{' '}
+                {gift.giftName}
               </p>
               <p className="text-[11px] font-semibold text-white/80">
                 to {gift.receiverName} · {gift.starValue.toLocaleString()} coins
@@ -320,9 +342,14 @@ function ActiveGiftEffect({
   onFinished: () => void;
 }) {
   const definition = resolveGiftEffect(gift.giftId, gift.giftName);
-  const svgaUrl = gift.effectSvgaUrl ?? definition.effectSvgaUrl;
-  const videoUrl = gift.effectVideoUrl ?? definition.effectVideoUrl;
-  const usesMedia = Boolean(svgaUrl || videoUrl);
+  const media = resolveGiftPlayMedia({
+    businessGiftId: gift.giftId,
+    legacySvgaUrl: gift.effectSvgaUrl ?? definition.effectSvgaUrl,
+    legacyVideoUrl: gift.effectVideoUrl ?? definition.effectVideoUrl,
+  });
+  const svgaUrl = media.preferStatic ? undefined : media.svgaUrl;
+  const videoUrl = media.preferStatic ? undefined : media.videoUrl;
+  const usesMedia = Boolean(svgaUrl || videoUrl) || media.preferStatic;
   const finishedRef = useRef(false);
 
   useEffect(() => {
@@ -355,6 +382,21 @@ function ActiveGiftEffect({
     return () => window.clearTimeout(timer);
   }, [finishOnce, gift.queueKey, tier]);
 
+  if (media.preferStatic) {
+    return (
+      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
+        <UniLivesGiftFallback
+          src={media.staticUrl}
+          className="max-h-[40vh] max-w-[min(70vw,280px)] object-contain"
+        />
+        <p className="px-4 text-center text-sm font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
+          {gift.senderName} sent {gift.giftName} to {gift.receiverName}
+        </p>
+        <StaticFinish onFinished={finishOnce} />
+      </div>
+    );
+  }
+
   if (tier === 'premium') {
     return (
       <MediumSvgaEffect gift={gift} svgaUrl={svgaUrl} videoUrl={videoUrl} onFinished={finishOnce} />
@@ -382,6 +424,14 @@ function ActiveGiftEffect({
   return null;
 }
 
+function StaticFinish({ onFinished }: { onFinished: () => void }) {
+  useEffect(() => {
+    const timer = window.setTimeout(onFinished, 1800);
+    return () => window.clearTimeout(timer);
+  }, [onFinished]);
+  return null;
+}
+
 export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
   const queueRef = useRef<QueuedGift[]>([]);
   const [active, setActive] = useState<QueuedGift | null>(null);
@@ -399,6 +449,7 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
         starValue: next.starValue,
       });
 
+      // Normal-tier effects never block — overlap with fullscreen plays.
       if (tier === 'normal') {
         queueRef.current.shift();
         const comboKey = `${next.senderId ?? next.senderName}:${next.giftId ?? next.giftName}`;
@@ -418,6 +469,7 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
               senderName: next.senderName,
               giftName: next.giftName,
               giftIcon: next.giftIcon,
+              giftId: next.giftId,
               count: 1,
               expiresAt: Date.now() + 2600,
             },
@@ -486,7 +538,13 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
             className="absolute inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-20 flex justify-center px-3"
           >
             <div className="flex max-w-lg items-center gap-2 rounded-full border border-fuchsia-300/45 bg-black/70 px-3 py-1.5 text-[11px] font-bold text-fuchsia-50 shadow-xl backdrop-blur-md">
-              <span className="text-base leading-none">{globalAnnouncement.giftIcon}</span>
+              <span className="text-base leading-none">
+                <UniLivesGiftThumbnail
+                  businessGiftId={globalAnnouncement.giftId}
+                  legacyIcon={globalAnnouncement.giftIcon}
+                  imgClassName="h-4 w-4 object-contain"
+                />
+              </span>
               <span className="truncate">
                 Mythic · {globalAnnouncement.senderName} → {globalAnnouncement.receiverName} ·{' '}
                 {globalAnnouncement.giftName}
@@ -504,7 +562,7 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
         </AnimatePresence>
       </div>
 
-      <AnimatePresence mode="wait">
+      <AnimatePresence>
         {showStage && active && activeTier ? (
           <motion.div
             key={active.queueKey}

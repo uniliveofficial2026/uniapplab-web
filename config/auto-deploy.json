@@ -4,6 +4,6 @@
   "autoPush": true,
   "githubActionsDeploy": true,
   "autoMachineLearning": true,
-  "liveCloudSyncAggressive": true,
-  "note": "Autopilot ON — auto deploy, git push, ML handoff, and aggressive live cloud sync. Set autopilot to false to pause."
+  "liveCloudSyncAggressive": false,
+  "note": "Autopilot ON for deploy/git/ML. liveCloudSyncAggressive OFF \u2014 aggressive 1s polls froze the UI."
 }

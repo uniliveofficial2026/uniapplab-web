@@ -531,7 +531,7 @@ export const DEV_CHANGELOG: DevChangelogEntry[] = [
     tasks: ['Log in', 'Sign up', 'Log out', 'Profile setup'],
     testHints: [
       'Fresh load → splash → onboarding → login with demo@instacollab.app / demo123',
-      'Sign up → profile setup → trending → Enter InstaCollab → home feed',
+      'Sign up → profile setup → trending → Enter UniLive\'s → home feed',
       'Profile → settings → Log out → auth screen',
       'Dev skip: ?launch=main or ?as=u2&launch=main',
     ],

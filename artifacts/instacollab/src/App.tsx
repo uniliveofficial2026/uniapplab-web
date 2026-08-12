@@ -17,6 +17,7 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { Feed } from './components/feed/Feed';
 // Greedy — eager so the tab opens with no lazy-chunk wait.
 import { GreedyTapScreen, prefetchGreedyTap } from './components/games/GreedyTapScreen';
+import { GreedySessionProvider } from './contexts/GreedySessionContext';
 
 const MessagesScreen = lazy(() =>
   import('./components/messages/MessagesScreen').then((m) => ({ default: m.MessagesScreen }))
@@ -104,20 +105,19 @@ import { AnimatePresence } from 'motion/react';
 import { applyDocumentTheme } from './lib/theme';
 import {
   applyDevSessionOverrideFromUrl,
-  shouldApplyDevSessionOverride,
+  hasDemoBootstrapIntent,
+  shouldRunDemoSessionBootstrap,
 } from './lib/devSessionUser';
 import { useLaunchRoute } from './hooks/useLaunchRoute';
 import { useIsOnline } from './hooks/useNetworkStatus';
 import { LaunchShell } from './components/launch/launchUi';
 import { OfflineStatusBanner } from './components/common/OfflineStatusBanner';
+import { UniLivesPrincessLoadingRefreshGate } from './components/brand/UniLivesPrincessLoadingRefreshGate';
 import { useSupabaseAuth } from './contexts/SupabaseAuthContext';
 import { useAuth } from './lib/AuthContext';
 import { isFirebaseConfigured } from './lib/firebase/config';
 import { isPrimarySupabaseCloud } from './lib/auth/config';
 import { InstantRoomEntryHost } from './components/live/InstantRoomEntryHost';
-const SplashScreen = lazy(() =>
-  import('./components/auth/SplashScreen').then((m) => ({ default: m.SplashScreen }))
-);
 const YoutubeMiniPlayerHost = lazy(() =>
   import('./components/youtube/YoutubeMiniPlayerHost').then((m) => ({
     default: m.YoutubeMiniPlayerHost,
@@ -152,6 +152,8 @@ import {
 import { hasInstantSessionCache, instantSuspenseFallback } from './lib/instantCachePolicy';
 import { isSilentSyncToast } from './lib/silentRemoteRefresh';
 import type { LaunchRoute } from './lib/launchRoute';
+import { isLaunchFunnelPendingThisSession, hasPassedAuthGateThisSession } from './lib/splashSession';
+import { forceRemoveBootShell } from './lib/bootSplashVideo';
 import { openKaraokeRoomFlow } from './lib/live/openLiveRoom';
 import { stripAppBasePath } from './lib/appShellRoutes';
 
@@ -161,6 +163,11 @@ const AdminEmbedRoomHost = lazy(() =>
 const AdminEmbedGiftPreviewHost = lazy(() =>
   import('./components/admin/AdminEmbedGiftPreviewHost').then((m) => ({
     default: m.AdminEmbedGiftPreviewHost,
+  })),
+);
+const UniLivesCharacterPreviewHost = lazy(() =>
+  import('./components/character/UniLivesCharacterPreviewHost').then((m) => ({
+    default: m.UniLivesCharacterPreviewHost,
   })),
 );
 
@@ -175,6 +182,13 @@ function isAdminGiftPreviewEmbed(): boolean {
   if (typeof window === 'undefined') return false;
   const path = stripAppBasePath(window.location.pathname);
   return path === '/admin-embed/gift-preview' || path === '/admin-embed/gift-preview/';
+}
+
+function isUniLivesCharacterPreview(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = stripAppBasePath(window.location.pathname);
+  if (path === '/character-preview' || path === '/character-preview/') return true;
+  return new URLSearchParams(window.location.search).get('unilivesCharacterPreview') === '1';
 }
 
 function ToastListener() {
@@ -196,10 +210,15 @@ function ToastListener() {
 export default function App() {
   const adminEmbedRoomId = useMemo(() => parseAdminEmbedRoomId(), []);
   const adminGiftPreview = useMemo(() => isAdminGiftPreviewEmbed(), []);
+  const characterPreview = useMemo(() => isUniLivesCharacterPreview(), []);
   return (
     <AppCameraShell>
       <ToastListener />
-      {adminGiftPreview ? (
+      {characterPreview ? (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <UniLivesCharacterPreviewHost />
+        </Suspense>
+      ) : adminGiftPreview ? (
         <Suspense fallback={instantSuspenseFallback()}>
           <AdminEmbedGiftPreviewHost />
         </Suspense>
@@ -240,8 +259,10 @@ function MainApp() {
     () =>
       Boolean(readSessionCache()) ||
       hasInstantSessionCache() ||
-      // Local deep link: /greedy-tap must open the game, not the marketing funnel.
-      (import.meta.env.DEV && initialShell.currentTab === 'greedy-tap'),
+      hasDemoBootstrapIntent() ||
+      // Local deep links must open the shell, not the marketing funnel.
+      (import.meta.env.DEV &&
+        (initialShell.currentTab === 'greedy-tap' || initialShell.currentTab === 'workspace')),
   );
   const deepLinkBootstrappedRef = useRef(false);
   const roomsBootstrappedRef = useRef(false);
@@ -266,6 +287,30 @@ function MainApp() {
   const [storageReady, setStorageReady] = useState(false);
 
   useEffect(() => {
+    if (db.isLoggedIn) {
+      setMainShellPinned(true);
+      if (db.currentUser) {
+        writeSessionCache(db.currentUser, {
+          profileSetupComplete: db.getLaunchProgress().profileSetupComplete,
+        });
+        setSessionHint(readSessionCache());
+      }
+      return;
+    }
+
+    // Complete logout: drop cache-first shell pin and return to auth.
+    clearSessionCache();
+    setSessionHint(null);
+    const path = typeof window !== 'undefined' ? window.location.pathname : '';
+    const onDevDeepLink =
+      import.meta.env.DEV &&
+      (path.includes('greedy-tap') || path.includes('workspace'));
+    if (!onDevDeepLink) {
+      setMainShellPinned(false);
+    }
+  }, [db.isLoggedIn, db.currentUserId]);
+
+  useEffect(() => {
     void db.whenStorageReady().then(() => {
       setStorageReady(true);
       if (db.isLoggedIn && db.currentUser) {
@@ -277,16 +322,19 @@ function MainApp() {
       } else if (!db.isLoggedIn && !hasInstantSessionCache()) {
         clearSessionCache();
         setSessionHint(null);
-        setMainShellPinned(false);
+        // Keep /greedy-tap and /workspace deep links in the main shell on localhost even without auth.
+        const path = typeof window !== 'undefined' ? window.location.pathname : '';
+        const onDevDeepLink =
+          import.meta.env.DEV &&
+          (path.includes('greedy-tap') || path.includes('workspace'));
+        if (!onDevDeepLink) {
+          setMainShellPinned(false);
+        }
       }
     });
   }, [db]);
 
-  useEffect(() => {
-    if (hasInstantSessionCache() || sessionHint || db.isLoggedIn) {
-      setMainShellPinned(true);
-    }
-  }, [sessionHint, db.isLoggedIn]);
+  // Removed the old "pin-only" effect that never unpinned after logout.
 
   // Prefer IDB user; fall back to session cache so Shell never waits on network.
   const currentUser =
@@ -296,21 +344,30 @@ function MainApp() {
         ? sessionCacheToUser(sessionHint)
         : dbUser;
 
-  // Show main app from cache while IDB loads; once pinned, never flash back to launch funnel.
-  // DEV /greedy-tap deep link always enters the shell so Greedy Tap can iframe :3000.
+  // DEV deep links always enter the shell (Greedy Tap / Workspace access gate).
   const greedyTapDevDeepLink = import.meta.env.DEV && currentTab === 'greedy-tap';
+  const workspaceDevDeepLink = import.meta.env.DEV && currentTab === 'workspace';
+  // Cold start: splash → onboarding → auth (session). Then progress drives
+  // newcomer profile_setup → trending → main. Do NOT let session cache skip
+  // newcomer steps (that would break first-video funnel mapping).
+  const launchFunnelPending = isLaunchFunnelPendingThisSession();
   const effectiveLaunchRoute: LaunchRoute =
     launchRoute === 'banned'
       ? 'banned'
-      : greedyTapDevDeepLink ||
-          mainShellPinned ||
-          hasInstantSessionCache() ||
-          (sessionHint && (!storageReady || db.isLoggedIn))
+      : greedyTapDevDeepLink || workspaceDevDeepLink
         ? 'main'
         : launchRoute;
 
+  // Never tear down boot splash while the ~5s first video is still playing.
   useEffect(() => {
-    if (!greedyTapDevDeepLink) return;
+    if (effectiveLaunchRoute !== 'splash') {
+      // removeBootShell no-ops / defers while play is active — cannot skip.
+      forceRemoveBootShell();
+    }
+  }, [effectiveLaunchRoute]);
+
+  useEffect(() => {
+    if (!greedyTapDevDeepLink && !workspaceDevDeepLink) return;
     setMainShellPinned(true);
     try {
       const progress = db.getLaunchProgress();
@@ -319,7 +376,7 @@ function MainApp() {
     } catch {
       /* launch helpers may not be ready on first paint */
     }
-  }, [greedyTapDevDeepLink, db]);
+  }, [greedyTapDevDeepLink, workspaceDevDeepLink, db]);
 
   useEffect(() => {
     registerAppTabGetter(() => currentTabRef.current);
@@ -387,7 +444,7 @@ function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (!import.meta.env.DEV || !shouldApplyDevSessionOverride(window.location.search)) return;
+    if (!shouldRunDemoSessionBootstrap()) return;
     if (supabaseAuth && !authReady) return;
     void applyDevSessionOverrideFromUrl();
   }, [authReady, supabaseAuth]);
@@ -409,23 +466,16 @@ function MainApp() {
 
   useEffect(() => {
     setVisitedTabs((prev): Tab[] => {
-      // Keep Greedy mounted forever (warm iframe). LRU only for other tabs.
-      const MAX_OTHER = 2;
-      const pool = prev.filter((t) => t !== 'greedy-tap');
-      const without = pool.filter((t) => t !== currentTab);
-      const others =
-        currentTab === 'greedy-tap'
-          ? without.slice(-MAX_OTHER)
-          : [...without, currentTab].slice(-MAX_OTHER);
-      return [...others, 'greedy-tap'];
+      const MAX = 3;
+      const without = prev.filter((t) => t !== currentTab);
+      return [...without, currentTab].slice(-MAX);
     });
   }, [currentTab]);
 
-  // Warm Greedy as soon as the main shell is up.
+  // Prefetch Greedy assets; the live iframe mounts only when the session opens.
   useEffect(() => {
     if (effectiveLaunchRoute !== 'main') return;
     prefetchGreedyTap();
-    setVisitedTabs((prev) => (prev.includes('greedy-tap') ? prev : [...prev, 'greedy-tap']));
   }, [effectiveLaunchRoute]);
 
   useEffect(() => {
@@ -707,49 +757,31 @@ function MainApp() {
   const supabasePrimary = isPrimarySupabaseCloud();
 
   const canPaintMainFromCache =
-    mainShellPinned ||
-    hasInstantSessionCache() ||
-    (db.isLoggedIn && currentUser?.id && currentUser.id !== 'unknown');
+    !launchFunnelPending &&
+    effectiveLaunchRoute === 'main' &&
+    (mainShellPinned ||
+      hasInstantSessionCache() ||
+      (db.isLoggedIn && currentUser?.id && currentUser.id !== 'unknown'));
 
-  if (!supabasePrimary && firebaseLoading && isOnline && !canPaintMainFromCache) {
-    return (
-      <>
-        <Suspense fallback={instantSuspenseFallback()}>
-          <SplashScreen isLoading={true} />
-        </Suspense>
-        <OfflineStatusBanner />
-      </>
-    );
-  }
+  const holdLoadingForFirebase =
+    !supabasePrimary && firebaseLoading && isOnline && !canPaintMainFromCache;
 
-  const firebaseConfigured = isFirebaseConfigured();
-  if (!supabasePrimary && firebaseConfigured && !firebaseLoading && !firebaseUser && !canPaintMainFromCache) {
-    return (
-      <Suspense fallback={instantSuspenseFallback()}>
-        <AuthScreen />
-      </Suspense>
-    );
-  }
+  const authPassed =
+    hasPassedAuthGateThisSession() ||
+    Boolean(db.isLoggedIn && currentUser?.id && currentUser.id !== 'unknown');
 
-  const profileReady =
-    db.getLaunchProgress().profileSetupComplete || Boolean(sessionHint?.profileSetupComplete);
-  if (
-    !supabasePrimary &&
-    !firebaseLoading &&
-    firebaseUser &&
-    !firebaseProfile &&
-    !profileReady &&
-    !canPaintMainFromCache
-  ) {
-    return (
-      <Suspense fallback={instantSuspenseFallback()}>
-        <ProfileSetup />
-      </Suspense>
-    );
-  }
+  /**
+   * Second video: whenever the main shell is entered (funnel done).
+   * Do not require a separate authPassed check — route === main already implies it,
+   * and authPassed flicker was cancelling the play.
+   */
+  const showInAppLoadVideo =
+    !launchFunnelPending && effectiveLaunchRoute === 'main';
 
-  if (effectiveLaunchRoute !== 'main' && !canPaintMainFromCache) {
-    return (
+  // Funnel screens always via LaunchFlowHost (never skip newcomer steps via cache).
+  let mainTree: React.ReactNode;
+  if (launchFunnelPending || effectiveLaunchRoute !== 'main') {
+    mainTree = (
       <>
         <OfflineStatusBanner />
         <Suspense fallback={instantSuspenseFallback()}>
@@ -762,58 +794,106 @@ function MainApp() {
         ) : null}
       </>
     );
+  } else if (holdLoadingForFirebase && !authPassed) {
+    // Pre-auth wait — first video already handled boot splash; no second video here.
+    mainTree = <OfflineStatusBanner />;
+  } else {
+    const firebaseConfigured = isFirebaseConfigured();
+    if (
+      !supabasePrimary &&
+      firebaseConfigured &&
+      !firebaseLoading &&
+      !firebaseUser &&
+      !canPaintMainFromCache
+    ) {
+      mainTree = (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <AuthScreen />
+        </Suspense>
+      );
+    } else {
+      const profileReady =
+        db.getLaunchProgress().profileSetupComplete ||
+        Boolean(sessionHint?.profileSetupComplete);
+      if (
+        !supabasePrimary &&
+        !firebaseLoading &&
+        firebaseUser &&
+        !firebaseProfile &&
+        !profileReady &&
+        !canPaintMainFromCache
+      ) {
+        mainTree = (
+          <Suspense fallback={instantSuspenseFallback()}>
+            <ProfileSetup />
+          </Suspense>
+        );
+      } else {
+        mainTree = (
+          <GreedySessionProvider currentTab={currentTab}>
+            <OfflineStatusBanner insetBelowNav />
+            <Suspense fallback={null}>
+              <YoutubeMiniPlayerHost currentTab={currentTab} />
+            </Suspense>
+            <InstantRoomEntryHost />
+            <ChatCallProvider
+              currentUserId={currentUser?.id}
+              currentUserAvatarUrl={currentUser?.avatarUrl}
+            >
+              <Shell
+                currentTab={currentTab}
+                setCurrentTab={handleTabChange}
+                currentUser={currentUser}
+              >
+                {renderContent()}
+              </Shell>
+            </ChatCallProvider>
+            <AnimatePresence>
+              {globalPreviewUserId && (
+                <ErrorBoundary>
+                  <Suspense fallback={null}>
+                    <UserProfilePreview
+                      userId={globalPreviewUserId}
+                      onClose={() => setGlobalPreviewUserId(null)}
+                    />
+                  </Suspense>
+                </ErrorBoundary>
+              )}
+            </AnimatePresence>
+            {import.meta.env.DEV ? (
+              <Suspense fallback={null}>
+                <DevLivePanelHost currentTab={currentTab} profileUserId={profileUserId} />
+              </Suspense>
+            ) : null}
+            {globalStoryUserId && (
+              <ErrorBoundary>
+                <Suspense fallback={null}>
+                  <StoryRing
+                    story={{
+                      id: `story-${globalStoryUserId}`,
+                      user: findUserById(db.users, globalStoryUserId, db.currentUser),
+                      hasViewed: db.hasViewedStory(globalStoryUserId, 'feed'),
+                    }}
+                    storyScope="feed"
+                    isOpen={true}
+                    hideRing={true}
+                    onClose={() => setGlobalStoryUserId(null)}
+                    isCurrentUser={globalStoryUserId === db.currentUser?.id}
+                  />
+                </Suspense>
+              </ErrorBoundary>
+            )}
+          </GreedySessionProvider>
+        );
+      }
+    }
   }
 
+  // Second video only inside main app (post-auth). First video = boot splash only.
   return (
     <>
-      <OfflineStatusBanner insetBelowNav />
-      <Suspense fallback={null}>
-        <YoutubeMiniPlayerHost currentTab={currentTab} />
-      </Suspense>
-      <InstantRoomEntryHost />
-      <ChatCallProvider
-        currentUserId={currentUser?.id}
-        currentUserAvatarUrl={currentUser?.avatarUrl}
-      >
-        <Shell currentTab={currentTab} setCurrentTab={handleTabChange} currentUser={currentUser}>
-          {renderContent()}
-        </Shell>
-      </ChatCallProvider>
-      <AnimatePresence>
-        {globalPreviewUserId && (
-          <ErrorBoundary>
-            <Suspense fallback={null}>
-              <UserProfilePreview
-                userId={globalPreviewUserId}
-                onClose={() => setGlobalPreviewUserId(null)}
-              />
-            </Suspense>
-          </ErrorBoundary>
-        )}
-      </AnimatePresence>
-      {import.meta.env.DEV ? (
-        <Suspense fallback={null}>
-          <DevLivePanelHost currentTab={currentTab} profileUserId={profileUserId} />
-        </Suspense>
-      ) : null}
-      {globalStoryUserId && (
-        <ErrorBoundary>
-          <Suspense fallback={null}>
-            <StoryRing
-            story={{
-              id: `story-${globalStoryUserId}`,
-              user: findUserById(db.users, globalStoryUserId, db.currentUser),
-              hasViewed: db.hasViewedStory(globalStoryUserId, 'feed'),
-            }}
-            storyScope="feed"
-            isOpen={true}
-            hideRing={true}
-            onClose={() => setGlobalStoryUserId(null)}
-            isCurrentUser={globalStoryUserId === db.currentUser?.id}
-            />
-          </Suspense>
-        </ErrorBoundary>
-      )}
+      <UniLivesPrincessLoadingRefreshGate enabled={showInAppLoadVideo} />
+      {mainTree}
     </>
   );
 }

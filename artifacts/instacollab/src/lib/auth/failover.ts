@@ -27,7 +27,9 @@ export async function withSupabaseFirebaseFailover<T extends AuthResult>(
   const failOnCredential = options?.failOnCredentialError !== false;
   const prefer = getActiveAuthBackendForRequest();
 
-  if (prefer === 'firebase' || !isSupabaseConfigured()) {
+  // Even when OAuth is marked degraded, still attempt Supabase first when we refuse
+  // to hide credential/config errors (Google). Firebase-first only for infra failover.
+  if ((prefer === 'firebase' || !isSupabaseConfigured()) && !failOnCredential) {
     if (!isFirebaseConfigured()) return runSupabase();
     const fb = await runFirebase();
     if (fb.ok) writeStoredAuthBackend('firebase');
@@ -41,6 +43,10 @@ export async function withSupabaseFirebaseFailover<T extends AuthResult>(
       writeStoredAuthBackend('supabase');
     }
     return only;
+  }
+
+  if (!isSupabaseConfigured()) {
+    return runFirebase();
   }
 
   const primary = await runSupabase();

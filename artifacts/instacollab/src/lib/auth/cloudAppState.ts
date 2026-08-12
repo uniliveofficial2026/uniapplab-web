@@ -12,7 +12,6 @@ import {
   teardownSupabaseUserAppState,
 } from '../supabase/userAppState';
 import { isSupabaseConfigured } from '../supabase/config';
-import { upsertFirebaseUserAppState, subscribeFirebaseUserAppState, fetchFirebaseUserAppState } from '../firebase/userAppState';
 import { isFirebaseConfigured } from '../firebase/config';
 import { isCloudAuthConfigured } from './config';
 import { resolveCloudDataBackend, markSupabaseCloudDegradedFromError } from './cloudDataBackend';
@@ -22,7 +21,11 @@ import { consumePendingDemoMigration, resolveDemoSessionEmail } from './demoClou
 import { isDevLocalAuthBypass } from './devLocalAuth';
 import { scheduleLiveSessionSync } from '../liveSessionSync';
 import { isNetworkOnline, subscribeNetworkStatus } from '../networkStatus';
+import { LIVE_CLOUD_SYNC_REALTIME } from '../liveCloudSyncMode';
 
+async function firebaseUserAppState() {
+  return import('../firebase/userAppState');
+}
 let pushInFlight = false;
 let pushAgainAfterFlight = false;
 let syncMicrotaskQueued = false;
@@ -125,6 +128,7 @@ async function pushNow(userId: string): Promise<void> {
     if (backend === 'supabase') {
       await upsertSupabaseUserAppState(userId, payload);
     } else if (isFirebaseConfigured()) {
+      const { upsertFirebaseUserAppState } = await firebaseUserAppState();
       await upsertFirebaseUserAppState(userId, payload);
     } else {
       return;
@@ -146,6 +150,7 @@ async function pushNow(userId: string): Promise<void> {
     if (isFirebaseConfigured()) {
       try {
         const payload = collectPayload(db);
+        const { upsertFirebaseUserAppState } = await firebaseUserAppState();
         await upsertFirebaseUserAppState(userId, payload);
         lastPushedAt = payload.updatedAt;
         lastAppliedRemoteAt = payload.updatedAt;
@@ -173,11 +178,26 @@ const INSTANT_CLOUD_SYNC_KEYS = new Set([
   'cash_balance',
   'wallet_transactions',
   'hasUnreadNotifications',
+  'posts',
+  'reels',
+  'stories',
+  'profile_stories',
+  'notification_inbox',
+  'notifications',
+  'follow_graph',
+  'blocked_users',
+  'dating_state',
+  'karaoke_uploads',
+  'karaoke_recordings',
+  'workspace_tasks',
+  'workspace_files',
+  'app_settings',
 ]);
 
 function queueCloudPush(userId: string, urgent = false): void {
   const run = () => void pushNow(userId);
-  if (urgent) {
+  // Realtime mode: every collection push is microtask-urgent (no batch wait).
+  if (urgent || LIVE_CLOUD_SYNC_REALTIME) {
     queueMicrotask(run);
     return;
   }
@@ -210,7 +230,10 @@ export function scheduleCloudAppStateSync(store: LocalDB = db, changedKey?: stri
   const bumped = bumpLocalRevision(userId);
   lastPushedAt = Math.max(lastPushedAt, bumped);
 
-  queueCloudPush(userId, changedKey ? INSTANT_CLOUD_SYNC_KEYS.has(changedKey) : false);
+  queueCloudPush(
+    userId,
+    LIVE_CLOUD_SYNC_REALTIME || (changedKey ? INSTANT_CLOUD_SYNC_KEYS.has(changedKey) : false),
+  );
 }
 
 /** Push pending local changes immediately (call before account switch / sign-out). */
@@ -313,6 +336,11 @@ async function hydrateFirebaseAppState(
   generation: number,
 ): Promise<HydrateOutcome> {
   if (generation !== hydrateGeneration) return { result: 'error', pushLocal: false };
+
+  const {
+    fetchFirebaseUserAppState,
+    subscribeFirebaseUserAppState,
+  } = await firebaseUserAppState();
 
   let existing: CloudAppStatePayload | null = null;
   let pushLocal = false;

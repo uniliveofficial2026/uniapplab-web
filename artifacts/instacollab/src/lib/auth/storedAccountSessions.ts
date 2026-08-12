@@ -1,6 +1,7 @@
 import type { Session } from '@supabase/supabase-js';
 import { safeLocalStorage } from '../utils';
 import { db } from '../db/localDb';
+import { canonicalDeviceAccountUid, identityAliasUids } from './accountIdentity';
 import { readDeviceAccounts } from './deviceAccounts';
 import { getLinkedSupabaseUserIdForFirebase, readFirebaseBackupLink } from './firebaseBackupLink';
 import { isSupabaseAuthUserId } from './activeBackend';
@@ -13,33 +14,17 @@ export type StoredAccountSession = {
   expires_at?: number;
 };
 
-function normalizeEmail(email: string | null | undefined): string | null {
-  const normalized = email?.trim().toLowerCase();
-  if (!normalized || !normalized.includes('@')) return null;
-  return normalized;
-}
-
+/** Session lookup aliases for one logical account (Firebase lane ↔ Supabase uuid). */
 function aliasUidsForSession(uid: string): string[] {
   const id = uid.trim();
-  const aliases = new Set<string>([id]);
+  if (!id) return [];
+  const accounts = readDeviceAccounts();
+  const aliases = new Set<string>(identityAliasUids(id, accounts));
   const link = readFirebaseBackupLink();
   if (link?.firebaseUid === id) aliases.add(link.supabaseUserId);
   if (link?.supabaseUserId === id) aliases.add(link.firebaseUid);
   const linkedSupabase = getLinkedSupabaseUserIdForFirebase(id);
   if (linkedSupabase) aliases.add(linkedSupabase);
-
-  const seedEmail = normalizeEmail(readDeviceAccounts().find((row) => row.uid === id)?.email);
-  if (seedEmail) {
-    for (const row of readDeviceAccounts()) {
-      if (normalizeEmail(row.email) === seedEmail) aliases.add(row.uid);
-    }
-    for (const user of db.users) {
-      if (normalizeEmail(readDeviceAccounts().find((row) => row.uid === user.id)?.email) === seedEmail) {
-        aliases.add(user.id);
-      }
-    }
-  }
-
   return [...aliases];
 }
 
@@ -88,27 +73,19 @@ export function clearStoredAccountSession(uid: string): void {
 /** Resolve the app user row id for a device-account uid (Firebase vs Supabase). */
 export function resolveAppUserIdForDeviceAccount(deviceUid: string): string {
   const id = deviceUid.trim();
-  if (db.users.some((user) => user.id === id)) return id;
+  if (!id) return id;
 
   const linkedSupabase = getLinkedSupabaseUserIdForFirebase(id);
-  if (linkedSupabase && db.users.some((user) => user.id === linkedSupabase)) {
-    return linkedSupabase;
-  }
+  if (linkedSupabase) return linkedSupabase;
 
   const link = readFirebaseBackupLink();
-  if (link?.firebaseUid === id && db.users.some((user) => user.id === link.supabaseUserId)) {
-    return link.supabaseUserId;
-  }
+  if (link?.firebaseUid === id) return link.supabaseUserId;
 
-  const account = readDeviceAccounts().find((row) => row.uid === id);
-  const email = account?.email?.trim().toLowerCase();
-  if (email) {
-    for (const user of db.users) {
-      const row = readDeviceAccounts().find((a) => a.uid === user.id);
-      if (row?.email?.trim().toLowerCase() === email) return user.id;
-    }
-  }
+  const accounts = readDeviceAccounts();
+  const canonical = canonicalDeviceAccountUid(id, accounts);
+  if (canonical !== id) return canonical;
 
+  if (db.users.some((user) => user.id === id)) return id;
   return id;
 }
 

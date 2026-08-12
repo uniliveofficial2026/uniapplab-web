@@ -49,7 +49,7 @@
     "deploy:vercel": "bash scripts/vercel-deploy.sh --prod",
     "deploy:vercel:git": "bash scripts/vercel-deploy-git.sh",
     "deploy:vercel:cli": "bash scripts/vercel-deploy.sh --prod",
-    "deploy:vercel:fast": "VERCEL_PREBUILT=1 bash scripts/vercel-deploy.sh --prod",
+    "deploy:vercel:fast": "bash scripts/vercel-deploy.sh --prod",
     "deploy:vercel:full": "LIVE_SYNC_FULL_REPO=1 bash scripts/vercel-deploy.sh --prod",
     "heal": "node scripts/self-heal.mjs",
     "fix": "node scripts/auto-fix.mjs",
@@ -68,6 +68,7 @@
     "livekit:setup": "pnpm --filter @workspace/instacollab run livekit:setup",
     "livekit:check": "pnpm --filter @workspace/instacollab run livekit:check",
     "livekit:env-vercel": "pnpm --filter @workspace/instacollab run livekit:env-vercel",
+    "r2:env-vercel": "node scripts/sync-r2-vercel-env.mjs",
     "playwright:install": "pnpm --filter @workspace/instacollab run playwright:install",
     "smoke:manage-tab": "pnpm --filter @workspace/instacollab run smoke:manage-tab",
     "ai:install": "pnpm --filter @workspace/api-server add ai @ai-sdk/google",
@@ -75,7 +76,15 @@
     "vercel:fix-settings": "node scripts/sync-vercel-project-settings.mjs",
     "vercel:redeploy-git": "node scripts/vercel-redeploy-git.mjs",
     "vercel:deploy-api": "bash scripts/vercel-deploy-api.sh",
-    "vercel:open-settings": "bash scripts/open-vercel-api-settings.sh"
+    "vercel:open-settings": "bash scripts/open-vercel-api-settings.sh",
+    "asset-studio:doctor": "pnpm --filter @workspace/unilives-asset-studio run doctor",
+    "asset-studio:status": "pnpm --filter @workspace/unilives-asset-studio run status",
+    "asset-studio:prepare": "pnpm --filter @workspace/unilives-asset-studio exec tsx src/cli/prepare.ts",
+    "asset-studio:preview": "pnpm --filter @workspace/unilives-asset-studio exec tsx src/cli/preview.ts",
+    "asset-studio:approve": "pnpm --filter @workspace/unilives-asset-studio exec tsx src/cli/approve.ts",
+    "asset-studio:validate": "pnpm --filter @workspace/unilives-asset-studio run validate",
+    "android:bundle": "pnpm --filter @workspace/instacollab run android:bundle",
+    "android:bundle:offline": "pnpm --filter @workspace/instacollab run android:bundle:offline"
   },
   "private": true,
   "devDependencies": {

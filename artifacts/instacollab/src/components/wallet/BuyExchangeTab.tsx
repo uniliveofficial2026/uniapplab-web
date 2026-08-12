@@ -22,6 +22,12 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CoinIcon } from '../common/CoinIcon';
+import {
+  COIN_RATE_LABEL,
+  DEFAULT_RECHARGE_PACKS,
+  coinsFromUsd,
+  usdFromCoins,
+} from '../../lib/coinPricing';
 
 type CoinBundle = {
   id?: string;
@@ -32,12 +38,14 @@ type CoinBundle = {
   badge?: string;
 };
 
-const FALLBACK_BUNDLES: CoinBundle[] = [
-  { id: 'starter', coins: 500, bonusCoins: 0, price: 4.99, label: 'Starter Bundle', badge: 'Popular' },
-  { id: 'super', coins: 1000, bonusCoins: 200, price: 9.99, label: 'Super Pack', badge: 'Bonus +20%' },
-  { id: 'elite', coins: 2500, bonusCoins: 500, price: 24.99, label: 'Elite Vault', badge: 'Best Value' },
-  { id: 'whale', coins: 5000, bonusCoins: 1500, price: 49.99, label: 'Whale Cache', badge: 'Super Saver' },
-];
+const FALLBACK_BUNDLES: CoinBundle[] = DEFAULT_RECHARGE_PACKS.map((p) => ({
+  id: p.id,
+  coins: p.coins,
+  bonusCoins: p.bonusCoins,
+  price: p.priceUsd,
+  label: p.title,
+  badge: p.badge,
+}));
 
 export function BuyExchangeTab() {
   const db = useDB();
@@ -184,13 +192,12 @@ export function BuyExchangeTab() {
     })();
   };
 
-  // Live currency calculators
-  // Cash to Coins rate: $1.00 USD = 100 Coins
-  // Coins to Cash rate: 100 Coins = $1.00 USD (With 1% processing fee subtracted during exchange)
+  // Live currency calculators — 100 coins = $10.00 USD on every screen.
   const amtNum = parseFloat(exchangeAmount) || 0;
-  const computedReturn = exchangeType === 'cash_to_coins' 
-    ? (amtNum * 100) 
-    : (amtNum * 0.01 * 0.99); // Subtract 1% conversion adjustment
+  const computedReturn =
+    exchangeType === 'cash_to_coins'
+      ? coinsFromUsd(amtNum)
+      : usdFromCoins(amtNum, true);
 
   const handleExecuteExchange = (e: React.FormEvent) => {
     e.preventDefault();
@@ -371,7 +378,7 @@ export function BuyExchangeTab() {
           <div className="text-[10px] font-semibold text-muted-foreground space-y-1">
             <div className="flex justify-between">
               <span>Conversion Rate</span>
-              <span>100 Coins = $1.00 USD</span>
+              <span>{COIN_RATE_LABEL}</span>
             </div>
             <div className="flex justify-between font-bold">
               <span>Dynamic Platform Exchange Fee</span>

@@ -5,113 +5,73 @@
       "name": "Hot Dog",
       "multiplier": 10,
       "icon": "🌭",
-      "weight": 15
+      "weight": 2
     },
     {
       "id": "skewer",
       "name": "Skewer",
       "multiplier": 15,
       "icon": "🍢",
-      "weight": 15
+      "weight": 1.5
     },
     {
       "id": "ham",
       "name": "Ham",
       "multiplier": 25,
       "icon": "🍖",
-      "weight": 15
+      "weight": 1
     },
     {
       "id": "steak",
       "name": "Steak",
       "multiplier": 45,
       "icon": "🥩",
-      "weight": 15
+      "weight": 0.4
     },
     {
       "id": "carrot",
       "name": "Carrot",
       "multiplier": 5,
       "icon": "🥕",
-      "weight": 15
+      "weight": 28
     },
     {
       "id": "corn",
       "name": "Corn",
       "multiplier": 5,
       "icon": "🌽",
-      "weight": 15
+      "weight": 28
     },
     {
       "id": "cabbage",
       "name": "Cabbage",
       "multiplier": 5,
       "icon": "🥬",
-      "weight": 15
+      "weight": 28
     },
     {
       "id": "tomato",
       "name": "Tomato",
       "multiplier": 5,
       "icon": "🍅",
-      "weight": 15
+      "weight": 28
     },
     {
       "id": "salad",
       "name": "Salad",
       "multiplier": 50,
       "icon": "🥗",
-      "weight": 1
+      "weight": 0.25
     },
     {
       "id": "pizza",
       "name": "Pizza",
       "multiplier": 100,
       "icon": "🍕",
-      "weight": 0.1
+      "weight": 0.05
     }
   ],
   "users": {
-    "user1": {
-      "id": "user1",
-      "name": "Player 1",
-      "balance": 50000,
-      "role": "user",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "todayWin": 1200,
-      "weekWin": 5400,
-      "monthWin": 19000
-    },
-    "user2": {
-      "id": "user2",
-      "name": "Player 2",
-      "balance": 12000,
-      "role": "user",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "todayWin": 300,
-      "weekWin": 1500,
-      "monthWin": 3000
-    },
-    "user3": {
-      "id": "user3",
-      "name": "John",
-      "balance": 145000,
-      "role": "user",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "todayWin": 15000,
-      "weekWin": 45000,
-      "monthWin": 120000
-    },
-    "user4": {
-      "id": "user4",
-      "name": "Sarah",
-      "balance": 25000,
-      "role": "user",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "todayWin": 8000,
-      "weekWin": 12000,
-      "monthWin": 45000
-    },
     "user_1784490855456": {
       "id": "user_1784490855456",
       "name": "Guest_3779",
@@ -190,28 +150,6 @@
       "type": "bonus",
       "amount": 250,
       "date": "2026-07-19T19:54:15.456Z"
-    },
-    {
-      "id": "1",
-      "userId": "Player 1",
-      "type": "shop_purchase",
-      "amount": 50000,
-      "date": "2026-07-19T19:54:06.898Z"
-    },
-    {
-      "id": "2",
-      "userId": "Sarah",
-      "type": "seller_purchase",
-      "amount": 100000,
-      "date": "2026-07-19T18:54:06.898Z",
-      "sellerId": "CryptoTrader99"
-    },
-    {
-      "id": "3",
-      "userId": "John",
-      "type": "shop_purchase",
-      "amount": 15000,
-      "date": "2026-07-18T19:54:06.898Z"
     }
   ],
   "autoAiEnabled": true,
@@ -227,4018 +165,1306 @@
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
+      "itemId": "tomato",
       "amount": 50,
-      "timestamp": "10:56:19 AM",
-      "timestampRaw": 1784645779266
+      "timestamp": "4:58:52 PM",
+      "timestampRaw": 1784667532818
     },
     {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 250,
-      "timestamp": "10:56:19 AM",
-      "timestampRaw": 1784645779265
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "steak",
-      "amount": 10,
-      "timestamp": "10:56:18 AM",
-      "timestampRaw": 1784645778258
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:56:17 AM",
-      "timestampRaw": 1784645777258
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
       "amount": 100,
-      "timestamp": "10:56:17 AM",
-      "timestampRaw": 1784645777258
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 50,
-      "timestamp": "10:56:15 AM",
-      "timestampRaw": 1784645775255
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:56:14 AM",
-      "timestampRaw": 1784645774253
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 50,
-      "timestamp": "10:56:14 AM",
-      "timestampRaw": 1784645774253
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:56:13 AM",
-      "timestampRaw": 1784645773252
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 100,
-      "timestamp": "10:56:11 AM",
-      "timestampRaw": 1784645771227
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:56:11 AM",
-      "timestampRaw": 1784645771227
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:56:10 AM",
-      "timestampRaw": 1784645770227
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:56:09 AM",
-      "timestampRaw": 1784645769227
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:56:07 AM",
-      "timestampRaw": 1784645767225
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "corn",
-      "amount": 1000,
-      "timestamp": "10:56:07 AM",
-      "timestampRaw": 1784645767225
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:55:54 AM",
-      "timestampRaw": 1784645754209
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:55:54 AM",
-      "timestampRaw": 1784645754209
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:55:53 AM",
-      "timestampRaw": 1784645753208
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:55:51 AM",
-      "timestampRaw": 1784645751207
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 50,
-      "timestamp": "10:55:49 AM",
-      "timestampRaw": 1784645749205
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:55:49 AM",
-      "timestampRaw": 1784645749205
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
-      "amount": 50,
-      "timestamp": "10:55:48 AM",
-      "timestampRaw": 1784645748202
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:55:47 AM",
-      "timestampRaw": 1784645747202
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:55:47 AM",
-      "timestampRaw": 1784645747201
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:55:46 AM",
-      "timestampRaw": 1784645746200
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 10,
-      "timestamp": "10:55:46 AM",
-      "timestampRaw": 1784645746200
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:55:45 AM",
-      "timestampRaw": 1784645745199
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:55:44 AM",
-      "timestampRaw": 1784645744198
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 10,
-      "timestamp": "10:55:44 AM",
-      "timestampRaw": 1784645744198
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 10,
-      "timestamp": "10:55:43 AM",
-      "timestampRaw": 1784645743195
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:55:42 AM",
-      "timestampRaw": 1784645742195
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:55:29 AM",
-      "timestampRaw": 1784645729162
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:55:29 AM",
-      "timestampRaw": 1784645729162
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "ham",
-      "amount": 1000,
-      "timestamp": "10:55:28 AM",
-      "timestampRaw": 1784645728162
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:55:28 AM",
-      "timestampRaw": 1784645728162
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:55:26 AM",
-      "timestampRaw": 1784645726160
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 500,
-      "timestamp": "10:55:26 AM",
-      "timestampRaw": 1784645726160
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:55:25 AM",
-      "timestampRaw": 1784645725159
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 1000,
-      "timestamp": "10:55:25 AM",
-      "timestampRaw": 1784645725159
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:55:22 AM",
-      "timestampRaw": 1784645722156
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:55:22 AM",
-      "timestampRaw": 1784645722156
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "carrot",
-      "amount": 250,
-      "timestamp": "10:55:21 AM",
-      "timestampRaw": 1784645721157
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:55:21 AM",
-      "timestampRaw": 1784645721157
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 1000,
-      "timestamp": "10:55:20 AM",
-      "timestampRaw": 1784645720155
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:55:20 AM",
-      "timestampRaw": 1784645720155
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:55:19 AM",
-      "timestampRaw": 1784645719154
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:55:18 AM",
-      "timestampRaw": 1784645718154
+      "timestamp": "4:58:50 PM",
+      "timestampRaw": 1784667530813
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:55:18 AM",
-      "timestampRaw": 1784645718153
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:55:17 AM",
-      "timestampRaw": 1784645717160
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:55:04 AM",
-      "timestampRaw": 1784645704138
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:55:03 AM",
-      "timestampRaw": 1784645703138
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:55:03 AM",
-      "timestampRaw": 1784645703138
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:55:02 AM",
-      "timestampRaw": 1784645702137
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 1000,
-      "timestamp": "10:55:01 AM",
-      "timestampRaw": 1784645701136
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "skewer",
-      "amount": 250,
-      "timestamp": "10:54:59 AM",
-      "timestampRaw": 1784645699135
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:54:59 AM",
-      "timestampRaw": 1784645699135
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:54:57 AM",
-      "timestampRaw": 1784645697134
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "carrot",
-      "amount": 50,
-      "timestamp": "10:54:57 AM",
-      "timestampRaw": 1784645697132
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
       "amount": 10,
-      "timestamp": "10:54:55 AM",
-      "timestampRaw": 1784645695130
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "corn",
-      "amount": 250,
-      "timestamp": "10:54:55 AM",
-      "timestampRaw": 1784645695129
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:54:53 AM",
-      "timestampRaw": 1784645693128
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:54:52 AM",
-      "timestampRaw": 1784645692127
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 250,
-      "timestamp": "10:54:39 AM",
-      "timestampRaw": 1784645679114
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:54:39 AM",
-      "timestampRaw": 1784645679114
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:54:38 AM",
-      "timestampRaw": 1784645678115
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:54:38 AM",
-      "timestampRaw": 1784645678115
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:54:36 AM",
-      "timestampRaw": 1784645676112
+      "timestamp": "4:58:49 PM",
+      "timestampRaw": 1784667529823
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "salad",
-      "amount": 100,
-      "timestamp": "10:54:36 AM",
-      "timestampRaw": 1784645676112
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:54:35 AM",
-      "timestampRaw": 1784645675112
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
       "amount": 1000,
-      "timestamp": "10:54:35 AM",
-      "timestampRaw": 1784645675112
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:54:34 AM",
-      "timestampRaw": 1784645674116
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:54:34 AM",
-      "timestampRaw": 1784645674111
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "hotdog",
-      "amount": 10,
-      "timestamp": "10:54:33 AM",
-      "timestampRaw": 1784645673110
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:54:31 AM",
-      "timestampRaw": 1784645671109
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:54:31 AM",
-      "timestampRaw": 1784645671109
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
-      "amount": 50,
-      "timestamp": "10:54:30 AM",
-      "timestampRaw": 1784645670109
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "corn",
-      "amount": 100,
-      "timestamp": "10:54:30 AM",
-      "timestampRaw": 1784645670109
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:54:28 AM",
-      "timestampRaw": 1784645668109
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:54:27 AM",
-      "timestampRaw": 1784645667107
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:54:14 AM",
-      "timestampRaw": 1784645654104
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "ham",
-      "amount": 1000,
-      "timestamp": "10:54:14 AM",
-      "timestampRaw": 1784645654103
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:54:13 AM",
-      "timestampRaw": 1784645653104
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:54:13 AM",
-      "timestampRaw": 1784645653103
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:54:11 AM",
-      "timestampRaw": 1784645651103
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 100,
-      "timestamp": "10:54:11 AM",
-      "timestampRaw": 1784645651103
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:54:09 AM",
-      "timestampRaw": 1784645649102
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "corn",
-      "amount": 100,
-      "timestamp": "10:54:08 AM",
-      "timestampRaw": 1784645648103
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:54:08 AM",
-      "timestampRaw": 1784645648102
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 50,
-      "timestamp": "10:54:07 AM",
-      "timestampRaw": 1784645647102
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:54:06 AM",
-      "timestampRaw": 1784645646102
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 10,
-      "timestamp": "10:54:02 AM",
-      "timestampRaw": 1784645642104
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "skewer",
-      "amount": 250,
-      "timestamp": "10:53:49 AM",
-      "timestampRaw": 1784645629104
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 50,
-      "timestamp": "10:53:48 AM",
-      "timestampRaw": 1784645628103
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:53:47 AM",
-      "timestampRaw": 1784645627102
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:53:45 AM",
-      "timestampRaw": 1784645625100
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 100,
-      "timestamp": "10:53:45 AM",
-      "timestampRaw": 1784645625100
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:53:44 AM",
-      "timestampRaw": 1784645624099
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:53:43 AM",
-      "timestampRaw": 1784645623099
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:53:42 AM",
-      "timestampRaw": 1784645622099
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:53:42 AM",
-      "timestampRaw": 1784645622099
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:53:41 AM",
-      "timestampRaw": 1784645621099
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:53:41 AM",
-      "timestampRaw": 1784645621099
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 10,
-      "timestamp": "10:53:38 AM",
-      "timestampRaw": 1784645618097
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "corn",
-      "amount": 250,
-      "timestamp": "10:53:37 AM",
-      "timestampRaw": 1784645617097
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "corn",
-      "amount": 10,
-      "timestamp": "10:53:37 AM",
-      "timestampRaw": 1784645617097
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 100,
-      "timestamp": "10:53:24 AM",
-      "timestampRaw": 1784645604081
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 50,
-      "timestamp": "10:53:23 AM",
-      "timestampRaw": 1784645603079
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:53:23 AM",
-      "timestampRaw": 1784645603079
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 1000,
-      "timestamp": "10:53:22 AM",
-      "timestampRaw": 1784645602079
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:53:20 AM",
-      "timestampRaw": 1784645600077
+      "timestamp": "4:58:43 PM",
+      "timestampRaw": 1784667523607
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "steak",
       "amount": 100,
-      "timestamp": "10:53:19 AM",
-      "timestampRaw": 1784645599080
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 50,
-      "timestamp": "10:53:19 AM",
-      "timestampRaw": 1784645599078
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:53:18 AM",
-      "timestampRaw": 1784645598075
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:53:17 AM",
-      "timestampRaw": 1784645597074
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "steak",
-      "amount": 10,
-      "timestamp": "10:53:16 AM",
-      "timestampRaw": 1784645596073
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:53:16 AM",
-      "timestampRaw": 1784645596073
+      "timestamp": "4:58:30 PM",
+      "timestampRaw": 1784667510512
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:53:15 AM",
-      "timestampRaw": 1784645595072
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:53:12 AM",
-      "timestampRaw": 1784645592071
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 50,
-      "timestamp": "10:52:56 AM",
-      "timestampRaw": 1784645576053
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "ham",
       "amount": 500,
-      "timestamp": "10:52:53 AM",
-      "timestampRaw": 1784645573050
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:52:52 AM",
-      "timestampRaw": 1784645572049
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:52:49 AM",
-      "timestampRaw": 1784645569046
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:52:49 AM",
-      "timestampRaw": 1784645569046
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:52:48 AM",
-      "timestampRaw": 1784645568046
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:52:34 AM",
-      "timestampRaw": 1784645554033
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:52:34 AM",
-      "timestampRaw": 1784645554033
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "skewer",
-      "amount": 500,
-      "timestamp": "10:52:33 AM",
-      "timestampRaw": 1784645553037
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:52:33 AM",
-      "timestampRaw": 1784645553037
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 1000,
-      "timestamp": "10:52:31 AM",
-      "timestampRaw": 1784645551029
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 500,
-      "timestamp": "10:52:30 AM",
-      "timestampRaw": 1784645550028
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:52:29 AM",
-      "timestampRaw": 1784645549027
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 50,
-      "timestamp": "10:52:29 AM",
-      "timestampRaw": 1784645549027
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:52:26 AM",
-      "timestampRaw": 1784645546024
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:52:09 AM",
-      "timestampRaw": 1784645529005
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:52:09 AM",
-      "timestampRaw": 1784645529005
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 50,
-      "timestamp": "10:52:08 AM",
-      "timestampRaw": 1784645528005
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 250,
-      "timestamp": "10:52:08 AM",
-      "timestampRaw": 1784645528005
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 1000,
-      "timestamp": "10:52:02 AM",
-      "timestampRaw": 1784645522998
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 50,
-      "timestamp": "10:52:02 AM",
-      "timestampRaw": 1784645522998
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:52:00 AM",
-      "timestampRaw": 1784645520999
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 100,
-      "timestamp": "10:52:00 AM",
-      "timestampRaw": 1784645520998
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:51:58 AM",
-      "timestampRaw": 1784645518996
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "carrot",
-      "amount": 50,
-      "timestamp": "10:51:58 AM",
-      "timestampRaw": 1784645518995
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 50,
-      "timestamp": "10:51:57 AM",
-      "timestampRaw": 1784645517994
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:51:57 AM",
-      "timestampRaw": 1784645517994
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:51:56 AM",
-      "timestampRaw": 1784645516993
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:51:43 AM",
-      "timestampRaw": 1784645503793
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "cabbage",
-      "amount": 50,
-      "timestamp": "10:51:43 AM",
-      "timestampRaw": 1784645503792
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 100,
-      "timestamp": "10:51:41 AM",
-      "timestampRaw": 1784645501794
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:51:41 AM",
-      "timestampRaw": 1784645501790
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:51:40 AM",
-      "timestampRaw": 1784645500789
+      "timestamp": "4:58:26 PM",
+      "timestampRaw": 1784667506475
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:51:40 AM",
-      "timestampRaw": 1784645500785
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:51:39 AM",
-      "timestampRaw": 1784645499784
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:51:37 AM",
-      "timestampRaw": 1784645497783
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
       "amount": 10,
-      "timestamp": "10:51:37 AM",
-      "timestampRaw": 1784645497783
+      "timestamp": "4:58:26 PM",
+      "timestampRaw": 1784667506470
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:51:36 AM",
-      "timestampRaw": 1784645496789
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "corn",
+      "itemId": "pizza",
       "amount": 50,
-      "timestamp": "10:51:36 AM",
-      "timestampRaw": 1784645496781
+      "timestamp": "4:58:25 PM",
+      "timestampRaw": 1784667505465
     },
     {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:51:35 AM",
-      "timestampRaw": 1784645495770
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:51:35 AM",
-      "timestampRaw": 1784645495770
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "hotdog",
       "amount": 10,
-      "timestamp": "10:51:33 AM",
-      "timestampRaw": 1784645493764
+      "timestamp": "4:58:23 PM",
+      "timestampRaw": 1784667503430
     },
     {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:51:32 AM",
-      "timestampRaw": 1784645492766
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:51:32 AM",
-      "timestampRaw": 1784645492765
+      "amount": 10,
+      "timestamp": "4:58:20 PM",
+      "timestampRaw": 1784667500382
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:51:31 AM",
-      "timestampRaw": 1784645491767
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:51:31 AM",
-      "timestampRaw": 1784645491765
+      "amount": 10,
+      "timestamp": "4:58:03 PM",
+      "timestampRaw": 1784667483304
     },
     {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 10,
+      "timestamp": "4:58:01 PM",
+      "timestampRaw": 1784667481298
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "hotdog",
       "amount": 500,
-      "timestamp": "10:51:18 AM",
-      "timestampRaw": 1784645478695
+      "timestamp": "4:57:59 PM",
+      "timestampRaw": 1784667479087
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "skewer",
-      "amount": 50,
-      "timestamp": "10:51:16 AM",
-      "timestampRaw": 1784645476672
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:51:16 AM",
-      "timestampRaw": 1784645476671
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:51:13 AM",
-      "timestampRaw": 1784645473663
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:51:13 AM",
-      "timestampRaw": 1784645473662
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 100,
-      "timestamp": "10:51:11 AM",
-      "timestampRaw": 1784645471658
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 10,
-      "timestamp": "10:51:11 AM",
-      "timestampRaw": 1784645471658
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:51:10 AM",
-      "timestampRaw": 1784645470658
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "salad",
-      "amount": 10,
-      "timestamp": "10:51:10 AM",
-      "timestampRaw": 1784645470658
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "salad",
-      "amount": 1000,
-      "timestamp": "10:51:08 AM",
-      "timestampRaw": 1784645468657
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
       "amount": 250,
-      "timestamp": "10:51:08 AM",
-      "timestampRaw": 1784645468657
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:51:07 AM",
-      "timestampRaw": 1784645467654
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 50,
-      "timestamp": "10:50:53 AM",
-      "timestampRaw": 1784645453703
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "salad",
-      "amount": 10,
-      "timestamp": "10:50:53 AM",
-      "timestampRaw": 1784645453696
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:50:51 AM",
-      "timestampRaw": 1784645451628
+      "timestamp": "4:57:37 PM",
+      "timestampRaw": 1784667457230
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "corn",
       "amount": 500,
-      "timestamp": "10:50:51 AM",
-      "timestampRaw": 1784645451627
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:50:50 AM",
-      "timestampRaw": 1784645450626
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "salad",
-      "amount": 100,
-      "timestamp": "10:50:50 AM",
-      "timestampRaw": 1784645450626
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:50:49 AM",
-      "timestampRaw": 1784645449626
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:50:49 AM",
-      "timestampRaw": 1784645449626
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:50:48 AM",
-      "timestampRaw": 1784645448624
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:50:47 AM",
-      "timestampRaw": 1784645447622
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 1000,
-      "timestamp": "10:50:46 AM",
-      "timestampRaw": 1784645446621
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "skewer",
-      "amount": 100,
-      "timestamp": "10:50:45 AM",
-      "timestampRaw": 1784645445712
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:50:45 AM",
-      "timestampRaw": 1784645445697
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "carrot",
-      "amount": 50,
-      "timestamp": "10:50:44 AM",
-      "timestampRaw": 1784645444617
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 100,
-      "timestamp": "10:50:43 AM",
-      "timestampRaw": 1784645443617
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "corn",
-      "amount": 1000,
-      "timestamp": "10:50:42 AM",
-      "timestampRaw": 1784645442601
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:50:42 AM",
-      "timestampRaw": 1784645442601
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:50:41 AM",
-      "timestampRaw": 1784645441601
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:50:25 AM",
-      "timestampRaw": 1784645425584
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "carrot",
-      "amount": 250,
-      "timestamp": "10:50:25 AM",
-      "timestampRaw": 1784645425584
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 250,
-      "timestamp": "10:50:23 AM",
-      "timestampRaw": 1784645423582
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 10,
-      "timestamp": "10:50:22 AM",
-      "timestampRaw": 1784645422582
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:50:20 AM",
-      "timestampRaw": 1784645420581
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "carrot",
-      "amount": 1000,
-      "timestamp": "10:50:20 AM",
-      "timestampRaw": 1784645420580
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:50:19 AM",
-      "timestampRaw": 1784645419579
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:50:19 AM",
-      "timestampRaw": 1784645419578
+      "timestamp": "4:57:30 PM",
+      "timestampRaw": 1784667450781
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:50:18 AM",
-      "timestampRaw": 1784645418578
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 50,
-      "timestamp": "10:50:17 AM",
-      "timestampRaw": 1784645417577
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "hotdog",
       "amount": 10,
-      "timestamp": "10:50:03 AM",
-      "timestampRaw": 1784645403563
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "ham",
-      "amount": 100,
-      "timestamp": "10:50:03 AM",
-      "timestampRaw": 1784645403563
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:50:00 AM",
-      "timestampRaw": 1784645400558
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:49:59 AM",
-      "timestampRaw": 1784645399558
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 10,
-      "timestamp": "10:49:55 AM",
-      "timestampRaw": 1784645395547
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:49:54 AM",
-      "timestampRaw": 1784645394545
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:49:54 AM",
-      "timestampRaw": 1784645394545
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 1000,
-      "timestamp": "10:49:52 AM",
-      "timestampRaw": 1784645392543
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:49:35 AM",
-      "timestampRaw": 1784645375507
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:49:33 AM",
-      "timestampRaw": 1784645373505
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:49:33 AM",
-      "timestampRaw": 1784645373505
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:49:32 AM",
-      "timestampRaw": 1784645372507
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:49:31 AM",
-      "timestampRaw": 1784645371450
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:49:31 AM",
-      "timestampRaw": 1784645371450
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:49:30 AM",
-      "timestampRaw": 1784645370448
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
-      "amount": 10,
-      "timestamp": "10:49:26 AM",
-      "timestampRaw": 1784645366445
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:49:13 AM",
-      "timestampRaw": 1784645353431
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:49:09 AM",
-      "timestampRaw": 1784645349421
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "salad",
-      "amount": 100,
-      "timestamp": "10:49:08 AM",
-      "timestampRaw": 1784645348422
+      "timestamp": "4:57:29 PM",
+      "timestampRaw": 1784667449780
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "corn",
-      "amount": 100,
-      "timestamp": "10:49:07 AM",
-      "timestampRaw": 1784645347420
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 50,
-      "timestamp": "10:49:04 AM",
-      "timestampRaw": 1784645344418
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 50,
-      "timestamp": "10:49:03 AM",
-      "timestampRaw": 1784645343418
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:49:02 AM",
-      "timestampRaw": 1784645342416
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:49:01 AM",
-      "timestampRaw": 1784645341416
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:48:48 AM",
-      "timestampRaw": 1784645328405
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:48:48 AM",
-      "timestampRaw": 1784645328402
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:48:46 AM",
-      "timestampRaw": 1784645326389
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:48:46 AM",
-      "timestampRaw": 1784645326389
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:48:45 AM",
-      "timestampRaw": 1784645325388
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "carrot",
-      "amount": 1000,
-      "timestamp": "10:48:45 AM",
-      "timestampRaw": 1784645325388
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "ham",
-      "amount": 1000,
-      "timestamp": "10:48:43 AM",
-      "timestampRaw": 1784645323385
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "salad",
-      "amount": 10,
-      "timestamp": "10:48:41 AM",
-      "timestampRaw": 1784645321383
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:48:40 AM",
-      "timestampRaw": 1784645320380
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:48:40 AM",
-      "timestampRaw": 1784645320380
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:48:39 AM",
-      "timestampRaw": 1784645319380
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:48:37 AM",
-      "timestampRaw": 1784645317379
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "hotdog",
-      "amount": 50,
-      "timestamp": "10:48:37 AM",
-      "timestampRaw": 1784645317379
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "carrot",
-      "amount": 50,
-      "timestamp": "10:48:36 AM",
-      "timestampRaw": 1784645316378
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 100,
-      "timestamp": "10:48:36 AM",
-      "timestampRaw": 1784645316378
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 50,
-      "timestamp": "10:48:23 AM",
-      "timestampRaw": 1784645303369
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
       "amount": 250,
-      "timestamp": "10:48:23 AM",
-      "timestampRaw": 1784645303368
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
-      "amount": 250,
-      "timestamp": "10:48:22 AM",
-      "timestampRaw": 1784645302368
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "corn",
-      "amount": 250,
-      "timestamp": "10:48:20 AM",
-      "timestampRaw": 1784645300367
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 50,
-      "timestamp": "10:48:20 AM",
-      "timestampRaw": 1784645300366
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:48:19 AM",
-      "timestampRaw": 1784645299365
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 50,
-      "timestamp": "10:48:19 AM",
-      "timestampRaw": 1784645299365
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:48:18 AM",
-      "timestampRaw": 1784645298365
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "ham",
-      "amount": 1000,
-      "timestamp": "10:48:18 AM",
-      "timestampRaw": 1784645298365
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:48:11 AM",
-      "timestampRaw": 1784645291360
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:47:58 AM",
-      "timestampRaw": 1784645278346
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:47:58 AM",
-      "timestampRaw": 1784645278345
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:47:57 AM",
-      "timestampRaw": 1784645277345
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 250,
-      "timestamp": "10:47:54 AM",
-      "timestampRaw": 1784645274341
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:47:53 AM",
-      "timestampRaw": 1784645273341
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:47:53 AM",
-      "timestampRaw": 1784645273340
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:47:50 AM",
-      "timestampRaw": 1784645270321
+      "timestamp": "4:57:28 PM",
+      "timestampRaw": 1784667448780
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:47:50 AM",
-      "timestampRaw": 1784645270320
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "hotdog",
-      "amount": 50,
-      "timestamp": "10:47:49 AM",
-      "timestampRaw": 1784645269319
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:47:49 AM",
-      "timestampRaw": 1784645269318
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
       "amount": 500,
-      "timestamp": "10:47:48 AM",
-      "timestampRaw": 1784645268318
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 10,
-      "timestamp": "10:47:47 AM",
-      "timestampRaw": 1784645267318
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 1000,
-      "timestamp": "10:47:46 AM",
-      "timestampRaw": 1784645266317
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:47:32 AM",
-      "timestampRaw": 1784645252302
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:47:32 AM",
-      "timestampRaw": 1784645252301
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:47:31 AM",
-      "timestampRaw": 1784645251300
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:47:31 AM",
-      "timestampRaw": 1784645251300
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:47:28 AM",
-      "timestampRaw": 1784645248296
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:47:27 AM",
-      "timestampRaw": 1784645247295
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "corn",
-      "amount": 100,
-      "timestamp": "10:47:27 AM",
-      "timestampRaw": 1784645247295
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 250,
-      "timestamp": "10:47:26 AM",
-      "timestampRaw": 1784645246294
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:47:26 AM",
-      "timestampRaw": 1784645246293
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 250,
-      "timestamp": "10:47:23 AM",
-      "timestampRaw": 1784645243292
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 500,
-      "timestamp": "10:47:23 AM",
-      "timestampRaw": 1784645243291
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:47:22 AM",
-      "timestampRaw": 1784645242290
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 10,
-      "timestamp": "10:47:22 AM",
-      "timestampRaw": 1784645242290
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:47:21 AM",
-      "timestampRaw": 1784645241289
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:47:07 AM",
-      "timestampRaw": 1784645227275
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:47:03 AM",
-      "timestampRaw": 1784645223270
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:47:03 AM",
-      "timestampRaw": 1784645223270
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 50,
-      "timestamp": "10:47:02 AM",
-      "timestampRaw": 1784645222270
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:47:02 AM",
-      "timestampRaw": 1784645222270
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:47:01 AM",
-      "timestampRaw": 1784645221269
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "ham",
-      "amount": 1000,
-      "timestamp": "10:47:00 AM",
-      "timestampRaw": 1784645220267
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:46:58 AM",
-      "timestampRaw": 1784645218268
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:46:57 AM",
-      "timestampRaw": 1784645217267
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:46:57 AM",
-      "timestampRaw": 1784645217266
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 1000,
-      "timestamp": "10:46:40 AM",
-      "timestampRaw": 1784645200250
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "skewer",
-      "amount": 50,
-      "timestamp": "10:46:39 AM",
-      "timestampRaw": 1784645199248
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:46:37 AM",
-      "timestampRaw": 1784645197247
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 250,
-      "timestamp": "10:46:37 AM",
-      "timestampRaw": 1784645197247
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:46:35 AM",
-      "timestampRaw": 1784645195244
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:46:34 AM",
-      "timestampRaw": 1784645194243
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 250,
-      "timestamp": "10:46:33 AM",
-      "timestampRaw": 1784645193243
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:46:33 AM",
-      "timestampRaw": 1784645193243
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "skewer",
-      "amount": 100,
-      "timestamp": "10:46:18 AM",
-      "timestampRaw": 1784645178214
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "hotdog",
-      "amount": 50,
-      "timestamp": "10:46:18 AM",
-      "timestampRaw": 1784645178214
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:46:15 AM",
-      "timestampRaw": 1784645175210
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 250,
-      "timestamp": "10:46:13 AM",
-      "timestampRaw": 1784645173209
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:46:12 AM",
-      "timestampRaw": 1784645172208
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "skewer",
-      "amount": 50,
-      "timestamp": "10:46:10 AM",
-      "timestampRaw": 1784645170206
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:46:09 AM",
-      "timestampRaw": 1784645169205
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:46:08 AM",
-      "timestampRaw": 1784645168203
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "corn",
-      "amount": 10,
-      "timestamp": "10:46:07 AM",
-      "timestampRaw": 1784645167202
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:46:06 AM",
-      "timestampRaw": 1784645166202
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 250,
-      "timestamp": "10:45:52 AM",
-      "timestampRaw": 1784645152191
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 50,
-      "timestamp": "10:45:52 AM",
-      "timestampRaw": 1784645152191
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 100,
-      "timestamp": "10:45:51 AM",
-      "timestampRaw": 1784645151190
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:45:50 AM",
-      "timestampRaw": 1784645150189
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:45:49 AM",
-      "timestampRaw": 1784645149188
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "corn",
-      "amount": 1000,
-      "timestamp": "10:45:48 AM",
-      "timestampRaw": 1784645148187
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:45:46 AM",
-      "timestampRaw": 1784645146185
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:45:45 AM",
-      "timestampRaw": 1784645145184
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:45:45 AM",
-      "timestampRaw": 1784645145184
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:45:44 AM",
-      "timestampRaw": 1784645144183
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:45:44 AM",
-      "timestampRaw": 1784645144183
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:45:43 AM",
-      "timestampRaw": 1784645143182
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 10,
-      "timestamp": "10:45:42 AM",
-      "timestampRaw": 1784645142181
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 10,
-      "timestamp": "10:45:42 AM",
-      "timestampRaw": 1784645142181
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 500,
-      "timestamp": "10:45:41 AM",
-      "timestampRaw": 1784645141183
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:45:41 AM",
-      "timestampRaw": 1784645141181
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 100,
-      "timestamp": "10:45:28 AM",
-      "timestampRaw": 1784645128168
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "hotdog",
-      "amount": 250,
-      "timestamp": "10:45:27 AM",
-      "timestampRaw": 1784645127167
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:45:27 AM",
-      "timestampRaw": 1784645127167
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "ham",
-      "amount": 250,
-      "timestamp": "10:45:26 AM",
-      "timestampRaw": 1784645126166
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:45:25 AM",
-      "timestampRaw": 1784645125166
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:45:24 AM",
-      "timestampRaw": 1784645124164
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:45:24 AM",
-      "timestampRaw": 1784645124164
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:45:22 AM",
-      "timestampRaw": 1784645122163
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:45:22 AM",
-      "timestampRaw": 1784645122163
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:45:20 AM",
-      "timestampRaw": 1784645120162
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "tomato",
-      "amount": 50,
-      "timestamp": "10:45:20 AM",
-      "timestampRaw": 1784645120161
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:45:18 AM",
-      "timestampRaw": 1784645118160
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:45:18 AM",
-      "timestampRaw": 1784645118159
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:45:17 AM",
-      "timestampRaw": 1784645117159
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:45:02 AM",
-      "timestampRaw": 1784645102143
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:45:01 AM",
-      "timestampRaw": 1784645101142
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 1000,
-      "timestamp": "10:44:59 AM",
-      "timestampRaw": 1784645099140
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "skewer",
-      "amount": 50,
-      "timestamp": "10:44:57 AM",
-      "timestampRaw": 1784645097127
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:44:56 AM",
-      "timestampRaw": 1784645096125
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:44:53 AM",
-      "timestampRaw": 1784645093123
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 500,
-      "timestamp": "10:44:52 AM",
-      "timestampRaw": 1784645092123
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:44:51 AM",
-      "timestampRaw": 1784645091123
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 500,
-      "timestamp": "10:44:38 AM",
-      "timestampRaw": 1784645078110
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 100,
-      "timestamp": "10:44:38 AM",
-      "timestampRaw": 1784645078110
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "skewer",
-      "amount": 500,
-      "timestamp": "10:44:37 AM",
-      "timestampRaw": 1784645077110
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:44:37 AM",
-      "timestampRaw": 1784645077110
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "ham",
-      "amount": 50,
-      "timestamp": "10:44:36 AM",
-      "timestampRaw": 1784645076109
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 100,
-      "timestamp": "10:44:36 AM",
-      "timestampRaw": 1784645076108
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "salad",
-      "amount": 10,
-      "timestamp": "10:44:35 AM",
-      "timestampRaw": 1784645075107
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 500,
-      "timestamp": "10:44:32 AM",
-      "timestampRaw": 1784645072104
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "carrot",
-      "amount": 1000,
-      "timestamp": "10:44:32 AM",
-      "timestampRaw": 1784645072104
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:44:31 AM",
-      "timestampRaw": 1784645071102
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "corn",
-      "amount": 10,
-      "timestamp": "10:44:31 AM",
-      "timestampRaw": 1784645071102
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 100,
-      "timestamp": "10:44:30 AM",
-      "timestampRaw": 1784645070102
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "salad",
-      "amount": 1000,
-      "timestamp": "10:44:30 AM",
-      "timestampRaw": 1784645070102
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 10,
-      "timestamp": "10:44:28 AM",
-      "timestampRaw": 1784645068099
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "salad",
-      "amount": 10,
-      "timestamp": "10:44:28 AM",
-      "timestampRaw": 1784645068099
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "skewer",
-      "amount": 250,
-      "timestamp": "10:44:26 AM",
-      "timestampRaw": 1784645066099
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 100,
-      "timestamp": "10:44:13 AM",
-      "timestampRaw": 1784645053088
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:44:12 AM",
-      "timestampRaw": 1784645052087
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:44:10 AM",
-      "timestampRaw": 1784645050084
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "salad",
-      "amount": 100,
-      "timestamp": "10:44:05 AM",
-      "timestampRaw": 1784645045082
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:44:05 AM",
-      "timestampRaw": 1784645045081
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "ham",
-      "amount": 100,
-      "timestamp": "10:44:03 AM",
-      "timestampRaw": 1784645043080
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 50,
-      "timestamp": "10:44:03 AM",
-      "timestampRaw": 1784645043079
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:44:02 AM",
-      "timestampRaw": 1784645042078
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:43:47 AM",
-      "timestampRaw": 1784645027065
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:43:44 AM",
-      "timestampRaw": 1784645024061
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:43:42 AM",
-      "timestampRaw": 1784645022060
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "salad",
-      "amount": 1000,
-      "timestamp": "10:43:36 AM",
-      "timestampRaw": 1784645016056
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:43:36 AM",
-      "timestampRaw": 1784645016056
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:43:22 AM",
-      "timestampRaw": 1784645002038
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:43:22 AM",
-      "timestampRaw": 1784645002038
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 500,
-      "timestamp": "10:43:16 AM",
-      "timestampRaw": 1784644996999
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "salad",
-      "amount": 1000,
-      "timestamp": "10:43:16 AM",
-      "timestampRaw": 1784644996000
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 100,
-      "timestamp": "10:43:15 AM",
-      "timestampRaw": 1784644995999
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 100,
-      "timestamp": "10:43:11 AM",
-      "timestampRaw": 1784644991992
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 50,
-      "timestamp": "10:43:10 AM",
-      "timestampRaw": 1784644990994
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:43:10 AM",
-      "timestampRaw": 1784644990993
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:42:56 AM",
-      "timestampRaw": 1784644976978
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:42:51 AM",
-      "timestampRaw": 1784644971983
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:42:51 AM",
-      "timestampRaw": 1784644971981
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 500,
-      "timestamp": "10:42:50 AM",
-      "timestampRaw": 1784644970971
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "carrot",
-      "amount": 50,
-      "timestamp": "10:42:49 AM",
-      "timestampRaw": 1784644969971
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "ham",
-      "amount": 1000,
-      "timestamp": "10:42:49 AM",
-      "timestampRaw": 1784644969970
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "cabbage",
-      "amount": 1000,
-      "timestamp": "10:42:48 AM",
-      "timestampRaw": 1784644968970
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "salad",
-      "amount": 10,
-      "timestamp": "10:42:48 AM",
-      "timestampRaw": 1784644968970
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:42:46 AM",
-      "timestampRaw": 1784644966967
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:42:46 AM",
-      "timestampRaw": 1784644966967
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:42:45 AM",
-      "timestampRaw": 1784644965967
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "tomato",
-      "amount": 10,
-      "timestamp": "10:42:32 AM",
-      "timestampRaw": 1784644952951
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:42:32 AM",
-      "timestampRaw": 1784644952951
+      "timestamp": "4:57:13 PM",
+      "timestampRaw": 1784667433588
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "skewer",
       "amount": 10,
-      "timestamp": "10:42:30 AM",
-      "timestampRaw": 1784644950950
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:42:30 AM",
-      "timestampRaw": 1784644950950
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:42:28 AM",
-      "timestampRaw": 1784644948947
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 10,
-      "timestamp": "10:42:27 AM",
-      "timestampRaw": 1784644947946
+      "timestamp": "4:57:12 PM",
+      "timestampRaw": 1784667432586
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "corn",
+      "itemId": "cabbage",
+      "amount": 50,
+      "timestamp": "4:57:08 PM",
+      "timestampRaw": 1784667428554
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
       "amount": 500,
-      "timestamp": "10:42:25 AM",
-      "timestampRaw": 1784644945944
+      "timestamp": "4:57:07 PM",
+      "timestampRaw": 1784667427553
     },
     {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:42:23 AM",
-      "timestampRaw": 1784644943942
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "tomato",
+      "amount": 500,
+      "timestamp": "4:57:06 PM",
+      "timestampRaw": 1784667426552
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
+      "itemId": "tomato",
       "amount": 1000,
-      "timestamp": "10:42:21 AM",
-      "timestampRaw": 1784644941941
+      "timestamp": "4:57:04 PM",
+      "timestampRaw": 1784667424549
     },
     {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "ham",
       "amount": 100,
-      "timestamp": "10:42:21 AM",
-      "timestampRaw": 1784644941941
+      "timestamp": "4:57:03 PM",
+      "timestampRaw": 1784667423548
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "skewer",
-      "amount": 50,
-      "timestamp": "10:42:20 AM",
-      "timestampRaw": 1784644940940
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:42:07 AM",
-      "timestampRaw": 1784644927929
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
       "itemId": "tomato",
-      "amount": 100,
-      "timestamp": "10:42:07 AM",
-      "timestampRaw": 1784644927929
+      "amount": 500,
+      "timestamp": "4:57:01 PM",
+      "timestampRaw": 1784667421546
     },
     {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:42:06 AM",
-      "timestampRaw": 1784644926927
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
       "amount": 10,
-      "timestamp": "10:42:05 AM",
-      "timestampRaw": 1784644925928
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:42:04 AM",
-      "timestampRaw": 1784644924925
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "cabbage",
-      "amount": 50,
-      "timestamp": "10:42:04 AM",
-      "timestampRaw": 1784644924925
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:42:03 AM",
-      "timestampRaw": 1784644923925
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 250,
-      "timestamp": "10:42:00 AM",
-      "timestampRaw": 1784644920922
+      "timestamp": "4:56:48 PM",
+      "timestampRaw": 1784667408529
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:42:00 AM",
-      "timestampRaw": 1784644920921
+      "itemId": "tomato",
+      "amount": 500,
+      "timestamp": "4:56:23 PM",
+      "timestampRaw": 1784667383459
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "cabbage",
-      "amount": 1000,
-      "timestamp": "10:41:58 AM",
-      "timestampRaw": 1784644918918
+      "amount": 500,
+      "timestamp": "4:56:21 PM",
+      "timestampRaw": 1784667381453
     },
     {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "hotdog",
-      "amount": 10,
-      "timestamp": "10:41:57 AM",
-      "timestampRaw": 1784644917918
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "hotdog",
-      "amount": 10,
-      "timestamp": "10:41:57 AM",
-      "timestampRaw": 1784644917918
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "ham",
       "amount": 1000,
-      "timestamp": "10:41:56 AM",
-      "timestampRaw": 1784644916917
+      "timestamp": "4:56:16 PM",
+      "timestampRaw": 1784667376445
     },
     {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 1000,
+      "timestamp": "4:56:15 PM",
+      "timestampRaw": 1784667375445
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "steak",
+      "amount": 500,
+      "timestamp": "4:56:11 PM",
+      "timestampRaw": 1784667371473
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "pizza",
+      "amount": 100,
+      "timestamp": "4:56:11 PM",
+      "timestampRaw": 1784667371440
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "cabbage",
+      "amount": 500,
+      "timestamp": "4:55:58 PM",
+      "timestampRaw": 1784667358415
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "pizza",
+      "amount": 50,
+      "timestamp": "4:55:56 PM",
+      "timestampRaw": 1784667356412
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "steak",
+      "amount": 100,
+      "timestamp": "4:55:54 PM",
+      "timestampRaw": 1784667354409
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "hotdog",
+      "amount": 10,
+      "timestamp": "4:55:52 PM",
+      "timestampRaw": 1784667352407
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 100,
+      "timestamp": "4:55:50 PM",
+      "timestampRaw": 1784667350406
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "pizza",
+      "amount": 100,
+      "timestamp": "4:55:50 PM",
+      "timestampRaw": 1784667350406
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "tomato",
       "amount": 500,
-      "timestamp": "10:41:56 AM",
-      "timestampRaw": 1784644916917
+      "timestamp": "4:55:49 PM",
+      "timestampRaw": 1784667349408
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 10,
+      "timestamp": "4:55:47 PM",
+      "timestampRaw": 1784667347404
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "hotdog",
+      "amount": 100,
+      "timestamp": "4:55:46 PM",
+      "timestampRaw": 1784667346404
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 100,
+      "timestamp": "4:55:23 PM",
+      "timestampRaw": 1784667323343
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "carrot",
+      "amount": 50,
+      "timestamp": "4:55:06 PM",
+      "timestampRaw": 1784667306855
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "steak",
+      "amount": 250,
+      "timestamp": "4:55:02 PM",
+      "timestampRaw": 1784667302399
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 1000,
+      "timestamp": "4:54:40 PM",
+      "timestampRaw": 1784667280291
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "pizza",
+      "amount": 1000,
+      "timestamp": "4:54:37 PM",
+      "timestampRaw": 1784667277047
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "corn",
-      "amount": 50,
-      "timestamp": "10:41:55 AM",
-      "timestampRaw": 1784644915917
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "skewer",
       "amount": 500,
-      "timestamp": "10:41:55 AM",
-      "timestampRaw": 1784644915917
+      "timestamp": "4:54:35 PM",
+      "timestampRaw": 1784667275050
     },
     {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:41:41 AM",
-      "timestampRaw": 1784644901902
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
+      "amount": 50,
+      "timestamp": "4:54:34 PM",
+      "timestampRaw": 1784667274042
     },
     {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
       "amount": 250,
-      "timestamp": "10:41:41 AM",
-      "timestampRaw": 1784644901902
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:41:40 AM",
-      "timestampRaw": 1784644900901
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 10,
-      "timestamp": "10:41:40 AM",
-      "timestampRaw": 1784644900901
+      "timestamp": "4:54:31 PM",
+      "timestampRaw": 1784667271030
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "steak",
-      "amount": 100,
-      "timestamp": "10:41:39 AM",
-      "timestampRaw": 1784644899899
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:41:37 AM",
-      "timestampRaw": 1784644897897
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:41:35 AM",
-      "timestampRaw": 1784644895896
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
-      "amount": 50,
-      "timestamp": "10:41:35 AM",
-      "timestampRaw": 1784644895896
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:41:34 AM",
-      "timestampRaw": 1784644894895
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:41:34 AM",
-      "timestampRaw": 1784644894895
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:41:33 AM",
-      "timestampRaw": 1784644893894
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:41:33 AM",
-      "timestampRaw": 1784644893894
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
       "amount": 1000,
-      "timestamp": "10:41:16 AM",
-      "timestampRaw": 1784644876875
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:41:15 AM",
-      "timestampRaw": 1784644875874
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "hotdog",
-      "amount": 1000,
-      "timestamp": "10:41:14 AM",
-      "timestampRaw": 1784644874875
+      "timestamp": "4:54:31 PM",
+      "timestampRaw": 1784667271029
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "hotdog",
-      "amount": 500,
-      "timestamp": "10:41:14 AM",
-      "timestampRaw": 1784644874875
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "tomato",
-      "amount": 100,
-      "timestamp": "10:41:13 AM",
-      "timestampRaw": 1784644873871
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:41:11 AM",
-      "timestampRaw": 1784644871869
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
       "itemId": "corn",
-      "amount": 10,
-      "timestamp": "10:41:11 AM",
-      "timestampRaw": 1784644871869
+      "amount": 50,
+      "timestamp": "4:54:10 PM",
+      "timestampRaw": 1784667250958
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:41:10 AM",
-      "timestampRaw": 1784644870869
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 100,
-      "timestamp": "10:41:10 AM",
-      "timestampRaw": 1784644870868
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:41:08 AM",
-      "timestampRaw": 1784644868866
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:41:07 AM",
-      "timestampRaw": 1784644867866
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
-      "amount": 10,
-      "timestamp": "10:41:06 AM",
-      "timestampRaw": 1784644866866
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:41:06 AM",
-      "timestampRaw": 1784644866866
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
       "itemId": "ham",
       "amount": 50,
-      "timestamp": "10:40:52 AM",
-      "timestampRaw": 1784644852852
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:40:51 AM",
-      "timestampRaw": 1784644851851
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "cabbage",
-      "amount": 50,
-      "timestamp": "10:40:51 AM",
-      "timestampRaw": 1784644851851
+      "timestamp": "4:54:06 PM",
+      "timestampRaw": 1784667246687
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:40:50 AM",
-      "timestampRaw": 1784644850852
+      "amount": 100,
+      "timestamp": "4:54:05 PM",
+      "timestampRaw": 1784667245687
     },
     {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 1000,
-      "timestamp": "10:40:50 AM",
-      "timestampRaw": 1784644850851
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:40:48 AM",
-      "timestampRaw": 1784644848843
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "carrot",
       "amount": 50,
-      "timestamp": "10:40:45 AM",
-      "timestampRaw": 1784644845840
+      "timestamp": "4:53:49 PM",
+      "timestampRaw": 1784667229687
     },
     {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "skewer",
-      "amount": 250,
-      "timestamp": "10:40:44 AM",
-      "timestampRaw": 1784644844839
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:40:43 AM",
-      "timestampRaw": 1784644843838
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "hotdog",
+      "amount": 100,
+      "timestamp": "4:53:48 PM",
+      "timestampRaw": 1784667228659
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "cabbage",
-      "amount": 1000,
-      "timestamp": "10:40:43 AM",
-      "timestampRaw": 1784644843838
+      "itemId": "corn",
+      "amount": 500,
+      "timestamp": "4:53:43 PM",
+      "timestampRaw": 1784667223649
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 500,
+      "timestamp": "4:53:39 PM",
+      "timestampRaw": 1784667219641
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "tomato",
+      "amount": 500,
+      "timestamp": "4:53:25 PM",
+      "timestampRaw": 1784667205614
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "pizza",
+      "amount": 50,
+      "timestamp": "4:53:23 PM",
+      "timestampRaw": 1784667203610
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "tomato",
-      "amount": 1000,
-      "timestamp": "10:40:40 AM",
-      "timestampRaw": 1784644840839
+      "amount": 50,
+      "timestamp": "4:53:20 PM",
+      "timestampRaw": 1784667200607
     },
     {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "cabbage",
-      "amount": 100,
-      "timestamp": "10:40:40 AM",
-      "timestampRaw": 1784644840837
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
       "amount": 250,
-      "timestamp": "10:40:27 AM",
-      "timestampRaw": 1784644827823
+      "timestamp": "4:53:20 PM",
+      "timestampRaw": 1784667200606
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "steak",
+      "amount": 50,
+      "timestamp": "4:53:18 PM",
+      "timestampRaw": 1784667198606
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "skewer",
-      "amount": 50,
-      "timestamp": "10:40:27 AM",
-      "timestampRaw": 1784644827823
+      "itemId": "steak",
+      "amount": 100,
+      "timestamp": "4:53:14 PM",
+      "timestampRaw": 1784667194602
     },
     {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "hotdog",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "tomato",
+      "amount": 250,
+      "timestamp": "4:53:00 PM",
+      "timestampRaw": 1784667180587
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "corn",
       "amount": 100,
-      "timestamp": "10:40:26 AM",
-      "timestampRaw": 1784644826823
+      "timestamp": "4:52:58 PM",
+      "timestampRaw": 1784667178587
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "cabbage",
+      "amount": 100,
+      "timestamp": "4:52:56 PM",
+      "timestampRaw": 1784667176585
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "carrot",
+      "amount": 10,
+      "timestamp": "4:52:56 PM",
+      "timestampRaw": 1784667176585
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "salad",
-      "amount": 250,
-      "timestamp": "10:40:25 AM",
-      "timestampRaw": 1784644825823
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
       "amount": 10,
-      "timestamp": "10:40:25 AM",
-      "timestampRaw": 1784644825822
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "pizza",
-      "amount": 100,
-      "timestamp": "10:40:22 AM",
-      "timestampRaw": 1784644822816
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:40:21 AM",
-      "timestampRaw": 1784644821816
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "skewer",
-      "amount": 1000,
-      "timestamp": "10:40:21 AM",
-      "timestampRaw": 1784644821815
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "skewer",
-      "amount": 10,
-      "timestamp": "10:40:20 AM",
-      "timestampRaw": 1784644820814
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 1000,
-      "timestamp": "10:40:19 AM",
-      "timestampRaw": 1784644819813
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 1000,
-      "timestamp": "10:40:17 AM",
-      "timestampRaw": 1784644817811
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "cabbage",
-      "amount": 500,
-      "timestamp": "10:40:17 AM",
-      "timestampRaw": 1784644817811
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:40:16 AM",
-      "timestampRaw": 1784644816810
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 10,
-      "timestamp": "10:40:16 AM",
-      "timestampRaw": 1784644816809
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "corn",
-      "amount": 250,
-      "timestamp": "10:40:15 AM",
-      "timestampRaw": 1784644815810
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "salad",
-      "amount": 500,
-      "timestamp": "10:40:02 AM",
-      "timestampRaw": 1784644802798
+      "timestamp": "4:52:29 PM",
+      "timestampRaw": 1784667149429
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:40:01 AM",
-      "timestampRaw": 1784644801797
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:40:01 AM",
-      "timestampRaw": 1784644801797
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 50,
-      "timestamp": "10:40:00 AM",
-      "timestampRaw": 1784644800796
+      "amount": 10,
+      "timestamp": "4:52:25 PM",
+      "timestampRaw": 1784667145424
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 100,
-      "timestamp": "10:39:58 AM",
-      "timestampRaw": 1784644798795
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:39:58 AM",
-      "timestampRaw": 1784644798795
-    },
-    {
-      "username": "Player 1",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix",
-      "itemId": "pizza",
-      "amount": 250,
-      "timestamp": "10:39:57 AM",
-      "timestampRaw": 1784644797794
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "corn",
-      "amount": 1000,
-      "timestamp": "10:39:54 AM",
-      "timestampRaw": 1784644794791
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "steak",
-      "amount": 500,
-      "timestamp": "10:39:52 AM",
-      "timestampRaw": 1784644792789
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "skewer",
-      "amount": 250,
-      "timestamp": "10:39:52 AM",
-      "timestampRaw": 1784644792789
+      "itemId": "hotdog",
+      "amount": 10,
+      "timestamp": "4:52:24 PM",
+      "timestampRaw": 1784667144443
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "cabbage",
       "amount": 1000,
-      "timestamp": "10:39:50 AM",
-      "timestampRaw": 1784644790789
+      "timestamp": "4:52:08 PM",
+      "timestampRaw": 1784667128309
     },
     {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "tomato",
-      "amount": 250,
-      "timestamp": "10:39:37 AM",
-      "timestampRaw": 1784644777774
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "carrot",
-      "amount": 1000,
-      "timestamp": "10:39:37 AM",
-      "timestampRaw": 1784644777774
-    },
-    {
-      "username": "Guest_3300",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
-      "itemId": "salad",
-      "amount": 1000,
-      "timestamp": "10:39:36 AM",
-      "timestampRaw": 1784644776773
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "steak",
-      "amount": 250,
-      "timestamp": "10:39:36 AM",
-      "timestampRaw": 1784644776773
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
-      "itemId": "pizza",
-      "amount": 10,
-      "timestamp": "10:39:34 AM",
-      "timestampRaw": 1784644774772
-    },
-    {
-      "username": "John",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John",
-      "itemId": "ham",
-      "amount": 500,
-      "timestamp": "10:39:34 AM",
-      "timestampRaw": 1784644774771
-    },
-    {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "corn",
-      "amount": 250,
-      "timestamp": "10:39:33 AM",
-      "timestampRaw": 1784644773770
-    },
-    {
-      "username": "Guest_3779",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "carrot",
       "amount": 50,
-      "timestamp": "10:39:32 AM",
-      "timestampRaw": 1784644772769
+      "timestamp": "4:51:59 PM",
+      "timestampRaw": 1784667119303
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
-      "itemId": "tomato",
-      "amount": 500,
-      "timestamp": "10:39:30 AM",
-      "timestampRaw": 1784644770767
-    },
-    {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
       "itemId": "salad",
       "amount": 100,
-      "timestamp": "10:39:27 AM",
-      "timestampRaw": 1784644767765
+      "timestamp": "4:51:37 PM",
+      "timestampRaw": 1784667097952
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "salad",
+      "amount": 500,
+      "timestamp": "4:51:35 PM",
+      "timestampRaw": 1784667095875
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "steak",
+      "amount": 50,
+      "timestamp": "4:51:19 PM",
+      "timestampRaw": 1784667079815
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "salad",
       "amount": 250,
-      "timestamp": "10:39:27 AM",
-      "timestampRaw": 1784644767765
+      "timestamp": "4:51:18 PM",
+      "timestampRaw": 1784667078813
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "carrot",
+      "amount": 10,
+      "timestamp": "4:51:14 PM",
+      "timestampRaw": 1784667074810
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
+      "amount": 1000,
+      "timestamp": "4:51:14 PM",
+      "timestampRaw": 1784667074810
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "cabbage",
+      "amount": 50,
+      "timestamp": "4:51:09 PM",
+      "timestampRaw": 1784667069807
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
+      "amount": 100,
+      "timestamp": "4:51:07 PM",
+      "timestampRaw": 1784667067804
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "skewer",
+      "amount": 1000,
+      "timestamp": "4:50:54 PM",
+      "timestampRaw": 1784667054787
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "skewer",
+      "amount": 10,
+      "timestamp": "4:50:52 PM",
+      "timestampRaw": 1784667052785
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "ham",
+      "amount": 500,
+      "timestamp": "4:50:26 PM",
+      "timestampRaw": 1784667026683
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
+      "amount": 50,
+      "timestamp": "4:50:24 PM",
+      "timestampRaw": 1784667024657
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "hotdog",
       "amount": 100,
-      "timestamp": "10:39:11 AM",
-      "timestampRaw": 1784644751746
+      "timestamp": "4:50:20 PM",
+      "timestampRaw": 1784667020653
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 250,
+      "timestamp": "4:50:18 PM",
+      "timestampRaw": 1784667018543
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 1000,
+      "timestamp": "4:49:59 PM",
+      "timestampRaw": 1784666999353
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "ham",
+      "amount": 250,
+      "timestamp": "4:49:55 PM",
+      "timestampRaw": 1784666995351
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "corn",
+      "amount": 1000,
+      "timestamp": "4:49:35 PM",
+      "timestampRaw": 1784666975327
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 50,
+      "timestamp": "4:49:34 PM",
+      "timestampRaw": 1784666974326
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "pizza",
+      "amount": 250,
+      "timestamp": "4:49:34 PM",
+      "timestampRaw": 1784666974326
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "salad",
+      "amount": 100,
+      "timestamp": "4:49:33 PM",
+      "timestampRaw": 1784666973326
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "salad",
+      "amount": 500,
+      "timestamp": "4:49:32 PM",
+      "timestampRaw": 1784666972324
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 500,
+      "timestamp": "4:49:27 PM",
+      "timestampRaw": 1784666967323
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 50,
+      "timestamp": "4:49:10 PM",
+      "timestampRaw": 1784666950306
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
+      "amount": 10,
+      "timestamp": "4:49:06 PM",
+      "timestampRaw": 1784666946300
     },
     {
       "username": "Guest_3779",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
       "itemId": "carrot",
+      "amount": 100,
+      "timestamp": "4:49:02 PM",
+      "timestampRaw": 1784666942296
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "tomato",
+      "amount": 500,
+      "timestamp": "4:48:45 PM",
+      "timestampRaw": 1784666925239
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "ham",
+      "amount": 10,
+      "timestamp": "4:48:44 PM",
+      "timestampRaw": 1784666924237
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "ham",
+      "amount": 100,
+      "timestamp": "4:48:43 PM",
+      "timestampRaw": 1784666923236
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
       "amount": 250,
-      "timestamp": "10:39:11 AM",
-      "timestampRaw": 1784644751746
+      "timestamp": "4:48:42 PM",
+      "timestampRaw": 1784666922236
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 500,
+      "timestamp": "4:48:42 PM",
+      "timestampRaw": 1784666922234
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
+      "amount": 50,
+      "timestamp": "4:48:41 PM",
+      "timestampRaw": 1784666921234
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "corn",
+      "amount": 500,
+      "timestamp": "4:48:20 PM",
+      "timestampRaw": 1784666900083
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 1000,
+      "timestamp": "4:48:16 PM",
+      "timestampRaw": 1784666896082
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 1000,
+      "timestamp": "4:47:59 PM",
+      "timestampRaw": 1784666879057
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "cabbage",
+      "amount": 250,
+      "timestamp": "4:47:56 PM",
+      "timestampRaw": 1784666876052
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 500,
+      "timestamp": "4:47:56 PM",
+      "timestampRaw": 1784666876052
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "pizza",
+      "amount": 10,
+      "timestamp": "4:47:51 PM",
+      "timestampRaw": 1784666871033
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
+      "amount": 50,
+      "timestamp": "4:47:51 PM",
+      "timestampRaw": 1784666871033
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "pizza",
+      "amount": 10,
+      "timestamp": "4:47:47 PM",
+      "timestampRaw": 1784666867025
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "pizza",
+      "amount": 10,
+      "timestamp": "4:47:31 PM",
+      "timestampRaw": 1784666851996
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "corn",
+      "amount": 250,
+      "timestamp": "4:47:30 PM",
+      "timestampRaw": 1784666850995
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "salad",
+      "amount": 10,
+      "timestamp": "4:47:29 PM",
+      "timestampRaw": 1784666849993
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "ham",
+      "amount": 50,
+      "timestamp": "4:47:26 PM",
+      "timestampRaw": 1784666846987
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
+      "amount": 10,
+      "timestamp": "4:47:26 PM",
+      "timestampRaw": 1784666846987
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "carrot",
+      "amount": 250,
+      "timestamp": "4:47:23 PM",
+      "timestampRaw": 1784666843982
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "carrot",
+      "amount": 250,
+      "timestamp": "4:47:22 PM",
+      "timestampRaw": 1784666842981
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "salad",
+      "amount": 100,
+      "timestamp": "4:47:08 PM",
+      "timestampRaw": 1784666828958
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "tomato",
+      "amount": 1000,
+      "timestamp": "4:47:04 PM",
+      "timestampRaw": 1784666824950
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 250,
+      "timestamp": "4:47:02 PM",
+      "timestampRaw": 1784666822948
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "hotdog",
+      "amount": 250,
+      "timestamp": "4:46:56 PM",
+      "timestampRaw": 1784666816939
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "salad",
+      "amount": 100,
+      "timestamp": "4:46:43 PM",
+      "timestampRaw": 1784666803914
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
+      "amount": 10,
+      "timestamp": "4:46:37 PM",
+      "timestampRaw": 1784666797907
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "carrot",
+      "amount": 250,
+      "timestamp": "4:46:36 PM",
+      "timestampRaw": 1784666796905
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 50,
+      "timestamp": "4:46:31 PM",
+      "timestampRaw": 1784666791877
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "pizza",
+      "amount": 50,
+      "timestamp": "4:46:18 PM",
+      "timestampRaw": 1784666778852
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "cabbage",
+      "amount": 250,
+      "timestamp": "4:46:17 PM",
+      "timestampRaw": 1784666777851
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "steak",
+      "amount": 1000,
+      "timestamp": "4:46:09 PM",
+      "timestampRaw": 1784666769836
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 100,
+      "timestamp": "4:46:09 PM",
+      "timestampRaw": 1784666769836
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "cabbage",
+      "amount": 250,
+      "timestamp": "4:46:08 PM",
+      "timestampRaw": 1784666768835
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "pizza",
+      "amount": 250,
+      "timestamp": "4:46:07 PM",
+      "timestampRaw": 1784666767835
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 50,
+      "timestamp": "4:46:06 PM",
+      "timestampRaw": 1784666766834
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "pizza",
+      "amount": 100,
+      "timestamp": "4:45:47 PM",
+      "timestampRaw": 1784666747803
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
+      "amount": 10,
+      "timestamp": "4:45:47 PM",
+      "timestampRaw": 1784666747803
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "pizza",
+      "amount": 250,
+      "timestamp": "4:45:27 PM",
+      "timestampRaw": 1784666727765
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "hotdog",
+      "amount": 50,
+      "timestamp": "4:45:21 PM",
+      "timestampRaw": 1784666721751
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "ham",
+      "amount": 250,
+      "timestamp": "4:45:16 PM",
+      "timestampRaw": 1784666716744
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "steak",
+      "amount": 1000,
+      "timestamp": "4:45:16 PM",
+      "timestampRaw": 1784666716743
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 1000,
+      "timestamp": "4:45:03 PM",
+      "timestampRaw": 1784666703720
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "steak",
+      "amount": 500,
+      "timestamp": "4:45:01 PM",
+      "timestampRaw": 1784666701717
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "salad",
+      "amount": 500,
+      "timestamp": "4:45:01 PM",
+      "timestampRaw": 1784666701717
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "cabbage",
+      "amount": 250,
+      "timestamp": "4:44:57 PM",
+      "timestampRaw": 1784666697712
     },
     {
       "username": "Guest_3300",
       "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "ham",
       "amount": 100,
-      "timestamp": "10:39:08 AM",
-      "timestampRaw": 1784644748743
+      "timestamp": "4:44:55 PM",
+      "timestampRaw": 1784666695708
     },
     {
-      "username": "Player 2",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella",
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "carrot",
-      "amount": 100,
-      "timestamp": "10:39:07 AM",
-      "timestampRaw": 1784644747743
+      "amount": 50,
+      "timestamp": "4:44:55 PM",
+      "timestampRaw": 1784666695707
     },
     {
-      "username": "Sarah",
-      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah",
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "skewer",
+      "amount": 100,
+      "timestamp": "4:44:33 PM",
+      "timestampRaw": 1784666673655
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "cabbage",
+      "amount": 250,
+      "timestamp": "4:44:31 PM",
+      "timestampRaw": 1784666671652
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "tomato",
+      "amount": 10,
+      "timestamp": "4:44:05 PM",
+      "timestampRaw": 1784666645619
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
       "itemId": "skewer",
       "amount": 500,
-      "timestamp": "10:39:07 AM",
-      "timestampRaw": 1784644747742
+      "timestamp": "4:43:45 PM",
+      "timestampRaw": 1784666625599
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "skewer",
+      "amount": 50,
+      "timestamp": "4:43:42 PM",
+      "timestampRaw": 1784666622596
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "skewer",
+      "amount": 500,
+      "timestamp": "4:43:38 PM",
+      "timestampRaw": 1784666618594
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "salad",
+      "amount": 250,
+      "timestamp": "4:43:37 PM",
+      "timestampRaw": 1784666617596
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "tomato",
+      "amount": 500,
+      "timestamp": "4:43:13 PM",
+      "timestampRaw": 1784666593566
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
+      "amount": 250,
+      "timestamp": "4:42:58 PM",
+      "timestampRaw": 1784666578536
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "carrot",
+      "amount": 1000,
+      "timestamp": "4:42:58 PM",
+      "timestampRaw": 1784666578536
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 1000,
+      "timestamp": "4:42:53 PM",
+      "timestampRaw": 1784666573532
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "pizza",
+      "amount": 500,
+      "timestamp": "4:42:53 PM",
+      "timestampRaw": 1784666573531
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "carrot",
+      "amount": 100,
+      "timestamp": "4:42:50 PM",
+      "timestampRaw": 1784666570528
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "ham",
+      "amount": 250,
+      "timestamp": "4:42:32 PM",
+      "timestampRaw": 1784666552503
+    },
+    {
+      "username": "Guest_3300",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3300",
+      "itemId": "ham",
+      "amount": 250,
+      "timestamp": "4:42:30 PM",
+      "timestampRaw": 1784666550501
+    },
+    {
+      "username": "Guest_3779",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Guest_3779",
+      "itemId": "steak",
+      "amount": 10,
+      "timestamp": "4:42:30 PM",
+      "timestampRaw": 1784666550501
     }
   ],
   "dailyWins": {
     "ham": 100,
-    "cabbage": 239,
-    "skewer": 222,
+    "cabbage": 401,
+    "skewer": 300,
     "steak": 50,
-    "tomato": 236,
+    "tomato": 396,
     "salad": 6,
     "pizza": 3,
-    "hotdog": 222,
-    "carrot": 247,
-    "corn": 239
+    "hotdog": 375,
+    "carrot": 405,
+    "corn": 401
   },
   "lastResetDate": "Tue Jul 21 2026",
-  "jackpotPool": 222575,
+  "jackpotPool": 292805,
   "jackpotTimer": 1800,
   "jackpotWinners": []
 }

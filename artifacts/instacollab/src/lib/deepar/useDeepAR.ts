@@ -28,6 +28,8 @@ export function useDeepAR({
   mirror = true,
 }: UseDeepAROptions) {
   const instanceRef = useRef<DeepAR | null>(null);
+  const initialEffectIdRef = useRef(initialEffectId);
+  initialEffectIdRef.current = initialEffectId;
   const [ready, setReady] = useState(false);
   const [loading, setLoading] = useState(false);
   const [loadProgress, setLoadProgress] = useState(0);
@@ -35,6 +37,7 @@ export function useDeepAR({
   const [permissionDenied, setPermissionDenied] = useState(false);
   const [activeEffectId, setActiveEffectId] = useState(initialEffectId);
 
+  // Init once per enabled session — NEVER depend on initialEffectId (that destroyed GPU every tap).
   useEffect(() => {
     if (!enabled || !isDeepARConfigured()) {
       setReady(false);
@@ -55,8 +58,9 @@ export function useDeepAR({
 
       try {
         const useExternalVideo = Boolean(videoElementRef);
+        const bootEffectId = initialEffectIdRef.current;
         const initialEffect =
-          initialEffectId !== 'none' ? getDeepAREffectUrl(initialEffectId) ?? undefined : undefined;
+          bootEffectId !== 'none' ? getDeepAREffectUrl(bootEffectId) ?? undefined : undefined;
 
         const deepAR = await initializeDeepAR({
           licenseKey: getDeepARLicenseKey(),
@@ -97,7 +101,7 @@ export function useDeepAR({
         }
 
         if (!cancelled) {
-          setActiveEffectId(initialEffectId);
+          setActiveEffectId(bootEffectId);
           setReady(true);
           setError(null);
         }
@@ -133,19 +137,40 @@ export function useDeepAR({
       setReady(false);
       setLoading(false);
     };
-  }, [enabled, previewRef, videoElementRef, initialEffectId, mirror]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- initialEffectId applied via switchEffect
+  }, [enabled, previewRef, videoElementRef, mirror]);
 
   const switchEffect = useCallback(async (effectId: string) => {
     const inst = instanceRef.current;
-    if (!inst) return;
+    if (!inst) {
+      setActiveEffectId(effectId);
+      return;
+    }
     setActiveEffectId(effectId);
     if (effectId === 'none') {
-      inst.clearEffect();
+      try {
+        inst.clearEffect();
+      } catch {
+        /* ignore */
+      }
       return;
     }
     const url = getDeepAREffectUrl(effectId);
-    if (url) await inst.switchEffect(url);
+    if (url) {
+      try {
+        await inst.switchEffect(url);
+      } catch {
+        /* ignore */
+      }
+    }
   }, []);
+
+  // Apply effect changes without tearing down the SDK.
+  useEffect(() => {
+    if (!ready || !enabled) return;
+    if (activeEffectId === initialEffectId) return;
+    void switchEffect(initialEffectId);
+  }, [ready, enabled, initialEffectId, activeEffectId, switchEffect]);
 
   const takeScreenshot = useCallback(async (): Promise<string | null> => {
     try {

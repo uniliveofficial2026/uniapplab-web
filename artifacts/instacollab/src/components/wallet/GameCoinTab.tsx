@@ -58,7 +58,7 @@ export function GameCoinTab() {
     { 
       id: 'slot_game', 
       name: 'Slot Game Spins', 
-      image: 'https://images.unsplash.com/photo-1596838132711-e8623193e472?auto=format&fit=crop&q=80&w=200',
+      image: 'https://images.unsplash.com/photo-1542751371-adc38448a05e?auto=format&fit=crop&q=80&w=200',
       color: '#ec4899',
       packs: [
         { id: 'slot_1', amount: 50, name: '50 Spins', cost: 80 },

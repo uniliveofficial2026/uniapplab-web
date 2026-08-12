@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Award, Zap } from 'lucide-react';
+import { Award } from 'lucide-react';
 import type { CreatorProgress } from '../../lib/creatorXP';
+import { UniLivesLevelBadge } from '../identity/brand/UniLivesLevelBadge';
 
 function useAnimatedCount(target: number, durationMs = 420): number {
   const [display, setDisplay] = useState(target);
@@ -174,8 +175,15 @@ function BadgeContents({
   return (
     <>
       <div className={`flex items-center gap-1 font-bold text-orange-500 shrink-0 ${textClass}`}>
-        <Zap className={`${iconClass} fill-orange-500`} />
-        Lvl {progress.level} {progress.tierLabel}
+        <UniLivesLevelBadge
+          level={progress.level}
+          showLabel={false}
+          iconClassName={`${iconClass} fill-orange-500 text-orange-500`}
+          className="inline-flex shrink-0"
+        />
+        <span className="tabular-nums">
+          Lvl {progress.level} {progress.tierLabel}
+        </span>
       </div>
       <div className={`w-px bg-border shrink-0 ${dividerClass}`} />
       <div className={`flex items-center gap-1 font-bold text-accent shrink-0 tabular-nums ${textClass}`}>

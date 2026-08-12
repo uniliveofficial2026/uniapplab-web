@@ -45,29 +45,69 @@ export async function upsertFirebaseProfile(row: ProfileRow): Promise<ProfileRow
 
 export async function isFirebasePublicUserIdAvailable(
   publicUserId: string,
-  exceptUserId?: string
+  exceptUserId?: string | string[]
 ): Promise<boolean> {
   const db = getFirebaseFirestore();
   if (!db) return true;
   const normalized = normalizePublicUserId(publicUserId);
-  const q = query(
-    collection(db, 'profiles'),
-    where('public_user_id', '==', normalized),
-    limit(1)
+  const except = new Set(
+    (Array.isArray(exceptUserId) ? exceptUserId : exceptUserId ? [exceptUserId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean),
   );
-  const snap = await getDocs(q);
-  if (snap.empty) return true;
-  const found = snap.docs[0].id;
-  return exceptUserId ? found === exceptUserId : false;
+
+  const ownedByOther = (docId: string | undefined, data?: Record<string, unknown>): boolean => {
+    if (!docId) return false;
+    if (except.size === 0) return true;
+    if (except.has(docId)) return false;
+    const linked =
+      typeof data?.linked_supabase_user_id === 'string'
+        ? data.linked_supabase_user_id.trim()
+        : '';
+    if (linked && except.has(linked)) return false;
+    return true;
+  };
+
+  const byPublic = await getDocs(
+    query(collection(db, 'profiles'), where('public_user_id', '==', normalized), limit(1)),
+  );
+  if (!byPublic.empty) {
+    const snap = byPublic.docs[0];
+    if (ownedByOther(snap?.id, snap?.data() as Record<string, unknown>)) return false;
+  }
+
+  const byUsername = await getDocs(
+    query(collection(db, 'profiles'), where('username', '==', normalized), limit(1)),
+  );
+  if (!byUsername.empty) {
+    const snap = byUsername.docs[0];
+    if (ownedByOther(snap?.id, snap?.data() as Record<string, unknown>)) return false;
+  }
+
+  // Legacy `users` collection also carried public handles.
+  const byLegacyPublic = await getDocs(
+    query(collection(db, 'users'), where('public_user_id', '==', normalized), limit(1)),
+  ).catch(() => null);
+  if (byLegacyPublic && !byLegacyPublic.empty) {
+    const snap = byLegacyPublic.docs[0];
+    if (ownedByOther(snap?.id, snap?.data() as Record<string, unknown>)) return false;
+  }
+
+  return true;
 }
 
 export async function isFirebaseUsernameAvailable(
   username: string,
-  exceptUserId?: string
+  exceptUserId?: string | string[]
 ): Promise<boolean> {
   const db = getFirebaseFirestore();
   if (!db) return true;
   const normalized = username.trim().toLowerCase();
+  const except = new Set(
+    (Array.isArray(exceptUserId) ? exceptUserId : exceptUserId ? [exceptUserId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
   const q = query(
     collection(db, 'profiles'),
     where('username', '==', normalized),
@@ -76,7 +116,14 @@ export async function isFirebaseUsernameAvailable(
   const snap = await getDocs(q);
   if (snap.empty) return true;
   const found = snap.docs[0].id;
-  return exceptUserId ? found === exceptUserId : false;
+  const data = snap.docs[0].data() as Record<string, unknown>;
+  if (except.size === 0) return false;
+  if (except.has(found)) return true;
+  const linked =
+    typeof data.linked_supabase_user_id === 'string'
+      ? data.linked_supabase_user_id.trim()
+      : '';
+  return Boolean(linked && except.has(linked));
 }
 
 export async function fetchFirebaseProfilesByIds(userIds: string[]): Promise<ProfileRow[]> {

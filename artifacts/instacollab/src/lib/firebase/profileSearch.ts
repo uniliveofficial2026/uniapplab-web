@@ -13,6 +13,7 @@ import {
 } from '../publicUserId';
 import type { ProfileRow } from '../supabase/types';
 import { getFirebaseFirestore } from './app';
+import { normalizeSearchTerm } from '../searchNormalize';
 
 const DEFAULT_AVATAR =
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop';
@@ -41,8 +42,8 @@ function matchesTerm(row: ProfileRow, term: string): boolean {
     row.public_user_id,
   ]
     .filter(Boolean)
-    .join(' ')
-    .toLowerCase();
+    .map((part) => String(part).toLowerCase().replace(/^@+/, ''))
+    .join(' ');
   return haystack.includes(term);
 }
 
@@ -52,7 +53,7 @@ export async function searchFirebaseProfiles(
   limitCount = SEARCH_LIMIT,
 ): Promise<User[]> {
   const db = getFirebaseFirestore();
-  const term = queryText.trim().toLowerCase();
+  const term = normalizeSearchTerm(queryText);
   if (!db || term.length < 1) return [];
 
   const end = term + '\uf8ff';

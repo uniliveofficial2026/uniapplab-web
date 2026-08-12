@@ -12,7 +12,6 @@ import {
 } from '../../lib/auth/cloudAuthApi';
 import { authSendEmailOtp, authVerifyEmailOtp } from '../../lib/auth/authService';
 import { EmailOtpPanel } from '../auth/EmailOtpPanel';
-import { GoogleAuthButton } from './GoogleAuthButton';
 import { isCloudUsernameAvailable } from '../../lib/auth/cloudProfile';
 import { syncCloudSessionNow } from '../../lib/auth/syncSession';
 import { isSupabaseConfigured } from '../../lib/supabase/config';
@@ -26,19 +25,26 @@ import { scheduleLiveSessionSync } from '../../lib/liveSessionSync';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import {
   LEGAL_AGE_REQUIREMENT_YEARS,
-  openPrivacyPolicy,
-  openTermsOfService,
+  writeLegalAcceptanceToStorage,
 } from '../../lib/legalDocs';
 import {
-  LaunchBrandMark,
-  LaunchField,
-  LaunchPrimaryButton,
-  LaunchShell,
-  LaunchTextButton,
-  launchInputClass,
-} from './launchUi';
+  UniLivesInAppLegalScreen,
+  UniLivesLegalNavigation,
+  type InAppLegalDoc,
+} from '../legal/brand';
+import {
+  UniLivesAuthStatus,
+  UniLivesPrincessAuthActions,
+  UniLivesPrincessAuthLayout,
+  UniLivesPrincessAuthPanel,
+  UniLivesPrincessForgotForm,
+  UniLivesPrincessForgotLayout,
+  authModeFromLaunchMode,
+} from '../auth/brand';
+import { markAuthGateThisSession } from '../../lib/splashSession';
 
 type AuthMode = 'login' | 'signup' | 'forgot' | 'reset';
+type AuthGate = 'welcome' | 'email';
 
 export function AuthScreen() {
   const db = useDB();
@@ -46,6 +52,37 @@ export function AuthScreen() {
   const { recoveryMode, clearRecoveryMode } = useSupabaseAuth();
   const useCloudAuth = isCloudAuthConfigured();
   const [mode, setMode] = useState<AuthMode>('login');
+  const [gate, setGate] = useState<AuthGate>('welcome');
+  const [legalDoc, setLegalDoc] = useState<InAppLegalDoc | null>(null);
+
+  const passAuthGate = () => markAuthGateThisSession();
+
+  // Already signed in this device: still show auth briefly, then continue the funnel.
+  useEffect(() => {
+    if (!db.isLoggedIn) return;
+    const t = window.setTimeout(() => passAuthGate(), 1200);
+    return () => window.clearTimeout(t);
+  }, [db.isLoggedIn]);
+
+  const [agreed, setAgreed] = useState(() => {
+    try {
+      return sessionStorage.getItem('unilives_auth_agreed') === '1';
+    } catch {
+      return false;
+    }
+  });
+
+  const setAgreedPersist = (next: boolean | ((v: boolean) => boolean)) => {
+    setAgreed((prev) => {
+      const value = typeof next === 'function' ? next(prev) : next;
+      try {
+        sessionStorage.setItem('unilives_auth_agreed', value ? '1' : '0');
+      } catch {
+        /* ignore */
+      }
+      return value;
+    });
+  };
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [displayName, setDisplayName] = useState('');
@@ -63,9 +100,38 @@ export function AuthScreen() {
   useEffect(() => {
     if (recoveryMode) {
       setMode('reset');
+      setGate('email');
       clearRecoveryMode();
     }
   }, [recoveryMode, clearRecoveryMode]);
+
+  const openEmailGate = (next: AuthMode, authMode: 'signin' | 'signup' = 'signin') => {
+    // Sign in / sign up require Terms checkbox; forgot password does not.
+    if ((next === 'login' || next === 'signup') && !agreed) {
+      showToast('Please agree to the Terms and Privacy Policy first.');
+      setGate('welcome');
+      setMode('login');
+      return;
+    }
+    setMode(next);
+    setEmailAuthMode(authMode);
+    setGate('email');
+  };
+
+  const requireLegalAgree = (actionLabel = 'continue'): boolean => {
+    if (agreed) return true;
+    showToast(`Please agree to the Terms and Privacy Policy first to ${actionLabel}.`);
+    setGate('welcome');
+    setMode('login');
+    return false;
+  };
+
+  const backToWelcome = () => {
+    setMode('login');
+    setEmailAuthMode('signin');
+    setEmailMethod('password');
+    setGate('welcome');
+  };
 
   useEffect(() => {
     if (!useCloudAuth || !isSupabaseConfigured() || !isSupabaseOAuthReturnInUrl()) return;
@@ -85,6 +151,7 @@ export function AuthScreen() {
         return;
       }
       showToast('Signed in!');
+      passAuthGate();
     })();
     return () => {
       cancelled = true;
@@ -109,6 +176,7 @@ export function AuthScreen() {
         return;
       }
       showToast('Signed in!');
+      passAuthGate();
     })();
     return () => {
       cancelled = true;
@@ -128,12 +196,15 @@ export function AuthScreen() {
         db.advanceLaunchProgressAfterLogin(false);
       }
       showToast('Account created — finish your profile');
+      passAuthGate();
       return;
     }
     showToast('Welcome back!');
+    passAuthGate();
   };
 
   const onLogin = async (loginEmail = email, loginPassword = password) => {
+    if (!requireLegalAgree('sign in')) return;
     setBusy(true);
     try {
       const normalizedEmail = loginEmail.trim().toLowerCase();
@@ -149,6 +220,7 @@ export function AuthScreen() {
           const demoLocal = loginDemoAccountLocal(normalizedEmail, loginPassword);
           if (demoLocal.ok) {
             showToast('Welcome back! (demo account)');
+            passAuthGate();
             void signInDemoWithCloudSync(normalizedEmail, loginPassword).then((cloud) => {
               if (cloud.ok) showToast('Demo synced to cloud');
             });
@@ -161,6 +233,7 @@ export function AuthScreen() {
         const demoCloud = await signInDemoWithCloudSync(normalizedEmail, loginPassword);
         if (demoCloud.ok) {
           showToast('Welcome back! (demo — synced to cloud)');
+          passAuthGate();
           return;
         }
         showToast(demoCloud.reason);
@@ -171,6 +244,7 @@ export function AuthScreen() {
         const demoLogin = tryLocalDemoLogin(normalizedEmail, loginPassword);
         if (demoLogin?.ok) {
           showToast('Welcome back! (demo account — offline dev only)');
+          passAuthGate();
           return;
         }
         if (demoLogin && !demoLogin.ok) {
@@ -193,6 +267,7 @@ export function AuthScreen() {
           return;
         }
         showToast('Welcome back!');
+        passAuthGate();
         return;
       }
       const result = db.signInWithCredentials(loginEmail, loginPassword);
@@ -202,6 +277,7 @@ export function AuthScreen() {
       }
       scheduleLiveSessionSync(result.userId);
       showToast('Welcome back!');
+      passAuthGate();
     } finally {
       setBusy(false);
     }
@@ -216,6 +292,7 @@ export function AuthScreen() {
   };
 
   const onSignup = async () => {
+    if (!requireLegalAgree('sign up')) return;
     setBusy(true);
     try {
       if (useCloudAuth) {
@@ -258,6 +335,7 @@ export function AuthScreen() {
           db.advanceLaunchProgressAfterLogin(false);
         }
         showToast('Account created — finish your profile');
+        passAuthGate();
         return;
       }
       const result = db.signUpWithCredentials({ email, password, username, displayName });
@@ -270,6 +348,7 @@ export function AuthScreen() {
       scheduleLiveSessionSync(result.userId);
       db.advanceLaunchProgressAfterLogin(false);
       showToast('Account created — finish your profile');
+      passAuthGate();
     } finally {
       setBusy(false);
     }
@@ -286,6 +365,7 @@ export function AuthScreen() {
       }
       showToast('Password reset link sent — check your email');
       setMode('login');
+      setGate('welcome');
       return;
     }
     const result = db.requestPasswordReset(email);
@@ -299,6 +379,7 @@ export function AuthScreen() {
   };
 
   const onOAuth = async () => {
+    if (!requireLegalAgree('continue with Google')) return;
     setBusy(true);
     try {
       const result = await cloudSignInWithGoogle();
@@ -318,6 +399,7 @@ export function AuthScreen() {
         return;
       }
       showToast('Signed in!');
+      passAuthGate();
     } finally {
       setBusy(false);
     }
@@ -379,336 +461,415 @@ export function AuthScreen() {
             ? 'Choose a new password for your account.'
             : 'Enter demo code 123456 and a new password.';
 
-  return (
-    <LaunchShell className="h-dvh max-h-dvh overflow-hidden p-0">
-      <div
-        className="h-full min-h-0 w-full overflow-y-auto overscroll-contain [-webkit-overflow-scrolling:touch]"
-        data-auth-scroll=""
-      >
-        <div className="mx-auto w-full max-w-[420px] px-4 py-8 sm:px-6 sm:py-10 pb-[max(3rem,calc(var(--app-safe-bottom)+1.5rem))]">
-          <div className="flex w-full flex-col items-center gap-8">
-          <header className="flex w-full flex-col items-center gap-5 text-center">
-            <LaunchBrandMark size="xl" allowUpload={false} showUploadHint={false} />
-            <div className="flex flex-col items-center gap-2">
-              <p className="text-lg font-black tracking-tight">{APP_DISPLAY_NAME}</p>
-              <h1 className="text-2xl font-black tracking-tight">{title}</h1>
-              {subtitle ? (
-                <p className="text-sm text-muted-foreground leading-relaxed max-w-[320px]">
-                  {subtitle}
-                </p>
-              ) : null}
-              {!useCloudAuth && import.meta.env.DEV ? (
-                <span className="text-[10px] font-bold uppercase tracking-wider text-amber-600 dark:text-amber-400 pt-1 max-w-[320px]">
-                  Local demo only — copy .env.example → .env and restart dev server for Google sign-in
-                </span>
-              ) : null}
+  const authInputClass = 'upa-input';
+  const visualMode = authModeFromLaunchMode(
+    mode,
+    useCloudAuth && (mode === 'login' || mode === 'signup') ? emailMethod : 'password',
+  );
+
+  const showWelcome = gate === 'welcome' && mode === 'login';
+  const showForgot = mode === 'forgot';
+  const isEmailSignup = mode === 'signup';
+
+  const backFromForgot = () => {
+    setMode('login');
+    setEmailAuthMode('signin');
+    setGate('welcome');
+  };
+
+  const PrincessField = ({
+    label,
+    children,
+  }: {
+    label: string;
+    children: React.ReactNode;
+  }) => (
+    <label className="upa-field">
+      <span className="upa-field-label">{label}</span>
+      {children}
+    </label>
+  );
+
+  const formBody = (
+    <>
+      {/* Email signup sheet: match princess auth look — Google stays on welcome art */}
+      {useCloudAuth && (mode === 'login' || mode === 'signup') ? (
+        <div className="flex flex-col gap-3 w-full">
+          {!isEmailSignup ? (
+            <div className="upa-seg">
+              <button
+                type="button"
+                className="upa-seg-btn"
+                data-active={emailAuthMode === 'signin' ? 'true' : 'false'}
+                onClick={() => {
+                  setEmailAuthMode('signin');
+                  setMode('login');
+                }}
+              >
+                Sign in
+              </button>
+              <button
+                type="button"
+                className="upa-seg-btn"
+                data-active={emailAuthMode === 'signup' ? 'true' : 'false'}
+                onClick={() => {
+                  setEmailAuthMode('signup');
+                  setMode('signup');
+                }}
+              >
+                Create account
+              </button>
             </div>
-          </header>
+          ) : null}
 
-          <div className="w-full flex flex-col gap-5">
-            {useCloudAuth && (mode === 'login' || mode === 'signup') && (
-              <div className="flex flex-col gap-3 w-full">
-                <GoogleAuthButton
-                  disabled={busy}
-                  label={mode === 'signup' ? 'Sign up with Google' : 'Continue with Google'}
-                  onClick={() => void onOAuth()}
-                />
-                <div className="flex items-center gap-3 py-1">
-                  <div className="h-px flex-1 bg-border" />
-                  <span className="text-xs font-medium text-muted-foreground uppercase tracking-wide shrink-0">
-                    or email
-                  </span>
-                  <div className="h-px flex-1 bg-border" />
-                </div>
-              </div>
-            )}
+          <div className="upa-seg" role="tablist" aria-label="Sign up method">
+            <button
+              type="button"
+              className="upa-seg-btn"
+              data-active={emailMethod === 'password' ? 'true' : 'false'}
+              onClick={() => setEmailMethod('password')}
+            >
+              Password
+            </button>
+            <button
+              type="button"
+              className="upa-seg-btn"
+              data-active={emailMethod === 'otp' ? 'true' : 'false'}
+              onClick={() => setEmailMethod('otp')}
+            >
+              Email code
+            </button>
+          </div>
 
-            {useCloudAuth && (mode === 'login' || mode === 'signup') ? (
-              <div className="flex flex-col gap-3 w-full">
-                <div className="flex gap-2 p-1 rounded-xl bg-secondary/30 border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setEmailAuthMode('signin')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
-                      emailAuthMode === 'signin'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Sign in
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEmailAuthMode('signup')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
-                      emailAuthMode === 'signup'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Create account
-                  </button>
-                </div>
-
-                <div className="flex gap-2 p-1 rounded-xl bg-secondary/30 border border-border">
-                  <button
-                    type="button"
-                    onClick={() => setEmailMethod('password')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
-                      emailMethod === 'password'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Password
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => setEmailMethod('otp')}
-                    className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
-                      emailMethod === 'otp'
-                        ? 'bg-primary text-primary-foreground'
-                        : 'text-muted-foreground hover:text-foreground'
-                    }`}
-                  >
-                    Email code
-                  </button>
-                </div>
-
-                {emailMethod === 'password' ? (
-                  <form
-                    className="flex flex-col gap-4 w-full"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (emailAuthMode === 'signin') void onLogin();
-                      else void onSignup();
-                    }}
-                  >
-                    {emailAuthMode === 'signup' && (
-                      <>
-                        <LaunchField label="Display name">
-                          <input
-                            className={launchInputClass}
-                            value={displayName}
-                            onChange={(e) => setDisplayName(e.target.value)}
-                            placeholder="Your name"
-                            required
-                          />
-                        </LaunchField>
-                        <LaunchField label="Username">
-                          <input
-                            className={launchInputClass}
-                            value={username}
-                            onChange={(e) => setUsername(e.target.value)}
-                            placeholder="creative_you"
-                            required
-                            minLength={3}
-                          />
-                        </LaunchField>
-                      </>
-                    )}
-                    <LaunchField label="Email">
-                      <input
-                        className={launchInputClass}
-                        type="email"
-                        autoComplete="email"
-                        value={email}
-                        onChange={(e) => setEmail(e.target.value)}
-                        placeholder="you@example.com"
-                        required
-                      />
-                    </LaunchField>
-                    <LaunchField label="Password">
-                      <input
-                        className={launchInputClass}
-                        type="password"
-                        autoComplete={emailAuthMode === 'signin' ? 'current-password' : 'new-password'}
-                        value={password}
-                        onChange={(e) => setPassword(e.target.value)}
-                        placeholder="••••••••"
-                        required
-                        minLength={6}
-                      />
-                    </LaunchField>
-                    <LaunchPrimaryButton type="submit" disabled={busy}>
-                      {emailAuthMode === 'signin' ? 'Log in' : 'Sign up'}
-                    </LaunchPrimaryButton>
-                  </form>
-                ) : (
-                  <EmailOtpPanel
-                    mode={emailAuthMode}
-                    onModeChange={setEmailAuthMode}
-                    busy={busy}
-                    showModeToggle={false}
-                    showSignupFields={emailAuthMode === 'signup'}
-                    initialEmail={email}
-                    inputClass={launchInputClass}
-                    onSendOtp={async (targetEmail, otpMode, profile) => {
-                      setEmail(targetEmail);
-                      if (otpMode === 'signup' && profile?.username) {
-                        const available = await isCloudUsernameAvailable(profile.username);
-                        if (!available) return { ok: false, reason: 'Username is taken' };
-                      }
-                      clearSupabaseUnhealthy();
-                      return authSendEmailOtp(targetEmail, {
-                        shouldCreateUser: otpMode === 'signup',
-                        displayName: profile?.displayName,
-                        username: profile?.username,
-                      });
-                    }}
-                    onVerifyOtp={async (targetEmail, code) => {
-                      setBusy(true);
-                      try {
-                        return await authVerifyEmailOtp(targetEmail, code);
-                      } finally {
-                        setBusy(false);
-                      }
-                    }}
-                    onVerified={() => void onEmailOtpVerified()}
-                  />
-                )}
-              </div>
-            ) : (
+          {emailMethod === 'password' ? (
             <form
-              className="flex flex-col gap-4 w-full"
+              className="flex flex-col gap-3 w-full"
               onSubmit={(e) => {
                 e.preventDefault();
-                if (mode === 'login') void onLogin();
-                else if (mode === 'signup') void onSignup();
-                else if (mode === 'forgot') void onForgot();
-                else void onReset();
+                if (!agreed) {
+                  showToast('Please agree to the Terms and Privacy Policy first.');
+                  return;
+                }
+                if (emailAuthMode === 'signin') void onLogin();
+                else void onSignup();
               }}
             >
-              {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
-                <LaunchField label="Email">
-                  <input
-                    className={launchInputClass}
-                    type="email"
-                    autoComplete="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="you@example.com"
-                    required
-                  />
-                </LaunchField>
-              )}
-
-              {(mode === 'login' || mode === 'signup') && (
-                <LaunchField label="Password">
-                  <input
-                    className={launchInputClass}
-                    type="password"
-                    autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                </LaunchField>
-              )}
-
-              {mode === 'signup' && (
-                <>
-                  <LaunchField label="Display name">
+              {emailAuthMode === 'signup' && (
+                <div className="upa-row">
+                  <PrincessField label="Display name">
                     <input
-                      className={launchInputClass}
+                      className={authInputClass}
                       value={displayName}
                       onChange={(e) => setDisplayName(e.target.value)}
-                      placeholder="Your name"
+                      placeholder="Display name"
                       required
                     />
-                  </LaunchField>
-                  <LaunchField label="Username">
+                  </PrincessField>
+                  <PrincessField label="Username">
                     <input
-                      className={launchInputClass}
+                      className={authInputClass}
                       value={username}
                       onChange={(e) => setUsername(e.target.value)}
-                      placeholder="creative_you"
+                      placeholder="Username"
                       required
                       minLength={3}
                     />
-                  </LaunchField>
-                </>
-              )}
-
-              {mode === 'reset' && (
-                <LaunchField label="New password">
-                  <input
-                    className={launchInputClass}
-                    type="password"
-                    autoComplete="new-password"
-                    value={newPassword}
-                    onChange={(e) => setNewPassword(e.target.value)}
-                    placeholder="••••••••"
-                    required
-                    minLength={6}
-                  />
-                </LaunchField>
-              )}
-
-              <LaunchPrimaryButton type="submit" disabled={busy}>
-              {mode === 'login'
-                ? 'Log in'
-                : mode === 'signup'
-                  ? 'Sign up'
-                  : mode === 'forgot'
-                    ? 'Send reset link'
-                    : 'Update password'}
-            </LaunchPrimaryButton>
-            </form>
-            )}
-
-            <footer className="flex flex-col items-center gap-2.5 text-sm text-center pt-1">
-              {import.meta.env.DEV && mode === 'login' && (
-                <LaunchTextButton disabled={busy} onClick={() => onDemoLogin()}>
-                  Try demo ({DEMO_EMAIL} / {DEMO_PASSWORD})
-                </LaunchTextButton>
-              )}
-              {mode === 'login' && (
-                <LaunchTextButton onClick={() => setMode('forgot')}>
-                  Forgot password?
-                </LaunchTextButton>
-              )}
-              {mode === 'signup' && (
-                <span className="text-muted-foreground">
-                  Already have an account?{' '}
-                  <LaunchTextButton onClick={() => setMode('login')}>Log in</LaunchTextButton>
-                </span>
-              )}
-              {(mode === 'forgot' || mode === 'reset') && (
-                <LaunchTextButton onClick={() => setMode('login')}>Back to log in</LaunchTextButton>
-              )}
-              <div className="w-full pt-2 mt-1 border-t border-border/60 space-y-1.5">
-                <p className="text-[11px] text-muted-foreground leading-relaxed max-w-[320px] mx-auto">
-                  {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. We do not sell or share
-                  your personal data for advertising. Read our policies before you sign in or create an account.
-                </p>
-                <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-semibold">
-                  <button
-                    type="button"
-                    onClick={openPrivacyPolicy}
-                    className="text-primary hover:underline underline-offset-2"
-                  >
-                    Privacy Policy
-                  </button>
-                  <span className="text-muted-foreground/50" aria-hidden>
-                    ·
-                  </span>
-                  <button
-                    type="button"
-                    onClick={openTermsOfService}
-                    className="text-primary hover:underline underline-offset-2"
-                  >
-                    Terms of Service
-                  </button>
+                  </PrincessField>
                 </div>
-              </div>
-            </footer>
-          </div>
+              )}
+              <PrincessField label="Email">
+                <input
+                  className={authInputClass}
+                  type="email"
+                  autoComplete="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="Email"
+                  required
+                />
+              </PrincessField>
+              <PrincessField label="Password">
+                <input
+                  className={authInputClass}
+                  type="password"
+                  autoComplete={emailAuthMode === 'signin' ? 'current-password' : 'new-password'}
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  placeholder="Password"
+                  required
+                  minLength={6}
+                />
+              </PrincessField>
+              <button type="submit" className="upa-cta" disabled={busy || !agreed}>
+                {emailAuthMode === 'signin' ? 'Log in' : 'Sign up'}
+              </button>
+            </form>
+          ) : (
+            <EmailOtpPanel
+              mode={emailAuthMode}
+              tone="princess"
+              onModeChange={(m) => {
+                setEmailAuthMode(m);
+                setMode(m === 'signup' ? 'signup' : 'login');
+              }}
+              busy={busy}
+              showModeToggle={false}
+              showSignupFields={emailAuthMode === 'signup'}
+              initialEmail={email}
+              inputClass={authInputClass}
+              onSendOtp={async (targetEmail, otpMode, profile) => {
+                if (!agreed) return { ok: false, reason: 'Please agree to the Terms and Privacy Policy first.' };
+                setEmail(targetEmail);
+                if (otpMode === 'signup' && profile?.username) {
+                  const available = await isCloudUsernameAvailable(profile.username);
+                  if (!available) return { ok: false, reason: 'Username is taken' };
+                }
+                clearSupabaseUnhealthy();
+                return authSendEmailOtp(targetEmail, {
+                  shouldCreateUser: otpMode === 'signup',
+                  displayName: profile?.displayName,
+                  username: profile?.username,
+                });
+              }}
+              onVerifyOtp={async (targetEmail, code) => {
+                setBusy(true);
+                try {
+                  return await authVerifyEmailOtp(targetEmail, code);
+                } finally {
+                  setBusy(false);
+                }
+              }}
+              onVerified={() => void onEmailOtpVerified()}
+            />
+          )}
+        </div>
+      ) : (
+        <form
+          className="flex flex-col gap-3 w-full"
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (mode === 'login') {
+              if (!agreed) {
+                showToast('Please agree to the Terms and Privacy Policy first.');
+                return;
+              }
+              void onLogin();
+            } else if (mode === 'signup') {
+              if (!agreed) {
+                showToast('Please agree to the Terms and Privacy Policy first.');
+                return;
+              }
+              void onSignup();
+            } else if (mode === 'forgot') void onForgot();
+            else void onReset();
+          }}
+        >
+          {(mode === 'login' || mode === 'signup' || mode === 'forgot') && (
+            <PrincessField label="Email">
+              <input
+                className={authInputClass}
+                type="email"
+                autoComplete="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+                placeholder="you@example.com"
+                required
+              />
+            </PrincessField>
+          )}
+
+          {(mode === 'login' || mode === 'signup') && (
+            <PrincessField label="Password">
+              <input
+                className={authInputClass}
+                type="password"
+                autoComplete={mode === 'login' ? 'current-password' : 'new-password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+            </PrincessField>
+          )}
+
+          {mode === 'signup' && (
+            <>
+              <PrincessField label="Display name">
+                <input
+                  className={authInputClass}
+                  value={displayName}
+                  onChange={(e) => setDisplayName(e.target.value)}
+                  placeholder="Your name"
+                  required
+                />
+              </PrincessField>
+              <PrincessField label="Username">
+                <input
+                  className={authInputClass}
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  placeholder="creative_you"
+                  required
+                  minLength={3}
+                />
+              </PrincessField>
+            </>
+          )}
+
+          {mode === 'reset' && (
+            <PrincessField label="New password">
+              <input
+                className={authInputClass}
+                type="password"
+                autoComplete="new-password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="••••••••"
+                required
+                minLength={6}
+              />
+            </PrincessField>
+          )}
+
+          <button type="submit" className="upa-cta" disabled={busy || ((mode === 'login' || mode === 'signup') && !agreed)}>
+            {mode === 'login'
+              ? 'Log in'
+              : mode === 'signup'
+                ? 'Sign up'
+                : mode === 'forgot'
+                  ? 'Send reset link'
+                  : 'Update password'}
+          </button>
+        </form>
+      )}
+
+      <footer className="upa-foot">
+        {import.meta.env.DEV && mode === 'login' && (
+          <button type="button" className="upa-link" disabled={busy} onClick={() => onDemoLogin()}>
+            Try demo ({DEMO_EMAIL} / {DEMO_PASSWORD})
+          </button>
+        )}
+        {mode === 'login' && (
+          <button type="button" className="upa-link" onClick={() => openEmailGate('forgot')}>
+            Forgot password?
+          </button>
+        )}
+        {mode === 'signup' && (
+          <span>
+            Already have an account?{' '}
+            <button
+              type="button"
+              className="upa-link"
+              onClick={() => {
+                setMode('login');
+                setEmailAuthMode('signin');
+              }}
+            >
+              Log in
+            </button>
+          </span>
+        )}
+        {(mode === 'forgot' || mode === 'reset') && (
+          <button
+            type="button"
+            className="upa-link"
+            onClick={() => {
+              setMode('login');
+              setEmailAuthMode('signin');
+            }}
+          >
+            Back to log in
+          </button>
+        )}
+        {!useCloudAuth && import.meta.env.DEV ? (
+          <UniLivesAuthStatus tone="warning">
+            Local demo only — copy .env.example → .env and restart dev server for Google sign-in
+          </UniLivesAuthStatus>
+        ) : null}
+        <div className="upa-legal">
+          {!isEmailSignup ? (
+            <p>
+              {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. We do not sell or share
+              your personal data for advertising. Read our policies before you sign in or create an account.
+            </p>
+          ) : null}
+          <div className="flex flex-wrap items-center justify-center gap-x-3 gap-y-1 text-xs font-semibold">
+            <UniLivesLegalNavigation
+              className="justify-center"
+              items={[
+                { label: 'Privacy Policy', onClick: () => setLegalDoc('privacy'), kind: 'privacy' },
+                { label: 'Terms of Service', onClick: () => setLegalDoc('terms'), kind: 'terms' },
+              ]}
+            />
           </div>
         </div>
-      </div>
-    </LaunchShell>
+      </footer>
+    </>
+  );
+
+  return (
+    <>
+      {showForgot ? (
+        <UniLivesPrincessForgotLayout data-unilives-auth-mode={visualMode}>
+          <UniLivesPrincessForgotForm
+            email={email}
+            busy={busy}
+            onEmailChange={setEmail}
+            onSubmit={() => void onForgot()}
+            onBackToSignIn={backFromForgot}
+          />
+        </UniLivesPrincessForgotLayout>
+      ) : (
+        <UniLivesPrincessAuthLayout
+          data-unilives-auth-mode={visualMode}
+          showPanel={!showWelcome}
+          panel={
+            !showWelcome ? (
+              <UniLivesPrincessAuthPanel
+                title={title}
+                subtitle={isEmailSignup ? undefined : subtitle || undefined}
+                mode={mode}
+                onBackToWelcome={backToWelcome}
+                backLabel="Back to welcome"
+              >
+                {formBody}
+              </UniLivesPrincessAuthPanel>
+            ) : null
+          }
+        >
+          {showWelcome ? (
+            <UniLivesPrincessAuthActions
+              agreed={agreed}
+              busy={busy}
+              onToggleAgree={() => setAgreedPersist((v) => !v)}
+              onNeedAgree={() => showToast('Please agree to the Terms and Privacy Policy first.')}
+              onGoogle={() => {
+                if (!useCloudAuth) {
+                  showToast('Google sign-in is not configured on this build.');
+                  return;
+                }
+                void (async () => {
+                  await onOAuth();
+                  const uid = db.currentUserId;
+                  if (uid) writeLegalAcceptanceToStorage(uid);
+                })();
+              }}
+              onEmailSignup={() => openEmailGate('signup', 'signup')}
+              onForgotPassword={() => openEmailGate('forgot')}
+              onOpenTerms={() => setLegalDoc('terms')}
+              onOpenPrivacy={() => setLegalDoc('privacy')}
+            />
+          ) : null}
+        </UniLivesPrincessAuthLayout>
+      )}
+      {legalDoc ? (
+        <UniLivesInAppLegalScreen
+          kind={legalDoc}
+          onBack={() => setLegalDoc(null)}
+          backLabel="Back to welcome"
+        />
+      ) : null}
+    </>
   );
 }

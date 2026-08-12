@@ -156,11 +156,29 @@ export async function ensureProfileFromSession(
     existing?.display_name ||
     displayNameFromMeta(meta) ||
     username;
-  const publicUserId =
-    overrides?.publicUserId ||
+  const setupComplete = existing?.profile_setup_complete ?? false;
+  // Stub only before setup: never invent a final public User ID here.
+  // Keep an existing claim; otherwise prefer an explicit override; else leave null
+  // (DB trigger may seed from username — user still confirms via commitUserProfile).
+  let resolvedPublicUserId =
     existing?.public_user_id ||
-    normalizePublicUserId(username);
+    overrides?.publicUserId ||
+    (setupComplete ? normalizePublicUserId(username) : null);
   const now = new Date().toISOString();
+
+  if (resolvedPublicUserId && !existing?.public_user_id && setupComplete) {
+    try {
+      const available = await isPublicUserIdAvailable(resolvedPublicUserId, session.user.id);
+      if (!available) {
+        const suffix = session.user.id.replace(/-/g, '').slice(0, 6);
+        resolvedPublicUserId = normalizePublicUserId(
+          `${resolvedPublicUserId.slice(0, 17)}_${suffix}`,
+        );
+      }
+    } catch {
+      /* keep proposed id; unique index will reject collisions */
+    }
+  }
 
   const row: ProfileRow = {
     id: session.user.id,
@@ -169,9 +187,11 @@ export async function ensureProfileFromSession(
     avatar_url:
       existing?.avatar_url ?? metaString(meta, 'avatar_url', 'picture') ?? null,
     bio: existing?.bio ?? '',
-    profile_setup_complete: existing?.profile_setup_complete ?? false,
-    public_user_id: publicUserId,
-    public_user_id_changed_at: existing?.public_user_id_changed_at ?? now,
+    profile_setup_complete: setupComplete,
+    public_user_id: resolvedPublicUserId,
+    public_user_id_changed_at:
+      existing?.public_user_id_changed_at ??
+      (resolvedPublicUserId ? now : null),
   };
 
   if (
@@ -242,25 +262,55 @@ export async function upsertProfile(row: ProfileRow): Promise<ProfileRow> {
 
 export async function isPublicUserIdAvailable(
   publicUserId: string,
-  exceptUserId?: string
+  exceptUserId?: string | string[]
 ): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) return true;
   const normalized = normalizePublicUserId(publicUserId);
-  const { data, error } = await supabase
+  const except = new Set(
+    (Array.isArray(exceptUserId) ? exceptUserId : exceptUserId ? [exceptUserId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
+
+  const ownedByOther = (row: { id: string } | null): boolean => {
+    if (!row?.id) return false;
+    if (except.size === 0) return true;
+    return !except.has(row.id);
+  };
+
+  const { data: byPublicId, error: publicErr } = await supabase
     .from('profiles')
     .select('id')
     .eq('public_user_id', normalized)
     .maybeSingle();
-  if (error) throw error;
-  if (!data) return true;
-  return exceptUserId ? data.id === exceptUserId : false;
+  if (publicErr) throw publicErr;
+  if (ownedByOther(byPublicId)) return false;
+
+  // Usernames also resolve as public IDs when public_user_id is empty — block collisions.
+  const { data: byUsername, error: usernameErr } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('username', normalized)
+    .maybeSingle();
+  if (usernameErr) throw usernameErr;
+  if (ownedByOther(byUsername)) return false;
+
+  return true;
 }
 
-export async function isUsernameAvailable(username: string, exceptUserId?: string): Promise<boolean> {
+export async function isUsernameAvailable(
+  username: string,
+  exceptUserId?: string | string[],
+): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase) return true;
   const normalized = username.trim().toLowerCase();
+  const except = new Set(
+    (Array.isArray(exceptUserId) ? exceptUserId : exceptUserId ? [exceptUserId] : [])
+      .map((id) => id.trim())
+      .filter(Boolean),
+  );
   const { data, error } = await supabase
     .from('profiles')
     .select('id')
@@ -268,7 +318,8 @@ export async function isUsernameAvailable(username: string, exceptUserId?: strin
     .maybeSingle();
   if (error) throw error;
   if (!data) return true;
-  return exceptUserId ? data.id === exceptUserId : false;
+  if (except.size === 0) return false;
+  return except.has(data.id);
 }
 
 function metaString(meta: Record<string, unknown>, ...keys: string[]): string | undefined {

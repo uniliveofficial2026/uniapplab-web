@@ -2,11 +2,10 @@
  * Upload chat attachments (photo/video/audio/file/pdf) to public chat-media storage
  * so peers can load them over the internet.
  */
-import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { isCloudAuthUserId } from '../auth/cloudProfile';
 import { isAppMediaRef, readAppMediaBlob } from '../appMediaStore';
-import { getFirebaseStorage } from '../firebase/app';
 import { isFirebaseConfigured } from '../firebase/config';
+import { uploadBlobToR2 } from '../media/r2Upload';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
 import type { ChatMessage } from '../dbTypes';
@@ -107,21 +106,16 @@ async function uploadFirebaseChatMediaBlob(
   blob: Blob,
   fileName: string,
 ): Promise<string | null> {
-  const storage = getFirebaseStorage();
-  if (!storage || !isFirebaseConfigured() || !isCloudAuthUserId(userId)) return null;
-
+  if (!isFirebaseConfigured() || !isCloudAuthUserId(userId)) return null;
   const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || `file.${guessExt(blob)}`;
-  const path = `${FIREBASE_PREFIX}/${userId}/${messageId}/${Date.now()}_${safeName}`;
-  try {
-    const storageRef = ref(storage, path);
-    await uploadBytes(storageRef, blob, {
-      contentType: blob.type || 'application/octet-stream',
-    });
-    return await getDownloadURL(storageRef);
-  } catch (err) {
-    console.warn('[chat-media] firebase upload failed:', err);
-    return null;
-  }
+  const { uploadChatMediaToFirebase } = await import('../firebase/chatMediaFirebase');
+  return uploadChatMediaToFirebase({
+    userId,
+    messageId,
+    blob,
+    fileName: safeName,
+    prefix: FIREBASE_PREFIX,
+  });
 }
 
 export async function uploadChatMediaBlob(
@@ -130,9 +124,21 @@ export async function uploadChatMediaBlob(
   blob: Blob,
   fileName: string,
 ): Promise<string | null> {
+  const safeName =
+    fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || `file.${guessExt(blob)}`;
+  const r2Url = await uploadBlobToR2({
+    folder: 'chat',
+    blob,
+    fileName: safeName,
+    prefix: messageId,
+  });
+  if (r2Url) return r2Url;
+
   if (isSupabaseConfigured()) {
-    return (await uploadSupabaseChatMediaBlob(userId, messageId, blob, fileName))
-      ?? uploadFirebaseChatMediaBlob(userId, messageId, blob, fileName);
+    return (
+      (await uploadSupabaseChatMediaBlob(userId, messageId, blob, fileName)) ??
+      uploadFirebaseChatMediaBlob(userId, messageId, blob, fileName)
+    );
   }
   return uploadFirebaseChatMediaBlob(userId, messageId, blob, fileName);
 }

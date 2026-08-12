@@ -1,6 +1,6 @@
 import React from 'react';
-import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { AppBrandIcon } from './AppBrandIcon';
+import { UniLivesWordmark } from '../brand/UniLivesWordmark';
 
 interface AppLogoProps {
   className?: string;
@@ -21,11 +21,9 @@ export function AppLogo({
         <AppBrandIcon className={iconClassName || 'w-8 h-8'} imageFit="contain" />
       </div>
       {showText && (
-        <span
+        <UniLivesWordmark
           className={`font-black tracking-tighter vibe-gradient-text logo-font font-serif italic ${textClassName}`}
-        >
-          {APP_DISPLAY_NAME}
-        </span>
+        />
       )}
     </div>
   );

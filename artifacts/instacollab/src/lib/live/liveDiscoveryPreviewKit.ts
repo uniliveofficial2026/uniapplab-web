@@ -7,6 +7,8 @@ import {
   isPlatformApiAvailable,
 } from '../platformApi';
 import { acquireLivePreviewSlot } from './liveDiscoveryVideoPool';
+import { fetchOwnerActivePartyRoom } from '../party/partyRoomsCloud';
+import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
 
 export type LiveDiscoveryConnectTarget = {
   partyRoomId?: string;
@@ -28,13 +30,19 @@ export function pickDiscoveryVideoTrack(
 
   for (const participant of ordered) {
     for (const publication of participant.videoTrackPublications.values()) {
+      if (!publication.isSubscribed) {
+        try {
+          publication.setSubscribed(true);
+        } catch {
+          /* ignore */
+        }
+      }
       const track = publication.track;
-      if (track && track.kind === Track.Kind.Video) {
+      if (track && track.kind === Track.Kind.Video && !publication.isMuted) {
         return track;
       }
     }
   }
-  // Fallback: any remote video (host identity may differ from profile id).
   for (const participant of participants) {
     for (const publication of participant.videoTrackPublications.values()) {
       const track = publication.track;
@@ -56,6 +64,28 @@ export function roomHasLiveAudio(room: Room, hostUserId?: string): boolean {
   return false;
 }
 
+async function resolveDiscoveryTarget(
+  target: LiveDiscoveryConnectTarget,
+): Promise<LiveDiscoveryConnectTarget> {
+  let partyRoomId = target.partyRoomId?.trim() || undefined;
+  const streamId = target.streamId?.trim() || undefined;
+  const hostUserId = target.hostUserId?.trim() || undefined;
+
+  if (!partyRoomId && !streamId && hostUserId) {
+    partyRoomId = getStoredOwnerPartyRoomId(hostUserId) || undefined;
+    if (!partyRoomId) {
+      try {
+        const cloud = await fetchOwnerActivePartyRoom(hostUserId);
+        if (cloud?.id) partyRoomId = cloud.id;
+      } catch {
+        /* keep unresolved */
+      }
+    }
+  }
+
+  return { partyRoomId, streamId, hostUserId };
+}
+
 type ConnectDiscoveryPreviewOptions = {
   target: LiveDiscoveryConnectTarget;
   onVideoTrack: (track: RemoteTrack | null) => void;
@@ -71,19 +101,21 @@ type ConnectDiscoveryPreviewOptions = {
 export async function connectDiscoveryPreview(
   options: ConnectDiscoveryPreviewOptions,
 ): Promise<(() => void) | null> {
-  const { target, onVideoTrack, onAudioLive, isCancelled, timeoutMs = 5_500 } = options;
-  const { partyRoomId, streamId, hostUserId } = target;
+  const { target, onVideoTrack, onAudioLive, isCancelled, timeoutMs = 8_000 } = options;
 
-  if (
-    !canAttemptLiveKit() ||
-    !isLiveKitConfigured() ||
-    (!partyRoomId && !streamId)
-  ) {
+  if (!canAttemptLiveKit() || !isLiveKitConfigured()) {
     return null;
   }
 
-  // Token API needs platform auth; without it keep poster-only (no throw).
-  if (!isPlatformApiAvailable() && !partyRoomId) {
+  const resolved = await resolveDiscoveryTarget(target);
+  const { partyRoomId, streamId, hostUserId } = resolved;
+
+  if (!partyRoomId && !streamId) {
+    return null;
+  }
+
+  // Token API needs platform auth for stream tokens; party token also needs auth.
+  if (!isPlatformApiAvailable()) {
     return null;
   }
 
@@ -133,6 +165,18 @@ export async function connectDiscoveryPreview(
     liveRoom.on(RoomEvent.TrackSubscribed, (track) => {
       if (track.kind === Track.Kind.Video || track.kind === Track.Kind.Audio) onChange();
     });
+    liveRoom.on(RoomEvent.TrackPublished, (_pub, participant) => {
+      for (const publication of participant.videoTrackPublications.values()) {
+        if (!publication.isSubscribed) {
+          try {
+            publication.setSubscribed(true);
+          } catch {
+            /* ignore */
+          }
+        }
+      }
+      onChange();
+    });
     liveRoom.on(RoomEvent.TrackUnsubscribed, onChange);
     liveRoom.on(RoomEvent.TrackMuted, onChange);
     liveRoom.on(RoomEvent.TrackUnmuted, onChange);
@@ -145,25 +189,45 @@ export async function connectDiscoveryPreview(
       }
     });
     sync(liveRoom);
-    pollTimer = window.setInterval(() => sync(liveRoom), 1_200);
+    // Late-publish catch-up only — room events handle the hot path.
+    // Stop polling once we have video so discovery cards stay cheap.
+    pollTimer = window.setInterval(() => {
+      sync(liveRoom);
+      if (attached && pollTimer != null) {
+        window.clearInterval(pollTimer);
+        pollTimer = null;
+      }
+    }, 2_000);
   };
 
   const attemptConnect = async (): Promise<boolean> => {
-    const result = await connectWithTokenFetcher(
-      () =>
-        partyRoomId
-          ? fetchPartyLiveKitToken(partyRoomId, false)
-          : fetchLiveKitToken(streamId!, 'viewer'),
-      {
-        timeoutMs,
-        onDisconnected: () => {
-          if (!cancelled) {
-            onVideoTrack(null);
-            onAudioLive?.(false);
-          }
-        },
+    const fetchToken = async () => {
+      if (partyRoomId) {
+        try {
+          return await fetchPartyLiveKitToken(partyRoomId, false);
+        } catch (err) {
+          if (streamId) return fetchLiveKitToken(streamId, 'viewer');
+          throw err;
+        }
+      }
+      return fetchLiveKitToken(streamId!, 'viewer');
+    };
+
+    const result = await connectWithTokenFetcher(fetchToken, {
+      timeoutMs,
+      // Discovery thumbnails: never starve frames behind an opacity-0 poster.
+      roomOptions: {
+        adaptiveStream: false,
+        dynacast: true,
+        disconnectOnPageLeave: true,
       },
-    );
+      onDisconnected: () => {
+        if (!cancelled) {
+          onVideoTrack(null);
+          onAudioLive?.(false);
+        }
+      },
+    });
     if (cancelled) {
       if (result.ok) void result.room.disconnect();
       return false;
@@ -178,7 +242,7 @@ export async function connectDiscoveryPreview(
     if (!ok && !cancelled) {
       retryTimer = window.setTimeout(() => {
         void attemptConnect();
-      }, 2_000);
+      }, 1_500);
     }
   })();
 

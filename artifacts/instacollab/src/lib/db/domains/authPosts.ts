@@ -19,8 +19,11 @@ import type { WorkspaceTask } from '../../dbTypes';
 import { scheduleSupabaseProfileSync } from '../../supabase/syncProfile';
 import { scheduleLiveSessionSync } from '../../liveSessionSync';
 import { isCloudAuthUserId } from '../../auth/cloudProfile';
+import { identityAliasUids } from '../../auth/accountIdentity';
+import { readDeviceAccounts } from '../../auth/deviceAccounts';
 import { setProfileLivePresence } from '../../supabase/liveDiscovery';
 import { isSupabaseConfigured } from '../../supabase/config';
+import { clearSessionCache } from '../../sessionCache';
 import type { AuthPostsLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
 
@@ -37,6 +40,36 @@ const ACCOUNT_SNAPSHOT_KEYS = [
   'profile_stories_migrated',
   'dev_stories_seeded_once',
 ] as const;
+
+/** Keys that must not leak between accounts when a snapshot is missing. */
+const ACCOUNT_PRIVATE_RESET_KEYS = ACCOUNT_SNAPSHOT_KEYS.filter(
+  (key) => key !== 'users' && key !== 'app_settings',
+);
+
+function emptyValueForAccountKey(key: string): unknown {
+  switch (key) {
+    case 'follow_graph':
+      return { following: {}, followers: {} };
+    case 'globalMuted':
+    case 'globalMutedDefaultV2':
+    case 'hasUnreadNotifications':
+      return false;
+    case 'unreadMessagesCount':
+      return 0;
+    case 'chat_presence':
+    case 'chat_read_state':
+    case 'chat_peer_read_state':
+    case 'chat_wallpapers':
+    case 'story_views':
+    case 'stories':
+    case 'profile_stories':
+    case 'dating_state':
+    case 'karaoke_user_state':
+      return {};
+    default:
+      return [];
+  }
+}
 
 export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): MixinCtor<T, AuthPostsLayer> {
   return class extends Base {
@@ -161,6 +194,10 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       if (!prevId || prevId !== userId) {
         const restored = this.restoreAccountState(userId);
         if (!restored) {
+          // Cloud accounts: never keep the previous account's posts/messages/etc.
+          if (isCloudAuthUserId(userId)) {
+            this.clearPrivateAccountContentKeepingDirectory();
+          }
           this.restoreLegacyDemoContentIfEmpty(userId);
         }
       }
@@ -172,10 +209,35 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
     deleteAccountSnapshot(userId: string) {
       const snapshots =
         this.load<Record<string, Record<string, unknown>>>(ACCOUNT_SNAPSHOT_STORE, {}) || {};
-      if (!snapshots[userId]) return;
+      const aliases = this.accountSnapshotAliasIds(userId);
+      let changed = false;
       const next = { ...snapshots };
-      delete next[userId];
-      this.save(ACCOUNT_SNAPSHOT_STORE, next);
+      for (const id of aliases) {
+        if (next[id]) {
+          delete next[id];
+          changed = true;
+        }
+      }
+      if (changed) this.save(ACCOUNT_SNAPSHOT_STORE, next);
+    }
+
+    private accountSnapshotAliasIds(userId: string): string[] {
+      const id = userId.trim();
+      if (!id) return [];
+      try {
+        return [...new Set([id, ...identityAliasUids(id, readDeviceAccounts())])];
+      } catch {
+        return [id];
+      }
+    }
+
+    /** Drop account-private collections but keep the shared user directory. */
+    private clearPrivateAccountContentKeepingDirectory() {
+      const users = this.users;
+      for (const key of ACCOUNT_PRIVATE_RESET_KEYS) {
+        this.save(key, emptyValueForAccountKey(key));
+      }
+      this.save('users', users);
     }
 
     private snapshotAccountState(userId: string) {
@@ -189,13 +251,23 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
             : this.load(key, undefined);
         if (value !== undefined) state[key] = value;
       }
-      this.save(ACCOUNT_SNAPSHOT_STORE, { ...snapshots, [userId]: state });
+      const next = { ...snapshots };
+      for (const id of this.accountSnapshotAliasIds(userId)) {
+        next[id] = state;
+      }
+      this.save(ACCOUNT_SNAPSHOT_STORE, next);
     }
 
     private restoreAccountState(userId: string): boolean {
       const snapshots =
         this.load<Record<string, Record<string, unknown>>>(ACCOUNT_SNAPSHOT_STORE, {}) || {};
-      const state = snapshots[userId];
+      let state: Record<string, unknown> | undefined;
+      for (const id of this.accountSnapshotAliasIds(userId)) {
+        if (snapshots[id]) {
+          state = snapshots[id];
+          break;
+        }
+      }
       if (!state) return false;
       for (const [key, value] of Object.entries(state)) {
         if (ACCOUNT_RESTORE_SKIP_KEYS.has(key)) continue;
@@ -207,7 +279,7 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
     logout() {
       this.save('isLoggedIn', false);
       this.save('currentUserId', null);
-      void import('../../sessionCache').then((m) => m.clearSessionCache());
+      clearSessionCache();
     }
 
     /** Merge Supabase-authenticated user into local store and set session. */
@@ -429,7 +501,8 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       if (prior && next && this.userContentSurfaceChanged(prior, next)) {
         this.syncUserRefsInContent(id);
       }
-      if (next) {
+      // Only push profile fields to cloud — never on live/status-only toggles.
+      if (prior && next && this.userProfileCloudFieldsChanged(prior, next)) {
         scheduleSupabaseProfileSync(next);
       }
     }
@@ -445,6 +518,21 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
         before.liveKind !== after.liveKind ||
         before.isVerified !== after.isVerified ||
         before.note !== after.note
+      );
+    }
+
+    /** Profile columns synced to Supabase/Firebase profiles table. */
+    private userProfileCloudFieldsChanged(before: User, after: User): boolean {
+      return (
+        before.displayName !== after.displayName ||
+        before.username !== after.username ||
+        before.bio !== after.bio ||
+        before.avatarUrl !== after.avatarUrl ||
+        before.publicUserId !== after.publicUserId ||
+        before.publicUserIdChangedAt !== after.publicUserIdChangedAt ||
+        before.note !== after.note ||
+        before.noteUpdatedAt !== after.noteUpdatedAt ||
+        before.isPrivate !== after.isPrivate
       );
     }
 

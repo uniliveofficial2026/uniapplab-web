@@ -1,9 +1,6 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { 
-  Mail, 
-  Lock, 
-  User, 
   ArrowRight, 
   Github, 
   Phone, 
@@ -22,6 +19,17 @@ import { useAuth } from '../../lib/AuthContext';
 import { db } from '../../lib/db/localDb';
 import { TrendingScreen } from './TrendingScreen';
 import { AppLogo } from '../common/AppLogo';
+import {
+  UniLivesInAppLegalScreen,
+  type InAppLegalDoc,
+} from '../legal/brand';
+import {
+  UniLivesPrincessAuthActions,
+  UniLivesPrincessAuthLayout,
+  UniLivesPrincessAuthPanel,
+  UniLivesPrincessForgotForm,
+  UniLivesPrincessForgotLayout,
+} from './brand';
 
 function finishAuthLaunch() {
   localStorage.setItem('instacollab_has_onboarded', 'true');
@@ -43,6 +51,9 @@ export function AuthScreen() {
     } catch (e) {}
     return 'onboarding';
   });
+  const [gate, setGate] = useState<'welcome' | 'email'>('welcome');
+  const [legalDoc, setLegalDoc] = useState<InAppLegalDoc | null>(null);
+  const [agreed, setAgreed] = useState(false);
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -132,180 +143,222 @@ export function AuthScreen() {
     );
   }
 
-  return (
-    <div className="fixed inset-0 bg-background z-[1000] flex items-center justify-center p-6">
-      <motion.div 
-        layout
-        className="w-full max-w-md bg-card border border-border shadow-2xl rounded-[32px] overflow-hidden p-8"
-      >
-        <div className="text-center mb-6">
-          <AppLogo className="justify-center mb-4" iconClassName="w-12 h-12 text-primary" showText={false} />
-          <h2 className="text-2xl font-black text-foreground">
-            {mode === 'login' ? 'Welcome Back' : mode === 'signup' ? 'Create Account' : 'Reset Password'}
-          </h2>
-          <p className="text-muted-foreground mt-1">
-            {mode === 'login' ? 'Please sign in to continue' : mode === 'signup' ? 'Join our global community' : 'Enter your email to reset'}
-          </p>
-        </div>
-
-
-
-        <div className="space-y-4 mb-8">
-          {mode !== 'reset' && (
-            <>
+  const authStage =
+    mode === 'reset' ? (
+      <UniLivesPrincessForgotLayout data-unilives-auth-legacy="">
+        <UniLivesPrincessForgotForm
+          email={email}
+          onEmailChange={setEmail}
+          onSubmit={async () => {
+            try {
+              if (!email) {
+                alert('Please enter your email first.');
+                return;
+              }
+              await resetPassword(email);
+              alert('Recovery email sent!');
+            } catch (e: any) {
+              alert(e.message);
+            }
+          }}
+          onBackToSignIn={() => {
+            setGate('welcome');
+            setMode('login');
+          }}
+        />
+      </UniLivesPrincessForgotLayout>
+    ) : (
+    <UniLivesPrincessAuthLayout
+      data-unilives-auth-legacy=""
+      showPanel={gate === 'email'}
+      panel={
+        gate === 'email' ? (
+          <UniLivesPrincessAuthPanel
+            title={mode === 'login' ? 'Welcome Back' : 'Create account'}
+            subtitle={
+              mode === 'login' ? 'Please sign in to continue' : 'Join UniLive’s and set up your profile.'
+            }
+            mode={mode === 'signup' ? 'signup' : 'login'}
+            onBackToWelcome={() => {
+              setGate('welcome');
+              setMode('login');
+            }}
+            backLabel="Back to welcome"
+          >
+            <div className="flex flex-col gap-3 w-full mb-1">
               {mode === 'signup' && (
-                <div className="space-y-2">
-                  <label className="text-xs font-bold text-muted-foreground uppercase ml-2">Full Name</label>
-                  <div className="relative">
-                    <User className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                    <input 
-                      type="text"
-                      value={name}
-                      onChange={(e) => setName(e.target.value)}
-                      className="w-full h-12 bg-secondary/50 rounded-xl border border-border pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none transition-all"
-                      placeholder="Jane Doe"
-                    />
-                  </div>
-                </div>
+                <label className="upa-field">
+                  <span className="upa-field-label">Full name</span>
+                  <input
+                    type="text"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    className="upa-input"
+                    placeholder="Jane Doe"
+                  />
+                </label>
               )}
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase ml-2">Email Address</label>
-                <div className="relative">
-                  <Mail className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input 
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    className="w-full h-12 bg-secondary/50 rounded-xl border border-border pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none transition-all"
-                    placeholder="name@example.com"
-                  />
-                </div>
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-bold text-muted-foreground uppercase ml-2">Password</label>
-                <div className="relative">
-                  <Lock className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
-                  <input 
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    className="w-full h-12 bg-secondary/50 rounded-xl border border-border pl-12 pr-4 focus:ring-2 focus:ring-primary outline-none transition-all"
-                    placeholder="••••••••"
-                  />
-                </div>
-              </div>
-            </>
-          )}
+              <label className="upa-field">
+                <span className="upa-field-label">Email</span>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  className="upa-input"
+                  placeholder="name@example.com"
+                />
+              </label>
+              <label className="upa-field">
+                <span className="upa-field-label">Password</span>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="upa-input"
+                  placeholder="••••••••"
+                />
+              </label>
 
-          {mode === 'login' && (
-            <button onClick={() => setMode('reset')} className="text-sm font-bold text-primary hover:underline ml-auto block">
-              Forgot password?
-            </button>
-          )}
-
-          <button 
-            onClick={async () => {
-              try {
-                if (mode === 'reset') {
-                  if (!email) { alert('Please enter your email first.'); return; }
-                  await resetPassword(email);
-                  alert('Recovery email sent!');
-                } else if (mode === 'login') {
-                  if (!email || !password) { alert('Please fill in all fields.'); return; }
-                  await loginWithEmail(email, password);
-                  finishAuthLaunch();
-                } else if (mode === 'signup') {
-                  if (!email || !password || !name) { alert('Please fill in all fields.'); return; }
-                  await signupWithEmail(email, password, name);
-                  finishAuthLaunch();
-                }
-              } catch (e: any) {
-                alert(e.message);
-              }
-            }}
-            className="w-full h-12 bg-primary text-primary-foreground rounded-xl font-bold hover:opacity-90 transition-all active:scale-[0.98] shadow-md"
-          >
-            {mode === 'login' ? 'Sign In' : mode === 'signup' ? 'Create Account' : 'Send Recovery Email'}
-          </button>
-        </div>
-
-        <div className="relative mb-8">
-          <div className="absolute inset-0 flex items-center"><div className="w-full border-t border-border"></div></div>
-          <div className="relative flex justify-center text-xs uppercase"><span className="bg-card px-2 text-muted-foreground font-bold">Or continue with</span></div>
-        </div>
-
-        <div className="grid grid-cols-1 gap-4 mb-4">
-          <button 
-            onClick={async () => {
-              try {
-                const result = await loginWithGoogle();
-                if (!result?.ok) {
-                  if (result?.reason) alert(result.reason);
-                  return;
-                }
-                if (result.redirecting) return;
-                finishAuthLaunch();
-              } catch (e: unknown) {
-                console.error(e);
-              }
-            }}
-            className="h-12 border border-border rounded-xl flex items-center justify-center gap-2 hover:bg-secondary transition-all active:scale-[0.98]"
-          >
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" className="w-5 h-5"><path fill="#FFC107" d="M43.611,20.083H42V20H24v8h11.303c-1.649,4.657-6.08,8-11.303,8c-6.627,0-12-5.373-12-12c0-6.627,5.373-12,12-12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C12.955,4,4,12.955,4,24c0,11.045,8.955,20,20,20c11.045,0,20-8.955,20-20C44,22.659,43.862,21.35,43.611,20.083z"/><path fill="#FF3D00" d="M6.306,14.691l6.571,4.819C14.655,15.108,18.961,12,24,12c3.059,0,5.842,1.154,7.961,3.039l5.657-5.657C34.046,6.053,29.268,4,24,4C16.318,4,9.656,8.337,6.306,14.691z"/><path fill="#4CAF50" d="M24,44c5.166,0,9.86-1.977,13.409-5.192l-6.19-5.238C29.211,35.091,26.715,36,24,36c-5.202,0-9.619-3.317-11.283-7.946l-6.522,5.025C9.505,39.556,16.227,44,24,44z"/><path fill="#1976D2" d="M43.611,20.083H42V20H24v8h11.303c-0.792,2.237-2.231,4.166-4.087,5.571c0.001-0.001,0.002-0.001,0.003-0.002l6.19,5.238C36.971,39.205,44,34,44,24C44,22.659,43.862,21.35,43.611,20.083z"/></svg>
-            <span className="font-bold text-sm">Google</span>
-          </button>
-        </div>
-
-        {userAccounts.length > 0 && (
-          <div className="mb-8 space-y-2">
-            <label className="text-xs font-bold text-muted-foreground uppercase ml-2">Recent Accounts</label>
-            <div className="space-y-2">
-              {userAccounts.map((acc: any, idx: number) => (
-                <div 
-                  key={`${acc.uid || idx}-${idx}`}
-                  className="w-full p-3 rounded-xl bg-secondary/35 border border-border flex items-center justify-between gap-3 hover:bg-secondary/60 transition-all cursor-pointer group"
-                  onClick={() => selectAccount(acc.uid)}
-                >
-                  <div className="flex items-center gap-3 overflow-hidden flex-1">
-                    <img src={acc.photoURL || undefined} alt="" className="w-8 h-8 rounded-full border border-border" />
-                    <div className="flex-1 truncate">
-                      <div className="font-bold text-sm text-foreground">{acc.displayName}</div>
-                      <div className="text-[10px] text-muted-foreground">{acc.email}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-1.5 shrink-0">
-                    <button
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        if (confirm(`Remove ${acc.displayName || 'this account'} from this device?`)) {
-                          removeAccount(acc.uid);
-                        }
-                      }}
-                      className="p-1.5 rounded-lg hover:bg-destructive/10 text-muted-foreground hover:text-destructive transition-colors opacity-0 group-hover:opacity-100 md:opacity-40"
-                      title="Remove Account"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                    </button>
-                    <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:translate-x-0.5 transition-transform" />
-                  </div>
-                </div>
-              ))}
+              <button
+                type="button"
+                onClick={async () => {
+                  try {
+                    if (!agreed) {
+                      alert('Please agree to the Terms and Privacy Policy first.');
+                      setGate('welcome');
+                      return;
+                    }
+                    if (mode === 'login') {
+                      if (!email || !password) {
+                        alert('Please fill in all fields.');
+                        return;
+                      }
+                      await loginWithEmail(email, password);
+                      finishAuthLaunch();
+                    } else if (mode === 'signup') {
+                      if (!email || !password || !name) {
+                        alert('Please fill in all fields.');
+                        return;
+                      }
+                      await signupWithEmail(email, password, name);
+                      finishAuthLaunch();
+                    }
+                  } catch (e: any) {
+                    alert(e.message);
+                  }
+                }}
+                className="upa-cta"
+                disabled={!agreed}
+              >
+                {mode === 'login' ? 'Sign In' : 'Sign up'}
+              </button>
             </div>
-          </div>
-        )}
 
-        <div className="text-center">
-          <p className="text-sm text-muted-foreground">
-            {mode === 'login' ? "Don't have an account?" : "Already have an account?"}{' '}
-            <button 
-              onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-              className="font-bold text-primary hover:underline"
-            >
-              {mode === 'login' ? 'Sign Up' : 'Sign In'}
-            </button>
-          </p>
-        </div>
-      </motion.div>
-    </div>
+            {userAccounts.length > 0 && mode === 'login' && (
+              <div className="mb-1 space-y-2">
+                <span className="upa-field-label">Recent accounts</span>
+                <div className="space-y-2">
+                  {userAccounts.map((acc: any, idx: number) => (
+                    <div
+                      key={`${acc.uid || idx}-${idx}`}
+                      className="w-full p-3 rounded-xl bg-white/10 border border-[rgba(212,175,55,0.35)] flex items-center justify-between gap-3 hover:bg-white/15 transition-all cursor-pointer group"
+                      onClick={() => selectAccount(acc.uid)}
+                    >
+                      <div className="flex items-center gap-3 overflow-hidden flex-1">
+                        <img src={acc.photoURL || undefined} alt="" className="w-8 h-8 rounded-full border border-white/20" />
+                        <div className="flex-1 truncate">
+                          <div className="font-bold text-sm text-white">{acc.displayName}</div>
+                          <div className="text-[10px] text-white/60">{acc.email}</div>
+                        </div>
+                      </div>
+                      <div className="flex items-center gap-1.5 shrink-0">
+                        <button
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (confirm(`Remove ${acc.displayName || 'this account'} from this device?`)) {
+                              removeAccount(acc.uid);
+                            }
+                          }}
+                          className="p-1.5 rounded-lg hover:bg-destructive/10 text-white/60 hover:text-destructive transition-colors"
+                          title="Remove Account"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </button>
+                        <ChevronRight className="w-4 h-4 text-white/50" />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="upa-foot">
+              <p>
+                {mode === 'login' ? "Don't have an account?" : 'Already have an account?'}{' '}
+                <button
+                  type="button"
+                  onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
+                  className="upa-link"
+                >
+                  {mode === 'login' ? 'Sign Up' : 'Sign In'}
+                </button>
+              </p>
+            </div>
+          </UniLivesPrincessAuthPanel>
+        ) : null
+      }
+    >
+      {gate === 'welcome' ? (
+        <UniLivesPrincessAuthActions
+          agreed={agreed}
+          onToggleAgree={() => setAgreed((v) => !v)}
+          onNeedAgree={() => alert('Please agree to the Terms and Privacy Policy first.')}
+          onGoogle={async () => {
+            try {
+              if (!agreed) {
+                alert('Please agree to the Terms and Privacy Policy first.');
+                return;
+              }
+              const result = await loginWithGoogle();
+              if (!result?.ok) {
+                if (result?.reason) alert(result.reason);
+                return;
+              }
+              if (result.redirecting) return;
+              finishAuthLaunch();
+            } catch (e: unknown) {
+              console.error(e);
+            }
+          }}
+          onEmailSignup={() => {
+            if (!agreed) {
+              alert('Please agree to the Terms and Privacy Policy first.');
+              return;
+            }
+            setMode('signup');
+            setGate('email');
+          }}
+          onForgotPassword={() => {
+            setMode('reset');
+            setGate('email');
+          }}
+          onOpenTerms={() => setLegalDoc('terms')}
+          onOpenPrivacy={() => setLegalDoc('privacy')}
+        />
+      ) : null}
+    </UniLivesPrincessAuthLayout>
+  );
+
+  return (
+    <>
+      {authStage}
+      {legalDoc ? (
+        <UniLivesInAppLegalScreen
+          kind={legalDoc}
+          onBack={() => setLegalDoc(null)}
+          backLabel="Back to welcome"
+        />
+      ) : null}
+    </>
   );
 }

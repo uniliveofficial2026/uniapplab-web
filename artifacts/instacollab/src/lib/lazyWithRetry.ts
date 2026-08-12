@@ -55,7 +55,27 @@ export function isStaleModuleReferenceError(reason: unknown): boolean {
 }
 
 export function isRecoverableRenderError(reason: unknown): boolean {
-  return isInvalidHookCallError(reason) || isStaleModuleReferenceError(reason);
+  return (
+    isInvalidHookCallError(reason) ||
+    isStaleModuleReferenceError(reason) ||
+    isFirestoreStorageQuotaError(reason)
+  );
+}
+
+/** Firestore multi-tab localStorage overflow — must not blank Karaoke / rooms. */
+export function isFirestoreStorageQuotaError(reason: unknown): boolean {
+  const message =
+    reason instanceof Error
+      ? `${reason.name} ${reason.message}`
+      : typeof reason === 'string'
+        ? reason
+        : String(reason ?? '');
+  return (
+    /QuotaExceededError/i.test(message) ||
+    /exceeded the quota/i.test(message) ||
+    (/INTERNAL ASSERTION FAILED/i.test(message) && /firestore/i.test(message)) ||
+    /firestore_clients_/i.test(message)
+  );
 }
 
 export function chunkLoadUserMessage(): string {

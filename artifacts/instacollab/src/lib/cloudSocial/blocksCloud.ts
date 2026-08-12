@@ -1,12 +1,14 @@
-import {
-  fetchFirebaseBlocksForUser,
-  deleteFirebaseBlock,
-  isFirebaseBlocksAvailable,
-  subscribeFirebaseBlocks,
-  upsertFirebaseBlock,
-} from '../firebase/userBlocks';
+import { isFirebaseConfigured } from '../firebase/config';
 import { isSocialCloudAvailable, shouldUseFirebaseForSocialCloud } from '../social/socialCloud';
 import { getSupabaseClient } from '../supabase/client';
+import {
+  removeSafeRealtimeChannel,
+  subscribeSafeRealtimeChannel,
+} from '../supabase/safeRealtimeChannel';
+
+async function firebaseUserBlocks() {
+  return import('../firebase/userBlocks');
+}
 
 export function isBlocksCloudAvailable(): boolean {
   return isSocialCloudAvailable();
@@ -16,8 +18,11 @@ export async function fetchBlocksForUser(meId: string): Promise<{
   blockedByMe: string[];
   blockedMe: string[];
 }> {
-  if (shouldUseFirebaseForSocialCloud(meId) && isFirebaseBlocksAvailable()) {
-    return fetchFirebaseBlocksForUser(meId);
+  if (shouldUseFirebaseForSocialCloud(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseUserBlocks();
+    if (fb.isFirebaseBlocksAvailable()) {
+      return fb.fetchFirebaseBlocksForUser(meId);
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -33,15 +38,21 @@ export async function fetchBlocksForUser(meId: string): Promise<{
       blockedMe: (against ?? []).map((r) => String(r.blocker_id)).filter(Boolean),
     };
   } catch {
-    if (isFirebaseBlocksAvailable()) return fetchFirebaseBlocksForUser(meId);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseUserBlocks();
+      if (fb.isFirebaseBlocksAvailable()) return fb.fetchFirebaseBlocksForUser(meId);
+    }
     return { blockedByMe: [], blockedMe: [] };
   }
 }
 
 export async function upsertCloudBlock(blockerId: string, blockedId: string): Promise<void> {
-  if (shouldUseFirebaseForSocialCloud(blockerId) && isFirebaseBlocksAvailable()) {
-    await upsertFirebaseBlock(blockerId, blockedId);
-    return;
+  if (shouldUseFirebaseForSocialCloud(blockerId) && isFirebaseConfigured()) {
+    const fb = await firebaseUserBlocks();
+    if (fb.isFirebaseBlocksAvailable()) {
+      await fb.upsertFirebaseBlock(blockerId, blockedId);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -52,14 +63,20 @@ export async function upsertCloudBlock(blockerId: string, blockedId: string): Pr
       .upsert({ blocker_id: blockerId, blocked_id: blockedId }, { onConflict: 'blocker_id,blocked_id' });
     if (error) throw error;
   } catch {
-    if (isFirebaseBlocksAvailable()) await upsertFirebaseBlock(blockerId, blockedId);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseUserBlocks();
+      if (fb.isFirebaseBlocksAvailable()) await fb.upsertFirebaseBlock(blockerId, blockedId);
+    }
   }
 }
 
 export async function deleteCloudBlock(blockerId: string, blockedId: string): Promise<void> {
-  if (shouldUseFirebaseForSocialCloud(blockerId) && isFirebaseBlocksAvailable()) {
-    await deleteFirebaseBlock(blockerId, blockedId);
-    return;
+  if (shouldUseFirebaseForSocialCloud(blockerId) && isFirebaseConfigured()) {
+    const fb = await firebaseUserBlocks();
+    if (fb.isFirebaseBlocksAvailable()) {
+      await fb.deleteFirebaseBlock(blockerId, blockedId);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -72,29 +89,35 @@ export async function deleteCloudBlock(blockerId: string, blockedId: string): Pr
       .eq('blocked_id', blockedId);
     if (error) throw error;
   } catch {
-    if (isFirebaseBlocksAvailable()) await deleteFirebaseBlock(blockerId, blockedId);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseUserBlocks();
+      if (fb.isFirebaseBlocksAvailable()) await fb.deleteFirebaseBlock(blockerId, blockedId);
+    }
   }
 }
 
 export function subscribeCloudBlocks(meId: string, onChange: () => void): () => void {
-  if (shouldUseFirebaseForSocialCloud(meId) && isFirebaseBlocksAvailable()) {
-    return subscribeFirebaseBlocks(meId, onChange);
+  if (shouldUseFirebaseForSocialCloud(meId) && isFirebaseConfigured()) {
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
+    void firebaseUserBlocks().then((fb) => {
+      if (cancelled || !fb.isFirebaseBlocksAvailable()) return;
+      unsub = fb.subscribeFirebaseBlocks(meId, onChange);
+    });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return () => undefined;
 
-  const channel = supabase
-    .channel(`user-blocks:${meId}:${Date.now()}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: 'user_blocks' }, onChange)
-    .subscribe();
-
-  const unsubFb = isFirebaseBlocksAvailable()
-    ? subscribeFirebaseBlocks(meId, onChange)
-    : () => undefined;
+  const channel = subscribeSafeRealtimeChannel(supabase, `user-blocks:${meId}`, (ch) => {
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: 'user_blocks' }, onChange);
+  });
 
   return () => {
-    void supabase.removeChannel(channel);
-    unsubFb();
+    removeSafeRealtimeChannel(supabase, channel);
   };
 }

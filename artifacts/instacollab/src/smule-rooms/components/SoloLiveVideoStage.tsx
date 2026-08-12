@@ -15,6 +15,7 @@ export type SoloLiveVideoStageProps = {
   showHostRemote: boolean;
   showStatusText: boolean;
   statusText: string;
+  onRetryCamera?: () => void;
   hostPoster: HostPlaceholder | null;
   rawVideoRef?: RefObject<HTMLVideoElement | null>;
   deeparPreviewRef?: RefObject<HTMLDivElement | null>;
@@ -33,6 +34,7 @@ export const SoloLiveVideoStage = React.memo(function SoloLiveVideoStage({
   showHostRemote,
   showStatusText,
   statusText,
+  onRetryCamera,
   hostPoster,
   rawVideoRef,
   deeparPreviewRef,
@@ -71,6 +73,15 @@ export const SoloLiveVideoStage = React.memo(function SoloLiveVideoStage({
       {showStatusText ? (
         <div className="solo-live-stage-placeholder solo-live-stage-placeholder--overlay">
           <p className="solo-live-stage-placeholder-text">{statusText}</p>
+          {onRetryCamera ? (
+            <button
+              type="button"
+              onClick={onRetryCamera}
+              className="mt-3 rounded-full border border-white/30 bg-white/15 px-4 py-1.5 text-[11px] font-black uppercase tracking-wide text-white"
+            >
+              Retry
+            </button>
+          ) : null}
         </div>
       ) : null}
       <div className="solo-live-stage-vignette" aria-hidden />

@@ -12,13 +12,27 @@ import { KaraokeMyUploadsPanel } from './KaraokeMyUploadsPanel';
 import { KaraokeProfileBackground } from './KaraokeProfileBackground';
 import { KaraokeProfileBackgroundEditor } from './KaraokeProfileBackgroundEditor';
 import type { KaraokeDuetPost, KaraokeLibrarySong } from './karaokeTypes';
-import { KaraokeSmuleRoomFlow } from './KaraokeSmuleRoomFlow';
 import { SavedRoomsList } from '../../smule-rooms/components/SavedRoomsList';
 import { ManagedRoomsList } from '../../smule-rooms/components/ManagedRoomsList';
 import { activateRoomContext, clearActiveRoomSession, type ManagedRoom } from '../../smule-rooms/utils/managedRooms';
 import { ensureRoomSettingsSeeded } from '../../smule-rooms/utils/storage';
 import { ensureRoomRoleUserIds } from '../../smule-rooms/utils/roomRoleUsers';
 import { formatRoomHostMeta, resolveRoomHostDisplay } from '../../smule-rooms/utils/roomHostDisplay';
+import { formatRoomModeLabel } from '../../smule-rooms/utils/managedRooms';
+import { normalizeRoomPrivacy } from '../../smule-rooms/utils/roomPrivacy';
+import { resolveLiveCountry } from '../live/liveCountries';
+import {
+  LiveFiltersPanel,
+  formatLiveCountryLabel,
+  liveFollowFilterLabel,
+  liveTypeFilterLabel,
+  matchesLiveSearch,
+  matchesLiveTypeFilter,
+  parseLiveSearchQuery,
+  resolveLiveRoomType,
+  type LiveFollowFilter,
+  type LiveTypeFilter,
+} from '../live/LiveFiltersPanel';
 import { formatProfileHandle, getProfileDisplayName } from '../../lib/profileDisplay';
 import { useProfileStats } from '../../lib/useProfileStats';
 import { FollowListModal } from '../profile/FollowListModal';
@@ -28,16 +42,43 @@ import { NotificationsScreen } from '../notifications/NotificationsScreen';
 import { buildContextualProfileSharePayload } from '../../lib/profileShare';
 import { openAppProfileSurface } from '../../lib/profileSurface';
 import { buildKaraokeTrackSharePayload, type SharePayload } from '../../lib/shareLinks';
-import type { User } from '../../types';
-import { useDB } from '../../lib/useDB';
+import type { LiveKind, User } from '../../types';
+import { useDB, useDbRevision } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
+import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
+import { PartyGiftPickerPanel } from '../../smule-rooms/components/PartyGiftPickerPanel';
+import {
+  LiveGiftRechargeModal,
+  useGiftRechargeReturnSync,
+} from '../../smule-rooms/components/LiveGiftRechargeModal';
+import { settlePartyGiftSend } from '../../lib/partyGiftPayments';
+import {
+  creditUserCoins,
+  getLiveCoinsBalance,
+  spendWalletCoins,
+} from '../../lib/walletKstarSync';
+import type { PartyGiftDefinition } from '../../smule-rooms/utils/roomGifts';
 import { useCloudPartyRooms } from '../../hooks/useCloudPartyRooms';
+import { useCloudLiveDiscovery } from '../../hooks/useCloudLiveDiscovery';
+import { useLiveViewerPreviews } from '../../hooks/useLiveViewerPreviews';
 import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
 import type { RoomMode } from '../../smule-rooms/utils/storage';
-import { isDiscoverableLiveRoomMode } from '../../lib/liveRing';
+import {
+  LIVE_KIND_LABELS,
+  isDiscoverableLiveRoomMode,
+  isLiveKind,
+  liveKindFromRoomMode,
+  normalizeStorageRoomMode,
+  roomModeFromLiveKind,
+} from '../../lib/liveRing';
 import { syncLiveSessionData } from '../../lib/liveSessionSync';
-import { consumePendingKaraokeRoomOpen } from '../../lib/live/openLiveRoom';
-import { safeAvatarUrl, safeUsername } from '../../lib/safe';
+import { openLiveUserRoom, openInstantRoomFlow, preloadLiveRoomEntry } from '../../lib/live/openLiveRoom';
+import { isPartyCloudAvailable } from '../../lib/party/partyCloud';
+import { isPlatformApiAvailable } from '../../lib/platformApi';
+import { LiveDiscoveryVideoPreview } from '../live/LiveDiscoveryVideoPreview';
+import { LiveDiscoveryCardChrome } from '../live/LiveDiscoveryCardChrome';
+import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
+import { FALLBACK_MEDIA, safeAvatarUrl, safeMediaUrl, safeUsername } from '../../lib/safe';
 import { handleAvatarError, persistAvatarUrl } from '../../lib/utils';
 import { getFollowButtonHoverLabel } from '../../lib/followPrivacy';
 import { resolveCanonicalAppUserId } from '../../lib/profileIdentity';
@@ -193,7 +234,7 @@ function coverRecordingToFeedPost(meta: KaraokeCoverRecordingMeta): KaraokeDuetP
     commentCount: 0,
     isLiked: false,
     videoUrl: '',
-    img: meta.img || 'https://images.unsplash.com/photo-1516280440502-6c9ab45187fb?w=800&auto=format&fit=crop&q=60',
+    img: meta.img || 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60',
     songId: meta.songId,
     recordingId: meta.id,
     isPublishedCover: true,
@@ -468,7 +509,7 @@ const getDemoRecordingsForSong = (song: any) => {
 };
 const COMMUNITY_DUETS = [
   { id: '1', users: ['@sarah_sings', '@johnny_b'], song: 'Shallow (A Star Is Born)', likes: '12K', comments: 452, videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
-  { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likes: '8.5K', comments: 120, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?w=800&auto=format&fit=crop&q=60' },
+  { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likes: '8.5K', comments: 120, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
 ];
 type ReplyObj = { id: string, user: string, avatar: string, text: string, time: string, likes: number, isLiked: boolean, replies?: ReplyObj[] };
 type CommentObj = { id: string, user: string, avatar: string, text: string, time: string, likes: number, isLiked: boolean, replies: ReplyObj[] };
@@ -525,7 +566,9 @@ function ReplyItem({ reply, postId, onReply, onLike, replyingToCommentId, setRep
 
 export function KaraokeScreen() {
   const db = useDB();
+  const dbRevision = useDbRevision();
   const appUser = useCurrentUser();
+  useGiftRechargeReturnSync(appUser.id);
   useLiveCloudSurface('karaoke', {
     onSync: () => {
       void syncLiveSessionData(appUser.id);
@@ -538,13 +581,18 @@ export function KaraokeScreen() {
   }, []);
   
   // Real-time reactive states for tracking user coins and membership tiers
+  const liveCoinsBalance = useLiveCoinsBalance(appUser.id);
   const [userCoins, setUserCoins] = useState(1250);
   const [userVip, setUserVip] = useState(false);
+
+  useEffect(() => {
+    setUserCoins(liveCoinsBalance);
+  }, [liveCoinsBalance]);
 
   // Dynamic state for duets that makes interactions (likes, comments, gifts) reactive and persistent
   const [duets, setDuets] = useState<KaraokeDuetPost[]>(() => [
     { id: '1', users: ['@sarah_sings', '@johnny_b'], song: 'Shallow (A Star Is Born)', likesCount: 12000, commentCount: 452, isLiked: false, videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
-    { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likesCount: 8500, commentCount: 120, isLiked: false, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?w=800&auto=format&fit=crop&q=60' },
+    { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likesCount: 8500, commentCount: 120, isLiked: false, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
   ]);
 
   const [librarySongs, setLibrarySongs] = useState<KaraokeLibrarySong[]>(LIBRARY_SONGS);
@@ -680,7 +728,6 @@ export function KaraokeScreen() {
   });
 
   // Gift tracking
-  const [selectedGiftId, setSelectedGiftId] = useState<number>(1);
   const [giftingDuetId, setGiftingDuetId] = useState<string | null>(null);
   const [duetGifts, setDuetGifts] = useState<Record<string, number>>({
     '1': 42,
@@ -691,9 +738,6 @@ export function KaraokeScreen() {
   const [previousTab, setPreviousTab] = useState<any>(null);
   const [karaokeMessagesChatId, setKaraokeMessagesChatId] = useState<string | null>(null);
   const [selectedSong, setSelectedSong] = useState<any>(null);
-  const [showSmuleRoomFlow, setShowSmuleRoomFlow] = useState(false);
-  const [smuleRoomFlowKey, setSmuleRoomFlowKey] = useState(0);
-  const [smuleRoomInitialPath, setSmuleRoomInitialPath] = useState('/room/create');
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [messagesChatOpen, setMessagesChatOpen] = useState(false);
   const contentScrollRef = useRef<HTMLDivElement>(null);
@@ -788,22 +832,15 @@ export function KaraokeScreen() {
 
   const openSmuleRoomFlow = (path: string) => {
     setShowMobileMenu(false);
-    setSmuleRoomInitialPath(path);
-    setSmuleRoomFlowKey((k) => k + 1);
-    setShowSmuleRoomFlow(true);
+    // App-level InstantRoomEntryHost paints the room shell immediately.
+    openInstantRoomFlow({
+      path,
+      entry: 'karaoke-party',
+    });
   };
 
   useEffect(() => {
-    const pending = consumePendingKaraokeRoomOpen();
-    if (!pending) return;
-    const path =
-      pending.path?.trim() ||
-      (pending.roomId?.trim() ? `/room/${pending.roomId.trim()}` : '');
-    if (!path) return;
-    if (pending.asViewer) {
-      localStorage.setItem('currentUserRole', 'user');
-    }
-    openSmuleRoomFlow(path);
+    void preloadLiveRoomEntry();
   }, []);
 
   const openManagedRoom = (room: ManagedRoom, path?: string) => {
@@ -811,26 +848,331 @@ export function KaraokeScreen() {
     openSmuleRoomFlow(path ?? `/room/${room.id}`);
   };
 
+  // Only poll/subscribe while Party tab is open — keep-alive Karaoke was
+  // hammering discovery every 5s even on Studio/Feed and freezing the Mac.
+  const liveCloudEnabled =
+    (isPartyCloudAvailable() || isPlatformApiAvailable()) && activeTab === 'party';
   const { rooms: cloudPartyRooms, loading: cloudPartyRoomsLoading } = useCloudPartyRooms(
+    liveCloudEnabled,
+    appUser.id,
+  );
+  const cloudLive = useCloudLiveDiscovery(liveCloudEnabled, appUser.id);
+
+  type KaraokeLiveFeedCard = {
+    key: string;
+    id: string;
+    name: string;
+    host: string;
+    hostUserId: string;
+    participants: number;
+    max: number;
+    roomMode: string;
+    liveKind: LiveKind;
+    liveKindLabel: string;
+    privacy?: 'Public' | 'Private';
+    country?: string;
+    coverUrl: string | null;
+    partyRoomId?: string;
+    streamId?: string;
+  };
+
+  const pickLiveCard = (
+    a: KaraokeLiveFeedCard | undefined,
+    b: KaraokeLiveFeedCard,
+  ): KaraokeLiveFeedCard => {
+    if (!a) return b;
+    const score = (item: KaraokeLiveFeedCard) =>
+      (item.partyRoomId ? 4 : 0) +
+      (item.streamId ? 2 : 0) +
+      (item.privacy ? 1 : 0) +
+      (item.participants ?? 0);
+    const winner = score(b) >= score(a) ? b : a;
+    const other = winner === b ? a : b;
+    let merged = winner;
+    if (!winner.privacy && other.privacy) {
+      merged = { ...merged, privacy: other.privacy };
+    }
+    if (merged.privacy && other.privacy && other.privacy === 'Private') {
+      merged = { ...merged, privacy: 'Private' };
+    }
+    if (!merged.country && other.country) {
+      merged = { ...merged, country: other.country };
+    }
+    return merged;
+  };
+
+  const countryForHost = (hostUserId: string): string => {
+    const profile = (db.users as User[]).find((user) => user.id === hostUserId);
+    return resolveLiveCountry(hostUserId, profile?.country);
+  };
+
+  const livePartyRooms = useMemo(() => {
+    const byUserId = new Map<string, KaraokeLiveFeedCard>();
+    const byPartyId = new Map<string, KaraokeLiveFeedCard>();
+
+    const upsert = (card: KaraokeLiveFeedCard) => {
+      if (!card.hostUserId || card.hostUserId === appUser.id) return;
+      if (card.roomMode && !isDiscoverableLiveRoomMode(card.roomMode)) return;
+
+      const withCountry: KaraokeLiveFeedCard = {
+        ...card,
+        country: card.country || countryForHost(card.hostUserId),
+      };
+      const byUser = byUserId.get(withCountry.hostUserId);
+      const merged = pickLiveCard(byUser, withCountry);
+      byUserId.set(withCountry.hostUserId, merged);
+
+      const partyId = merged.partyRoomId?.trim();
+      if (partyId) {
+        const existingParty = byPartyId.get(partyId);
+        byPartyId.set(partyId, pickLiveCard(existingParty, merged));
+      }
+    };
+
+    for (const room of cloudPartyRooms) {
+      if (!isDiscoverableLiveRoomMode(room.roomMode)) continue;
+      const liveKind = liveKindFromRoomMode(room.roomMode);
+      upsert({
+        key: `party:${room.id}`,
+        id: room.id,
+        name: room.name,
+        host: room.host,
+        hostUserId: room.hostUserId,
+        participants: room.participants,
+        max: room.max,
+        roomMode: room.roomMode,
+        liveKind,
+        liveKindLabel: LIVE_KIND_LABELS[liveKind],
+        privacy: normalizeRoomPrivacy(room.privacy),
+        coverUrl: room.coverUrl,
+        partyRoomId: room.id,
+      });
+    }
+
+    for (const stream of cloudLive.streams) {
+      if (!stream.userId || stream.userId === appUser.id) continue;
+      const kindTag = stream.tags[0];
+      const liveKind = isLiveKind(kindTag) ? kindTag : liveKindFromRoomMode(kindTag);
+      const roomModeRaw =
+        stream.tags.find((tag) => !isLiveKind(tag) && tag !== 'Live') ||
+        roomModeFromLiveKind(liveKind);
+      const roomMode = String(normalizeStorageRoomMode(roomModeRaw));
+      if (!isDiscoverableLiveRoomMode(roomMode)) continue;
+      const partyRoomId =
+        stream.partyRoomId || getStoredOwnerPartyRoomId(stream.userId) || undefined;
+      upsert({
+        key: partyRoomId
+          ? `party:${partyRoomId}`
+          : stream.streamId
+            ? `stream:${stream.streamId}`
+            : `user:${stream.userId}`,
+        id: partyRoomId || stream.streamId || stream.id,
+        name: stream.title || `${stream.user}'s live`,
+        host: stream.user,
+        hostUserId: stream.userId,
+        participants: stream.viewerCount,
+        max: 50,
+        roomMode,
+        liveKind,
+        liveKindLabel: LIVE_KIND_LABELS[liveKind],
+        privacy: normalizeRoomPrivacy(stream.privacy),
+        coverUrl: stream.img || null,
+        partyRoomId,
+        streamId: stream.streamId,
+      });
+    }
+
+      // Same local live ring users Live tab shows when cloud is sparse.
+    for (const user of db.users as User[]) {
+      if (user.status !== 'live' || user.id === appUser.id) continue;
+      const liveKind = isLiveKind(user.liveKind) ? user.liveKind : 'solo';
+      const roomMode = roomModeFromLiveKind(liveKind);
+      const partyRoomId = getStoredOwnerPartyRoomId(user.id) || undefined;
+      const host = user.displayName || user.username || 'Host';
+      const existing = byUserId.get(user.id);
+      upsert({
+        key: partyRoomId ? `party:${partyRoomId}` : `user:${user.id}`,
+        id: partyRoomId || user.id,
+        name: `${host}'s live`,
+        host,
+        hostUserId: user.id,
+        participants: existing?.participants ?? 0,
+        max: 50,
+        roomMode: existing?.roomMode || roomMode,
+        liveKind: existing?.liveKind || liveKind,
+        liveKindLabel: LIVE_KIND_LABELS[existing?.liveKind || liveKind],
+        privacy: existing?.privacy ?? 'Public',
+        country: resolveLiveCountry(user.id, user.country),
+        coverUrl: user.avatarUrl || existing?.coverUrl || null,
+        partyRoomId: existing?.partyRoomId || partyRoomId,
+        streamId: existing?.streamId,
+      });
+    }
+
+    // Prefer party-keyed cards when present; otherwise one card per host.
+    const preferred = new Map<string, KaraokeLiveFeedCard>();
+    for (const card of byUserId.values()) {
+      const partyId = card.partyRoomId?.trim();
+      if (partyId && byPartyId.has(partyId)) {
+        preferred.set(`party:${partyId}`, byPartyId.get(partyId)!);
+      } else {
+        preferred.set(card.key, card);
+      }
+    }
+    return [...preferred.values()].sort((a, b) => b.participants - a.participants);
+  }, [cloudPartyRooms, cloudLive.streams, db.users, appUser.id]);
+
+  const [partyFiltersOpen, setPartyFiltersOpen] = useState(false);
+  const [partyTypeFilter, setPartyTypeFilter] = useState<LiveTypeFilter>('all');
+  const [partyCountryFilter, setPartyCountryFilter] = useState('all');
+  const [partyFollowFilter, setPartyFollowFilter] = useState<LiveFollowFilter>('all');
+  const [partySearchQuery, setPartySearchQuery] = useState('');
+
+  const followingIds = useMemo(
+    () => new Set(db.getFollowingIds(appUser.id)),
+    [db, appUser.id, dbRevision],
+  );
+  const followerIds = useMemo(
+    () => new Set(db.getFollowerIds(appUser.id)),
+    [db, appUser.id, dbRevision],
+  );
+
+  const partyAvailableCountries = useMemo(() => {
+    const set = new Set(
+      livePartyRooms.map((room) => room.country || countryForHost(room.hostUserId)),
+    );
+    return [...set].sort((a, b) => a.localeCompare(b));
+  }, [livePartyRooms, db.users]);
+
+  const partyParsedSearch = useMemo(
+    () => parseLiveSearchQuery(partySearchQuery),
+    [partySearchQuery],
+  );
+
+  const effectivePartyTypeFilter: LiveTypeFilter =
+    partyTypeFilter !== 'all' ? partyTypeFilter : partyParsedSearch.typeHint ?? 'all';
+  const effectivePartyCountryFilter =
+    partyCountryFilter !== 'all' ? partyCountryFilter : partyParsedSearch.countryHint ?? 'all';
+  const effectivePartyFollowFilter: LiveFollowFilter =
+    partyFollowFilter !== 'all' ? partyFollowFilter : partyParsedSearch.followHint ?? 'all';
+
+  const filteredLivePartyRooms = useMemo(() => {
+    return livePartyRooms.filter((room) => {
+      const country = room.country || countryForHost(room.hostUserId);
+      const liveKind = room.liveKind || liveKindFromRoomMode(room.roomMode);
+      const roomType = resolveLiveRoomType(liveKind, room.roomMode);
+      const isFollowing = followingIds.has(room.hostUserId);
+      const isFollower = followerIds.has(room.hostUserId);
+      if (!matchesLiveTypeFilter(effectivePartyTypeFilter, liveKind, room.roomMode)) {
+        return false;
+      }
+      if (effectivePartyCountryFilter !== 'all' && country !== effectivePartyCountryFilter) {
+        return false;
+      }
+      if (effectivePartyFollowFilter === 'following' && !isFollowing) {
+        return false;
+      }
+      if (effectivePartyFollowFilter === 'followers' && !isFollower) {
+        return false;
+      }
+      return matchesLiveSearch(
+        {
+          user: {
+            id: room.hostUserId,
+            username: room.host,
+            displayName: room.host,
+          },
+          title: room.name,
+          country,
+          liveKind,
+          kindLabel: room.liveKindLabel,
+          roomMode: room.roomMode,
+          roomType,
+          partyRoomId: room.partyRoomId,
+          streamId: room.streamId,
+          isFollowing,
+          isFollower,
+        },
+        partyParsedSearch.text,
+      );
+    });
+  }, [
+    livePartyRooms,
+    effectivePartyTypeFilter,
+    effectivePartyCountryFilter,
+    effectivePartyFollowFilter,
+    partyParsedSearch.text,
+    followingIds,
+    followerIds,
+    db.users,
+  ]);
+
+  const partyFilterSummary = [
+    partySearchQuery.trim() ? `“${partySearchQuery.trim()}”` : null,
+    effectivePartyFollowFilter !== 'all'
+      ? liveFollowFilterLabel(effectivePartyFollowFilter)
+      : null,
+    effectivePartyTypeFilter !== 'all' ? liveTypeFilterLabel(effectivePartyTypeFilter) : null,
+    effectivePartyCountryFilter !== 'all'
+      ? formatLiveCountryLabel(effectivePartyCountryFilter)
+      : null,
+  ]
+    .filter(Boolean)
+    .join(' · ');
+
+  const karaokeLivePreviewTargets = useMemo(
+    () =>
+      filteredLivePartyRooms.map((room) => ({
+        key: room.key,
+        streamId: room.streamId,
+        partyRoomId: room.partyRoomId,
+        initialCount: room.participants,
+      })),
+    [filteredLivePartyRooms],
+  );
+  const karaokeLiveViewerPreviews = useLiveViewerPreviews(
+    karaokeLivePreviewTargets,
     activeTab === 'party',
   );
 
-  const livePartyRooms = useMemo(
-    () =>
-      cloudPartyRooms.filter((room) => isDiscoverableLiveRoomMode(room.roomMode)),
-    [cloudPartyRooms],
-  );
+  const liveFeedLoading =
+    (cloudPartyRoomsLoading || cloudLive.loading) && livePartyRooms.length === 0;
+
+  useEffect(() => {
+    const discovered = cloudLive.streams
+      .filter((s) => s.userId && s.userId !== appUser.id)
+      .map((s) => {
+        const kindTag = s.tags[0];
+        const liveKind = isLiveKind(kindTag) ? kindTag : liveKindFromRoomMode(kindTag);
+        return {
+          id: s.userId,
+          username: s.user,
+          displayName: s.user,
+          avatarUrl: s.img,
+          bio: '',
+          followers: 0,
+          following: 0,
+          status: 'live' as const,
+          liveKind,
+        };
+      });
+    if (discovered.length) db.cacheDiscoveredUsers(discovered);
+  }, [cloudLive.streams, db, appUser.id]);
 
   const toStorageRoomMode = (mode: string): RoomMode => {
-    const normalized = mode.trim();
-    if (normalized === 'SoloLive' || normalized === 'Solo-Live') return 'Solo-Live';
-    if (normalized === 'MultiGuest' || normalized === 'Multi-Guest') return 'Multi-Guest';
-    if (normalized === 'WatchTogether' || normalized === 'Radio') return 'Radio';
-    if (normalized === 'GameLive' || normalized === 'Game-Live') return 'Game-Live';
-    if (normalized === 'Commerce-Live' || normalized === 'CommerceLive') return 'Commerce-Live';
-    if (normalized === 'Party') return 'Party';
-    if (normalized === 'Chorus' || normalized === 'Karaoke') return 'Karaoke';
-    if (normalized === 'Chat') return 'Chat';
+    const normalized = normalizeStorageRoomMode(mode);
+    if (
+      normalized === 'Solo-Live' ||
+      normalized === 'Multi-Guest' ||
+      normalized === 'Radio' ||
+      normalized === 'Game-Live' ||
+      normalized === 'Commerce-Live' ||
+      normalized === 'Party' ||
+      normalized === 'Karaoke' ||
+      normalized === 'Chat'
+    ) {
+      return normalized;
+    }
     return 'Karaoke';
   };
 
@@ -838,10 +1180,40 @@ export function KaraokeScreen() {
     id: string;
     name: string;
     host: string;
+    hostUserId?: string;
     roomMode: string;
+    partyRoomId?: string;
+    streamId?: string;
   }) => {
-    const roomId = String(room.id);
+    const roomId = String(room.partyRoomId || room.id);
     const roomMode = toStorageRoomMode(room.roomMode);
+    if (room.hostUserId) {
+      void openLiveUserRoom(room.hostUserId, {
+        partyRoomId: room.partyRoomId || roomId,
+        streamId: room.streamId,
+        roomName: room.name,
+        roomMode,
+        hostName: room.host,
+        liveKind: liveKindFromRoomMode(roomMode),
+      }).then((opened) => {
+        if (opened) return;
+        ensureRoomSettingsSeeded(roomId, {
+          roomId,
+          roomName: room.name,
+          roomMode,
+          owner: room.host,
+        });
+        ensureRoomRoleUserIds(roomId);
+        saveRoomSettings(roomId, {
+          roomId,
+          roomName: room.name,
+          roomMode,
+        });
+        localStorage.setItem('currentUserRole', 'user');
+        openSmuleRoomFlow(`/room/${roomId}`);
+      });
+      return;
+    }
     ensureRoomSettingsSeeded(roomId, {
       roomId,
       roomName: room.name,
@@ -858,6 +1230,7 @@ export function KaraokeScreen() {
     openSmuleRoomFlow(`/room/${roomId}`);
   };
   const [showGiftModal, setShowGiftModal] = useState(false);
+  const [showRechargeModal, setShowRechargeModal] = useState(false);
   const [showVipModal, setShowVipModal] = useState(false);
   const [desktopLeaderboardTab, setDesktopLeaderboardTab] = useState<'weekly' | 'alltime'>('weekly');
   const [selectedUserProfile, setSelectedUserProfile] = useState<KaraokeSelectedProfile | null>(null);
@@ -1058,7 +1431,7 @@ export function KaraokeScreen() {
 
       if (detail.closeRoomFlow) {
         clearActiveRoomSession();
-        setShowSmuleRoomFlow(false);
+        window.dispatchEvent(new CustomEvent('instant-room-close'));
       }
 
       if (detail.userId) {
@@ -1230,41 +1603,72 @@ export function KaraokeScreen() {
     }));
   };
 
-  const handleSendGift = () => {
-    const giftsList = [
-      { id: 1, name: 'Rose', cost: 10, symbol: '🌹' },
-      { id: 2, name: 'Mic', cost: 50, symbol: '🎤' },
-      { id: 3, name: 'Heart', cost: 100, symbol: '💖' },
-      { id: 4, name: 'Trophy', cost: 500, symbol: '🏆' },
-      { id: 5, name: 'Rocket', cost: 1000, symbol: '🚀' },
-      { id: 6, name: 'Crown', cost: 5000, symbol: '👑' }
-    ];
-    const selectedGift = giftsList.find(g => g.id === selectedGiftId);
-    if (!selectedGift) return;
-
-    if (userCoins < selectedGift.cost) {
-      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Insufficient Coins! Please recharge some. 🪙' }));
-      return;
-    }
-
-    setUserCoins(prev => prev - selectedGift.cost);
-    setShowGiftModal(false);
-
-    if (giftingDuetId) {
-      setDuetGifts(prev => ({
-        ...prev,
-        [giftingDuetId]: (prev[giftingDuetId] || 0) + 1
-      }));
-      window.dispatchEvent(new CustomEvent('app-toast', { detail: `Sent ${selectedGift.name} ${selectedGift.symbol} to performing duet! ✨` }));
-    } else {
-      window.dispatchEvent(new CustomEvent('app-toast', { detail: `Sent ${selectedGift.name} ${selectedGift.symbol}! Thank you! ❤️` }));
-    }
-  };
+  const handleSendKaraokeGift = useCallback(
+    (gift: PartyGiftDefinition, quantity = 1) => {
+      const qty = Math.max(1, Math.min(999, Math.floor(quantity) || 1));
+      const total = gift.stars * qty;
+      if (getLiveCoinsBalance(appUser.id) < total) {
+        window.dispatchEvent(
+          new CustomEvent('app-toast', {
+            detail: 'Insufficient Coins! Please recharge. 🪙',
+          }),
+        );
+        return;
+      }
+      if (!spendWalletCoins(appUser.id, total)) {
+        window.dispatchEvent(
+          new CustomEvent('app-toast', {
+            detail: 'Insufficient Coins! Please recharge. 🪙',
+          }),
+        );
+        return;
+      }
+      setUserCoins(getLiveCoinsBalance(appUser.id));
+      setShowGiftModal(false);
+      if (giftingDuetId) {
+        setDuetGifts((prev) => ({
+          ...prev,
+          [giftingDuetId]: (prev[giftingDuetId] || 0) + qty,
+        }));
+        window.dispatchEvent(
+          new CustomEvent('app-toast', {
+            detail: `Sent ${gift.icon} ${gift.name}${qty > 1 ? ` x${qty}` : ''} to performing duet! ✨`,
+          }),
+        );
+      } else {
+        window.dispatchEvent(
+          new CustomEvent('app-toast', {
+            detail: `Sent ${gift.icon} ${gift.name}${qty > 1 ? ` x${qty}` : ''}! ✨`,
+          }),
+        );
+      }
+      void settlePartyGiftSend(appUser.id, null, total, {
+        giftId: gift.id ?? gift.name,
+        giftName: gift.name,
+        roomId: 'karaoke',
+        quantity: qty,
+        combo: 1,
+        alreadyDebitedLocally: true,
+      }).then((settled) => {
+        if (settled.ok) {
+          setUserCoins(getLiveCoinsBalance(appUser.id));
+          return;
+        }
+        creditUserCoins(appUser.id, total);
+        setUserCoins(getLiveCoinsBalance(appUser.id));
+        window.dispatchEvent(
+          new CustomEvent('app-toast', {
+            detail: settled.reason ?? 'Gift failed — coins restored',
+          }),
+        );
+      });
+    },
+    [appUser.id, giftingDuetId],
+  );
 
   const handleSharePost = (post: KaraokeDuetPost) => {
     const trackId = post.recordingId ?? post.songId ?? post.id;
-    openKaraokeShareModal(
-      buildKaraokeTrackSharePayload({
+    openKaraokeShareModal(      buildKaraokeTrackSharePayload({
         trackId,
         recordingId: post.recordingId ?? null,
         title: post.song,
@@ -1553,47 +1957,13 @@ export function KaraokeScreen() {
   );
 
   useEffect(() => {
-    const onRoomOpen = (event: Event) => {
-      const detail = (event as CustomEvent<{
-        roomId?: string;
-        path?: string;
-        asViewer?: boolean;
-      }>).detail;
-      const path =
-        detail?.path?.trim() ||
-        (detail?.roomId?.trim() ? `/room/${detail.roomId.trim()}` : '');
-      if (!path) return;
-      if (detail?.asViewer) {
-        localStorage.setItem('currentUserRole', 'user');
-      }
-      openSmuleRoomFlow(path);
-    };
-    const onRoomsLiveOpen = (event: Event) => {
-      const detail = (event as CustomEvent<{
-        roomId?: string;
-        path?: string;
-        asViewer?: boolean;
-      }>).detail;
-      const path =
-        detail?.path?.trim() ||
-        (detail?.roomId?.trim() ? `/room/${detail.roomId.trim()}` : '');
-      if (!path) return;
-      if (detail?.asViewer !== false) {
-        localStorage.setItem('currentUserRole', 'user');
-      }
-      openSmuleRoomFlow(path);
-    };
     const onTrackOpen = (event: Event) => {
       const detail = (event as CustomEvent<{ trackId?: string; recordingId?: string | null }>).detail;
       if (!detail?.trackId) return;
       void openKaraokeTrackFromShare(detail.trackId, detail.recordingId);
     };
-    window.addEventListener('karaoke-room-open', onRoomOpen);
-    window.addEventListener('rooms-live-open', onRoomsLiveOpen);
     window.addEventListener('karaoke-track-open', onTrackOpen);
     return () => {
-      window.removeEventListener('karaoke-room-open', onRoomOpen);
-      window.removeEventListener('rooms-live-open', onRoomsLiveOpen);
       window.removeEventListener('karaoke-track-open', onTrackOpen);
     };
   }, [openKaraokeTrackFromShare]);
@@ -2507,11 +2877,22 @@ export function KaraokeScreen() {
            </button>
            <button
              type="button"
-             onClick={() => { setGiftingDuetId(null); setShowGiftModal(true); }}
+             onClick={(event) => {
+               event.preventDefault();
+               event.stopPropagation();
+               setShowGiftModal(false);
+               setGiftingDuetId(null);
+               setShowRechargeModal(true);
+             }}
              className={`${karaokeNavButtonClass('sing')} bg-amber-500/10 hover:bg-amber-500/20 text-amber-500 font-bold text-sm ring-1 ring-amber-500/20`}
+             aria-label="Open coin recharge"
+             title="Buy coins"
            >
              <Coins className="w-5 h-5 shrink-0" />
-             <span className="hidden lg:inline">{userCoins.toLocaleString()}</span>
+             <span className="hidden lg:inline">Recharge</span>
+             <span className="hidden lg:inline rounded-full bg-black/10 px-2 py-0.5 font-mono text-[11px]">
+               {userCoins.toLocaleString()}
+             </span>
            </button>
            <button
              type="button"
@@ -2555,7 +2936,7 @@ export function KaraokeScreen() {
       {/* Main Content Layout */}
       <div className="flex-1 flex flex-col h-full min-h-0 bg-background md:bg-card/30 shadow-sm relative z-10 w-full overflow-hidden transition-colors duration-300">
         {/* Top Header — hidden while smule room flow is open (Create Room / in-room / Sing) */}
-        {!showSmuleRoomFlow && !(activeTab === 'messages' && messagesChatOpen) && (
+        {!(activeTab === 'messages' && messagesChatOpen) && (
         <div className="px-4 py-3 bg-card border-b border-border flex items-center justify-between sticky top-0 z-20 shadow-sm min-h-[64px] shrink-0">
            <div className="flex items-center gap-3">
              {/* Back Button */}
@@ -2642,7 +3023,7 @@ export function KaraokeScreen() {
         )}
 
         {/* Content Area */}
-        <div ref={contentScrollRef} className={`flex-1 min-h-0 scroll-smooth relative ${showSmuleRoomFlow || activeTab === 'messages' || activeTab === 'notifications' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto md:pb-0'}`}>
+        <div ref={contentScrollRef} className={`flex-1 min-h-0 scroll-smooth relative ${activeTab === 'messages' || activeTab === 'notifications' ? 'overflow-hidden flex flex-col' : 'overflow-y-auto md:pb-0'}`}>
           {activeTab === 'messages' && (
             <div className="flex-1 min-h-0 flex flex-col">
               <MessagesScreen
@@ -3318,57 +3699,98 @@ export function KaraokeScreen() {
                   </div>
                 </div>
 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {cloudPartyRoomsLoading && livePartyRooms.length === 0 ? (
-                    <p className="col-span-full text-sm text-muted-foreground">Loading live rooms…</p>
-                  ) : null}
-                  {!cloudPartyRoomsLoading && livePartyRooms.length === 0 ? (
-                    <p className="col-span-full text-sm text-muted-foreground">
-                      No active live rooms right now. Start one above.
+                <div className="space-y-3 mb-4">
+                  <LiveFiltersPanel
+                    title={`Live now (${filteredLivePartyRooms.length}${
+                      filteredLivePartyRooms.length !== livePartyRooms.length
+                        ? ` / ${livePartyRooms.length}`
+                        : ''
+                    })`}
+                    open={partyFiltersOpen}
+                    onOpenChange={setPartyFiltersOpen}
+                    typeFilter={partyTypeFilter}
+                    onTypeFilterChange={setPartyTypeFilter}
+                    countryFilter={partyCountryFilter}
+                    onCountryFilterChange={setPartyCountryFilter}
+                    followFilter={partyFollowFilter}
+                    onFollowFilterChange={setPartyFollowFilter}
+                    searchQuery={partySearchQuery}
+                    onSearchQueryChange={setPartySearchQuery}
+                    availableCountries={partyAvailableCountries}
+                  />
+                  {partyFilterSummary ? (
+                    <p className="px-1 text-[11px] font-semibold text-muted-foreground">
+                      Showing: {partyFilterSummary}
                     </p>
                   ) : null}
-                  {livePartyRooms.map((room) => {
+                </div>
+
+                <div className="grid grid-cols-2 md:grid-cols-2 gap-3">
+                  {liveFeedLoading ? (
+                    <p className="col-span-full text-sm text-muted-foreground">Loading live rooms…</p>
+                  ) : null}
+                  {!liveFeedLoading && livePartyRooms.length === 0 ? (
+                    <div className="col-span-full rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground">
+                      No one is live right now. Tap Start Room to go live.
+                    </div>
+                  ) : null}
+                  {!liveFeedLoading && livePartyRooms.length > 0 && filteredLivePartyRooms.length === 0 ? (
+                    <div className="col-span-full rounded-2xl border border-dashed border-border py-12 text-center text-sm text-muted-foreground space-y-3">
+                      <p>No live rooms match these filters.</p>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setPartyTypeFilter('all');
+                          setPartyCountryFilter('all');
+                          setPartyFollowFilter('all');
+                          setPartySearchQuery('');
+                        }}
+                        className="text-primary font-bold text-sm"
+                      >
+                        Clear filters
+                      </button>
+                    </div>
+                  ) : null}
+                  {filteredLivePartyRooms.map((room) => {
                     const hostLabel = formatRoomHostMeta(
-                      resolveRoomHostDisplay(String(room.id), room.host),
+                      resolveRoomHostDisplay(String(room.partyRoomId || room.id), room.host),
                     );
-                    const extra = Math.max(0, room.participants - 3);
+                    const poster =
+                      safeMediaUrl(room.coverUrl, { fallback: FALLBACK_MEDIA }) ||
+                      FALLBACK_MEDIA;
+                    const preview = karaokeLiveViewerPreviews[room.key];
+                    const viewerCount = preview?.count ?? room.participants;
+                    const caption =
+                      preview?.caption ||
+                      formatRoomModeLabel(
+                        room.roomMode || (room.partyRoomId ? 'Room' : 'Live'),
+                      );
                     return (
-                     <div key={room.id} className="bg-card border border-border rounded-2xl p-4 hover:shadow-md hover:border-primary/40 transition group">
-                        <div className="flex justify-between items-start mb-3">
-                           <div>
-                              <h3 className="font-bold text-lg group-hover:text-primary transition">{room.name}</h3>
-                              <p className="text-sm text-muted-foreground flex items-center gap-1 mt-0.5">Host: <span className="font-semibold text-foreground">{hostLabel}</span></p>
-                              {room.roomMode ? (
-                                <p className="mt-1 text-[10px] font-bold uppercase tracking-wide text-primary/80">{room.roomMode}</p>
-                              ) : null}
-                           </div>
-                           <div className="flex items-center gap-1 bg-black/5 dark:bg-white/10 px-2 py-1 rounded-md text-xs font-bold">
-                              <Users className="w-3 h-3" /> {room.participants}/{room.max}
-                           </div>
-                        </div>
-                        <div className="flex items-center justify-between mt-4">
-                           <div className="flex gap-2">
-                             <div className="flex -space-x-2">
-                               {(room.coverUrl
-                                 ? [room.coverUrl]
-                                 : [1, 2, 3].map((j) => `https://api.dicebear.com/7.x/avataaars/svg?seed=party${room.id}${j}`)
-                               ).slice(0, 3).map((src, j) => (
-                                 <img key={`${room.id}-av-${j}`} src={src} className="w-6 h-6 rounded-full border-2 border-card bg-zinc-200 shadow-sm object-cover" alt="" />
-                               ))}
-                             </div>
-                             {extra > 0 ? (
-                               <span className="text-xs text-muted-foreground flex items-center">+{extra} more</span>
-                             ) : null}
-                           </div>
-                           <button
-                             type="button"
-                             onClick={() => joinPartyRoom(room)}
-                             className="bg-secondary text-foreground text-xs font-bold px-4 py-1.5 rounded-full group-hover:bg-primary group-hover:text-white transition"
-                           >
-                             Join
-                           </button>
-                        </div>
-                     </div>
+                     <button
+                       key={room.key}
+                       type="button"
+                       onClick={() => joinPartyRoom(room)}
+                       className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-border bg-secondary text-left hover:border-primary/40 hover:shadow-md transition"
+                     >
+                        <LiveDiscoveryVideoPreview
+                          posterUrl={poster}
+                          hostUserId={room.hostUserId}
+                          partyRoomId={room.partyRoomId}
+                          streamId={room.streamId}
+                        />
+                        <LiveDiscoveryCardChrome
+                          viewerCount={viewerCount}
+                          viewerAvatars={preview?.avatars ?? []}
+                          caption={caption}
+                          privacy={normalizeRoomPrivacy(room.privacy)}
+                          country={room.country}
+                          hostName={hostLabel || room.host}
+                          hostAvatarUrl={poster}
+                          title={room.name}
+                          subtitle={room.liveKindLabel}
+                          actionLabel="Join"
+                        />
+                     </button>
                     );
                   })}
                 </div>
@@ -3842,7 +4264,7 @@ export function KaraokeScreen() {
                            <span className="absolute top-2 left-2 z-20 px-2 py-0.5 rounded-md bg-primary/90 text-primary-foreground text-[9px] font-black uppercase tracking-wide">
                              Cover
                            </span>
-                           <img src={cover.img || `https://images.unsplash.com/photo-1516280440502-6c9ab45187fb?w=500&auto=format&fit=crop&q=60&${idx}`} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
+                           <img src={cover.img || `https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=500&auto=format&fit=crop&q=60&${idx}`} className="absolute inset-0 w-full h-full object-cover group-hover:scale-105 transition-transform duration-700 opacity-80" />
                            <div className="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent flex flex-col justify-end p-3 z-10">
                              <div className="text-white font-extrabold text-sm truncate">{cover.title}</div>
                              <p className="text-white/70 text-xs truncate mb-1">{cover.artist}</p>
@@ -3866,7 +4288,7 @@ export function KaraokeScreen() {
                    {profileActiveTab === 'duets' && (
                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                        {[
-                         { id: 'd1', partners: `@sing_star & ${profileUser.handle}`, title: 'Shallow (Duet)', plays: '15.4K', likes: '1.2K', img: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?w=500&auto=format&fit=crop&q=60' },
+                         { id: 'd1', partners: `@sing_star & ${profileUser.handle}`, title: 'Shallow (Duet)', plays: '15.4K', likes: '1.2K', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60' },
                          { id: 'd2', partners: `@duet_king & ${profileUser.handle}`, title: 'Stay (Acoustic Duet)', plays: '9.8K', likes: '840', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=500&auto=format&fit=crop&q=60' }
                        ].map((duet) => (
                          <div 
@@ -4123,6 +4545,23 @@ export function KaraokeScreen() {
                   <button
                     type="button"
                     onClick={() => {
+                      setShowMobileMenu(false);
+                      setShowGiftModal(false);
+                      setGiftingDuetId(null);
+                      setShowRechargeModal(true);
+                    }}
+                    className="flex items-center gap-4 w-full p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-amber-500"
+                  >
+                    <Coins className="w-6 h-6" />
+                    Recharge
+                    <span className="ml-auto rounded-full bg-amber-500/15 px-2 py-0.5 font-mono text-[11px]">
+                      {userCoins.toLocaleString()}
+                    </span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => {
                       db.updateSettings({
                         theme: db.settings.theme === 'dark' ? 'light' : 'dark',
                       });
@@ -4168,20 +4607,10 @@ export function KaraokeScreen() {
             </>
           )}
         </AnimatePresence>
-
-        {showSmuleRoomFlow && (
-          <KaraokeSmuleRoomFlow
-            flowKey={smuleRoomFlowKey}
-            initialPath={smuleRoomInitialPath}
-            onClose={() => {
-              clearActiveRoomSession();
-              setShowSmuleRoomFlow(false);
-            }}
-          />
-        )}
       </div>
       
-      {/* Right Side / Sidebar (Desktop specific: Top Singers & Leaderboards) */}
+      {/* Right Side / Sidebar (Desktop): hide on Messages / Notifications */}
+      {activeTab !== 'messages' && activeTab !== 'notifications' ? (
       <div className="hidden xl:flex w-80 2xl:w-96 bg-card/50 flex-col z-10 shrink-0 border-l border-border">
          <div className="p-5 border-b border-border bg-card sticky top-0 shadow-sm">
            <h3 className="font-extrabold text-xl flex items-center gap-2">
@@ -4270,65 +4699,31 @@ export function KaraokeScreen() {
             </div>
          </div>
       </div>
+      ) : null}
       
-      {showGiftModal && (
-         <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-end sm:items-center justify-center p-4">
-            <div className="bg-card w-full max-w-sm rounded-[24px] pt-6 pb-8 px-6 shadow-2xl relative animate-in zoom-in-95 border border-border">
-               <div className="flex justify-between items-center mb-6">
-                  <h3 className="font-extrabold text-xl flex items-center gap-2">Send Gift <Gift className="w-5 h-5 text-pink-500" /></h3>
-                  <button onClick={() => setShowGiftModal(false)} className="p-2 hover:bg-secondary rounded-full bg-secondary/50"><X className="w-5 h-5" /></button>
-               </div>
-               
-               <div className="flex items-center justify-between bg-amber-500/10 px-4 py-3 rounded-xl mb-6 border border-amber-500/20">
-                  <div className="flex items-center gap-2">
-                     <Coins className="w-5 h-5 text-amber-500" />
-                     <span className="font-black text-amber-500">{userCoins.toLocaleString()} Coins</span>
-                  </div>
-                  <button 
-                    onClick={() => {
-                      setUserCoins(prev => prev + 500);
-                      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Added +500 free test Coins! 🪙' }));
-                    }}
-                    className="text-xs font-black bg-amber-500 text-white px-3 py-1.5 rounded-full hover:bg-amber-600 active:scale-95 transition"
-                  >
-                    Recharge
-                  </button>
-               </div>
+      {showGiftModal ? (
+        <PartyGiftPickerPanel
+          open={showGiftModal}
+          onClose={() => {
+            setShowGiftModal(false);
+            setGiftingDuetId(null);
+          }}
+          receiverName={giftingDuetId ? 'Duet performers' : 'Karaoke host'}
+          balance={userCoins}
+          roomTotalStars={0}
+          isPlatformAdmin={db.currentUser?.role === 'admin'}
+          onSendGift={handleSendKaraokeGift}
+        />
+      ) : null}
 
-               <div className="grid grid-cols-3 gap-3 mb-6">
-                  {[
-                    { id: 1, name: 'Rose', cost: 10, icon: '🌹', color: 'border-rose-500/10 hover:border-rose-500 text-rose-500' },
-                    { id: 2, name: 'Mic', cost: 50, icon: '🎤', color: 'border-indigo-500/10 hover:border-indigo-500 text-indigo-500' },
-                    { id: 3, name: 'Heart', cost: 100, icon: '💖', color: 'border-pink-500/10 hover:border-pink-500 text-pink-500' },
-                    { id: 4, name: 'Trophy', cost: 500, icon: '🏆', color: 'border-amber-500/10 hover:border-amber-500 text-amber-500' },
-                    { id: 5, name: 'Rocket', cost: 1000, icon: '🚀', color: 'border-orange-500/10 hover:border-orange-500 text-orange-500' },
-                    { id: 6, name: 'Crown', cost: 5000, icon: '👑', color: 'border-yellow-500/30 hover:border-yellow-500 text-yellow-500' },
-                  ].map((gift) => (
-                     <button 
-                       key={gift.id} 
-                       onClick={() => setSelectedGiftId(gift.id)}
-                       className={`flex flex-col items-center justify-center p-3 rounded-2xl border transition-all active:scale-95 ${
-                         selectedGiftId === gift.id 
-                         ? 'border-primary ring-2 ring-primary/45 bg-primary/5 font-bold' 
-                         : 'bg-secondary/40 hover:bg-secondary border-border/80'
-                       } ${gift.color}`}
-                     >
-                        <div className="text-2xl mb-1">{gift.icon}</div>
-                        <div className="text-[10px] font-bold uppercase tracking-wider">{gift.name}</div>
-                        <div className="text-[10px] font-black flex items-center gap-0.5 mt-1 opacity-90"><Coins className="w-3 h-3 text-amber-500" /> {gift.cost}</div>
-                     </button>
-                  ))}
-               </div>
-
-               <button 
-                 onClick={handleSendGift}
-                 className="w-full py-4 bg-gradient-to-r from-pink-500 via-rose-500 to-amber-500 text-white font-black rounded-xl shadow-lg hover:shadow-xl hover:scale-[1.01] active:scale-95 transition-all uppercase tracking-wider text-sm flex items-center justify-center gap-2"
-               >
-                  <Gift className="w-4 h-4 text-white" /> Direct Gift To Host
-               </button>
-             </div>
-          </div>
-       )}
+      {showRechargeModal ? (
+        <LiveGiftRechargeModal
+          open={showRechargeModal}
+          onClose={() => setShowRechargeModal(false)}
+          onCredited={() => setUserCoins(getLiveCoinsBalance(appUser.id))}
+          zIndexClass="z-[270]"
+        />
+      ) : null}
 
        {showVipModal && (
          <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4">
@@ -4905,9 +5300,9 @@ export function KaraokeScreen() {
                 </div>
               ) : (
                 [
-                  { id: 'p_s1', title: 'Bohemian Rhapsody', artist: 'Queen', plays: '12.4K', likes: '840', img: 'https://images.unsplash.com/photo-1516280440502-6c9ab45187fb?w=100&auto=format&fit=crop&q=60&1' },
+                  { id: 'p_s1', title: 'Bohemian Rhapsody', artist: 'Queen', plays: '12.4K', likes: '840', img: 'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=100&auto=format&fit=crop&q=60&1' },
                   { id: 'p_s2', title: 'Blinding Lights', artist: 'The Weeknd', plays: '8.2K', likes: '620', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60' },
-                  { id: 'p_s3', title: 'Someone Like You', artist: 'Adele', plays: '5.1K', likes: '430', img: 'https://images.unsplash.com/photo-1493225457124-a1a2a5f5f9af?w=100&auto=format&fit=crop&q=60' }
+                  { id: 'p_s3', title: 'Someone Like You', artist: 'Adele', plays: '5.1K', likes: '430', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=100&auto=format&fit=crop&q=60' }
                 ].map((song, i) => (
                   <div 
                     key={song.id}

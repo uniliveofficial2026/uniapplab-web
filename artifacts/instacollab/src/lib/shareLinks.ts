@@ -751,7 +751,7 @@ export function resolveShareCardMeta(
         roomTitle: roomTitle || (ref.partyRoomId ? `Room #${ref.partyRoomId}` : undefined),
         caption: shareNote || roomTitle || 'Join karaoke party room',
         thumbnailUrl:
-          'https://images.unsplash.com/photo-1516280440502-6c9ab45187fb?w=800&auto=format&fit=crop&q=60',
+          'https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60',
       };
     }
     case 'karaoke-track':

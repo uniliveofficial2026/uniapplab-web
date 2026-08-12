@@ -1,9 +1,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import {
+  acquireAppCamera,
+  getAppCameraStream,
+  releaseAppCamera,
+} from '../../lib/camera/appCameraOwner';
 
 type UseWatchTogetherGameCastOptions = {
   /** Room owner / media manager can start device screen cast. */
   canCast: boolean;
 };
+
+const CAST_LEASE = 'watch-together-cast';
 
 export function useWatchTogetherGameCast({ canCast }: UseWatchTogetherGameCastOptions) {
   const [screenStream, setScreenStream] = useState<MediaStream | null>(null);
@@ -15,12 +22,12 @@ export function useWatchTogetherGameCast({ canCast }: UseWatchTogetherGameCastOp
 
   const stopCast = useCallback(() => {
     screenStream?.getTracks().forEach((track) => track.stop());
-    cameraStream?.getTracks().forEach((track) => track.stop());
+    releaseAppCamera(CAST_LEASE);
     setScreenStream(null);
     setCameraStream(null);
     setCasting(false);
     setCastError(null);
-  }, [cameraStream, screenStream]);
+  }, [screenStream]);
 
   const startCast = useCallback(async () => {
     if (!canCast || casting) return;
@@ -30,10 +37,16 @@ export function useWatchTogetherGameCast({ canCast }: UseWatchTogetherGameCastOp
         video: { frameRate: 30 },
         audio: true,
       });
-      const camera = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode: 'user', width: 480, height: 360 },
-        audio: false,
-      });
+      const shared = getAppCameraStream();
+      const camera =
+        shared ??
+        (await acquireAppCamera(CAST_LEASE, {
+          audio: false,
+          facingMode: 'user',
+          exactFacing: false,
+          videoIdeal: { width: 480, height: 360 },
+          frameRate: { ideal: 24, max: 30 },
+        }));
       screen.getVideoTracks()[0]?.addEventListener('ended', () => {
         stopCast();
       });

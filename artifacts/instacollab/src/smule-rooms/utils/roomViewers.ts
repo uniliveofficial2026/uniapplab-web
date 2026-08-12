@@ -64,8 +64,10 @@ export function buildViewersFromPartyState(
   seats: PartySeatMap,
   self: RoomSelfIdentity,
   roomId: string,
+  options?: { includeSelf?: boolean },
 ): RoomViewerEntry[] {
   const byId = new Map<string, RoomViewerEntry>();
+  const includeSelf = options?.includeSelf !== false;
 
   const upsert = (entry: RoomViewerEntry) => {
     const existing = byId.get(entry.id);
@@ -80,18 +82,20 @@ export function buildViewersFromPartyState(
     });
   };
 
-  const selfIdentity = resolveRoomMemberIdentity(self.id, self.roomName, roomId);
-  const selfRole = resolveMemberRoleForUser(settings, self.id);
-  upsert({
-    id: self.id,
-    name: selfIdentity.name,
-    avatar: selfIdentity.avatarUrl,
-    isFollowing: viewerFollowsRoomOwner(settings, self.id),
-    isAdmin: selfRole === 'admin',
-    isCoOwner: selfRole === 'co-owner',
-    isOwner: selfRole === 'owner',
-    joinedAt: Date.now(),
-  });
+  if (includeSelf) {
+    const selfIdentity = resolveRoomMemberIdentity(self.id, self.roomName, roomId);
+    const selfRole = resolveMemberRoleForUser(settings, self.id);
+    upsert({
+      id: self.id,
+      name: selfIdentity.name,
+      avatar: selfIdentity.avatarUrl,
+      isFollowing: viewerFollowsRoomOwner(settings, self.id),
+      isAdmin: selfRole === 'admin',
+      isCoOwner: selfRole === 'co-owner',
+      isOwner: selfRole === 'owner',
+      joinedAt: Date.now(),
+    });
+  }
 
   for (const seatKey of ALL_SEAT_KEYS) {
     const guest = seats[seatKey];

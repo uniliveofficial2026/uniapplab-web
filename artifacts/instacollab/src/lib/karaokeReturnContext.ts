@@ -37,7 +37,7 @@ export function captureShareProfileReturnContext(): KaraokeProfileReturnContext 
   return { surface: 'app', tab: appTab, useAppBack: true };
 }
 
-/** True when a K-Star profile was opened from the main InstaCollab app (not from within K-Star). */
+/** True when a K-Star profile was opened from the main UniLive app (not from within K-Star). */
 export function openedKaraokeProfileFromMainApp(
   context: KaraokeProfileReturnContext | null | undefined,
 ): boolean {

@@ -55,7 +55,7 @@ export const USERS: User[] = [
     username: 'code_ninja',
     displayName: 'Ninja Coder',
     avatarUrl:
-      'https://images.unsplash.com/photo-1539571696357-5a69c17a6dc6?w=150&h=150&fit=crop',
+      'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
     isVerified: true,
     status: 'live',
     liveKind: 'video-multi',
@@ -63,11 +63,11 @@ export const USERS: User[] = [
   {
     id: 'u8',
     username: 'battle_ace',
-    displayName: 'Ace PK',
+    displayName: 'Ace Live',
     avatarUrl:
       'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&h=150&fit=crop',
     status: 'live',
-    liveKind: 'pk',
+    liveKind: 'solo',
   },
   {
     id: 'u9',
@@ -145,7 +145,7 @@ export const DEMO_LIVE_KIND_PATCHES: Record<string, LiveKind> = {
   u3: 'solo',
   u6: 'audio-room',
   u7: 'video-multi',
-  u8: 'pk',
+  u8: 'solo',
   u9: 'commerce',
   u10: 'game',
 };

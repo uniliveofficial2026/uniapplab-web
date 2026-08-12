@@ -285,12 +285,12 @@ export default defineConfig(async ({ mode }) => {
       },
       manifest: {
         id: normalizedBase,
-        name: "UniLive",
-        short_name: "UniLive",
+        name: "UniLive’s",
+        short_name: "UniLive’s",
         description:
-          "UniLive is a live social app for going live, chatting, sharing posts, and collaborating with creators in real time.",
-        theme_color: "#020617",
-        background_color: "#020617",
+          "UniLive’s is a live social app for going live, chatting, sharing posts, and collaborating with creators in real time.",
+        theme_color: "#000000",
+        background_color: "#000000",
         display: "standalone",
         display_override: ["window-controls-overlay", "standalone", "browser"],
         orientation: "portrait-primary",
@@ -340,6 +340,24 @@ export default defineConfig(async ({ mode }) => {
             res.setHeader('X-Local-Game', '1');
             res.end('Local game asset — register local-game-sw.js to serve this path.');
             return;
+          }
+          next();
+        });
+      },
+    },
+    {
+      name: 'greedy-slot-spa-fallback',
+      configureServer(server) {
+        server.middlewares.use((req, res, next) => {
+          const raw = (req.url || '').split('?')[0] || '';
+          // Keep static assets; rewrite soft routes onto the embedded game shell.
+          if (
+            raw === '/games/greedy-slot' ||
+            raw === '/games/greedy-slot/' ||
+            raw === '/games/greedy-slot/admin' ||
+            raw.startsWith('/games/greedy-slot/admin/')
+          ) {
+            req.url = '/games/greedy-slot/index.html';
           }
           next();
         });

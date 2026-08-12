@@ -4,12 +4,21 @@ import { ImagePlus } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64 } from '../../lib/utils';
+import { UniLivesOnboardingArtwork } from '../onboarding/brand/UniLivesOnboardingArtwork';
+import type { OnboardingStepKey } from '../onboarding/brand/onboardingResolve';
 
 const MAX_BYTES = 12 * 1024 * 1024;
 const FILE_ACCEPT =
   'image/*,image/svg+xml,video/*,.svg,.webp,.png,.jpg,.jpeg,.gif,.mp4,.webm,.mov';
 
-export function OnboardingBackgroundUpload({ slideIcon: SlideIcon }: { slideIcon: LucideIcon }) {
+export function OnboardingBackgroundUpload({
+  slideIcon: SlideIcon,
+  step,
+}: {
+  slideIcon: LucideIcon;
+  /** Canonical onboarding step for registry artwork (visual only). */
+  step: OnboardingStepKey;
+}) {
   const db = useDB();
   const { showToast } = useToast();
   const inputId = useId();
@@ -43,7 +52,7 @@ export function OnboardingBackgroundUpload({ slideIcon: SlideIcon }: { slideIcon
   return (
     <label
       htmlFor={inputId}
-      className="group relative h-20 w-20 rounded-3xl bg-primary/10 flex items-center justify-center text-primary cursor-pointer overflow-hidden ring-0 hover:ring-2 hover:ring-primary/40 focus-within:ring-2 focus-within:ring-primary/50 transition-shadow"
+      className="group relative h-20 w-20 rounded-3xl bg-[color:var(--color-unilives-onboarding-surface)] flex items-center justify-center text-[color:var(--color-unilives-primary)] cursor-pointer overflow-hidden ring-0 hover:ring-2 hover:ring-[color:var(--color-unilives-primary)]/40 focus-within:ring-2 focus-within:ring-[color:var(--color-unilives-primary)]/50 transition-shadow"
       title="Choose image or video for full-screen background"
     >
       {bgUrl && !isVideo ? (
@@ -57,16 +66,25 @@ export function OnboardingBackgroundUpload({ slideIcon: SlideIcon }: { slideIcon
         {bgUrl ? (
           <ImagePlus className="h-8 w-8 opacity-90 group-hover:scale-110 transition-transform" />
         ) : (
-          <SlideIcon className="h-10 w-10" strokeWidth={1.75} />
+          <UniLivesOnboardingArtwork
+            step={step}
+            FallbackIcon={SlideIcon}
+            className="relative h-20 w-20 flex items-center justify-center overflow-hidden bg-transparent"
+            iconClassName="h-10 w-10"
+          />
         )}
       </div>
       <div
         className={`absolute inset-0 z-[2] flex items-center justify-center bg-black/0 transition-colors ${
-          bgUrl ? 'opacity-0 group-hover:opacity-100 group-hover:bg-black/40' : 'opacity-0 group-hover:opacity-100 group-hover:bg-primary/15'
+          bgUrl
+            ? 'opacity-0 group-hover:opacity-100 group-hover:bg-black/40'
+            : 'opacity-0 group-hover:opacity-100 group-hover:bg-[color:var(--color-unilives-primary)]/15'
         }`}
         aria-hidden
       >
-        <ImagePlus className={`h-7 w-7 ${bgUrl ? 'text-white' : 'text-primary'}`} />
+        <ImagePlus
+          className={`h-7 w-7 ${bgUrl ? 'text-white' : 'text-[color:var(--color-unilives-primary)]'}`}
+        />
       </div>
       <input
         id={inputId}

@@ -1,19 +1,23 @@
 /**
  * Slow-network policy: UI never waits on the internet.
  * All network work is short-timeout + background-only.
+ * Tuned for realtime feel — fail fast and retry silently.
  */
 
 /** Max wait for auth session read (local storage usually; network refresh must not hang). */
-export const NET_AUTH_MS = 1_200;
+export const NET_AUTH_MS = 800;
 
 /** Max wait for a single API / Supabase query used by background sync. */
-export const NET_API_MS = 4_000;
+export const NET_API_MS = 2_500;
+
+/** First-attempt LiveKit/API soft timeout — fail fast, retry in background. */
+export const NET_API_FAST_MS = 1_200;
 
 /** Max wait for profile / app-state hydrate in background. */
-export const NET_HYDRATE_MS = 3_000;
+export const NET_HYDRATE_MS = 2_000;
 
 /** Soft cap for feed/inbox pulls. */
-export const NET_FEED_MS = 5_000;
+export const NET_FEED_MS = 3_000;
 
 export function withTimeout<T>(promise: Promise<T>, ms: number, label = 'request'): Promise<T> {
   return new Promise<T>((resolve, reject) => {

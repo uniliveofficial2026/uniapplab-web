@@ -1,6 +1,22 @@
 <!doctype html>
 <html lang="en">
   <head>
+    <script>
+      (function () {
+        try {
+          var q = new URLSearchParams(location.search).get('rt');
+          if (q) {
+            window.__GREEDY_RT__ = q.replace(/\/$/, '');
+            return;
+          }
+          // Production shell on UniLive → direct realtime backend (WebSocket).
+          if (!/localhost|127\.0\.0\.1/.test(location.hostname)) {
+            window.__GREEDY_RT__ = 'https://uniapplab-greedy-tap.onrender.com';
+          }
+        } catch (e) {}
+      })();
+    </script>
+
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover, maximum-scale=1.0, user-scalable=no" />
     <title>Remix: Greedy Casino Slot</title>
@@ -40,8 +56,8 @@
         originalConsoleError.apply(console, arguments);
       };
     </script>
-    <script type="module" crossorigin src="./assets/index-DW2EqTfP.js"></script>
-    <link rel="stylesheet" crossorigin href="./assets/index-Cj14pH_u.css">
+    <script type="module" crossorigin src="./assets/index-gmdZDsVP.js"></script>
+    <link rel="stylesheet" crossorigin href="./assets/index-B-qL2mWF.css">
   </head>
   <body>
     <div id="root"></div>

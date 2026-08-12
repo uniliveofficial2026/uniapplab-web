@@ -133,7 +133,7 @@ export function MessagesActiveCallOverlay({
           stream={localDisplayStream}
           layout="fill"
           framing="wide"
-          mirrored={mirrorLocalPreview && !showProcessedPreview}
+          mirrored={mirrorLocalPreview}
           label="Your camera"
         />
       ) : (

@@ -25,17 +25,53 @@ function buildEffectStack(effects: TencentEffectSelection) {
   return stack;
 }
 
+function assetIdsFromEffects(effects: TencentEffectSelection): string[] {
+  return [effects.makeupId, effects.stickerId, effects.shapeEffectId].filter(Boolean) as string[];
+}
+
+function buildBeautifyKey(beautify: TencentBeautifyParams): string {
+  return JSON.stringify(beautify);
+}
+
+function buildAssetsKey(effects: TencentEffectSelection, beautyOn: boolean): string {
+  return JSON.stringify({
+    beautyOn,
+    makeupId: effects.makeupId ?? null,
+    stickerId: effects.stickerId ?? null,
+    shapeEffectId: effects.shapeEffectId ?? null,
+    filterId: effects.filterId ?? null,
+    backgroundUrl: effects.backgroundUrl ?? null,
+    backgroundType: effects.backgroundType ?? null,
+  });
+}
+
+function yieldToMain(): Promise<void> {
+  return new Promise((resolve) => {
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => resolve());
+      });
+      return;
+    }
+    setTimeout(resolve, 0);
+  });
+}
+
 async function preloadEffectIds(instance: TencentWebARInstance, ids: string[]) {
   if (ids.length === 0 || !instance.preloadEffectByIds) return;
   await Promise.all(
     ids.filter(Boolean).map(
       (id) =>
         new Promise<void>((resolve) => {
-          instance.preloadEffectByIds?.(
-            [id],
-            () => resolve(),
-            () => resolve(),
-          );
+          try {
+            instance.preloadEffectByIds?.(
+              [id],
+              () => resolve(),
+              () => resolve(),
+            );
+          } catch {
+            resolve();
+          }
         }),
     ),
   );
@@ -52,12 +88,11 @@ export function buildTencentWebARApplyKey(state: TencentWebARApplyState): string
   });
 }
 
-function applyInstantLook(
+function applyBeautifyOnly(
   instance: TencentWebARInstance,
   state: TencentWebARApplyState,
-  stack: Array<string | { id: string; intensity?: number; filterIntensity?: number }>,
 ): void {
-  const { beautify, effects, beautyOn, mirror } = state;
+  const { beautify, beautyOn, mirror } = state;
   try {
     instance.setCommonConfig?.({ mirror });
   } catch {
@@ -66,22 +101,7 @@ function applyInstantLook(
 
   if (!beautyOn) {
     try {
-      instance.setEffect?.(null);
-    } catch {
-      /* ignore */
-    }
-    try {
-      instance.setFilter?.(null);
-    } catch {
-      /* ignore */
-    }
-    try {
       instance.setBeautify(BEAUTY_OFF_PARAMS);
-    } catch {
-      /* ignore */
-    }
-    try {
-      instance.disable?.();
     } catch {
       /* ignore */
     }
@@ -98,6 +118,28 @@ function applyInstantLook(
   } catch {
     /* ignore */
   }
+}
+
+function applyFilterAndEffects(
+  instance: TencentWebARInstance,
+  state: TencentWebARApplyState,
+  stack: Array<string | { id: string; intensity?: number; filterIntensity?: number }>,
+): void {
+  const { effects, beautyOn } = state;
+  if (!beautyOn) {
+    try {
+      instance.setFilter?.(null);
+    } catch {
+      /* ignore */
+    }
+    try {
+      instance.setEffect?.(null);
+    } catch {
+      /* ignore */
+    }
+    return;
+  }
+
   try {
     if (effects.filterId) instance.setFilter?.(effects.filterId, 1);
     else instance.setFilter?.(null);
@@ -111,32 +153,63 @@ function applyInstantLook(
   }
 }
 
-/** Apply TRTC state. Beautify/filter/effects apply immediately; assets preload in the background. */
+type ApplyOptions = {
+  segmentationOnRef?: { current: boolean };
+  force?: boolean;
+  lastKeyRef?: { current: string };
+  lastBeautifyKeyRef?: { current: string };
+  lastAssetsKeyRef?: { current: string };
+};
+
+/**
+ * ALL SDK calls are deferred off the click stack (latest-wins queue + paint yield).
+ * This is required — setBeautify/setEffect on the tap handler blocked 1–5s and blanked UI.
+ */
 export function applyTencentWebARState(
   instance: TencentWebARInstance,
   state: TencentWebARApplyState,
-  options?: {
-    segmentationOnRef?: { current: boolean };
-    force?: boolean;
-    lastKeyRef?: { current: string };
-  },
+  options?: ApplyOptions,
 ): Promise<void> {
   const key = buildTencentWebARApplyKey(state);
   if (!options?.force && options?.lastKeyRef && options.lastKeyRef.current === key) {
     return Promise.resolve();
   }
 
-  const { beautify, effects, beautyOn, needsSegmentation, mirror } = state;
+  const { effects, beautyOn, needsSegmentation } = state;
   const stack = buildEffectStack(effects);
+  const beautifyKey = buildBeautifyKey(state.beautify);
+  const assetsKey = buildAssetsKey(effects, beautyOn);
+  const prevBeautifyKey = options?.lastBeautifyKeyRef?.current ?? '';
+  const prevAssetsKey = options?.lastAssetsKeyRef?.current ?? '';
+  const beautifyChanged = options?.force || prevBeautifyKey !== beautifyKey;
+  const assetsChanged = options?.force || prevAssetsKey !== assetsKey;
+  const assetIds = assetIdsFromEffects(effects);
+  const needsHeavyWork =
+    assetsChanged ||
+    Boolean(effects.backgroundUrl) ||
+    Boolean(options?.segmentationOnRef && options.segmentationOnRef.current !== needsSegmentation);
 
-  applyInstantLook(instance, state, stack);
-
-  if (options?.lastKeyRef) {
-    options.lastKeyRef.current = key;
+  // Claim this key immediately so superseded taps cancel older queue work.
+  if (options?.lastKeyRef) options.lastKeyRef.current = key;
+  if (options?.lastBeautifyKeyRef && beautifyChanged) {
+    options.lastBeautifyKeyRef.current = beautifyKey;
+  }
+  if (options?.lastAssetsKeyRef && assetsChanged) {
+    options.lastAssetsKeyRef.current = assetsKey;
   }
 
   return enqueueTencentWebAREffect(async () => {
-    // Drop stale jobs — a newer apply already owns lastKeyRef.
+    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
+    await yieldToMain();
+    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
+
+    if (beautifyChanged || options?.force || !beautyOn || !needsHeavyWork) {
+      applyBeautifyOnly(instance, state);
+      // setBeautify can burn 200–800ms on first GPU bind — yield before effects/UI.
+      await yieldToMain();
+    }
+
+    if (!needsHeavyWork) return;
     if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
 
     const segmentationOnRef = options?.segmentationOnRef;
@@ -158,16 +231,16 @@ export function applyTencentWebARState(
 
     if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
 
-    const preloadIds = [effects.makeupId, effects.stickerId, effects.shapeEffectId].filter(
-      Boolean,
-    ) as string[];
-    if (preloadIds.length > 0) {
-      await preloadEffectIds(instance, preloadIds);
+    if (assetIds.length > 0) {
+      await preloadEffectIds(instance, assetIds);
     }
 
     if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
+    await yieldToMain();
+    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
 
-    applyInstantLook(instance, state, stack);
+    applyBeautifyOnly(instance, state);
+    applyFilterAndEffects(instance, state, stack);
 
     try {
       if (effects.backgroundUrl && beautyOn) {
@@ -175,16 +248,11 @@ export function applyTencentWebARState(
         const type =
           effects.backgroundType ?? bg.type ?? inferTencentBackgroundType(effects.backgroundUrl);
         await instance.setBackground?.({ type, src: bg.src });
-      } else {
+      } else if (assetsChanged && !effects.backgroundUrl) {
         await instance.setBackground?.(null);
       }
     } catch {
       /* ignore */
-    }
-
-    if (options?.lastKeyRef && options.lastKeyRef.current !== key) return;
-    if (options?.lastKeyRef) {
-      options.lastKeyRef.current = key;
     }
   });
 }

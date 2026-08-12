@@ -193,7 +193,7 @@ export function ChatCallPipWindow({
             ) : mainStream ? (
               <CallVideoSurface
                 stream={mainStream}
-                mirrored={!hasRemote && mirrorLocalPreview && !showProcessedPreview}
+                mirrored={!hasRemote && mirrorLocalPreview}
                 className="h-full w-full object-cover"
                 label={hasRemote ? 'Remote video' : 'Your camera'}
               />
@@ -211,7 +211,7 @@ export function ChatCallPipWindow({
             {hasRemote && isCameraEnabled && localDisplayStream ? (
               <CallVideoSurface
                 stream={localDisplayStream}
-                mirrored={mirrorLocalPreview && !showProcessedPreview}
+                mirrored={mirrorLocalPreview}
                 className="absolute bottom-2 right-2 h-14 w-10 rounded-lg border border-white/30 object-cover bg-black/40 shadow-lg"
                 label="Your camera"
               />

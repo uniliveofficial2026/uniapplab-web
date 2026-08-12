@@ -1,6 +1,6 @@
-# UniAppLab
+# UniLive's
 
-Monorepo for [uniapplab.com](https://uniapplab.com) — social app, API, and services.
+Monorepo for [uniapplab.com](https://uniapplab.com) — UniLive's social app, API, and services.
 
 ## Domain map
 
@@ -8,7 +8,7 @@ Monorepo for [uniapplab.com](https://uniapplab.com) — social app, API, and ser
 |------|------|
 | `uniapplab.com` | Landing website |
 | `www.uniapplab.com` | Public website |
-| `app.uniapplab.com` | **React app** (Vercel) — InstaCollab |
+| `app.uniapplab.com` | **UniLive's** React app (Vercel) |
 | `api.uniapplab.com` | Backend API |
 | `live.uniapplab.com` | Live streaming |
 | `call.uniapplab.com` | Voice / video calls |

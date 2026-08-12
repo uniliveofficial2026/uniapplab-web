@@ -52,7 +52,7 @@ export function ChatFilePreviewPortal({
     <div
       id="media-full-screen-modal"
       data-media-fullscreen="true"
-      className="fixed inset-0 z-[410] flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-black pointer-events-auto animate-in fade-in duration-200 overscroll-none"
+      className="fixed inset-0 z-[410] flex h-vv max-h-vv w-full max-w-[100vw] flex-col overflow-hidden bg-black pointer-events-auto animate-in fade-in duration-200 overscroll-none"
       role="dialog"
       aria-modal="true"
       aria-label={`View ${name}`}

@@ -1,0 +1,152 @@
+{
+  "items": [
+    {
+      "id": "hotdog",
+      "name": "Hot Dog",
+      "multiplier": 10,
+      "icon": "🌭",
+      "weight": 2
+    },
+    {
+      "id": "skewer",
+      "name": "Skewer",
+      "multiplier": 15,
+      "icon": "🍢",
+      "weight": 1.5
+    },
+    {
+      "id": "ham",
+      "name": "Ham",
+      "multiplier": 25,
+      "icon": "🍖",
+      "weight": 1
+    },
+    {
+      "id": "steak",
+      "name": "Steak",
+      "multiplier": 45,
+      "icon": "🥩",
+      "weight": 0.4
+    },
+    {
+      "id": "carrot",
+      "name": "Carrot",
+      "multiplier": 5,
+      "icon": "🥕",
+      "weight": 28
+    },
+    {
+      "id": "corn",
+      "name": "Corn",
+      "multiplier": 5,
+      "icon": "🌽",
+      "weight": 28
+    },
+    {
+      "id": "cabbage",
+      "name": "Cabbage",
+      "multiplier": 5,
+      "icon": "🥬",
+      "weight": 28
+    },
+    {
+      "id": "tomato",
+      "name": "Tomato",
+      "multiplier": 5,
+      "icon": "🍅",
+      "weight": 28
+    },
+    {
+      "id": "salad",
+      "name": "Salad",
+      "multiplier": 50,
+      "icon": "🥗",
+      "weight": 0.25
+    },
+    {
+      "id": "pizza",
+      "name": "Pizza",
+      "multiplier": 100,
+      "icon": "🍕",
+      "weight": 0.05
+    }
+  ],
+  "users": {},
+  "sellerApplications": [
+    {
+      "id": "test_seller_id",
+      "name": "Test Coin Seller",
+      "email": "test@test.com",
+      "volume": "100,000+ Coins",
+      "motivation": "System test account for demo environment.",
+      "status": "approved",
+      "date": "2026-07-21T14:06:58.096Z",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=TestSeller",
+      "userId": "test@test.com",
+      "password": "test123",
+      "stock": 250000
+    },
+    {
+      "id": "1",
+      "name": "John Doe",
+      "email": "john@example.com",
+      "volume": "10,000 - 50,000 Coins",
+      "motivation": "Want to sell",
+      "status": "pending",
+      "date": "2026-07-21T14:06:58.096Z",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=John"
+    },
+    {
+      "id": "2",
+      "name": "CryptoTrader99",
+      "email": "trader@crypto.net",
+      "volume": "50,000+ Coins",
+      "motivation": "Large crypto trades",
+      "status": "approved",
+      "date": "2026-07-20T14:06:58.096Z",
+      "avatar": "https://api.dicebear.com/7.x/avataaars/svg?seed=Trader",
+      "stock": 1000000
+    }
+  ],
+  "transactions": [
+    {
+      "id": "1",
+      "userId": "Player 1",
+      "type": "shop_purchase",
+      "amount": 50000,
+      "date": "2026-07-21T14:06:58.096Z"
+    },
+    {
+      "id": "2",
+      "userId": "Sarah",
+      "type": "seller_purchase",
+      "amount": 100000,
+      "date": "2026-07-21T13:06:58.096Z",
+      "sellerId": "CryptoTrader99"
+    },
+    {
+      "id": "3",
+      "userId": "John",
+      "type": "shop_purchase",
+      "amount": 15000,
+      "date": "2026-07-20T14:06:58.096Z"
+    }
+  ],
+  "autoAiEnabled": true,
+  "shopBonuses": {
+    "1": 0,
+    "2": 0,
+    "3": 0,
+    "4": 0,
+    "5": 0,
+    "6": 0
+  },
+  "allHistoricalBets": [],
+  "dailyWins": {
+    "steak": 1
+  },
+  "lastResetDate": "Tue Jul 21 2026",
+  "jackpotPool": 12596,
+  "jackpotTimer": 1800,
+  "jackpotWinners": []
+}

@@ -1,6 +1,11 @@
 import type { User as SupabaseUser } from '@supabase/supabase-js';
-import type { User as FirebaseUser } from 'firebase/auth';
+import type { AuthSdkUser } from './authSdkUser';
 import { safeLocalStorage } from '../utils';
+import {
+  canonicalDeviceAccountUid,
+  collapseLinkedDeviceAccounts,
+  identityAliasUids,
+} from './accountIdentity';
 import { isCloudAuthConfigured } from './config';
 import { isCloudAuthUserId } from './cloudProfile';
 
@@ -15,13 +20,18 @@ export type StoredDeviceAccount = {
 export const DEVICE_ACCOUNTS_KEY = 'user_accounts';
 export const DEVICE_ACTIVE_UID_KEY = 'local_active_uid';
 const GOOGLE_TOKEN_PREFIX = 'google_access_token_';
-const MAX_DEVICE_ACCOUNTS = 5;
+/** Soft cap — never auto-evict old accounts; user must delete. */
+export const MAX_DEVICE_ACCOUNTS = 20;
 
 function dedupeAccounts(list: StoredDeviceAccount[]): StoredDeviceAccount[] {
   return list.filter(
     (item, idx, self) =>
       item?.uid && self.findIndex((t) => t.uid === item.uid) === idx
   );
+}
+
+function normalizeDeviceAccounts(list: StoredDeviceAccount[]): StoredDeviceAccount[] {
+  return collapseLinkedDeviceAccounts(dedupeAccounts(list));
 }
 
 export function isDeviceAccountEligible(account: StoredDeviceAccount): boolean {
@@ -35,7 +45,7 @@ export function isDeviceAccountEligible(account: StoredDeviceAccount): boolean {
 export function filterEligibleDeviceAccounts(
   accounts: StoredDeviceAccount[] = readDeviceAccounts(),
 ): StoredDeviceAccount[] {
-  return dedupeAccounts(accounts).filter(isDeviceAccountEligible);
+  return normalizeDeviceAccounts(accounts).filter(isDeviceAccountEligible);
 }
 
 /** Drop demo/local ids (u1, u2, …) from the switcher when cloud auth is enabled. */
@@ -51,7 +61,7 @@ export function readDeviceAccounts(): StoredDeviceAccount[] {
   try {
     const parsed = JSON.parse(saved);
     if (!Array.isArray(parsed)) return [];
-    return dedupeAccounts(parsed);
+    return normalizeDeviceAccounts(parsed);
   } catch {
     return [];
   }
@@ -63,7 +73,8 @@ function notifyDeviceAccountsChanged(): void {
 }
 
 export function writeDeviceAccounts(accounts: StoredDeviceAccount[]): void {
-  const unique = dedupeAccounts(accounts).slice(-MAX_DEVICE_ACCOUNTS);
+  // Keep every distinct account until the user deletes it — never slice off older rows.
+  const unique = normalizeDeviceAccounts(accounts);
   safeLocalStorage.setItem(DEVICE_ACCOUNTS_KEY, JSON.stringify(unique));
   notifyDeviceAccountsChanged();
 }
@@ -72,25 +83,48 @@ export function upsertDeviceAccount(
   account: StoredDeviceAccount,
   existing: StoredDeviceAccount[] = readDeviceAccounts()
 ): StoredDeviceAccount[] {
+  const withCandidate = [...existing, account];
+  const canonicalUid = canonicalDeviceAccountUid(account.uid, withCandidate);
   const linkedAt = account.linkedAt ?? new Date().toISOString();
-  const nextEntry = { ...account, linkedAt };
-  const has = existing.some((a) => a.uid === account.uid);
+  const nextEntry: StoredDeviceAccount = {
+    ...account,
+    uid: canonicalUid,
+    linkedAt,
+  };
+
+  const aliases = new Set(identityAliasUids(canonicalUid, withCandidate));
+  const withoutAliases = existing.filter(
+    (row) => !aliases.has(row.uid) || row.uid === canonicalUid,
+  );
+  const has = withoutAliases.some((row) => row.uid === canonicalUid);
+
+  if (!has && withoutAliases.length >= MAX_DEVICE_ACCOUNTS) {
+    // Soft cap: refuse adding a brand-new identity; never delete older accounts.
+    const collapsed = normalizeDeviceAccounts(withoutAliases);
+    writeDeviceAccounts(collapsed);
+    return collapsed;
+  }
+
   const next = has
-    ? existing.map((a) => (a.uid === account.uid ? { ...a, ...nextEntry } : a))
-    : [...existing, nextEntry];
-  const unique = dedupeAccounts(next).slice(-MAX_DEVICE_ACCOUNTS);
-  writeDeviceAccounts(unique);
-  return unique;
+    ? withoutAliases.map((row) =>
+        row.uid === canonicalUid ? { ...row, ...nextEntry } : row,
+      )
+    : [...withoutAliases, nextEntry];
+  writeDeviceAccounts(next);
+  return readDeviceAccounts();
 }
 
 export function removeDeviceAccount(
   uid: string,
   existing: StoredDeviceAccount[] = readDeviceAccounts()
 ): StoredDeviceAccount[] {
-  const next = existing.filter((a) => a.uid !== uid);
+  const aliases = new Set(identityAliasUids(uid, existing));
+  const next = existing.filter((row) => !aliases.has(row.uid));
   writeDeviceAccounts(next);
-  safeLocalStorage.removeItem(`${GOOGLE_TOKEN_PREFIX}${uid}`);
-  safeLocalStorage.removeItem(`local_profile_${uid}`);
+  for (const alias of aliases) {
+    safeLocalStorage.removeItem(`${GOOGLE_TOKEN_PREFIX}${alias}`);
+    safeLocalStorage.removeItem(`local_profile_${alias}`);
+  }
   return next;
 }
 
@@ -144,7 +178,7 @@ export function accountFromSupabaseUser(user: SupabaseUser): StoredDeviceAccount
   };
 }
 
-export function accountFromFirebaseUser(user: FirebaseUser): StoredDeviceAccount {
+export function accountFromFirebaseUser(user: AuthSdkUser): StoredDeviceAccount {
   return {
     uid: user.uid,
     displayName: user.displayName,
@@ -206,9 +240,13 @@ export function enrichDeviceAccountsForDisplay(
   }> = [],
 ): StoredDeviceAccount[] {
   const byId = new Map(liveUsers.map((user) => [user.id, user]));
-  return accounts.map((account) => {
-    const live = byId.get(account.uid);
-    const snapshot = readLocalProfileSnapshot(account.uid);
+  return normalizeDeviceAccounts(accounts).map((account) => {
+    const live =
+      byId.get(account.uid) ||
+      byId.get(canonicalDeviceAccountUid(account.uid, accounts));
+    const snapshot =
+      readLocalProfileSnapshot(account.uid) ||
+      readLocalProfileSnapshot(canonicalDeviceAccountUid(account.uid, accounts));
     const displayName =
       live?.displayName ||
       live?.username ||
@@ -246,6 +284,9 @@ export function syncDeviceAccountForAppUser(user: {
   if (isCloudAuthConfigured() && !isCloudAuthUserId(user.id)) {
     return filterEligibleDeviceAccounts();
   }
-  writeActiveDeviceUid(user.id);
-  return upsertDeviceAccount(accountFromAppUser(user));
+  const existing = readDeviceAccounts();
+  const account = accountFromAppUser(user);
+  const canonicalUid = canonicalDeviceAccountUid(account.uid, [...existing, account]);
+  writeActiveDeviceUid(canonicalUid);
+  return upsertDeviceAccount({ ...account, uid: canonicalUid }, existing);
 }

@@ -1,4 +1,5 @@
 import { getFirebaseAuthDomain } from '../firebase/config';
+import { getSupabaseUrl } from '../supabase/config';
 
 /** Redirect URI Google expects for Firebase Auth (not your tunnel URL). */
 export function getFirebaseGoogleRedirectUri(): string {
@@ -8,7 +9,7 @@ export function getFirebaseGoogleRedirectUri(): string {
 }
 
 export function getSupabaseGoogleRedirectUri(): string {
-  const url = String(import.meta.env.VITE_SUPABASE_URL || '').trim().replace(/\/$/, '');
+  const url = getSupabaseUrl().replace(/\/$/, '');
   if (!url) return 'https://YOUR-PROJECT.supabase.co/auth/v1/callback';
   return `${url}/auth/v1/callback`;
 }

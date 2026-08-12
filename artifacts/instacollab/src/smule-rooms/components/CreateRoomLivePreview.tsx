@@ -15,6 +15,7 @@ import {
   nextCameraFacingMode,
   shouldMirrorCameraPreview,
 } from '../../lib/camera/cameraMirrorPolicy';
+import { useTrtcCameraInput } from '../../lib/camera/trtcCameraPipeline';
 import { useCameraStream, type CameraFacingMode } from '../../lib/camera/useCameraStream';
 import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
 import {
@@ -83,27 +84,18 @@ export function CreateRoomLivePreview({
     facingMode,
     videoIdeal: captureIdealRef.current,
     frameRate: WEBAR_CAMERA_FRAME_RATE,
-    exactFacing: true,
+    exactFacing: false,
   });
 
-  const [inputStream, setInputStream] = useState<MediaStream | null>(null);
-  useEffect(() => {
-    if (!enabled) {
-      setInputStream(null);
-      return;
-    }
-    // Keep the last live stream across brief camera flips so TRTC does not tear down.
-    if (!camera.ready || !camera.stream) return;
-    setInputStream(camera.stream);
-  }, [enabled, camera.ready, camera.stream, facingMode]);
+  const inputStream = useTrtcCameraInput(enabled, camera, facingMode);
 
   useEffect(() => {
     const el = camera.videoRef.current;
     const stream = camera.stream;
-    if (!el || !stream || !camera.ready) return;
+    if (!el || !stream) return;
     if (el.srcObject !== stream) el.srcObject = stream;
     void el.play().catch(() => undefined);
-  }, [camera.ready, camera.stream, facingMode]);
+  }, [camera.stream, facingMode]);
 
   const streamBeauty = useStreamBeauty({
     enabled: enabled && webarConfigured,
@@ -111,13 +103,13 @@ export function CreateRoomLivePreview({
     beautyId,
     effects: beautyEffects,
     bodyShape,
-    mirror: mirrorPreview,
-    keepWarm: enabled && webarConfigured,
-    beautyPanelOpen: true,
-    // Always load catalogs in Create Room so makeup/sticker trays stay warm.
-    loadCatalogs: enabled && webarConfigured,
-    // Keep TRTC processing on at all times so taps apply with no cold start.
-    persistent: enabled && webarConfigured,
+    mirror: false,
+    // Warm SDK/catalogs without forcing a continuous GPU passthrough (that adds preview lag).
+    keepWarm: enabled && webarConfigured && (beautyActive || beautyPanelOpen),
+    beautyPanelOpen,
+    loadCatalogs: beautyPanelOpen,
+    // Process only while effects are actually on.
+    persistent: enabled && webarConfigured && beautyActive,
   });
 
   const beautyStream =
@@ -128,17 +120,23 @@ export function CreateRoomLivePreview({
   );
   const beautyFramesReady = useVideoFrameReady(
     streamBeauty.outputVideoRef,
-    enabled && webarConfigured && streamBeauty.ready && beautyOutputLive,
+    enabled && webarConfigured && beautyActive && streamBeauty.ready && beautyOutputLive,
   );
 
-  // Only cover the raw camera once TRTC is painting decoded frames of THIS preview.
-  const showBeautyPreview = Boolean(
-    webarConfigured && streamBeauty.ready && beautyOutputLive && beautyFramesReady,
+  const trtcOutputReady = Boolean(
+    webarConfigured &&
+      beautyActive &&
+      streamBeauty.ready &&
+      (beautyOutputLive || beautyFramesReady),
   );
+
+  // Raw camera for zero-latency preview; beauty overlay only when effects are on.
+  const showBeautyPreview = trtcOutputReady;
+  const showProcessedPreview = showBeautyPreview;
 
   // CSS look only until TRTC frames are on screen.
   const cssFallbackFilter =
-    beautyActive && !showBeautyPreview
+    beautyActive && !showProcessedPreview
       ? getBeautyVideoFilter(beautyId !== 'none' ? beautyId : 'beauty-natural')
       : null;
 
@@ -177,7 +175,9 @@ export function CreateRoomLivePreview({
   }, []);
 
   const permissionDenied = camera.permissionDenied;
-  const error = camera.error ?? streamBeauty.error;
+  const cameraError = camera.error;
+  const beautyError = streamBeauty.error;
+  const previewStream = inputStream ?? camera.stream ?? camera.streamRef.current;
 
   const stage = (
     <div
@@ -194,7 +194,7 @@ export function CreateRoomLivePreview({
             style={cssFallbackFilter ? { filter: cssFallbackFilter } : undefined}
           >
             <CameraCaptureViewport
-              rawStream={inputStream}
+              rawStream={previewStream}
               beautyStream={beautyStream}
               showBeautyPreview={showBeautyPreview}
               mirrorRaw={mirrorPreview}
@@ -284,23 +284,43 @@ export function CreateRoomLivePreview({
       ) : null}
 
       {permissionDenied ? (
-        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-2 bg-black/90 px-4 text-center">
+        <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/90 px-4 text-center">
           <p className="text-sm font-bold text-white">Camera permission required</p>
           <p className="text-[11px] text-white/70">
-            Allow camera access, then reload to preview before going live.
+            Allow camera in the address-bar icon, then tap Retry.
           </p>
+          <button
+            type="button"
+            onClick={camera.retry}
+            className="rounded-full border border-white/25 bg-white/15 px-4 py-1.5 text-[11px] font-black uppercase tracking-wide text-white"
+          >
+            Retry
+          </button>
         </div>
       ) : null}
 
-      {error && !permissionDenied ? (
-        <div className="absolute inset-x-0 top-12 z-20 px-3">
+      {cameraError && !permissionDenied ? (
+        <div className="absolute inset-x-0 top-12 z-20 flex flex-col items-center gap-2 px-3">
           <p className="rounded-lg bg-red-950/80 px-2 py-1.5 text-center text-[10px] font-semibold text-red-200">
-            {error}
+            {cameraError}
+          </p>
+          <button
+            type="button"
+            onClick={camera.retry}
+            className="rounded-full border border-white/25 bg-black/70 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white"
+          >
+            Retry
+          </button>
+        </div>
+      ) : beautyError && previewStream ? (
+        <div className="absolute inset-x-0 top-12 z-20 px-3">
+          <p className="rounded-lg bg-amber-950/80 px-2 py-1.5 text-center text-[10px] font-semibold text-amber-200">
+            Beauty unavailable — camera preview is still live
           </p>
         </div>
       ) : null}
 
-      {enabled && !camera.ready && !permissionDenied && !error ? (
+      {enabled && !previewStream && !permissionDenied && !cameraError ? (
         <div className="absolute inset-0 z-10 flex items-center justify-center bg-black/40">
           <p className="text-[11px] font-bold uppercase tracking-wide text-white/80">
             Starting camera…

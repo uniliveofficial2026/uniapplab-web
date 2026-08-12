@@ -212,7 +212,7 @@ export function stopCloudPostRealtimeSync(): void {
 
 export function startCloudPostRealtimeSync(): () => void {
   if (!isPostsCloudAvailable()) return () => {};
-  stopCloudPostRealtimeSync();
+  if (unsubscribeRealtime) return stopCloudPostRealtimeSync;
 
   unsubscribeRealtime = subscribeCloudPosts(() => {
     void syncCloudFeed();

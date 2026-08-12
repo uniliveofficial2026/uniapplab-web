@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  ChevronRight,
   Crown,
   Eye,
   EyeOff,
@@ -17,10 +16,8 @@ import {
   Settings2,
   Shield,
   Users,
-  Video,
   VideoOff,
 } from 'lucide-react';
-import { CoinIcon } from '../../components/common/CoinIcon';
 import type { RoomExpProgress } from '../utils/roomExp';
 import type { RoomGiftSummary } from '../utils/roomGifts';
 import type { RoomViewerEntry } from '../utils/roomViewers';
@@ -28,7 +25,6 @@ import type { PartySeatMap, RoomGuest } from '../utils/roomSeats';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
 import { safeAvatarUrl } from '../../lib/safe';
 import { RoomBackgroundLayer } from './RoomBackgroundLayer';
-import { RoomLiveHeaderInfo } from './RoomLiveHeaderInfo';
 import { RoomFooterTrayActions } from './RoomFooterTrayActions';
 import {
   RoomHeaderActionsMenu,
@@ -37,11 +33,9 @@ import {
   createYoutubeMiniHeaderMenuItem,
   type RoomHeaderMenuItem,
 } from './RoomHeaderActionsMenu';
-import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
 import { ShareIcon } from '../../components/common/ShareIcon';
-import { RoomArenaOpenButton } from './RoomArenaLeaderboard';
 import type { ArenaLeaderboardParticipant } from './RoomArenaLeaderboard';
-import { RoomOwnerSocialControls } from './RoomOwnerSocialControls';
+import { GameLiveViewerWatchLayout } from './GameLiveViewerWatchLayout';
 import { useGameLiveKit } from '../hooks/useGameLiveKit';
 import { useMultiGuestCameraEffects } from '../hooks/useMultiGuestCameraEffects';
 import { usePercentOverlayDrag } from '../hooks/usePercentOverlayDrag';
@@ -145,16 +139,15 @@ export type GameLiveViewProps = {
   onOpenRoomEdit?: () => void;
   activeSeats?: PartySeatMap;
   handleSeatClick?: (seatKey: string) => void;
+  handleToggleSeatMic?: (key: string) => void;
   buildViewerFromGuest?: (guest: RoomGuest, seatKey: string) => ChatViewerPayload;
   handleSelectViewer?: (viewer: ChatViewerPayload) => void;
-  ownerSocial?: {
-    ownerIdentity: { name: string; avatarUrl: string };
-    starCount: number;
-    isFollowingOwner: boolean;
-    toggleFollowOwner: () => void;
-    isSelfOwner: boolean;
-    ownerViewerPayload: ChatViewerPayload;
-  };
+  lockedSeats?: Record<string, boolean>;
+  mutuallyFollowing?: Record<string, boolean>;
+  toggleHeartbeat?: (key1: string, key2: string) => void;
+  userMicLevel?: number;
+  audioPulse?: number;
+  viewerUserId?: string;
   viewers: RoomViewerEntry[];
   roomExpProgress: RoomExpProgress;
   roomGiftSummary: RoomGiftSummary;
@@ -190,6 +183,7 @@ export type GameLiveViewProps = {
   backgroundMode: RoomBackgroundMode;
   pendingBackgroundMode: RoomBackgroundMode | null;
   arenaParticipants: ArenaLeaderboardParticipant[];
+  arenaCountdownText?: string;
   onOpenArenaRankings: () => void;
   showToast: (message: string) => void;
   canEditAnnouncement?: boolean;
@@ -201,6 +195,8 @@ export type GameLiveViewProps = {
   songQueueLength?: number;
   hideSingMenu?: boolean;
   processedAudioTrack?: MediaStreamTrack | null;
+  /** Platform-admin silent watch — LiveKit hidden grant. */
+  silentAdminWatch?: boolean;
   voiceMicPublishing?: boolean;
   showVoiceChanger?: boolean;
   voiceChangerEligible?: boolean;
@@ -210,6 +206,8 @@ export type GameLiveViewProps = {
   onToggleVoiceChanger?: () => void;
   onOpenGiftSenders?: (receiver: { name: string; userId?: string }) => void;
   onOpenGame?: () => void;
+  /** In-app Games tray (separate from Game Live casting / live trivia). */
+  onGameClick?: () => void;
   gamePhase?: GameLiveState['phase'];
   beautyEffectId?: BeautyPresetId;
   beautyEffects?: TencentEffectSelection;
@@ -279,9 +277,15 @@ export function GameLiveView({
   onOpenRoomEdit,
   activeSeats,
   handleSeatClick,
+  handleToggleSeatMic,
   buildViewerFromGuest,
   handleSelectViewer,
-  ownerSocial,
+  lockedSeats = {},
+  mutuallyFollowing = {},
+  toggleHeartbeat,
+  userMicLevel = 0,
+  audioPulse = 0,
+  viewerUserId,
   viewers,
   roomExpProgress,
   roomGiftSummary,
@@ -313,6 +317,8 @@ export function GameLiveView({
   canChangeRoomBackground,
   backgroundMode,
   pendingBackgroundMode,
+  arenaParticipants,
+  arenaCountdownText,
   onOpenArenaRankings,
   showToast,
   canEditAnnouncement = false,
@@ -325,6 +331,7 @@ export function GameLiveView({
   hideSingMenu = false,
   processedAudioTrack = null,
   voiceMicPublishing = false,
+  silentAdminWatch = false,
   showVoiceChanger = false,
   voiceChangerEligible = false,
   voiceChangerOpen = false,
@@ -333,6 +340,7 @@ export function GameLiveView({
   onToggleVoiceChanger,
   onOpenGiftSenders,
   onOpenGame,
+  onGameClick,
   gamePhase = 'idle',
   beautyEffectId = 'none',
   beautyEffects = {
@@ -459,7 +467,8 @@ export function GameLiveView({
       beautyEffects.makeupId ||
         beautyEffects.stickerId ||
         beautyEffects.filterId ||
-        beautyEffects.backgroundUrl,
+        beautyEffects.backgroundUrl ||
+        beautyEffects.shapeEffectId,
     );
 
   const hostCameraEffects = useMultiGuestCameraEffects({
@@ -474,11 +483,14 @@ export function GameLiveView({
     videoTrack: hostCameraTrack,
     beautyVideoRef,
     showBeautyPreview,
+    showProcessedPreview,
     beautyCatalogs,
     beautyConfigured,
     beautyLoading,
     beautyError,
   } = hostCameraEffects;
+
+  const showTrtcCameraPreview = showBeautyPreview || showProcessedPreview;
 
   const {
     casting,
@@ -498,9 +510,10 @@ export function GameLiveView({
     hostUserId,
     isHost: isSelfHost,
     enabled: true,
-    publishMic: voiceMicPublishing,
-    processedAudioTrack,
-    hostCameraTrack: isSelfHost ? hostCameraTrack : null,
+    publishMic: silentAdminWatch ? false : voiceMicPublishing,
+    processedAudioTrack: silentAdminWatch ? null : processedAudioTrack,
+    hostCameraTrack: isSelfHost && !silentAdminWatch ? hostCameraTrack : null,
+    hidden: silentAdminWatch,
   });
 
   useEffect(() => {
@@ -520,14 +533,14 @@ export function GameLiveView({
         label: 'Edit room settings',
         icon: <Settings2 size={15} aria-hidden />,
         onClick: () => onOpenRoomEdit?.(),
-        hidden: !onOpenRoomEdit,
+        hidden: !isSelfHost || !canEditAnnouncement || !onOpenRoomEdit,
       },
       {
         id: 'mode',
         label: 'Change room mode',
         icon: <LayoutGrid size={15} aria-hidden />,
         onClick: () => onOpenRoomModePicker?.(),
-        hidden: !canChangeRoomMode || !onOpenRoomModePicker,
+        hidden: !isSelfHost || !canChangeRoomMode || !onOpenRoomModePicker,
       },
       ...(onOpenSing
         ? [
@@ -549,10 +562,10 @@ export function GameLiveView({
         label: 'Edit announcement',
         icon: <Pencil size={15} aria-hidden />,
         onClick: () => onEditAnnouncement?.(),
-        hidden: !canEditAnnouncement || !onEditAnnouncement,
+        hidden: !isSelfHost || !canEditAnnouncement || !onEditAnnouncement,
       },
       createRoomBackgroundHeaderMenuItem(() => setIsRoomBackgroundMenuOpen(true), {
-        hidden: !canChangeRoomBackground,
+        hidden: !isSelfHost || !canChangeRoomBackground,
       }),
       createYoutubeMiniHeaderMenuItem(),
       {
@@ -582,10 +595,88 @@ export function GameLiveView({
     ],
   );
 
+  // Viewers get the full Watch Together shell (player + seats + conversation).
+  // Host keeps the fullscreen casting UI below.
+  if (!isSelfHost) {
+    if (!handleSeatClick || !handleToggleSeatMic || !buildViewerFromGuest || !handleSelectViewer || !onOpenGiftSenders) {
+      return null;
+    }
+    return (
+      <GameLiveViewerWatchLayout
+        roomDisplayId={roomDisplayId}
+        roomTitle={roomTitle}
+        announcement={announcement}
+        isRoomSaved={isRoomSaved}
+        roomIdCopied={roomIdCopied}
+        onCopyRoomId={onCopyRoomId}
+        onToggleSaveRoom={onToggleSaveRoom}
+        onLeaveRoom={onLeaveRoom}
+        onOpenRoomDetails={onOpenRoomDetails}
+        activeSeats={activeSeats}
+        handleSeatClick={handleSeatClick}
+        handleToggleSeatMic={handleToggleSeatMic}
+        buildViewerFromGuest={buildViewerFromGuest}
+        handleSelectViewer={handleSelectViewer}
+        lockedSeats={lockedSeats}
+        mutuallyFollowing={mutuallyFollowing}
+        toggleHeartbeat={toggleHeartbeat}
+        userMicLevel={userMicLevel}
+        audioPulse={audioPulse}
+        viewerUserId={viewerUserId}
+        viewers={viewers}
+        roomExpProgress={roomExpProgress}
+        roomGiftSummary={roomGiftSummary}
+        setIsRoomViewersOpen={setIsRoomViewersOpen}
+        setIsGiftPickerOpen={setIsGiftPickerOpen}
+        setIsGuestManagementOpen={setIsGuestManagementOpen}
+        liveChatMsgs={liveChatMsgs}
+        chatInput={chatInput}
+        handleChatInputChange={handleChatInputChange}
+        handleSendMessage={handleSendMessage}
+        handleChatScroll={handleChatScroll}
+        chatScrollRef={chatScrollRef}
+        getMentionSuggestions={getMentionSuggestions}
+        selectMention={selectMention}
+        renderJoinChatEvent={renderJoinChatEvent}
+        renderSingChatEvent={renderSingChatEvent}
+        renderGiftChatEvent={renderGiftChatEvent}
+        renderAnnouncementWelcome={renderAnnouncementWelcome}
+        renderStandardChatMessage={renderStandardChatMessage}
+        mentionSearch={mentionSearch}
+        onToggleUserMic={onToggleUserMic}
+        onToggleSeatParticipation={onToggleSeatParticipation}
+        guestManagementOpen={guestManagementOpen}
+        userSeatKey={userSeatKey}
+        userMicOn={userMicOn}
+        userVoiceActive={userVoiceActive}
+        backgroundMode={backgroundMode}
+        pendingBackgroundMode={pendingBackgroundMode}
+        arenaParticipants={arenaParticipants}
+        arenaCountdownText={arenaCountdownText}
+        onOpenArenaRankings={onOpenArenaRankings}
+        canEditAnnouncement={canEditAnnouncement}
+        onEditAnnouncement={onEditAnnouncement}
+        showVoiceChanger={showVoiceChanger}
+        voiceChangerEligible={voiceChangerEligible}
+        voiceChangerOpen={voiceChangerOpen}
+        voiceEffectActive={voiceEffectActive}
+        voiceEffectEmoji={voiceEffectEmoji}
+        onToggleVoiceChanger={onToggleVoiceChanger}
+        onOpenGiftSenders={onOpenGiftSenders}
+        onOpenGame={onOpenGame}
+        onGameClick={onGameClick}
+        gamePhase={gamePhase}
+        headerMenuItems={headerMenuItems}
+        remoteScreenVideoRef={remoteScreenVideoRef}
+        remoteCameraVideoRef={remoteCameraVideoRef}
+        hasRemoteCast={hasRemoteCast}
+        hasRemoteCamera={hasRemoteCamera}
+      />
+    );
+  }
+
   const showHostScreen = isSelfHost && casting;
-  const showViewerScreen = !isSelfHost && hasRemoteCast;
   const showHostPip = isSelfHost && casting && cameraOn;
-  const showViewerPip = !isSelfHost && hasRemoteCamera;
 
   const chatHandlers = {
     renderAnnouncementWelcome,
@@ -596,7 +687,7 @@ export function GameLiveView({
   };
 
   const chatFooter = (
-    <div className={`game-live-footer ${isSelfHost ? 'game-live-footer--host' : ''}`}>
+    <div className="game-live-footer game-live-footer--host">
       <form onSubmit={handleSendMessage} className="relative min-w-0 flex-1">
         {mentionSearch !== null ? (
           <div className="absolute bottom-full left-0 z-[100] mb-2 w-44 overflow-hidden rounded-2xl border border-emerald-500/30 bg-[#0d1a14]/95 shadow-lg backdrop-blur-xl">
@@ -639,7 +730,7 @@ export function GameLiveView({
 
       <div className="game-live-footer-actions">
         <RoomFooterTrayActions
-          userSeatKey={isSelfHost ? userSeatKey ?? 'host' : userSeatKey}
+          userSeatKey={userSeatKey ?? 'host'}
           userMicOn={userMicOn}
           userVoiceActive={userVoiceActive}
           onToggleUserMic={onToggleUserMic}
@@ -647,7 +738,7 @@ export function GameLiveView({
           onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
           guestManagementOpen={guestManagementOpen}
           onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
-          showCamera={isSelfHost}
+          showCamera
           userCameraOn={cameraOn}
           onToggleUserCamera={() => {
             void toggleCamera();
@@ -656,9 +747,9 @@ export function GameLiveView({
           beautyPanelOpen={beautyPanelOpen}
           beautyActive={beautyActive}
           onToggleBeautyPanel={onToggleBeautyPanel}
-          showSeatToggle={!isSelfHost}
-          showGuestManagement={!isSelfHost}
-          showGift={!isSelfHost}
+          showSeatToggle={false}
+          showGuestManagement={false}
+          showGift={false}
           micAccent="cyan"
           className="game-live-footer-tray"
           showVoiceChanger={showVoiceChanger}
@@ -668,13 +759,6 @@ export function GameLiveView({
           voiceEffectEmoji={voiceEffectEmoji}
           onToggleVoiceChanger={onToggleVoiceChanger}
         />
-
-        {!isSelfHost ? (
-          <RoomArenaOpenButton
-            onOpen={onOpenArenaRankings}
-            className="!h-8 !w-8 sm:!h-9 sm:!w-9"
-          />
-        ) : null}
       </div>
     </div>
   );
@@ -683,131 +767,28 @@ export function GameLiveView({
     <div className="game-live-layout relative flex h-full min-h-0 flex-1 flex-col w-full overflow-hidden font-sans">
       <RoomBackgroundLayer mode={pendingBackgroundMode ?? backgroundMode} />
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col overflow-hidden">
-        {!isSelfHost ? (
-          <header className="game-live-header absolute inset-x-0 top-0 z-40 flex shrink-0 flex-col gap-1 bg-gradient-to-b from-black/90 via-black/55 to-transparent px-3 pb-2 pt-2 sm:px-4 sm:pt-3">
-            <div className="flex items-center justify-between gap-2">
-              <RoomLiveHeaderInfo
-                roomLevel={roomExpProgress.level}
-                roomTitle={roomTitle}
-                announcement={announcement}
-                roomDisplayId={roomDisplayId}
-                isRoomSaved={isRoomSaved}
-                roomIdCopied={roomIdCopied}
-                onOpenDetails={onOpenRoomDetails}
-                onCopyRoomId={onCopyRoomId}
-                onToggleSaveRoom={onToggleSaveRoom}
-                canEditAnnouncement={canEditAnnouncement}
-                onEditAnnouncement={onEditAnnouncement}
-                className="max-w-[62%] sm:max-w-none"
-              />
-              <div className="flex shrink-0 items-center space-x-1.5 sm:space-x-2">
-                <button
-                  type="button"
-                  onClick={() => setIsRoomViewersOpen(true)}
-                  aria-label={`${viewers.length} viewers in room`}
-                  className="party-viewers-chip party-glass-chip flex min-h-[32px] cursor-pointer items-center space-x-2 rounded-full px-2.5 py-1.5 sm:px-3 transition"
-                >
-                  <div className="-space-x-2 mr-0.5 flex">
-                    {viewers.slice(0, 3).map((viewer) => (
-                      <img
-                        key={viewer.id}
-                        src={safeAvatarUrl(viewer.avatar)}
-                        className="h-6 w-6 rounded-full border-2 border-[#07010a] object-cover sm:h-7 sm:w-7"
-                        alt=""
-                      />
-                    ))}
-                  </div>
-                  <Users size={16} className="text-gray-300" />
-                  <span className="party-viewers-count font-black text-gray-100">{viewers.length}</span>
-                </button>
-                <RoomHeaderYoutubeMiniButton />
-                <RoomHeaderActionsMenu items={headerMenuItems} />
-                <button
-                  type="button"
-                  onClick={onLeaveRoom}
-                  className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/30 text-gray-300 transition hover:border-red-500/40 hover:bg-red-500/20 hover:text-red-200 active:scale-90 sm:h-9 sm:w-9"
-                  aria-label="Leave room"
-                >
-                  <LogOut size={15} />
-                </button>
-              </div>
-            </div>
-            <div className="flex min-w-0 items-center gap-2 overflow-x-auto pb-0.5 scrollbar-hide">
-              {!isSelfHost && activeSeats?.host && handleSeatClick && ownerSocial ? (
-                <RoomOwnerSocialControls
-                  name={activeSeats.host.name}
-                  avatarUrl={activeSeats.host.avatar}
-                  starCount={activeSeats.host.stars}
-                  isSpeaking={Boolean(activeSeats.host.isSpeaking)}
-                  isFollowing={ownerSocial.isFollowingOwner}
-                  onToggleFollow={ownerSocial.toggleFollowOwner}
-                  showFollowButton={!ownerSocial.isSelfOwner}
-                  onProfileClick={() => handleSeatClick('host')}
-                  className="shrink-0"
-                />
-              ) : null}
-              <button
-                type="button"
-                onClick={onOpenRoomDetails}
-                className="flex shrink-0 items-center rounded-full px-2 py-0.5 text-[8.5px] font-bold text-emerald-400 backdrop-blur transition hover:bg-emerald-950/20 active:scale-95"
-              >
-                <span>
-                  EXP {roomExpProgress.todayExp}/{roomExpProgress.dailyCap}
-                </span>
-                <ChevronRight size={8} className="ml-0.5 text-emerald-500" />
-              </button>
-              <button
-                type="button"
-                onClick={() => setIsGiftPickerOpen(true)}
-                className="flex shrink-0 items-center rounded-full border border-pink-500/20 bg-[#240c1e]/80 px-2 py-0.5 text-[8.5px] font-bold text-pink-400 backdrop-blur transition hover:bg-pink-950/20 active:scale-95"
-              >
-                <CoinIcon className="mr-0.5 h-2 w-2 shrink-0" />
-                <span>{roomGiftSummary.totalStars.toLocaleString()}</span>
-              </button>
-              <span className="flex shrink-0 items-center gap-1 rounded-full border border-emerald-500/25 bg-emerald-950/40 px-2 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-emerald-200">
-                <Gamepad2 size={10} />
-                Game Live
-              </span>
-            </div>
-          </header>
-        ) : null}
-
         <div ref={stageRef} className="game-live-stage relative min-h-0 flex-1">
           {showHostScreen ? (
             <video ref={screenVideoRef} autoPlay playsInline muted className="game-live-screen-video" />
-          ) : showViewerScreen ? (
-            <video ref={remoteScreenVideoRef} autoPlay playsInline className="game-live-screen-video" />
           ) : (
             <div className="game-live-screen-placeholder flex h-full w-full flex-col items-center justify-center gap-4 bg-black text-center">
-              {isSelfHost ? (
-                <>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-300">
-                    <Monitor size={30} />
-                  </div>
-                  <div className="space-y-1">
-                    <p className="text-sm font-black text-white">Share your screen</p>
-                    <p className="text-[11px] font-medium text-white/55">
-                      Pick a window or screen in the browser share dialog. Camera PiP is optional.
-                    </p>
-                  </div>
-                  <button
-                    type="button"
-                    onClick={() => void startCast()}
-                    disabled={startingCast}
-                    className="rounded-full border border-emerald-400/50 bg-emerald-500/20 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-emerald-100 transition hover:bg-emerald-500/30 active:scale-95 disabled:cursor-wait disabled:opacity-60"
-                  >
-                    {startingCast ? 'Opening share…' : 'Share screen'}
-                  </button>
-                </>
-              ) : (
-                <>
-                  <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/10 bg-white/5 text-white/50">
-                    <Gamepad2 size={30} />
-                  </div>
-                  <p className="text-sm font-black text-white/90">Waiting for host to start the game</p>
-                  <p className="text-[11px] font-medium text-white/45">The stream will appear here automatically.</p>
-                </>
-              )}
+              <div className="flex h-16 w-16 items-center justify-center rounded-2xl border border-emerald-400/30 bg-emerald-500/10 text-emerald-300">
+                <Monitor size={30} />
+              </div>
+              <div className="space-y-1">
+                <p className="text-sm font-black text-white">Share your screen</p>
+                <p className="text-[11px] font-medium text-white/55">
+                  Pick a window or screen in the browser share dialog. Camera PiP is optional.
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={() => void startCast()}
+                disabled={startingCast}
+                className="rounded-full border border-emerald-400/50 bg-emerald-500/20 px-5 py-2.5 text-xs font-black uppercase tracking-wide text-emerald-100 transition hover:bg-emerald-500/30 active:scale-95 disabled:cursor-wait disabled:opacity-60"
+              >
+                {startingCast ? 'Opening share…' : 'Share screen'}
+              </button>
             </div>
           )}
 
@@ -827,7 +808,7 @@ export function GameLiveView({
                   <GripVertical size={10} aria-hidden />
                 </div>
                 <video
-                  ref={showBeautyPreview ? beautyVideoRef : cameraVideoRef}
+                  ref={showTrtcCameraPreview ? beautyVideoRef : cameraVideoRef}
                   autoPlay
                   playsInline
                   muted
@@ -850,14 +831,7 @@ export function GameLiveView({
             </div>
           ) : null}
 
-          {showViewerPip ? (
-            <div className="game-live-pip game-live-pip--viewer">
-              <video ref={remoteCameraVideoRef} autoPlay playsInline className="h-full w-full object-cover" />
-              <span className="game-live-pip-label">HOST</span>
-            </div>
-          ) : null}
-
-          {isSelfHost && viewersOpen ? (
+          {viewersOpen ? (
             <div
               className={`game-live-draggable pointer-events-auto absolute w-[min(88vw,16rem)] ${viewersDrag.dragging ? 'cursor-grabbing' : ''}`}
               style={percentOverlayStyle(viewersDrag.displayPosition, 34)}
@@ -937,7 +911,7 @@ export function GameLiveView({
             </div>
           ) : null}
 
-          {isSelfHost && chatOpen ? (
+          {chatOpen ? (
             <div
               className={`game-live-draggable pointer-events-auto absolute w-[min(92vw,22rem)] ${chatDrag.dragging ? 'cursor-grabbing' : ''}`}
               style={percentOverlayStyle(chatDrag.displayPosition, 36)}
@@ -951,6 +925,7 @@ export function GameLiveView({
                   className="game-live-floating-chat-handle"
                 >
                   <GripVertical size={12} className="text-white/45" aria-hidden />
+                  <MessageCircle size={12} className="text-emerald-300/80" aria-hidden />
                   <span className="text-[9px] font-black uppercase tracking-wide text-white/55">Live chat</span>
                   <button
                     type="button"
@@ -978,105 +953,68 @@ export function GameLiveView({
             </div>
           ) : null}
 
-          {!isSelfHost && chatOpen ? (
-            <div className="game-live-chat-overlay game-live-chat-overlay--viewer">
-              <div className="game-live-chat-panel">
-                <div ref={chatScrollRef} onScroll={handleChatScroll} className="game-live-chat-scroll scrollbar-hide">
-                  <div className="game-live-chat-feed">{renderChatMessages(liveChatMsgs, chatHandlers)}</div>
-                </div>
-                {chatFooter}
+          <div
+            className={`game-live-draggable pointer-events-auto absolute ${toolsDockDrag.dragging ? 'cursor-grabbing' : ''}`}
+            style={percentOverlayStyle(toolsDockDrag.displayPosition, 42)}
+          >
+            <div className="game-live-tools-dock">
+              <div
+                role="button"
+                tabIndex={0}
+                aria-label="Drag tools"
+                onPointerDown={(event) => startOverlayDrag(event, toolsDockDrag)}
+                className="game-live-tools-dock-handle"
+              >
+                <GripVertical size={14} className="text-white/55" aria-hidden />
+              </div>
+              <div className="game-live-tools-dock-actions">
+                {!viewersOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (toolsDockDrag.consumeClickIfDragged()) return;
+                      setViewersOpen(true);
+                    }}
+                    className="game-live-tools-dock-btn game-live-tools-dock-btn--viewers"
+                    aria-label="Show viewer list"
+                    title="Show viewers"
+                  >
+                    <Users size={16} />
+                    <span className="game-live-viewers-toggle-count">{viewers.length}</span>
+                  </button>
+                ) : null}
+                {!chatOpen ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (toolsDockDrag.consumeClickIfDragged()) return;
+                      setChatOpen(true);
+                    }}
+                    className="game-live-tools-dock-btn"
+                    aria-label="Show live chat"
+                    title="Show chat"
+                  >
+                    <MessageCircle size={16} />
+                  </button>
+                ) : null}
+                {onOpenGame ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (toolsDockDrag.consumeClickIfDragged()) return;
+                      onOpenGame();
+                    }}
+                    className={`game-live-tools-dock-btn ${gamePhase === 'active' ? 'text-violet-300' : ''}`}
+                    aria-label="Open live game"
+                    title="Live trivia"
+                  >
+                    <Gamepad2 size={16} />
+                  </button>
+                ) : null}
+                <RoomHeaderActionsMenu items={headerMenuItems} className="game-live-tools-dock-menu" />
               </div>
             </div>
-          ) : null}
-
-          {isSelfHost ? (
-            <div
-              className={`game-live-draggable pointer-events-auto absolute ${toolsDockDrag.dragging ? 'cursor-grabbing' : ''}`}
-              style={percentOverlayStyle(toolsDockDrag.displayPosition, 42)}
-            >
-              <div className="game-live-tools-dock">
-                <div
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Drag tools"
-                  onPointerDown={(event) => startOverlayDrag(event, toolsDockDrag)}
-                  className="game-live-tools-dock-handle"
-                >
-                  <GripVertical size={14} className="text-white/55" aria-hidden />
-                </div>
-                <div className="game-live-tools-dock-actions">
-                  {!viewersOpen ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (toolsDockDrag.consumeClickIfDragged()) return;
-                        setViewersOpen(true);
-                      }}
-                      className="game-live-tools-dock-btn game-live-tools-dock-btn--viewers"
-                      aria-label="Show viewer list"
-                      title="Show viewers"
-                    >
-                      <Users size={16} />
-                      <span className="game-live-viewers-toggle-count">{viewers.length}</span>
-                    </button>
-                  ) : null}
-                  {!chatOpen ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (toolsDockDrag.consumeClickIfDragged()) return;
-                        setChatOpen(true);
-                      }}
-                      className="game-live-tools-dock-btn"
-                      aria-label="Show live chat"
-                      title="Show chat"
-                    >
-                      <MessageCircle size={16} />
-                    </button>
-                  ) : null}
-                  {onOpenGame ? (
-                    <button
-                      type="button"
-                      onClick={() => {
-                        if (toolsDockDrag.consumeClickIfDragged()) return;
-                        onOpenGame();
-                      }}
-                      className={`game-live-tools-dock-btn ${gamePhase === 'active' ? 'text-violet-300' : ''}`}
-                      aria-label="Open live game"
-                      title="Live trivia"
-                    >
-                      <Gamepad2 size={16} />
-                    </button>
-                  ) : null}
-                  <RoomHeaderActionsMenu items={headerMenuItems} className="game-live-tools-dock-menu" />
-                </div>
-              </div>
-            </div>
-          ) : null}
-
-          {!isSelfHost ? (
-            <button
-              type="button"
-              onClick={() => onOpenGame?.()}
-              className={`absolute right-3 top-[calc(3.25rem+var(--app-safe-top))] z-40 flex h-9 w-9 items-center justify-center rounded-full border border-violet-400/30 bg-black/55 text-violet-200 backdrop-blur-md ${gamePhase === 'active' ? 'ring-1 ring-violet-400/60' : ''}`}
-              aria-label="Open live game"
-              title="Live trivia"
-            >
-              <Gamepad2 size={16} />
-            </button>
-          ) : null}
-
-          {!isSelfHost ? (
-            <button
-              type="button"
-              onClick={() => setChatOpen((open) => !open)}
-              className={`game-live-chat-toggle game-live-chat-toggle--viewer ${chatOpen ? 'game-live-chat-toggle--open' : ''}`}
-              aria-label={chatOpen ? 'Hide live chat' : 'Show live chat'}
-              title={chatOpen ? 'Hide chat' : 'Show chat'}
-            >
-              {chatOpen ? <MessageCircleOff size={18} /> : <MessageCircle size={18} />}
-            </button>
-          ) : null}
+          </div>
         </div>
       </div>
 

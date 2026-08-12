@@ -12,6 +12,7 @@ import {
 } from './blocksCloud';
 
 let unsubscribe: (() => void) | null = null;
+let subscribedUserId: string | null = null;
 let blockedByMe = new Set<string>();
 let blockedMe = new Set<string>();
 
@@ -61,9 +62,11 @@ export function queueCloudBlock(targetUserId: string, blocked: boolean): void {
 }
 
 export function startCloudBlocksRealtime(userId: string): () => void {
-  stopCloudBlocksRealtime();
   if (!isBlocksCloudAvailable() || !isCloudAuthUserId(userId)) return () => {};
+  if (subscribedUserId === userId && unsubscribe) return stopCloudBlocksRealtime;
 
+  stopCloudBlocksRealtime();
+  subscribedUserId = userId;
   void syncCloudBlocks();
   unsubscribe = subscribeCloudBlocks(userId, () => {
     void syncCloudBlocks();
@@ -75,4 +78,5 @@ export function startCloudBlocksRealtime(userId: string): () => void {
 export function stopCloudBlocksRealtime(): void {
   unsubscribe?.();
   unsubscribe = null;
+  subscribedUserId = null;
 }

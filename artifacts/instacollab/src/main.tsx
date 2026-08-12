@@ -3,9 +3,10 @@ import { SpeedInsights } from '@vercel/speed-insights/react';
 import App from './App.tsx';
 import './index.css';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
-import { CloudAuthProvider } from './contexts/CloudAuthContext';
-import { AuthProvider } from './lib/AuthContext';
+import { AppQueryProvider } from './providers/AppQueryProvider';
+import { AuthProvidersHost } from './providers/AuthProvidersHost';
 import { registerAppServiceWorker } from './lib/pwaRegister';
+import { bootNativeShell } from './lib/bootNativeShell';
 import { initSupabaseClient } from './lib/supabase/client';
 import { initWalletKstarSyncListeners } from './lib/walletKstarSync';
 import { initAppCloudSystems } from './lib/appCloudSystems';
@@ -25,14 +26,36 @@ import { installNativeKeyboardPolicy } from './lib/nativeKeyboardPolicy';
 import { installAppSafeArea } from './lib/safeArea';
 import { bootstrapSupabaseAuthState } from './lib/auth/providerState';
 import { blockLivePresenceCloudQueries } from './lib/supabase/livePresenceGuard';
-import { ensureBundledFirebaseConfig } from './lib/firebase/runtimeAuthConfig';
 import { onAppShellReady } from './lib/appShellReady';
 import { initAppBrandRuntime } from './lib/appBrandRuntime';
 import { initAppAutopilot } from './lib/initAppAutopilot';
+import { clearSplashSeenThisSession } from './lib/splashSession';
+import {
+  ensureBootSplashPlaying,
+  isBrowserOnline,
+  resetBootSplashWaitState,
+  startBootSplashPlay,
+} from './lib/bootSplashVideo';
+
+/**
+ * `#boot-shell` in HTML = this document must play the first video ~5s.
+ * Clear session splash flag so React stays on the splash route until it finishes.
+ * (Do not strip the shell early — that was why the video kept skipping.)
+ */
+if (typeof document !== 'undefined' && document.getElementById('boot-shell')) {
+  clearSplashSeenThisSession();
+  resetBootSplashWaitState();
+  const online = isBrowserOnline();
+  ensureBootSplashPlaying({ loop: !online });
+  startBootSplashPlay({
+    isOnline: isBrowserOnline,
+    isReady: () => true,
+  });
+}
 
 // Sync-only setup (no network / IDB waits).
 bootstrapSupabaseAuthState();
-ensureBundledFirebaseConfig();
+// Firebase config/SDK loads only when AuthProvidersHost hydrates backup/legacy paths.
 blockLivePresenceCloudQueries();
 bootstrapDocumentTheme();
 initAppBrandRuntime();
@@ -41,6 +64,32 @@ installAppSafeArea();
 installChunkLoadRecovery();
 installPersistenceGuards();
 installRuntimeGuards();
+// Clear stale Firestore multi-tab localStorage before any Firebase SDK touch —
+// QuotaExceeded there previously crashed Karaoke via INTERNAL ASSERTION.
+void import('./lib/firebase/app')
+  .then((m) => {
+    try {
+      const probe = `__fs_boot_probe_${Date.now()}`;
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+    } catch {
+      m.purgeFirestoreWebStorage();
+      return;
+    }
+    let firestoreKeys = 0;
+    try {
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const key = localStorage.key(i);
+        if (key && /^firestore_/i.test(key)) firestoreKeys += 1;
+      }
+    } catch {
+      firestoreKeys = 99;
+    }
+    if (firestoreKeys >= 24) m.purgeFirestoreWebStorage();
+  })
+  .catch(() => {
+    /* ignore */
+  });
 installAppSecurity();
 installRuntimeSelfHeal();
 initRuntimeAutoHeal();
@@ -61,29 +110,68 @@ if (!rootEl) {
 // CRITICAL: paint React immediately. Never await network/IDB before first UI.
 createRoot(rootEl).render(
   <ErrorBoundary>
-    <CloudAuthProvider>
-      <AuthProvider>
+    <AppQueryProvider>
+      <AuthProvidersHost>
         <App />
         <SpeedInsights />
-      </AuthProvider>
-    </CloudAuthProvider>
+      </AuthProvidersHost>
+    </AppQueryProvider>
   </ErrorBoundary>,
 );
 
-// Remove HTML boot shell once Shell has painted (not on first React commit).
+// Remove HTML boot shell once React has painted — never while ~5s play is active.
 onAppShellReady(() => {
-  document.getElementById('boot-shell')?.remove();
+  void import('./lib/bootSplashVideo').then(({ isBootSplashPlayActive, removeBootShell, getBootShell }) => {
+    if (isBootSplashPlayActive()) return;
+    if (getBootShell() && sessionStorage.getItem('unilives_splash_seen_session') !== '1') return;
+    removeBootShell();
+  });
 });
 window.setTimeout(() => {
-  document.getElementById('boot-shell')?.remove();
-}, 12_000);
+  void import('./lib/bootSplashVideo').then(({ isBootSplashPlayActive, removeBootShell }) => {
+    if (isBootSplashPlayActive()) return;
+    if (document.getElementById('root')?.childElementCount) removeBootShell();
+  });
+}, 20_000);
+
 
 // Background services — must not block first paint.
+void bootNativeShell();
 registerAppServiceWorker();
 initWalletKstarSyncListeners();
 initAppCloudSystems();
 installPresenceHeartbeat();
 clearChunkReloadGuard();
+
+// Security: hard-purge same User ID across local accounts + device switcher rows.
+void import('./lib/auth/identityDedupe').then(async (m) => {
+  try {
+    const result = await m.runLocalIdentitySecurityCleanup({
+      users: db.users ?? [],
+      currentUserId: db.currentUserId,
+      save: (key, value) => db.save(key, value),
+      deleteAccountSnapshot: (userId) => db.deleteAccountSnapshot(userId),
+      whenStorageReady: () => db.whenStorageReady(),
+    });
+    if (result.removedUsers || result.collapsedDeviceAccounts || result.clearedLocalProfiles) {
+      console.info('[security] identity purge', result);
+    }
+  } catch (err) {
+    console.warn('[security] local identity purge failed', err);
+  }
+  try {
+    const { isFirebaseConfigured } = await import('./lib/firebase/config');
+    if (isFirebaseConfigured()) {
+      const { dedupeFirebaseProfilePublicUserIds } = await import(
+        './lib/firebase/dedupePublicUserIds'
+      );
+      const fb = await dedupeFirebaseProfilePublicUserIds();
+      if (fb.deleted) console.info('[security] firebase identity purge', fb);
+    }
+  } catch (err) {
+    console.warn('[security] firebase identity purge failed', err);
+  }
+});
 
 void import('./lib/instantUiBoot').then((m) => m.startInstantUiBoot());
 
@@ -96,10 +184,6 @@ void import('./lib/cacheFirstSync').then((m) => m.startCacheFirstCloudSync());
 
 void initSupabaseClient().then(() => {
   void import('./lib/preloadAppSurfaces').then((m) => m.preloadCoreAppSurfaces());
-});
-
-void import('./lib/firebase/app').then((m) => {
-  m.getFirebaseApp();
 });
 
 // Media cache warm is best-effort and never blocks UI.

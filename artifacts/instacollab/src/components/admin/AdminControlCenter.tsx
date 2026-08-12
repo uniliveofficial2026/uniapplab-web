@@ -25,15 +25,22 @@ import {
   Users,
   Wallet,
   X,
+  Lock,
+  Globe2,
+  Ban,
+  Square,
+  Joystick,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import { AppBrandPortalCard } from './AppBrandPortalCard';
 import { AdminPanel } from './AdminPanel';
 import { AutomationControlToggles } from '../workspace/AutomationControlToggles';
-import { AppNativeVideo } from '../common/AppNativeVideo';
+import { SplashAdMediaPicker, isSplashAdVideoUrl } from './SplashAdMediaPicker';
 import {
   adminArchivePost,
+  adminBanPartyRoom,
+  adminBanStream,
   adminCreditWallet,
   adminDeleteChatMessage,
   adminDeleteComment,
@@ -52,6 +59,19 @@ import {
   fetchMe,
   type AdminOverview,
 } from '../../lib/adminApi';
+import {
+  cloudAdminFetchOverview,
+  cloudAdminListChatMessages,
+  cloudAdminListComments,
+  cloudAdminListGifts,
+  cloudAdminListPartyRooms,
+  cloudAdminListPosts,
+  cloudAdminListReels,
+  cloudAdminListStreams,
+  cloudAdminListWallets,
+  subscribeAdminCloudRealtime,
+} from '../../lib/adminCloudData';
+import { hydratePlatformSession } from '../../lib/walletServerSync';
 import { resolveUser } from '../../lib/safe';
 import { AdminPreviewCard, AdminPreviewPanel, buildAdminPreview, type AdminPreviewModel } from './AdminLivePreview';
 import { AdminUserProgressCard } from './AdminUserProgressCard';
@@ -59,6 +79,8 @@ import { IntegrationStatusPanel } from './IntegrationStatusPanel';
 import { AdminCreationStudio } from './AdminCreationStudio';
 import { AdminLeaderboardPanel } from './AdminLeaderboardPanel';
 import { buildAdminUserInsights, type AdminUserInsights } from '../../lib/adminUserInsights';
+import { consumeWorkspaceGreedyAdminHint, peekWorkspaceGreedyAdminHint, WORKSPACE_GREEDY_ADMIN_EVENT } from '../../lib/appBrandRuntime';
+import { useGreedySession } from '../../contexts/GreedySessionContext';
 import { lookupAdminUserRank } from '../../lib/adminLeaderboard';
 import { resolveLiveCountry } from '../live/liveCountries';
 
@@ -75,6 +97,7 @@ export type AdminSection =
   | 'wallet'
   | 'dating'
   | 'karaoke'
+  | 'greedy'
   | 'moderation'
   | 'platform'
   | 'integrations'
@@ -94,6 +117,7 @@ type SectionMeta = {
 
 const SECTIONS: SectionMeta[] = [
   { id: 'overview', label: 'Overview', shortLabel: 'Home', group: 'Control', icon: LayoutDashboard, tone: 'text-primary bg-primary/10' },
+  { id: 'greedy', label: 'Greedy Tap Admin', shortLabel: 'Greedy', group: 'Control', icon: Joystick, tone: 'text-orange-500 bg-orange-500/10' },
   { id: 'leaderboard', label: 'Levels & Ranks', shortLabel: 'Ranks', group: 'Control', icon: Trophy, tone: 'text-amber-500 bg-amber-500/10' },
   { id: 'users', label: 'Users & Auth', shortLabel: 'Users', group: 'Control', icon: Users, tone: 'text-blue-500 bg-blue-500/10' },
   { id: 'auth', label: 'Roles & Sessions', shortLabel: 'Roles', group: 'Control', icon: KeyRound, tone: 'text-violet-500 bg-violet-500/10' },
@@ -113,10 +137,27 @@ const SECTIONS: SectionMeta[] = [
   { id: 'integrations', label: 'Integrations', shortLabel: 'Integrations', group: 'Platform', icon: Plug, tone: 'text-slate-500 bg-slate-500/10' },
 ];
 
-const LIVE_REFRESH_MS = 20_000;
+const LIVE_REFRESH_MS = 30_000;
 
 function isRoomWatchSection(section: AdminSection): boolean {
   return section === 'live' || section === 'party' || section === 'karaoke';
+}
+
+type AdminPrivacyFilter = 'all' | 'public' | 'private';
+
+function resolveAdminRowPrivacy(raw: Record<string, unknown>): 'Public' | 'Private' {
+  const privacy = String(raw.privacy ?? '').trim().toLowerCase();
+  if (privacy === 'private') return 'Private';
+  return 'Public';
+}
+
+function rowMatchesPrivacyFilter(
+  raw: Record<string, unknown>,
+  filter: AdminPrivacyFilter,
+): boolean {
+  if (filter === 'all') return true;
+  const privacy = resolveAdminRowPrivacy(raw);
+  return filter === 'private' ? privacy === 'Private' : privacy === 'Public';
 }
 
 function SectionShell({
@@ -198,11 +239,15 @@ type DetailRecord = {
 export function AdminControlCenter() {
   const db = useDB();
   useDbRevision();
-  const [section, setSection] = useState<AdminSection>('overview');
+  const { openAdmin } = useGreedySession();
+  const [section, setSection] = useState<AdminSection>(() =>
+    peekWorkspaceGreedyAdminHint() ? 'greedy' : 'overview',
+  );
   const [serverAdmin, setServerAdmin] = useState(false);
   const [manualRefresh, setManualRefresh] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [privacyFilter, setPrivacyFilter] = useState<AdminPrivacyFilter>('all');
   const [overview, setOverview] = useState<AdminOverview | null>(null);
   const [rows, setRows] = useState<unknown[]>([]);
   const [creditUserId, setCreditUserId] = useState('');
@@ -221,24 +266,48 @@ export function AdminControlCenter() {
   const [splashAdDuration, setSplashAdDuration] = useState<number>((db.settings.splashAdDuration as number) || 2);
   const [splashAdEnabled, setSplashAdEnabled] = useState<boolean>((db.settings.splashAdEnabled as boolean) || false);
 
+  // Land on Greedy section when hinted; fullscreen opens only via the explicit button.
+  useEffect(() => {
+    const openGreedySection = () => {
+      if (consumeWorkspaceGreedyAdminHint()) {
+        setSection('greedy');
+      }
+    };
+    openGreedySection();
+    window.addEventListener(WORKSPACE_GREEDY_ADMIN_EVENT, openGreedySection);
+    return () => window.removeEventListener(WORKSPACE_GREEDY_ADMIN_EVENT, openGreedySection);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-    void fetchMe()
-      .then((me) => {
-        if (!cancelled) setServerAdmin(me.role === 'admin');
-      })
-      .catch(() => {
-        if (!cancelled) setServerAdmin(false);
-      });
+    void (async () => {
+      try {
+        const meId = db.currentUser?.id;
+        if (meId) await hydratePlatformSession(meId);
+        const me = await fetchMe();
+        if (cancelled) return;
+        setServerAdmin(me.role === 'admin' || db.currentUser?.role === 'admin');
+      } catch {
+        if (!cancelled) setServerAdmin(db.currentUser?.role === 'admin');
+      }
+    })();
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [db.currentUser?.id, db.currentUser?.role]);
 
   const loadOverview = useCallback(async () => {
-    if (!serverAdmin) return;
     try {
-      setOverview(await adminFetchOverview());
+      if (serverAdmin) {
+        try {
+          setOverview(await adminFetchOverview());
+          return;
+        } catch {
+          /* fall through to cloud lane */
+        }
+      }
+      const cloud = await cloudAdminFetchOverview();
+      if (cloud) setOverview(cloud);
     } catch {
       /* keep previous */
     }
@@ -251,7 +320,7 @@ export function AdminControlCenter() {
 
     if (section === 'overview') {
       try {
-        if (serverAdmin) await loadOverview();
+        await loadOverview();
       } catch (e) {
         if (!silent) setError(e instanceof Error ? e.message : 'Failed to load overview');
       } finally {
@@ -261,7 +330,18 @@ export function AdminControlCenter() {
       return;
     }
 
-    if (!serverAdmin) {
+    const cloudSections = new Set([
+      'posts',
+      'reels',
+      'comments',
+      'messages',
+      'live',
+      'party',
+      'gifts',
+      'karaoke',
+      'wallet',
+    ]);
+    if (!cloudSections.has(section)) {
       setLastRefresh(Date.now());
       if (opts?.manual) setManualRefresh(false);
       return;
@@ -270,51 +350,123 @@ export function AdminControlCenter() {
     try {
       switch (section) {
         case 'posts': {
-          const { items } = await adminListPosts(query);
-          setRows(items);
+          if (serverAdmin) {
+            try {
+              const { items } = await adminListPosts(query);
+              setRows(items);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          setRows(await cloudAdminListPosts(query));
           break;
         }
         case 'reels': {
-          const { items } = await adminListReels(query);
-          setRows(items);
+          if (serverAdmin) {
+            try {
+              const { items } = await adminListReels(query);
+              setRows(items);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          setRows(await cloudAdminListReels(query));
           break;
         }
         case 'comments': {
-          const { items } = await adminListComments(query);
-          setRows(items);
+          if (serverAdmin) {
+            try {
+              const { items } = await adminListComments(query);
+              setRows(items);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          setRows(await cloudAdminListComments(query));
           break;
         }
         case 'messages': {
-          const { items } = await adminListChatMessages(query);
-          setRows(items);
+          if (serverAdmin) {
+            try {
+              const { items } = await adminListChatMessages(query);
+              setRows(items);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          setRows(await cloudAdminListChatMessages(query));
           break;
         }
         case 'live': {
-          const { items } = await adminListStreams();
-          setRows(items);
+          if (serverAdmin) {
+            try {
+              const { items } = await adminListStreams();
+              setRows(items);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          setRows(await cloudAdminListStreams());
           break;
         }
         case 'party': {
-          const { items } = await adminListPartyRooms(query);
-          setRows(items);
+          if (serverAdmin) {
+            try {
+              const { items } = await adminListPartyRooms(query);
+              setRows(items);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          setRows(await cloudAdminListPartyRooms(query));
           break;
         }
         case 'gifts': {
-          const { items } = await adminListGifts();
-          setRows(items);
+          if (serverAdmin) {
+            try {
+              const { items } = await adminListGifts();
+              setRows(items);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          setRows(await cloudAdminListGifts());
           break;
         }
         case 'karaoke': {
-          const { items } = await adminListPartyRooms(query || 'Karaoke');
-          setRows(items.filter((row) => /karaoke|game|party/i.test(row.room_mode)));
+          const rooms = serverAdmin
+            ? await adminListPartyRooms(query || 'Karaoke')
+                .then((r) => r.items)
+                .catch(() => cloudAdminListPartyRooms(query || 'Karaoke'))
+            : await cloudAdminListPartyRooms(query || 'Karaoke');
+          setRows(rooms.filter((row) => /karaoke|game|party/i.test(row.room_mode)));
           break;
         }
         case 'wallet': {
-          const [{ items: wallets }, { items: txs }] = await Promise.all([
-            adminListWallets(query),
-            adminListTransactions(),
-          ]);
-          setRows([...wallets.map((w) => ({ ...w, _kind: 'wallet' })), ...txs.map((t) => ({ ...t, _kind: 'tx' }))]);
+          if (serverAdmin) {
+            try {
+              const [{ items: wallets }, { items: txs }] = await Promise.all([
+                adminListWallets(query),
+                adminListTransactions(),
+              ]);
+              setRows([
+                ...wallets.map((w) => ({ ...w, _kind: 'wallet' })),
+                ...txs.map((t) => ({ ...t, _kind: 'tx' })),
+              ]);
+              break;
+            } catch {
+              /* cloud fallback */
+            }
+          }
+          const wallets = await cloudAdminListWallets(query);
+          setRows(wallets.map((w) => ({ ...w, _kind: 'wallet' })));
           break;
         }
         default:
@@ -327,6 +479,12 @@ export function AdminControlCenter() {
       setLastRefresh(Date.now());
     }
   }, [loadOverview, query, section, serverAdmin]);
+
+  useEffect(() => {
+    if (!isRoomWatchSection(section)) {
+      setPrivacyFilter('all');
+    }
+  }, [section]);
 
   const refreshAll = useCallback(() => {
     void loadSection({ silent: false, manual: true });
@@ -341,6 +499,12 @@ export function AdminControlCenter() {
       void loadSection({ silent: true });
     }, LIVE_REFRESH_MS);
     return () => window.clearInterval(timer);
+  }, [loadSection]);
+
+  useEffect(() => {
+    return subscribeAdminCloudRealtime(() => {
+      void loadSection({ silent: true });
+    });
   }, [loadSection]);
 
   const moderationFlags = useMemo(() => {
@@ -452,7 +616,7 @@ export function AdminControlCenter() {
   }, []);
 
   const overviewCards = useMemo(() => {
-    const stats = serverAdmin && overview ? overview : localStats;
+    const stats = overview ?? localStats;
     return [
       { key: 'users', label: 'Users', value: stats.users, section: 'users' as AdminSection, icon: Users, live: true },
       { key: 'posts', label: 'Posts', value: stats.posts, section: 'posts' as AdminSection, icon: FileText, live: false },
@@ -466,7 +630,7 @@ export function AdminControlCenter() {
       { key: 'moderation', label: 'Reports', value: moderationCount, section: 'moderation' as AdminSection, icon: ShieldAlert, live: moderationCount > 0 },
       { key: 'dating', label: 'Dating', value: datingReports.length, section: 'dating' as AdminSection, icon: Heart, live: false },
     ];
-  }, [datingReports.length, localStats, moderationCount, overview, serverAdmin]);
+  }, [datingReports.length, localStats, moderationCount, overview]);
 
   const resolveUserInsights = useCallback(
     (raw: Record<string, unknown>, previewSection: AdminSection = section): AdminUserInsights | undefined => {
@@ -499,12 +663,35 @@ export function AdminControlCenter() {
     [db, users],
   );
 
+  const filteredRows = useMemo(() => {
+    if (!isRoomWatchSection(section)) return rows;
+    return rows.filter((raw) =>
+      rowMatchesPrivacyFilter(raw as Record<string, unknown>, privacyFilter),
+    );
+  }, [privacyFilter, rows, section]);
+
+  const privacyFilterCounts = useMemo(() => {
+    if (!isRoomWatchSection(section)) {
+      return { all: 0, public: 0, private: 0 };
+    }
+    let publicCount = 0;
+    let privateCount = 0;
+    for (const raw of rows) {
+      const privacy = resolveAdminRowPrivacy(raw as Record<string, unknown>);
+      if (privacy === 'Private') privateCount += 1;
+      else publicCount += 1;
+    }
+    return { all: rows.length, public: publicCount, private: privateCount };
+  }, [rows, section]);
+
   const makePreview = useCallback(
     (raw: Record<string, unknown>, previewSection: AdminSection | 'user' = section) =>
       buildAdminPreview({
         raw,
         section:
-          previewSection === 'studio' || previewSection === 'leaderboard'
+          previewSection === 'studio' ||
+          previewSection === 'leaderboard' ||
+          previewSection === 'greedy'
             ? 'overview'
             : previewSection,
         posts,
@@ -550,7 +737,11 @@ export function AdminControlCenter() {
     <SectionShell
       title="System overview"
       icon={LayoutDashboard}
-      description={serverAdmin ? 'Live cloud counts · auto-refreshes every 20s' : 'Local snapshot · assign role=admin for cloud control'}
+      description={
+        serverAdmin
+          ? 'Live cloud counts · Realtime + refresh every 8s · full moderation unlocked'
+          : 'Live cloud counts · Realtime + refresh every 8s · sign in as platform admin for moderation actions'
+      }
       action={renderRefreshAction()}
     >
       <div className="flex items-center justify-between gap-2 mb-4 text-[11px] font-bold text-muted-foreground">
@@ -585,7 +776,28 @@ export function AdminControlCenter() {
     </SectionShell>
   );
 
-  const renderRowActions = (item: Record<string, unknown>, id: string) => (
+  const renderRowActions = (item: Record<string, unknown>, id: string) => {
+    const partyRoomId =
+      typeof item.party_room_id === 'string' && item.party_room_id
+        ? item.party_room_id
+        : section === 'party' || section === 'karaoke'
+          ? id
+          : '';
+    const hostUserId = String(
+      item.owner_id ?? item.user_id ?? item.hostUserId ?? '',
+    ).trim();
+    const hostOpts = hostUserId ? { hostUserId } : undefined;
+
+    const runModeration = async (action: () => Promise<unknown>) => {
+      try {
+        await action();
+        await loadSection({ silent: true });
+      } catch (e) {
+        setError(e instanceof Error ? e.message : 'Moderation action failed');
+      }
+    };
+
+    return (
     <div className="flex flex-wrap gap-2 shrink-0">
       <button
         type="button"
@@ -608,91 +820,117 @@ export function AdminControlCenter() {
         <button type="button" className="text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border border-destructive/40 text-destructive" onClick={() => void adminDeleteChatMessage(id).then(() => loadSection({ silent: true }))}>Delete</button>
       ) : null}
       {section === 'live' && serverAdmin ? (
-        <button type="button" className="text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border border-destructive/40 text-destructive" onClick={() => void adminStopStream(id).then(() => loadSection({ silent: true }))}>Stop</button>
+        <>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 text-xs font-black px-3.5 py-2.5 min-h-[44px] rounded-xl border border-red-500/45 bg-red-500/10 text-red-500"
+            onClick={() =>
+              void runModeration(async () => {
+                if (partyRoomId) {
+                  await adminEndPartyRoom(partyRoomId, hostOpts);
+                }
+                await adminStopStream(id, {
+                  partyRoomId: partyRoomId || undefined,
+                  hostUserId: hostUserId || undefined,
+                }).catch(() => undefined);
+              })
+            }
+          >
+            <Square className="w-3.5 h-3.5 fill-current" />
+            Stop Live
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 text-xs font-black px-3.5 py-2.5 min-h-[44px] rounded-xl bg-destructive text-destructive-foreground"
+            onClick={() => {
+              if (
+                !window.confirm(
+                  'Stop this live stream and ban the host? They cannot go live until unbanned.',
+                )
+              ) {
+                return;
+              }
+              void runModeration(async () => {
+                if (partyRoomId) {
+                  await adminBanPartyRoom(
+                    partyRoomId,
+                    'Live room banned by platform admin',
+                    hostOpts,
+                  );
+                } else {
+                  await adminBanStream(id, 'Live stream banned by platform admin', hostOpts);
+                }
+              });
+            }}
+          >
+            <Ban className="w-3.5 h-3.5" />
+            Ban Host
+          </button>
+          {partyRoomId ? (
+            <button
+              type="button"
+              className="text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border border-border"
+              onClick={() => void runModeration(() => adminEndPartyRoom(partyRoomId, hostOpts))}
+            >
+              End room
+            </button>
+          ) : null}
+        </>
       ) : null}
       {(section === 'party' || section === 'karaoke') && serverAdmin ? (
-        <button type="button" className="text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border border-destructive/40 text-destructive" onClick={() => void adminEndPartyRoom(id).then(() => loadSection({ silent: true }))}>End</button>
+        <>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 text-xs font-black px-3.5 py-2.5 min-h-[44px] rounded-xl border border-red-500/45 bg-red-500/10 text-red-500"
+            onClick={() => void runModeration(() => adminEndPartyRoom(id, hostOpts))}
+          >
+            <Square className="w-3.5 h-3.5 fill-current" />
+            Stop Live
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 text-xs font-black px-3.5 py-2.5 min-h-[44px] rounded-xl bg-destructive text-destructive-foreground"
+            onClick={() => {
+              if (
+                !window.confirm(
+                  'End this room and ban the owner? They cannot host until unbanned.',
+                )
+              ) {
+                return;
+              }
+              void runModeration(() =>
+                adminBanPartyRoom(id, 'Live room banned by platform admin', hostOpts),
+              );
+            }}
+          >
+            <Ban className="w-3.5 h-3.5" />
+            Ban Host
+          </button>
+        </>
       ) : null}
     </div>
   );
+  };
 
   const renderContentList = () => {
-    if (!serverAdmin) {
-      const localItems =
-        section === 'posts'
-          ? posts.slice(0, 50)
-          : section === 'reels'
-            ? reels.slice(0, 50)
-            : section === 'comments'
-              ? localComments
-              : section === 'messages'
-                ? localMessages
-                : section === 'live'
-                  ? users.filter((u) => u.status === 'live')
-                  : [];
-
-      if (localItems.length === 0) return <EmptyState text="No local data. Server admin role unlocks full cloud control." />;
-
+    if (filteredRows.length > 0) {
       return (
         <div className="space-y-3">
-          {localItems.map((item: any) => {
-            const raw: Record<string, unknown> =
-              section === 'comments'
-                ? {
-                    id: item.id,
-                    target_id: item.targetId,
-                    target_kind: item.targetKind,
-                    body: item.text,
-                    author_id: item.authorId,
-                  }
-                : section === 'messages'
-                  ? {
-                      id: item.id,
-                      chatId: item.chatId,
-                      text: item.text,
-                      body: item.text,
-                      sender_id: item.senderId,
-                      senderId: item.senderId,
-                      from: item.from,
-                      media: item.media,
-                      createdAt: item.createdAt,
-                    }
-                  : section === 'live'
-                    ? {
-                        id: item.id,
-                        user_id: item.id,
-                        title: `${item.displayName ?? item.username} live`,
-                        status: 'live',
-                      }
-                    : (item as Record<string, unknown>);
-
-            const preview = makePreview(raw, section);
+          {filteredRows.map((raw) => {
+            const item = raw as Record<string, unknown>;
+            const id = String(item.id ?? item.user_id ?? '');
+            const preview = makePreview(item, section);
             const roomWatch = isRoomWatchSection(section);
 
             return (
-              <div key={item.id ?? item.userId ?? item.chatId} className="space-y-2">
-                <AdminPreviewCard preview={preview} compact={!roomWatch} fullViewport={roomWatch} />
-                <div className="flex flex-wrap gap-2 px-1">
-                  <button
-                    type="button"
-                    className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border border-border"
-                    onClick={() =>
-                      openDetailWithInsights({
-                        section,
-                        raw,
-                        preview,
-                      })
-                    }
-                  >
-                    <Eye className="w-3.5 h-3.5" /> View
-                  </button>
-                  {(section === 'posts' || section === 'reels') && (
-                    <>
-                      <button type="button" className="text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border border-border" onClick={() => { db.updatePost(item.id, (p) => ({ ...p, isArchived: true })); db.addAuditLog({ id: Date.now(), text: `Archived ${section} ${item.id}`, time: 'Just now' }); }}>Archive</button>
-                      <button type="button" className="text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border border-border" onClick={() => db.updatePost(item.id, (p) => ({ ...p, isReported: false }))}>Clear flag</button>
-                    </>
-                  )}
-                </div>
+              <div key={id} className="space-y-2">
+                <AdminPreviewCard
+                  preview={preview}
+                  compact={!roomWatch}
+                  fullViewport={roomWatch}
+                  onModerationComplete={() => void loadSection({ silent: true })}
+                />
+                <div className="px-1">{renderRowActions(item, id)}</div>
               </div>
             );
           })}
@@ -700,20 +938,93 @@ export function AdminControlCenter() {
       );
     }
 
-    if (rows.length === 0) return <EmptyState text="No records found." />;
+    if (rows.length > 0 && isRoomWatchSection(section) && privacyFilter !== 'all') {
+      return (
+        <EmptyState
+          text={
+            privacyFilter === 'private'
+              ? 'No private live rooms in this list.'
+              : 'No published (public) live rooms in this list.'
+          }
+        />
+      );
+    }
+
+    const localItems =
+      section === 'posts'
+        ? posts.slice(0, 50)
+        : section === 'reels'
+          ? reels.slice(0, 50)
+          : section === 'comments'
+            ? localComments
+            : section === 'messages'
+              ? localMessages
+              : section === 'live'
+                ? users.filter((u) => u.status === 'live')
+                : [];
+
+    if (localItems.length === 0) {
+      return (
+        <EmptyState
+          text={
+            serverAdmin
+              ? 'No cloud records yet for this section.'
+              : 'No cloud records yet. Live updates appear here as users post, go live, or chat.'
+          }
+        />
+      );
+    }
 
     return (
       <div className="space-y-3">
-        {rows.map((raw) => {
-          const item = raw as Record<string, unknown>;
-          const id = String(item.id ?? item.user_id ?? '');
-          const preview = makePreview(item, section);
+        {localItems.map((item: any) => {
+          const raw: Record<string, unknown> =
+            section === 'comments'
+              ? {
+                  id: item.id,
+                  target_id: item.targetId,
+                  target_kind: item.targetKind,
+                  body: item.text,
+                  author_id: item.authorId,
+                }
+              : section === 'messages'
+                ? {
+                    id: item.id,
+                    chatId: item.chatId,
+                    text: item.text,
+                    body: item.text,
+                    sender_id: item.senderId,
+                    senderId: item.senderId,
+                    from: item.from,
+                    media: item.media,
+                    createdAt: item.createdAt,
+                  }
+                : section === 'live'
+                  ? {
+                      id: item.id,
+                      user_id: item.id,
+                      title: `${item.displayName ?? item.username} live`,
+                      status: 'live',
+                      privacy: 'Public',
+                    }
+                  : (item as Record<string, unknown>);
+
+          if (isRoomWatchSection(section) && !rowMatchesPrivacyFilter(raw, privacyFilter)) {
+            return null;
+          }
+
+          const preview = makePreview(raw, section);
           const roomWatch = isRoomWatchSection(section);
 
           return (
-            <div key={id} className="space-y-2">
-              <AdminPreviewCard preview={preview} compact={!roomWatch} fullViewport={roomWatch} />
-              <div className="px-1">{renderRowActions(item, id)}</div>
+            <div key={String(raw.id ?? item.id)} className="space-y-2">
+              <AdminPreviewCard
+                preview={preview}
+                compact={!roomWatch}
+                fullViewport={roomWatch}
+                onModerationComplete={() => void loadSection({ silent: true })}
+              />
+              <div className="px-1">{renderRowActions(raw, String(raw.id ?? item.id))}</div>
             </div>
           );
         })}
@@ -827,7 +1138,12 @@ export function AdminControlCenter() {
             </button>
           </div>
           <div className="flex-1 overflow-y-auto p-4 sm:p-5">
-            <AdminPreviewPanel preview={detail.preview} raw={detail.raw} userInsights={detail.userInsights} />
+            <AdminPreviewPanel
+              preview={detail.preview}
+              raw={detail.raw}
+              userInsights={detail.userInsights}
+              onModerationComplete={() => void loadSection({ silent: true })}
+            />
           </div>
         </div>
       </div>
@@ -887,6 +1203,23 @@ export function AdminControlCenter() {
           {section === 'overview' ? renderOverview() : null}
           {section === 'users' ? <AdminPanel /> : null}
 
+          {section === 'greedy' ? (
+            <SectionShell
+              title="Greedy Tap Admin"
+              icon={Joystick}
+              description="Opens the original fullscreen game admin. Return to Workspace comes back here — picture-in-picture is only for the in-app Greedy game, not this admin panel."
+            >
+              <button
+                type="button"
+                onClick={() => openAdmin()}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-bold px-5 py-3 shadow-sm hover:opacity-95 active:scale-[0.99] transition"
+              >
+                <Joystick className="w-4 h-4" />
+                Open fullscreen Greedy Admin
+              </button>
+            </SectionShell>
+          ) : null}
+
           {section === 'auth' ? (
             <SectionShell title="Roles & sessions" icon={KeyRound} description="Platform auth roles synced from profiles" action={renderRefreshAction()}>
               <div className="space-y-3">
@@ -939,6 +1272,42 @@ export function AdminControlCenter() {
                   />
                   <button type="submit" className="text-sm font-bold px-4 py-3 min-h-[44px] rounded-xl bg-primary text-primary-foreground">Search</button>
                 </form>
+              ) : null}
+              {isRoomWatchSection(section) ? (
+                <div className="mb-4 flex flex-wrap gap-2" role="group" aria-label="Privacy filter">
+                  {(
+                    [
+                      { id: 'all' as const, label: 'All', count: privacyFilterCounts.all, icon: null },
+                      { id: 'public' as const, label: 'Publish', count: privacyFilterCounts.public, icon: Globe2 },
+                      { id: 'private' as const, label: 'Private', count: privacyFilterCounts.private, icon: Lock },
+                    ] as const
+                  ).map((chip) => {
+                    const Icon = chip.icon;
+                    const active = privacyFilter === chip.id;
+                    return (
+                      <button
+                        key={chip.id}
+                        type="button"
+                        onClick={() => setPrivacyFilter(chip.id)}
+                        className={`inline-flex items-center gap-1.5 text-xs font-bold px-3 py-2 min-h-[40px] rounded-xl border transition-colors ${
+                          active
+                            ? 'bg-primary text-primary-foreground border-primary'
+                            : 'bg-background border-border text-muted-foreground hover:bg-secondary/60'
+                        }`}
+                      >
+                        {Icon ? <Icon className="w-3.5 h-3.5" /> : null}
+                        {chip.label}
+                        <span
+                          className={`tabular-nums text-[10px] font-black px-1.5 py-0.5 rounded-full ${
+                            active ? 'bg-primary-foreground/20 text-primary-foreground' : 'bg-secondary text-muted-foreground'
+                          }`}
+                        >
+                          {chip.count}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
               ) : null}
               {renderContentList()}
             </SectionShell>
@@ -1055,17 +1424,30 @@ export function AdminControlCenter() {
                   </label>
                   {splashAdEnabled ? (
                     <>
-                      <input value={splashAdUrl} onChange={(e) => setSplashAdUrl(e.target.value)} placeholder="Ad media URL" className="w-full text-sm border border-border rounded-xl px-3 py-3 min-h-[44px] bg-background font-mono" />
-                      {splashAdUrl ? (
-                        <div className="rounded-xl overflow-hidden border border-border w-full aspect-video bg-black/10">
-                          {splashAdUrl.includes('video') || splashAdUrl.endsWith('.mp4') || splashAdUrl.startsWith('data:video/') ? (
-                            <AppNativeVideo src={splashAdUrl} className="w-full h-full object-cover" />
-                          ) : (
-                            <img src={splashAdUrl} alt="Ad preview" className="w-full h-full object-cover" />
-                          )}
-                        </div>
+                      <SplashAdMediaPicker
+                        value={splashAdUrl}
+                        onChange={setSplashAdUrl}
+                        label="Splash / ad screen media"
+                        description="Upload image or video shown on the launch splash ad screen (or paste a URL)."
+                      />
+                      <label className="block space-y-1.5">
+                        <span className="text-xs font-bold text-muted-foreground uppercase tracking-wide">
+                          Display duration (seconds)
+                        </span>
+                        <input
+                          type="number"
+                          min={1}
+                          max={15}
+                          value={splashAdDuration}
+                          onChange={(e) => setSplashAdDuration(Number(e.target.value))}
+                          className="w-full text-sm border border-border rounded-xl px-3 py-3 min-h-[44px] bg-background"
+                        />
+                      </label>
+                      {splashAdUrl && isSplashAdVideoUrl(splashAdUrl) ? (
+                        <p className="text-[11px] text-muted-foreground">
+                          Video ads play muted on launch. Duration still controls when the splash can dismiss.
+                        </p>
                       ) : null}
-                      <input type="number" min={1} max={15} value={splashAdDuration} onChange={(e) => setSplashAdDuration(Number(e.target.value))} className="w-full text-sm border border-border rounded-xl px-3 py-3 min-h-[44px] bg-background" />
                     </>
                   ) : null}
                   <button type="button" onClick={saveSplash} className="w-full sm:w-auto px-4 py-3 min-h-[44px] bg-primary text-primary-foreground rounded-xl font-bold text-sm">Save ad settings</button>

@@ -14,6 +14,7 @@ import {
 } from './profileVisitsCloud';
 
 let unsubscribe: (() => void) | null = null;
+let subscribedUserId: string | null = null;
 
 export function queueCloudProfileVisit(input: {
   ownerId: string;
@@ -69,9 +70,11 @@ export async function syncCloudProfileVisits(): Promise<void> {
 }
 
 export function startCloudProfileVisitsRealtime(userId: string): () => void {
-  stopCloudProfileVisitsRealtime();
   if (!isProfileVisitsCloudAvailable() || !isCloudAuthUserId(userId)) return () => {};
+  if (subscribedUserId === userId && unsubscribe) return stopCloudProfileVisitsRealtime;
 
+  stopCloudProfileVisitsRealtime();
+  subscribedUserId = userId;
   void syncCloudProfileVisits();
   unsubscribe = subscribeCloudProfileVisits(userId, (row) => {
     void applyVisitRow(row);
@@ -83,4 +86,5 @@ export function startCloudProfileVisitsRealtime(userId: string): () => void {
 export function stopCloudProfileVisitsRealtime(): void {
   unsubscribe?.();
   unsubscribe = null;
+  subscribedUserId = null;
 }

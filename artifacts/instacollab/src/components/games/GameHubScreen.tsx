@@ -9,6 +9,7 @@ import {
   Sparkles,
 } from 'lucide-react';
 import { LOCAL_GAME_CATALOG } from '../../lib/localGames/catalog';
+import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import type { LocalGameRecord } from '../../lib/localGames/types';
 import { LocalGamePlayer } from './LocalGamePlayer';
 
@@ -51,7 +52,7 @@ export function GameHubScreen({ onOpenLocalGames, onOpenThirdParty }: GameHubScr
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
           <Sparkles className="w-3.5 h-3.5" />
-          UniLive
+          {APP_DISPLAY_NAME}
         </div>
         <h1 className="text-4xl font-black text-foreground tracking-tighter">Game Hub</h1>
         <p className="text-xs text-muted-foreground font-semibold max-w-xl">

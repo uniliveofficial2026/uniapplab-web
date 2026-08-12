@@ -26,14 +26,6 @@ import {
 } from '../firebase/authApi';
 import { isFirebaseConfigured } from '../firebase/config';
 import { withSupabaseFirebaseFailover } from './failover';
-import {
-  resolveLiveOAuthBackend,
-  resolveLiveOAuthBackendSync,
-  SUPABASE_OAUTH_DOWN_MESSAGE,
-  SUPABASE_OAUTH_ONLY_DOWN_MESSAGE,
-  isSupabaseOAuthRedirectAllowed,
-} from './oauthLane';
-import { writeStoredAuthBackend } from './providerState';
 import { clearDevLocalAuthBypass } from './devLocalAuth';
 import { clearFirebaseBackupLink } from './firebaseBackupLink';
 import type { AuthResult } from './types';
@@ -162,51 +154,56 @@ export async function authUpdatePassword(newPassword: string): Promise<AuthResul
 export async function authSignInWithGoogle(options?: {
   selectAccount?: boolean;
   loginHint?: string;
+  workspaceScopes?: boolean;
 }): Promise<AuthResult & { usedBackup?: boolean; backupNotice?: string }> {
   clearDevLocalAuthBypass();
 
   if (isSupabaseConfigured() && isFirebaseConfigured()) {
-    // Instant redirect on click — use cached lane, never wait on a health probe.
-    const lane = resolveLiveOAuthBackendSync();
-    if (lane === 'firebase') {
-      writeStoredAuthBackend('firebase');
-      const result = await firebaseSignInWithGoogle();
-      return result.ok
-        ? { ...result, usedBackup: true, backupNotice: SUPABASE_OAUTH_DOWN_MESSAGE }
-        : result;
-    }
+    // Always try Supabase Google first. Sticky "degraded" must not force Firebase —
+    // Firebase often surfaces "The requested action is invalid" on this domain.
     return withSupabaseFirebaseFailover(
       async () => {
         const result = await supabaseSignInWithGoogle(options);
         return result.ok ? { ok: true, redirecting: true } : result;
       },
-      async () => firebaseSignInWithGoogle(),
-      { failOnCredentialError: false },
+      async () =>
+        firebaseSignInWithGoogle({
+          workspaceScopes: options?.workspaceScopes === true,
+          selectAccount: options?.selectAccount,
+        }),
+      { failOnCredentialError: true },
     );
   }
   if (isSupabaseConfigured()) {
-    // Start Google OAuth immediately — probing here blocked the button for seconds.
     const result = await supabaseSignInWithGoogle(options);
     return result.ok ? { ok: true, redirecting: true } : result;
   }
   if (isFirebaseConfigured()) {
-    return firebaseSignInWithGoogle();
+    return firebaseSignInWithGoogle({
+      workspaceScopes: options?.workspaceScopes === true,
+      selectAccount: options?.selectAccount,
+    });
   }
   return noCloud();
+}
+
+/** Admin Panel / Workspace — incremental Google API consent (sensitive scopes). */
+export async function authConnectGoogleWorkspace(options?: {
+  selectAccount?: boolean;
+  loginHint?: string;
+}): Promise<AuthResult & { usedBackup?: boolean; backupNotice?: string }> {
+  return authSignInWithGoogle({
+    ...options,
+    selectAccount: options?.selectAccount ?? true,
+    workspaceScopes: true,
+  });
 }
 
 export async function authSignInWithApple(): Promise<AuthResult & { usedBackup?: boolean; backupNotice?: string }> {
   clearDevLocalAuthBypass();
 
   if (isSupabaseConfigured() && isFirebaseConfigured()) {
-    const lane = await resolveLiveOAuthBackend();
-    if (lane === 'firebase') {
-      writeStoredAuthBackend('firebase');
-      const result = await firebaseSignInWithApple();
-      return result.ok
-        ? { ...result, usedBackup: true, backupNotice: SUPABASE_OAUTH_DOWN_MESSAGE }
-        : result;
-    }
+    // Sync lane only — never await OAuth health probe on click.
     return withSupabaseFirebaseFailover(
       async () => {
         const result = await supabaseSignInWithApple();
@@ -217,9 +214,6 @@ export async function authSignInWithApple(): Promise<AuthResult & { usedBackup?:
     );
   }
   if (isSupabaseConfigured()) {
-    if (!(await isSupabaseOAuthRedirectAllowed())) {
-      return { ok: false, reason: SUPABASE_OAUTH_ONLY_DOWN_MESSAGE };
-    }
     const result = await supabaseSignInWithApple();
     return result.ok ? { ok: true, redirecting: true } : result;
   }

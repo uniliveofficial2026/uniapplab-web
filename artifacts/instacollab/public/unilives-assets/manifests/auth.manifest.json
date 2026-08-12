@@ -1,0 +1,440 @@
+{
+  "version": 1,
+  "category": "auth",
+  "brand": "UniLive’s",
+  "assets": [
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.welcome.background",
+      "name": "welcome background",
+      "formats": {
+        "webp": "/unilives-assets/auth/welcome/background.webp",
+        "png": "/unilives-assets/auth/welcome/background.png"
+      },
+      "tags": [
+        "auth",
+        "background",
+        "welcome"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.welcome.illustration",
+      "name": "welcome illustration",
+      "formats": {
+        "webp": "/unilives-assets/auth/welcome/illustration.webp",
+        "png": "/unilives-assets/auth/welcome/illustration.png"
+      },
+      "tags": [
+        "auth",
+        "illustration",
+        "welcome"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.login.background",
+      "name": "login background",
+      "formats": {
+        "webp": "/unilives-assets/auth/login/background.webp",
+        "png": "/unilives-assets/auth/login/background.png"
+      },
+      "tags": [
+        "auth",
+        "background",
+        "login"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.login.illustration",
+      "name": "login illustration",
+      "formats": {
+        "webp": "/unilives-assets/auth/login/illustration.webp",
+        "png": "/unilives-assets/auth/login/illustration.png"
+      },
+      "tags": [
+        "auth",
+        "illustration",
+        "login"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.signup.background",
+      "name": "signup background",
+      "formats": {
+        "webp": "/unilives-assets/auth/signup/background.webp",
+        "png": "/unilives-assets/auth/signup/background.png"
+      },
+      "tags": [
+        "auth",
+        "background",
+        "signup"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.signup.illustration",
+      "name": "signup illustration",
+      "formats": {
+        "webp": "/unilives-assets/auth/signup/illustration.webp",
+        "png": "/unilives-assets/auth/signup/illustration.png"
+      },
+      "tags": [
+        "auth",
+        "illustration",
+        "signup"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.otp.background",
+      "name": "otp background",
+      "formats": {
+        "webp": "/unilives-assets/auth/otp/background.webp",
+        "png": "/unilives-assets/auth/otp/background.png"
+      },
+      "tags": [
+        "auth",
+        "background",
+        "otp"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.otp.illustration",
+      "name": "otp illustration",
+      "formats": {
+        "webp": "/unilives-assets/auth/otp/illustration.webp",
+        "png": "/unilives-assets/auth/otp/illustration.png"
+      },
+      "tags": [
+        "auth",
+        "illustration",
+        "otp"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.verification.background",
+      "name": "verification background",
+      "formats": {
+        "webp": "/unilives-assets/auth/verification/background.webp",
+        "png": "/unilives-assets/auth/verification/background.png"
+      },
+      "tags": [
+        "auth",
+        "background",
+        "verification"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.verification.illustration",
+      "name": "verification illustration",
+      "formats": {
+        "webp": "/unilives-assets/auth/verification/illustration.webp",
+        "png": "/unilives-assets/auth/verification/illustration.png"
+      },
+      "tags": [
+        "auth",
+        "illustration",
+        "verification"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.password-recovery.background",
+      "name": "password-recovery background",
+      "formats": {
+        "webp": "/unilives-assets/auth/password-recovery/background.webp",
+        "png": "/unilives-assets/auth/password-recovery/background.png"
+      },
+      "tags": [
+        "auth",
+        "background",
+        "password-recovery"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.password-recovery.illustration",
+      "name": "password-recovery illustration",
+      "formats": {
+        "webp": "/unilives-assets/auth/password-recovery/illustration.webp",
+        "png": "/unilives-assets/auth/password-recovery/illustration.png"
+      },
+      "tags": [
+        "auth",
+        "illustration",
+        "password-recovery"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.social.google",
+      "name": "Google mark",
+      "formats": {
+        "svg": "/unilives-assets/auth/social-auth/google.svg"
+      },
+      "tags": [
+        "auth",
+        "social",
+        "google"
+      ],
+      "priority": 90,
+      "replacementFor": [
+        "GoogleAuthButton-inline-svg"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.social.apple",
+      "name": "Apple mark",
+      "formats": {
+        "svg": "/unilives-assets/auth/social-auth/apple.svg"
+      },
+      "tags": [
+        "auth",
+        "social",
+        "apple"
+      ],
+      "priority": 90,
+      "replacementFor": [
+        "AppleAuthButton-inline-svg"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.social.facebook",
+      "name": "Facebook mark",
+      "formats": {
+        "svg": "/unilives-assets/auth/social-auth/facebook.svg"
+      },
+      "tags": [
+        "auth",
+        "social",
+        "facebook"
+      ],
+      "priority": 50
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.social.email",
+      "name": "Email mark",
+      "formats": {
+        "svg": "/unilives-assets/auth/social-auth/email.svg"
+      },
+      "tags": [
+        "auth",
+        "social",
+        "email"
+      ],
+      "priority": 50
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.state.loading",
+      "name": "Auth loading",
+      "formats": {
+        "webp": "/unilives-assets/auth/login/loading.webp",
+        "png": "/unilives-assets/auth/login/loading.png"
+      },
+      "tags": [
+        "auth",
+        "state"
+      ],
+      "priority": 60
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.state.success",
+      "name": "Auth success",
+      "formats": {
+        "webp": "/unilives-assets/auth/verification/success.webp",
+        "png": "/unilives-assets/auth/verification/success.png"
+      },
+      "tags": [
+        "auth",
+        "state"
+      ],
+      "priority": 60
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.state.error",
+      "name": "Auth error",
+      "formats": {
+        "webp": "/unilives-assets/auth/login/error.webp",
+        "png": "/unilives-assets/auth/login/error.png"
+      },
+      "tags": [
+        "auth",
+        "state"
+      ],
+      "priority": 60
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "auth",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "auth.fallback.default",
+      "name": "Auth default fallback",
+      "formats": {
+        "png": "/brand/app-logo.png"
+      },
+      "tags": [
+        "auth",
+        "fallback"
+      ],
+      "priority": 100,
+      "replacementFor": [
+        "LaunchBrandMark",
+        "launch-auth-shell"
+      ]
+    }
+  ]
+}

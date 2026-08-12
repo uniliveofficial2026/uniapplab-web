@@ -1,0 +1,267 @@
+{
+  "version": 1,
+  "category": "seat-interaction",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "interaction.kiss",
+      "brand": "UniLive\u2019s",
+      "name": "Kiss",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/kiss/kiss.svga",
+        "webm": "/unilives-assets/seat-interactions/kiss/kiss.webm",
+        "webp": "/unilives-assets/seat-interactions/kiss/kiss.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/kiss.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "kiss"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.hug",
+      "brand": "UniLive\u2019s",
+      "name": "Hug",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/hug/hug.svga",
+        "webm": "/unilives-assets/seat-interactions/hug/hug.webm",
+        "webp": "/unilives-assets/seat-interactions/hug/hug.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/hug.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "hug"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.high-five",
+      "brand": "UniLive\u2019s",
+      "name": "High five",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/high-five/high-five.svga",
+        "webm": "/unilives-assets/seat-interactions/high-five/high-five.webm",
+        "webp": "/unilives-assets/seat-interactions/high-five/high-five.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/high-five.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "high_five"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.pillow-fight",
+      "brand": "UniLive\u2019s",
+      "name": "Pillow fight",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/pillow-fight/pillow-fight.svga",
+        "webm": "/unilives-assets/seat-interactions/pillow-fight/pillow-fight.webm",
+        "webp": "/unilives-assets/seat-interactions/pillow-fight/pillow-fight.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/pillow-fight.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "pillow_fight"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.love-you",
+      "brand": "UniLive\u2019s",
+      "name": "Love you",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/love-you/love-you.svga",
+        "webm": "/unilives-assets/seat-interactions/love-you/love-you.webm",
+        "webp": "/unilives-assets/seat-interactions/love-you/love-you.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/love-you.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "love_you"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.cheer",
+      "brand": "UniLive\u2019s",
+      "name": "Cheer",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/cheer/cheer.svga",
+        "webm": "/unilives-assets/seat-interactions/cheer/cheer.webm",
+        "webp": "/unilives-assets/seat-interactions/cheer/cheer.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/cheer.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "cheer"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.crown",
+      "brand": "UniLive\u2019s",
+      "name": "Crown",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/crown/crown.svga",
+        "webm": "/unilives-assets/seat-interactions/crown/crown.webm",
+        "webp": "/unilives-assets/seat-interactions/crown/crown.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/crown.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "crown"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.freeze",
+      "brand": "UniLive\u2019s",
+      "name": "Freeze",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/freeze/freeze.svga",
+        "webm": "/unilives-assets/seat-interactions/freeze/freeze.webm",
+        "webp": "/unilives-assets/seat-interactions/freeze/freeze.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/freeze.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "freeze"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.fire",
+      "brand": "UniLive\u2019s",
+      "name": "Fire",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/fire/fire.svga",
+        "webm": "/unilives-assets/seat-interactions/fire/fire.webm",
+        "webp": "/unilives-assets/seat-interactions/fire/fire.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/fire.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "fire"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    },
+    {
+      "id": "interaction.confetti",
+      "brand": "UniLive\u2019s",
+      "name": "Confetti",
+      "category": "seat-interaction",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "svga": "/unilives-assets/seat-interactions/confetti/confetti.svga",
+        "webm": "/unilives-assets/seat-interactions/confetti/confetti.webm",
+        "webp": "/unilives-assets/seat-interactions/confetti/confetti.webp"
+      },
+      "audio": "/unilives-assets/audio/interactions/confetti.mp3",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "durationMs": 2500,
+      "loop": false,
+      "priority": 40,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "replacementFor": [
+        "confetti"
+      ],
+      "tags": [
+        "phase-8"
+      ]
+    }
+  ]
+}

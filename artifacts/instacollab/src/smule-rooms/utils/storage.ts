@@ -30,6 +30,11 @@ export type RoomSettings = {
     roomPriority: string;
     whoCanJoin: string;
     whoCanBeSeated: string;
+    /**
+     * How guests claim empty seats: free sit vs host approval queue.
+     * Independent from whoCanBeSeated eligibility.
+     */
+    seatJoinMode?: 'free' | 'approval' | string;
     manageRecommendations: string;
     singingManagement: string;
     songList: string;
@@ -43,6 +48,15 @@ export type RoomSettings = {
     watchTogetherMediaFileName?: string;
     /** Multi-Guest video seat capacity (7, 12, or 15). */
     multiGuestSeatCount?: number;
+    /** User IDs banned from taking any seat in this room (derived from seatBans). */
+    seatBannedUserIds?: string[];
+    /** Timed seat bans with expiry (authoritative). */
+    seatBans?: Array<{
+      userId: string;
+      expiresAt: number;
+      durationMs: number;
+      bannedAt: number;
+    }>;
 };
 
 const ROOM_SETTINGS_PREFIX = 'roomSettings:';
@@ -62,12 +76,15 @@ function defaultSettings(): RoomSettings {
         host: 'Edit',
         leadSinger: 'Singer 1, Singer 2',
         roomPriority: 'YES',
-        whoCanJoin: 'Room Owner\'s Following',
+        whoCanJoin: 'Anyone',
         whoCanBeSeated: 'Anyone',
+        seatJoinMode: 'free',
         manageRecommendations: 'Edit',
         singingManagement: 'Enabled',
         songList: 'Edit',
         blockList: 'Edit',
+        privacy: 'Public',
+        roomKey: '',
         multiGuestSeatCount: 15,
     };
 }
@@ -146,11 +163,14 @@ const DEMO_ROOM_SETTINGS: Record<string, Partial<RoomSettings>> = {
         coverPhoto: 'Default',
         whoCanJoin: 'Anyone',
         whoCanBeSeated: 'Anyone',
+        seatJoinMode: 'free',
         roomPriority: 'YES',
         manageRecommendations: 'Auto recommendations on',
         singingManagement: 'Enabled',
         songList: '90s R&B throwback playlist',
         blockList: 'No blocked users',
+        privacy: 'Public',
+        roomKey: '',
     },
     '1181033': {
         roomName: 'BRASIL',
@@ -164,13 +184,16 @@ const DEMO_ROOM_SETTINGS: Record<string, Partial<RoomSettings>> = {
         greetings: 'Olá! Thanks for joining our room 🎶',
         background: 'Default',
         coverPhoto: 'Default',
-        whoCanJoin: "Room Owner's Following",
+        whoCanJoin: 'Anyone',
         whoCanBeSeated: 'Anyone',
+        seatJoinMode: 'free',
         roomPriority: 'YES',
         manageRecommendations: 'Auto recommendations on',
         singingManagement: 'Enabled',
         songList: 'Featured playlist',
         blockList: 'No blocked users',
+        privacy: 'Public',
+        roomKey: '',
     },
 };
 

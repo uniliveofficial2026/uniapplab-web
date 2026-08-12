@@ -56,7 +56,7 @@ const GMAIL_SEED_MESSAGES: GmailMessage[] = [
 ];
 
 export function GmailTab() {
-  const { googleAccessToken, loginWithGoogle } = useAuth();
+  const { googleAccessToken, connectGoogleWorkspace } = useAuth();
   const [messages, setMessages] = useState<GmailMessage[]>(GMAIL_SEED_MESSAGES);
   const [manualRefresh, setManualRefresh] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
@@ -351,7 +351,7 @@ export function GmailTab() {
           <div className="p-3 bg-primary/5 border-b border-primary/10 text-[11px] font-semibold text-foreground flex justify-between items-center gap-3">
             <span>Accessing mock inbox. Link Google Account to fetch your real Gmail.</span>
             <button 
-              onClick={loginWithGoogle}
+              onClick={connectGoogleWorkspace}
               className="bg-primary hover:bg-primary/95 text-primary-foreground text-[10px] py-1 px-3 rounded-lg font-bold shadow-sm whitespace-nowrap"
             >
               Link Account

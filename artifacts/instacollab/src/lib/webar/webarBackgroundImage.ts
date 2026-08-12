@@ -153,15 +153,8 @@ export async function prepareTencentWebARBackgroundUrl(file: Blob): Promise<stri
     ctx.imageSmoothingQuality = 'high';
     ctx.drawImage(bitmap, dx, dy, drawW, drawH);
 
-    const blob = await new Promise<Blob>((resolve, reject) => {
-      canvas.toBlob(
-        (result) => (result ? resolve(result) : reject(new Error('Could not encode background'))),
-        'image/jpeg',
-        0.84,
-      );
-    });
-
-    return URL.createObjectURL(blob);
+    // Data URL survives Create Room → Room navigation (blob: URLs are revoked on sheet unmount).
+    return canvas.toDataURL('image/jpeg', 0.84);
   } finally {
     bitmap.close();
   }

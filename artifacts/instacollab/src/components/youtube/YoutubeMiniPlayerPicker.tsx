@@ -1,14 +1,15 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link2, X, Youtube } from 'lucide-react';
 import { YoutubeSearchPanel } from '../../smule-rooms/components/YoutubeSearchPanel';
 import {
-  fetchYoutubePlaylistItems,
+  fetchAllYoutubePlaylistItems,
   parseYoutubePlaylistId,
   parseYoutubeVideoId,
   recordYoutubeHistory,
   type YoutubeVideoSummary,
 } from '../../services/youtube';
-import { playYoutubeMiniVideo, patchYoutubeMiniPlayerState } from '../../lib/youtubeMiniPlayer';
+import { playYoutubeMiniVideo } from '../../lib/youtubeMiniPlayer';
 
 type YoutubeMiniPlayerPickerProps = {
   open: boolean;
@@ -27,14 +28,30 @@ export function YoutubeMiniPlayerPicker({ open, onClose }: YoutubeMiniPlayerPick
     setLoadingPlaylist(false);
   }, [open]);
 
-  if (!open) return null;
+  useEffect(() => {
+    if (!open) return;
+    const previousOverflow = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = previousOverflow;
+    };
+  }, [open]);
 
-  const selectVideo = (video: YoutubeVideoSummary, options?: { playlistId?: string; queue?: YoutubeVideoSummary[] }) => {
+  if (!open || typeof document === 'undefined') return null;
+
+  const selectVideo = (
+    video: YoutubeVideoSummary,
+    options?: {
+      playlistId?: string;
+      queue?: YoutubeVideoSummary[];
+      queueIndex?: number;
+    },
+  ) => {
     void recordYoutubeHistory(video);
     playYoutubeMiniVideo(video, {
       playlistId: options?.playlistId ?? null,
       queue: options?.queue,
-      queueIndex: 0,
+      queueIndex: options?.queueIndex ?? 0,
     });
     onClose();
   };
@@ -47,9 +64,9 @@ export function YoutubeMiniPlayerPicker({ open, onClose }: YoutubeMiniPlayerPick
       setLoadingPlaylist(true);
       setError(null);
       try {
-        const response = await fetchYoutubePlaylistItems(playlistId);
-        if (response.items.length > 0) {
-          selectVideo(response.items[0], { playlistId, queue: response.items });
+        const items = await fetchAllYoutubePlaylistItems(playlistId);
+        if (items.length > 0) {
+          selectVideo(items[0], { playlistId, queue: items });
           return;
         }
         if (videoId) {
@@ -98,35 +115,45 @@ export function YoutubeMiniPlayerPicker({ open, onClose }: YoutubeMiniPlayerPick
     });
   };
 
-  return (
+  return createPortal(
     <div
-      className="fixed inset-0 z-[420] flex items-end sm:items-center justify-center bg-black/55 p-3 sm:p-6"
-      onClick={onClose}
+      className="fixed inset-0 z-[420] flex items-end justify-center sm:items-center sm:p-4"
+      data-app-overlay-root
+      role="dialog"
+      aria-modal="true"
+      aria-label="YouTube mini player picker"
     >
+      <button
+        type="button"
+        className="absolute inset-0 bg-black/55"
+        aria-label="Close YouTube picker"
+        onClick={onClose}
+      />
+
       <div
-        className="flex max-h-[min(88dvh,720px)] w-full max-w-lg flex-col overflow-hidden rounded-2xl border border-white/10 bg-[#12091f]/95 shadow-2xl backdrop-blur-xl"
+        className="relative z-10 mb-[var(--app-shell-bottom-offset)] flex w-full max-w-lg max-h-[min(85dvh,calc(100dvh-var(--app-shell-top-offset)-var(--app-shell-bottom-offset)-0.5rem))] flex-col overflow-hidden rounded-t-2xl border border-white/10 bg-[#12091f]/95 shadow-2xl backdrop-blur-xl sm:mb-0 sm:max-h-[min(88dvh,720px)] sm:rounded-2xl"
         onClick={(event) => event.stopPropagation()}
       >
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2 text-sm font-black text-white">
-            <Youtube size={18} className="text-red-400" aria-hidden />
-            YouTube mini player
+        <div className="flex shrink-0 items-center justify-between border-b border-white/10 px-4 py-3">
+          <div className="flex min-w-0 items-center gap-2 text-sm font-black text-white">
+            <Youtube size={18} className="shrink-0 text-red-400" aria-hidden />
+            <span className="truncate">YouTube mini player</span>
           </div>
           <button
             type="button"
             onClick={onClose}
-            className="rounded-full p-1.5 text-gray-300 transition hover:bg-white/10 hover:text-white"
+            className="shrink-0 rounded-full p-1.5 text-gray-300 transition hover:bg-white/10 hover:text-white"
             aria-label="Close"
           >
             <X size={16} />
           </button>
         </div>
 
-        <div className="space-y-3 border-b border-white/10 px-4 py-3">
+        <div className="shrink-0 space-y-3 border-b border-white/10 px-4 py-3">
           <label className="text-[11px] font-bold uppercase tracking-wide text-gray-400">
             Paste video or playlist link
           </label>
-          <div className="flex gap-2">
+          <div className="flex min-w-0 gap-2">
             <div className="relative min-w-0 flex-1">
               <Link2
                 size={14}
@@ -140,14 +167,14 @@ export function YoutubeMiniPlayerPicker({ open, onClose }: YoutubeMiniPlayerPick
                   setError(null);
                 }}
                 placeholder="https://youtube.com/watch?v=… or playlist"
-                className="w-full rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-purple-400/50"
+                className="w-full min-w-0 rounded-xl border border-white/10 bg-black/30 py-2.5 pl-9 pr-3 text-sm text-white outline-none focus:border-purple-400/50"
               />
             </div>
             <button
               type="button"
               onClick={() => void applyUrl()}
               disabled={loadingPlaylist}
-              className="shrink-0 rounded-xl bg-red-600 px-3 py-2 text-xs font-black text-white transition hover:bg-red-500 disabled:opacity-60"
+              className="shrink-0 rounded-xl bg-red-600 px-3 py-2.5 text-xs font-black text-white transition hover:bg-red-500 disabled:opacity-60"
             >
               {loadingPlaylist ? '…' : 'Play'}
             </button>
@@ -155,16 +182,20 @@ export function YoutubeMiniPlayerPicker({ open, onClose }: YoutubeMiniPlayerPick
           {error ? <p className="text-[11px] font-semibold text-red-300">{error}</p> : null}
         </div>
 
-        <div className="min-h-0 flex-1 overflow-y-auto">
+        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain pb-[max(0.75rem,var(--app-safe-bottom))]">
           <YoutubeSearchPanel
-            onSelectVideo={(video) => {
-              selectVideo(video);
+            embedded
+            onSelectVideo={(video, context) => {
+              selectVideo(video, {
+                queue: context?.queue,
+                queueIndex: context?.queueIndex ?? 0,
+              });
             }}
             selectLabel="Play"
-            onClose={() => patchYoutubeMiniPlayerState({ pickerOpen: false })}
           />
         </div>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }

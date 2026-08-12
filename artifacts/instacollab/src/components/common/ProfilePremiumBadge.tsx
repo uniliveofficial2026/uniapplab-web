@@ -6,6 +6,8 @@ import {
   getProfilePremiumAccessStatus,
   type PremiumSubscriptionStatus,
 } from '../../lib/premium';
+import { resolveVipBadgeAssetId } from '../../lib/unilives-assets/identityResolve';
+import { UniLivesIdentityMedia } from '../identity/brand/UniLivesIdentityMedia';
 
 type BadgeSize = 'sm' | 'md';
 
@@ -33,12 +35,25 @@ export function ProfilePremiumBadge({
 }) {
   const s = sizeClasses[size];
 
+  const vipAssetId = resolveVipBadgeAssetId({ premiumActive: true });
+
   return (
     <span
       className={`inline-flex items-center shrink-0 font-black uppercase tracking-wide rounded-md border border-amber-500/45 bg-gradient-to-r from-amber-500/25 via-amber-400/15 to-amber-600/10 text-amber-800 dark:text-amber-200 shadow-sm ${s.wrap} ${className}`.trim()}
       title={premiumBadgeTitle(status)}
+      data-unilives-vip-badge=""
     >
-      <Crown className={`${s.icon} fill-amber-500 text-amber-600 dark:fill-amber-400 dark:text-amber-300`} />
+      <UniLivesIdentityMedia
+        canonicalAssetId={vipAssetId}
+        legacyNode={
+          <Crown
+            className={`${s.icon} fill-amber-500 text-amber-600 dark:fill-amber-400 dark:text-amber-300`}
+            aria-hidden
+          />
+        }
+        imgClassName={s.icon}
+        decorative
+      />
       Premium
     </span>
   );

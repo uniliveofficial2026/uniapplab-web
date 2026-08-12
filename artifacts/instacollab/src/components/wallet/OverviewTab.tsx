@@ -25,6 +25,7 @@ import {
 } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
+import { usdFromCoins } from '../../lib/coinPricing';
 
 interface OverviewTabProps {
   cryptoPrices: { BTC: number; ETH: number; SOL: number };
@@ -39,7 +40,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   const cashBalance = db.load('cash_balance', 0);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
   const transactions = db.load('wallet_transactions', [
-    { id: 't1', type: 'Coins Bought', amount: '+1000 Coins', status: 'Completed', date: '2026-06-02 14:22', cost: '$9.99 USD' },
+    { id: 't1', type: 'Coins Bought', amount: '+100 Coins', status: 'Completed', date: '2026-06-02 14:22', cost: '$10.00 USD' },
     { id: 't2', type: 'MLBB Redeemed', amount: '-180 MLBB Diamonds', status: 'Completed', date: '2026-06-01 19:45', cost: '270 Coins' },
     { id: 't3', type: 'Crypto Profit', amount: '+0.2 SOL', status: 'Completed', date: '2026-05-30 08:12', cost: '$31.40 USD' },
     { id: 't4', type: 'Payout Transferred', amount: '-$50.00 USD', status: 'Completed', date: '2026-05-28 11:30', cost: 'Bank Endorsement' },
@@ -54,7 +55,8 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   const solValue = cryptoPortfolio.SOL * cryptoPrices.SOL;
   const totalCryptoValue = btcValue + ethValue + solValue;
 
-  const totalAssetsUSD = cashBalance + (coinsBalance * 0.01) + totalCryptoValue;
+  const coinsLiquidityUSD = usdFromCoins(coinsBalance);
+  const totalAssetsUSD = cashBalance + coinsLiquidityUSD + totalCryptoValue;
 
   // Chart data simulated based on range
   const chartData = {
@@ -128,7 +130,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
           <h3 className="text-3xl font-black text-white tracking-tight" id="balance-coins">
             {coinsBalance.toLocaleString()} <span className="text-xs text-amber-400 font-bold">COINS</span>
           </h3>
-          <p className="text-[11px] text-amber-200/50 mt-1 font-semibold">Estimated Liquidity: ${(coinsBalance * 0.01).toFixed(2)} USD</p>
+          <p className="text-[11px] text-amber-200/50 mt-1 font-semibold">Estimated Liquidity: ${coinsLiquidityUSD.toFixed(2)} USD</p>
           <div className="mt-4 pt-3 border-t border-amber-500/15 flex items-center justify-between text-xs font-bold text-amber-300">
             <span>Purchased & Gifted Pool</span>
             <span className="text-emerald-400 font-black">Ready</span>
@@ -301,7 +303,7 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
               </div>
               <div className="text-left sm:text-right shrink-0">
                 <p className="text-xs font-black text-foreground">{coinsBalance} Gold</p>
-                <p className="text-[9px] text-amber-500 font-bold">${(coinsBalance * 0.01).toFixed(2)} USD</p>
+                <p className="text-[9px] text-amber-500 font-bold">${coinsLiquidityUSD.toFixed(2)} USD</p>
               </div>
             </div>
 

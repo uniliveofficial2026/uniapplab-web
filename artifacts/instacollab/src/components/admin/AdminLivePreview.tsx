@@ -46,6 +46,8 @@ export type AdminPreviewModel = {
     hostUserId?: string | null;
     streamId?: string | null;
     posterUrl?: string | null;
+    /** Stream started_at or party created_at */
+    startedAt?: string | number | null;
   };
 };
 
@@ -175,6 +177,33 @@ export function buildAdminPreview(input: {
         : typeof raw.room_id === 'string'
           ? raw.room_id
           : null;
+    const privacy = String(raw.privacy ?? '').trim();
+    const isPrivate = privacy.toLowerCase() === 'private';
+    const startedRaw =
+      (typeof raw.started_at === 'string' || typeof raw.started_at === 'number'
+        ? raw.started_at
+        : null) ??
+      (typeof raw.created_at === 'string' || typeof raw.created_at === 'number'
+        ? raw.created_at
+        : null);
+    const startedMs =
+      startedRaw == null
+        ? null
+        : typeof startedRaw === 'number'
+          ? startedRaw < 1e12
+            ? startedRaw * 1000
+            : startedRaw
+          : Date.parse(String(startedRaw));
+    const startedLabel =
+      startedMs != null && Number.isFinite(startedMs)
+        ? new Date(startedMs).toLocaleString(undefined, {
+            month: 'short',
+            day: 'numeric',
+            year: 'numeric',
+            hour: 'numeric',
+            minute: '2-digit',
+          })
+        : String(raw.started_at ?? '—');
     const userMeta = enrichUserMeta?.(hostId) ?? [];
     return {
       kind: 'stream',
@@ -182,11 +211,15 @@ export function buildAdminPreview(input: {
       subtitle: host ? `@${host.username}` : hostId,
       avatarUrl: host?.avatarUrl,
       image: host?.avatarUrl,
-      badges: [String(raw.status ?? 'live') === 'live' ? 'LIVE' : 'Stream'].filter(Boolean),
+      badges: [
+        String(raw.status ?? 'live') === 'live' ? 'LIVE' : 'Stream',
+        ...(isPrivate ? ['Private'] : []),
+      ].filter(Boolean),
       meta: [
         ...userMeta,
-        { label: 'Started', value: String(raw.started_at ?? '—') },
+        { label: 'Started', value: startedLabel },
         { label: 'Status', value: String(raw.status ?? 'unknown') },
+        { label: 'Privacy', value: privacy || 'Public' },
         ...(getFollowerCount && hostId ? [{ label: 'Followers', value: String(getFollowerCount(hostId)) }] : []),
         ...(getFollowingCount && hostId ? [{ label: 'Following', value: String(getFollowingCount(hostId)) }] : []),
       ],
@@ -196,6 +229,7 @@ export function buildAdminPreview(input: {
         hostUserId: hostId,
         streamId: String(raw.id ?? ''),
         posterUrl: host?.avatarUrl ?? null,
+        startedAt: startedRaw,
       },
     };
   }
@@ -206,6 +240,8 @@ export function buildAdminPreview(input: {
     const roomId = String(raw.id ?? '');
     const roomExp = roomId ? getRoomExpProgress(roomId) : null;
     const userMeta = enrichUserMeta?.(ownerId) ?? [];
+    const privacy = String(raw.privacy ?? '').trim();
+    const isPrivate = privacy.toLowerCase() === 'private';
     return {
       kind: 'party',
       title: String(raw.room_name ?? raw.roomName ?? 'Party room'),
@@ -216,12 +252,31 @@ export function buildAdminPreview(input: {
       badges: [
         String(raw.status ?? 'active'),
         String(raw.room_mode ?? raw.roomMode ?? 'Party'),
+        ...(isPrivate ? ['Private'] : []),
         raw.participant_count != null ? `${raw.participant_count} guests` : '',
       ].filter(Boolean),
       meta: [
         ...userMeta,
         { label: 'Room ID', value: roomId.slice(0, 16) },
-        { label: 'Privacy', value: String(raw.privacy ?? '—') },
+        { label: 'Privacy', value: privacy || 'Public' },
+        ...(typeof raw.created_at === 'string' || typeof raw.created_at === 'number'
+          ? [
+              {
+                label: 'Created',
+                value: new Date(
+                  typeof raw.created_at === 'number' && raw.created_at < 1e12
+                    ? raw.created_at * 1000
+                    : raw.created_at,
+                ).toLocaleString(undefined, {
+                  month: 'short',
+                  day: 'numeric',
+                  year: 'numeric',
+                  hour: 'numeric',
+                  minute: '2-digit',
+                }),
+              },
+            ]
+          : []),
         ...(roomExp ? [{ label: 'Room Lv', value: String(roomExp.level) }] : []),
         ...(getFollowerCount && ownerId ? [{ label: 'Owner followers', value: String(getFollowerCount(ownerId)) }] : []),
       ],
@@ -230,6 +285,13 @@ export function buildAdminPreview(input: {
         roomMode: String(raw.room_mode ?? raw.roomMode ?? 'Party'),
         hostUserId: ownerId,
         posterUrl: owner?.avatarUrl ?? null,
+        startedAt:
+          (typeof raw.created_at === 'string' || typeof raw.created_at === 'number'
+            ? raw.created_at
+            : null) ??
+          (typeof raw.started_at === 'string' || typeof raw.started_at === 'number'
+            ? raw.started_at
+            : null),
       },
     };
   }
@@ -371,9 +433,16 @@ type AdminPreviewCardProps = {
   compact?: boolean;
   fullViewport?: boolean;
   className?: string;
+  onModerationComplete?: () => void;
 };
 
-export function AdminPreviewCard({ preview, compact = false, fullViewport = false, className = '' }: AdminPreviewCardProps) {
+export function AdminPreviewCard({
+  preview,
+  compact = false,
+  fullViewport = false,
+  className = '',
+  onModerationComplete,
+}: AdminPreviewCardProps) {
   const mediaHeight = compact ? 'max-h-[140px]' : 'max-h-[220px] sm:max-h-[320px]';
   const showRoomEmbed =
     preview.embed &&
@@ -389,8 +458,10 @@ export function AdminPreviewCard({ preview, compact = false, fullViewport = fals
           hostUserId={preview.embed?.hostUserId}
           streamId={preview.embed?.streamId}
           posterUrl={preview.embed?.posterUrl}
+          startedAt={preview.embed?.startedAt}
           fullViewport
           title={preview.title}
+          onModerationComplete={onModerationComplete}
         />
         <div className="px-3 py-2.5 border-t border-border/60 bg-secondary/10 space-y-2">
           <div className="flex items-start justify-between gap-2">
@@ -427,8 +498,10 @@ export function AdminPreviewCard({ preview, compact = false, fullViewport = fals
           hostUserId={preview.embed?.hostUserId}
           streamId={preview.embed?.streamId}
           posterUrl={preview.embed?.posterUrl}
+          startedAt={preview.embed?.startedAt}
           compact={compact}
           title={preview.title}
+          onModerationComplete={onModerationComplete}
         />
       ) : null}
 
@@ -527,15 +600,17 @@ export function AdminPreviewPanel({
   preview,
   raw,
   userInsights,
+  onModerationComplete,
 }: {
   preview: AdminPreviewModel;
   raw?: Record<string, unknown>;
   userInsights?: import('../../lib/adminUserInsights').AdminUserInsights;
+  onModerationComplete?: () => void;
 }) {
   return (
     <div className="space-y-4">
       {!preview.embed || preview.kind === 'post' || preview.kind === 'reel' ? (
-        <AdminPreviewCard preview={preview} />
+        <AdminPreviewCard preview={preview} onModerationComplete={onModerationComplete} />
       ) : (
         <>
           <AdminRoomLiveEmbed
@@ -544,8 +619,10 @@ export function AdminPreviewPanel({
             hostUserId={preview.embed.hostUserId}
             streamId={preview.embed.streamId}
             posterUrl={preview.embed.posterUrl}
+            startedAt={preview.embed.startedAt}
             fullViewport
             title={preview.title}
+            onModerationComplete={onModerationComplete}
           />
           <AdminPreviewCard preview={{ ...preview, embed: undefined, image: null, video: null }} compact />
         </>

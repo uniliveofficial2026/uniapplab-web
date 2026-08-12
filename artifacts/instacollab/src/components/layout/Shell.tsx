@@ -1,6 +1,6 @@
 import { motion, AnimatePresence } from 'motion/react';
 import React, { ReactNode, useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Joystick, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings, Carrot, Drumstick } from 'lucide-react';
+import { Home, Search, PlaySquare, MessageCircle, Bell, PlusSquare, LayoutDashboard, Menu, Store, Radio, MicVocal, Joystick, Wallet, Youtube, Circle, X, Heart, Sun, Moon, UserPlus, LogOut, Settings, Download } from 'lucide-react';
 import { Tab, User } from '../../types';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64, handleAvatarError } from '../../lib/utils';
@@ -9,16 +9,25 @@ import { SafeMediaImage } from '../common/SafeMediaImage';
 import { getProfileDisplayName } from '../../lib/profileDisplay';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
 import { requestWorkspaceAdminTab } from '../../lib/appBrandRuntime';
+import { useGreedySession } from '../../contexts/GreedySessionContext';
 
-/** Veggie + meat mark for the Greedy nav item (matches food-roulette game). */
+/**
+ * Greedy nav mark — exact veggie + meat symbols from the food roulette
+ * (🥕 carrot / 🍖 ham), readable at sidebar size.
+ */
 function GreedyNavIcon({ className }: { className?: string }) {
   return (
     <span
       className={`relative inline-flex h-5 w-5 shrink-0 items-center justify-center overflow-visible ${className ?? ''}`}
       aria-hidden="true"
+      title="Veggies & meats"
     >
-      <Carrot className="absolute -left-0.5 -top-0.5 h-3.5 w-3.5" strokeWidth={2.25} />
-      <Drumstick className="absolute -right-0.5 -bottom-0.5 h-3.5 w-3.5" strokeWidth={2.25} />
+      <span className="absolute left-[-1px] top-[-2px] text-[11px] leading-none drop-shadow-[0_0_1px_rgba(0,0,0,0.35)]">
+        🥕
+      </span>
+      <span className="absolute bottom-[-2px] right-[-2px] text-[11px] leading-none drop-shadow-[0_0_1px_rgba(0,0,0,0.35)]">
+        🍖
+      </span>
     </span>
   );
 }
@@ -50,6 +59,7 @@ import { navTapButtonClass, navTapIconButtonClass, navTapRowButtonClass } from '
 import { ShellCreateModal, type CreateLaunch } from './ShellCreateModal';
 import { PwaInstallPrompt } from '../common/PwaInstallPrompt';
 import { PwaUpdateToast } from '../common/PwaUpdateToast';
+import { SoftwareUpdateModal } from '../common/SoftwareUpdateModal';
 import { MobileDevConnectBanner } from '../common/MobileDevConnectBanner';
 import { AccountSwitcherModal } from '../profile/AccountSwitcherModal';
 import { ProfileEditSettingsModal } from '../profile/ProfileEditSettingsModal';
@@ -61,6 +71,10 @@ import { commitUserProfile } from '../../lib/auth/userDataFlow';
 import { liveSurfaceFromTab, refreshLiveCloudSurface } from '../../lib/liveCloudSurfaces';
 import { isNetworkOnline } from '../../lib/networkStatus';
 import { signalAppShellReady } from '../../lib/appShellReady';
+import {
+  getSoftwareUpdateStatus,
+  subscribeSoftwareUpdate,
+} from '../../lib/softwareUpdate';
 
 interface ShellProps {
   currentTab: Tab;
@@ -90,12 +104,17 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   const [showMobileMenu, setShowMobileMenu] = useState(false);
   const [hideMobileTopNavForChat, setHideMobileTopNavForChat] = useState(false);
   const [showAccountSwitcher, setShowAccountSwitcher] = useState(false);
+  const [showSoftwareUpdate, setShowSoftwareUpdate] = useState(false);
+  const [softwareUpdateAvailable, setSoftwareUpdateAvailable] = useState(
+    () => getSoftwareUpdateStatus().state === 'available',
+  );
   const [showSettings, setShowSettings] = useState(false);
   const [showBlockedUsers, setShowBlockedUsers] = useState(false);
   const [accountLinking, setAccountLinking] = useState(false);
   const [localUser, setLocalUser] = useState(() => resolveUser(db.users, currentUser));
   const settingsFileInputRef = useRef<HTMLInputElement | null>(null);
   const { showToast } = useToast();
+  const { openFullscreen } = useGreedySession();
 
   useLayoutEffect(() => {
     signalAppShellReady();
@@ -116,6 +135,12 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     return () => window.clearTimeout(timer);
   }, [currentTab]);
 
+  useEffect(() => {
+    return subscribeSoftwareUpdate((status) => {
+      setSoftwareUpdateAvailable(status.state === 'available');
+    });
+  }, []);
+
   const openAccountSwitcher = () => {
     void ensureDeviceAccountsSynced().then(() => setShowAccountSwitcher(true));
   };
@@ -125,14 +150,18 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
     setShowSettings(true);
   };
 
+  const openSoftwareUpdate = () => {
+    setShowSoftwareUpdate(true);
+  };
+
   const handleLogout = () => {
-    if (!window.confirm(`Log out of ${APP_DISPLAY_NAME} on this device?`)) return;
+    if (!window.confirm(`Completely log out of ${APP_DISPLAY_NAME} on this device?`)) return;
     void (async () => {
+      // Full device logout: cloud + Firebase context + local session/cache pin.
       if (isCloudAuthConfigured()) {
         await cloudSignOut();
-      } else {
-        await firebaseLogout();
       }
+      await firebaseLogout();
       showToast('Logged out');
     })();
   };
@@ -484,7 +513,15 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                     return;
                   }
                   if (item.id === 'workspace') {
+                    // Access code → Workspace. Fullscreen Greedy admin is opened from inside.
                     requestWorkspaceAdminTab();
+                    navigateToTab('workspace');
+                    return;
+                  }
+                  if (item.id === 'greedy-tap') {
+                    openFullscreen();
+                    navigateToTab('greedy-tap');
+                    return;
                   }
                   navigateToTab(item.id as Tab);
                 }}
@@ -586,6 +623,21 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
             </div>
             <span className="hidden lg:block text-[15px]">Log out</span>
           </button>
+          <button
+            type="button"
+            onClick={openSoftwareUpdate}
+            className={`${navTapRowButtonClass} relative p-2 hover:text-foreground text-muted-foreground font-medium transition-colors group`}
+            aria-label="Software Update"
+            title="Software Update"
+          >
+            <div className="relative p-2 rounded-xl bg-muted group-hover:bg-foreground group-hover:text-background transition-colors">
+              <Download className="w-5 h-5 stroke-[2px]" />
+              {softwareUpdateAvailable ? (
+                <span className="absolute top-1.5 right-1.5 h-2 w-2 rounded-full bg-red-500 border border-background" />
+              ) : null}
+            </div>
+            <span className="hidden lg:block text-[15px]">Software Update</span>
+          </button>
         </nav>
       </div>
       )}
@@ -614,6 +666,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                     }}
                     className={navTapIconButtonClass}
                     aria-label="Admin Panel"
+                    title="Admin Panel"
                   >
                     <LayoutDashboard className={`w-6 h-6 stroke-[1.5px] ${currentTab === 'workspace' ? 'stroke-[2.5px]' : ''}`} />
                   </button>
@@ -685,6 +738,12 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                        onClick={() => {
                          if (item.id === 'home') {
                            handleHomeTap();
+                         } else if (item.id === 'workspace') {
+                           requestWorkspaceAdminTab();
+                           navigateToTab('workspace');
+                         } else if (item.id === 'greedy-tap') {
+                           openFullscreen();
+                           navigateToTab('greedy-tap');
                          } else {
                            navigateToTab(item.id as Tab);
                          }
@@ -760,6 +819,22 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                    >
                      <LogOut className="w-6 h-6 text-foreground" /> Log out
                    </button>
+                   <button
+                     type="button"
+                     onClick={() => {
+                       setShowMobileMenu(false);
+                       openSoftwareUpdate();
+                     }}
+                     className={`${navTapRowButtonClass} relative p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}
+                   >
+                     <span className="relative inline-flex">
+                       <Download className="w-6 h-6 text-foreground" />
+                       {softwareUpdateAvailable ? (
+                         <span className="absolute -top-0.5 -right-0.5 h-2 w-2 rounded-full bg-red-500 border border-background" />
+                       ) : null}
+                     </span>
+                     Software Update
+                   </button>
                  </div>
                </div>
             </motion.div>
@@ -793,6 +868,10 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
       <MobileDevConnectBanner />
       <PwaInstallPrompt />
       <PwaUpdateToast />
+
+      {showSoftwareUpdate ? (
+        <SoftwareUpdateModal onClose={() => setShowSoftwareUpdate(false)} />
+      ) : null}
 
       {showSettings ? (
         <ProfileEditSettingsModal

@@ -1395,7 +1395,7 @@ export class LocalDB {
       'story',
       'live',
     ];
-    const liveKinds: LiveKind[] = ['solo', 'audio-room', 'pk', 'commerce'];
+    const liveKinds: LiveKind[] = ['solo', 'audio-room', 'party', 'commerce'];
     const next = list.map((entry, i) => {
       const surface = surfaces[i % surfaces.length];
       const content =
@@ -1438,7 +1438,7 @@ export class LocalDB {
       'story',
       'live',
     ];
-    const liveKinds: LiveKind[] = ['solo', 'audio-room', 'pk', 'commerce'];
+    const liveKinds: LiveKind[] = ['solo', 'audio-room', 'party', 'commerce'];
     const now = Date.now();
     const entries: ProfileVisitEntry[] = demoVisitorIds.map((visitorUserId, i) => {
       const surface = surfaces[i % surfaces.length];

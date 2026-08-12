@@ -559,6 +559,29 @@
   position: relative;
   min-height: 0;
   height: 100%;
+  --solo-live-guest-size: min(1.5in, 9rem);
+  --solo-live-guest-rail-bottom: 168px;
+}
+
+.karaoke-smule-room-embed .solo-live-guest-rail {
+  position: absolute;
+  top: auto;
+  right: 0.5rem;
+  bottom: var(--solo-live-guest-rail-bottom, 168px);
+  left: auto;
+  z-index: 20;
+  width: var(--solo-live-guest-size);
+  max-height: calc(
+    100% - var(--solo-live-guest-rail-bottom, 168px) - 3.25rem -
+      env(safe-area-inset-top, 0px)
+  );
+  transform: none;
+}
+
+@media (min-width: 640px) {
+  .karaoke-smule-room-embed .solo-live-guest-rail {
+    right: 0.75rem;
+  }
 }
 
 .karaoke-smule-room-embed .solo-live-stage {
@@ -691,19 +714,19 @@
   }
 
   .karaoke-smule-room-embed .watch-together-seats {
-    --party-host-size: clamp(1.875rem, 8vw, 2.25rem);
-    --party-guest-size: clamp(1.75rem, 7.5vw, 2.125rem);
-    --party-empty-size: clamp(1.75rem, 7.5vw, 2.125rem);
-    --party-host-name: clamp(0.4375rem, 1.8vw, 0.5625rem);
-    --party-seat-name: clamp(0.4375rem, 1.7vw, 0.5625rem);
+    --party-host-size: clamp(2.25rem, 9.5vw, 2.75rem);
+    --party-guest-size: clamp(2.125rem, 9vw, 2.625rem);
+    --party-empty-size: clamp(2.125rem, 9vw, 2.625rem);
+    --party-host-name: clamp(0.5rem, 2vw, 0.625rem);
+    --party-seat-name: clamp(0.5rem, 1.9vw, 0.625rem);
     padding-top: 0.5rem;
     padding-bottom: 0.375rem;
     gap: 0.375rem;
   }
 
   .karaoke-smule-room-embed .watch-together-seat-grid-5 {
-    --wt-seat-gap: 0.125rem;
-    --party-heartbeat-ref-size: clamp(1.75rem, 7.5vw, 2.125rem);
+    --wt-seat-gap: 0.2rem;
+    --party-heartbeat-ref-size: clamp(2.125rem, 9vw, 2.625rem);
   }
 
   .karaoke-smule-room-embed .watch-together-seat-cell .party-seat-stars {
@@ -915,15 +938,13 @@
     margin-bottom: -0.125rem;
   }
 
-  .karaoke-smule-room-embed .chorus-performance-stage {
-    height: min(7.5rem, 18vh);
-    min-height: 6rem;
-  }
-
+  .karaoke-smule-room-embed .chorus-performance-stage,
   .karaoke-smule-room-embed .chorus-song-picker {
-    flex: 1 1 0% !important;
-    min-height: 0;
-    max-height: none !important;
+    flex: 0 0 auto !important;
+    flex-grow: 0 !important;
+    height: min(280px, 38dvh) !important;
+    max-height: min(280px, 38dvh) !important;
+    min-height: 0 !important;
     margin-top: 0.25rem;
     margin-inline: 0.5rem;
   }

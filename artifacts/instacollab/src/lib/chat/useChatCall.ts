@@ -1,30 +1,30 @@
 /**
- * LiveKit audio/video calls — CallKit-style: UI + local A/V first, network second.
- * Works for 1v1 DMs and group threads.
+ * Chat audio/video calls — LiveKit transport + TRTC WebAR local video pipeline.
+ * CallKit-style: local preview first, network second. Video publish flows through
+ * useChatCallTrtcPipeline when TRTC is configured (see ChatCallVideoEffectsHost).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { CameraFacingMode } from '../camera/useCameraStream';
+import {
+  acquireAppCamera,
+  releaseAppCamera,
+  setAppCameraFacing,
+  type CameraFacingMode,
+} from '../camera/appCameraOwner';
 import {
   nextCameraFacingMode,
   shouldMirrorCameraPreview,
   shouldUpdateCameraFacingFromTrack,
 } from '../camera/cameraMirrorPolicy';
+import { isLiveKitConfigured } from '../livekit/livekitConfig';
 import {
-  Room,
-  RoomEvent,
-  Track,
+  loadLiveKitCallRuntime,
+  type LiveKitCallRuntime,
+  type RemoteParticipant,
   type RemoteTrack,
   type RemoteTrackPublication,
-  type RemoteParticipant,
-} from 'livekit-client';
-import { isLiveKitConfigured } from '../livekit/livekitConfig';
-import { canAttemptLiveKit, connectWithTokenFetcher } from '../livekit/liveKitInstant';
-import {
-  PROCESSED_VIDEO_LIVEKIT_PUBLISH,
-  prepareProcessedVideoTrackForLiveKit,
-  updateLiveKitLocalVideoTrack,
-} from '../livekit/liveKitVideoPublish';
-import { isTencentWebARConfigured, warmTencentWebARPipelineNow } from '../webar/useTencentWebAR';
+  type Room,
+} from '../livekit/liveKitCallRuntime';
+import { isTencentWebARConfigured } from '../webar/webarConfig';
 import { WEBAR_CAMERA_FRAME_RATE, WEBAR_CAMERA_IDEAL } from '../webar/webarCameraConfig';
 import { isNetworkOnline } from '../networkStatus';
 import { isCloudAuthUserId } from '../auth/cloudProfile';
@@ -45,6 +45,12 @@ import {
   type RemoteCallVideo,
 } from './chatCallKit';
 
+/** Warm WebAR SDK only when starting a video call (never on module load). */
+function warmWebARIfNeeded(): void {
+  if (!isTencentWebARConfigured()) return;
+  void import('../webar/useTencentWebAR').then((m) => m.warmTencentWebARPipelineNow());
+}
+
 export type {
   ChatCallKind,
   ChatCallPhase,
@@ -53,43 +59,8 @@ export type {
   IncomingChatCall,
 };
 
-export type UseChatCallValue = {
-  phase: ChatCallPhase;
-  connectPhase: ChatConnectPhase;
-  presentation: CallPresentation;
-  callKind: ChatCallKind;
-  activeChatId: string | null;
-  incoming: IncomingChatCall | null;
-  error: string | null;
-  remoteVideoReady: boolean;
-  localVideoStream: MediaStream | null;
-  primaryRemoteStream: MediaStream | null;
-  remoteVideos: RemoteCallVideo[];
-  remoteParticipants: RemoteCallParticipant[];
-  isMicMuted: boolean;
-  isCameraEnabled: boolean;
-  cameraFacingMode: CameraFacingMode;
-  mirrorLocalPreview: boolean;
-  localVideoRef: React.RefObject<HTMLVideoElement | null>;
-  remoteVideoRef: React.RefObject<HTMLVideoElement | null>;
-  remoteAudioRef: React.RefObject<HTMLAudioElement | null>;
-  localStreamRef: React.MutableRefObject<MediaStream | null>;
-  replacePublishedVideoTrack: (track: MediaStreamTrack | null) => Promise<void>;
-  startCall: (chatId: string, kind: ChatCallKind) => void;
-  startAudioCall: (chatId: string) => void;
-  startVideoCall: (chatId: string) => void;
-  joinGroupCall: (chatId: string, kind: ChatCallKind) => Promise<void>;
-  acceptCall: () => Promise<void>;
-  declineCall: () => Promise<void>;
-  endCall: () => Promise<void>;
-  retryConnect: () => Promise<void>;
-  minimizeCall: () => void;
-  expandCall: () => void;
-  toggleMic: () => Promise<void>;
-  toggleCamera: () => Promise<void>;
-  flipCamera: () => Promise<void>;
-  isLiveKitConfigured: boolean;
-};
+export type { UseChatCallValue } from './chatCallTypes';
+import type { UseChatCallValue } from './chatCallTypes';
 
 export function useChatCall(currentUserId: string | null | undefined): UseChatCallValue {
   const [phase, setPhase] = useState<ChatCallPhase>('idle');
@@ -116,6 +87,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
   const incomingRef = useRef<IncomingChatCall | null>(null);
   const threadIdRef = useRef<string | null>(null);
   const roomRef = useRef<Room | null>(null);
+  const lkRuntimeRef = useRef<LiveKitCallRuntime | null>(null);
   const localStreamRef = useRef<MediaStream | null>(null);
   const callKindRef = useRef<ChatCallKind>('audio');
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
@@ -172,7 +144,12 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
   );
 
   const stopLocalStream = useCallback(() => {
-    localStreamRef.current?.getTracks().forEach((t) => t.stop());
+    releaseAppCamera('chat-call');
+    // Audio-only previews still use a one-off mic stream outside the owner.
+    const held = localStreamRef.current;
+    if (held && !held.getVideoTracks().length) {
+      held.getTracks().forEach((t) => t.stop());
+    }
     bindLocalVideoStream(null);
     if (localVideoRef.current) localVideoRef.current.srcObject = null;
   }, [bindLocalVideoStream]);
@@ -181,9 +158,11 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     const room = roomRef.current;
     if (!room || callKindRef.current !== 'video') return;
     try {
-      await updateLiveKitLocalVideoTrack(
+      const lk = lkRuntimeRef.current ?? (await loadLiveKitCallRuntime());
+      lkRuntimeRef.current = lk;
+      await lk.updateLiveKitLocalVideoTrack(
         room.localParticipant,
-        track ? prepareProcessedVideoTrackForLiveKit(track) : null,
+        track ? lk.prepareProcessedVideoTrackForLiveKit(track) : null,
       );
     } catch {
       /* keep prior track */
@@ -237,7 +216,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
   );
 
   const attachRemoteTrack = useCallback(
-    (track: RemoteTrack, kind: ChatCallKind, participant: RemoteParticipant) => {
+    (track: RemoteTrack, kind: ChatCallKind, participant: RemoteParticipant, Track: LiveKitCallRuntime['Track']) => {
       if (track.kind === Track.Kind.Audio) {
         if (remoteAudioRef.current) track.attach(remoteAudioRef.current);
         upsertRemoteParticipant(participant, { hasAudio: true });
@@ -264,30 +243,21 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
 
   const startLocalPreview = useCallback(async (kind: ChatCallKind) => {
     try {
-      const videoConstraints = {
-        facingMode: { exact: 'user' as const },
-        width: { ideal: WEBAR_CAMERA_IDEAL.width },
-        height: { ideal: WEBAR_CAMERA_IDEAL.height },
-        frameRate: WEBAR_CAMERA_FRAME_RATE,
-      };
-      let stream: MediaStream;
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
+      if (kind !== 'video') {
+        const stream = await navigator.mediaDevices.getUserMedia({
           audio: true,
-          video: kind === 'video' ? videoConstraints : false,
+          video: false,
         });
-      } catch {
-        stream = await navigator.mediaDevices.getUserMedia({
-          audio: true,
-          video:
-            kind === 'video'
-              ? {
-                  ...videoConstraints,
-                  facingMode: { ideal: 'user' as const },
-                }
-              : false,
-        });
+        bindLocalVideoStream(stream);
+        return stream;
       }
+      const stream = await acquireAppCamera('chat-call', {
+        audio: true,
+        facingMode: 'user',
+        exactFacing: false,
+        videoIdeal: WEBAR_CAMERA_IDEAL,
+        frameRate: WEBAR_CAMERA_FRAME_RATE,
+      });
       bindLocalVideoStream(stream, 'user');
       return stream;
     } catch {
@@ -307,6 +277,10 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
         setConnectPhase('failed');
         return false;
       }
+
+      const lk = await loadLiveKitCallRuntime();
+      lkRuntimeRef.current = lk;
+      const { RoomEvent, Track, canAttemptLiveKit, connectWithTokenFetcher } = lk;
 
       const priorRoom = roomRef.current;
       roomRef.current = null;
@@ -369,7 +343,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       room.on(
         RoomEvent.TrackSubscribed,
         (track: RemoteTrack, _pub: RemoteTrackPublication, participant: RemoteParticipant) => {
-          attachRemoteTrack(track, callKindRef.current, participant);
+          attachRemoteTrack(track, callKindRef.current, participant, Track);
         },
       );
 
@@ -392,12 +366,16 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       });
 
       if (localStream) {
+        const deferVideoToTrtc = callType === 'video' && isTencentWebARConfigured();
         for (const track of localStream.getTracks()) {
           try {
+            if (track.kind === 'video' && deferVideoToTrtc) {
+              continue;
+            }
             if (track.kind === 'video') {
               await room.localParticipant.publishTrack(
-                prepareProcessedVideoTrackForLiveKit(track),
-                PROCESSED_VIDEO_LIVEKIT_PUBLISH,
+                lk.prepareProcessedVideoTrackForLiveKit(track),
+                lk.PROCESSED_VIDEO_LIVEKIT_PUBLISH,
               );
             } else {
               await room.localParticipant.publishTrack(track, { source: Track.Source.Microphone });
@@ -408,19 +386,12 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
         }
       } else {
         await room.localParticipant.setMicrophoneEnabled(true).catch(() => undefined);
-        if (callType === 'video') {
-          await room.localParticipant.setCameraEnabled(true).catch(() => undefined);
-          const cam = room.localParticipant.getTrackPublication(Track.Source.Camera);
-          if (cam?.track?.mediaStreamTrack) {
-            bindLocalVideoStream(new MediaStream([cam.track.mediaStreamTrack]));
-          }
-        }
       }
 
       room.remoteParticipants.forEach((participant) => {
         upsertRemoteParticipant(participant, {});
         participant.trackPublications.forEach((pub) => {
-          if (pub.track) attachRemoteTrack(pub.track as RemoteTrack, callType, participant);
+          if (pub.track) attachRemoteTrack(pub.track as RemoteTrack, callType, participant, Track);
         });
       });
 
@@ -429,7 +400,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       setConnectPhase('connected');
       return true;
     },
-    [attachRemoteTrack, bindLocalVideoStream, cleanupRoom, detachRemoteParticipant, resetCallState, startLocalPreview, upsertRemoteParticipant],
+    [attachRemoteTrack, cleanupRoom, detachRemoteParticipant, resetCallState, startLocalPreview, upsertRemoteParticipant],
   );
 
   const dismissCall = useCallback(
@@ -455,7 +426,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     (chatId: string, kind: ChatCallKind) => {
       const callType = normalizeCallKind(kind);
       if (callType === 'video' && isTencentWebARConfigured()) {
-        warmTencentWebARPipelineNow();
+        warmWebARIfNeeded();
       }
       callKindRef.current = callType;
       setCallKind(callType);
@@ -511,7 +482,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     if (!inc) return;
     const callType = normalizeCallKind(inc.callKind);
     if (callType === 'video' && isTencentWebARConfigured()) {
-      warmTencentWebARPipelineNow();
+      warmWebARIfNeeded();
     }
     callKindRef.current = callType;
     setCallKind(callType);
@@ -577,7 +548,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     async (chatId: string, kind: ChatCallKind) => {
       const callType = normalizeCallKind(kind);
       if (callType === 'video' && isTencentWebARConfigured()) {
-        warmTencentWebARPipelineNow();
+        warmWebARIfNeeded();
       }
       callKindRef.current = callType;
       setCallKind(callType);
@@ -631,58 +602,36 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
 
   const toggleCamera = useCallback(async () => {
     if (callKindRef.current !== 'video') return;
-    const room = roomRef.current;
     const nextEnabled = !isCameraEnabled;
     setIsCameraEnabled(nextEnabled);
-    if (room) {
-      await room.localParticipant.setCameraEnabled(nextEnabled).catch(() => undefined);
-      if (nextEnabled) {
-        const cam = room.localParticipant.getTrackPublication(Track.Source.Camera);
-        if (cam?.track?.mediaStreamTrack) {
-          bindLocalVideoStream(new MediaStream([cam.track.mediaStreamTrack]));
-        }
-      } else {
-        bindLocalVideoStream(null);
-      }
+
+    if (!nextEnabled) {
+      await replacePublishedVideoTrack(null);
+      return;
     }
-  }, [bindLocalVideoStream, isCameraEnabled]);
+
+    let stream = localStreamRef.current;
+    if (!stream?.getVideoTracks().some((track) => track.readyState === 'live')) {
+      stream = await startLocalPreview('video');
+    }
+    if (!stream) return;
+
+    bindLocalVideoStream(stream);
+    if (!isTencentWebARConfigured()) {
+      const videoTrack = stream.getVideoTracks()[0] ?? null;
+      await replacePublishedVideoTrack(videoTrack);
+    }
+  }, [bindLocalVideoStream, isCameraEnabled, replacePublishedVideoTrack, startLocalPreview]);
 
   const flipCamera = useCallback(async () => {
     if (callKindRef.current !== 'video') return;
-    const stream = localStreamRef.current;
-    const videoTrack = stream?.getVideoTracks()[0];
-    if (!videoTrack) return;
+    if (!localStreamRef.current?.getVideoTracks()[0]) return;
     const nextFacing = nextCameraFacingMode(cameraFacingMode);
-    const videoConstraints = {
-      facingMode: { exact: nextFacing },
-      width: { ideal: WEBAR_CAMERA_IDEAL.width },
-      height: { ideal: WEBAR_CAMERA_IDEAL.height },
-      frameRate: WEBAR_CAMERA_FRAME_RATE,
-    };
     try {
-      let nextStream: MediaStream;
-      try {
-        nextStream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: videoConstraints,
-        });
-      } catch {
-        nextStream = await navigator.mediaDevices.getUserMedia({
-          audio: false,
-          video: {
-            ...videoConstraints,
-            facingMode: { ideal: nextFacing },
-          },
-        });
-      }
-      const nextTrack = nextStream.getVideoTracks()[0];
-      if (!nextTrack) return;
-      const audioTracks = stream?.getAudioTracks() ?? [];
-      const merged = new MediaStream([...audioTracks, nextTrack]);
+      const nextStream = await setAppCameraFacing(nextFacing);
+      if (!nextStream) return;
       setCameraFacingMode(nextFacing);
-      localStreamRef.current = merged;
-      bindLocalVideoStream(merged, nextFacing);
-      videoTrack.stop();
+      bindLocalVideoStream(nextStream, nextFacing);
     } catch {
       /* keep prior camera */
     }

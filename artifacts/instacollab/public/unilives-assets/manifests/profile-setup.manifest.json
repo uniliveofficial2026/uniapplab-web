@@ -1,0 +1,460 @@
+{
+  "version": 1,
+  "category": "profile-setup",
+  "brand": "UniLive’s",
+  "assets": [
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.welcome.background",
+      "name": "welcome background",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/welcome/background.webp",
+        "png": "/unilives-assets/profile-setup/welcome/background.png"
+      },
+      "tags": [
+        "profile-setup",
+        "background",
+        "welcome"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.welcome.illustration",
+      "name": "welcome illustration",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/welcome/illustration.webp",
+        "png": "/unilives-assets/profile-setup/welcome/illustration.png"
+      },
+      "tags": [
+        "profile-setup",
+        "illustration",
+        "welcome"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.avatar.placeholder",
+      "name": "avatar placeholder",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/avatar/placeholder.webp",
+        "png": "/unilives-assets/profile-setup/avatar/placeholder.png"
+      },
+      "tags": [
+        "profile-setup",
+        "avatar",
+        "placeholder"
+      ],
+      "priority": 80,
+      "width": 224,
+      "height": 224,
+      "replacementFor": [
+        "profile-setup-avatar-button"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.avatar.upload",
+      "name": "avatar upload control",
+      "formats": {
+        "svg": "/unilives-assets/profile-setup/avatar/upload.svg",
+        "png": "/unilives-assets/profile-setup/avatar/upload.png"
+      },
+      "tags": [
+        "profile-setup",
+        "avatar",
+        "upload"
+      ],
+      "priority": 78,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.avatar.success",
+      "name": "avatar upload success",
+      "formats": {
+        "svg": "/unilives-assets/profile-setup/avatar/success.svg",
+        "png": "/unilives-assets/profile-setup/avatar/success.png"
+      },
+      "tags": [
+        "profile-setup",
+        "avatar",
+        "success"
+      ],
+      "priority": 60,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.avatar.error",
+      "name": "avatar upload error",
+      "formats": {
+        "svg": "/unilives-assets/profile-setup/avatar/error.svg",
+        "png": "/unilives-assets/profile-setup/avatar/error.png"
+      },
+      "tags": [
+        "profile-setup",
+        "avatar",
+        "error"
+      ],
+      "priority": 60,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.identity.background",
+      "name": "identity background",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/identity/background.webp",
+        "png": "/unilives-assets/profile-setup/identity/background.png"
+      },
+      "tags": [
+        "profile-setup",
+        "background",
+        "identity"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.identity.illustration",
+      "name": "identity illustration",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/identity/illustration.webp",
+        "png": "/unilives-assets/profile-setup/identity/illustration.png"
+      },
+      "tags": [
+        "profile-setup",
+        "illustration",
+        "identity"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.bio.background",
+      "name": "bio background",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/bio/background.webp",
+        "png": "/unilives-assets/profile-setup/bio/background.png"
+      },
+      "tags": [
+        "profile-setup",
+        "background",
+        "bio"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.bio.illustration",
+      "name": "bio illustration",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/bio/illustration.webp",
+        "png": "/unilives-assets/profile-setup/bio/illustration.png"
+      },
+      "tags": [
+        "profile-setup",
+        "illustration",
+        "bio"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.interests.background",
+      "name": "interests background",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/interests/background.webp",
+        "png": "/unilives-assets/profile-setup/interests/background.png"
+      },
+      "tags": [
+        "profile-setup",
+        "background",
+        "interests"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.interests.illustration",
+      "name": "interests illustration",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/interests/illustration.webp",
+        "png": "/unilives-assets/profile-setup/interests/illustration.png"
+      },
+      "tags": [
+        "profile-setup",
+        "illustration",
+        "interests"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.creator.background",
+      "name": "creator background",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/creator/background.webp",
+        "png": "/unilives-assets/profile-setup/creator/background.png"
+      },
+      "tags": [
+        "profile-setup",
+        "background",
+        "creator"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.creator.illustration",
+      "name": "creator illustration",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/creator/illustration.webp",
+        "png": "/unilives-assets/profile-setup/creator/illustration.png"
+      },
+      "tags": [
+        "profile-setup",
+        "illustration",
+        "creator"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.completion.background",
+      "name": "completion background",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/completion/background.webp",
+        "png": "/unilives-assets/profile-setup/completion/background.png"
+      },
+      "tags": [
+        "profile-setup",
+        "background",
+        "completion"
+      ],
+      "priority": 70
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.completion.illustration",
+      "name": "completion illustration",
+      "formats": {
+        "webp": "/unilives-assets/profile-setup/completion/illustration.webp",
+        "png": "/unilives-assets/profile-setup/completion/illustration.png"
+      },
+      "tags": [
+        "profile-setup",
+        "illustration",
+        "completion"
+      ],
+      "priority": 75,
+      "width": 320,
+      "height": 320
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.state.loading",
+      "name": "profile setup loading",
+      "formats": {
+        "svg": "/unilives-assets/profile-setup/state/loading.svg",
+        "png": "/unilives-assets/profile-setup/state/loading.png"
+      },
+      "tags": [
+        "profile-setup",
+        "state",
+        "loading"
+      ],
+      "priority": 65,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.state.success",
+      "name": "profile setup success",
+      "formats": {
+        "svg": "/unilives-assets/profile-setup/state/success.svg",
+        "png": "/unilives-assets/profile-setup/state/success.png"
+      },
+      "tags": [
+        "profile-setup",
+        "state",
+        "success"
+      ],
+      "priority": 65,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.state.error",
+      "name": "profile setup error",
+      "formats": {
+        "svg": "/unilives-assets/profile-setup/state/error.svg",
+        "png": "/unilives-assets/profile-setup/state/error.png"
+      },
+      "tags": [
+        "profile-setup",
+        "state",
+        "error"
+      ],
+      "priority": 65,
+      "width": 64,
+      "height": 64
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "profile-setup",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "profile-setup.fallback.default",
+      "name": "profile setup default fallback",
+      "formats": {
+        "png": "/unilives-assets/profile-setup/fallback/default.png",
+        "webp": "/unilives-assets/profile-setup/fallback/default.webp"
+      },
+      "tags": [
+        "profile-setup",
+        "fallback"
+      ],
+      "priority": 50,
+      "width": 256,
+      "height": 256,
+      "replacementFor": [
+        "profile-setup-fallback"
+      ]
+    }
+  ]
+}

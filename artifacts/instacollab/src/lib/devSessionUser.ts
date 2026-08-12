@@ -5,8 +5,63 @@ import { logDevActivity } from './devActivity';
 import { db } from './db/localDb';
 import { findUserById } from './safe';
 import { isForceDemoSession, isUnifiedLiveMode } from './unifiedLive';
+import {
+  markAuthGateThisSession,
+  markOnboardingCompleteThisSession,
+  markSplashSeenThisSession,
+} from './splashSession';
 
 const DEVICE_USER_STORAGE_KEY = 'instacollab_dev_device_user';
+/** Persisted before shell URL sync strips ?force_demo=1&launch=main&as=u1. */
+const DEMO_BOOTSTRAP_SEARCH_KEY = 'instacollab_demo_bootstrap_search';
+
+function normalizeBootstrapSearch(search: string): string {
+  const trimmed = search.trim();
+  if (!trimmed) return '';
+  return trimmed.startsWith('?') ? trimmed : `?${trimmed}`;
+}
+
+/** Capture smoke/dev bootstrap params before navigationRestore strips them from the URL. */
+function captureDemoBootstrapSearchFromUrl(): void {
+  if (typeof window === 'undefined') return;
+  const search = normalizeBootstrapSearch(window.location.search);
+  if (!search || !shouldApplyDevSessionOverride(search)) return;
+  if (!import.meta.env.DEV && !isForceDemoSession(search)) return;
+  try {
+    sessionStorage.setItem(DEMO_BOOTSTRAP_SEARCH_KEY, search);
+    // Skip splash/onboarding/auth gates immediately — async db login follows.
+    markSplashSeenThisSession();
+    markOnboardingCompleteThisSession();
+    markAuthGateThisSession();
+  } catch {
+    /* private mode */
+  }
+}
+
+/** Bootstrap query preserved across shell URL sync (force_demo survives replaceState). */
+export function getDemoBootstrapSearch(): string {
+  if (typeof window === 'undefined') return '';
+  try {
+    const stored = sessionStorage.getItem(DEMO_BOOTSTRAP_SEARCH_KEY);
+    if (stored) return normalizeBootstrapSearch(stored);
+  } catch {
+    /* ignore */
+  }
+  return normalizeBootstrapSearch(window.location.search);
+}
+
+/** True when URL or persisted bootstrap search requests offline demo session. */
+export function hasDemoBootstrapIntent(): boolean {
+  return shouldApplyDevSessionOverride(getDemoBootstrapSearch());
+}
+
+/** Smoke URLs skip the marketing funnel and enter the main shell directly. */
+export function shouldSkipLaunchFunnelForDemoBootstrap(): boolean {
+  const search = getDemoBootstrapSearch();
+  return shouldRunDemoSessionBootstrap(search);
+}
+
+captureDemoBootstrapSearchFromUrl();
 
 /** Parse `?as=u2` or `?as=creative_sarah` from the URL. */
 export function parseSessionUserFromSearch(search: string, users: User[]): string | null {
@@ -14,7 +69,7 @@ export function parseSessionUserFromSearch(search: string, users: User[]): strin
   const raw = (params.get('as') || params.get('user') || params.get('login') || '').trim();
   if (!raw) return null;
 
-  if (import.meta.env.DEV && /^u\d+$/.test(raw)) return raw;
+  if ((import.meta.env.DEV || isForceDemoSession(search)) && /^u\d+$/.test(raw)) return raw;
 
   const byId = users.find((u) => u.id === raw);
   if (byId) return byId.id;
@@ -61,13 +116,23 @@ export function resolveDevSessionUserId(hostname: string, search: string, users:
   return assigned;
 }
 
-/** Apply dev account override only when skipping launch (?launch=main) or ?as= is set. */
-export function shouldApplyDevSessionOverride(search: string): boolean {
+/** Apply dev account override when skipping launch (?launch=main), ?as=, or smoke ?force_demo=1. */
+export function shouldApplyDevSessionOverride(
+  search: string = getDemoBootstrapSearch(),
+): boolean {
+  if (isForceDemoSession(search)) return true;
   if (!import.meta.env.DEV) return false;
   if (isUnifiedLiveMode() && !isForceDemoSession(search)) return false;
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   if (params.get('as') || params.get('user') || params.get('login')) return true;
   return params.get('launch') === 'main';
+}
+
+/** True when demo session bootstrap should run (dev shortcuts or explicit smoke URL). */
+export function shouldRunDemoSessionBootstrap(
+  search: string = getDemoBootstrapSearch(),
+): boolean {
+  return shouldApplyDevSessionOverride(search) && (import.meta.env.DEV || isForceDemoSession(search));
 }
 
 export function formatDevSessionUserHint(user: User | undefined): string {
@@ -80,10 +145,10 @@ export function formatDevSessionUserHint(user: User | undefined): string {
  * Returns true when override ran.
  */
 export async function applyDevSessionOverrideFromUrl(
-  search = typeof window !== 'undefined' ? window.location.search : '',
+  search = getDemoBootstrapSearch(),
   hostname = typeof window !== 'undefined' ? window.location.hostname : 'localhost'
 ): Promise<boolean> {
-  if (!import.meta.env.DEV || !shouldApplyDevSessionOverride(search)) return false;
+  if (!shouldRunDemoSessionBootstrap(search)) return false;
 
   logDevActivity('note', 'Dev session override starting');
   try {
@@ -111,6 +176,10 @@ export async function applyDevSessionOverrideFromUrl(
       db.completeProfileSetup({ legalAgreementAccepted: true });
     }
     if (!progress.hasSeenTrending) db.markTrendingSeen();
+
+    markSplashSeenThisSession();
+    markOnboardingCompleteThisSession();
+    markAuthGateThisSession();
 
     const user = findUserById(db.users, targetId);
     const fromUrl = parseSessionUserFromSearch(search, db.users);

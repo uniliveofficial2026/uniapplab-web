@@ -4,6 +4,11 @@ import { isCloudAuthUserId } from '../auth/cloudProfile';
 import { resolveSupabaseSessionUserId } from '../auth/resolveSupabaseSessionUserId';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
+import {
+  removeSafeRealtimeChannel,
+  subscribeSafeRealtimeChannel,
+} from '../supabase/safeRealtimeChannel';
+import { isFirebaseConfigured } from '../firebase/config';
 import { fetchProfile, profileRowToUser } from '../supabase/profile';
 import { createChatThread, sendChatMessageApi, isPlatformApiAvailable } from '../platformApi';
 import type { ChatMessage } from '../dbTypes';
@@ -11,24 +16,10 @@ import type { ChatGroup } from '../../types';
 import { cloudifyChatMessageMedia } from './chatMediaUpload';
 import { normalizeTimestampValue } from '../dbMessageUtils';
 import { isChatCloudAvailable, shouldUseFirebaseForChat } from './chatCloud';
-import {
-  createFirebaseChatThread,
-  fetchFirebaseChatMessages,
-  fetchFirebaseReadReceipts,
-  fetchFirebaseReactionsForThread,
-  fetchFirebaseThread,
-  findFirebaseDmThread,
-  insertFirebaseChatMessage,
-  isFirebaseChatAvailable,
-  listFirebaseThreadsForUser,
-  setFirebaseReaction,
-  softDeleteFirebaseChatMessage,
-  startFirebaseChatRealtime,
-  stopFirebaseChatRealtime,
-  updateFirebaseChatMessage,
-  updateFirebaseThreadMembers,
-  upsertFirebaseReadReceipt,
-} from '../firebase/chatMessages';
+
+async function firebaseChat() {
+  return import('../firebase/chatMessages');
+}
 
 type ThreadMap = Record<string, string>;
 
@@ -37,6 +28,9 @@ const DEFAULT_AVATAR =
 
 let realtimeChannel: RealtimeChannel | null = null;
 let firebaseRealtimeStop: (() => void) | null = null;
+let chatRealtimeActiveAuthUserId: string | null = null;
+let chatRealtimeStartSeq = 0;
+let chatRealtimeStartInflight: Promise<void> | null = null;
 let inboxListInflight: Promise<void> | null = null;
 let inboxSyncInflight: Promise<void> | null = null;
 let inboxSyncDebounceTimer: number | null = null;
@@ -55,7 +49,10 @@ function outboundMessageTimestampMs(message: ChatMessage): number {
 async function resolveCloudChatAuthUserId(userId: string): Promise<string | null> {
   const trimmed = userId?.trim();
   if (!trimmed || !isCloudAuthUserId(trimmed)) return null;
-  if (shouldUseFirebaseForChat(trimmed) && isFirebaseChatAvailable()) return trimmed;
+  if (shouldUseFirebaseForChat(trimmed) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) return trimmed;
+  }
   const authUserId = await resolveSupabaseSessionUserId(trimmed, { attemptMigrate: true });
   return authUserId && isCloudAuthUserId(authUserId) ? authUserId : null;
 }
@@ -67,11 +64,12 @@ function dispatchChatInboxActivity(chatId: string): void {
 
 function scheduleDebouncedInboxSync(chatIds?: string[]): void {
   if (typeof window === 'undefined') return;
+  // Microtask coalesce only — no 400ms lag on inbound chat events.
   if (inboxSyncDebounceTimer) window.clearTimeout(inboxSyncDebounceTimer);
   inboxSyncDebounceTimer = window.setTimeout(() => {
     inboxSyncDebounceTimer = null;
     void syncCloudChatInbox(chatIds?.length ? { chatIds } : undefined);
-  }, 400);
+  }, 0);
 }
 
 function threadMapKey(): string {
@@ -133,8 +131,10 @@ async function verifySupabaseDmThread(
 
 async function findExistingCloudThread(peerId: string, meId: string): Promise<string | null> {
   const tryFirebase = async (): Promise<string | null> => {
-    if (!isFirebaseChatAvailable()) return null;
-    return findFirebaseDmThread(meId, peerId);
+    if (!isFirebaseConfigured()) return null;
+    const fb = await firebaseChat();
+    if (!fb.isFirebaseChatAvailable()) return null;
+    return fb.findFirebaseDmThread(meId, peerId);
   };
 
   const trySupabase = async (): Promise<string | null> => {
@@ -198,11 +198,18 @@ async function createCloudThreadDirect(peerId: string, meId: string): Promise<st
     return thread.id;
   };
 
+  const tryFirebase = async (): Promise<string | null> => {
+    if (!isFirebaseConfigured()) return null;
+    const fb = await firebaseChat();
+    if (!fb.isFirebaseChatAvailable()) return null;
+    return fb.createFirebaseChatThread([meId, peerId]);
+  };
+
   if (isSupabaseConfigured()) {
-    return (await trySupabase()) ?? createFirebaseChatThread([meId, peerId]);
+    return (await trySupabase()) ?? tryFirebase();
   }
-  if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-    return createFirebaseChatThread([meId, peerId]);
+  if (shouldUseFirebaseForChat(meId)) {
+    return (await tryFirebase()) ?? trySupabase();
   }
 
   return trySupabase();
@@ -286,8 +293,10 @@ async function sendChatMessageDirect(
   meId: string,
 ): Promise<string | null> {
   const tryFirebase = async (): Promise<string | null> => {
-    if (!isFirebaseChatAvailable()) return null;
-    return insertFirebaseChatMessage(threadId, message, meId);
+    if (!isFirebaseConfigured()) return null;
+    const fb = await firebaseChat();
+    if (!fb.isFirebaseChatAvailable()) return null;
+    return fb.insertFirebaseChatMessage(threadId, message, meId);
   };
 
   const trySupabase = async (): Promise<string | null> => {
@@ -337,46 +346,49 @@ async function sendChatMessageDirect(
 }
 
 async function hydrateThreadMapFromCloud(userId: string): Promise<void> {
-  if (isFirebaseChatAvailable()) {
-    const map = loadThreadMap();
-    let changed = false;
-    const threads = await listFirebaseThreadsForUser(userId);
-    for (const thread of threads) {
-      if (Object.values(map).includes(thread.id)) continue;
-      const meta = (thread.meta ?? {}) as {
-        kind?: string;
-        localId?: string;
-        title?: string;
-        avatarUrl?: string;
-      };
-      const peers = (thread.member_ids ?? []).filter((id) => id && id !== userId);
-      if (peers.length === 1 && meta.kind !== 'group') {
-        map[peers[0]] = thread.id;
-        changed = true;
-        continue;
+  if (isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      const map = loadThreadMap();
+      let changed = false;
+      const threads = await fb.listFirebaseThreadsForUser(userId);
+      for (const thread of threads) {
+        if (Object.values(map).includes(thread.id)) continue;
+        const meta = (thread.meta ?? {}) as {
+          kind?: string;
+          localId?: string;
+          title?: string;
+          avatarUrl?: string;
+        };
+        const peers = (thread.member_ids ?? []).filter((id) => id && id !== userId);
+        if (peers.length === 1 && meta.kind !== 'group') {
+          map[peers[0]] = thread.id;
+          changed = true;
+          continue;
+        }
+        if (peers.length >= 1 && (meta.kind === 'group' || peers.length >= 2)) {
+          const localId = meta.localId || `group_cloud_${thread.id.slice(0, 8)}`;
+          map[localId] = thread.id;
+          changed = true;
+          db.mergeInboundChatGroup({
+            id: localId,
+            displayName: meta.title || 'Group chat',
+            username: `${peers.length + 1} members`,
+            avatarUrl:
+              meta.avatarUrl ||
+              'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
+            isGroup: true,
+            memberIds: [userId, ...peers],
+            createdBy: userId,
+            adminIds: [userId],
+            mutedMemberIds: [],
+            adminOnlyPosting: false,
+            requireApprovalToJoin: false,
+          });
+        }
       }
-      if (peers.length >= 1 && (meta.kind === 'group' || peers.length >= 2)) {
-        const localId = meta.localId || `group_cloud_${thread.id.slice(0, 8)}`;
-        map[localId] = thread.id;
-        changed = true;
-        db.mergeInboundChatGroup({
-          id: localId,
-          displayName: meta.title || 'Group chat',
-          username: `${peers.length + 1} members`,
-          avatarUrl:
-            meta.avatarUrl ||
-            'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
-          isGroup: true,
-          memberIds: [userId, ...peers],
-          createdBy: userId,
-          adminIds: [userId],
-          mutedMemberIds: [],
-          adminOnlyPosting: false,
-          requireApprovalToJoin: false,
-        });
-      }
+      if (changed) saveThreadMap(map);
     }
-    if (changed) saveThreadMap(map);
   }
 
   const supabase = getSupabaseClient();
@@ -529,8 +541,10 @@ async function resolvePeerIdFromCloudThread(
     };
 
     const resolveFromFirebase = async (): Promise<string | null> => {
-      if (!isFirebaseChatAvailable()) return null;
-      const thread = await fetchFirebaseThread(threadId);
+      if (!isFirebaseConfigured()) return null;
+      const fb = await firebaseChat();
+      if (!fb.isFirebaseChatAvailable()) return null;
+      const thread = await fb.fetchFirebaseThread(threadId);
       if (!thread) return null;
       const meta = (thread.meta ?? {}) as { kind?: string; localId?: string };
       const peers = (thread.member_ids ?? []).filter((id) => id && id !== meId);
@@ -553,7 +567,7 @@ async function resolvePeerIdFromCloudThread(
     if (isSupabaseConfigured()) {
       return (await resolveFromSupabase()) ?? resolveFromFirebase();
     }
-    if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
+    if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
       return (await resolveFromFirebase()) ?? resolveFromSupabase();
     }
     return resolveFromSupabase();
@@ -582,16 +596,19 @@ async function syncReactionsForCloudMessage(cloudMessageId: string): Promise<voi
   const meId = db.currentUserId;
   if (!meId) return;
 
-  if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-    const threadIds = [...new Set(Object.values(loadThreadMap()))];
-    for (const threadId of threadIds) {
-      const messages = await fetchFirebaseChatMessages(threadId, 200);
-      if (!messages.some((row) => row.id === cloudMessageId)) continue;
-      const peerId = resolvePeerIdForThread(threadId, '');
-      if (peerId) await syncCloudReactionsForThread(threadId, peerId);
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      const threadIds = [...new Set(Object.values(loadThreadMap()))];
+      for (const threadId of threadIds) {
+        const messages = await fb.fetchFirebaseChatMessages(threadId, 200);
+        if (!messages.some((row) => row.id === cloudMessageId)) continue;
+        const peerId = resolvePeerIdForThread(threadId, '');
+        if (peerId) await syncCloudReactionsForThread(threadId, peerId);
+        return;
+      }
       return;
     }
-    return;
   }
 
   const supabase = getSupabaseClient();
@@ -625,15 +642,18 @@ export async function ensureCloudThreadForGroup(group: ChatGroup): Promise<strin
   if (!memberIds.includes(meId)) memberIds.push(meId);
   if (memberIds.length < 2) return null;
 
-  if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-    const threadId = await createFirebaseChatThread(memberIds, {
-      kind: 'group',
-      localId: group.id,
-      title: group.displayName,
-      avatarUrl: group.avatarUrl,
-    });
-    if (threadId) rememberThreadPeer(group.id, threadId);
-    return threadId;
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      const threadId = await fb.createFirebaseChatThread(memberIds, {
+        kind: 'group',
+        localId: group.id,
+        title: group.displayName,
+        avatarUrl: group.avatarUrl,
+      });
+      if (threadId) rememberThreadPeer(group.id, threadId);
+      return threadId;
+    }
   }
 
   try {
@@ -702,14 +722,17 @@ export async function syncCloudGroupMembers(group: ChatGroup): Promise<void> {
   ];
   if (!memberIds.includes(meId)) memberIds.push(meId);
 
-  if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-    await updateFirebaseThreadMembers(threadId, memberIds, {
-      kind: 'group',
-      localId: group.id,
-      title: group.displayName,
-      avatarUrl: group.avatarUrl,
-    });
-    return;
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      await fb.updateFirebaseThreadMembers(threadId, memberIds, {
+        kind: 'group',
+        localId: group.id,
+        title: group.displayName,
+        avatarUrl: group.avatarUrl,
+      });
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -1062,8 +1085,11 @@ export async function syncCloudChatHistory(chatId: string): Promise<void> {
       }
     }
   }
-  if (isFirebaseChatAvailable()) {
-    await pullRows(() => fetchFirebaseChatMessages(threadId, 200));
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      await pullRows(() => fb.fetchFirebaseChatMessages(threadId, 200));
+    }
   }
 
   await syncCloudReactionsForThread(threadId, chatId);
@@ -1072,30 +1098,33 @@ export async function syncCloudChatHistory(chatId: string): Promise<void> {
 
 async function syncCloudReactionsForThread(threadId: string, peerId: string): Promise<void> {
   const meId = db.currentUserId;
-  if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-    const messages = await fetchFirebaseChatMessages(threadId, 200);
-    if (!messages.length) return;
-    const messageIds = messages.map((m) => m.id).filter(Boolean) as string[];
-    if (!messageIds.length) return;
-    const reactions = await fetchFirebaseReactionsForThread(threadId, messageIds);
-    if (!reactions.length) return;
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      const messages = await fb.fetchFirebaseChatMessages(threadId, 200);
+      if (!messages.length) return;
+      const messageIds = messages.map((m) => m.id).filter(Boolean) as string[];
+      if (!messageIds.length) return;
+      const reactions = await fb.fetchFirebaseReactionsForThread(threadId, messageIds);
+      if (!reactions.length) return;
 
-    const byMessage = new Map<string, { counts: Record<string, number>; selected: string | null }>();
-    for (const row of reactions) {
-      const entry = byMessage.get(row.message_id) ?? { counts: {}, selected: null };
-      entry.counts[row.emoji] = (entry.counts[row.emoji] || 0) + 1;
-      if (row.user_id === meId) entry.selected = row.emoji;
-      byMessage.set(row.message_id, entry);
-    }
+      const byMessage = new Map<string, { counts: Record<string, number>; selected: string | null }>();
+      for (const row of reactions) {
+        const entry = byMessage.get(row.message_id) ?? { counts: {}, selected: null };
+        entry.counts[row.emoji] = (entry.counts[row.emoji] || 0) + 1;
+        if (row.user_id === meId) entry.selected = row.emoji;
+        byMessage.set(row.message_id, entry);
+      }
 
-    for (const msg of messages) {
-      if (!msg.id) continue;
-      const state = byMessage.get(msg.id);
-      if (!state) continue;
-      const localId = String(msg.client_id || (msg.payload as { id?: string } | null)?.id || msg.id);
-      db.applyInboundMessageReaction(peerId, localId, state);
+      for (const msg of messages) {
+        if (!msg.id) continue;
+        const state = byMessage.get(msg.id);
+        if (!state) continue;
+        const localId = String(msg.client_id || (msg.payload as { id?: string } | null)?.id || msg.id);
+        db.applyInboundMessageReaction(peerId, localId, state);
+      }
+      return;
     }
-    return;
   }
 
   const supabase = getSupabaseClient();
@@ -1140,8 +1169,11 @@ async function syncCloudReadReceipt(
 ): Promise<void> {
   let data: Array<{ user_id: string; last_read_at: string }> = [];
 
-  if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-    data = await fetchFirebaseReadReceipts(threadId);
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      data = await fb.fetchFirebaseReadReceipts(threadId);
+    }
   } else {
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -1190,9 +1222,12 @@ export function queueCloudReadReceipt(peerId: string, timestamp: number): void {
   void (async () => {
     const threadId = await ensureCloudThreadForChat(peerId);
     if (!threadId) return;
-    if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-      await upsertFirebaseReadReceipt(threadId, meId, timestamp);
-      return;
+    if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+      const fb = await firebaseChat();
+      if (fb.isFirebaseChatAvailable()) {
+        await fb.upsertFirebaseReadReceipt(threadId, meId, timestamp);
+        return;
+      }
     }
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -1223,9 +1258,12 @@ export function queueCloudMessageReaction(
   void (async () => {
     const threadId = await ensureCloudThreadForChat(peerId);
     if (!threadId) return;
-    if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-      await setFirebaseReaction(threadId, cloudId, meId, emoji);
-      return;
+    if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+      const fb = await firebaseChat();
+      if (fb.isFirebaseChatAvailable()) {
+        await fb.setFirebaseReaction(threadId, cloudId, meId, emoji);
+        return;
+      }
     }
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -1250,14 +1288,17 @@ export function queueCloudMessageUpdate(peerId: string, message: ChatMessage): v
   void (async () => {
     const threadId = await ensureCloudThreadForChat(peerId);
     if (!threadId) return;
-    if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-      await updateFirebaseChatMessage(
-        threadId,
-        cloudId,
-        bodyFromMessage(message),
-        messageToPayload(message),
-      );
-      return;
+    if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+      const fb = await firebaseChat();
+      if (fb.isFirebaseChatAvailable()) {
+        await fb.updateFirebaseChatMessage(
+          threadId,
+          cloudId,
+          bodyFromMessage(message),
+          messageToPayload(message),
+        );
+        return;
+      }
     }
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -1322,9 +1363,12 @@ export function queueCloudMessageDelete(peerId: string, message: ChatMessage): v
   void (async () => {
     const threadId = await ensureCloudThreadForChat(peerId);
     if (!threadId) return;
-    if (shouldUseFirebaseForChat(meId) && isFirebaseChatAvailable()) {
-      await softDeleteFirebaseChatMessage(threadId, cloudId);
-      return;
+    if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+      const fb = await firebaseChat();
+      if (fb.isFirebaseChatAvailable()) {
+        await fb.softDeleteFirebaseChatMessage(threadId, cloudId);
+        return;
+      }
     }
     const supabase = getSupabaseClient();
     if (!supabase) return;
@@ -1373,114 +1417,164 @@ export async function syncCloudChatInbox(options?: { chatIds?: string[] }): Prom
 }
 
 export async function startCloudChatRealtime(userId: string): Promise<void> {
-  stopCloudChatRealtime();
-  const authUserId = await resolveCloudChatAuthUserId(userId);
-  if (!authUserId || !isChatCloudAvailable()) return;
+  // Serialize starts — concurrent calls race removeChannel vs .on() and freeze/blank the UI.
+  const run = async () => {
+    const startSeq = ++chatRealtimeStartSeq;
+    const supabase = getSupabaseClient();
 
-  await hydrateThreadMapFromCloud(authUserId);
+    const authUserId = await resolveCloudChatAuthUserId(userId);
+    if (startSeq !== chatRealtimeStartSeq) return;
+    if (!authUserId || !isChatCloudAvailable()) return;
 
-  const onMessageRow = (row: {
-    id?: string;
-    sender_id?: string;
-    body?: string;
-    payload?: Record<string, unknown> | null;
-    client_id?: string | null;
-    deleted_at?: string | null;
-    created_at?: string;
-    thread_id?: string;
-  }) => {
-    if (!row?.thread_id) return;
-    const peerId = resolvePeerIdForThread(row.thread_id, row.sender_id ?? '');
-    if (peerId) {
-      mergeRemoteMessage(peerId, row, { source: 'realtime' });
+    // Idempotent — refresh storms must not tear down a healthy channel.
+    if (
+      chatRealtimeActiveAuthUserId === authUserId &&
+      (realtimeChannel || firebaseRealtimeStop)
+    ) {
       return;
     }
-    void resolvePeerIdFromCloudThread(row.thread_id, row.sender_id ?? '').then((resolved) => {
-      if (resolved) mergeRemoteMessage(resolved, row, { source: 'realtime' });
-    });
+
+    const prevChannel = realtimeChannel;
+    realtimeChannel = null;
+    chatRealtimeActiveAuthUserId = null;
+    firebaseRealtimeStop?.();
+    firebaseRealtimeStop = null;
+    void firebaseChat().then((fb) => fb.stopFirebaseChatRealtime());
+    removeSafeRealtimeChannel(supabase, prevChannel);
+    if (startSeq !== chatRealtimeStartSeq) return;
+
+    try {
+      await hydrateThreadMapFromCloud(authUserId);
+    } catch {
+      /* offline — still attach realtime when possible */
+    }
+    if (startSeq !== chatRealtimeStartSeq) return;
+
+    const onMessageRow = (row: {
+      id?: string;
+      sender_id?: string;
+      body?: string;
+      payload?: Record<string, unknown> | null;
+      client_id?: string | null;
+      deleted_at?: string | null;
+      created_at?: string;
+      thread_id?: string;
+    }) => {
+      if (!row?.thread_id) return;
+      const peerId = resolvePeerIdForThread(row.thread_id, row.sender_id ?? '');
+      if (peerId) {
+        mergeRemoteMessage(peerId, row, { source: 'realtime' });
+        return;
+      }
+      void resolvePeerIdFromCloudThread(row.thread_id, row.sender_id ?? '').then((resolved) => {
+        if (resolved) mergeRemoteMessage(resolved, row, { source: 'realtime' });
+      });
+    };
+
+    if (
+      (shouldUseFirebaseForChat(authUserId) || !isSupabaseConfigured()) &&
+      isFirebaseConfigured()
+    ) {
+      const fb = await firebaseChat();
+      if (fb.isFirebaseChatAvailable()) {
+        firebaseRealtimeStop = fb.startFirebaseChatRealtime(authUserId, {
+          onMessage: (row) => onMessageRow(row),
+          onReaction: (messageId) => scheduleReactionSyncForCloudMessage(messageId),
+          onReadState: (threadId) => {
+            const chatId = resolvePeerIdForThread(threadId, '');
+            const meId = db.currentUserId;
+            if (chatId && meId) void syncCloudReadReceipt(chatId, threadId, meId);
+          },
+          onMembership: () => {
+            void hydrateThreadMapFromCloud(authUserId);
+          },
+        });
+      }
+    }
+
+    if (!supabase) {
+      chatRealtimeActiveAuthUserId = authUserId;
+      return;
+    }
+    if (startSeq !== chatRealtimeStartSeq) return;
+
+    const channel = subscribeSafeRealtimeChannel(
+      supabase,
+      `chat-messages:${authUserId}`,
+      (ch) => {
+        ch.on(
+          'postgres_changes',
+          { event: 'INSERT', schema: 'public', table: 'chat_messages' },
+          (payload) => onMessageRow(payload.new as Parameters<typeof onMessageRow>[0]),
+        )
+          .on(
+            'postgres_changes',
+            { event: 'UPDATE', schema: 'public', table: 'chat_messages' },
+            (payload) => onMessageRow(payload.new as Parameters<typeof onMessageRow>[0]),
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'chat_message_reactions' },
+            (payload) => {
+              const row = (payload.new || payload.old) as { message_id?: string } | null;
+              if (row?.message_id) {
+                scheduleReactionSyncForCloudMessage(row.message_id);
+                return;
+              }
+              scheduleDebouncedInboxSync();
+            },
+          )
+          .on(
+            'postgres_changes',
+            { event: 'INSERT', schema: 'public', table: 'chat_thread_members' },
+            () => {
+              void hydrateThreadMapFromCloud(authUserId);
+            },
+          )
+          .on(
+            'postgres_changes',
+            { event: '*', schema: 'public', table: 'chat_read_state' },
+            (payload) => {
+              const row = (payload.new || payload.old) as {
+                thread_id?: string;
+                user_id?: string;
+                last_read_at?: string;
+              } | null;
+              if (!row?.thread_id) {
+                scheduleDebouncedInboxSync();
+                return;
+              }
+              const chatId = resolvePeerIdForThread(row.thread_id, row.user_id ?? '');
+              const meId = db.currentUserId;
+              if (chatId && meId) {
+                void syncCloudReadReceipt(chatId, row.thread_id, meId);
+              } else {
+                scheduleDebouncedInboxSync();
+              }
+            },
+          );
+      },
+    );
+
+    if (startSeq !== chatRealtimeStartSeq) {
+      removeSafeRealtimeChannel(supabase, channel);
+      return;
+    }
+    realtimeChannel = channel;
+    chatRealtimeActiveAuthUserId = authUserId;
   };
 
-  if (isFirebaseChatAvailable()) {
-    firebaseRealtimeStop = startFirebaseChatRealtime(authUserId, {
-      onMessage: (row) => onMessageRow(row),
-      onReaction: (messageId) => scheduleReactionSyncForCloudMessage(messageId),
-      onReadState: (threadId) => {
-        const chatId = resolvePeerIdForThread(threadId, '');
-        const meId = db.currentUserId;
-        if (chatId && meId) void syncCloudReadReceipt(chatId, threadId, meId);
-      },
-      onMembership: () => {
-        void hydrateThreadMapFromCloud(authUserId);
-      },
-    });
-  }
-
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-
-  realtimeChannel = supabase
-    .channel(`chat-messages:${authUserId}`)
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'chat_messages' },
-      (payload) => onMessageRow(payload.new as Parameters<typeof onMessageRow>[0]),
-    )
-    .on(
-      'postgres_changes',
-      { event: 'UPDATE', schema: 'public', table: 'chat_messages' },
-      (payload) => onMessageRow(payload.new as Parameters<typeof onMessageRow>[0]),
-    )
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'chat_message_reactions' },
-      (payload) => {
-        const row = (payload.new || payload.old) as { message_id?: string } | null;
-        if (row?.message_id) {
-          scheduleReactionSyncForCloudMessage(row.message_id);
-          return;
-        }
-        scheduleDebouncedInboxSync();
-      },
-    )
-    .on(
-      'postgres_changes',
-      { event: 'INSERT', schema: 'public', table: 'chat_thread_members' },
-      () => {
-        void hydrateThreadMapFromCloud(authUserId);
-      },
-    )
-    .on(
-      'postgres_changes',
-      { event: '*', schema: 'public', table: 'chat_read_state' },
-      (payload) => {
-        const row = (payload.new || payload.old) as {
-          thread_id?: string;
-          user_id?: string;
-          last_read_at?: string;
-        } | null;
-        if (!row?.thread_id) {
-          scheduleDebouncedInboxSync();
-          return;
-        }
-        const chatId = resolvePeerIdForThread(row.thread_id, row.user_id ?? '');
-        const meId = db.currentUserId;
-        if (chatId && meId) {
-          void syncCloudReadReceipt(chatId, row.thread_id, meId);
-        } else {
-          scheduleDebouncedInboxSync();
-        }
-      },
-    )
-    .subscribe();
+  const pending = (chatRealtimeStartInflight ?? Promise.resolve()).then(run, run);
+  chatRealtimeStartInflight = pending.catch(() => undefined);
+  await pending;
 }
 
 export function stopCloudChatRealtime(): void {
+  chatRealtimeStartSeq += 1;
+  chatRealtimeActiveAuthUserId = null;
   firebaseRealtimeStop?.();
   firebaseRealtimeStop = null;
-  stopFirebaseChatRealtime();
-  const supabase = getSupabaseClient();
-  if (realtimeChannel && supabase) {
-    void supabase.removeChannel(realtimeChannel);
-  }
+  void firebaseChat().then((fb) => fb.stopFirebaseChatRealtime());
+  removeSafeRealtimeChannel(getSupabaseClient(), realtimeChannel);
   realtimeChannel = null;
 }

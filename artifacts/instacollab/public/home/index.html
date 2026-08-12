@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UniLive’s — Live social app</title>
+  <meta
+    name="description"
+    content="UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time. Available on app.uniapplab.com."
+  />
+  <link rel="canonical" href="https://app.uniapplab.com/home/" />
+  <link rel="icon" href="/brand/app-logo.png" type="image/png" />
+  <meta property="og:title" content="UniLive’s" />
+  <meta property="og:site_name" content="UniLive’s" />
+  <meta property="og:url" content="https://app.uniapplab.com/home/" />
+  <meta property="og:type" content="website" />
+  <meta property="og:image" content="https://app.uniapplab.com/brand/app-logo.png" />
+  <meta property="og:description" content="Live social app for streaming, chat, posts, stories, and creator collaboration." />
+  <style>
+    :root {
+      --bg: #020617;
+      --text: #f8fafc;
+      --muted: #94a3b8;
+      --accent: #e879f9;
+      --card: rgba(148, 163, 184, 0.08);
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100dvh;
+      font-family: ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, sans-serif;
+      background: radial-gradient(900px 420px at 15% -5%, #3b0764 0%, var(--bg) 55%);
+      color: var(--text);
+      line-height: 1.65;
+    }
+    main {
+      max-width: 40rem;
+      margin: 0 auto;
+      padding: 2.75rem 1.25rem 4rem;
+    }
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 0.9rem;
+      margin-bottom: 1.25rem;
+    }
+    .brand img {
+      width: 3.25rem;
+      height: 3.25rem;
+      border-radius: 0.9rem;
+      object-fit: contain;
+      background: var(--card);
+    }
+    h1 {
+      margin: 0;
+      font-size: 2rem;
+      letter-spacing: -0.03em;
+      font-weight: 900;
+      line-height: 1.1;
+    }
+    h2 {
+      margin: 1.75rem 0 0.6rem;
+      font-size: 1.1rem;
+    }
+    p, li { color: var(--muted); }
+    .lead {
+      font-size: 1.05rem;
+      color: #cbd5e1;
+    }
+    .card {
+      margin: 1.25rem 0;
+      padding: 1.1rem 1.2rem;
+      border-radius: 1.1rem;
+      border: 1px solid rgba(255,255,255,0.1);
+      background: var(--card);
+    }
+    ul { padding-left: 1.15rem; }
+    li { margin: 0.35rem 0; }
+    a { color: var(--accent); font-weight: 600; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    nav {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.85rem 1.25rem;
+      margin-top: 1.75rem;
+      font-size: 0.95rem;
+    }
+    .meta { font-size: 0.85rem; color: #64748b; margin-top: 2rem; }
+  </style>
+</head>
+<body>
+  <main role="main">
+    <div class="brand">
+      <img src="/brand/app-logo.png" width="52" height="52" alt="UniLive’s logo" />
+      <h1>UniLive’s</h1>
+    </div>
+
+    <p class="lead">
+      UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories,
+      discovering creators, and collaborating in real time.
+    </p>
+
+    <div class="card">
+      <p>
+        <strong style="color:#f8fafc">Who we are:</strong>
+        <strong style="color:#f8fafc">UniLive’s</strong> is the live social app on the verified domain
+        <strong style="color:#f8fafc">uniapplab.com</strong>
+        (app: <a href="https://app.uniapplab.com/">app.uniapplab.com</a>).
+      </p>
+    </div>
+
+    <h2>What UniLive’s does</h2>
+    <ul>
+      <li>Go live and join live rooms with chat, gifts, and multi-guest sessions</li>
+      <li>Share photos, reels, and stories with your audience</li>
+      <li>Message friends and discover trending creators</li>
+      <li>Use karaoke, wallet, Game Hub, and creator workspace tools in one place</li>
+    </ul>
+
+    <h2>Why we use Google Sign-In</h2>
+    <p>
+      Optional Google Sign-In lets you create or access your UniLive’s account securely.
+      When you choose Google, we receive basic profile details (such as name, email, and profile photo)
+      to authenticate you. Additional Google Workspace permissions (Gmail, Drive, Calendar, and similar)
+      are requested only if you explicitly connect those features in the Admin Panel, and only for
+      providing those in-app tools.
+    </p>
+
+    <nav aria-label="Legal and product links">
+      <a href="/privacy-policy.html">Privacy Policy</a>
+      <a href="/terms-of-service.html">Terms of Service</a>
+      <a href="https://app.uniapplab.com/">Open UniLive’s app</a>
+      <a href="https://uniapplab.com/">uniapplab.com</a>
+    </nav>
+
+    <p class="meta">
+      This static homepage is the Application home page used for Google OAuth consent and brand verification.
+      It does not require signing in.
+    </p>
+  </main>
+</body>
+</html>

@@ -1,25 +1,24 @@
 /**
  * Silent cloud data routing — users never see provider switches.
  * When Supabase is degraded, Firebase handles the same payloads (profiles, user_app_state, etc.).
+ *
+ * Intentionally Firebase-SDK-free at module load so Shell/Feed boot does not parse vendor-firebase.
  */
-import { getFirebaseAuth } from '../firebase/app';
 import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
 import { hasSupabaseSessionForUser } from './activeBackend';
-import { isFirebaseBackupSessionActive, readFirebaseBackupLink } from './firebaseBackupLink';
 import { isInfrastructureAuthFailure } from './failover';
 import { isSupabaseOAuthDegraded, markSupabaseOAuthDegraded } from './providerState';
 
-/** Instant — use for hot paths (no network). */
-export function shouldUseFirebaseForCloudData(userId?: string | null): boolean {
+/**
+ * Instant — use for hot paths (no network).
+ * Does NOT force Firebase merely because a Firebase↔Supabase link exists.
+ * Linked accounts still prefer Supabase whenever a session is available.
+ */
+export function shouldUseFirebaseForCloudData(_userId?: string | null): boolean {
   if (!isFirebaseConfigured()) return false;
   if (!isSupabaseConfigured()) return true;
   if (isSupabaseOAuthDegraded()) return true;
-  if (userId && isFirebaseBackupSessionActive(userId)) return true;
-  const link = readFirebaseBackupLink();
-  if (userId && link?.supabaseUserId === userId) return true;
-  const fbUser = getFirebaseAuth()?.currentUser;
-  if (userId && fbUser && link?.firebaseUid === fbUser.uid) return true;
   return false;
 }
 

@@ -9,11 +9,20 @@ export function useDB() {
   const [, setRevision] = useState(0);
 
   useEffect(() => {
+    let timer = 0;
+    let pending = false;
     const unsub = db.subscribe(() => {
-      setRevision((r) => r + 1);
+      if (pending) return;
+      pending = true;
+      // Coalesce cloud sync saves — 1s polls used to re-render Shell every frame.
+      timer = window.setTimeout(() => {
+        pending = false;
+        setRevision((r) => r + 1);
+      }, 160);
     });
     return () => {
       unsub();
+      if (timer) window.clearTimeout(timer);
     };
   }, []);
 
@@ -24,11 +33,19 @@ export function useDB() {
 export function useDbRevision(): number {
   const [revision, setRevision] = useState(0);
   useEffect(() => {
+    let timer = 0;
+    let pending = false;
     const unsub = db.subscribe(() => {
-      setRevision((r) => r + 1);
+      if (pending) return;
+      pending = true;
+      timer = window.setTimeout(() => {
+        pending = false;
+        setRevision((r) => r + 1);
+      }, 160);
     });
     return () => {
       unsub();
+      if (timer) window.clearTimeout(timer);
     };
   }, []);
   return revision;

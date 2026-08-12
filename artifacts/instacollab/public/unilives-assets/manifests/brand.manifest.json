@@ -1,0 +1,317 @@
+{
+  "version": 1,
+  "category": "brand",
+  "brand": "UniLive’s",
+  "assets": [
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.logo.primary",
+      "name": "Primary logo",
+      "formats": {
+        "png": "/unilives-assets/brand/logos/primary/logo-primary.png",
+        "webp": "/unilives-assets/brand/logos/primary/logo-primary.webp",
+        "svg": "/unilives-assets/brand/logos/primary/logo-primary.svg"
+      },
+      "replacementFor": [
+        "/brand/app-logo.png"
+      ],
+      "priority": 100,
+      "width": 1254,
+      "height": 1254,
+      "tags": [
+        "logo",
+        "primary",
+        "splash",
+        "share"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.logo.horizontal",
+      "name": "Horizontal logo",
+      "formats": {
+        "png": "/unilives-assets/brand/logos/horizontal/logo-horizontal.png",
+        "webp": "/unilives-assets/brand/logos/horizontal/logo-horizontal.webp",
+        "svg": "/unilives-assets/brand/logos/horizontal/logo-horizontal.svg"
+      },
+      "priority": 90,
+      "tags": [
+        "logo",
+        "horizontal",
+        "wordmark"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.logo.icon",
+      "name": "App icon mark",
+      "formats": {
+        "png": "/unilives-assets/brand/logos/icon/logo-icon.png",
+        "webp": "/unilives-assets/brand/logos/icon/logo-icon.webp",
+        "svg": "/unilives-assets/brand/logos/icon/logo-icon.svg"
+      },
+      "replacementFor": [
+        "/pwa-icon.png",
+        "/icons/icon-512.png",
+        "/brand/app-logo.png"
+      ],
+      "priority": 95,
+      "width": 512,
+      "height": 512,
+      "tags": [
+        "logo",
+        "icon",
+        "header",
+        "favicon"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.logo.monochrome",
+      "name": "Monochrome logo",
+      "formats": {
+        "png": "/unilives-assets/brand/logos/monochrome/logo-mono.png",
+        "svg": "/unilives-assets/brand/logos/monochrome/logo-mono.svg"
+      },
+      "priority": 70,
+      "tags": [
+        "logo",
+        "monochrome",
+        "legal"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.logo.animated",
+      "name": "Animated logo",
+      "formats": {
+        "webm": "/unilives-assets/brand/logos/animated/logo-animated.webm",
+        "json": "/unilives-assets/brand/logos/animated/logo-animated.json",
+        "webp": "/unilives-assets/brand/logos/animated/logo-animated.webp"
+      },
+      "loop": true,
+      "priority": 80,
+      "tags": [
+        "logo",
+        "animated",
+        "splash",
+        "loading"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.mascot.default",
+      "name": "Default mascot",
+      "formats": {
+        "png": "/unilives-assets/brand/mascot/mascot-default.png",
+        "webp": "/unilives-assets/brand/mascot/mascot-default.webp"
+      },
+      "priority": 60,
+      "tags": [
+        "mascot"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.splash.main",
+      "name": "Main splash",
+      "formats": {
+        "png": "/unilives-assets/brand/splash/splash-main.png",
+        "webp": "/unilives-assets/brand/splash/splash-main.webp"
+      },
+      "replacementFor": [
+        "/brand/app-logo.png"
+      ],
+      "priority": 100,
+      "tags": [
+        "splash"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "production",
+      "version": 1,
+      "fallback": "/unilives-assets/brand/loading/princess-loading-refresh-locked.jpg",
+      "reducedMotionFallback": "/unilives-assets/brand/loading/princess-loading-refresh-locked.jpg",
+      "lowPerformanceFallback": "/unilives-assets/brand/loading/princess-loading-refresh-locked.jpg",
+      "id": "brand.loading.mascot",
+      "name": "Princess loading / refresh animation",
+      "formats": {
+        "mp4": "/unilives-assets/brand/loading/princess-loading-refresh-locked.mp4",
+        "jpg": "/unilives-assets/brand/loading/princess-loading-refresh-locked.jpg"
+      },
+      "loop": false,
+      "priority": 60,
+      "width": 720,
+      "height": 1280,
+      "tags": [
+        "loading",
+        "refresh",
+        "princess"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.icon.pwa.192",
+      "name": "PWA icon 192",
+      "formats": {
+        "png": "/unilives-assets/brand/app-icons/pwa-192.png"
+      },
+      "replacementFor": [
+        "/icons/icon-192.png"
+      ],
+      "priority": 85,
+      "width": 192,
+      "height": 192,
+      "tags": [
+        "pwa",
+        "icon"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.icon.pwa.512",
+      "name": "PWA icon 512",
+      "formats": {
+        "png": "/unilives-assets/brand/app-icons/pwa-512.png"
+      },
+      "replacementFor": [
+        "/icons/icon-512.png",
+        "/pwa-icon.png"
+      ],
+      "priority": 85,
+      "width": 512,
+      "height": 512,
+      "tags": [
+        "pwa",
+        "icon"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.icon.maskable.192",
+      "name": "Maskable icon 192",
+      "formats": {
+        "png": "/unilives-assets/brand/app-icons/maskable-192.png"
+      },
+      "replacementFor": [
+        "/icons/icon-192-maskable.png"
+      ],
+      "priority": 84,
+      "width": 192,
+      "height": 192,
+      "tags": [
+        "pwa",
+        "maskable"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.icon.maskable.512",
+      "name": "Maskable icon 512",
+      "formats": {
+        "png": "/unilives-assets/brand/app-icons/maskable-512.png"
+      },
+      "replacementFor": [
+        "/icons/icon-512-maskable.png"
+      ],
+      "priority": 84,
+      "width": 512,
+      "height": 512,
+      "tags": [
+        "pwa",
+        "maskable"
+      ]
+    },
+    {
+      "brand": "UniLive’s",
+      "category": "brand",
+      "status": "missing",
+      "version": 1,
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "id": "brand.icon.notification",
+      "name": "Notification icon",
+      "formats": {
+        "png": "/unilives-assets/brand/notification-icons/notification.png"
+      },
+      "replacementFor": [
+        "/brand/app-logo.png"
+      ],
+      "priority": 75,
+      "width": 96,
+      "height": 96,
+      "tags": [
+        "notification"
+      ]
+    }
+  ]
+}

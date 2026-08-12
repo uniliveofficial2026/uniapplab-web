@@ -1,0 +1,31 @@
+{
+  "name": "@workspace/unilives-asset-studio",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Server-only UniLive’s asset pipeline plug-in (OpenAI / Meshy / Runway / Kling / ElevenLabs + local Blender/FFmpeg)",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "bin": {
+    "unilives-asset-studio": "./src/cli/main.ts"
+  },
+  "scripts": {
+    "doctor": "tsx src/cli/doctor.ts",
+    "status": "tsx src/cli/status.ts",
+    "prepare-asset": "tsx src/cli/prepare.ts",
+    "preview": "tsx src/cli/preview.ts",
+    "approve": "tsx src/cli/approve.ts",
+    "validate": "tsx src/cli/validate.ts",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "openai": "^5.12.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "^5.9.3"
+  }
+}

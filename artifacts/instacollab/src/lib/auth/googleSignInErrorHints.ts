@@ -52,6 +52,23 @@ export function isGoogleSignInCode11Message(message: string, code?: string): boo
 }
 
 export function mapGoogleSignInConfigurationError(message: string, code?: string): string | null {
-  if (!isGoogleSignInCode11Message(message, code)) return null;
-  return formatGoogleSignInCode11Hint();
+  if (isGoogleSignInCode11Message(message, code)) {
+    return formatGoogleSignInCode11Hint();
+  }
+  const text = `${code || ''} ${message}`.toLowerCase();
+  if (
+    text.includes('requested action is invalid') ||
+    text.includes('auth/invalid-action') ||
+    text.includes('invalid_request') ||
+    (text.includes('invalid') && text.includes('action'))
+  ) {
+    const supabaseCallback = getSupabaseGoogleRedirectUri();
+    return (
+      'Google rejected this sign-in (invalid OAuth action). ' +
+      `In Google Cloud → Credentials → Web client, add Authorized redirect URI: ${supabaseCallback} ` +
+      'and under JavaScript origins add https://app.uniapplab.com. ' +
+      'In Supabase → Authentication → Providers → Google, paste that same Web client ID + secret, then try again.'
+    );
+  }
+  return null;
 }

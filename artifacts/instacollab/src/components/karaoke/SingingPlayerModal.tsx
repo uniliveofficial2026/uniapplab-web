@@ -4,9 +4,11 @@ import { motion } from 'motion/react';
 import { ChevronDown, Heart, MessageCircle, Gift, Mic, Globe, UserPlus, MoreHorizontal, Play, Pause } from 'lucide-react';
 import { ShareIcon } from '../common/ShareIcon';
 import { useDB } from '../../lib/useDB';
+import { useAppPortalRoot } from '../../lib/appPortalRoot';
 
 export function SingingPlayerModal({ post, mode, onClose }: { post: any, mode: 'sing' | 'join' | 'listen', onClose: () => void }) {
   const db = useDB();
+  const portalRoot = useAppPortalRoot();
   const [isPlaying, setIsPlaying] = useState(true);
   const [isLiked, setIsLiked] = useState(false);
   const [progress, setProgress] = useState(0);
@@ -28,7 +30,7 @@ export function SingingPlayerModal({ post, mode, onClose }: { post: any, mode: '
     };
   }, [isPlaying]);
 
-  if (!post) return null;
+  if (!post || !portalRoot) return null;
 
   const currentSeconds = Math.floor((progress / 100) * 279); // max 4:39 = 279s
   const formatTime = (secs: number) => {
@@ -224,6 +226,6 @@ export function SingingPlayerModal({ post, mode, onClose }: { post: any, mode: '
         </div>
       </div>
     </div>,
-    document.body
+    portalRoot,
   );
 }

@@ -11,6 +11,7 @@
     "moduleDetection": "force",
     "allowJs": true,
     "jsx": "react-jsx",
+    "resolveJsonModule": true,
     "paths": {
       "@/*": ["./src/*"]
     },
@@ -23,6 +24,6 @@
     "tsBuildInfoFile": ".tsbuildinfo",
     "types": ["node", "vite/client"]
   },
-  "include": ["src/**/*.ts", "src/**/*.tsx", "vite.config.ts"],
+  "include": ["src/**/*.ts", "src/**/*.tsx"],
   "exclude": ["node_modules", "dist", "src/**/*.js"]
 }

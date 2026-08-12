@@ -7,11 +7,17 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { findEnvFile, getAppRoot, getWorkspaceRoot, readEnvFile } from './resolveProjectEnv.mjs';
 import { readDeeparEnabled } from './read-deepar-enabled.mjs';
+import {
+  assignEnvUnlessStale,
+  isStaleSupabaseUrl,
+  supabaseProjectRef,
+} from './stale-supabase-refs.mjs';
 
 const appRoot = getAppRoot(import.meta.dirname);
 const repoRoot = getWorkspaceRoot(appRoot);
 const domainsPath = path.join(repoRoot, 'config', 'uniapplab-domains.json');
 const deeparEnabled = readDeeparEnabled(appRoot);
+const publicConfigPath = path.join(appRoot, 'public', 'supabase-config.json');
 
 function loadEnvForBuild() {
   const merged = {};
@@ -24,12 +30,26 @@ function loadEnvForBuild() {
         if (!trimmed || trimmed.startsWith('#')) continue;
         const m = trimmed.match(/^([A-Z0-9_]+)=(.*)$/);
         if (!m) continue;
-        merged[m[1]] = m[2].trim().replace(/^["']|["']$/g, '');
+        assignEnvUnlessStale(merged, m[1], m[2]);
       }
     }
   }
   for (const [key, value] of Object.entries(process.env)) {
-    if (key.startsWith('VITE_') && value) merged[key] = value;
+    if (key.startsWith('VITE_') && value) assignEnvUnlessStale(merged, key, value);
+  }
+  // Prefer public/supabase-config.json written earlier in the build pipeline.
+  if (fs.existsSync(publicConfigPath)) {
+    try {
+      const cfg = JSON.parse(fs.readFileSync(publicConfigPath, 'utf8'));
+      if (cfg.supabaseUrl && !isStaleSupabaseUrl(cfg.supabaseUrl)) {
+        merged.VITE_SUPABASE_URL = String(cfg.supabaseUrl).replace(/\/$/, '');
+        if (cfg.supabaseAnonKey) {
+          merged.VITE_SUPABASE_ANON_KEY = String(cfg.supabaseAnonKey);
+        }
+      }
+    } catch {
+      /* ignore */
+    }
   }
   return merged;
 }
@@ -57,7 +77,9 @@ if (fs.existsSync(domainsPath)) {
   try {
     const localEnv = readEnvFile(findEnvFile(import.meta.dirname));
     const localUrl = localEnv.VITE_SUPABASE_URL || '';
-    if (localUrl) expectedRef = new URL(localUrl).hostname.split('.')[0];
+    if (localUrl && !isStaleSupabaseUrl(localUrl)) {
+      expectedRef = supabaseProjectRef(localUrl);
+    }
   } catch {
     /* ignore */
   }
@@ -65,10 +87,11 @@ if (fs.existsSync(domainsPath)) {
 
 let buildRef = null;
 if (url) {
-  try {
-    buildRef = new URL(url).hostname.split('.')[0];
-  } catch {
+  buildRef = supabaseProjectRef(url);
+  if (!buildRef) {
     issues.push('VITE_SUPABASE_URL is not a valid URL');
+  } else if (isStaleSupabaseUrl(url)) {
+    issues.push(`VITE_SUPABASE_URL points at retired project ${buildRef}`);
   }
 }
 
@@ -104,4 +127,21 @@ if (issues.length) {
         'Google OAuth must be enabled on the project that ships to production.',
     );
   }
+}
+
+const appOrigin = (env.VITE_APP_ORIGIN || '').trim();
+if (appOrigin && /localhost|127\.0\.0\.1|\[::1\]/i.test(appOrigin)) {
+  if (onVercel || process.env.NODE_ENV === 'production') {
+    console.error('');
+    console.error(`[build] VITE_APP_ORIGIN must not be loopback in production (got ${appOrigin}).`);
+    console.error('  Set VITE_APP_ORIGIN=https://app.uniapplab.com or Google OAuth will redirect to localhost.');
+    console.error('');
+    if (onVercel) process.exit(1);
+  } else {
+    console.warn(
+      `[build] Warning: VITE_APP_ORIGIN is ${appOrigin} — production/native builds will force https://app.uniapplab.com.`,
+    );
+  }
+} else if (appOrigin) {
+  console.log(`[build] App origin for OAuth redirects: ${appOrigin}`);
 }

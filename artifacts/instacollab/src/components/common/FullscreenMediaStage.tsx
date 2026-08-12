@@ -6,7 +6,7 @@ import { createBackdropCloseHandler } from '../../lib/mediaOverlayLock';
  * Uses dynamic viewport units so mobile browser chrome does not clip media.
  */
 export const FULLSCREEN_MEDIA_OVERLAY_CLASS =
-  'fixed inset-0 z-[320] flex h-[100dvh] max-h-[100dvh] w-full max-w-[100vw] flex-col overflow-hidden bg-black pointer-events-auto animate-in fade-in duration-200 select-none overscroll-none';
+  'fixed inset-0 z-[320] flex h-vv max-h-vv w-full max-w-[100vw] flex-col overflow-hidden bg-black pointer-events-auto animate-in fade-in duration-200 select-none overscroll-none';
 
 export const FULLSCREEN_MEDIA_CLOSE_CLASS =
   'absolute z-[330] text-white p-2.5 rounded-full bg-black/45 hover:bg-black/65 border border-white/10 transition-colors active:scale-95 shadow-md top-[max(0.75rem,env(safe-area-inset-top,0px))] right-[max(0.75rem,env(safe-area-inset-right,0px))]';

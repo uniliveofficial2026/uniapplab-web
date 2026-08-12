@@ -189,6 +189,8 @@ type MultiGuestViewProps = {
   onDeeparSelectionChange?: (selection: DeepAREffectSelection) => void;
   effectsLoading?: boolean;
   effectsCameraReady?: boolean;
+  cameraError?: string | null;
+  onRetryCamera?: () => void;
   effectsArReady?: boolean;
   cameraFacingMode?: CameraFacingMode;
   onToggleCameraFacing?: () => void;
@@ -305,6 +307,8 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   onDeeparSelectionChange,
   effectsLoading = false,
   effectsCameraReady = false,
+  cameraError: _cameraError = null,
+  onRetryCamera: _onRetryCamera,
   effectsArReady = false,
   cameraFacingMode = 'user',
   onToggleCameraFacing,
@@ -349,7 +353,8 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
       beautyEffects.makeupId ||
         beautyEffects.stickerId ||
         beautyEffects.filterId ||
-        beautyEffects.backgroundUrl,
+        beautyEffects.backgroundUrl ||
+        beautyEffects.shapeEffectId,
     );
   const footerRef = useRef<HTMLDivElement>(null);
   const stageRef = useRef<HTMLDivElement>(null);
@@ -725,7 +730,7 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
                     <img
                       key={viewer.id}
                       src={safeAvatarUrl(viewer.avatar)}
-                      className="rounded-full border-2 border-[#07010a] object-cover"
+                      className="h-6 w-6 shrink-0 rounded-full border-2 border-[#07010a] object-cover sm:h-7 sm:w-7"
                       alt=""
                     />
                   ))}

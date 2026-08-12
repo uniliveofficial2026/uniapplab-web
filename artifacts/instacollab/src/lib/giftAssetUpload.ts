@@ -1,12 +1,13 @@
 /**
  * Upload gift SVGA / video effect assets for Creation Studio.
- * Dual-lane: Supabase storage first, Firebase Storage fallback.
+ * Primary: Cloudflare R2. Fallback: Supabase Storage → Firebase Storage (dev only).
  */
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { db } from './db/localDb';
 import { getFirebaseStorage } from './firebase/app';
 import { isFirebaseConfigured } from './firebase/config';
+import { uploadBlobToR2 } from './media/r2Upload';
 import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
 
@@ -80,11 +81,20 @@ export async function uploadGiftEffectAsset(
     return null;
   }
 
+  const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, '_') || `effect.${guessExt(file)}`;
+  const r2Url = await uploadBlobToR2({
+    folder: 'gifts',
+    blob: file,
+    fileName: safeName,
+    prefix: giftId,
+  });
+  if (r2Url) return r2Url;
+
   if (isSupabaseConfigured()) {
-    const url =
+    return (
       (await uploadSupabaseGiftAsset(userId, giftId, file)) ??
-      (await uploadFirebaseGiftAsset(userId, giftId, file));
-    return url;
+      uploadFirebaseGiftAsset(userId, giftId, file)
+    );
   }
   return uploadFirebaseGiftAsset(userId, giftId, file);
 }
@@ -101,5 +111,18 @@ export function isGiftVideoFile(file: File): boolean {
     name.endsWith('.mp4') ||
     name.endsWith('.webm') ||
     name.endsWith('.mov')
+  );
+}
+
+export function isGiftIconImageFile(file: File): boolean {
+  const name = file.name.toLowerCase();
+  const type = file.type || '';
+  return (
+    type.startsWith('image/') ||
+    name.endsWith('.png') ||
+    name.endsWith('.jpg') ||
+    name.endsWith('.jpeg') ||
+    name.endsWith('.webp') ||
+    name.endsWith('.gif')
   );
 }

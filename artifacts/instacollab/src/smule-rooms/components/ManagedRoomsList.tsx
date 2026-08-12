@@ -1,9 +1,14 @@
 import React, { useEffect, useState } from 'react';
-import { Crown, Pencil, Shield, Users, Zap } from 'lucide-react';
+import { Crown, Globe2, Lock, Pencil, Shield, Users, Zap } from 'lucide-react';
 import { getAppUserId } from '../../lib/appUserId';
 import { useDbRevision } from '../../lib/useDB';
 import { getRoomExpProgress } from '../utils/roomExp';
 import { canEditRoomForUser, ensureRoomRoleUserIds } from '../utils/roomRoleUsers';
+import { getRoomSettings } from '../utils/storage';
+import {
+  formatRoomPrivacyLabel,
+  resolveRoomPrivacy,
+} from '../utils/roomPrivacy';
 import { RoomHostLabel } from './RoomHostLabel';
 import {
   formatManagedRoomRoleLabel,
@@ -209,6 +214,27 @@ export function ManagedRoomsList({
                         <span className="font-mono">ID:{room.id}</span>
                         <span>•</span>
                         <span>{formatRoomModeLabel(room.roomMode)}</span>
+                        {(() => {
+                          const privacy = resolveRoomPrivacy(getRoomSettings(room.id));
+                          const privateRoom = privacy === 'Private';
+                          return (
+                            <>
+                              <span>•</span>
+                              <span
+                                className={
+                                  privateRoom
+                                    ? 'inline-flex items-center gap-0.5 font-medium text-amber-400'
+                                    : variant === 'profile'
+                                      ? 'inline-flex items-center gap-0.5 font-medium text-emerald-600'
+                                      : 'inline-flex items-center gap-0.5 font-medium text-emerald-400'
+                                }
+                              >
+                                {privateRoom ? <Lock size={10} /> : <Globe2 size={10} />}
+                                {formatRoomPrivacyLabel(privacy)}
+                              </span>
+                            </>
+                          );
+                        })()}
                       </p>
                       <div className="flex flex-wrap gap-1.5">
                         <span

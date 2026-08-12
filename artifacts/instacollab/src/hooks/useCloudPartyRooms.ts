@@ -9,8 +9,11 @@ import { fetchActivePartyRooms, type PartyRoomRow } from '../lib/party/partyRoom
 import { getSupabaseClient } from '../lib/supabase/client';
 import { isSupabaseConfigured } from '../lib/supabase/config';
 import { subscribeLiveCloudSurfaceRefresh } from '../lib/liveCloudSurfaces';
+import { normalizeStorageRoomMode } from '../lib/liveRing';
+import { normalizeRoomPrivacy, type RoomPrivacy } from '../smule-rooms/utils/roomPrivacy';
 import { scheduleInstant } from '../lib/instantTask';
 import { isNetworkOnline } from '../lib/networkStatus';
+import { useKeepAliveTabActive } from '../lib/keepAliveTabContext';
 
 export type CloudPartyLobbyRoom = {
   id: string;
@@ -21,23 +24,10 @@ export type CloudPartyLobbyRoom = {
   max: number;
   tags: string[];
   roomMode: string;
+  privacy: RoomPrivacy;
   coverUrl: string | null;
   updatedAt?: string;
 };
-
-function normalizeRoomMode(mode: string): string {
-  const raw = mode.trim();
-  if (!raw) return 'Karaoke';
-  const lower = raw.toLowerCase();
-  if (lower === 'chat') return 'Chat';
-  if (lower === 'radio') return 'Radio';
-  if (lower === 'sololive' || lower === 'solo-live' || lower === 'solo live') return 'SoloLive';
-  if (lower === 'multiguest' || lower === 'multi-guest') return 'MultiGuest';
-  if (lower === 'watchtogether' || lower === 'watch-together') return 'WatchTogether';
-  if (lower === 'party') return 'Party';
-  if (lower === 'chorus') return 'Chorus';
-  return raw;
-}
 
 async function rowToLobby(room: PartyRoomRow): Promise<CloudPartyLobbyRoom> {
   let host = 'Host';
@@ -56,13 +46,16 @@ async function rowToLobby(room: PartyRoomRow): Promise<CloudPartyLobbyRoom> {
     participants: Math.max(0, room.participant_count ?? 0),
     max: room.max_participants ?? 50,
     tags: Array.isArray(room.tags) ? room.tags : [],
-    roomMode: normalizeRoomMode(room.room_mode),
+    roomMode: normalizeStorageRoomMode(room.room_mode),
+    privacy: normalizeRoomPrivacy(room.privacy),
     coverUrl: room.cover_url,
     updatedAt: room.updated_at,
   };
 }
 
-export function useCloudPartyRooms(enabled = true) {
+export function useCloudPartyRooms(enabled = true, viewerUserId?: string | null) {
+  const tabActive = useKeepAliveTabActive();
+  const active = enabled && tabActive;
   const [rooms, setRooms] = useState<CloudPartyLobbyRoom[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -72,7 +65,7 @@ export function useCloudPartyRooms(enabled = true) {
     isFirebaseConfigured() && (!isSupabaseConfigured() || shouldUseFirebaseForPartyCloud());
 
   const refresh = useCallback(async () => {
-    if (!enabled || !isPartyCloudAvailable()) {
+    if (!active || !isPartyCloudAvailable()) {
       if (!enabled) setRooms([]);
       return;
     }
@@ -86,7 +79,7 @@ export function useCloudPartyRooms(enabled = true) {
     setLoading(false);
     setError(null);
     try {
-      const rows = await fetchActivePartyRooms(40);
+      const rows = await fetchActivePartyRooms(40, viewerUserId ?? undefined);
       const mapped = await Promise.all(rows.map((r) => rowToLobby(r)));
       setRooms(mapped);
     } catch (err) {
@@ -95,13 +88,15 @@ export function useCloudPartyRooms(enabled = true) {
       refreshingRef.current = false;
       setLoading(false);
     }
-  }, [enabled]);
+  }, [active, enabled, viewerUserId]);
 
   refreshRef.current = refresh;
 
   useEffect(() => {
+    if (!active) return undefined;
     void refreshRef.current();
     const unsubSurface = subscribeLiveCloudSurfaceRefresh(['party', 'live', 'all'], () => {
+      if (document.visibilityState !== 'visible') return;
       scheduleInstant('party-rooms-refresh', () => {
         void refreshRef.current();
       });
@@ -109,10 +104,10 @@ export function useCloudPartyRooms(enabled = true) {
     return () => {
       unsubSurface();
     };
-  }, [enabled]);
+  }, [active, viewerUserId]);
 
   useEffect(() => {
-    if (!enabled || !isPartyCloudAvailable()) return undefined;
+    if (!active || !isPartyCloudAvailable()) return undefined;
 
     if (useFirebase) {
       const db = getFirebaseFirestore();
@@ -123,6 +118,7 @@ export function useCloudPartyRooms(enabled = true) {
         orderBy('updated_at', 'desc'),
       );
       return onSnapshot(q, () => {
+        if (document.visibilityState !== 'visible') return;
         scheduleInstant('party-rooms-firebase', () => {
           void refreshRef.current();
         });
@@ -144,6 +140,7 @@ export function useCloudPartyRooms(enabled = true) {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'party_rooms' },
         () => {
+          if (document.visibilityState !== 'visible') return;
           scheduleInstant('party-rooms-realtime', () => {
             void refreshRef.current();
           });
@@ -155,7 +152,7 @@ export function useCloudPartyRooms(enabled = true) {
       if (channel) void supabase.removeChannel(channel);
       channel = null;
     };
-  }, [enabled, useFirebase]);
+  }, [active, useFirebase]);
 
   return { rooms, loading, error, refresh };
 }

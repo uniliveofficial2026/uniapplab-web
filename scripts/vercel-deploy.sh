@@ -63,30 +63,10 @@ deploy_log="$(mktemp)"
 deploy_status=0
 
 if [[ "${VERCEL_PREBUILT:-}" == "1" || "${LIVE_SYNC_PREBUILT:-}" == "1" ]]; then
-  echo "[deploy] Note: VERCEL_PREBUILT=1 uploads static SPA only — /api/* routes are NOT included."
-  echo "[deploy]       Use default deploy (staged source) or deploy:vercel:git for API + frontend."
-  echo "[deploy] Building @workspace/instacollab…"
-  pnpm --filter @workspace/instacollab run build
-
-  echo "[deploy] Preparing .vercel/output…"
-  rm -rf .vercel/output
-  mkdir -p .vercel/output/static
-  cp -R artifacts/instacollab/dist/public/. .vercel/output/static/
-  cat > .vercel/output/config.json <<'EOF'
-{
-  "version": 3,
-  "routes": [
-    { "handle": "filesystem" },
-    { "src": "/(.*)", "dest": "/index.html" }
-  ]
-}
-EOF
-
-  echo "[deploy] Uploading prebuilt bundle (archive)…"
-  set +e
-  vercel_env pnpm dlx vercel@latest deploy --prebuilt --yes --archive=tgz "${PROJECT_ARGS[@]}" "${VERCEL_ARGS[@]}" 2>&1 | tee "$deploy_log"
-  deploy_status=${PIPESTATUS[0]}
-  set -e
+  echo "[deploy] ERROR: VERCEL_PREBUILT=1 uploads static SPA only and WIPES /api/* (chat, YouTube, LiveKit, rooms)."
+  echo "[deploy]        Use: pnpm run deploy:vercel   (staged source + API)"
+  echo "[deploy]        Or:  pnpm run deploy:vercel:git"
+  exit 1
 elif [[ "${LIVE_SYNC_FULL_REPO:-}" == "1" ]]; then
   node scripts/sync-vercel-config.mjs
   echo "[deploy] Uploading full repo (legacy — may hit api-upload-free)…"

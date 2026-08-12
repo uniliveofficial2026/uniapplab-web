@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef } from 'react';
 
-const DEFAULT_DELAY_MS = 280;
+const DEFAULT_DELAY_MS = 80;
 
 /**
  * Distinguishes single vs double tap on seat/video tiles.

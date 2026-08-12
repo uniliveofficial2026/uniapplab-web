@@ -1,14 +1,19 @@
-import {
-  fetchFirebaseProfileVisits,
-  isFirebaseProfileVisitsAvailable,
-  subscribeFirebaseProfileVisits,
-  upsertFirebaseProfileVisit,
-  type FirebaseProfileVisitRow,
-} from '../firebase/profileVisits';
+import type { CloudProfileVisitRow } from './cloudSocialTypes';
+import { isFirebaseConfigured } from '../firebase/config';
 import { isSocialCloudAvailable, shouldUseFirebaseForSocialCloud } from '../social/socialCloud';
 import { getSupabaseClient } from '../supabase/client';
+import {
+  removeSafeRealtimeChannel,
+  subscribeSafeRealtimeChannel,
+} from '../supabase/safeRealtimeChannel';
 
-export type { FirebaseProfileVisitRow as ProfileVisitRow };
+export type { CloudProfileVisitRow };
+export type FirebaseProfileVisitRow = CloudProfileVisitRow;
+export type ProfileVisitRow = CloudProfileVisitRow;
+
+async function firebaseProfileVisits() {
+  return import('../firebase/profileVisits');
+}
 
 export function isProfileVisitsCloudAvailable(): boolean {
   return isSocialCloudAvailable();
@@ -22,9 +27,12 @@ export async function upsertCloudProfileVisit(input: {
   previewUrl?: string;
   liveKind?: string;
 }): Promise<void> {
-  if (shouldUseFirebaseForSocialCloud(input.visitorId) && isFirebaseProfileVisitsAvailable()) {
-    await upsertFirebaseProfileVisit(input);
-    return;
+  if (shouldUseFirebaseForSocialCloud(input.visitorId) && isFirebaseConfigured()) {
+    const fb = await firebaseProfileVisits();
+    if (fb.isFirebaseProfileVisitsAvailable()) {
+      await fb.upsertFirebaseProfileVisit(input);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -58,13 +66,19 @@ export async function upsertCloudProfileVisit(input: {
     const { error } = await supabase.from('profile_visits').insert(payload);
     if (error) throw error;
   } catch {
-    if (isFirebaseProfileVisitsAvailable()) await upsertFirebaseProfileVisit(input);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseProfileVisits();
+      if (fb.isFirebaseProfileVisitsAvailable()) await fb.upsertFirebaseProfileVisit(input);
+    }
   }
 }
 
-export async function fetchCloudProfileVisits(ownerId: string, limit = 100): Promise<FirebaseProfileVisitRow[]> {
-  if (shouldUseFirebaseForSocialCloud(ownerId) && isFirebaseProfileVisitsAvailable()) {
-    return fetchFirebaseProfileVisits(ownerId, limit);
+export async function fetchCloudProfileVisits(ownerId: string, limit = 100): Promise<ProfileVisitRow[]> {
+  if (shouldUseFirebaseForSocialCloud(ownerId) && isFirebaseConfigured()) {
+    const fb = await firebaseProfileVisits();
+    if (fb.isFirebaseProfileVisitsAvailable()) {
+      return fb.fetchFirebaseProfileVisits(ownerId, limit);
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -78,27 +92,38 @@ export async function fetchCloudProfileVisits(ownerId: string, limit = 100): Pro
       .order('visited_at', { ascending: false })
       .limit(limit);
     if (error) throw error;
-    return (data ?? []) as FirebaseProfileVisitRow[];
+    return (data ?? []) as ProfileVisitRow[];
   } catch {
-    if (isFirebaseProfileVisitsAvailable()) return fetchFirebaseProfileVisits(ownerId, limit);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseProfileVisits();
+      if (fb.isFirebaseProfileVisitsAvailable()) return fb.fetchFirebaseProfileVisits(ownerId, limit);
+    }
     return [];
   }
 }
 
 export function subscribeCloudProfileVisits(
   ownerId: string,
-  onRow: (row: FirebaseProfileVisitRow) => void,
+  onRow: (row: ProfileVisitRow) => void,
 ): () => void {
-  if (shouldUseFirebaseForSocialCloud(ownerId) && isFirebaseProfileVisitsAvailable()) {
-    return subscribeFirebaseProfileVisits(ownerId, onRow);
+  if (shouldUseFirebaseForSocialCloud(ownerId) && isFirebaseConfigured()) {
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
+    void firebaseProfileVisits().then((fb) => {
+      if (cancelled || !fb.isFirebaseProfileVisitsAvailable()) return;
+      unsub = fb.subscribeFirebaseProfileVisits(ownerId, onRow);
+    });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return () => undefined;
 
-  const channel = supabase
-    .channel(`profile-visits:${ownerId}:${Date.now()}`)
-    .on(
+  const channel = subscribeSafeRealtimeChannel(supabase, `profile-visits:${ownerId}`, (ch) => {
+    ch.on(
       'postgres_changes',
       {
         event: '*',
@@ -107,18 +132,13 @@ export function subscribeCloudProfileVisits(
         filter: `owner_id=eq.${ownerId}`,
       },
       (payload) => {
-        const row = payload.new as FirebaseProfileVisitRow;
+        const row = payload.new as ProfileVisitRow;
         if (row?.visitor_id) onRow(row);
       },
-    )
-    .subscribe();
-
-  const unsubFb = isFirebaseProfileVisitsAvailable()
-    ? subscribeFirebaseProfileVisits(ownerId, onRow)
-    : () => undefined;
+    );
+  });
 
   return () => {
-    void supabase.removeChannel(channel);
-    unsubFb();
+    removeSafeRealtimeChannel(supabase, channel);
   };
 }

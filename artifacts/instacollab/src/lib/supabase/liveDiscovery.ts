@@ -33,6 +33,7 @@ function normalizeLiveKind(raw: string | null | undefined): LiveKind | null {
     k === 'audio-room' ||
     k === 'video-multi' ||
     k === 'pk' ||
+    k === 'party' ||
     k === 'commerce' ||
     k === 'game'
   ) {

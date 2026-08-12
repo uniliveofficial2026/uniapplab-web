@@ -40,7 +40,7 @@ interface ChatMessage {
 }
 
 export function GoogleChatTab() {
-  const { user, googleAccessToken, loginWithGoogle } = useAuth();
+  const { user, googleAccessToken, connectGoogleWorkspace } = useAuth();
   const db = useDB();
   const USERS = db.users ?? [];
 
@@ -364,7 +364,7 @@ export function GoogleChatTab() {
               Connect your professional Google Workspace account to sync live Google Chat Spaces and spaces thread updates.
             </p>
             <button 
-              onClick={loginWithGoogle} 
+              onClick={connectGoogleWorkspace} 
               className="bg-primary/95 text-primary-foreground hover:bg-primary py-1 px-3 rounded-lg font-bold text-[11px] transition-colors flex items-center justify-center gap-1.5 shadow-sm"
             >
               <Sparkles className="w-3.5 h-3.5" /> Link Google Account

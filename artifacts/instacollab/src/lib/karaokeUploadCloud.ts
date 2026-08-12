@@ -1,5 +1,6 @@
 import { hasSupabaseSessionForUser } from './auth/activeBackend';
 import { db } from './db/localDb';
+import { uploadBlobToR2 } from './media/r2Upload';
 import { getSupabaseClient } from './supabase/client';
 import { isSupabaseConfigured } from './supabase/config';
 
@@ -10,7 +11,7 @@ function storagePath(userId: string, songId: string, kind: 'audio' | 'cover', fi
   return `${userId}/${songId}/${kind}/${safeName}`;
 }
 
-async function canUseCloudStorage(userId: string): Promise<boolean> {
+async function canUseSupabaseStorage(userId: string): Promise<boolean> {
   if (!isSupabaseConfigured() || !userId) return false;
   return hasSupabaseSessionForUser(userId);
 }
@@ -22,7 +23,18 @@ export async function uploadKaraokeFileToCloud(
   file: File | Blob,
   fileName: string,
 ): Promise<string | null> {
-  if (!(await canUseCloudStorage(userId))) return null;
+  if (!userId) return null;
+
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || `${kind}.bin`;
+  const r2Url = await uploadBlobToR2({
+    folder: 'karaoke',
+    blob: file,
+    fileName: safeName,
+    prefix: `${songId}/${kind}`,
+  });
+  if (r2Url) return r2Url;
+
+  if (!(await canUseSupabaseStorage(userId))) return null;
   const supabase = getSupabaseClient();
   if (!supabase) return null;
 
@@ -54,6 +66,8 @@ export async function downloadKaraokeFileFromCloud(path: string): Promise<Blob |
 }
 
 export async function getKaraokeFilePublicUrl(path: string): Promise<string | null> {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
   if (!isSupabaseConfigured()) return null;
   const supabase = getSupabaseClient();
   if (!supabase) return null;

@@ -56,6 +56,15 @@ async function tryLocalFixedServer(raw: string | undefined): Promise<string | nu
   }
 }
 
+function isGreedyCasinoGame(game: LocalGameRecord): boolean {
+  if (game.catalogId === 'catalog_greedy_casino_slot' || game.id === 'catalog_greedy_casino_slot') {
+    return true;
+  }
+  if (game.embeddedAppUrl?.includes('greedy-slot')) return true;
+  if (game.fileName?.toLowerCase().includes('greedy')) return true;
+  return false;
+}
+
 export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayerProps) {
   const startedAtRef = useRef(Date.now());
   const sessionEndedRef = useRef(false);
@@ -66,6 +75,7 @@ export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayer
   const [error, setError] = useState<string | null>(null);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [frameHint, setFrameHint] = useState<string | null>(null);
+  const exitsToUniLiveHome = isGreedyCasinoGame(game);
 
   useEffect(() => {
     startedAtRef.current = Date.now();
@@ -154,13 +164,72 @@ export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayer
     if (playedMs > 1000) onSessionEnd(game.id, playedMs);
   };
 
+  const downloadUrlRef = useRef<string | null>(null);
+  downloadUrlRef.current = downloadUrl;
+  const onCloseRef = useRef(onClose);
+  onCloseRef.current = onClose;
+  const onSessionEndRef = useRef(onSessionEnd);
+  onSessionEndRef.current = onSessionEnd;
+
   const handleClose = () => {
-    endSession();
+    if (sessionEndedRef.current === false) {
+      sessionEndedRef.current = true;
+      const playedMs = Date.now() - startedAtRef.current;
+      if (playedMs > 1000) onSessionEndRef.current(game.id, playedMs);
+    }
     revokeRef.current?.();
     revokeRef.current = undefined;
-    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
-    onClose();
+    const url = downloadUrlRef.current;
+    if (url) URL.revokeObjectURL(url);
+    onCloseRef.current();
   };
+
+  /** Greedy chrome Close: quit completely (no PiP). */
+  const handleCloseToUniLiveHome = () => {
+    handleClose();
+    window.dispatchEvent(
+      new CustomEvent('uniapplab-greedy-session', { detail: { action: 'close', tab: 'home' } }),
+    );
+  };
+
+  useEffect(() => {
+    if (!exitsToUniLiveHome) return;
+    const tearDown = () => {
+      if (sessionEndedRef.current === false) {
+        sessionEndedRef.current = true;
+        const playedMs = Date.now() - startedAtRef.current;
+        if (playedMs > 1000) onSessionEndRef.current(game.id, playedMs);
+      }
+      revokeRef.current?.();
+      revokeRef.current = undefined;
+      const url = downloadUrlRef.current;
+      if (url) URL.revokeObjectURL(url);
+      onCloseRef.current();
+    };
+    const onMessage = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || typeof data !== 'object') return;
+      if ((data as { source?: string }).source !== 'uniapplab-greedy') return;
+      const type = (data as { type?: string }).type;
+      const tab = ((data as { tab?: string }).tab || 'home') as 'home' | string;
+      if (type === 'close') {
+        tearDown();
+        window.dispatchEvent(
+          new CustomEvent('uniapplab-greedy-session', { detail: { action: 'close', tab } }),
+        );
+        return;
+      }
+      if (type === 'minimize' || type === 'navigate') {
+        tearDown();
+        // Hand off to the app-wide Greedy PiP session (new iframe reconnects).
+        window.dispatchEvent(
+          new CustomEvent('uniapplab-greedy-session', { detail: { action: 'minimize', tab } }),
+        );
+      }
+    };
+    window.addEventListener('message', onMessage);
+    return () => window.removeEventListener('message', onMessage);
+  }, [exitsToUniLiveHome, game.id]);
 
   const handleFrameLoad = () => {
     const frame = iframeRef.current;
@@ -226,9 +295,10 @@ export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayer
           )}
           <button
             type="button"
-            onClick={handleClose}
+            onClick={exitsToUniLiveHome ? handleCloseToUniLiveHome : handleClose}
             className="p-2 rounded-xl bg-white/10 hover:bg-white/20 text-white transition-colors"
             aria-label="Close game"
+            title={exitsToUniLiveHome ? 'Back to UniLive’s Home' : 'Close game'}
           >
             <X className="w-5 h-5" />
           </button>
@@ -261,7 +331,7 @@ export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayer
               )}
               <button
                 type="button"
-                onClick={handleClose}
+                onClick={exitsToUniLiveHome ? handleCloseToUniLiveHome : handleClose}
                 className="px-4 py-2 rounded-xl bg-white text-black text-xs font-black"
               >
                 Close

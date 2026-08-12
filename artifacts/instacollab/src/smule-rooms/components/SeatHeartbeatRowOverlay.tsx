@@ -17,7 +17,7 @@ type SeatHeartbeatRowOverlayProps = {
   mutuallyFollowing: Record<string, boolean>;
   activeSeats: Record<string, unknown | null | undefined>;
   onToggle: (left: string, right: string) => void;
-  slotClassPrefix?: 'party-heartbeat-slot' | 'watch-together-heartbeat-slot';
+  slotClassPrefix?: 'party-heartbeat-slot' | 'watch-together-heartbeat-slot' | 'game-live-heartbeat-slot';
 };
 
 export function SeatHeartbeatRowOverlay({

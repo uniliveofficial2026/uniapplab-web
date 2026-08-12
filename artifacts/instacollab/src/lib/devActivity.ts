@@ -14,11 +14,16 @@ const MAX_ENTRIES = 120;
 const listeners = new Set<() => void>();
 let entries: DevActivityEntry[] = [];
 let revision = 0;
+let notifyTimer = 0;
 
 function notify() {
   revision += 1;
-  // Defer so db.save() during render cannot synchronously update DevLivePanel.
-  queueMicrotask(() => listeners.forEach((l) => l()));
+  // Coalesce panel re-renders — every db.save used to microtask-thrash DevLivePanel.
+  if (notifyTimer) return;
+  notifyTimer = window.setTimeout(() => {
+    notifyTimer = 0;
+    listeners.forEach((l) => l());
+  }, 250);
 }
 
 function push(kind: DevActivityEntry['kind'], message: string, detail?: string) {
@@ -97,7 +102,7 @@ let lastSaveAt = 0;
 export function recordCollectionSave(key: string, data: unknown) {
   if (!import.meta.env.DEV) return;
   const now = Date.now();
-  if (key === lastSaveKey && now - lastSaveAt < 200) return;
+  if (key === lastSaveKey && now - lastSaveAt < 800) return;
   lastSaveKey = key;
   lastSaveAt = now;
   push('data', `save · ${key}`, summarizeValue(key, data));

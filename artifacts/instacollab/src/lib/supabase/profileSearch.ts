@@ -3,6 +3,7 @@ import type { SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from './client';
 import { profileRowToUser } from './profile';
 import type { ProfileRow } from './types';
+import { normalizeSearchTerm } from '../searchNormalize';
 
 const SEARCH_LIMIT = 24;
 
@@ -42,7 +43,7 @@ export async function searchSupabaseProfiles(
   limit = SEARCH_LIMIT,
 ): Promise<User[]> {
   const supabase = getSupabaseClient();
-  const term = query.trim().toLowerCase();
+  const term = normalizeSearchTerm(query);
   if (!supabase || term.length < 1) return [];
 
   const pattern = ilikePattern(term);

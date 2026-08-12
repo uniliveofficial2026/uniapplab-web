@@ -43,8 +43,8 @@ export function LiveDiscoveryVideoPreview({
     const el = rootRef.current;
     if (!el) return undefined;
     const observer = new IntersectionObserver(
-      ([entry]) => setVisible(Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.15)),
-      { threshold: [0, 0.15, 0.35, 0.6], rootMargin: '80px' },
+      ([entry]) => setVisible(Boolean(entry?.isIntersecting && entry.intersectionRatio >= 0.05)),
+      { threshold: [0, 0.05, 0.15, 0.35, 0.6], rootMargin: '120px' },
     );
     observer.observe(el);
     return () => observer.disconnect();
@@ -56,7 +56,7 @@ export function LiveDiscoveryVideoPreview({
       canAttemptLiveKit() &&
       !shouldSkipLiveVideoPreview() &&
       isLiveKitConfigured() &&
-      Boolean(partyRoomId || streamId);
+      Boolean(partyRoomId || streamId || hostUserId);
 
     if (!canConnect) {
       setHasVideo(false);
@@ -83,6 +83,7 @@ export function LiveDiscoveryVideoPreview({
         video.srcObject = null;
         video.onloadeddata = null;
         video.onplaying = null;
+        video.onloadedmetadata = null;
       }
       if (!cancelled) {
         setHasVideo(false);
@@ -98,6 +99,7 @@ export function LiveDiscoveryVideoPreview({
       }
       if (attachedTrackRef.current === track && video.srcObject) {
         setHasVideo(true);
+        if (video.readyState >= 2) setVideoReady(true);
         return;
       }
       detachVideo();
@@ -105,6 +107,7 @@ export function LiveDiscoveryVideoPreview({
       track.attach(video);
       video.muted = true;
       video.playsInline = true;
+      video.autoplay = true;
       video.setAttribute('playsinline', 'true');
       video.setAttribute('webkit-playsinline', 'true');
       const markReady = () => {
@@ -113,13 +116,18 @@ export function LiveDiscoveryVideoPreview({
           setVideoReady(true);
         }
       };
+      video.onloadedmetadata = markReady;
       video.onloadeddata = markReady;
       video.onplaying = markReady;
-      void video.play().then(markReady).catch(() => {
-        // Still show once frames arrive
-        if (video.readyState >= 2) markReady();
-      });
+      // Show live layer as soon as the track is attached — poster covers until frames paint.
       setHasVideo(true);
+      void video.play().then(markReady).catch(() => {
+        if (video.readyState >= 2) markReady();
+        // Fallback: treat attached MediaStream as ready after a beat.
+        window.setTimeout(() => {
+          if (!cancelled && attachedTrackRef.current === track) markReady();
+        }, 400);
+      });
     };
 
     void (async () => {
@@ -146,35 +154,30 @@ export function LiveDiscoveryVideoPreview({
     };
   }, [visible, partyRoomId, streamId, hostUserId]);
 
+  // Keep <video> fully opaque under the poster so LiveKit always has a laid-out
+  // element to decode into (opacity-0 starved adaptive/frame delivery before).
   const showLiveVideo = hasVideo && videoReady;
 
   return (
-    <div ref={rootRef} className={`absolute inset-0 overflow-hidden bg-secondary ${className}`}>
-      <SafeMediaImage
-        src={posterUrl}
-        alt=""
-        priority
-        fallback={FALLBACK_MEDIA}
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-          showLiveVideo ? 'opacity-0' : 'opacity-100'
-        }`}
-      />
+    <div ref={rootRef} className={`absolute inset-0 z-0 overflow-hidden bg-secondary ${className}`}>
       <video
         ref={videoRef}
         muted
         playsInline
         autoPlay
-        className={`absolute inset-0 h-full w-full object-cover transition-opacity duration-300 ${
-          showLiveVideo ? 'opacity-100' : 'opacity-0'
+        className="absolute inset-0 z-0 h-full w-full object-cover"
+      />
+      <SafeMediaImage
+        src={posterUrl}
+        alt=""
+        priority
+        fallback={FALLBACK_MEDIA}
+        className={`absolute inset-0 z-[1] h-full w-full object-cover transition-opacity duration-300 ${
+          showLiveVideo ? 'opacity-0 pointer-events-none' : 'opacity-100'
         }`}
       />
-      {showLiveVideo ? (
-        <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/45 px-1.5 py-0.5">
-          <span className="h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
-          <span className="text-[9px] font-bold uppercase tracking-wide text-white">Live</span>
-        </div>
-      ) : hasAudioLive ? (
-        <div className="pointer-events-none absolute top-2 left-2 flex items-center gap-1 rounded-md bg-black/45 px-1.5 py-0.5">
+      {!showLiveVideo && hasAudioLive ? (
+        <div className="pointer-events-none absolute top-2 right-2 z-[2] flex items-center gap-1 rounded-md bg-black/45 px-1.5 py-0.5">
           <span className="h-1.5 w-1.5 rounded-full bg-cyan-400 animate-pulse" />
           <span className="text-[9px] font-bold uppercase tracking-wide text-white">Audio</span>
         </div>

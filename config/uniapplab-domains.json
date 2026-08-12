@@ -1,5 +1,5 @@
 {
-  "brand": "UniAppLab",
+  "brand": "UniLive's",
   "apex": "uniapplab.com",
   "hosts": {
     "landing": "uniapplab.com",
@@ -29,7 +29,10 @@
     "app": "https://app.uniapplab.com",
     "www": "https://www.uniapplab.com",
     "landing": "https://uniapplab.com",
-    "api": "https://api.uniapplab.com"
+    "api": "https://api.uniapplab.com",
+    "oauthHome": "https://app.uniapplab.com/home/",
+    "privacy": "https://app.uniapplab.com/privacy-policy.html",
+    "terms": "https://app.uniapplab.com/terms-of-service.html"
   },
   "devOrigins": [
     "http://localhost:5173",
@@ -40,6 +43,8 @@
     "redirectUrls": [
       "https://app.uniapplab.com/**",
       "https://www.uniapplab.com/**",
+      "com.uniapplab.unilive://auth/callback",
+      "com.uniapplab.unilive://**",
       "http://localhost:5173/**",
       "http://127.0.0.1:5173/**"
     ]

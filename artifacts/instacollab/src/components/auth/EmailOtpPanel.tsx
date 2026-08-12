@@ -10,6 +10,8 @@ export type EmailOtpPanelProps = {
   showModeToggle?: boolean;
   showSignupFields?: boolean;
   inputClass: string;
+  /** Match princess auth email sheet (gold / glass). */
+  tone?: 'default' | 'princess';
   onSendOtp: (
     email: string,
     mode: 'signin' | 'signup',
@@ -27,6 +29,7 @@ export function EmailOtpPanel({
   showModeToggle = true,
   showSignupFields = true,
   inputClass,
+  tone = 'default',
   onSendOtp,
   onVerifyOtp,
   onVerified,
@@ -38,6 +41,7 @@ export function EmailOtpPanel({
   const [username, setUsername] = useState('');
   const [localBusy, setLocalBusy] = useState(false);
   const [resendIn, setResendIn] = useState(0);
+  const princess = tone === 'princess';
 
   const isBusy = busy || localBusy;
 
@@ -110,40 +114,69 @@ export function EmailOtpPanel({
   };
 
   return (
-    <div className="space-y-3">
+    <div className={princess ? 'flex flex-col gap-3 w-full' : 'space-y-3'}>
       {showModeToggle && onModeChange ? (
-        <div className="flex gap-2 p-1 rounded-xl bg-secondary/30 border border-border">
-          <button
-            type="button"
-            onClick={() => {
-              onModeChange('signin');
-              setPhase('email');
-              setOtpCode('');
-            }}
-            className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
-              mode === 'signin'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Sign in
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              onModeChange('signup');
-              setPhase('email');
-              setOtpCode('');
-            }}
-            className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
-              mode === 'signup'
-                ? 'bg-primary text-primary-foreground'
-                : 'text-muted-foreground hover:text-foreground'
-            }`}
-          >
-            Create account
-          </button>
-        </div>
+        princess ? (
+          <div className="upa-seg">
+            <button
+              type="button"
+              className="upa-seg-btn"
+              data-active={mode === 'signin' ? 'true' : 'false'}
+              onClick={() => {
+                onModeChange('signin');
+                setPhase('email');
+                setOtpCode('');
+              }}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              className="upa-seg-btn"
+              data-active={mode === 'signup' ? 'true' : 'false'}
+              onClick={() => {
+                onModeChange('signup');
+                setPhase('email');
+                setOtpCode('');
+              }}
+            >
+              Create account
+            </button>
+          </div>
+        ) : (
+          <div className="flex gap-2 p-1 rounded-xl bg-[color:var(--color-unilives-auth-surface)] border border-[color:var(--color-unilives-auth-border)]">
+            <button
+              type="button"
+              onClick={() => {
+                onModeChange('signin');
+                setPhase('email');
+                setOtpCode('');
+              }}
+              className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
+                mode === 'signin'
+                  ? 'bg-[color:var(--color-unilives-primary)] text-white'
+                  : 'text-[color:var(--color-unilives-auth-muted)] hover:text-[color:var(--color-unilives-auth-text)]'
+              }`}
+            >
+              Sign in
+            </button>
+            <button
+              type="button"
+              onClick={() => {
+                onModeChange('signup');
+                setPhase('email');
+                setOtpCode('');
+              }}
+              className={`flex-1 py-2 rounded-lg text-xs font-black transition-colors ${
+                mode === 'signup'
+                  ? 'bg-[color:var(--color-unilives-primary)] text-white'
+                  : 'text-[color:var(--color-unilives-auth-muted)] hover:text-[color:var(--color-unilives-auth-text)]'
+              }`}
+            >
+              Create account
+            </button>
+          </div>
+        )
       ) : null}
 
       {phase === 'email' ? (
@@ -179,22 +212,41 @@ export function EmailOtpPanel({
               if (e.key === 'Enter') void sendCode();
             }}
           />
-          <p className="text-[11px] text-muted-foreground font-semibold leading-relaxed px-1">
+          <p
+            className={
+              princess
+                ? 'text-[11px] text-white/60 font-semibold leading-relaxed px-1'
+                : 'text-[11px] text-[color:var(--color-unilives-auth-muted)] font-semibold leading-relaxed px-1'
+            }
+          >
             We email a 6-digit code.
           </p>
           <button
             type="button"
             disabled={isBusy || !email.trim()}
             onClick={() => void sendCode()}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-black text-sm hover:opacity-95 disabled:opacity-60"
+            className={
+              princess
+                ? 'upa-cta'
+                : 'w-full py-3 rounded-xl bg-[color:var(--color-unilives-primary)] text-white font-black text-sm hover:opacity-95 disabled:opacity-60'
+            }
           >
             {isBusy ? 'Sending code…' : 'Send 6-digit code'}
           </button>
         </>
       ) : (
         <>
-          <p className="text-sm text-muted-foreground font-semibold px-1">
-            Code sent to <span className="text-foreground">{email}</span>
+          <p
+            className={
+              princess
+                ? 'text-sm text-white/70 font-semibold px-1'
+                : 'text-sm text-[color:var(--color-unilives-auth-muted)] font-semibold px-1'
+            }
+          >
+            Code sent to{' '}
+            <span className={princess ? 'text-[#f0d78c]' : 'text-[color:var(--color-unilives-auth-text)]'}>
+              {email}
+            </span>
           </p>
           <input
             type="text"
@@ -213,7 +265,11 @@ export function EmailOtpPanel({
             type="button"
             disabled={isBusy || otpCode.replace(/\D/g, '').length < 6}
             onClick={() => void verifyCode()}
-            className="w-full py-3 rounded-xl bg-primary text-primary-foreground font-black text-sm hover:opacity-95 disabled:opacity-60"
+            className={
+              princess
+                ? 'upa-cta'
+                : 'w-full py-3 rounded-xl bg-[color:var(--color-unilives-primary)] text-white font-black text-sm hover:opacity-95 disabled:opacity-60'
+            }
           >
             {isBusy ? 'Verifying…' : 'Verify & continue'}
           </button>
@@ -225,7 +281,11 @@ export function EmailOtpPanel({
                 setPhase('email');
                 setOtpCode('');
               }}
-              className="flex-1 py-2.5 rounded-xl border border-border text-xs font-bold text-muted-foreground hover:bg-secondary/50"
+              className={
+                princess
+                  ? 'upa-link flex-1'
+                  : 'flex-1 py-2.5 rounded-xl border border-[color:var(--color-unilives-auth-border)] text-xs font-bold text-[color:var(--color-unilives-auth-muted)] hover:bg-[color:var(--color-unilives-auth-surface)]'
+              }
             >
               Change email
             </button>
@@ -233,7 +293,11 @@ export function EmailOtpPanel({
               type="button"
               disabled={isBusy || resendIn > 0}
               onClick={() => void sendCode()}
-              className="flex-1 py-2.5 rounded-xl border border-border text-xs font-bold text-primary hover:bg-secondary/50 disabled:opacity-60"
+              className={
+                princess
+                  ? 'upa-link flex-1 disabled:opacity-60'
+                  : 'flex-1 py-2.5 rounded-xl border border-[color:var(--color-unilives-auth-border)] text-xs font-bold text-[color:var(--color-unilives-primary)] hover:bg-[color:var(--color-unilives-auth-surface)] disabled:opacity-60'
+              }
             >
               {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
             </button>

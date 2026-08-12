@@ -73,14 +73,14 @@ router.post("/discord/interactions", async (req: Request, res: Response) => {
   if (interaction.type === InteractionType.APPLICATION_COMMAND) {
     const name = String(interaction.data?.name || "").trim().toLowerCase();
     if (name === "hello") {
-      res.json(commandReply("Hello from UniAppLab 👋"));
+      res.json(commandReply("Hello from UniLive's 👋"));
       return;
     }
     res.json(
       commandReply(
         name
-          ? `Received \`/${name}\` — UniAppLab Discord endpoint is live.`
-          : "UniAppLab Discord endpoint is live.",
+          ? `Received \`/${name}\` — UniLive's Discord endpoint is live.`
+          : "UniLive's Discord endpoint is live.",
       ),
     );
     return;

@@ -1,5 +1,4 @@
 import {
-  GoogleAuthProvider,
   OAuthProvider,
   browserPopupRedirectResolver,
   getRedirectResult,
@@ -24,6 +23,9 @@ import {
   shouldMirrorProfileToFirebase,
 } from '../auth/firebaseBackupLink';
 import { fetchFirebaseProfile, upsertFirebaseProfile } from './profile';
+
+import { getPlatformRuntime } from '../platform/runtime';
+import { isNativeShell } from '../nativeShell';
 
 const REDIRECT_PENDING_KEY = 'instacollab_firebase_oauth_redirect';
 const REDIRECT_PENDING_TTL_MS = 10 * 60 * 1000;
@@ -253,12 +255,13 @@ export async function ensureFirebaseProfileAfterOAuth(user: FirebaseUser): Promi
 
 function preferRedirectFlow(): boolean {
   if (usePopupOAuth()) return false;
+  // Capacitor: Firebase redirect returns to a web origin and breaks the shell.
+  // Supabase + Browser deep-link is the native OAuth path.
+  if (isNativeShell()) return false;
   if (import.meta.env.VITE_FIREBASE_OAUTH_USE_REDIRECT === 'true') return true;
   if (typeof window === 'undefined') return false;
-  const ua = navigator.userAgent;
-  if (/iPhone|iPad|iPod|Android/i.test(ua)) return true;
-  if (window.matchMedia?.('(display-mode: standalone)').matches) return true;
-  return false;
+  // Mobile, tablet, and installed PWAs: redirect is more reliable than popups.
+  return getPlatformRuntime().capabilities.preferOAuthRedirect;
 }
 
 function isInvalidActionError(code: string | undefined, message: string): boolean {
@@ -324,9 +327,17 @@ async function signInWithOAuthProvider(
   }
 }
 
-export async function firebaseSignInWithGooglePopup(auth: Auth): Promise<AuthResult> {
-  const provider = new GoogleAuthProvider();
-  provider.setCustomParameters({ prompt: 'select_account' });
+export async function firebaseSignInWithGooglePopup(
+  auth: Auth,
+  options?: { workspaceScopes?: boolean; selectAccount?: boolean },
+): Promise<AuthResult> {
+  const { createBasicGoogleAuthProvider, createWorkspaceGoogleAuthProvider } = await import(
+    '../auth/googleAuthProvider'
+  );
+  const provider =
+    options?.workspaceScopes === true
+      ? createWorkspaceGoogleAuthProvider()
+      : createBasicGoogleAuthProvider({ selectAccount: options?.selectAccount });
   return signInWithOAuthProvider(auth, provider);
 }
 

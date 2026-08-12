@@ -23,11 +23,16 @@ export function preloadCoreAppSurfaces(): void {
     preloadInstant(factory);
   }
 
+  // Do not warm WebAR/AR on core preload — only on live/camera intent.
+}
+
+/** Call when user opens Live / Create / Call — full WebAR pipeline warm. */
+export function warmWebARForLiveIntent(): void {
+  if (typeof window === 'undefined') return;
   void import('./webar/tencentWebARPool').then((m) => {
     m.hydrateTencentWebARCatalogsFromStorage();
     m.warmTencentWebARForVideoCall();
   });
-  // Full SDK + catalog warm (uses camera if permission already granted).
   void import('./webar/tencentWebARWarm').then((m) => {
     m.warmTencentWebARPipelineNow();
   });
@@ -38,8 +43,7 @@ export function preloadHeavyAppSurfaces(): void {
   if (heavyWarmed || typeof window === 'undefined') return;
   heavyWarmed = true;
 
-  void import('./ar/ensureArStack').then((m) => m.ensureArStackLoaded());
-
+  // Screen chunks only — AR/WebAR stay behind warmWebARForLiveIntent / ensureArStack.
   const factories: Array<() => Promise<unknown>> = [
     () => import('../components/live/LiveScreen'),
     () => import('../components/karaoke/KaraokeScreen'),

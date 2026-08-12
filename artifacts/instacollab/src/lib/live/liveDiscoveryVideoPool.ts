@@ -1,5 +1,5 @@
 /** Cap concurrent LiveKit discovery previews so the Live grid stays light. */
-const MAX_PREVIEW_CONNECTIONS = 6;
+const MAX_PREVIEW_CONNECTIONS = 3;
 
 let active = 0;
 const waiters = new Set<() => void>();

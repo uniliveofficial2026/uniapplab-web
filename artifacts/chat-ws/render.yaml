@@ -5,7 +5,12 @@ services:
     plan: free
     buildCommand: cd ../.. && pnpm install && pnpm --filter @workspace/chat-ws run build
     startCommand: node artifacts/chat-ws/dist/index.mjs
+    healthCheckPath: /
     envVars:
+      - key: NODE_ENV
+        value: production
+      - key: HOST
+        value: 0.0.0.0
       - key: SUPABASE_URL
         sync: false
       - key: SUPABASE_ANON_KEY

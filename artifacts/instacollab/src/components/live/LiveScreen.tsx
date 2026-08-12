@@ -3,28 +3,28 @@ import { Video } from 'lucide-react';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import {
   LIVE_KIND_LABELS,
+  discoveryLiveKindFromTags,
   isLiveKind,
   liveKindFromRoomMode,
   roomModeFromLiveKind,
 } from '../../lib/liveRing';
 import type { LiveKind, User } from '../../types';
-import { handleMediaError } from '../../lib/utils';
-import { FALLBACK_MEDIA, resolveUser, safeAvatarUrl, safeMediaUrl } from '../../lib/safe';
+import { FALLBACK_MEDIA, resolveUser, safeMediaUrl } from '../../lib/safe';
 import { useCloudLiveDiscovery } from '../../hooks/useCloudLiveDiscovery';
+import { normalizeRoomPrivacy } from '../../smule-rooms/utils/roomPrivacy';
 import { useLiveViewerPreviews } from '../../hooks/useLiveViewerPreviews';
-import { formatViewerCount } from '../../lib/live/formatViewerCount';
 import {
   openGoLiveCreateRoom,
   openLiveUserRoom,
-  preloadKaraokeScreen,
+  preloadLiveRoomEntry,
 } from '../../lib/live/openLiveRoom';
 import { isPartyCloudAvailable } from '../../lib/party/partyCloud';
 import { isPlatformApiAvailable } from '../../lib/platformApi';
 import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
 import { LiveDiscoveryVideoPreview } from './LiveDiscoveryVideoPreview';
+import { LiveDiscoveryCardChrome } from './LiveDiscoveryCardChrome';
 import {
   LiveFiltersPanel,
-  countryFlagEmoji,
   formatLiveCountryLabel,
   liveFollowFilterLabel,
   liveTypeFilterLabel,
@@ -36,34 +36,61 @@ import {
   type LiveFollowFilter,
   type LiveTypeFilter,
 } from './LiveFiltersPanel';
+import { formatRoomModeLabel } from '../../smule-rooms/utils/managedRooms';
+import {
+  UniLivesDiscoveryEmptyState,
+  UniLivesLiveRoomCard,
+} from '../discovery/brand';
 
 const LIVE_PREVIEW_FALLBACK = FALLBACK_MEDIA;
 
-function pickCloudLiveItem<T extends { partyRoomId?: string; streamId?: string; viewerCount?: number }>(
-  a: T | undefined,
-  b: T,
-): T {
+function pickCloudLiveItem<
+  T extends {
+    partyRoomId?: string;
+    streamId?: string;
+    viewerCount?: number;
+    privacy?: string | null;
+  },
+>(a: T | undefined, b: T): T {
   if (!a) return b;
   const score = (item: T) =>
-    (item.partyRoomId ? 4 : 0) + (item.streamId ? 2 : 0) + (item.viewerCount ?? 0);
-  return score(b) >= score(a) ? b : a;
+    (item.partyRoomId ? 4 : 0) +
+    (item.streamId ? 2 : 0) +
+    (item.privacy ? 1 : 0) +
+    (item.viewerCount ?? 0);
+  const winner = score(b) >= score(a) ? b : a;
+  const other = winner === b ? a : b;
+  // Keep privacy from either side so Public/Private badge stays accurate.
+  if (!winner.privacy && other.privacy) {
+    return { ...winner, privacy: other.privacy };
+  }
+  return winner;
 }
 
 function resolveCardLiveKind(
   user: User,
   cloud?: { tags?: string[]; partyRoomId?: string },
 ): LiveKind {
-  if (user.liveKind && isLiveKind(user.liveKind)) return user.liveKind;
-  const tag = cloud?.tags?.[0];
-  if (tag && isLiveKind(tag)) return tag;
-  if (tag) return liveKindFromRoomMode(tag);
+  const roomModeTag = cloud?.tags?.find(
+    (t) => !isLiveKind(t) && t !== 'Live' && String(t).toLowerCase() !== 'pk',
+  );
+  if (cloud?.tags?.length) {
+    return discoveryLiveKindFromTags(cloud.tags, roomModeTag);
+  }
+  // Without party/stream tags, never show PK from a stale profile live_kind alone.
+  if (user.liveKind && isLiveKind(user.liveKind) && user.liveKind !== 'pk') {
+    return user.liveKind;
+  }
   return 'solo';
 }
 
 export function LiveScreen() {
   const db = useDB();
   const me = resolveUser(db.users, db.currentUser);
-  const cloudLive = useCloudLiveDiscovery(isPartyCloudAvailable() || isPlatformApiAvailable());
+  const cloudLive = useCloudLiveDiscovery(
+    isPartyCloudAvailable() || isPlatformApiAvailable(),
+    me.id,
+  );
   const localLiveUsers = db.users.filter(
     (u: User) => u.status === 'live' && u.id !== me.id
   );
@@ -75,8 +102,8 @@ export function LiveScreen() {
   const dbRevision = useDbRevision();
 
   useEffect(() => {
-    // Instant karaoke warm — Go Live has 0 chunk wait.
-    void preloadKaraokeScreen();
+    // Warm karaoke + rooms + LiveKit while browsing discovery so enter is instant.
+    void preloadLiveRoomEntry();
   }, []);
 
   const liveUsers = useMemo(() => {
@@ -84,10 +111,10 @@ export function LiveScreen() {
     for (const u of localLiveUsers) byId.set(u.id, u);
     for (const row of cloudLive.streams) {
       if (!row.userId || row.userId === me.id || byId.has(row.userId)) continue;
-      const kindTag = row.tags[0];
-      const liveKind = isLiveKind(kindTag)
-        ? kindTag
-        : liveKindFromRoomMode(kindTag);
+      const roomModeHint = row.tags.find(
+        (t) => !isLiveKind(t) && t !== 'Live' && String(t).toLowerCase() !== 'pk',
+      );
+      const liveKind = discoveryLiveKindFromTags(row.tags, roomModeHint);
       byId.set(row.userId, {
         id: row.userId,
         username: row.user,
@@ -145,6 +172,7 @@ export function LiveScreen() {
         title: cloud?.title || `${resolved.displayName || resolved.username}'s live`,
         roomMode,
         roomType,
+        privacy: normalizeRoomPrivacy(cloud?.privacy),
         country,
         isFollowing: followingIds.has(user.id),
         isFollower: followerIds.has(user.id),
@@ -245,8 +273,8 @@ export function LiveScreen() {
     .join(' · ');
 
   return (
-    <div className="flex flex-col h-full w-full max-w-[600px] mx-auto px-4 py-6 md:py-10 gap-6">
-      <div className="bg-gradient-to-br from-red-600 to-rose-700 rounded-3xl p-8 text-white shadow-xl shadow-red-900/20 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-6 relative overflow-hidden ring-1 ring-white/10">
+    <div className="flex flex-col h-full w-full max-w-[600px] mx-auto px-4 py-6 md:py-10 gap-6 bg-[color:var(--color-unilives-discovery-background)]">
+      <div className="bg-gradient-to-br from-[color:var(--color-unilives-discovery-live)] to-rose-700 rounded-3xl p-8 text-white shadow-xl shadow-red-900/20 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-6 relative overflow-hidden ring-1 ring-white/10">
         <div
           className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay"
           aria-hidden
@@ -264,7 +292,7 @@ export function LiveScreen() {
           onClick={() => {
             openGoLiveCreateRoom();
           }}
-          className="relative z-10 px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 shadow-2xl whitespace-nowrap text-lg"
+          className="relative z-10 px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 motion-reduce:hover:scale-100 shadow-2xl whitespace-nowrap text-lg"
         >
           Go Live
         </button>
@@ -291,31 +319,34 @@ export function LiveScreen() {
         />
 
         {filterSummary ? (
-          <p className="px-1 text-[11px] font-semibold text-muted-foreground">
+          <p className="px-1 text-[11px] font-semibold text-[color:var(--color-unilives-discovery-muted)]">
             Showing: {filterSummary}
           </p>
         ) : null}
 
         {livePreviewCards.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border py-12 text-center text-muted-foreground text-sm">
-            No one is live right now. Tap Go Live to start a room.
-          </div>
+          <UniLivesDiscoveryEmptyState
+            title="No one is live right now"
+            message="Tap Go Live to start a room."
+          />
         ) : filteredLiveCards.length === 0 ? (
-          <div className="rounded-2xl border border-dashed border-border py-12 text-center text-muted-foreground text-sm space-y-3">
-            <p>No live rooms match these filters.</p>
-            <button
-              type="button"
-              onClick={() => {
-                setTypeFilter('all');
-                setCountryFilter('all');
-                setFollowFilter('all');
-                setSearchQuery('');
-              }}
-              className="rounded-full border border-border bg-card px-4 py-2 text-xs font-bold text-foreground hover:bg-secondary transition-colors"
-            >
-              Clear filters
-            </button>
-          </div>
+          <UniLivesDiscoveryEmptyState
+            title="No live rooms match these filters."
+            action={
+              <button
+                type="button"
+                onClick={() => {
+                  setTypeFilter('all');
+                  setCountryFilter('all');
+                  setFollowFilter('all');
+                  setSearchQuery('');
+                }}
+                className="rounded-full border border-[color:var(--color-unilives-discovery-border)] bg-[color:var(--color-unilives-discovery-surface)] px-4 py-2 text-xs font-bold text-[color:var(--color-unilives-discovery-text)] hover:opacity-90 transition-colors"
+              >
+                Clear filters
+              </button>
+            }
+          />
         ) : (
           <div className="grid grid-cols-2 gap-3">
             {filteredLiveCards.map(
@@ -329,16 +360,24 @@ export function LiveScreen() {
                 kindLabel,
                 title,
                 roomMode,
+                roomType,
+                privacy,
                 country,
               }) => {
               const preview = liveViewerPreviews[user.id];
               const count = preview?.count ?? viewerCount;
               const avatars = preview?.avatars ?? [];
-              const caption = preview?.caption ?? (partyRoomId ? 'Room' : 'Live');
+              const caption =
+                preview?.caption ||
+                formatRoomModeLabel(roomType || roomMode || (partyRoomId ? 'Room' : 'Live'));
               return (
-              <button
+              <UniLivesLiveRoomCard
                 key={user.id}
-                type="button"
+                roomId={partyRoomId || streamId || user.id}
+                liveKindLabel={kindLabel}
+                onPointerDown={() => {
+                  void preloadLiveRoomEntry();
+                }}
                 onClick={() => {
                   void openLiveUserRoom(user.id, {
                     partyRoomId,
@@ -357,7 +396,6 @@ export function LiveScreen() {
                     }
                   });
                 }}
-                className="relative aspect-[3/4] rounded-2xl overflow-hidden group border border-border bg-secondary text-left"
               >
                 <LiveDiscoveryVideoPreview
                   posterUrl={img}
@@ -365,62 +403,19 @@ export function LiveScreen() {
                   partyRoomId={partyRoomId}
                   streamId={streamId}
                 />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/25 to-black/20 pointer-events-none" />
-
-                <div className="absolute top-2 left-2 right-2 flex items-start justify-between gap-1">
-                  <span className="bg-red-500 text-white text-[10px] font-bold px-2 py-0.5 rounded-md uppercase tracking-wider animate-pulse">
-                    LIVE
-                  </span>
-                  <span className="bg-black/50 backdrop-blur text-white text-[10px] font-bold pl-1 pr-1.5 py-0.5 rounded-md flex items-center gap-1 border border-white/10 shrink-0 tabular-nums">
-                    {avatars.length > 0 ? (
-                      <span className="flex -space-x-1.5 mr-0.5">
-                        {avatars.map((viewer) => (
-                          <img
-                            key={viewer.id}
-                            src={safeAvatarUrl(viewer.avatarUrl)}
-                            alt=""
-                            className="w-4 h-4 rounded-full border border-black/60 object-cover bg-secondary"
-                            onError={handleMediaError}
-                          />
-                        ))}
-                      </span>
-                    ) : null}
-                    {formatViewerCount(count)}
-                  </span>
-                </div>
-
-                <div className="absolute bottom-0 left-0 right-0 p-2.5 flex flex-col gap-1">
-                  <div className="flex items-center justify-between gap-1">
-                    <span className="inline-flex max-w-[60%] items-center gap-1 rounded-full bg-black/45 px-1.5 py-0.5 text-[9px] font-bold tracking-wide text-white/90 border border-white/10">
-                      <span className="text-[11px] leading-none shrink-0" aria-hidden>
-                        {countryFlagEmoji(country)}
-                      </span>
-                      <span className="truncate uppercase">{country}</span>
-                    </span>
-                    <span className="text-[9px] font-semibold uppercase tracking-wide text-white/85 drop-shadow-sm shrink-0">
-                      {caption}
-                    </span>
-                  </div>
-                  <div className="flex items-end gap-2">
-                    <div className="w-8 h-8 rounded-full border-2 border-white overflow-hidden shrink-0 shadow-md bg-secondary">
-                      <img
-                        src={user.avatarUrl || img}
-                        alt=""
-                        className="w-full h-full object-cover"
-                        onError={handleMediaError}
-                      />
-                    </div>
-                    <div className="min-w-0 flex-1">
-                      <p className="font-bold text-white text-sm truncate drop-shadow-md">
-                        {user.displayName || user.username}
-                      </p>
-                      <p className="text-[10px] text-white/80 truncate">
-                        {kindLabel} · {title}
-                      </p>
-                    </div>
-                  </div>
-                </div>
-              </button>
+                <LiveDiscoveryCardChrome
+                  viewerCount={count}
+                  viewerAvatars={avatars}
+                  caption={caption}
+                  privacy={privacy}
+                  country={country}
+                  hostName={user.displayName || user.username}
+                  hostAvatarUrl={user.avatarUrl || img}
+                  title={title}
+                  subtitle={kindLabel}
+                  pkLabel={liveKind === 'pk' ? 'PK' : undefined}
+                />
+              </UniLivesLiveRoomCard>
               );
             })}
           </div>

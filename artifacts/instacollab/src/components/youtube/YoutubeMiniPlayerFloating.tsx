@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { GripHorizontal, X, Youtube } from 'lucide-react';
+import { GripHorizontal, SkipBack, SkipForward, X, Youtube } from 'lucide-react';
 import { WatchTogetherYoutubePlayer } from '../../smule-rooms/components/WatchTogetherYoutubePlayer';
 import {
   clampYoutubeMiniPlayerPosition,
   closeYoutubeMiniPlayer,
+  getYoutubeMiniPlayerDefaultSize,
   openYoutubeMiniPlayerPicker,
   patchYoutubeMiniPlayerState,
   playYoutubeMiniNext,
+  playYoutubeMiniPrev,
 } from '../../lib/youtubeMiniPlayer';
 import { useYoutubeMiniPlayer } from '../../hooks/useYoutubeMiniPlayer';
 
@@ -108,7 +110,10 @@ export function YoutubeMiniPlayerFloating() {
           onPointerUp={() => {
             const wasDrag = dragMovedRef.current;
             window.setTimeout(() => {
-              if (!wasDrag) patchYoutubeMiniPlayerState({ minimized: false });
+              if (!wasDrag) {
+                const { width, height } = getYoutubeMiniPlayerDefaultSize();
+                patchYoutubeMiniPlayerState({ minimized: false, width, height });
+              }
             }, 0);
           }}
           className="group relative flex h-full w-full cursor-grab items-center justify-center active:cursor-grabbing"
@@ -116,7 +121,7 @@ export function YoutubeMiniPlayerFloating() {
           title={`${state.title || 'YouTube'} — tap to expand`}
         >
           <span
-            className="youtube-mini-disc absolute inset-[3px] overflow-hidden rounded-full border border-white/25 shadow-[inset_0_0_0_7px_rgba(0,0,0,0.5)]"
+            className="youtube-mini-disc absolute inset-[2px] overflow-hidden rounded-full border border-white/25 shadow-[inset_0_0_0_5px_rgba(0,0,0,0.5)]"
             style={{
               backgroundImage: `url(${youtubeThumbUrl(state.videoId)})`,
               backgroundSize: 'cover',
@@ -150,6 +155,30 @@ export function YoutubeMiniPlayerFloating() {
             title="Change video"
           >
             <Youtube size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              playYoutubeMiniPrev();
+            }}
+            className="rounded-full p-2 text-gray-300 transition hover:bg-white/10 hover:text-white"
+            aria-label="Previous in playlist"
+            title="Previous"
+          >
+            <SkipBack size={16} />
+          </button>
+          <button
+            type="button"
+            onClick={(event) => {
+              event.stopPropagation();
+              playYoutubeMiniNext();
+            }}
+            className="rounded-full p-2 text-gray-300 transition hover:bg-white/10 hover:text-white"
+            aria-label="Next in playlist"
+            title="Next"
+          >
+            <SkipForward size={16} />
           </button>
           <button
             type="button"
@@ -190,7 +219,7 @@ export function YoutubeMiniPlayerFloating() {
       >
         <WatchTogetherYoutubePlayer
           videoId={state.videoId}
-          playlistId={state.playlistId}
+          playlistId={state.queue.length > 1 ? null : state.playlistId}
           title={state.title}
           className="h-full w-full"
           onEnded={() => {

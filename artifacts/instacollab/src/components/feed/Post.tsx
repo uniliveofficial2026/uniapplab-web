@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { Avatar } from '../common/Avatar';
 import { ProfilePremiumBadgeForUser } from '../common/ProfilePremiumBadge';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 import { ShareModal } from './ShareModal';
 import { buildPostSharePayload } from '../../lib/shareLinks';
 import { Post as PostType } from '../../types';
@@ -427,7 +428,12 @@ export function Post({
           <div className="flex flex-col">
             <span className="text-[15px] font-bold leading-tight group-hover:text-primary transition-colors flex items-center gap-1 flex-wrap">
               <ProfileNamePrimary user={postAuthor} fallback="Unknown" />
-              {postAuthor.isVerified && <span className="bg-primary/20 text-primary text-[10px] px-1 rounded-sm">✓</span>}
+              <UniLivesVerificationBadge
+                isVerified={!!postAuthor.isVerified}
+                userId={postAuthor.id}
+                className="bg-primary/20 text-primary text-[10px] px-1 rounded-sm inline-flex shrink-0"
+                iconClassName="w-3 h-3 text-primary"
+              />
               <ProfilePremiumBadgeForUser user={postAuthor} size="sm" />
             </span>
             {postHeaderSubtitle ? (

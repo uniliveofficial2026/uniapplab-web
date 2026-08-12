@@ -1,6 +1,9 @@
 /**
  * Apply full TRTC / Tencent WebAR beauty to an existing camera MediaStream.
  * Used by chat video calls, karaoke studio, and any other camera surface.
+ *
+ * CRITICAL: WebAR gets a cloned video track so the raw preview <video> never
+ * goes blank when the SDK consumes the camera for GPU processing.
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
@@ -48,13 +51,51 @@ export function karaokeFilterToBeautyId(filterName: string): BeautyPresetId {
   }
 }
 
+/** Instant CSS tray labels for karaoke while WebAR catches up. */
+export function beautyIdToKaraokeFilterName(beautyId: BeautyPresetId): string {
+  switch (beautyId) {
+    case 'beauty-smooth':
+      return 'Smooth';
+    case 'beauty-soft':
+      return 'Soft';
+    case 'beauty-glow':
+      return 'Glow';
+    case 'beauty-natural':
+      return 'Natural';
+    case 'beauty-clear':
+      return 'Clear';
+    default:
+      return 'None';
+  }
+}
+
+function cloneVideoOnlyStream(source: MediaStream): MediaStream | null {
+  const tracks = source.getVideoTracks();
+  if (tracks.length === 0) return null;
+  try {
+    return new MediaStream(tracks.map((t) => t.clone()));
+  } catch {
+    return null;
+  }
+}
+
+function stopStreamTracks(stream: MediaStream | null | undefined): void {
+  stream?.getTracks().forEach((t) => {
+    try {
+      t.stop();
+    } catch {
+      /* ignore */
+    }
+  });
+}
+
 export function useStreamBeauty({
   enabled,
   inputStream,
   beautyId = 'none',
   effects = EMPTY_TENCENT_EFFECT_SELECTION,
   bodyShape,
-  mirror = true,
+  mirror = false,
   keepWarm,
   loadCatalogs: loadCatalogsOption,
   persistent,
@@ -62,9 +103,11 @@ export function useStreamBeauty({
 }: UseStreamBeautyOptions) {
   const configured = isTencentWebARConfigured();
   const activeId = beautyId === 'none' ? 'none' : beautyId;
+  const bodyShapeKey = bodyShape ? JSON.stringify(bodyShape) : '';
   const beautify = useMemo(
     () => resolveTencentBeautifyParams(activeId, bodyShape),
-    [activeId, bodyShape, JSON.stringify(bodyShape)],
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- bodyShapeKey captures content
+    [activeId, bodyShapeKey],
   );
   const effectsActive = Boolean(
     effects.makeupId ||
@@ -90,9 +133,43 @@ export function useStreamBeauty({
       beautySelected,
     });
 
+  // Isolated video track for WebAR — never hand the preview stream to the SDK.
+  // Defer stopping clones so React Strict Mode remounts / WebAR cancel can finish
+  // before tracks flip to ended (that used to poison shared init forever).
+  const [webarInputStream, setWebarInputStream] = useState<MediaStream | null>(null);
+  const inputVideoTrackId = inputStream?.getVideoTracks()[0]?.id ?? '';
+
+  useEffect(() => {
+    if (!inputStream || !trtcEngine) {
+      setWebarInputStream((prev) => {
+        if (prev) window.setTimeout(() => stopStreamTracks(prev), 50);
+        return null;
+      });
+      return undefined;
+    }
+
+    const cloned = cloneVideoOnlyStream(inputStream);
+    if (!cloned) {
+      setWebarInputStream(null);
+      return undefined;
+    }
+
+    setWebarInputStream((prev) => {
+      if (prev && prev !== cloned) {
+        window.setTimeout(() => stopStreamTracks(prev), 50);
+      }
+      return cloned;
+    });
+
+    return () => {
+      // Delay past Strict Mode cleanup→setup and WebAR effect cancel.
+      window.setTimeout(() => stopStreamTracks(cloned), 50);
+    };
+  }, [inputStream, trtcEngine, inputVideoTrackId]);
+
   const webar = useTencentWebAR({
     enabled: warm && trtcEngine,
-    inputStream,
+    inputStream: webarInputStream,
     mirror,
     beautify,
     effects,
@@ -104,7 +181,7 @@ export function useStreamBeauty({
 
   useEffect(() => {
     if (!webar.ready) {
-      setOutputStream(null);
+      // Keep last good beauty stream — clearing to null blanks the preview on brief ready dips.
       return undefined;
     }
     const sync = () => {
@@ -113,9 +190,9 @@ export function useStreamBeauty({
       setOutputStream((prev) => (prev === next ? prev : next));
     };
     sync();
-    const id = window.setInterval(sync, 120);
-    return () => window.clearInterval(id);
-  }, [webar.ready, webar.outputStreamRef, webar.beautyActive, beautify, effects]);
+    const id = window.setTimeout(sync, 250);
+    return () => window.clearTimeout(id);
+  }, [webar.ready, webar.outputStreamRef, webar.beautyActive]);
 
   return {
     configured,

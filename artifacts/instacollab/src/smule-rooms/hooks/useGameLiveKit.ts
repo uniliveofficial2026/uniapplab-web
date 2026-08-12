@@ -6,11 +6,18 @@ import {
   RoomEvent,
   Track,
 } from 'livekit-client';
+import {
+  acquireAppCamera,
+  getAppCameraStream,
+  releaseAppCamera,
+} from '../../lib/camera/appCameraOwner';
 import { registerLiveKitRoom, unregisterLiveKitRoom } from '../../lib/livekit/liveRoomBus';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
 import { canAttemptLiveKit, connectWithTokenFetcher } from '../../lib/livekit/liveKitInstant';
 import { updateLiveKitLocalAudioTrack } from '../../lib/livekit/liveKitAudioPublish';
+import { bindLiveKitRemoteAudioPlayback } from '../../lib/livekit/liveKitRemoteAudio';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
+import { realtimeLifecycleDebug } from '../../lib/realtime/realtimeLifecycleDebug';
 
 type UseGameLiveKitOptions = {
   roomId: string;
@@ -21,16 +28,12 @@ type UseGameLiveKitOptions = {
   processedAudioTrack?: MediaStreamTrack | null;
   /** TRTC / camera-pipeline track for host PiP (skips raw getUserMedia when set). */
   hostCameraTrack?: MediaStreamTrack | null;
+  /** Platform-admin silent watch — LiveKit hidden grant. */
+  hidden?: boolean;
 };
 
-function attachRemoteAudio(room: Room) {
-  room.on(RoomEvent.TrackSubscribed, (track) => {
-    if (track.kind === Track.Kind.Audio) {
-      const el = track.attach();
-      void el.play().catch(() => {});
-    }
-  });
-}
+const MAX_CONNECT_RETRIES = 5;
+const RETRY_BASE_MS = 2_000;
 
 async function publishOrReplaceTrack(
   room: Room,
@@ -70,6 +73,7 @@ export function useGameLiveKit({
   publishMic,
   processedAudioTrack = null,
   hostCameraTrack = null,
+  hidden = false,
 }: UseGameLiveKitOptions) {
   const configured = isLiveKitConfigured();
   const roomRef = useRef<Room | null>(null);
@@ -94,7 +98,7 @@ export function useGameLiveKit({
 
   const stopLocalStreams = useCallback(() => {
     screenStreamRef.current?.getTracks().forEach((track) => track.stop());
-    cameraStreamRef.current?.getTracks().forEach((track) => track.stop());
+    releaseAppCamera('game-livekit-cast');
     screenStreamRef.current = null;
     cameraStreamRef.current = null;
   }, []);
@@ -150,10 +154,17 @@ export function useGameLiveKit({
 
       if (!hostCameraTrackRef.current) {
         try {
-          const camera = await navigator.mediaDevices.getUserMedia({
-            video: { facingMode: 'user', width: 480, height: 360 },
-            audio: false,
-          });
+          const shared = getAppCameraStream();
+          const camera =
+            shared ??
+            (await acquireAppCamera('game-livekit-cast', {
+              warm: false,
+              audio: false,
+              facingMode: 'user',
+              exactFacing: false,
+              videoIdeal: { width: 480, height: 360 },
+              frameRate: { ideal: 24, max: 30 },
+            }));
           cameraStreamRef.current = camera;
           setCameraOn(true);
         } catch {
@@ -246,23 +257,33 @@ export function useGameLiveKit({
 
     let cancelled = false;
     let retryTimer: number | null = null;
+    let retries = 0;
+    let audioDetach: (() => void) | null = null;
+    let onTracks: (() => void) | null = null;
+    let boundRoom: Room | null = null;
 
     const bindRoom = (room: Room) => {
       roomRef.current = room;
+      boundRoom = room;
       registerLiveKitRoom(roomId, room);
-      attachRemoteAudio(room);
-      const onTracks = () => syncHostRemoteTracks(room);
+      audioDetach?.();
+      audioDetach = bindLiveKitRemoteAudioPlayback(room).detach;
+      onTracks = () => syncHostRemoteTracks(room);
       room.on(RoomEvent.TrackSubscribed, onTracks);
       room.on(RoomEvent.TrackUnsubscribed, onTracks);
       room.on(RoomEvent.ParticipantConnected, onTracks);
       room.on(RoomEvent.ParticipantDisconnected, onTracks);
       syncHostRemoteTracks(room);
       setConnected(true);
+      realtimeLifecycleDebug('game-livekit-connected', { roomId });
     };
 
     const connect = async () => {
       const result = await connectWithTokenFetcher(
-        () => fetchPartyLiveKitToken(roomId, isHost),
+        () =>
+          fetchPartyLiveKitToken(roomId, hidden ? false : isHost, {
+            hidden,
+          }),
         {
           onDisconnected: () => {
             if (!cancelled) setConnected(false);
@@ -275,11 +296,18 @@ export function useGameLiveKit({
       }
       if (!result.ok) {
         setConnected(false);
+        if (retries >= MAX_CONNECT_RETRIES) {
+          realtimeLifecycleDebug('game-livekit-retry-exhausted', { roomId, retries });
+          return;
+        }
+        const delay = RETRY_BASE_MS * Math.min(8, 2 ** retries);
+        retries += 1;
         retryTimer = window.setTimeout(() => {
           if (!cancelled) void connect();
-        }, 2_000);
+        }, delay);
         return;
       }
+      retries = 0;
       bindRoom(result.room);
     };
 
@@ -289,6 +317,14 @@ export function useGameLiveKit({
       cancelled = true;
       if (retryTimer != null) window.clearTimeout(retryTimer);
       void stopCast();
+      audioDetach?.();
+      audioDetach = null;
+      if (boundRoom && onTracks) {
+        boundRoom.off(RoomEvent.TrackSubscribed, onTracks);
+        boundRoom.off(RoomEvent.TrackUnsubscribed, onTracks);
+        boundRoom.off(RoomEvent.ParticipantConnected, onTracks);
+        boundRoom.off(RoomEvent.ParticipantDisconnected, onTracks);
+      }
       const room = roomRef.current;
       roomRef.current = null;
       if (room) unregisterLiveKitRoom(roomId, room);
@@ -296,8 +332,9 @@ export function useGameLiveKit({
       setConnected(false);
       setRemoteScreenTrack(null);
       setRemoteCameraTrack(null);
+      realtimeLifecycleDebug('game-livekit-cleanup', { roomId });
     };
-  }, [configured, enabled, isHost, roomId, stopCast, syncHostRemoteTracks]);
+  }, [configured, enabled, hidden, isHost, roomId, stopCast, syncHostRemoteTracks]);
 
   const processedAudioTrackRef = useRef(processedAudioTrack);
   processedAudioTrackRef.current = processedAudioTrack;

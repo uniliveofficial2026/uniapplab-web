@@ -47,7 +47,7 @@ export const VIDEO_BEAUTY_FILTERS: Record<string, string> = {
 export const VIDEO_BACKGROUNDS: Record<string, string> = {
   'Concert Stage': 'https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?w=7680&auto=format&fit=crop&q=92',
   'Neon City': 'https://images.unsplash.com/photo-1514565131-fce0801e5785?w=7680&auto=format&fit=crop&q=92',
-  'Recording Studio': 'https://images.unsplash.com/photo-1598488035139-bdbb2231bb04?w=7680&auto=format&fit=crop&q=92',
+  'Recording Studio': 'https://images.unsplash.com/photo-1511379938547-c1f69419868d?w=7680&auto=format&fit=crop&q=92',
   Galaxy: 'https://images.unsplash.com/photo-1419242902214-272b3f66ee7a?w=7680&auto=format&fit=crop&q=92',
   'Sunset Beach': 'https://images.unsplash.com/photo-1507525428034-b723cf961d3e?w=7680&auto=format&fit=crop&q=92',
 };

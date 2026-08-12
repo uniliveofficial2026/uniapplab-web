@@ -34,6 +34,10 @@ function shouldSkip(name, relPath = '') {
   if (SKIP_NAMES.has(name)) return true;
   if (name.startsWith('._')) return true;
   if (name.endsWith('.map')) return true;
+  // Native mobile trees are not used by the Vercel web build and often break
+  // archive uploads on case-sensitive / flaky external volumes.
+  if (name === 'android' || name === 'ios') return true;
+  if (relPath.includes('/android/') || relPath.includes('/ios/')) return true;
   if (relPath.includes('public/deepar-resources')) return true;
   if (relPath.includes('public/effects/')) return true;
   // DeepAR zip archives are installed at build time — never upload ~900MB to Vercel.
@@ -88,7 +92,26 @@ function writeVercelConfig() {
 }
 
 function main() {
-  fs.rmSync(STAGING, { recursive: true, force: true });
+  if (fs.existsSync(STAGING)) {
+    const trash = `${STAGING}-trash-${Date.now()}`;
+    try {
+      fs.renameSync(STAGING, trash);
+      // Best-effort cleanup; do not block staging on flaky external volumes.
+      setTimeout(() => {
+        try {
+          fs.rmSync(trash, { recursive: true, force: true });
+        } catch {
+          /* ignore */
+        }
+      }, 0);
+    } catch {
+      try {
+        fs.rmSync(STAGING, { recursive: true, force: true });
+      } catch {
+        /* fall through and overwrite into a fresh dir name if needed */
+      }
+    }
+  }
   fs.mkdirSync(STAGING, { recursive: true });
 
   for (const file of ['package.json', 'pnpm-lock.yaml', '.npmrc', 'tsconfig.base.json', 'tsconfig.json']) {

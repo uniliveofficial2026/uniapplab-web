@@ -40,13 +40,14 @@ export function ChatCallLocalCameraStage({
   trtcConfigured = false,
   trtcLoading = false,
 }: ChatCallLocalCameraStageProps) {
+  void trtcConfigured;
+  void trtcLoading;
+  void showProcessedPreview;
+
   const videoClass =
     layout === 'fullscreen'
       ? CALL_VIDEO_FULLSCREEN_CLASS
       : 'absolute inset-0 block h-full w-full object-cover object-center';
-
-  const hideRawPreview =
-    showProcessedPreview || (trtcConfigured && (trtcLoading || showBeautyPreview));
 
   return (
     <div className="absolute inset-0 overflow-hidden bg-black">
@@ -54,9 +55,9 @@ export function ChatCallLocalCameraStage({
         stream={rawStream}
         layout={layout}
         framing="cover"
-        mirrored={mirrored && !hideRawPreview}
+        mirrored={mirrored}
         label="Your camera"
-        className={hideRawPreview ? 'pointer-events-none opacity-0' : 'opacity-100'}
+        className="opacity-100"
       />
       {beautySinkVideoRef ? (
         <video
@@ -74,9 +75,9 @@ export function ChatCallLocalCameraStage({
           stream={beautyDisplayStream}
           layout={layout}
           framing="cover"
-          mirrored={false}
+          mirrored={mirrored}
           label="Your camera"
-          className={videoClass}
+          className={`${videoClass} z-[1]`}
         />
       ) : null}
       {deeparPreviewHostRef ? (
@@ -87,6 +88,8 @@ export function ChatCallLocalCameraStage({
             opacity: showDeeparPreview ? 1 : 0,
             pointerEvents: 'none',
             zIndex: 2,
+            transform: mirrored ? 'scaleX(-1)' : undefined,
+            transformOrigin: 'center center',
           }}
           aria-hidden={!showDeeparPreview}
         />

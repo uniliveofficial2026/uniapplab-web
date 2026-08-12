@@ -2,7 +2,6 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { fetchStreamViewers, isPlatformApiAvailable } from '../lib/platformApi';
 import {
   isPartyRoomPresenceCloudAvailable,
-  unsubscribePartyRoomPresence,
   watchPartyRoomPresence,
   type PartyRoomPresencePayload,
 } from '../lib/supabase/partyRoomPresence';
@@ -26,7 +25,7 @@ export type LiveViewerPreviewTarget = {
   initialCount?: number;
 };
 
-const STREAM_POLL_MS = 10_000;
+const STREAM_POLL_MS = 30_000;
 const MAX_AVATARS = 3;
 
 function newestAvatars(members: PartyRoomPresencePayload[]): LiveViewerAvatar[] {
@@ -81,7 +80,7 @@ export function useLiveViewerPreviews(
 
     if (!enabled || list.length === 0) return undefined;
 
-    const channels: Array<ReturnType<typeof watchPartyRoomPresence>> = [];
+    const handles: Array<ReturnType<typeof watchPartyRoomPresence>> = [];
     let cancelled = false;
     let streamTimer: number | null = null;
 
@@ -100,7 +99,7 @@ export function useLiveViewerPreviews(
 
     if (isPartyRoomPresenceCloudAvailable()) {
       for (const [roomId, keys] of roomKeys) {
-        const channel = watchPartyRoomPresence(roomId, (members) => {
+        const handle = watchPartyRoomPresence(roomId, (members) => {
           if (cancelled) return;
           const avatars = newestAvatars(members);
           const count = members.length;
@@ -112,7 +111,7 @@ export function useLiveViewerPreviews(
             return next;
           });
         });
-        channels.push(channel);
+        handles.push(handle);
       }
     }
 
@@ -143,8 +142,8 @@ export function useLiveViewerPreviews(
     return () => {
       cancelled = true;
       if (streamTimer) window.clearInterval(streamTimer);
-      for (const channel of channels) {
-        unsubscribePartyRoomPresence(channel);
+      for (const handle of handles) {
+        handle?.unsubscribe();
       }
     };
   }, [enabled, signature]);

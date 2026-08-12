@@ -111,8 +111,10 @@ export function AccountSwitcherModal({
   return (
     <div className="fixed inset-0 z-[2900] flex items-center justify-center p-4" data-app-overlay-root>
       <div
-        className="absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto animate-in fade-in duration-200"
-        onClick={onClose}
+        className={`absolute inset-0 bg-black/60 backdrop-blur-sm pointer-events-auto animate-in fade-in duration-200 ${
+          switchingUid ? 'cursor-wait' : ''
+        }`}
+        onClick={switchingUid ? undefined : onClose}
       />
       <div className="w-full max-w-md bg-card border border-border rounded-[32px] p-6 relative z-10 pointer-events-auto shadow-2xl overflow-hidden flex flex-col max-h-[85vh] animate-in zoom-in-95 duration-200">
         <div className="flex items-center justify-between pb-4 border-b border-border mb-4 shrink-0">
@@ -120,7 +122,8 @@ export function AccountSwitcherModal({
           <button
             type="button"
             onClick={onClose}
-            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-colors"
+            disabled={!!switchingUid}
+            className="p-1.5 rounded-lg hover:bg-secondary text-muted-foreground transition-colors disabled:opacity-40 disabled:pointer-events-none"
             id="close-account-switcher"
           >
             <X className="w-5 h-5" />
@@ -180,6 +183,22 @@ export function AccountSwitcherModal({
                         )}
                       </div>
                       <div className="text-[11px] text-muted-foreground truncate">{acc.email}</div>
+                      {(() => {
+                        const appId = resolveAppUserIdForDeviceAccount(acc.uid);
+                        const live = liveUsers.find(
+                          (user) => user.id === acc.uid || user.id === appId,
+                        );
+                        const publicId = (
+                          live?.publicUserId ||
+                          live?.username ||
+                          ''
+                        ).trim();
+                        return publicId ? (
+                          <div className="text-[10px] text-muted-foreground/80 truncate font-mono">
+                            ID {publicId}
+                          </div>
+                        ) : null;
+                      })()}
                     </div>
                   </div>
 

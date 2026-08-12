@@ -1,4 +1,5 @@
 import { GIFT_EFFECT_CATALOG_BASE } from '../../lib/live/giftEffectCatalogBase';
+import { getStudioGiftMeta } from '../../lib/live/giftStudioCatalog';
 import { lookupUserIdByDisplayName } from './roomUserLookup';
 
 export type RoomGiftEvent = {
@@ -36,19 +37,27 @@ export type PartyGiftDefinition = {
   effectVideoUrl?: string;
   effectSvgaUrl?: string;
   particleColor?: string;
+  isSeasonal?: boolean;
+  season?: import('../../lib/live/giftStudioCatalog').GiftSeason;
+  isVipExclusive?: boolean;
+  description?: string;
 };
 
 /** In-app party gifts — same ids/effects as TRTC-style giftEffectCatalogBase. */
-export const PARTY_GIFT_CATALOG: PartyGiftDefinition[] = GIFT_EFFECT_CATALOG_BASE.map((gift) => ({
-  id: gift.id,
-  name: gift.name,
-  icon: gift.icon,
-  stars: gift.stars,
-  tier: gift.tier,
-  effectSvgaUrl: gift.effectSvgaUrl,
-  effectVideoUrl: gift.effectVideoUrl,
-  particleColor: gift.particleColor,
-}));
+export const PARTY_GIFT_CATALOG: PartyGiftDefinition[] = GIFT_EFFECT_CATALOG_BASE.map((gift) => {
+  const meta = getStudioGiftMeta(gift.id);
+  return {
+    id: gift.id,
+    name: gift.name,
+    icon: gift.icon,
+    stars: gift.stars,
+    tier: gift.tier,
+    effectSvgaUrl: gift.effectSvgaUrl,
+    effectVideoUrl: gift.effectVideoUrl,
+    particleColor: gift.particleColor,
+    ...meta,
+  };
+});
 
 /** Includes admin-published gifts when available. */
 export function getActivePartyGiftCatalog(): PartyGiftDefinition[] {

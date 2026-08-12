@@ -1,7 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
 import {
-  CheckCircle2,
   Eye,
   Grid3X3,
   PlaySquare,
@@ -14,6 +13,7 @@ import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { Avatar } from '../common/Avatar';
 import { ProfileNameLines } from '../common/ProfileNameLines';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 import {
   formatAudienceInsight,
   formatVisitActionLine,
@@ -503,9 +503,11 @@ export function ProfileVisitorsModal({
                         primaryClassName="w-full truncate text-sm font-bold leading-tight flex items-center gap-1.5"
                         secondaryClassName="w-full truncate text-sm leading-tight text-foreground/65"
                         premiumBadge={
-                          user.isVerified ? (
-                            <CheckCircle2 className="w-3.5 h-3.5 text-primary shrink-0" />
-                          ) : null
+                          <UniLivesVerificationBadge
+                            isVerified={!!user.isVerified}
+                            userId={user.id}
+                            iconClassName="w-3.5 h-3.5 text-primary"
+                          />
                         }
                       />
                       <span className="w-full truncate text-xs font-semibold text-foreground/70">

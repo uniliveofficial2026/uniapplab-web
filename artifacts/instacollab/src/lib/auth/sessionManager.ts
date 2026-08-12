@@ -220,19 +220,19 @@ export async function restoreStoredAccountSession(
   }
 
   const sessionUserId = data.session.user.id;
+  const expectedAppId = resolveAppUserIdForDeviceAccount(uid);
   const allowedIds = new Set([
     ...lookupUids,
-    resolveAppUserIdForDeviceAccount(uid),
-    sessionUserId,
-  ]);
+    expectedAppId,
+    uid.trim(),
+  ].filter(Boolean));
   if (!allowedIds.has(sessionUserId)) {
+    for (const id of lookupUids) clearStoredAccountSession(id);
     return { ok: false, reason: 'Saved session does not match this account.' };
   }
 
+  // Persist only under this session identity (+ its aliases), not unrelated device uids.
   saveStoredAccountSessionMirrored(sessionUserId, data.session);
-  for (const id of lookupUids) {
-    if (id !== sessionUserId) saveStoredAccountSessionMirrored(id, data.session);
-  }
   await applySupabaseSessionToLocalDb(data.session);
   return { ok: true };
 }

@@ -34,7 +34,7 @@ export const LOCAL_GAME_CATALOG: LocalGameCatalogEntry[] = [
     image: 'bg-gradient-to-tr from-amber-500 to-red-700',
     // Exact fixed UI the user verified at http://127.0.0.1:3000/
     productionAppUrl: 'http://127.0.0.1:3000/',
-    embeddedAppUrl: '/games/greedy-slot/',
+    embeddedAppUrl: '/games/greedy-slot/index.html',
   },
 ];
 

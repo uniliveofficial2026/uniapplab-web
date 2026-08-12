@@ -1,22 +1,19 @@
 import React, {
-  createContext,
   useCallback,
-  useContext,
   useEffect,
   useMemo,
   useRef,
   useState,
 } from 'react';
 import type { Session } from '@supabase/supabase-js';
-import { onAuthStateChanged, type User as FirebaseUser } from 'firebase/auth';
+import type { User as FirebaseUser } from 'firebase/auth';
+import { CloudAuthContext } from './cloudAuthStore';
 import { db } from '../lib/db/localDb';
 import { isCloudAuthConfigured } from '../lib/auth/config';
 import type { AuthBackend } from '../lib/auth/types';
 import { signOutFast } from '../lib/auth/authHandoff';
 import { isSupabaseConfigured } from '../lib/supabase/config';
 import { isFirebaseConfigured } from '../lib/firebase/config';
-import { getFirebaseAuth } from '../lib/firebase/app';
-import { fetchFirebaseProfile, userFromFirebaseUser } from '../lib/firebase/profile';
 import { withTimeout } from '../lib/supabase/withTimeout';
 import {
   completeSupabaseOAuthReturnOnce,
@@ -43,34 +40,15 @@ import {
 import { readFirebaseBackupLink } from '../lib/auth/firebaseBackupLink';
 import {
   applyDevSessionOverrideFromUrl,
-  shouldApplyDevSessionOverride,
+  shouldRunDemoSessionBootstrap,
 } from '../lib/devSessionUser';
 import { syncDeviceAccountForAppUser } from '../lib/auth/deviceAccounts';
 import { bootstrapCloudSystemsAfterAuth } from '../lib/appCloudSystems';
-
 const SESSION_MS = 2_500;
 const DB_READY_MS = 2_000;
 const OAUTH_RETURN_MS = 5_000;
 
-type CloudAuthContextValue = {
-  configured: boolean;
-  authReady: boolean;
-  activeBackend: AuthBackend | null;
-  session: Session | null;
-  recoveryMode: boolean;
-  clearRecoveryMode: () => void;
-  signOut: () => Promise<void>;
-};
 
-const CloudAuthContext = createContext<CloudAuthContextValue>({
-  configured: false,
-  authReady: true,
-  activeBackend: null,
-  session: null,
-  recoveryMode: false,
-  clearRecoveryMode: () => {},
-  signOut: async () => {},
-});
 
 async function applyLegacyFirebaseUser(
   user: FirebaseUser | null,
@@ -89,6 +67,7 @@ async function applyLegacyFirebaseUser(
     await applyFirebaseOAuthSessionToLocalDb(user, { silent });
     return;
   }
+  const { fetchFirebaseProfile, userFromFirebaseUser } = await import('../lib/firebase/profile');
   const profile = await withTimeout(
     fetchFirebaseProfile(user.uid),
     SESSION_MS,
@@ -149,7 +128,7 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
         writeStoredAuthBackend('supabase');
       }
 
-      if (import.meta.env.DEV && shouldApplyDevSessionOverride(window.location.search)) {
+      if (shouldRunDemoSessionBootstrap()) {
         void applyDevSessionOverrideFromUrl().finally(markReady);
         return;
       }
@@ -190,15 +169,19 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const startFirebaseOnly = () => {
-      const auth = getFirebaseAuth();
-      if (!auth) {
-        markReady();
-        return;
-      }
-      setActiveBackend('firebase');
-      writeStoredAuthBackend('firebase');
-
       void (async () => {
+        const [{ onAuthStateChanged }, { getFirebaseAuth }] = await Promise.all([
+          import('firebase/auth'),
+          import('../lib/firebase/app'),
+        ]);
+        const auth = getFirebaseAuth();
+        if (!auth) {
+          markReady();
+          return;
+        }
+        setActiveBackend('firebase');
+        writeStoredAuthBackend('firebase');
+
         await auth.authStateReady();
         if (cancelled) return;
 
@@ -219,10 +202,14 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
     };
 
     const startFirebaseBackupListener = () => {
-      const auth = getFirebaseAuth();
-      if (!auth) return;
-
       void (async () => {
+        const [{ onAuthStateChanged }, { getFirebaseAuth }] = await Promise.all([
+          import('firebase/auth'),
+          import('../lib/firebase/app'),
+        ]);
+        const auth = getFirebaseAuth();
+        if (!auth) return;
+
         if (shouldCompleteFirebaseOAuthRedirect()) {
           const redirectResult = await completeFirebaseOAuthRedirectOnce().catch(() => null);
           if (redirectResult && !redirectResult.ok && redirectResult.reason) {
@@ -272,7 +259,14 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
 
         if (isSupabaseConfigured()) {
           startSupabase();
-          if (isFirebaseConfigured()) {
+          const needFirebaseBackup =
+            isFirebaseConfigured() &&
+            (isFirebaseOAuthPrimaryMode() ||
+              isSupabaseOAuthDegraded() ||
+              readStoredAuthBackend() === 'firebase' ||
+              shouldCompleteFirebaseOAuthRedirect() ||
+              Boolean(readFirebaseBackupLink()?.firebaseUid));
+          if (needFirebaseBackup) {
             startFirebaseBackupListener();
           }
           return;
@@ -319,8 +313,4 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
   );
 
   return <CloudAuthContext.Provider value={value}>{children}</CloudAuthContext.Provider>;
-}
-
-export function useCloudAuth() {
-  return useContext(CloudAuthContext);
 }

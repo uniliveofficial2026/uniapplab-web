@@ -1,5 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import type { Room } from 'livekit-client';
+import {
+  acquireAppCamera,
+  releaseAppCamera,
+} from '../camera/appCameraOwner';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
 import { isLiveKitConfigured } from '../livekit/livekitConfig';
@@ -17,6 +21,8 @@ export type PlatformStreamState = {
   roomName: string | null;
 };
 
+const PLATFORM_CAMERA_LEASE = 'platform-stream';
+
 /**
  * Platform live stream — local camera/mic paints first; LiveKit/WebRTC publish is background.
  */
@@ -27,19 +33,30 @@ export function usePlatformStream() {
   const [roomName, setRoomName] = useState<string | null>(null);
   const pcRef = useRef<RTCPeerConnection | null>(null);
   const liveKitRoomRef = useRef<Room | null>(null);
+  const cameraLeaseRef = useRef<string | null>(null);
 
   useEffect(() => {
     return () => {
       pcRef.current?.close();
-      void disconnectLiveKit(liveKitRoomRef.current, localStream);
+      void disconnectLiveKit(liveKitRoomRef.current, localStream, cameraLeaseRef.current ?? undefined);
+      if (cameraLeaseRef.current) {
+        releaseAppCamera(cameraLeaseRef.current);
+        cameraLeaseRef.current = null;
+      }
     };
   }, [localStream]);
 
   const goLive = async (title?: string, options?: { mediaStream?: MediaStream }) => {
-    // Instant local media before any network.
-    const media =
-      options?.mediaStream ??
-      (await navigator.mediaDevices.getUserMedia({ video: true, audio: true }));
+    // Instant local media before any network — single device owner.
+    let media = options?.mediaStream ?? null;
+    if (!media) {
+      media = await acquireAppCamera(PLATFORM_CAMERA_LEASE, {
+        audio: true,
+        facingMode: 'user',
+        exactFacing: false,
+      });
+      cameraLeaseRef.current = PLATFORM_CAMERA_LEASE;
+    }
     setLocalStream(media);
 
     const created = await startStream(title);
@@ -107,12 +124,15 @@ export function usePlatformStream() {
   const endLive = async () => {
     if (streamId) await stopStream(streamId).catch(() => {});
     if (mode === 'livekit') {
-      await disconnectLiveKit(liveKitRoomRef.current, localStream);
+      await disconnectLiveKit(liveKitRoomRef.current, localStream, cameraLeaseRef.current ?? undefined);
       liveKitRoomRef.current = null;
     }
     pcRef.current?.close();
     pcRef.current = null;
-    localStream?.getTracks().forEach((t) => t.stop());
+    if (cameraLeaseRef.current) {
+      releaseAppCamera(cameraLeaseRef.current);
+      cameraLeaseRef.current = null;
+    }
     setLocalStream(null);
     setStreamId(null);
     setMode(null);

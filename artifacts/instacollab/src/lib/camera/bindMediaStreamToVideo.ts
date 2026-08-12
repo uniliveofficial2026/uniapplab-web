@@ -34,6 +34,7 @@ export async function bindMediaStreamToVideo(
   applyTrackHints(stream);
   applyMobileInlineVideoAttrs(videoEl);
   videoEl.muted = muted;
+  videoEl.dataset.appCamera = '1';
 
   if (videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
@@ -79,6 +80,7 @@ export function attachMediaStreamToVideo(
   applyTrackHints(stream);
   applyMobileInlineVideoAttrs(videoEl);
   videoEl.muted = options.muted ?? true;
+  videoEl.dataset.appCamera = '1';
   if (videoEl.srcObject !== stream) {
     videoEl.srcObject = stream;
   }

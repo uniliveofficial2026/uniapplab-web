@@ -31,20 +31,24 @@ import { checkForPwaUpdate } from './pwaAutoUpdate';
 import { flushUxSignals, getCurrentScreen, trackUx } from './uxTelemetry';
 import { reconcileWalletAndKstarCoins } from './walletKstarSync';
 
-const HEAL_TICK_MS = 20_000;
-const MEMORY_CHECK_MS = 25_000;
-const LONG_TASK_MS = 200;
-const LAG_BURST_LIMIT = 3;
+const HEAL_TICK_MS = 120_000;
+const MEMORY_CHECK_MS = 60_000;
+/** WebAR/beauty GPU work routinely exceeds 200ms — don't treat that as a freeze. */
+const LONG_TASK_MS = 450;
+const LAG_BURST_LIMIT = 4;
 const LAG_BURST_WINDOW_MS = 20_000;
 const MEMORY_RATIO_THRESHOLD = 0.9;
 const MEMORY_CONFIRMATIONS = 1;
+/** OAuth authorize probe is expensive — at most once per 5 minutes. */
+const OAUTH_HEAL_MIN_INTERVAL_MS = 5 * 60_000;
 
 let installed = false;
 let healInFlight = false;
 let healAgain = false;
 let healTimer: number | null = null;
 let lastForegroundHealAt = 0;
-const FOREGROUND_HEAL_COOLDOWN_MS = 30_000;
+const FOREGROUND_HEAL_COOLDOWN_MS = 60_000;
+let lastOAuthHealAt = 0;
 let lagTimestamps: number[] = [];
 let memoryConfirmations = 0;
 
@@ -64,17 +68,23 @@ async function healSessionState(): Promise<void> {
   reportHeal('session_state', db.currentUserId.slice(0, 8));
 }
 
-async function healCloudAuth(): Promise<void> {
+async function healCloudAuth(force = false): Promise<void> {
   if (!isCloudAuthConfigured() || !isNetworkOnline()) return;
+  // Never run the 6s OAuth authorize probe during camera/beauty — it freezes karaoke.
+  if (!force && isCameraHeavyScreen()) return;
+
+  const now = Date.now();
+  if (!force && now - lastOAuthHealAt < OAUTH_HEAL_MIN_INTERVAL_MS) return;
+  lastOAuthHealAt = now;
 
   try {
     invalidateSupabaseHealthCache();
-    const healthOk = await probeSupabaseHealth(2500);
+    const healthOk = await probeSupabaseHealth(1500);
     if (!healthOk) return;
 
     clearSupabaseOAuthDegraded();
 
-    const oauthOk = await probeSupabaseOAuthReady(6000);
+    const oauthOk = await probeSupabaseOAuthReady(3000);
     if (oauthOk) {
       clearSupabaseOAuthDegraded();
       return;
@@ -87,15 +97,49 @@ async function healCloudAuth(): Promise<void> {
   }
 }
 
+function isProtectedLiveVideo(video: HTMLVideoElement): boolean {
+  if (video.dataset.appCamera === '1') return true;
+  if (video.dataset.webarOutput === '1') return true;
+  if (video.dataset.livePreview === '1') return true;
+  if (video.dataset.callVideo === '1') return true;
+  // Camera / WebAR / LiveKit local preview — never pause these for "relief".
+  const stream = video.srcObject;
+  if (stream instanceof MediaStream) {
+    const hasLiveVideo = stream.getVideoTracks().some(
+      (t) => t.readyState === 'live' && (t.label || t.id),
+    );
+    if (hasLiveVideo && video.muted && video.playsInline !== false) {
+      // Heuristic: muted inline MediaStream video is almost always a camera/AR sink.
+      return true;
+    }
+  }
+  return false;
+}
+
+/** Pause feed/reel playback only — never touch camera, beauty, call, or live sinks. */
 function pauseMediaForRelief(): void {
   pauseAllPlayback();
   document.querySelectorAll('video').forEach((video) => {
+    if (isProtectedLiveVideo(video)) {
+      // If something else paused it, resume so beauty never stays blank.
+      if (video.paused && video.srcObject) {
+        void video.play().catch(() => {});
+      }
+      return;
+    }
     try {
       video.pause();
     } catch {
       /* ignore */
     }
   });
+}
+
+function isCameraHeavyScreen(): boolean {
+  const screen = getCurrentScreen();
+  return /karaoke|live|party|room|call|messages|create|recording|studio|ar|beauty/i.test(
+    screen || '',
+  );
 }
 
 function healPlaybackPressure(): void {
@@ -119,6 +163,16 @@ function healLayoutJank(): void {
 function onLagDetected(durationMs: number, source: string): void {
   if (durationMs < LONG_TASK_MS) return;
 
+  // Beauty / WebAR / live GPU work is expected to create longtasks — healing by
+  // pausing videos blanks the camera and makes lag worse.
+  if (isCameraHeavyScreen()) {
+    trackUx('warning', `beauty_lag_ignored:${source}`, {
+      ...platformMetaForTelemetry(),
+      durationMs,
+    });
+    return;
+  }
+
   const now = Date.now();
   lagTimestamps = lagTimestamps.filter((t) => now - t < LAG_BURST_WINDOW_MS);
   lagTimestamps.push(now);
@@ -136,7 +190,7 @@ function onLagDetected(durationMs: number, source: string): void {
   lagTimestamps = [];
   markCorroborationActed(key);
   pauseMediaForRelief();
-  refreshCloudSystemsInPlace('lag_burst');
+  // Do not refreshCloudSystemsInPlace here — that storms realtime and freezes the UI.
   reportHeal('lag_burst', source);
 
   if (shouldEscalateHandoff('lag_burst', `${source}:${durationMs}ms`)) {
@@ -202,7 +256,10 @@ function installMemoryWatch(): void {
 
     memoryConfirmations = 0;
     markCorroborationActed(key);
-    pauseMediaForRelief();
+    // Never pause camera sinks under memory pressure — that blanks beauty mid-session.
+    if (!isCameraHeavyScreen()) {
+      pauseMediaForRelief();
+    }
     refreshCloudSystemsInPlace('memory_pressure');
     reportHeal('memory_pressure', String(Math.round(ratio * 100)));
 
@@ -250,9 +307,17 @@ async function runHealPass(reason: string): Promise<void> {
     healPlaybackPressure();
     healLayoutJank();
     await healSessionState();
-    await healCloudAuth();
+    // Interval ticks: skip expensive OAuth probe — it was firing every 20s and
+    // freezing every screen. Only probe on boot / online / explicit foreground.
+    const allowOauth =
+      reason === 'boot' || reason === 'online' || reason === 'foreground';
+    if (allowOauth) {
+      await healCloudAuth(reason === 'boot' || reason === 'online');
+    }
     await flushUxSignals(true);
-    await flushBufferedHandoffTasks();
+    if (reason === 'boot' || reason === 'online') {
+      await flushBufferedHandoffTasks();
+    }
 
     if (import.meta.env.DEV) {
       console.info('[auto-heal] pass', reason, getRuntimePlatform().label);

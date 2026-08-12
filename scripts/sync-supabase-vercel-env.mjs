@@ -44,11 +44,12 @@ const VARS = [
   ['SUPABASE_URL', supabaseUrl],
   ['SUPABASE_ANON_KEY', anon],
   ['SUPABASE_SERVICE_ROLE_KEY', service],
+  ['VITE_APP_ORIGIN', env.VITE_APP_ORIGIN || 'https://app.uniapplab.com'],
 ];
 
 const missing = VARS.filter(([name, value]) => {
   if (name === 'SUPABASE_SERVICE_ROLE_KEY') return false;
-  return !value || /your|xxxx|placeholder|otiqckextvdbudbxzmau/i.test(value);
+  return !value || /your|xxxx|placeholder|otiqckextvdbudbxzmau|ffhvdoooxkthlvlvdiiu/i.test(value);
 });
 
 if (missing.length) {

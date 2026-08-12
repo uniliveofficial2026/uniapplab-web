@@ -50,7 +50,7 @@ function minimalProfileFromFirebase(
     display_name: firebaseUser.displayName?.trim() || username,
     avatar_url: firebaseUser.photoURL,
     bio: '',
-    profile_setup_complete: true,
+    profile_setup_complete: false,
     public_user_id: username,
     public_user_id_changed_at: new Date().toISOString(),
   };
@@ -105,7 +105,9 @@ export async function applyFirebaseOAuthSessionToLocalDb(
       if (cached.displayName) profile.display_name = cached.displayName;
       if (cached.avatarUrl) profile.avatar_url = cached.avatarUrl;
       if (cached.bio) profile.bio = cached.bio;
-      profile.profile_setup_complete = true;
+      profile.profile_setup_complete = Boolean(
+        (cached as { profileSetupComplete?: boolean }).profileSetupComplete,
+      );
     } else if (!profile) {
       profile = minimalProfileFromFirebase(linkedSupabaseId, firebaseUser);
     }

@@ -1,0 +1,37 @@
+{
+  "refs": {
+    "ok": false,
+    "canonicalId": "brand.logo.primary",
+    "referencePaths": [],
+    "missing": [
+      "production/unilives-assets/masters/brand/brand/logo/primary",
+      "/Volumes/Wei2TB/Universal-Fixer/production/unilives-assets/references/branding/URL_BRAND_LOGO_PRIMARY_TRANSPARENT_v001_APPROVED.png",
+      "/Volumes/Wei2TB/Universal-Fixer/unilives_master_source/references/branding/approved/URL_BRAND_LOGO_PRIMARY_TRANSPARENT_v001_APPROVED.png",
+      "/Volumes/Wei2TB/Universal-Fixer/production/unilives-assets/references/branding/URL_BRAND_LOGO_PRIMARY_v001_APPROVED.png",
+      "/Volumes/Wei2TB/Universal-Fixer/unilives_master_source/references/branding/approved/URL_BRAND_LOGO_PRIMARY_v001_APPROVED.png"
+    ],
+    "boardRejected": [],
+    "notes": [
+      "No physical approved individual reference found"
+    ]
+  },
+  "job": {
+    "jobId": "b35b1d94-f2c3-46f2-9692-f872e84f5b0a",
+    "canonicalId": "brand.logo.primary",
+    "provider": "local",
+    "phase": "blocked",
+    "version": "v20260731-023747",
+    "dryRun": true,
+    "paidCallsUsed": 0,
+    "createdAt": "2026-07-31T02:37:47.493Z",
+    "updatedAt": "2026-07-31T02:37:47.498Z",
+    "draftDir": "/Volumes/Wei2TB/Universal-Fixer/production/unilives-assets/previews/drafts/brand.logo.primary/v20260731-023747",
+    "referencePaths": [],
+    "outputPaths": [],
+    "notes": [
+      "No physical approved individual reference found",
+      "Missing candidate references (not all required): production/unilives-assets/masters/brand/brand/logo/primary, /Volumes/Wei2TB/Universal-Fixer/production/unilives-assets/references/branding/URL_BRAND_LOGO_PRIMARY_TRANSPARENT_v001_APPROVED.png, /Volumes/Wei2TB/Universal-Fixer/unilives_master_source/references/branding/approved/URL_BRAND_LOGO_PRIMARY_TRANSPARENT_v001_APPROVED.png, /Volumes/Wei2TB/Universal-Fixer/production/unilives-assets/references/branding/URL_BRAND_LOGO_PRIMARY_v001_APPROVED.png, /Volumes/Wei2TB/Universal-Fixer/unilives_master_source/references/branding/approved/URL_BRAND_LOGO_PRIMARY_v001_APPROVED.png"
+    ],
+    "blockedReason": "Physical approved individual reference required before generation"
+  }
+}

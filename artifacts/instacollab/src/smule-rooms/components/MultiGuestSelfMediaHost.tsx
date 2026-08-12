@@ -160,6 +160,26 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
     };
   }, [active, rawVideoRef]);
 
+  useLayoutEffect(() => {
+    if (!active || !showBeautyPreview) return undefined;
+    const video = beautyVideoRef?.current;
+    if (!video) return undefined;
+
+    const keepPlaying = () => {
+      if (video.srcObject && video.paused) {
+        void video.play().catch(() => {});
+      }
+    };
+
+    keepPlaying();
+    const id = window.setInterval(keepPlaying, 1500);
+    video.addEventListener('pause', keepPlaying);
+    return () => {
+      window.clearInterval(id);
+      video.removeEventListener('pause', keepPlaying);
+    };
+  }, [active, beautyVideoRef, showBeautyPreview]);
+
   if (!active) return null;
 
   return (
@@ -184,14 +204,14 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
           playsInline
           autoPlay
           className={`multi-guest-video-tile-media ${
-            mirrorSelf && !showDeeparPreview && !showBeautyPreview
+            mirrorSelf
               ? 'multi-guest-video-tile-media--self'
               : 'multi-guest-video-tile-media--self-ar'
           }`}
           style={
-            beautyFilter && !showDeeparPreview && !showBeautyPreview
-              ? { filter: beautyFilter }
-              : undefined
+            /* Keep CSS beauty under the WebAR overlay so seats never go "unbeautified"
+             * if the processed video is late, clipped, or not yet bound. */
+            beautyFilter && !showDeeparPreview ? { filter: beautyFilter } : undefined
           }
         />
         {beautyVideoRef ? (
@@ -200,7 +220,11 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
             muted
             playsInline
             autoPlay
-            className="multi-guest-video-tile-media multi-guest-video-tile-media--self-ar"
+            className={`multi-guest-video-tile-media ${
+              mirrorSelf
+                ? 'multi-guest-video-tile-media--self'
+                : 'multi-guest-video-tile-media--self-ar'
+            }`}
             style={{
               opacity: showBeautyPreview ? 1 : 0,
               pointerEvents: 'none',
@@ -208,7 +232,9 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
           />
         ) : null}
         <div
-          className={`multi-guest-video-tile-deepar${showDeeparPreview ? ' multi-guest-video-tile-deepar--live' : ''}`}
+          className={`multi-guest-video-tile-deepar${showDeeparPreview ? ' multi-guest-video-tile-deepar--live' : ''}${
+            mirrorSelf ? ' multi-guest-video-tile-media--self' : ''
+          }`}
         >
           <div
             ref={mergeProcessRef}

@@ -75,6 +75,9 @@ export type AdminStreamRow = {
   status: string;
   started_at: string;
   ended_at: string | null;
+  privacy?: string | null;
+  party_room_id?: string | null;
+  room_mode?: string | null;
   host?: { username?: string; display_name?: string } | null;
 };
 
@@ -86,6 +89,7 @@ export type AdminPartyRoomRow = {
   status: string;
   participant_count: number;
   created_at: string;
+  privacy?: string | null;
   owner?: { username?: string; display_name?: string } | null;
 };
 
@@ -163,8 +167,34 @@ export async function adminListStreams(): Promise<{ items: AdminStreamRow[] }> {
   return apiFetchAdmin('/api/admin/streams');
 }
 
-export async function adminStopStream(streamId: string): Promise<unknown> {
-  return apiFetchAdmin(`/api/admin/streams/${streamId}/stop`, { method: 'POST', body: '{}' });
+export async function adminStopStream(
+  streamId: string,
+  opts?: { partyRoomId?: string; hostUserId?: string },
+): Promise<unknown> {
+  return apiFetchAdmin('/api/admin/moderation/stop-live', {
+    method: 'POST',
+    body: JSON.stringify({
+      streamId,
+      roomId: opts?.partyRoomId,
+      hostUserId: opts?.hostUserId,
+    }),
+  });
+}
+
+export async function adminBanStream(
+  streamId: string,
+  reason?: string,
+  opts?: { partyRoomId?: string; hostUserId?: string },
+): Promise<unknown> {
+  return apiFetchAdmin('/api/admin/moderation/ban-host', {
+    method: 'POST',
+    body: JSON.stringify({
+      streamId,
+      roomId: opts?.partyRoomId,
+      hostUserId: opts?.hostUserId,
+      reason: reason?.trim() || undefined,
+    }),
+  });
 }
 
 export async function adminListPartyRooms(q?: string): Promise<{ items: AdminPartyRoomRow[] }> {
@@ -172,8 +202,32 @@ export async function adminListPartyRooms(q?: string): Promise<{ items: AdminPar
   return apiFetchAdmin(`/api/admin/party-rooms${query}`);
 }
 
-export async function adminEndPartyRoom(roomId: string): Promise<unknown> {
-  return apiFetchAdmin(`/api/admin/party-rooms/${roomId}/end`, { method: 'POST', body: '{}' });
+export async function adminEndPartyRoom(
+  roomId: string,
+  opts?: { hostUserId?: string },
+): Promise<unknown> {
+  return apiFetchAdmin('/api/admin/moderation/stop-live', {
+    method: 'POST',
+    body: JSON.stringify({
+      roomId,
+      hostUserId: opts?.hostUserId,
+    }),
+  });
+}
+
+export async function adminBanPartyRoom(
+  roomId: string,
+  reason?: string,
+  opts?: { hostUserId?: string },
+): Promise<unknown> {
+  return apiFetchAdmin('/api/admin/moderation/ban-host', {
+    method: 'POST',
+    body: JSON.stringify({
+      roomId,
+      hostUserId: opts?.hostUserId,
+      reason: reason?.trim() || undefined,
+    }),
+  });
 }
 
 export async function adminListGifts(): Promise<{ items: AdminGiftRow[] }> {

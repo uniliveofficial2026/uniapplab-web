@@ -1,5 +1,5 @@
 {
-  "name": "InstaCollab (Universal-Fixer)",
+  "name": "UniLive (Universal-Fixer)",
   "image": "mcr.microsoft.com/devcontainers/javascript-node:1-22-bookworm",
   "features": {
     "ghcr.io/devcontainers/features/github-cli:1": {}
@@ -8,7 +8,7 @@
   "postCreateCommand": "bash .devcontainer/post-create.sh",
   "forwardPorts": [5173, 4173, 3000],
   "portsAttributes": {
-    "5173": { "label": "InstaCollab (Vite)", "onAutoForward": "notify" },
+    "5173": { "label": "UniLive (Vite)", "onAutoForward": "notify" },
     "4173": { "label": "Vite preview", "onAutoForward": "silent" }
   },
   "customizations": {

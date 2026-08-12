@@ -1,6 +1,5 @@
 import React, { useMemo, useRef, useState } from 'react';
-import { Gift, Palette, Play, Plus, Save, Sparkles, Trash2, Upload } from 'lucide-react';
-import { GiftPlayOverlay } from '../../smule-rooms/components/GiftPlayOverlay';
+import { Gift, Pencil, Palette, Play, Plus, Save, Sparkles, Trash2, Upload } from 'lucide-react';
 import type { GiftPlayPayload } from '../../smule-rooms/utils/liveRoomTypes';
 import type { GiftEffectTier } from '../../lib/live/giftEffectCatalogTypes';
 import { giftTierFromStars, giftTierMeta } from '../../lib/live/giftTiers';
@@ -26,12 +25,16 @@ import {
   getGiftTierOptions,
 } from '../../lib/adminStudioStore';
 import {
+  isGiftIconImageFile,
   isGiftSvgaFile,
   isGiftVideoFile,
   uploadGiftEffectAsset,
 } from '../../lib/giftAssetUpload';
 import { PARTY_GIFT_CATALOG_UPDATED_EVENT } from '../../lib/cloudSocial/platformGiftCatalogCloud';
 import { useDB, useDbRevision } from '../../lib/useDB';
+import { GiftPreviewPhoneFrame } from './GiftPreviewPhoneFrame';
+import { GiftIconMediaPicker } from './GiftIconMediaPicker';
+import { GiftIcon } from '../common/GiftIcon';
 
 type StudioTab = 'gifts' | 'beauty';
 
@@ -46,7 +49,10 @@ export function AdminCreationStudio() {
   const [newTier, setNewTier] = useState('');
   const [studioTick, setStudioTick] = useState(0);
   const [catalogTick, setCatalogTick] = useState(0);
-  const [uploadingKind, setUploadingKind] = useState<'svga' | 'video' | null>(null);
+  const [uploadingKind, setUploadingKind] = useState<'svga' | 'video' | 'icon' | null>(null);
+  const giftEditorRef = useRef<HTMLDivElement>(null);
+  const catalogSvgaInputRef = useRef<HTMLInputElement>(null);
+  const pendingCatalogUploadIdRef = useRef<string | null>(null);
 
   React.useEffect(() => {
     const onUpdate = () => setCatalogTick((value) => value + 1);
@@ -69,10 +75,30 @@ export function AdminCreationStudio() {
   }, [studioTick]);
 
   const refreshStudioOptions = () => setStudioTick((value) => value + 1);
+  const editingBuiltin = isBuiltinGiftId(giftDraft.id);
+  const editingExisting = gifts.some((gift) => gift.id === giftDraft.id);
+
+  const selectGiftForEdit = (id: string) => {
+    const row = gifts.find((g) => g.id === id);
+    if (!row) return;
+    setGiftDraft({ ...row });
+    window.requestAnimationFrame(() => {
+      giftEditorRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    });
+  };
+
+  const persistGiftDraft = (
+    next: PublishedGiftItem,
+    status: 'draft' | 'published' = next.status === 'published' ? 'published' : 'draft',
+  ) => {
+    const saved = upsertPublishedGift({ ...next, status });
+    setGiftDraft(saved);
+    setCatalogTick((value) => value + 1);
+    return saved;
+  };
 
   const saveGift = (publish: boolean) => {
-    upsertPublishedGift({ ...giftDraft, status: publish ? 'published' : 'draft' });
-    setCatalogTick((value) => value + 1);
+    persistGiftDraft(giftDraft, publish ? 'published' : 'draft');
     window.dispatchEvent(
       new CustomEvent('app-toast', {
         detail: publish ? 'Gift published to live rooms' : 'Gift draft saved',
@@ -104,7 +130,11 @@ export function AdminCreationStudio() {
     });
   };
 
-  const handleGiftAssetUpload = async (kind: 'svga' | 'video', file: File | null) => {
+  const handleGiftAssetUpload = async (
+    kind: 'svga' | 'video' | 'icon',
+    file: File | null,
+    targetGiftId?: string,
+  ) => {
     if (!file) return;
     if (kind === 'svga' && !isGiftSvgaFile(file)) {
       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Choose an .svga file' }));
@@ -114,26 +144,59 @@ export function AdminCreationStudio() {
       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Choose an MP4/WebM video' }));
       return;
     }
+    if (kind === 'icon' && !isGiftIconImageFile(file)) {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Choose a PNG/JPEG/WebP/GIF image' }));
+      return;
+    }
+
+    const giftId = targetGiftId ?? giftDraft.id;
+    const base =
+      giftId === giftDraft.id ? giftDraft : gifts.find((gift) => gift.id === giftId) ?? giftDraft;
+
     setUploadingKind(kind);
     try {
-      const url = await uploadGiftEffectAsset(giftDraft.id, file);
+      const url = await uploadGiftEffectAsset(giftId, file);
       if (!url) {
         window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Upload failed — check storage' }));
         return;
       }
-      setGiftDraft((prev) =>
-        kind === 'svga'
-          ? { ...prev, effectSvgaUrl: url }
-          : { ...prev, effectVideoUrl: url },
-      );
+      const next: PublishedGiftItem = {
+        ...base,
+        id: giftId,
+        ...(kind === 'svga'
+          ? { effectSvgaUrl: url }
+          : kind === 'video'
+            ? { effectVideoUrl: url }
+            : { icon: url }),
+      };
+      // Keep published gifts live after replace; drafts stay drafts.
+      const status = base.status === 'published' || isBuiltinGiftId(giftId) ? 'published' : 'draft';
+      persistGiftDraft(next, status);
       window.dispatchEvent(
         new CustomEvent('app-toast', {
-          detail: kind === 'svga' ? 'SVGA uploaded — publish to replace in-app gift' : 'Video uploaded',
+          detail:
+            kind === 'svga'
+              ? status === 'published'
+                ? 'SVGA uploaded and live'
+                : 'SVGA uploaded — publish when ready'
+              : kind === 'video'
+                ? status === 'published'
+                  ? 'Video uploaded and live'
+                  : 'Video uploaded — publish when ready'
+                : status === 'published'
+                  ? 'Icon uploaded and live'
+                  : 'Icon uploaded — publish when ready',
         }),
       );
     } finally {
       setUploadingKind(null);
     }
+  };
+
+  const startCatalogSvgaUpload = (id: string) => {
+    selectGiftForEdit(id);
+    pendingCatalogUploadIdRef.current = id;
+    window.setTimeout(() => catalogSvgaInputRef.current?.click(), 0);
   };
 
   const addProvider = () => {
@@ -174,73 +237,88 @@ export function AdminCreationStudio() {
       </div>
 
       {tab === 'gifts' ? (
-        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_320px] gap-4">
-          <div className="space-y-4">
-            <EditorShell
-              title="Create / edit gift"
-              description="In-app gifts appear below — edit & upload SVGA/video to replace effects in live rooms (TRTC/LiveKit style)"
-            >
-              <GiftEditor
-                draft={giftDraft}
-                onChange={setGiftDraft}
-                tiers={giftTiers}
-                uploadingKind={uploadingKind}
-                onUpload={handleGiftAssetUpload}
-              />
-              <StudioOptionManager
-                label="Gift tiers"
-                placeholder="Add custom tier…"
-                value={newTier}
-                onChange={setNewTier}
-                onAdd={addTier}
-                options={giftTiers}
-                onDelete={(id) => {
-                  deleteCustomGiftTier(id);
-                  refreshStudioOptions();
-                }}
-              />
-              <div className="flex flex-wrap gap-2 pt-2">
-                <button type="button" onClick={() => saveGift(false)} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]">
-                  <Save className="w-3.5 h-3.5" /> Save draft
-                </button>
-                <button type="button" onClick={() => saveGift(true)} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl bg-primary text-primary-foreground min-h-[40px]">
-                  <Sparkles className="w-3.5 h-3.5" /> Publish live
-                </button>
-                <button type="button" onClick={playGiftPreview} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]">
-                  <Play className="w-3.5 h-3.5" /> Preview effect
-                </button>
-                <button type="button" onClick={() => setGiftDraft(createEmptyGiftDraft())} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]">
-                  <Plus className="w-3.5 h-3.5" /> New
-                </button>
-              </div>
-            </EditorShell>
+        <div className="grid grid-cols-1 xl:grid-cols-[minmax(0,1fr)_auto] gap-4 items-start">
+          <div className="space-y-4 min-w-0">
+            <input
+              ref={catalogSvgaInputRef}
+              type="file"
+              accept=".svga,application/octet-stream"
+              className="hidden"
+              onChange={(e) => {
+                const giftId = pendingCatalogUploadIdRef.current ?? giftDraft.id;
+                pendingCatalogUploadIdRef.current = null;
+                void handleGiftAssetUpload('svga', e.target.files?.[0] ?? null, giftId);
+                e.target.value = '';
+              }}
+            />
+            <div ref={giftEditorRef}>
+              <EditorShell
+                title={
+                  editingExisting
+                    ? `Edit gift · ${giftDraft.name}${editingBuiltin ? ' (in-app)' : ''}`
+                    : 'Create / edit gift'
+                }
+                description={
+                  editingExisting
+                    ? 'Change name, coins, icon, or upload SVGA/video — Publish live to push into rooms'
+                    : 'In-app gifts appear below — tap Edit or Upload on any row to replace effects'
+                }
+              >
+                <GiftEditor
+                  draft={giftDraft}
+                  onChange={setGiftDraft}
+                  tiers={giftTiers}
+                  uploadingKind={uploadingKind}
+                  onUpload={handleGiftAssetUpload}
+                  lockId={editingBuiltin || editingExisting}
+                />
+                <StudioOptionManager
+                  label="Gift tiers"
+                  placeholder="Add custom tier…"
+                  value={newTier}
+                  onChange={setNewTier}
+                  onAdd={addTier}
+                  options={giftTiers}
+                  onDelete={(id) => {
+                    deleteCustomGiftTier(id);
+                    refreshStudioOptions();
+                  }}
+                />
+                <div className="flex flex-wrap gap-2 pt-2">
+                  <button type="button" onClick={() => saveGift(false)} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]">
+                    <Save className="w-3.5 h-3.5" /> Save draft
+                  </button>
+                  <button type="button" onClick={() => saveGift(true)} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl bg-primary text-primary-foreground min-h-[40px]">
+                    <Sparkles className="w-3.5 h-3.5" /> Publish live
+                  </button>
+                  <button type="button" onClick={playGiftPreview} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]">
+                    <Play className="w-3.5 h-3.5" /> Preview effect
+                  </button>
+                  <button type="button" onClick={() => setGiftDraft(createEmptyGiftDraft())} className="inline-flex items-center gap-1 text-xs font-bold px-3 py-2 rounded-xl border border-border min-h-[40px]">
+                    <Plus className="w-3.5 h-3.5" /> New
+                  </button>
+                </div>
+              </EditorShell>
+            </div>
 
             <CatalogList
               title="Gift catalog (in-app + published)"
               empty="No gifts yet"
+              scrollable
               items={gifts.map((g) => ({
                 id: g.id,
-                label: `${g.icon} ${g.name}`,
+                label: g.name,
+                icon: g.icon,
                 meta: `${g.stars} coins · ${g.tier} · ${g.status}${isBuiltinGiftId(g.id) ? ' · in-app' : ''}${(g.updatedAt ?? 0) > 0 && isBuiltinGiftId(g.id) ? ' · replaced' : ''}`,
+                selected: g.id === giftDraft.id,
               }))}
-              onSelect={(id) => {
-                const row = gifts.find((g) => g.id === id);
-                if (row) setGiftDraft({ ...row });
-              }}
+              onSelect={selectGiftForEdit}
+              onUpload={startCatalogSvgaUpload}
               onDelete={removeGift}
             />
           </div>
 
-          <div className="relative rounded-2xl border border-border bg-black min-h-[360px] overflow-hidden">
-            <div className="absolute inset-0 pointer-events-none">
-              <GiftPlayOverlay gift={previewGift} onDone={() => setPreviewGift(null)} />
-            </div>
-            {!previewGift ? (
-              <div className="absolute inset-0 flex items-center justify-center text-xs text-muted-foreground p-6 text-center">
-                Tap Preview effect to play SVGA / particle gift in this panel
-              </div>
-            ) : null}
-          </div>
+          <GiftPreviewPhoneFrame gift={previewGift} />
         </div>
       ) : (
         <div className="grid grid-cols-1 xl:grid-cols-2 gap-4">
@@ -403,21 +481,34 @@ function GiftEditor({
   tiers,
   uploadingKind,
   onUpload,
+  lockId = false,
 }: {
   draft: PublishedGiftItem;
   onChange: (v: PublishedGiftItem) => void;
   tiers: Array<{ id: string; label: string }>;
-  uploadingKind: 'svga' | 'video' | null;
-  onUpload: (kind: 'svga' | 'video', file: File | null) => void;
+  uploadingKind: 'svga' | 'video' | 'icon' | null;
+  onUpload: (kind: 'svga' | 'video' | 'icon', file: File | null) => void;
+  lockId?: boolean;
 }) {
   const svgaInputRef = useRef<HTMLInputElement>(null);
   const videoInputRef = useRef<HTMLInputElement>(null);
 
   return (
     <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-      <Field label="Gift id (stable)" value={draft.id} onChange={(id) => onChange({ ...draft, id })} mono />
+      <Field
+        label={lockId ? 'Gift id (locked)' : 'Gift id (stable)'}
+        value={draft.id}
+        onChange={(id) => onChange({ ...draft, id })}
+        mono
+        disabled={lockId}
+      />
       <Field label="Name" value={draft.name} onChange={(name) => onChange({ ...draft, name })} />
-      <Field label="Icon (emoji)" value={draft.icon} onChange={(icon) => onChange({ ...draft, icon })} />
+      <GiftIconMediaPicker
+        value={draft.icon}
+        onChange={(icon) => onChange({ ...draft, icon })}
+        uploading={uploadingKind === 'icon'}
+        onUploadImage={(file) => onUpload('icon', file)}
+      />
       <Field
         label="Coin"
         value={String(draft.stars)}
@@ -550,20 +641,23 @@ function Field({
   onChange,
   mono,
   className = '',
+  disabled = false,
 }: {
   label: string;
   value: string;
   onChange: (v: string) => void;
   mono?: boolean;
   className?: string;
+  disabled?: boolean;
 }) {
   return (
     <label className={`block text-xs ${className}`}>
       <span className="font-bold text-muted-foreground">{label}</span>
       <input
         value={value}
+        disabled={disabled}
         onChange={(e) => onChange(e.target.value)}
-        className={`mt-1 w-full border border-border rounded-lg px-3 py-2 bg-background min-h-[40px] ${mono ? 'font-mono text-[11px]' : ''}`}
+        className={`mt-1 w-full border border-border rounded-lg px-3 py-2 bg-background min-h-[40px] disabled:opacity-70 ${mono ? 'font-mono text-[11px]' : ''}`}
       />
     </label>
   );
@@ -574,31 +668,80 @@ function CatalogList({
   empty,
   items,
   onSelect,
+  onUpload,
   onDelete,
+  scrollable = false,
 }: {
   title: string;
   empty: string;
-  items: Array<{ id: string; label: string; meta: string }>;
+  items: Array<{ id: string; label: string; meta: string; icon?: string; selected?: boolean }>;
   onSelect: (id: string) => void;
+  onUpload?: (id: string) => void;
   onDelete: (id: string) => void;
+  scrollable?: boolean;
 }) {
   return (
     <div className="rounded-2xl border border-border bg-card p-4 space-y-2">
-      <h3 className="font-bold text-sm">{title}</h3>
+      <div className="flex items-center justify-between gap-2">
+        <h3 className="font-bold text-sm">{title}</h3>
+        {scrollable ? (
+          <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+            Edit · Upload · Reset
+          </span>
+        ) : null}
+      </div>
       {items.length === 0 ? (
         <p className="text-xs text-muted-foreground py-4 text-center">{empty}</p>
       ) : (
-        items.map((item) => (
-          <div key={item.id} className="flex items-center gap-2 p-2 rounded-xl border border-border">
-            <button type="button" onClick={() => onSelect(item.id)} className="flex-1 text-left min-w-0">
-              <div className="text-sm font-bold truncate">{item.label}</div>
-              <div className="text-[10px] text-muted-foreground truncate">{item.meta}</div>
-            </button>
-            <button type="button" onClick={() => onDelete(item.id)} className="p-2 rounded-lg border border-destructive/30 text-destructive shrink-0">
-              <Trash2 className="w-3.5 h-3.5" />
-            </button>
-          </div>
-        ))
+        <div className={scrollable ? 'max-h-[min(28rem,55vh)] space-y-2 overflow-y-auto pr-1' : 'space-y-2'}>
+          {items.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-center gap-2 p-2 rounded-xl border ${
+                item.selected ? 'border-primary bg-primary/5' : 'border-border'
+              }`}
+            >
+              {item.icon ? (
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-secondary/40 overflow-hidden">
+                  <GiftIcon icon={item.icon} className="text-lg" imgClassName="h-7 w-7 object-contain" />
+                </div>
+              ) : null}
+              <button type="button" onClick={() => onSelect(item.id)} className="flex-1 text-left min-w-0">
+                <div className="text-sm font-bold truncate">{item.label}</div>
+                <div className="text-[10px] text-muted-foreground truncate">{item.meta}</div>
+              </button>
+              <button
+                type="button"
+                onClick={() => onSelect(item.id)}
+                title="Edit gift"
+                aria-label={`Edit ${item.label}`}
+                className="p-2 rounded-lg border border-border text-foreground shrink-0 hover:bg-secondary/40"
+              >
+                <Pencil className="w-3.5 h-3.5" />
+              </button>
+              {onUpload ? (
+                <button
+                  type="button"
+                  onClick={() => onUpload(item.id)}
+                  title="Upload SVGA effect"
+                  aria-label={`Upload SVGA for ${item.label}`}
+                  className="p-2 rounded-lg border border-border text-foreground shrink-0 hover:bg-secondary/40"
+                >
+                  <Upload className="w-3.5 h-3.5" />
+                </button>
+              ) : null}
+              <button
+                type="button"
+                onClick={() => onDelete(item.id)}
+                title="Delete or reset"
+                aria-label={`Delete ${item.label}`}
+                className="p-2 rounded-lg border border-destructive/30 text-destructive shrink-0"
+              >
+                <Trash2 className="w-3.5 h-3.5" />
+              </button>
+            </div>
+          ))}
+        </div>
       )}
     </div>
   );

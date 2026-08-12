@@ -1,0 +1,25 @@
+{
+  "name": "ai-gateway-demo",
+  "version": "1.0.0",
+  "description": "",
+  "main": "index.js",
+  "scripts": {
+    "start": "tsx index.ts",
+    "gateway:demo": "tsx index.ts"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "packageManager": "pnpm@10.34.4",
+  "dependencies": {
+    "ai": "^7.0.18",
+    "dotenv": "^17.4.2",
+    "zod": "catalog:"
+  },
+  "devDependencies": {
+    "@types/node": "catalog:",
+    "tsx": "catalog:",
+    "typescript": "~5.9.3"
+  },
+  "type": "module"
+}

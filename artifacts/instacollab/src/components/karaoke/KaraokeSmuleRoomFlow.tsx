@@ -9,6 +9,7 @@ import {
   RoomFlowProvider,
   type RoomFlowEntry,
 } from '../../smule-rooms/context/RoomFlowContext';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 import '../../smule-rooms/smule-rooms.css';
 import './karaoke-smule-embed.css';
 import './admin-embed-full.css';
@@ -22,6 +23,25 @@ function KaraokeFlowBack({ onClose }: { onClose: () => void }) {
   }, []);
 
   return null;
+}
+
+/** Recoverable fallback so a room/beauty crash never blanks the whole app. */
+function RoomCrashFallback({ onClose }: { onClose: () => void }) {
+  return (
+    <div className="flex h-full min-h-[40vh] w-full flex-col items-center justify-center gap-3 bg-black p-6 text-center text-white">
+      <p className="text-lg font-bold">This room hit a snag</p>
+      <p className="max-w-md text-sm text-white/70">
+        The live room stopped unexpectedly. Your app is fine — head back and try again.
+      </p>
+      <button
+        type="button"
+        onClick={onClose}
+        className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-black"
+      >
+        Back
+      </button>
+    </div>
+  );
 }
 
 /** Keeps verbatim smule pages sized to the embed panel, not the viewport. */
@@ -48,15 +68,17 @@ function AppContent({ onClose }: { onClose: () => void }) {
         <div
           className={`karaoke-smule-room-panel w-full max-w-full min-w-0 h-full min-h-0 relative flex flex-col overflow-hidden bg-gray-950 ${isFullscreen ? '' : 'md:border-x border-gray-900 shadow-[0_0_40px_rgba(168,85,247,0.1)]'}`}
         >
-          <Routes>
-            <Route path="/karaoke/party-back" element={<KaraokeFlowBack onClose={onClose} />} />
-            <Route path="/party" element={<KaraokeFlowBack onClose={onClose} />} />
-            <Route path="/" element={<KaraokeFlowBack onClose={onClose} />} />
-            <Route path="/room/create" element={<FlowPageShell><CreateRoom /></FlowPageShell>} />
-            <Route path="/room/edit/:id" element={<FlowPageShell><EditRoom /></FlowPageShell>} />
-            <Route path="/room/details/:id" element={<FlowPageShell><RoomDetails /></FlowPageShell>} />
-            <Route path="/room/:id" element={<FlowPageShell><Room /></FlowPageShell>} />
-          </Routes>
+          <ErrorBoundary screen="karaoke-room" fallback={<RoomCrashFallback onClose={onClose} />}>
+            <Routes>
+              <Route path="/karaoke/party-back" element={<KaraokeFlowBack onClose={onClose} />} />
+              <Route path="/party" element={<KaraokeFlowBack onClose={onClose} />} />
+              <Route path="/" element={<KaraokeFlowBack onClose={onClose} />} />
+              <Route path="/room/create" element={<FlowPageShell><CreateRoom /></FlowPageShell>} />
+              <Route path="/room/edit/:id" element={<FlowPageShell><EditRoom /></FlowPageShell>} />
+              <Route path="/room/details/:id" element={<FlowPageShell><RoomDetails /></FlowPageShell>} />
+              <Route path="/room/:id" element={<FlowPageShell><Room /></FlowPageShell>} />
+            </Routes>
+          </ErrorBoundary>
         </div>
       </div>
     </div>
@@ -94,7 +116,8 @@ export function KaraokeSmuleRoomFlow({
   const initialIndex = initialEntries.length - 1;
   const embedRootClass =
     embedVariant === 'full'
-      ? 'karaoke-smule-room-embed-full absolute inset-0 z-[70] font-sans selection:bg-purple-500/30 flex flex-col min-h-0 overflow-hidden bg-black'
+      ? // Keep `karaoke-smule-room-embed` so shared chip/avatar sizing CSS still applies.
+        'karaoke-smule-room-embed karaoke-smule-room-embed-full absolute inset-0 z-[70] font-sans selection:bg-purple-500/30 flex flex-col min-h-0 overflow-hidden bg-black'
       : 'karaoke-smule-room-embed absolute inset-0 z-[70] font-sans selection:bg-purple-500/30 flex flex-col min-h-0 overflow-hidden bg-black';
 
   return (

@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
-import { ArrowLeft, Camera, Globe, Lock, Music2, Radio, MessageSquare, Users2, Video, ShoppingBag, Swords, Gamepad2 } from 'lucide-react';
+import { ArrowLeft, Camera, Globe, Lock, Music2, Radio, MessageSquare, Users2, Video, ShoppingBag, PartyPopper, Gamepad2 } from 'lucide-react';
 import { CreateRoomModePreview } from '../components/CreateRoomModePreview';
 import { CreateRoomSeatMockup } from '../components/CreateRoomSeatMockup';
 import { useNavigate } from 'react-router-dom';
@@ -25,7 +25,7 @@ import {
 
 const MODE_LABELS: Record<string, string> = {
   Chat: 'Chat',
-  Party: 'PK',
+  Party: 'Party',
   Karaoke: 'Karaoke',
   Radio: 'Watch',
   'Game-Live': 'Game',
@@ -178,6 +178,8 @@ const CreateRoom = () => {
           roomId: roomIdString,
           roomMode: mode as RoomMode,
           coverPhoto: coverPreview ?? 'Default',
+          whoCanBeSeated: 'Anyone',
+          seatJoinMode: 'free',
           ...privacyPatch,
         },
         currentUser,
@@ -213,6 +215,9 @@ const CreateRoom = () => {
         roomMode: mode as RoomMode,
         privacy,
         whoCanJoin: privacyPatch.whoCanJoin,
+        roomKey: privacyPatch.roomKey,
+        whoCanBeSeated: 'Anyone',
+        seatJoinMode: 'free',
         coverPhoto: coverPreview ?? 'Default',
       });
       void reconcileOwnerPartyRoomIdFromCloud(currentUser?.id);
@@ -229,7 +234,7 @@ const CreateRoom = () => {
           roomMode: mode as 'Solo-Live' | 'Commerce-Live',
         });
         pendingNavigateRef.current = roomIdString;
-        setGoLiveCountdown(3);
+        setGoLiveCountdown(1);
         return;
       }
 
@@ -282,7 +287,7 @@ const CreateRoom = () => {
     { id: 'Karaoke', icon: Music2, label: 'Karaoke' },
     { id: 'Multi-Guest', icon: Users2, label: 'Multi' },
     { id: 'Solo-Live', icon: Video, label: 'Solo' },
-    { id: 'Party', icon: Swords, label: 'PK' },
+    { id: 'Party', icon: PartyPopper, label: 'Party' },
     { id: 'Commerce-Live', icon: ShoppingBag, label: 'Shop' },
   ] as const;
 
@@ -296,7 +301,18 @@ const CreateRoom = () => {
   return (
     <div className="relative flex h-full flex-col bg-slate-950 font-sans text-white">
       {goLiveCountdown !== null ? (
-        <div className="absolute inset-0 z-[80] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm">
+        <button
+          type="button"
+          className="absolute inset-0 z-[80] flex flex-col items-center justify-center bg-black/70 backdrop-blur-sm"
+          onClick={() => {
+            const roomId = pendingNavigateRef.current;
+            pendingNavigateRef.current = null;
+            setGoLiveCountdown(null);
+            setLaunching(false);
+            if (roomId) navigate(`/room/${roomId}`);
+          }}
+          aria-label="Skip countdown and go live"
+        >
           <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-white/70">
             Starting stream
           </p>
@@ -309,7 +325,8 @@ const CreateRoom = () => {
           <p className="mt-4 text-sm font-semibold text-white/80">
             Beauty effects stay on when you go live
           </p>
-        </div>
+          <p className="mt-2 text-[11px] font-semibold text-white/50">Tap to skip</p>
+        </button>
       ) : null}
 
       <header className="sticky top-0 z-40 flex shrink-0 items-center bg-slate-950/95 p-4 backdrop-blur-md">

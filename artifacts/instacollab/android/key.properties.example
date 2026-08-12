@@ -1,0 +1,16 @@
+# Copy to key.properties (gitignored) after generating the upload keystore.
+# NEVER commit key.properties or *.jks / *.keystore.
+#
+# Generate (once):
+#   mkdir -p android/keystore
+#   keytool -genkeypair -v -storetype PKCS12 \
+#     -keystore android/keystore/unilive-upload.jks \
+#     -alias unilive_upload -keyalg RSA -keysize 2048 -validity 10000 \
+#     -dname "CN=UniLive's, OU=Mobile, O=UniAppLab, C=US"
+#
+# For PKCS12, storePassword and keyPassword must match.
+
+storePassword=REPLACE_ME
+keyPassword=REPLACE_ME
+keyAlias=unilive_upload
+storeFile=keystore/unilive-upload.jks

@@ -1,10 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
-import { ConnectionState, Room, RoomEvent, Track } from 'livekit-client';
+import { ConnectionState, Room } from 'livekit-client';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
 import { registerLiveKitRoom, unregisterLiveKitRoom } from '../../lib/livekit/liveRoomBus';
 import { canAttemptLiveKit, connectWithTokenFetcher } from '../../lib/livekit/liveKitInstant';
 import { updateLiveKitLocalAudioTrack } from '../../lib/livekit/liveKitAudioPublish';
+import { bindLiveKitRemoteAudioPlayback } from '../../lib/livekit/liveKitRemoteAudio';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
+import { realtimeLifecycleDebug } from '../../lib/realtime/realtimeLifecycleDebug';
 
 type PartyLiveKitOptions = {
   roomId: string;
@@ -16,16 +18,12 @@ type PartyLiveKitOptions = {
   publishMic: boolean;
   /** Processed mic from Web Audio voice changer — remote listeners hear the effect */
   processedAudioTrack?: MediaStreamTrack | null;
+  /** Platform-admin silent watch — LiveKit hidden grant (invisible to host). */
+  hidden?: boolean;
 };
 
-function attachRemoteAudio(room: Room) {
-  room.on(RoomEvent.TrackSubscribed, (track) => {
-    if (track.kind === Track.Kind.Audio) {
-      const el = track.attach();
-      void el.play().catch(() => {});
-    }
-  });
-}
+const MAX_CONNECT_RETRIES = 5;
+const RETRY_BASE_MS = 2_000;
 
 /**
  * Voice for every non-camera room mode:
@@ -38,9 +36,11 @@ export function usePartyRoomLiveKit({
   canPublish,
   publishMic,
   processedAudioTrack = null,
+  hidden = false,
 }: PartyLiveKitOptions) {
   const roomRef = useRef<Room | null>(null);
   const publishedTrackIdRef = useRef<string | null>(null);
+  const audioDetachRef = useRef<(() => void) | null>(null);
   const [connected, setConnected] = useState(false);
 
   useEffect(() => {
@@ -51,17 +51,28 @@ export function usePartyRoomLiveKit({
 
     let cancelled = false;
     let retryTimer: number | null = null;
+    let retries = 0;
+
+    const clearAudio = () => {
+      audioDetachRef.current?.();
+      audioDetachRef.current = null;
+    };
 
     const bindRoom = (room: Room) => {
       roomRef.current = room;
       registerLiveKitRoom(roomId, room);
-      attachRemoteAudio(room);
+      clearAudio();
+      audioDetachRef.current = bindLiveKitRemoteAudioPlayback(room).detach;
       setConnected(true);
+      realtimeLifecycleDebug('party-livekit-connected', { roomId });
     };
 
     const connect = async () => {
       const result = await connectWithTokenFetcher(
-        () => fetchPartyLiveKitToken(roomId, canPublish),
+        () =>
+          fetchPartyLiveKitToken(roomId, hidden ? false : canPublish, {
+            hidden,
+          }),
         {
           onDisconnected: () => {
             if (!cancelled) setConnected(false);
@@ -74,11 +85,21 @@ export function usePartyRoomLiveKit({
       }
       if (!result.ok) {
         setConnected(false);
+        if (retries >= MAX_CONNECT_RETRIES) {
+          realtimeLifecycleDebug('party-livekit-retry-exhausted', {
+            roomId,
+            retries,
+          });
+          return;
+        }
+        const delay = RETRY_BASE_MS * Math.min(8, 2 ** retries);
+        retries += 1;
         retryTimer = window.setTimeout(() => {
           if (!cancelled) void connect();
-        }, 2_000);
+        }, delay);
         return;
       }
+      retries = 0;
       bindRoom(result.room);
     };
 
@@ -88,20 +109,22 @@ export function usePartyRoomLiveKit({
       cancelled = true;
       if (retryTimer != null) window.clearTimeout(retryTimer);
       publishedTrackIdRef.current = null;
+      clearAudio();
       const room = roomRef.current;
       roomRef.current = null;
       if (room) unregisterLiveKitRoom(roomId, room);
       room?.disconnect();
       setConnected(false);
+      realtimeLifecycleDebug('party-livekit-cleanup', { roomId });
     };
-  }, [roomId, enabled, canPublish]);
+  }, [roomId, enabled, canPublish, hidden]);
 
   const processedTrackRef = useRef(processedAudioTrack);
   processedTrackRef.current = processedAudioTrack;
 
   useEffect(() => {
     const room = roomRef.current;
-    if (!room || !enabled || room.state !== ConnectionState.Connected) return undefined;
+    if (!room || !enabled || hidden || room.state !== ConnectionState.Connected) return undefined;
 
     let cancelled = false;
 
@@ -125,7 +148,7 @@ export function usePartyRoomLiveKit({
     return () => {
       cancelled = true;
     };
-  }, [publishMic, enabled, connected, processedAudioTrack?.id]);
+  }, [publishMic, enabled, connected, processedAudioTrack?.id, hidden]);
 
   return { connected };
 }

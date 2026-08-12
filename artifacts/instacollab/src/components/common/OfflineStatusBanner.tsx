@@ -23,7 +23,7 @@ export function OfflineStatusBanner({ insetBelowNav = false }: OfflineStatusBann
         insetBelowNav ? 'top-[calc(var(--app-safe-top)+3.25rem)]' : 'top-[max(var(--app-safe-top),0.5rem)]'
       }`}
     >
-      <div className="pointer-events-none flex max-w-md items-center gap-2 rounded-full border border-amber-500/30 bg-amber-500/15 px-3.5 py-2 text-[12px] font-semibold text-amber-950 shadow-lg backdrop-blur-md dark:border-amber-400/25 dark:bg-amber-500/10 dark:text-amber-100">
+      <div className="pointer-events-none flex max-w-md items-center gap-2 rounded-[var(--radius-unilives-pill)] border border-[color:var(--color-unilives-warning)]/30 bg-[color:var(--color-unilives-warning)]/15 px-3.5 py-2 text-[12px] font-semibold text-[color:var(--color-unilives-text)] shadow-[var(--shadow-unilives-md)] backdrop-blur-md">
         <WifiOff className="h-3.5 w-3.5 shrink-0" aria-hidden />
         <span>Offline — all saved UI stays available. Syncs when you reconnect.</span>
       </div>

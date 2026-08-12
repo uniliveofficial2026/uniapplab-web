@@ -1,9 +1,9 @@
-import { useEffect, useRef, useState, type CSSProperties } from 'react';
+import { useEffect, useRef, type CSSProperties } from 'react';
 import { keepMediaStreamOnVideo } from '../../lib/camera/bindMediaStreamToVideo';
 
 /** Full-bleed camera / remote video — edge-to-edge behind call chrome. */
 export const CALL_VIDEO_FULLSCREEN_CLASS =
-  'absolute inset-0 block h-full w-full min-h-full min-w-full object-cover object-center scale-[1.02]';
+  'absolute inset-0 block h-full w-full min-h-full min-w-full object-cover object-center';
 
 /** Fills a `relative` tile parent (PiP self-view, compact grid cells). */
 export const CALL_VIDEO_FILL_CLASS =
@@ -14,24 +14,25 @@ export type CallVideoFraming = 'cover' | 'contain' | 'wide';
 const FRAMING_OBJECT_CLASS: Record<CallVideoFraming, string> = {
   cover: 'object-cover',
   contain: 'object-contain',
-  /** Fullscreen cover with a wider field of view (no letterboxing). */
+  /** Same as cover — kept for callers; do not overscan (overscan looked like a zoom jump). */
   wide: 'object-cover',
 };
 
 /**
- * Overscan factor for `wide` — video is rendered larger than its box so object-cover
- * shows more of the frame while the parent still clips edge-to-edge fullscreen.
+ * Overscan factor for `wide`. Kept at 1 so local preview FOV matches beauty/effects output.
  */
 const FRAMING_OVERSCAN: Record<CallVideoFraming, number> = {
   cover: 1,
   contain: 1,
-  wide: 1.4,
+  wide: 1,
 };
 
 export function callVideoStreamHasFrames(stream: MediaStream | null | undefined): boolean {
-  return Boolean(
-    stream?.getVideoTracks().some((track) => track.enabled && track.readyState !== 'ended'),
-  );
+  return Boolean(stream?.getVideoTracks().some((track) => track.readyState === 'live'));
+}
+
+function streamHasVideoTrack(stream: MediaStream | null | undefined): boolean {
+  return Boolean(stream?.getVideoTracks().length);
 }
 
 type CallVideoSurfaceProps = {
@@ -97,7 +98,10 @@ function videoStyle(mirrored: boolean, framing: CallVideoFraming): CSSProperties
   };
 }
 
-/** Binds a MediaStream to a video element — works with LiveKit tracks and getUserMedia. */
+/**
+ * Binds a MediaStream to a video element — works with LiveKit tracks and getUserMedia.
+ * Always mounts the <video> whenever a video track exists (never blank for "loading" frames).
+ */
 export function CallVideoSurface({
   stream,
   mirrored = false,
@@ -109,46 +113,20 @@ export function CallVideoSurface({
 }: CallVideoSurfaceProps) {
   const ref = useRef<HTMLVideoElement>(null);
   const resolvedLayout = layout ?? (fullscreen ? 'fullscreen' : 'fill');
-  const resolvedFraming: CallVideoFraming =
-    framing ?? (mirrored ? 'wide' : 'cover');
-  const [hasFrames, setHasFrames] = useState(() => callVideoStreamHasFrames(stream));
-
-  useEffect(() => {
-    const update = () => setHasFrames(callVideoStreamHasFrames(stream));
-    update();
-    if (!stream) return undefined;
-
-    const onTrackChange = () => update();
-    const tracks = stream.getVideoTracks();
-    for (const track of tracks) {
-      track.addEventListener('ended', onTrackChange);
-      track.addEventListener('mute', onTrackChange);
-      track.addEventListener('unmute', onTrackChange);
-    }
-    stream.addEventListener('addtrack', onTrackChange);
-    stream.addEventListener('removetrack', onTrackChange);
-    return () => {
-      for (const track of tracks) {
-        track.removeEventListener('ended', onTrackChange);
-        track.removeEventListener('mute', onTrackChange);
-        track.removeEventListener('unmute', onTrackChange);
-      }
-      stream.removeEventListener('addtrack', onTrackChange);
-      stream.removeEventListener('removetrack', onTrackChange);
-    };
-  }, [stream]);
+  /** Always cover — never default mirrored local to a different crop than beauty. */
+  const resolvedFraming: CallVideoFraming = framing ?? 'cover';
 
   useEffect(() => {
     const el = ref.current;
-    if (!el || !hasFrames || !stream) return undefined;
+    if (!el || !streamHasVideoTrack(stream) || !stream) return undefined;
     return keepMediaStreamOnVideo(el, stream, {
-      muted: mirrored,
+      muted: true,
       keepAlive: true,
-      keepAliveMs: 1500,
+      keepAliveMs: 2500,
     });
-  }, [stream, mirrored, hasFrames]);
+  }, [stream, mirrored]);
 
-  if (!hasFrames || !stream) {
+  if (!streamHasVideoTrack(stream)) {
     return null;
   }
 
@@ -157,7 +135,7 @@ export function CallVideoSurface({
       ref={ref}
       autoPlay
       playsInline
-      muted={mirrored}
+      muted
       aria-label={label}
       className={layoutClass(resolvedLayout, resolvedFraming, className.trim())}
       style={videoStyle(mirrored, resolvedFraming)}

@@ -1,6 +1,4 @@
 import { getSupabaseClient } from '../supabase/client';
-import { getFirebaseCurrentUser } from '../firebase/authApi';
-import { migrateFirebaseNewcomerToSupabase } from './migrateFirebaseNewcomer';
 
 let migrateInflight: Promise<string | null> | null = null;
 
@@ -27,19 +25,21 @@ export async function resolveSupabaseSessionUserId(
     return trimmed || null;
   }
 
+  const { getFirebaseCurrentUser } = await import('../firebase/authApi');
   const fbUid = getFirebaseCurrentUser()?.uid ?? fallbackUserId?.trim();
   if (!fbUid) return null;
 
   if (!migrateInflight) {
-    migrateInflight = migrateFirebaseNewcomerToSupabase(fbUid)
+    migrateInflight = import('./migrateFirebaseNewcomer')
+      .then((m) => m.migrateFirebaseNewcomerToSupabase(fbUid))
       .then(() => readSupabaseSessionUserId())
       .finally(() => {
         migrateInflight = null;
       });
   }
 
-  const linked = await migrateInflight;
-  return linked ?? fbUid;
+  const migrated = await migrateInflight;
+  return migrated ?? fallbackUserId?.trim() ?? null;
 }
 
 /** @deprecated Use resolveSupabaseSessionUserId — kept for party-room chat hooks. */

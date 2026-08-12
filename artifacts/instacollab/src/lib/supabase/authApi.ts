@@ -203,7 +203,13 @@ export async function supabaseUpdatePassword(newPassword: string): Promise<AuthR
 
 async function supabaseSignInWithOAuthProvider(
   provider: 'google' | 'apple',
-  options?: { scopes?: string; selectAccount?: boolean; loginHint?: string }
+  options?: {
+    scopes?: string;
+    selectAccount?: boolean;
+    loginHint?: string;
+    /** Request Google Workspace provider_token (Drive, Gmail, Docs, …). */
+    workspaceScopes?: boolean;
+  }
 ): Promise<AuthResult> {
   // Do not pre-probe /authorize here — cross-origin redirect:manual often returns
   // status 0 and falsely blocked Google login before the real OAuth redirect.
@@ -212,7 +218,22 @@ async function supabaseSignInWithOAuthProvider(
 
   const queryParams: Record<string, string> = {};
   if (options?.selectAccount) queryParams.prompt = 'select_account';
-  if (options?.loginHint?.trim()) queryParams.login_hint = options.loginHint.trim();
+  const { sanitizeGoogleLoginHint } = await import('../auth/googleAuthProvider');
+  const loginHint = sanitizeGoogleLoginHint(options?.loginHint);
+  if (loginHint) queryParams.login_hint = loginHint;
+
+  let scopes = options?.scopes;
+  if (provider === 'google' && options?.workspaceScopes) {
+    const { GOOGLE_WORKSPACE_SCOPES_PARAM } = await import('../auth/googleAuthProvider');
+    scopes = [scopes, GOOGLE_WORKSPACE_SCOPES_PARAM].filter(Boolean).join(' ');
+    // Offline + consent so Supabase returns a usable provider_token / refresh.
+    queryParams.access_type = 'offline';
+    queryParams.prompt = options?.selectAccount ? 'consent select_account' : 'consent';
+  } else if (provider === 'google' && !scopes) {
+    // Explicit basic scopes — never silently pull Workspace APIs on Continue with Google.
+    const { GOOGLE_SIGNIN_SCOPES_PARAM } = await import('../auth/googleAuthProvider');
+    scopes = GOOGLE_SIGNIN_SCOPES_PARAM;
+  }
 
   const { data, error } = await supabase.auth.signInWithOAuth({
     provider: provider === 'google' ? 'google' : 'apple',
@@ -220,12 +241,19 @@ async function supabaseSignInWithOAuthProvider(
       redirectTo: getAuthRedirectUrl(),
       // Navigate ourselves — more reliable than relying on SDK auto-redirect in WebViews.
       skipBrowserRedirect: true,
-      ...(options?.scopes ? { scopes: options.scopes } : {}),
+      ...(scopes ? { scopes } : {}),
       ...(Object.keys(queryParams).length > 0 ? { queryParams } : {}),
     },
   });
   if (error) return { ok: false, reason: mapAuthError(error.message, error.code) };
   if (data?.url && typeof window !== 'undefined') {
+    const { isNativeShell } = await import('../nativeShell');
+    if (isNativeShell()) {
+      // System browser + deep-link return — WebView must not follow Google → localhost.
+      const { openNativeOAuthUrl } = await import('../auth/nativeOAuth');
+      await openNativeOAuthUrl(data.url);
+      return { ok: true, redirecting: true };
+    }
     window.location.assign(data.url);
     return { ok: true, redirecting: true };
   }
@@ -236,8 +264,29 @@ async function supabaseSignInWithOAuthProvider(
 export function supabaseSignInWithGoogle(options?: {
   selectAccount?: boolean;
   loginHint?: string;
+  /**
+   * Deep Google Workspace scopes (Drive, Gmail, Docs, Chat, YouTube Live).
+   * Default OFF — login must stay on email/profile until Google verifies the app.
+   * Pass true only from Admin Panel “Connect Google Workspace”.
+   */
+  workspaceScopes?: boolean;
 }): Promise<AuthResult> {
-  return supabaseSignInWithOAuthProvider('google', options);
+  return supabaseSignInWithOAuthProvider('google', {
+    ...options,
+    workspaceScopes: options?.workspaceScopes === true,
+  });
+}
+
+/** Incremental auth for Admin Panel / Workspace Google APIs (triggers consent + verification path). */
+export function supabaseConnectGoogleWorkspace(options?: {
+  selectAccount?: boolean;
+  loginHint?: string;
+}): Promise<AuthResult> {
+  return supabaseSignInWithGoogle({
+    ...options,
+    selectAccount: options?.selectAccount ?? true,
+    workspaceScopes: true,
+  });
 }
 
 /** Opens Apple OAuth (login or sign-up). Requests name + email scopes on first sign-in. */

@@ -25,7 +25,7 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
 var import_express = __toESM(require("express"), 1);
 var import_async_hooks = require("async_hooks");
 var import_path = __toESM(require("path"), 1);
-var import_vite = { createServer: async () => { throw new Error("Vite is not available in Greedy Tap production builds"); } };
+var import_vite = require("vite");
 var import_http = __toESM(require("http"), 1);
 var import_socket = require("socket.io");
 var import_fs = __toESM(require("fs"), 1);
@@ -46,27 +46,117 @@ var PORT = Number(process.env.PORT) || 3e3;
 var GAME_BASE_PATH = (process.env.GAME_BASE_PATH || "").replace(/\/+$/, "");
 var server = import_http.default.createServer(app);
 var io = new import_socket.Server(server, {
-  cors: { origin: "*" },
-  transports: ["polling", "websocket"],
+  cors: { origin: "*", methods: ["GET", "POST"], credentials: false },
+  transports: ["websocket", "polling"],
+  allowUpgrades: true,
   pingTimeout: 6e4,
-  pingInterval: 25e3
+  pingInterval: 2e4,
+  connectTimeout: 2e4
 });
 app.use(import_express.default.json({ limit: "50mb" }));
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", time: (/* @__PURE__ */ new Date()).toISOString(), mode: process.env.NODE_ENV || "development" });
 });
 var items = [
-  { id: "hotdog", name: "Hot Dog", multiplier: 10, icon: "\u{1F32D}", weight: 15 },
-  { id: "skewer", name: "Skewer", multiplier: 15, icon: "\u{1F362}", weight: 15 },
-  { id: "ham", name: "Ham", multiplier: 25, icon: "\u{1F356}", weight: 15 },
-  { id: "steak", name: "Steak", multiplier: 45, icon: "\u{1F969}", weight: 15 },
-  { id: "carrot", name: "Carrot", multiplier: 5, icon: "\u{1F955}", weight: 15 },
-  { id: "corn", name: "Corn", multiplier: 5, icon: "\u{1F33D}", weight: 15 },
-  { id: "cabbage", name: "Cabbage", multiplier: 5, icon: "\u{1F96C}", weight: 15 },
-  { id: "tomato", name: "Tomato", multiplier: 5, icon: "\u{1F345}", weight: 15 },
-  { id: "salad", name: "Salad", multiplier: 50, icon: "\u{1F957}", weight: 1 },
-  { id: "pizza", name: "Pizza", multiplier: 100, icon: "\u{1F355}", weight: 0.1 }
+  { id: "hotdog", name: "Hot Dog", multiplier: 10, icon: "\u{1F32D}", weight: 2 },
+  { id: "skewer", name: "Skewer", multiplier: 15, icon: "\u{1F362}", weight: 1.5 },
+  { id: "ham", name: "Ham", multiplier: 25, icon: "\u{1F356}", weight: 1 },
+  { id: "steak", name: "Steak", multiplier: 45, icon: "\u{1F969}", weight: 0.4 },
+  { id: "carrot", name: "Carrot", multiplier: 5, icon: "\u{1F955}", weight: 28 },
+  { id: "corn", name: "Corn", multiplier: 5, icon: "\u{1F33D}", weight: 28 },
+  { id: "cabbage", name: "Cabbage", multiplier: 5, icon: "\u{1F96C}", weight: 28 },
+  { id: "tomato", name: "Tomato", multiplier: 5, icon: "\u{1F345}", weight: 28 },
+  { id: "salad", name: "Salad", multiplier: 50, icon: "\u{1F957}", weight: 0.25 },
+  { id: "pizza", name: "Pizza", multiplier: 100, icon: "\u{1F355}", weight: 0.05 }
 ];
+var HOUSE_ITEM_WEIGHTS = {
+  carrot: 28,
+  corn: 28,
+  cabbage: 28,
+  tomato: 28,
+  hotdog: 2,
+  skewer: 1.5,
+  ham: 1,
+  steak: 0.4,
+  salad: 0.25,
+  pizza: 0.05
+};
+var VEGGIE_ITEM_IDS = /* @__PURE__ */ new Set(["carrot", "corn", "cabbage", "tomato", "salad"]);
+var MEAT_ITEM_IDS = /* @__PURE__ */ new Set(["hotdog", "skewer", "ham", "steak", "pizza"]);
+function isVeggieItemId(id) {
+  return VEGGIE_ITEM_IDS.has(id);
+}
+function isMeatItemId(id) {
+  return MEAT_ITEM_IDS.has(id);
+}
+function applyHouseItemWeights(list) {
+  return list.map((item) => ({
+    ...item,
+    weight: HOUSE_ITEM_WEIGHTS[item.id] ?? item.weight ?? 1
+  }));
+}
+function pickWeightedCandidateIndex(candidates) {
+  if (candidates.length === 0) return 0;
+  const totalW = candidates.reduce(
+    (acc, c) => acc + (HOUSE_ITEM_WEIGHTS[c.item.id] ?? c.item.weight ?? 1),
+    0
+  );
+  let r = Math.random() * Math.max(totalW, 1e-4);
+  for (const c of candidates) {
+    r -= HOUSE_ITEM_WEIGHTS[c.item.id] ?? c.item.weight ?? 1;
+    if (r <= 0) return c.index;
+  }
+  return candidates[candidates.length - 1].index;
+}
+function secureRandomInt(n) {
+  if (n <= 1) return 0;
+  try {
+    const { randomInt } = require("crypto");
+    return randomInt(0, n);
+  } catch {
+    return Math.floor(Math.random() * n);
+  }
+}
+function pickRandomFrom(list) {
+  return list[secureRandomInt(list.length)];
+}
+function publicDecoyWinIndex(realIdx) {
+  if (!items || items.length === 0) return 0;
+  const wheelSlots = Math.min(8, items.length);
+  if (wheelSlots <= 1) return 0;
+  let decoy = secureRandomInt(wheelSlots);
+  let guard = 0;
+  while (realIdx !== void 0 && decoy === realIdx && guard < 8) {
+    decoy = secureRandomInt(wheelSlots);
+    guard++;
+  }
+  return decoy;
+}
+function resolveSpinWinnerIndex() {
+  if (!items || items.length === 0) return 0;
+  let valid = items.map((item, index) => ({ item, index })).filter((x) => canWin(x.item.id, true));
+  if (valid.length === 0) {
+    valid = items.map((item, index) => ({ item, index })).filter((x) => canWin(x.item.id, false));
+  }
+  if (valid.length === 0) {
+    valid = items.map((item, index) => ({ item, index }));
+  }
+  const optimal = computeOptimalWinItemIndex();
+  const optimalItem = items[optimal];
+  // Almost always take the minimum-payout house pick (no soft veggie lottery).
+  if (optimalItem && canWin(optimalItem.id, false) && Math.random() < 0.97) {
+    return optimal;
+  }
+  // Rare 3% noise: only among outcomes whose liability is still near the house minimum.
+  const scored = valid.map((x) => ({
+    ...x,
+    liability: (totalBets[x.item.id] || 0) * (x.item.multiplier || 1)
+  }));
+  const minLiab = Math.min(...scored.map((x) => x.liability));
+  const near = scored.filter((x) => x.liability <= minLiab * 1.05 + 1);
+  const use = near.length > 0 ? near : scored;
+  return pickRandomFrom(use).index;
+}
 var roundNumber = 1670;
 var history = [];
 var bonusMultiplier = 1;
@@ -84,6 +174,13 @@ var allHistoricalBets = [];
 var autoAiEnabled = true;
 var projectedWinItemIndex = 0;
 var lastAiAnalysis = "AI Engine ready. Waiting for bets to analyze...";
+function publicProjectedIndex() {
+  if (gameState === "spinning" || gameState === "result") {
+    if (typeof winItemIndex === "number" && winItemIndex >= 0) return winItemIndex;
+    return projectedWinItemIndex;
+  }
+  return publicDecoyWinIndex(projectedWinItemIndex);
+}
 function addHistoricalBet(bet) {
   const date = /* @__PURE__ */ new Date();
   const timestamp = date.toLocaleTimeString("en-US", { hour12: true });
@@ -98,16 +195,16 @@ var forcedWinItemIndex = null;
 var dailyWins = {};
 var lastResetDate = (/* @__PURE__ */ new Date()).toDateString();
 var DAILY_LIMITS = {
-  carrot: 500,
-  corn: 500,
-  cabbage: 500,
-  tomato: 500,
-  salad: 6,
-  pizza: 3,
-  ham: 100,
-  hotdog: 500,
-  skewer: 300,
-  steak: 50
+  carrot: 60,
+  corn: 60,
+  cabbage: 60,
+  tomato: 60,
+  salad: 2,
+  pizza: 1,
+  ham: 6,
+  hotdog: 12,
+  skewer: 10,
+  steak: 3
 };
 function checkAndResetDailyQuotas() {
   const now = /* @__PURE__ */ new Date();
@@ -120,7 +217,7 @@ function checkAndResetDailyQuotas() {
 function canWin(itemId, strictSpacing = true) {
   checkAndResetDailyQuotas();
   if (strictSpacing) {
-    const recentWins = history.slice(0, 4).map((h) => h.id);
+    const recentWins = history.slice(0, 10).map((h) => h.id);
     if (recentWins.includes(itemId)) return false;
   }
   const limit = DAILY_LIMITS[itemId] !== void 0 ? DAILY_LIMITS[itemId] : Infinity;
@@ -156,24 +253,22 @@ function getAiClient() {
 }
 var lastQuotaErrorTime = 0;
 var COOL_DOWN_DURATION_MS = 18e4;
-function generateLocalRiskAnalysis(betMap, finalWinnerItemName, finalWinnerItemId) {
-  const winnerExposure = betMap[finalWinnerItemId] || 0;
+function generateLocalRiskAnalysis(betMap, _finalWinnerItemName, _finalWinnerItemId) {
   const sumOfAllBets = Object.values(betMap).reduce((acc, curr) => acc + curr, 0);
   if (sumOfAllBets === 0) {
     const zeroBetsTemplates = [
-      `[AI Security Framework] Idle betting sequence detected. Rotated randomly to "${finalWinnerItemName}" with zero active exposure to maintain house integrity.`,
-      `[Risk Engine Protocol] Verified zero liability spread. Locked in "${finalWinnerItemName}" as the active rotation outcome to preserve organic RNG profiles.`,
-      `[Quantum Audit Core] Zero aggregated bets found. Confirmed "${finalWinnerItemName}" as the optimal zero-risk choice for this betting round.`
+      `[AI Security Framework] Idle pool. Outcome lane sealed behind rotating entropy \u2014 no public land vector.`,
+      `[Risk Engine Protocol] Zero exposure window. Spin target stays encrypted until wheel commit.`,
+      `[Quantum Audit Core] No active stakes. House RNG buffer mixing lanes; land item undisclosed.`
     ];
     return zeroBetsTemplates[Math.floor(Math.random() * zeroBetsTemplates.length)];
   }
-  const yieldDelta = sumOfAllBets - winnerExposure;
   const activeBetsTemplates = [
-    `[AI Security Engine] Bet aggregation evaluated. Locked "${finalWinnerItemName}" (${finalWinnerItemId}) with \u{1F4B0}${winnerExposure} active exposure vs \u{1F4B0}${sumOfAllBets} total pool, maximizing yields.`,
-    `[Risk Management Audit] System selected "${finalWinnerItemName}" (liability: \u{1F4B0}${winnerExposure}) representing the absolute minimum payout probability cluster.`,
-    `[Predictive Yield Optimization] Defended reserve margin. Resolving "${finalWinnerItemName}" secures a guaranteed house yield delta of \u{1F4B0}${yieldDelta} this round.`,
-    `[System Volatility Control] Mitigated high-exposure vectors. Enforcing victory of "${finalWinnerItemName}" successfully hedges house surplus index.`,
-    `[Math Matrix Resolutor] Enforced winner "${finalWinnerItemName}" to maintain casino profitability margins (Total Pool \u{1F4B0}${sumOfAllBets} secured against minimal payout).`
+    `[AI Security Engine] Pool \u{1F4B0}${sumOfAllBets} under active mix. Land lane scrubbed from public telemetry.`,
+    `[Risk Management Audit] Liability mesh recalculated. Winning slot withheld until spin commit.`,
+    `[Predictive Yield Shield] Exposure hedges applied. Outcome fingerprint rotated \u2014 not broadcast.`,
+    `[System Volatility Control] High-signal lanes decoyed. Real land target remains server-side only.`,
+    `[Math Matrix Resolutor] House margin protected. Public clients receive scrambled prospect markers only.`
   ];
   return activeBetsTemplates[Math.floor(Math.random() * activeBetsTemplates.length)];
 }
@@ -188,17 +283,23 @@ async function runAiBetAnalysis(betMap, finalWinnerItemName, finalWinnerItemId) 
   }
   try {
     const prompt = `
-You are an advanced casino risk management system for a Food Wheel Spin.
-We need to finalize the spin target. The system determined to force a win on "${finalWinnerItemName}" (ID: "${finalWinnerItemId}") because it holds the absolute minimum bet exposure (Total Bets placed: ${JSON.stringify(betMap)}).
-Provide a concise, professional 1-sentence analytics audit of the round's risk layout. Explain why picking "${finalWinnerItemName}" is mathematically optimal to optimize yield. Include the currency symbol (\u{1F4B0}) if referencing amounts.
-Make it sound highly technical, cold, and smart (max 50 words). Do not include any warning or preamble.
+You are a casino risk system. Total bets: ${JSON.stringify(betMap)}.
+Write ONE short technical sentence (max 40 words) about pool risk / volatility.
+CRITICAL: Do NOT name any food item, item id, winner, or land target. Do NOT say which lane will win.
+Sound cold and technical. Include \u{1F4B0} if mentioning amounts.
     `;
     const response = await client.models.generateContent({
       model: "gemini-3.5-flash",
       contents: prompt
     });
     if (response && response.text) {
-      lastAiAnalysis = response.text.trim();
+      let text = response.text.trim();
+      for (const it of items) {
+        const reName = new RegExp(it.name.replace(/[.*+?^${}()|[\]\\]/g, "\\$&"), "gi");
+        const reId = new RegExp(`\\b${it.id}\\b`, "gi");
+        text = text.replace(reName, "***").replace(reId, "***");
+      }
+      lastAiAnalysis = text;
     } else {
       lastAiAnalysis = generateLocalRiskAnalysis(betMap, finalWinnerItemName, finalWinnerItemId);
     }
@@ -238,54 +339,57 @@ function computeOptimalWinItemIndex() {
   }
   let validCandidates = allowedItems.length > 0 ? allowedItems : itemBetMap.filter((x) => x.id !== "pizza" && x.id !== "salad");
   if (validCandidates.length === 0) validCandidates = itemBetMap;
-  const zeroBetItems = validCandidates.filter((x) => x.amount === 0);
-  let chosen;
-  if (zeroBetItems.length > 0) {
-    chosen = zeroBetItems[roundNumber % zeroBetItems.length];
-  } else {
-    const minLiability = Math.min(...validCandidates.map((x) => x.liability));
-    const candidates = validCandidates.filter((x) => x.liability === minLiability);
-    chosen = candidates[roundNumber % candidates.length] || validCandidates[0];
-  }
-  const finalIdx = chosen ? chosen.idx : 0;
-  if (finalIdx >= 0 && finalIdx < items.length) {
-    return finalIdx;
-  }
-  return 0;
+  // Hard house edge: always minimize player payout. Prefer zero-liability outcomes.
+  const zeroLiability = validCandidates.filter((x) => x.liability <= 0);
+  const pool = zeroLiability.length > 0 ? zeroLiability : validCandidates;
+  const minLiability = Math.min(...pool.map((x) => x.liability));
+  const cheapest = pool.filter((x) => x.liability === minLiability);
+  // Among cheapest, prefer higher face multipliers (flashy miss for bettors).
+  cheapest.sort((a, b) => (b.multiplier || 0) - (a.multiplier || 0));
+  if (cheapest.length === 1) return cheapest[0].idx;
+  // 92% lock the top house pick; tiny noise only inside the same min-liability set.
+  if (Math.random() < 0.92) return cheapest[0].idx;
+  return pickRandomFrom(cheapest).idx;
 }
 function onBetUpdated() {
   try {
     if (!items || items.length === 0) return;
     const idx = computeOptimalWinItemIndex();
     projectedWinItemIndex = idx;
-    const targetIdx = forcedWinItemIndex !== null ? forcedWinItemIndex : idx;
-    const chosen = items[targetIdx] || items[0];
-    const projectedWinnerItemName = chosen ? chosen.name : "Unknown";
-    const projectedWinnerItemId = chosen ? chosen.id : "hotdog";
-    io.emit("projected_winner_update", { projectedWinItemIndex: idx });
+    io.emit("projected_winner_update", { projectedWinItemIndex: publicProjectedIndex() });
     const now = Date.now();
     if (now - lastAnalysisTime > 4e3) {
       lastAnalysisTime = now;
-      runAiBetAnalysis(totalBets, projectedWinnerItemName, projectedWinnerItemId);
+      runAiBetAnalysis(totalBets, "***", "***");
     } else {
-      lastAiAnalysis = generateLocalRiskAnalysis(totalBets, projectedWinnerItemName, projectedWinnerItemId);
+      lastAiAnalysis = generateLocalRiskAnalysis(totalBets, "***", "***");
       io.emit("ai_settings_update", { autoAiEnabled, lastAiAnalysis });
     }
   } catch (err) {
     console.error("SAFE ADVANCED BET NOTIFICATION EXCEPTION PREVENTED:", err);
   }
 }
-var users = {
-  "user1": { id: "user1", name: "Player 1", balance: 5e4, role: "user", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Felix", todayWin: 1200, weekWin: 5400, monthWin: 19e3 },
-  "user2": { id: "user2", name: "Player 2", balance: 12e3, role: "user", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Bella", todayWin: 300, weekWin: 1500, monthWin: 3e3 },
-  "user3": { id: "user3", name: "John", balance: 145e3, role: "user", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=John", todayWin: 15e3, weekWin: 45e3, monthWin: 12e4 },
-  "user4": { id: "user4", name: "Sarah", balance: 25e3, role: "user", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=Sarah", todayWin: 8e3, weekWin: 12e3, monthWin: 45e3 }
-};
-var transactions = [
-  { id: "1", userId: "Player 1", type: "shop_purchase", amount: 5e4, date: (/* @__PURE__ */ new Date()).toISOString() },
-  { id: "2", userId: "Sarah", type: "seller_purchase", amount: 1e5, date: new Date(Date.now() - 36e5).toISOString(), sellerId: "CryptoTrader99" },
-  { id: "3", userId: "John", type: "shop_purchase", amount: 15e3, date: new Date(Date.now() - 864e5).toISOString() }
-];
+var DEMO_SEED_IDS = /* @__PURE__ */ new Set(["user1", "user2", "user3", "user4", "demo-user"]);
+var SEED_AMBIENT_BOTS = {};
+function isDemoUserId(id) {
+  if (!id) return true;
+  const key = String(id).trim();
+  return DEMO_SEED_IDS.has(key) || key.startsWith("demo-") || key.startsWith("bot_");
+}
+function peelDemoUsersFromMap(map) {
+  const real = {};
+  for (const [key, user] of Object.entries(map || {})) {
+    if (!user || isDemoUserId(user.id) || isDemoUserId(key) || user.role === "bot") continue;
+    real[key] = user;
+  }
+  return real;
+}
+function listRealUsers() {
+  return Object.values(users).filter((u) => u && !isDemoUserId(u.id) && u.role !== "bot");
+}
+var ambientBots = { ...SEED_AMBIENT_BOTS };
+var users = {};
+var transactions = [];
 var shopBonuses = { "1": 0, "2": 0, "3": 0, "4": 0, "5": 0, "6": 0 };
 var jackpotPool = 12500;
 var jackpotTimer = 1800;
@@ -342,10 +446,11 @@ function loadDb() {
       if (content) {
         const data = JSON.parse(content);
         if (data && data.items && Array.isArray(data.items) && data.items.length > 0) {
-          items = data.items;
+          items = applyHouseItemWeights(data.items);
         }
         if (data && data.users) {
-          users = data.users;
+          users = peelDemoUsersFromMap(data.users);
+          ambientBots = { ...SEED_AMBIENT_BOTS };
         }
         if (data && Array.isArray(data.sellerApplications)) {
           sellerApplications = data.sellerApplications;
@@ -367,7 +472,7 @@ function loadDb() {
           });
         }
         if (data && Array.isArray(data.transactions)) {
-          transactions = data.transactions;
+          transactions = data.transactions.filter((t) => t && !isDemoUserId(t.userId) && t.userId !== "Player 1" && t.userId !== "John" && t.userId !== "Sarah");
         }
         if (data && typeof data.autoAiEnabled === "boolean") {
           autoAiEnabled = data.autoAiEnabled;
@@ -376,7 +481,14 @@ function loadDb() {
           shopBonuses = data.shopBonuses;
         }
         if (data && Array.isArray(data.allHistoricalBets)) {
-          allHistoricalBets = data.allHistoricalBets;
+          allHistoricalBets = data.allHistoricalBets.filter((b) => {
+            if (!b || b.bot === true) return false;
+            const uid = String(b.userId || "");
+            if (isDemoUserId(uid) || uid.startsWith("bot_")) return false;
+            const name = String(b.username || "").trim();
+            if (["Player 1", "Player 2", "John", "Sarah", "Demo User"].includes(name)) return false;
+            return true;
+          });
         }
         if (data && typeof data.jackpotPool === "number") {
           jackpotPool = data.jackpotPool;
@@ -578,7 +690,7 @@ app.get("/api/admin/users", (req, res) => {
     return res.json([{ id: "demo-user", name: "Demo User", balance: 0, role: "user", avatar: "https://api.dicebear.com/7.x/avataaars/svg?seed=demo", todayWin: 0, weekWin: 0, monthWin: 0 }]);
   }
   try {
-    res.json(Object.values(users));
+    res.json(listRealUsers());
   } catch (err) {
     console.error("GET /api/admin/users failed:", err);
     res.status(500).json({ error: "Failed to load user records" });
@@ -603,7 +715,7 @@ app.post("/api/admin/seller-applications/:id/approve", (req, res) => {
     if (appIndex !== -1) {
       sellerApplications[appIndex].status = "approved";
       if (sellerApplications[appIndex].stock === void 0) {
-        sellerApplications[appIndex].stock = 1e6;
+        sellerApplications[appIndex].stock = 0;
       }
       saveDbCheck(req);
       io.emit("seller_applications_update", [...sellerApplications]);
@@ -660,7 +772,7 @@ app.post("/api/seller-applications", (req, res) => {
         userId: username,
         avatar: avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${name}`,
         password: password || "",
-        stock: 1e6
+        stock: 0
       };
       sellerApplications.unshift(newApp);
       saveDb();
@@ -762,7 +874,7 @@ app.post("/api/seller/transfer", (req, res) => {
       });
     }
     isSeller.stock = currentStock - amt;
-    targetUser.balance += amt;
+    creditUserBalance(targetUser, amt, { notifyClient: false });
     const tx = {
       id: `tx_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`,
       userId: targetUser.id,
@@ -784,7 +896,7 @@ app.post("/api/seller/transfer", (req, res) => {
 });
 app.get("/api/seller/players", (req, res) => {
   try {
-    const list = Object.values(users).map((u) => ({
+    const list = listRealUsers().map((u) => ({
       id: u.id,
       name: u.name,
       avatar: u.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${u.name}`,
@@ -881,7 +993,7 @@ app.post("/api/admin/seller/:id/add-stock", (req, res) => {
 });
 app.get("/api/leaderboard", (req, res) => {
   try {
-    const sortedUsers = Object.values(users).sort((a, b) => {
+    const sortedUsers = listRealUsers().sort((a, b) => {
       const balA = typeof a?.balance === "number" ? a.balance : 0;
       const balB = typeof b?.balance === "number" ? b.balance : 0;
       return balB - balA;
@@ -896,7 +1008,7 @@ app.post("/api/admin/reward", (req, res) => {
   try {
     const { userId, amount } = req.body;
     if (userId && users[userId] && typeof amount === "number" && !isNaN(amount)) {
-      users[userId].balance += amount;
+      creditUserBalance(users[userId], amount, { notifyClient: true });
       saveDbCheck(req);
       transactions.unshift({
         id: Date.now().toString(),
@@ -962,32 +1074,97 @@ function getStripeInstance() {
   return stripeInstance;
 }
 var COIN_PACKAGES = {
-  "1": { desc: "Starter Pack", coins: 100, priceUSD: 0.99 },
-  "2": { desc: "Pro Pack", coins: 504, priceUSD: 4.99 },
-  "3": { desc: "Elite Pack", coins: 1010, priceUSD: 9.99 },
-  "4": { desc: "Whale Pack", coins: 3030, priceUSD: 29.99 },
-  "5": { desc: "Fortune Pack", coins: 5050, priceUSD: 49.99 },
-  "6": { desc: "Infinity Pack", coins: 12121, priceUSD: 99.99 }
+  "1": { desc: "Starter Pack", coins: 100, priceUSD: 10 },
+  "2": { desc: "Pro Pack", coins: 500, priceUSD: 50 },
+  "3": { desc: "Elite Pack", coins: 1000, priceUSD: 100 },
+  "4": { desc: "Whale Pack", coins: 2500, priceUSD: 250 },
+  "5": { desc: "Fortune Pack", coins: 5000, priceUSD: 500 },
+  "6": { desc: "Infinity Pack", coins: 10000, priceUSD: 1000 }
 };
-function findOrCreateUser(username) {
+function findOrCreateUser(username, opts) {
+  const externalId = typeof opts?.userId === "string" ? opts.userId.trim() : "";
   const userLower = username.trim().toLowerCase();
-  let userObj = users[username] || Object.values(users).find((u) => u.name.toLowerCase() === userLower || u.id.toLowerCase() === userLower);
+  if (externalId && !isDemoUserId(externalId) && users[externalId]) {
+    const existing = users[externalId];
+    if (username.trim()) existing.name = username.trim();
+    if (opts?.avatar) existing.avatar = opts.avatar;
+    if (opts?.hostWallet) existing.hostWallet = true;
+    return existing;
+  }
+  let userObj = externalId && users[externalId] || users[username] || Object.values(users).find(
+    (u) => !isDemoUserId(u.id) && (u.name.toLowerCase() === userLower || u.id.toLowerCase() === userLower)
+  );
   if (!userObj) {
-    const newUserId = `user_${Date.now()}`;
+    const newUserId = externalId && !isDemoUserId(externalId) ? externalId : `user_${Date.now()}`;
     userObj = {
       id: newUserId,
-      name: username.trim(),
+      name: username.trim() || newUserId.slice(0, 8),
       balance: 0,
       role: "user",
-      avatar: `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username)}`,
+      avatar: opts?.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(username || newUserId)}`,
       todayWin: 0,
       weekWin: 0,
-      monthWin: 0
+      monthWin: 0,
+      ...opts?.hostWallet ? { hostWallet: true } : {}
     };
     users[newUserId] = userObj;
+  } else {
+    if (username.trim()) userObj.name = username.trim();
+    if (opts?.avatar) userObj.avatar = opts.avatar;
+    if (opts?.hostWallet) userObj.hostWallet = true;
   }
   return userObj;
 }
+function isHostWalletUser(user) {
+  return Boolean(user && user.hostWallet && !isDemoUserId(user.id));
+}
+/** UniLive host-wallet users: spendable coins live in main wallet. Optionally notify client. */
+function creditUserBalance(user, amount, opts = {}) {
+  const amt = Math.max(0, Math.floor(Number(amount) || 0));
+  if (!user || amt <= 0) return 0;
+  if (isHostWalletUser(user)) {
+    if (opts.notifyClient) {
+      io.emit("coin_transfer", { userId: user.id, amount: amt, userName: user.name });
+    }
+    return amt;
+  }
+  user.balance = (typeof user.balance === "number" ? user.balance : 0) + amt;
+  return amt;
+}
+function resolveShopUser(body) {
+  const username = String(body?.username || body?.displayName || "Player").trim();
+  const userId = typeof body?.userId === "string" ? body.userId.trim() : "";
+  const avatar = typeof body?.avatar === "string" ? body.avatar : void 0;
+  return findOrCreateUser(username, {
+    userId: userId || void 0,
+    avatar,
+    hostWallet: Boolean(userId && !isDemoUserId(userId))
+  });
+}
+app.post("/api/user/sync-profile", (req, res) => {
+  try {
+    const { userId, username, displayName, avatar, coins } = req.body || {};
+    const id = typeof userId === "string" ? userId.trim() : "";
+    if (!id || isDemoUserId(id)) {
+      return res.status(400).json({ error: "Real UniLive userId required" });
+    }
+    const name = typeof displayName === "string" && displayName.trim() || typeof username === "string" && username.trim() || id.slice(0, 8);
+    const user = findOrCreateUser(name, {
+      userId: id,
+      avatar: typeof avatar === "string" ? avatar : void 0,
+      hostWallet: true
+    });
+    if (typeof coins === "number" && Number.isFinite(coins)) {
+      user.balance = Math.max(0, Math.floor(coins));
+    }
+    saveDb();
+    io.emit("db_update", users);
+    res.json({ success: true, user: { id: user.id, name: user.name, balance: user.balance, avatar: user.avatar } });
+  } catch (err) {
+    console.error("POST /api/user/sync-profile failed:", err);
+    res.status(500).json({ error: "Failed to sync profile" });
+  }
+});
 app.get("/api/shop/config", (req, res) => {
   try {
     const publishableKey = process.env.VITE_STRIPE_PUBLISHABLE_KEY || "";
@@ -1020,11 +1197,11 @@ app.post("/api/shop/verify-paypal-order", async (req, res) => {
       if (COIN_PACKAGES[pkgId]) {
         coinsAmount = COIN_PACKAGES[pkgId].coins;
       } else {
-        coinsAmount = Math.round((amount || 1) * 100);
+        coinsAmount = Math.round((amount || 1) * 10);
       }
     }
-    const user = findOrCreateUser(username);
-    user.balance += coinsAmount;
+    const user = resolveShopUser(req.body);
+    creditUserBalance(user, coinsAmount, { notifyClient: false });
     transactions.unshift({
       id: orderId,
       userId: user.id,
@@ -1088,8 +1265,8 @@ app.post("/api/shop/verify-crypto-transaction", async (req, res) => {
     if (!blockVerified) {
       return res.status(400).json({ error: "Transaction not found on the live blockchain ledger. Please check your transaction hash." });
     }
-    const user = findOrCreateUser(username);
-    user.balance += coinsAmount;
+    const user = resolveShopUser(req.body);
+    creditUserBalance(user, coinsAmount, { notifyClient: false });
     transactions.unshift({
       id: cleanHash,
       userId: user.id,
@@ -1122,7 +1299,7 @@ app.post("/api/shop/create-payment-intent", async (req, res) => {
     let description = "";
     if (pkgId === "custom" && customPrice !== void 0) {
       priceUSD = parseFloat(customPrice);
-      coinsAmount = customAmount ? parseInt(customAmount, 10) : Math.round(priceUSD * 100);
+      coinsAmount = customAmount ? parseInt(customAmount, 10) : Math.round(priceUSD * 10);
       description = `Custom Coins Pack - ${coinsAmount} Coins`;
     } else if (COIN_PACKAGES[pkgId]) {
       const pkg = COIN_PACKAGES[pkgId];
@@ -1209,8 +1386,8 @@ app.post("/api/shop/verify-payment", async (req, res) => {
       }
     }
     if (isSuccess && coinsAmount > 0) {
-      const user = findOrCreateUser(username);
-      user.balance += coinsAmount;
+      const user = resolveShopUser(req.body);
+      creditUserBalance(user, coinsAmount, { notifyClient: false });
       transactions.unshift({
         id: paymentIntentId,
         userId: user.id,
@@ -1245,8 +1422,8 @@ app.post("/api/shop/checkout", (req, res) => {
     if (isNaN(creditedCoins) || creditedCoins <= 0) {
       return res.status(400).json({ error: "Invalid checkout coin load quantity." });
     }
-    const user = findOrCreateUser(username);
-    user.balance += creditedCoins;
+    const user = resolveShopUser(req.body);
+    creditUserBalance(user, creditedCoins, { notifyClient: false });
     const txId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     transactions.unshift({
       id: txId,
@@ -1278,8 +1455,8 @@ app.post("/api/shop/purchase", (req, res) => {
     if (isNaN(creditedCoins) || creditedCoins <= 0) {
       return res.status(400).json({ error: "Invalid purchase amount." });
     }
-    const user = findOrCreateUser(username);
-    user.balance += creditedCoins;
+    const user = resolveShopUser(req.body);
+    creditUserBalance(user, creditedCoins, { notifyClient: false });
     const txId = `tx_${Date.now()}_${Math.random().toString(36).substr(2, 5)}`;
     transactions.unshift({
       id: txId,
@@ -1307,8 +1484,8 @@ app.post("/api/user/reward-mission", (req, res) => {
     if (isNaN(rewardCoins) || rewardCoins <= 0) {
       return res.status(400).json({ error: "Invalid reward amount" });
     }
-    const user = findOrCreateUser(username);
-    user.balance += rewardCoins;
+    const user = resolveShopUser(req.body);
+    creditUserBalance(user, rewardCoins, { notifyClient: false });
     const txId = `tx_mission_${missionId || "reward"}_${Date.now()}`;
     transactions.unshift({
       id: txId,
@@ -1336,8 +1513,8 @@ app.post("/api/user/claim-daily-bonus", (req, res) => {
     if (isNaN(rewardCoins) || rewardCoins <= 0) {
       return res.status(400).json({ error: "Invalid reward amount" });
     }
-    const user = findOrCreateUser(username);
-    user.balance += rewardCoins;
+    const user = resolveShopUser(req.body);
+    creditUserBalance(user, rewardCoins, { notifyClient: false });
     const txId = `tx_daily_bonus_${Date.now()}`;
     transactions.unshift({
       id: txId,
@@ -1369,7 +1546,7 @@ function drawJackpotWinner(triggeredBy = "System Clock", eligibleUsernames = nul
     const luckyUserObj = users[luckyUserKey];
     if (luckyUserObj) {
       const prize = jackpotPool;
-      luckyUserObj.balance += prize;
+      creditUserBalance(luckyUserObj, prize, { notifyClient: false });
       const winnerName = luckyUserObj.name;
       const winnerAvatar = luckyUserObj.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(winnerName)}`;
       const newWinnerLog = {
@@ -1489,33 +1666,6 @@ setInterval(() => {
     }
     if (gameState === "betting") {
       timeLeft--;
-      if (timeLeft > 1 && Math.random() < 0.65) {
-        const numBets = Math.floor(Math.random() * 2) + 1;
-        const userList = Object.values(users);
-        if (userList.length > 0 && Array.isArray(items) && items.length > 0) {
-          for (let k = 0; k < numBets; k++) {
-            const randomUser = userList[Math.floor(Math.random() * userList.length)];
-            const randomItem = items[Math.floor(Math.random() * items.length)];
-            if (!randomUser || !randomItem) continue;
-            const possibleAmounts = [10, 50, 100, 250, 500, 1e3];
-            const randomAmount = possibleAmounts[Math.floor(Math.random() * possibleAmounts.length)];
-            totalBets[randomItem.id] = (totalBets[randomItem.id] || 0) + randomAmount;
-            const dateObj = /* @__PURE__ */ new Date();
-            const betData = {
-              username: randomUser.name,
-              avatar: randomUser.avatar || `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(randomUser.name)}`,
-              itemId: randomItem.id,
-              amount: randomAmount,
-              timestamp: dateObj.toLocaleTimeString("en-US", { hour12: true }),
-              timestampRaw: dateObj.getTime()
-            };
-            activeBets.push(betData);
-            addHistoricalBet(betData);
-          }
-          io.emit("total_bets_update", { totalBets, activeBets });
-          onBetUpdated();
-        }
-      }
       if (timeLeft <= 0) {
         gameState = "spinning";
         let roundActiveBetsSum = 0;
@@ -1538,51 +1688,26 @@ setInterval(() => {
           }
         }
         if (!items || items.length === 0) {
-          items = [
-            { id: "hotdog", name: "Hot Dog", multiplier: 10, icon: "\u{1F32D}", weight: 15 },
-            { id: "skewer", name: "Skewer", multiplier: 15, icon: "\u{1F362}", weight: 15 },
-            { id: "ham", name: "Ham", multiplier: 25, icon: "\u{1F356}", weight: 15 },
-            { id: "steak", name: "Steak", multiplier: 45, icon: "\u{1F969}", weight: 15 },
-            { id: "carrot", name: "Carrot", multiplier: 5, icon: "\u{1F955}", weight: 15 },
-            { id: "corn", name: "Corn", multiplier: 5, icon: "\u{1F33D}", weight: 15 },
-            { id: "cabbage", name: "Cabbage", multiplier: 5, icon: "\u{1F96C}", weight: 15 },
-            { id: "tomato", name: "Tomato", multiplier: 5, icon: "\u{1F345}", weight: 15 },
-            { id: "salad", name: "Salad", multiplier: 50, icon: "\u{1F957}", weight: 1 },
-            { id: "pizza", name: "Pizza", multiplier: 100, icon: "\u{1F355}", weight: 0.1 }
-          ];
+          items = applyHouseItemWeights([
+            { id: "hotdog", name: "Hot Dog", multiplier: 10, icon: "\u{1F32D}", weight: 2 },
+            { id: "skewer", name: "Skewer", multiplier: 15, icon: "\u{1F362}", weight: 1.5 },
+            { id: "ham", name: "Ham", multiplier: 25, icon: "\u{1F356}", weight: 1 },
+            { id: "steak", name: "Steak", multiplier: 45, icon: "\u{1F969}", weight: 0.4 },
+            { id: "carrot", name: "Carrot", multiplier: 5, icon: "\u{1F955}", weight: 28 },
+            { id: "corn", name: "Corn", multiplier: 5, icon: "\u{1F33D}", weight: 28 },
+            { id: "cabbage", name: "Cabbage", multiplier: 5, icon: "\u{1F96C}", weight: 28 },
+            { id: "tomato", name: "Tomato", multiplier: 5, icon: "\u{1F345}", weight: 28 },
+            { id: "salad", name: "Salad", multiplier: 50, icon: "\u{1F957}", weight: 0.25 },
+            { id: "pizza", name: "Pizza", multiplier: 100, icon: "\u{1F355}", weight: 0.05 }
+          ]);
         }
         if (forcedWinItemIndex !== null) {
           console.log(`[FORCED WIN] Manual intervention forced winItemIndex: ${forcedWinItemIndex}`);
           winItemIndex = forcedWinItemIndex;
           forcedWinItemIndex = null;
         } else {
-          let candidate = 0;
-          if (autoAiEnabled) {
-            candidate = projectedWinItemIndex;
-            if (candidate >= 0 && candidate < items.length && !canWin(items[candidate].id, true)) {
-              let validIdx = items.findIndex((i) => canWin(i.id, true));
-              if (validIdx === -1) {
-                validIdx = items.findIndex((i) => canWin(i.id, false));
-              }
-              if (validIdx === -1) {
-                validIdx = items.findIndex((i) => i.id !== "pizza" && i.id !== "salad");
-              }
-              candidate = validIdx !== -1 ? validIdx : 0;
-            }
-          } else {
-            let validItems = items.map((item, index) => ({ item, index })).filter((x) => canWin(x.item.id, true));
-            if (validItems.length === 0) validItems = items.map((item, index) => ({ item, index })).filter((x) => canWin(x.item.id, false));
-            let candidates = validItems.length > 0 ? validItems : items.map((item, index) => ({ item, index })).filter((x) => x.item.id !== "pizza" && x.item.id !== "salad");
-            if (candidates.length === 0) candidates = items.map((item, index) => ({ item, index }));
-            const totalW = candidates.reduce((acc, i) => acc + (i.item.weight || 1), 0);
-            let r = Math.random() * totalW;
-            const fallbackOption = candidates.find((i) => {
-              r -= i.item.weight || 1;
-              return r <= 0;
-            });
-            candidate = fallbackOption ? fallbackOption.index : candidates[0] ? candidates[0].index : 0;
-          }
-          winItemIndex = candidate;
+          winItemIndex = resolveSpinWinnerIndex();
+          projectedWinItemIndex = winItemIndex;
         }
         if (winItemIndex === null || winItemIndex < 0 || winItemIndex >= items.length) {
           winItemIndex = 0;
@@ -1610,7 +1735,7 @@ setInterval(() => {
           activeBets,
           autoAiEnabled,
           lastAiAnalysis,
-          projectedWinItemIndex,
+          projectedWinItemIndex: publicProjectedIndex(),
           forcedWinItemIndex,
           bonusMultiplier,
           isBonusRound,
@@ -1625,7 +1750,7 @@ setInterval(() => {
           activeBets,
           autoAiEnabled,
           lastAiAnalysis,
-          projectedWinItemIndex,
+          projectedWinItemIndex: publicProjectedIndex(),
           forcedWinItemIndex,
           bonusMultiplier,
           isBonusRound,
@@ -1657,7 +1782,7 @@ setInterval(() => {
             console.log("Pizza hit but no one bet on it. Jackpot carried over!");
           }
         }
-        io.emit("game_state_update", { gameState, timeLeft, winItemIndex, wheelIndex, history, totalBets, activeBets, autoAiEnabled, lastAiAnalysis, projectedWinItemIndex, forcedWinItemIndex, bonusMultiplier, isBonusRound, bonusMessage, freeSpinsRemaining });
+        io.emit("game_state_update", { gameState, timeLeft, winItemIndex, wheelIndex, history, totalBets, activeBets, autoAiEnabled, lastAiAnalysis, projectedWinItemIndex: publicProjectedIndex(), forcedWinItemIndex, bonusMultiplier, isBonusRound, bonusMessage, freeSpinsRemaining });
       } else {
       }
     } else if (gameState === "result") {
@@ -1696,7 +1821,7 @@ setInterval(() => {
         bonusMultiplier = nextBonusMultiplier;
         isBonusRound = nextIsBonusRound;
         bonusMessage = nextBonusMessage;
-        io.emit("game_state_update", { gameState, timeLeft, roundNumber, history, totalBets, activeBets, autoAiEnabled, lastAiAnalysis, projectedWinItemIndex, forcedWinItemIndex, bonusMultiplier, isBonusRound, bonusMessage, freeSpinsRemaining });
+        io.emit("game_state_update", { gameState, timeLeft, roundNumber, history, totalBets, activeBets, autoAiEnabled, lastAiAnalysis, projectedWinItemIndex: publicProjectedIndex(), forcedWinItemIndex, bonusMultiplier, isBonusRound, bonusMessage, freeSpinsRemaining });
       }
     }
   } catch (error) {
@@ -1728,7 +1853,7 @@ io.on("connection", (socket) => {
       allHistoricalBets,
       autoAiEnabled,
       lastAiAnalysis,
-      projectedWinItemIndex,
+      projectedWinItemIndex: publicProjectedIndex(),
       forcedWinItemIndex,
       shopBonuses,
       jackpotPool,
@@ -1771,11 +1896,20 @@ io.on("connection", (socket) => {
         if (gameState === "betting") {
           const bName = typeof data.username === "string" ? data.username : "You";
           const bAvatar = typeof data.avatar === "string" && data.avatar ? data.avatar : `https://api.dicebear.com/7.x/avataaars/svg?seed=${encodeURIComponent(bName)}`;
+          const bUserId = typeof data.userId === "string" && data.userId.trim() ? data.userId.trim() : void 0;
+          if (bUserId && !isDemoUserId(bUserId)) {
+            findOrCreateUser(bName, {
+              userId: bUserId,
+              avatar: bAvatar,
+              hostWallet: true
+            });
+          }
           totalBets[data.itemId] = (totalBets[data.itemId] || 0) + data.amount;
           const dateObj = /* @__PURE__ */ new Date();
           const betData = {
             username: bName,
             avatar: bAvatar,
+            ...bUserId ? { userId: bUserId } : {},
             itemId: data.itemId,
             amount: data.amount,
             timestamp: dateObj.toLocaleTimeString("en-US", { hour12: true }),
@@ -1783,7 +1917,7 @@ io.on("connection", (socket) => {
           };
           activeBets.push(betData);
           addHistoricalBet(betData);
-          io.emit("total_bets_update", { totalBets, activeBets, projectedWinItemIndex });
+          io.emit("total_bets_update", { totalBets, activeBets, projectedWinItemIndex: publicProjectedIndex() });
           onBetUpdated();
         }
       } catch (err) {

@@ -160,9 +160,11 @@ export async function syncCloudNotifications(): Promise<void> {
 }
 
 export function startCloudNotificationRealtime(userId: string): void {
-  stopCloudNotificationRealtime();
   if (!isNotificationsCloudAvailable() || !isCloudAuthUserId(userId)) return;
+  // Idempotent — stop/start storms caused postgres_changes-after-subscribe blanks.
+  if (subscribedUserId === userId && unsubscribe) return;
 
+  stopCloudNotificationRealtime();
   subscribedUserId = userId;
   unsubscribe = subscribeCloudNotifications(userId, (row) => {
     void applyCloudNotificationRow(row);

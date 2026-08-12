@@ -1,0 +1,179 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>UniLive’s — Meshy 360° review viewer</title>
+    <style>
+      :root {
+        --bg: #0b1220;
+        --panel: #121a2b;
+        --text: #e8eefc;
+        --muted: #9aa8c7;
+        --accent: #3b82f6;
+      }
+      * { box-sizing: border-box; }
+      html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font-family: ui-sans-serif, system-ui, sans-serif; }
+      #app { display: grid; grid-template-rows: auto 1fr; height: 100%; }
+      header {
+        display: flex; gap: 12px; flex-wrap: wrap; align-items: center;
+        padding: 12px 16px; background: var(--panel); border-bottom: 1px solid #1e2a44;
+      }
+      header h1 { font-size: 14px; margin: 0; letter-spacing: 0.02em; }
+      header .muted { color: var(--muted); font-size: 12px; }
+      input[type="file"], button, select {
+        background: #1a2438; color: var(--text); border: 1px solid #2a3a5c;
+        border-radius: 8px; padding: 8px 10px; font-size: 12px;
+      }
+      button { cursor: pointer; background: var(--accent); border-color: transparent; font-weight: 600; }
+      #viewport { position: relative; min-height: 0; }
+      canvas { display: block; width: 100%; height: 100%; }
+      #hud {
+        position: absolute; left: 12px; bottom: 12px; padding: 8px 10px;
+        background: rgba(18, 26, 43, 0.85); border-radius: 8px; font-size: 12px; color: var(--muted);
+      }
+    </style>
+  </head>
+  <body>
+    <div id="app">
+      <header>
+        <h1>UniLive’s character review</h1>
+        <span class="muted">Drag to orbit · scroll to zoom · load a local Meshy GLB</span>
+        <input id="file" type="file" accept=".glb,.gltf" />
+        <button id="auto" type="button">Toggle auto-rotate</button>
+        <select id="env">
+          <option value="studio">Studio</option>
+          <option value="dark">Dark</option>
+        </select>
+      </header>
+      <div id="viewport">
+        <div id="hud">No model loaded</div>
+      </div>
+    </div>
+
+    <script type="importmap">
+      {
+        "imports": {
+          "three": "https://unpkg.com/three@0.185.1/build/three.module.js",
+          "three/addons/": "https://unpkg.com/three@0.185.1/examples/jsm/"
+        }
+      }
+    </script>
+    <script type="module">
+      import * as THREE from 'three';
+      import { OrbitControls } from 'three/addons/controls/OrbitControls.js';
+      import { GLTFLoader } from 'three/addons/loaders/GLTFLoader.js';
+      import { RoomEnvironment } from 'three/addons/environments/RoomEnvironment.js';
+
+      const viewport = document.getElementById('viewport');
+      const hud = document.getElementById('hud');
+      const fileInput = document.getElementById('file');
+      const autoBtn = document.getElementById('auto');
+      const envSelect = document.getElementById('env');
+
+      const renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      renderer.outputColorSpace = THREE.SRGBColorSpace;
+      renderer.toneMapping = THREE.ACESFilmicToneMapping;
+      viewport.appendChild(renderer.domElement);
+
+      const scene = new THREE.Scene();
+      scene.background = new THREE.Color(0x0b1220);
+
+      const camera = new THREE.PerspectiveCamera(45, 1, 0.01, 200);
+      camera.position.set(1.6, 1.2, 2.2);
+
+      const controls = new OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.autoRotate = true;
+      controls.autoRotateSpeed = 1.2;
+      controls.target.set(0, 0.8, 0);
+
+      const pmrem = new THREE.PMREMGenerator(renderer);
+      let studioEnv = pmrem.fromScene(new RoomEnvironment(), 0.04).texture;
+      scene.environment = studioEnv;
+
+      const hemi = new THREE.HemisphereLight(0xffffff, 0x223355, 0.75);
+      scene.add(hemi);
+      const key = new THREE.DirectionalLight(0xffffff, 1.1);
+      key.position.set(3, 5, 2);
+      scene.add(key);
+
+      const grid = new THREE.GridHelper(4, 16, 0x334466, 0x1a2438);
+      scene.add(grid);
+
+      let currentRoot = null;
+      const loader = new GLTFLoader();
+
+      function resize() {
+        const w = viewport.clientWidth;
+        const h = viewport.clientHeight;
+        camera.aspect = w / Math.max(h, 1);
+        camera.updateProjectionMatrix();
+        renderer.setSize(w, h, false);
+      }
+      window.addEventListener('resize', resize);
+      resize();
+
+      function fit(object) {
+        const box = new THREE.Box3().setFromObject(object);
+        const size = box.getSize(new THREE.Vector3());
+        const center = box.getCenter(new THREE.Vector3());
+        const maxDim = Math.max(size.x, size.y, size.z) || 1;
+        const dist = maxDim * 2.2;
+        controls.target.copy(center);
+        camera.position.set(center.x + dist * 0.6, center.y + dist * 0.35, center.z + dist * 0.8);
+        camera.near = Math.max(0.01, maxDim / 200);
+        camera.far = Math.max(100, maxDim * 50);
+        camera.updateProjectionMatrix();
+        controls.update();
+      }
+
+      function loadArrayBuffer(buffer, label) {
+        loader.parse(
+          buffer,
+          '',
+          (gltf) => {
+            if (currentRoot) scene.remove(currentRoot);
+            currentRoot = gltf.scene;
+            scene.add(currentRoot);
+            fit(currentRoot);
+            hud.textContent = `Loaded: ${label}`;
+          },
+          (err) => {
+            hud.textContent = `Load failed: ${err?.message || err}`;
+          },
+        );
+      }
+
+      fileInput.addEventListener('change', async () => {
+        const file = fileInput.files?.[0];
+        if (!file) return;
+        const buf = await file.arrayBuffer();
+        loadArrayBuffer(buf, file.name);
+      });
+
+      autoBtn.addEventListener('click', () => {
+        controls.autoRotate = !controls.autoRotate;
+        autoBtn.textContent = controls.autoRotate ? 'Stop auto-rotate' : 'Toggle auto-rotate';
+      });
+
+      envSelect.addEventListener('change', () => {
+        if (envSelect.value === 'studio') {
+          scene.background = new THREE.Color(0x0b1220);
+          scene.environment = studioEnv;
+        } else {
+          scene.background = new THREE.Color(0x05070d);
+          scene.environment = null;
+        }
+      });
+
+      function tick() {
+        controls.update();
+        renderer.render(scene, camera);
+        requestAnimationFrame(tick);
+      }
+      tick();
+    </script>
+  </body>
+</html>

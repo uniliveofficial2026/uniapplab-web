@@ -2,6 +2,8 @@ import { readIntegrationEnv, saveIntegrationEnv, getIntegrationEnvOverrides, typ
 import { isSupabaseConfigured } from './supabase/config';
 import { isLiveKitConfigured } from './livekit/livekitConfig';
 import { isTencentWebARConfigured } from './webar/webarConfig';
+import { isTencentEffectMobileLicenseConfigured } from './webar/tencentMobileLicenseConfig';
+import { isTencentRtcSdkAppIdConfigured } from './tencent/rtcConfig';
 import { isDeepARConfigured } from './deepar/deeparConfig';
 import { DEEPAR_ENABLED } from './deepar/deeparEnabled';
 import { ensureBundledFirebaseConfig } from './firebase/runtimeAuthConfig';
@@ -42,12 +44,36 @@ export const BUILTIN_INTEGRATION_SERVICES: IntegrationServiceDef[] = [
   },
   {
     id: 'trtc',
-    name: 'TRTC WebAR Beauty',
-    description: 'Tencent camera beauty & AR effects',
+    name: 'TRTC WebAR Beauty (Web&H5)',
+    description: 'Tencent beauty on desktop + mobile browsers (domain-bound Web license)',
     envKeys: ['VITE_TENCENT_WEBAR_APP_ID', 'VITE_TENCENT_WEBAR_LICENSE_KEY', 'VITE_TENCENT_WEBAR_TOKEN'],
-    packages: ['@tencentcloud/webar'],
+    packages: ['tencentcloud-webar'],
     files: ['src/lib/webar/webarConfig.ts', 'src/lib/webar/tencentWebARPool.ts', 'src/smule-rooms/components/LiveBeautySheet.tsx'],
     scripts: ['trtc:install', 'tencent:env-vercel', 'smoke-camera-pipeline'],
+  },
+  {
+    id: 'trtc-mobile',
+    name: 'Tencent Effect Mobile',
+    description: 'Native iOS/Android Beauty AR license (License URL + Key) — not used by the web SDK',
+    envKeys: [
+      'VITE_TENCENT_APP_ID',
+      'VITE_TENCENT_LICENSE_URL',
+      'VITE_TENCENT_LICENSE_KEY',
+      'VITE_TENCENT_BUNDLE_ID',
+    ],
+    packages: [],
+    files: ['src/lib/webar/tencentMobileLicenseConfig.ts'],
+    scripts: [],
+  },
+  {
+    id: 'tencent-rtc',
+    name: 'Tencent RTC (backup)',
+    description:
+      'Optional standby for Call · Conference · Live · Chat · RTC Engine — not active; LiveKit remains A/V transport',
+    envKeys: ['VITE_TENCENT_RTC_SDK_APP_ID'],
+    packages: [],
+    files: ['src/lib/tencent/rtcConfig.ts'],
+    scripts: [],
   },
   {
     id: 'deepar',
@@ -94,6 +120,19 @@ export function getIntegrationServiceStatus(service: IntegrationServiceDef): Int
   } else if (service.id === 'trtc') {
     configured = isTencentWebARConfigured();
     healthy = configured;
+  } else if (service.id === 'trtc-mobile') {
+    configured = isTencentEffectMobileLicenseConfigured();
+    healthy = configured;
+    if (configured) {
+      note = 'Stored for native apps; phone browsers still use Web&H5 (VITE_TENCENT_WEBAR_*)';
+    }
+  } else if (service.id === 'tencent-rtc') {
+    configured = isTencentRtcSdkAppIdConfigured();
+    healthy = configured;
+    if (configured) {
+      note =
+        'Backup credentials only. LiveKit still powers Call/Live/Chat. Flip VITE_TENCENT_RTC_TRANSPORT=true later if you opt into Tencent A/V.';
+    }
   } else if (service.id === 'deepar') {
     configured = isDeepARConfigured();
     healthy = configured && DEEPAR_ENABLED;

@@ -87,9 +87,12 @@ export type AuthAccountRecord = {
 };
 
 export type AppSettings = {
-  /** Data URL for custom launch/splash logo (image, SVG, or video) */
+  /** App logo icon — shell header, PWA, favicon, auth header (not splash). */
   appLogoUrl?: string | null;
   appLogoMediaType?: 'image' | 'video';
+  /** Splash-only artwork — launch splash screen (separate from app logo icon). */
+  splashArtworkUrl?: string | null;
+  splashArtworkMediaType?: 'image' | 'video';
   /** Full-bleed onboarding slide background (image or video data URL) */
   onboardingBackgroundUrl?: string | null;
   onboardingBackgroundMediaType?: 'image' | 'video';

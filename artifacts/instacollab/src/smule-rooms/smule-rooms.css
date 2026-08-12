@@ -701,12 +701,25 @@
   min-width: 0;
 }
 
-.chorus-song-picker {
-  min-height: min(12rem, 34vh);
+/* Song picker + performance stage share the same panel size */
+.chorus-song-picker,
+.chorus-performance-stage {
+  flex: 0 0 auto;
+  height: min(280px, 32vh);
+  max-height: min(280px, 32vh);
+  min-height: 0;
 }
 
-.chorus-performance-stage {
-  height: min(200px, 26vh);
+/* Mobile only — both panels same size; another 15% under prior 330px */
+@media (max-width: 767px) {
+  .chorus-song-picker,
+  .chorus-performance-stage {
+    flex: 0 0 auto !important;
+    flex-grow: 0 !important;
+    height: min(280px, 38dvh) !important;
+    max-height: min(280px, 38dvh) !important;
+    min-height: 0 !important;
+  }
 }
 
 @media (min-width: 640px) {
@@ -720,14 +733,20 @@
     --party-seat-row-gap: clamp(0.75rem, 2.75vw, 1.125rem);
   }
 
+  .chorus-song-picker,
   .chorus-performance-stage {
+    flex: 0 0 auto;
     height: min(280px, 32vh);
+    max-height: min(280px, 32vh);
+    min-height: 0;
   }
 }
 
 @media (min-width: 1024px) {
+  .chorus-song-picker,
   .chorus-performance-stage {
     height: min(320px, 34vh);
+    max-height: min(320px, 34vh);
   }
 }
 
@@ -876,6 +895,20 @@ video.watch-together-native-media {
   overflow-x: clip;
 }
 
+.watch-together-seat-grid-4 {
+  --wt-seat-gap: clamp(0.375rem, 2.5vw, 0.75rem);
+  --party-col-w: calc((100% - 3 * var(--wt-seat-gap)) / 4);
+  --party-seat-gap: var(--wt-seat-gap);
+  --party-heartbeat-ref-size: clamp(2.375rem, 9.5vw, 3.125rem);
+  display: grid;
+  width: 100%;
+  position: relative;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  column-gap: var(--wt-seat-gap);
+  align-items: start;
+  overflow-x: clip;
+}
+
 .watch-together-heartbeat-slot {
   top: calc(var(--party-heartbeat-ref-size) / 2);
   width: max(
@@ -897,6 +930,30 @@ video.watch-together-native-media {
 }
 
 .watch-together-heartbeat-slot-3 {
+  left: calc(var(--party-col-w) * 4 + var(--wt-seat-gap) * 3.5);
+}
+
+.game-live-heartbeat-slot {
+  top: calc(var(--party-heartbeat-ref-size) / 2);
+  width: max(
+    0.75rem,
+    calc(var(--party-col-w) + var(--wt-seat-gap) - var(--party-heartbeat-ref-size))
+  );
+}
+
+.game-live-heartbeat-slot-0 {
+  left: calc(var(--party-col-w) + var(--wt-seat-gap) / 2);
+}
+
+.game-live-heartbeat-slot-1 {
+  left: calc(var(--party-col-w) * 2 + var(--wt-seat-gap) * 1.5);
+}
+
+.game-live-heartbeat-slot-2 {
+  left: calc(var(--party-col-w) * 3 + var(--wt-seat-gap) * 2.5);
+}
+
+.game-live-heartbeat-slot-3 {
   left: calc(var(--party-col-w) * 4 + var(--wt-seat-gap) * 3.5);
 }
 
@@ -1003,8 +1060,19 @@ video.watch-together-native-media {
 .game-live-pip--viewer {
   position: absolute;
   right: 0.75rem;
-  bottom: 5.5rem;
+  bottom: 0.75rem;
   z-index: 25;
+}
+
+.game-live-seats {
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  background: linear-gradient(to top, rgba(0, 0, 0, 0.72), rgba(7, 1, 10, 0.35));
+  padding-top: 0.35rem;
+  padding-bottom: 0.15rem;
+}
+
+.game-live-bottom-bar {
+  flex-shrink: 0;
 }
 
 .game-live-pip--host {
@@ -1274,7 +1342,7 @@ video.watch-together-native-media {
 .game-live-chat-toggle--viewer {
   position: absolute;
   left: 0.75rem;
-  bottom: 5.5rem;
+  bottom: 0.75rem;
   z-index: 26;
 }
 
@@ -1495,7 +1563,12 @@ video.watch-together-native-media {
 
   .watch-together-seat-grid-5 {
     --wt-seat-gap: clamp(0.375rem, 2.25vw, 0.625rem);
-    --party-heartbeat-ref-size: clamp(1.75rem, 7.5vw, 2.125rem);
+    --party-heartbeat-ref-size: clamp(2.125rem, 9vw, 2.625rem);
+  }
+
+  .watch-together-seat-grid-4 {
+    --wt-seat-gap: clamp(0.375rem, 2.25vw, 0.625rem);
+    --party-heartbeat-ref-size: clamp(2.125rem, 9vw, 2.625rem);
   }
 
   .watch-together-seat-cell .party-seat-stars {
@@ -1503,19 +1576,19 @@ video.watch-together-native-media {
   }
 
   .watch-together-seats .party-host-avatar {
-    width: clamp(1.875rem, 8vw, 2.25rem);
-    height: clamp(1.875rem, 8vw, 2.25rem);
+    width: clamp(2.25rem, 9.5vw, 2.75rem);
+    height: clamp(2.25rem, 9.5vw, 2.75rem);
   }
 
   .watch-together-seats .party-guest-avatar,
   .watch-together-seats .party-empty-seat {
-    width: clamp(1.75rem, 7.5vw, 2.125rem);
-    height: clamp(1.75rem, 7.5vw, 2.125rem);
+    width: clamp(2.125rem, 9vw, 2.625rem);
+    height: clamp(2.125rem, 9vw, 2.625rem);
   }
 
   .watch-together-seats .party-host-name,
   .watch-together-seats .party-seat-name {
-    font-size: clamp(0.4375rem, 1.8vw, 0.5625rem);
+    font-size: clamp(0.5rem, 2vw, 0.625rem);
     margin-top: 0.125rem;
   }
 
@@ -1774,8 +1847,18 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 }
 
 .multi-guest-video-tile-self-media .multi-guest-video-tile-media {
-  position: relative;
+  position: absolute;
+  inset: 0;
   z-index: 1;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.multi-guest-video-tile-self-media .multi-guest-video-tile-media + .multi-guest-video-tile-media {
+  /* Beauty / WebAR sink must paint over the raw camera, not stack below it. */
+  z-index: 2;
 }
 
 .multi-guest-video-tile-deepar {
@@ -2222,8 +2305,12 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   flex: 1 1 0%;
   min-height: 0;
   overflow: hidden;
+  /* Stable seat size - never tied to 100dvh / browser chrome. */
+  --solo-live-guest-size: min(1.5in, 9rem);
+  /* Fixed clearance above footer/chat - never recomputed from beauty/arena. */
   --solo-live-guest-rail-bottom: 168px;
 }
+
 
 .solo-live-stage {
   position: absolute;
@@ -2307,6 +2394,7 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   height: 100% !important;
   display: block;
   object-fit: cover;
+  object-position: center;
   transform: translateZ(0);
 }
 
@@ -2448,16 +2536,35 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 
 .solo-live-guest-rail {
   pointer-events: none;
+  position: absolute;
+  /* Bottom-anchored like before — fixed CSS offset, no JS remeasure. */
   top: auto;
+  right: 0.5rem;
   bottom: var(--solo-live-guest-rail-bottom, 168px);
+  left: auto;
+  z-index: 20;
+  width: var(--solo-live-guest-size);
+  max-height: calc(
+    100% - var(--solo-live-guest-rail-bottom, 168px) - 3.25rem -
+      env(safe-area-inset-top, 0px)
+  );
   transform: none;
-  max-height: calc(100% - var(--solo-live-guest-rail-bottom, 168px) - 1rem);
+  contain: layout style;
+  isolation: isolate;
+}
+
+@media (min-width: 640px) {
+  .solo-live-guest-rail {
+    right: 0.75rem;
+  }
 }
 
 .solo-live-guest-rail .solo-live-guest-grid {
-  max-height: min(52vh, 28rem);
+  max-height: inherit;
   overflow-y: auto;
+  overflow-x: hidden;
   scrollbar-width: none;
+  overscroll-behavior: contain;
 }
 
 .solo-live-guest-rail .solo-live-guest-grid::-webkit-scrollbar {
@@ -2469,10 +2576,10 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 }
 
 .solo-live-guest-grid {
-  --solo-live-guest-size: var(--room-guest-tile-size);
   display: flex;
   flex-direction: column;
   align-items: stretch;
+  flex-shrink: 0;
   gap: 0.4rem;
   width: var(--solo-live-guest-size);
 }
@@ -2641,11 +2748,41 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   grid-template-columns: 1fr 1fr;
 }
 
+.pk-battle-video-shell--single .pk-battle-stage-grid--single {
+  gap: 0;
+  padding: 0;
+  min-height: 12.5rem;
+  position: relative;
+}
+
+.pk-battle-video-shell--single .pk-battle-stage-grid--single::after {
+  content: '';
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  width: 1px;
+  transform: translateX(-50%);
+  background: linear-gradient(
+    to bottom,
+    rgba(255, 255, 255, 0.05),
+    rgba(255, 255, 255, 0.55),
+    rgba(255, 255, 255, 0.05)
+  );
+  z-index: 25;
+  pointer-events: none;
+}
+
 .pk-battle-side-column {
   min-height: 0;
   overflow: hidden;
   border-radius: 0.85rem;
   border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.pk-battle-side-column--single {
+  border: 0;
+  border-radius: 0;
 }
 
 .pk-battle-side-column--muted {
@@ -2682,9 +2819,23 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   min-height: 5.5rem;
 }
 
+.pk-battle-video-tile--single {
+  min-height: 12.5rem;
+  height: 100%;
+}
+
+.pk-battle-status-banner {
+  min-height: 2.25rem;
+}
+
 @media (min-width: 640px) {
   .pk-battle-stage-grid {
     min-height: 11rem;
+  }
+
+  .pk-battle-video-shell--single .pk-battle-stage-grid--single,
+  .pk-battle-video-tile--single {
+    min-height: 15rem;
   }
 }
 

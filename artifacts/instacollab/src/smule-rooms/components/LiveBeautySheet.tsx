@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { startTransition, useCallback, useRef, useState } from 'react';
 import { Film, Loader2, ScanFace, Upload } from 'lucide-react';
 import { AppCameraButton } from '../../components/camera/AppCameraButton';
 import { cameraCaptureToFile } from '../../lib/camera/cameraCaptureAdapters';
@@ -23,6 +23,7 @@ import {
   inferTencentBackgroundType,
   prepareTencentWebARBackgroundMedia,
 } from '../../lib/webar/webarBackgroundImage';
+import { UniLivesStickerThumbnail } from '../../components/stickers/brand';
 
 type BeautyTab = 'beauty' | 'shape' | 'makeup' | 'sticker' | 'filter' | 'background';
 
@@ -89,14 +90,8 @@ export function LiveBeautySheet({
   const [uploadedBackgroundLabel, setUploadedBackgroundLabel] = useState('My BG');
   const [uploadingBackground, setUploadingBackground] = useState(false);
 
-  useEffect(() => {
-    return () => {
-      if (uploadedBackgroundUrl?.startsWith('blob:')) {
-        URL.revokeObjectURL(uploadedBackgroundUrl);
-      }
-    };
-  }, [uploadedBackgroundUrl]);
-
+  // Only revoke the previous blob when replacing — never on unmount, so Go Live
+  // can keep a video background blob alive across Create Room → Room.
   const patchEffects = (patch: Partial<TencentEffectSelection>) => {
     onEffectsChange?.({ ...effects, ...patch });
   };
@@ -130,7 +125,9 @@ export function LiveBeautySheet({
         const baseName = file.name.replace(/\.[^.]+$/, '').trim();
 
         setUploadedBackgroundUrl((prev) => {
-          if (prev?.startsWith('blob:')) URL.revokeObjectURL(prev);
+          if (prev?.startsWith('blob:') && prev !== media.url) {
+            URL.revokeObjectURL(prev);
+          }
           return media.url;
         });
         setUploadedBackgroundLabel(baseName || 'My BG');
@@ -203,7 +200,11 @@ export function LiveBeautySheet({
               <button
                 key={preset.id}
                 type="button"
-                onClick={() => onSelectBeauty(preset.id)}
+                onClick={() => {
+                  // Keep the click stack free — WebAR apply is already deferred;
+                  // startTransition avoids locking the tray on React commit.
+                  startTransition(() => onSelectBeauty(preset.id));
+                }}
                 aria-pressed={selected}
                 className={`${EFFECT_TRAY_BTN} ${
                   selected ? EFFECT_TRAY_BTN_ACTIVE : EFFECT_TRAY_BTN_IDLE
@@ -233,7 +234,6 @@ export function LiveBeautySheet({
           onBodyShapeChange={handleBodyShapeChange}
           shapeCovers={catalogs?.shapeCovers}
           shapeEffectByPreset={shapeEffectByPreset}
-          onShapeEffectChange={(id) => patchEffects({ shapeEffectId: id })}
           accent="rose"
           bare={variant === 'call'}
         />
@@ -243,10 +243,10 @@ export function LiveBeautySheet({
         <EffectGrid
           noneLabel="No Makeup"
           selectedId={effects.makeupId}
-          items={catalogs?.makeups ?? []}
+          items={(catalogs?.makeups ?? []).slice(0, 24)}
           onSelect={(id) => patchEffects({ makeupId: id })}
           emptyHint=""
-          isReady={(id) => !id || readyEffectIds.length === 0 || readyEffectIds.includes(id)}
+          isReady={() => true}
         />
       ) : null}
 
@@ -254,10 +254,11 @@ export function LiveBeautySheet({
         <EffectGrid
           noneLabel="No Sticker"
           selectedId={effects.stickerId}
-          items={catalogs?.stickers ?? []}
+          items={(catalogs?.stickers ?? []).slice(0, 24)}
           onSelect={(id) => patchEffects({ stickerId: id })}
           emptyHint=""
-          isReady={(id) => !id || readyEffectIds.length === 0 || readyEffectIds.includes(id)}
+          isReady={() => true}
+          useStickerBrandThumb
         />
       ) : null}
 
@@ -265,10 +266,10 @@ export function LiveBeautySheet({
         <EffectGrid
           noneLabel="No Filter"
           selectedId={effects.filterId}
-          items={catalogs?.filters ?? []}
+          items={(catalogs?.filters ?? []).slice(0, 24)}
           onSelect={(id) => patchEffects({ filterId: id })}
           emptyHint=""
-          isReady={(id) => !id || readyEffectIds.length === 0 || readyEffectIds.includes(id)}
+          isReady={() => true}
         />
       ) : null}
 
@@ -472,6 +473,7 @@ function EffectGrid({
   onSelect,
   emptyHint,
   isReady,
+  useStickerBrandThumb = false,
 }: {
   noneLabel: string;
   selectedId: string | null;
@@ -479,6 +481,8 @@ function EffectGrid({
   onSelect: (id: string | null) => void;
   emptyHint: string;
   isReady: (id: string | null) => boolean;
+  /** Phase 8: resolve beauty sticker covers through UniLive’s sticker visual layer (remote override). */
+  useStickerBrandThumb?: boolean;
 }) {
   return (
     <div className="flex gap-2 overflow-x-auto scrollbar-hide touch-pan-x pb-0.5">
@@ -514,14 +518,23 @@ function EffectGrid({
             >
               <span className="relative flex h-10 w-10 items-center justify-center">
                 {item.cover ? (
-                  <img
-                    src={item.cover}
-                    alt=""
-                    className="h-10 w-10 rounded-full object-cover border border-white/15"
-                    loading="lazy"
-                    decoding="async"
-                    draggable={false}
-                  />
+                  useStickerBrandThumb ? (
+                    <UniLivesStickerThumbnail
+                      businessStickerId={item.id}
+                      remoteIconOverride={item.cover}
+                      imgClassName="h-10 w-10 rounded-full object-cover border border-white/15"
+                      alt=""
+                    />
+                  ) : (
+                    <img
+                      src={item.cover}
+                      alt=""
+                      className="h-10 w-10 rounded-full object-cover border border-white/15"
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  )
                 ) : (
                   <span className="flex h-10 w-10 items-center justify-center rounded-full border border-white/20 bg-black/70 text-[10px] font-black">
                     {item.name.slice(0, 1)}

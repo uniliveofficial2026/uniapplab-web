@@ -3,6 +3,7 @@ import { Avatar } from '../common/Avatar';
 import { handleAvatarError } from '../../lib/utils';
 import { useDB } from '../../lib/useDB';
 import type { User } from '../../types';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 
 const SUGGESTED_HASHTAGS = [
   '#fyp',
@@ -172,7 +173,11 @@ export function StoryCaptionComposer({
                           <div className="flex-1 min-w-0">
                             <div className="text-xs font-bold text-foreground truncate flex items-center gap-1">
                               {u.username}
-                              {u.isVerified && <span className="text-blue-500">✓</span>}
+                              <UniLivesVerificationBadge
+                                isVerified={!!u.isVerified}
+                                userId={u.id}
+                                iconClassName="w-3 h-3 text-blue-500"
+                              />
                             </div>
                             <div className="text-[10px] text-muted-foreground truncate">
                               {u.displayName}

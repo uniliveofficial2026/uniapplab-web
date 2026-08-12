@@ -1,28 +1,31 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Mic, MicOff, Swords, Trophy, Users, Volume2, VolumeX } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { Armchair, Mic, MicOff, Swords, Trophy, Users, Volume2, VolumeX } from 'lucide-react';
 import { safeAvatarUrl } from '../../lib/safe';
 import type { PKBattleState, PKFighter, PKMode, PKPayload } from '../utils/liveRoomTypes';
-import { DEFAULT_PK_STATE } from '../utils/liveRoomTypes';
 import {
   getPkTeamGridClass,
-  isPkAudioBossSlot,
   padPkTeamFighters,
   pkWinnerSide,
-  sumPkTeamScore,
-  type PKAudioSeatId,
   type PKAudioSeats,
   type PKAudioSlotId,
 } from '../utils/pkBattleLayout';
 
+type PKAccent = 'blue' | 'gold';
+
+function formatPkClock(seconds: number): string {
+  const safe = Math.max(0, Math.floor(seconds));
+  const minutes = Math.floor(safe / 60);
+  const secs = safe % 60;
+  return `${String(minutes).padStart(2, '0')}:${String(secs).padStart(2, '0')}`;
+}
+
 type PKBattleStageProps = {
   selfUserId: string;
-  teamA: PKFighter[];
-  teamB: PKFighter[];
+  /** Authoritative PK battle state owned by Room. */
+  battle: PKBattleState;
   audioSeats: PKAudioSeats;
   audioSlotSpeaking?: Partial<Record<PKAudioSlotId, boolean>>;
   canTakeBossSlot?: boolean;
-  initialMode?: PKMode;
-  lastPk: PKPayload | null;
   isOwner: boolean;
   onEmitPk: (payload: PKPayload) => void;
   onStartPk?: () => void;
@@ -33,88 +36,57 @@ type PKBattleStageProps = {
   className?: string;
 };
 
-function applyPkScore(state: PKBattleState, userId: string, delta: number): PKBattleState {
-  const next = { ...state };
-  next.teamA = state.teamA.map((fighter) =>
-    fighter.userId === userId
-      ? { ...fighter, score: Math.max(0, fighter.score + delta) }
-      : fighter,
-  );
-  next.teamB = state.teamB.map((fighter) =>
-    fighter.userId === userId
-      ? { ...fighter, score: Math.max(0, fighter.score + delta) }
-      : fighter,
-  );
-  next.teamAScore = sumPkTeamScore(next.teamA);
-  next.teamBScore = sumPkTeamScore(next.teamB);
-  return next;
-}
-
-function applyPkPayload(
-  state: PKBattleState,
-  payload: PKPayload,
-  fallbackTeams: { teamA: PKFighter[]; teamB: PKFighter[] },
-): PKBattleState {
-  switch (payload.action) {
-    case 'sync':
-      return payload.state;
-    case 'invite': {
-      const mode = payload.mode ?? state.mode ?? 'single';
-      const teamA = payload.teamA ?? fallbackTeams.teamA;
-      const teamB = payload.teamB ?? fallbackTeams.teamB;
-      return {
-        ...state,
-        phase: 'inviting',
-        mode,
-        teamA,
-        teamB,
-        teamAScore: sumPkTeamScore(teamA),
-        teamBScore: sumPkTeamScore(teamB),
-        durationSec: payload.durationSec ?? state.durationSec,
-        winnerSide: null,
-      };
-    }
-    case 'accept': {
-      const startedAt = Date.now();
-      return {
-        ...state,
-        phase: 'active',
-        startedAt,
-        endsAt: startedAt + state.durationSec * 1000,
-        teamA: state.teamA.map((fighter) => ({ ...fighter, score: 0 })),
-        teamB: state.teamB.map((fighter) => ({ ...fighter, score: 0 })),
-        teamAScore: 0,
-        teamBScore: 0,
-        winnerSide: null,
-      };
-    }
-    case 'decline':
-      return { ...DEFAULT_PK_STATE };
-    case 'score':
-      return applyPkScore(state, payload.userId, payload.delta);
-    case 'end': {
-      const winnerSide = payload.winnerSide ?? pkWinnerSide(state);
-      return { ...state, phase: 'ended', winnerSide };
-    }
-    default:
-      return state;
-  }
-}
-
 function PKVideoTile({
   fighter,
   accent,
   empty = false,
+  layout = 'team',
+  streak,
 }: {
   fighter: PKFighter;
-  accent: 'fuchsia' | 'cyan';
+  accent: PKAccent;
   empty?: boolean;
+  layout?: 'single' | 'team';
+  streak?: number;
 }) {
   const poster = safeAvatarUrl(fighter.avatarUrl);
-  const ring =
-    accent === 'fuchsia'
-      ? 'from-fuchsia-500/40 via-pink-500/20 to-transparent'
-      : 'from-cyan-500/40 via-blue-500/20 to-transparent';
+  const scoreClass = accent === 'blue' ? 'text-[#4da3ff]' : 'text-[#ffc44d]';
+  const wash =
+    accent === 'blue'
+      ? 'from-[#1a6cff]/35 via-transparent to-transparent'
+      : 'from-[#ff9a1a]/30 via-transparent to-transparent';
+
+  if (layout === 'single') {
+    return (
+      <div className="pk-battle-video-tile pk-battle-video-tile--single relative min-h-0 overflow-hidden bg-black">
+        {!empty && poster ? (
+          <img src={poster} alt="" className="absolute inset-0 h-full w-full object-cover" />
+        ) : (
+          <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 to-black" />
+        )}
+        <div className={`pointer-events-none absolute inset-0 bg-gradient-to-b ${wash}`} />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 h-20 bg-gradient-to-t from-black/80 via-black/35 to-transparent" />
+
+        {typeof streak === 'number' && streak > 0 ? (
+          <div className="absolute left-1.5 top-1.5 z-20 rounded-full bg-[#2f7dff] px-2 py-0.5 text-[9px] font-black text-white shadow-md">
+            {streak} streak
+          </div>
+        ) : null}
+
+        <div className="absolute bottom-2 left-1.5 z-20 flex max-w-[78%] items-center gap-1">
+          <div className="flex min-w-0 items-center gap-1 rounded-full bg-black/55 px-2 py-1 backdrop-blur-md">
+            <span className="truncate text-[10px] font-bold text-white">{fighter.name}</span>
+          </div>
+        </div>
+
+        {!empty ? (
+          <p className={`absolute bottom-2 right-2 z-20 text-lg font-black leading-none drop-shadow-md ${scoreClass}`}>
+            {fighter.score}
+          </p>
+        ) : null}
+      </div>
+    );
+  }
 
   return (
     <div className="pk-battle-video-tile relative min-h-0 overflow-hidden bg-black">
@@ -123,18 +95,10 @@ function PKVideoTile({
       ) : (
         <div className="absolute inset-0 bg-gradient-to-br from-zinc-900 to-black" />
       )}
-      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${ring}`} />
+      <div className={`pointer-events-none absolute inset-0 bg-gradient-to-t ${wash}`} />
       <div className="absolute inset-x-0 bottom-0 z-10 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-1.5 pb-1.5 pt-5">
         <p className="truncate text-center text-[10px] font-black text-white">{fighter.name}</p>
-        {!empty ? (
-          <p
-            className={`text-center text-sm font-black ${
-              accent === 'fuchsia' ? 'text-fuchsia-300' : 'text-cyan-300'
-            }`}
-          >
-            {fighter.score}
-          </p>
-        ) : null}
+        {!empty ? <p className={`text-center text-sm font-black ${scoreClass}`}>{fighter.score}</p> : null}
       </div>
     </div>
   );
@@ -147,7 +111,7 @@ function PKTeamPane({
   forceFour = false,
 }: {
   fighters: PKFighter[];
-  accent: 'fuchsia' | 'cyan';
+  accent: PKAccent;
   label: string;
   forceFour?: boolean;
 }) {
@@ -185,12 +149,12 @@ function PKSideMuteButton({
     <button
       type="button"
       onClick={onToggle}
-      className={`pk-battle-side-mute absolute right-1.5 top-1.5 z-40 flex items-center gap-1 rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-wide backdrop-blur-md transition active:scale-95 ${
+      className={`pk-battle-side-mute absolute right-1.5 top-8 z-40 flex items-center gap-1 rounded-full border px-2 py-1 text-[8px] font-black uppercase tracking-wide backdrop-blur-md transition active:scale-95 ${
         muted
           ? 'border-red-400/50 bg-red-950/80 text-red-200'
           : side === 'a'
-            ? 'border-fuchsia-400/35 bg-black/65 text-fuchsia-100'
-            : 'border-cyan-400/35 bg-black/65 text-cyan-100'
+            ? 'border-blue-400/40 bg-black/65 text-blue-100'
+            : 'border-amber-400/40 bg-black/65 text-amber-100'
       }`}
       title={muted ? `Unmute ${side === 'a' ? 'left' : 'right'} side` : `Mute ${side === 'a' ? 'left' : 'right'} side`}
       aria-pressed={muted}
@@ -204,35 +168,96 @@ function PKSideMuteButton({
 function PKLiveScoreBar({
   teamAScore,
   teamBScore,
-  mode,
+  secondsLeft,
+  phase,
 }: {
   teamAScore: number;
   teamBScore: number;
-  mode: PKMode;
+  secondsLeft: number;
+  phase: PKBattleState['phase'];
 }) {
-  const total = Math.max(1, teamAScore + teamBScore);
-  const leftPct = (teamAScore / total) * 100;
-  const rightPct = (teamBScore / total) * 100;
+  const total = teamAScore + teamBScore;
+  const leftPct = total === 0 ? 50 : (teamAScore / total) * 100;
+  const clock =
+    phase === 'active'
+      ? formatPkClock(secondsLeft)
+      : phase === 'ended'
+        ? '00:00'
+        : phase === 'inviting'
+          ? 'Ready'
+          : formatPkClock(secondsLeft);
 
   return (
-    <div className="pk-battle-live-score pointer-events-none absolute inset-x-0 top-0 z-30 px-2 pt-1.5">
-      <div className="mb-1 flex items-center justify-between text-[9px] font-black uppercase tracking-wider">
-        <span className="text-fuchsia-200">{mode === 'team' ? 'Team A' : 'Left'}</span>
-        <span className="rounded-full bg-black/75 px-2 py-0.5 font-mono text-[10px] text-white">
-          {teamAScore} : {teamBScore}
-        </span>
-        <span className="text-cyan-200">{mode === 'team' ? 'Team B' : 'Right'}</span>
-      </div>
-      <div className="flex h-2 overflow-hidden rounded-full border border-white/15 bg-black/55 shadow-lg backdrop-blur-sm">
+    <div className="pk-battle-live-score pointer-events-none absolute inset-x-0 top-0 z-30">
+      <div className="pk-battle-score-track relative flex h-5 overflow-hidden shadow-[0_2px_10px_rgba(0,0,0,0.45)]">
         <div
-          className="h-full bg-gradient-to-r from-fuchsia-500 to-pink-500 transition-all duration-300"
+          className="relative flex h-full items-center bg-gradient-to-r from-[#1a6cff] via-[#2f7dff] to-[#4da3ff] transition-all duration-300"
           style={{ width: `${leftPct}%` }}
-        />
+        >
+          <span className="pl-2 text-[11px] font-black tabular-nums text-white drop-shadow">{teamAScore}</span>
+        </div>
+        <div className="relative flex h-full flex-1 items-center justify-end bg-gradient-to-l from-[#f5a623] via-[#ffb020] to-[#ffc44d] transition-all duration-300">
+          <span className="pr-2 text-[11px] font-black tabular-nums text-white drop-shadow">{teamBScore}</span>
+        </div>
         <div
-          className="h-full bg-gradient-to-l from-cyan-500 to-blue-500 transition-all duration-300"
-          style={{ width: `${rightPct}%` }}
+          className="pk-battle-score-flare pointer-events-none absolute top-1/2 z-10 h-7 w-7 -translate-x-1/2 -translate-y-1/2 rounded-full bg-[radial-gradient(circle,rgba(255,255,255,0.95)_0%,rgba(255,220,120,0.75)_35%,transparent_70%)]"
+          style={{ left: `${leftPct}%` }}
         />
       </div>
+
+      <div className="mt-1 flex justify-center">
+        <div className="pk-battle-timer-pill inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-[#12141c]/92 px-2.5 py-0.5 shadow-lg backdrop-blur-md">
+          <span className="pk-battle-pk-mark text-[11px] font-black italic tracking-tight" aria-hidden>
+            <span className="text-[#ff8a1a]">P</span>
+            <span className="text-[#3d8bff]">K</span>
+          </span>
+          <span className="font-mono text-[11px] font-bold tabular-nums text-white">{clock}</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function PKStatusBanner({
+  mode,
+  phase,
+  winnerName,
+}: {
+  mode: PKMode;
+  phase: PKBattleState['phase'];
+  winnerName?: string;
+}) {
+  const label =
+    phase === 'ended' && winnerName
+      ? `${winnerName} wins the PK`
+      : phase === 'inviting'
+        ? 'PK connected — start when both sides are ready'
+        : mode === 'team'
+          ? 'Team PK-ing. The team with the highest charm wins'
+          : '1v1 PK-ing. The side with the highest charm wins';
+
+  return (
+    <div className="pk-battle-status-banner relative z-20 flex items-center justify-between gap-2 border-t border-white/10 bg-[#0b1220]/92 px-2.5 py-1.5">
+      <button
+        type="button"
+        className="pointer-events-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#2f7dff] text-white shadow-md active:scale-95"
+        title="Blue side seats"
+        aria-label="Blue side seats"
+      >
+        <Armchair size={14} />
+      </button>
+      <p className="min-w-0 flex-1 truncate text-center text-[10px] font-semibold text-white/85">
+        {label}
+        <span className="ml-1 text-[#7eb6ff]">Details &gt;</span>
+      </p>
+      <button
+        type="button"
+        className="pointer-events-auto flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-[#f5a623] text-white shadow-md active:scale-95"
+        title="Gold side seats"
+        aria-label="Gold side seats"
+      >
+        <Armchair size={14} />
+      </button>
     </div>
   );
 }
@@ -251,7 +276,7 @@ function PKAudioSeat({
   slotId: PKAudioSlotId;
   fighter: PKFighter | null;
   role: 'boss' | 'guest';
-  accent: 'fuchsia' | 'cyan';
+  accent: PKAccent;
   isSpeaking?: boolean;
   dimmed?: boolean;
   canJoinBoss?: boolean;
@@ -259,9 +284,9 @@ function PKAudioSeat({
   onToggleMic?: (slotId: PKAudioSlotId) => void;
 }) {
   const ring =
-    accent === 'fuchsia'
-      ? 'from-fuchsia-400 via-pink-500 to-fuchsia-600'
-      : 'from-cyan-400 via-blue-500 to-cyan-600';
+    accent === 'blue'
+      ? 'from-[#2f7dff] via-[#4da3ff] to-[#1a6cff]'
+      : 'from-[#f5a623] via-[#ffc44d] to-[#ff9a1a]';
   const label = role === 'boss' ? 'Admin' : 'Guest';
   const name = fighter?.name ?? 'Join';
   const poster = fighter ? safeAvatarUrl(fighter.avatarUrl) : null;
@@ -323,7 +348,7 @@ function PKAudioSeat({
       </span>
       <span
         className={`pk-battle-audio-seat-name max-w-[2.75rem] truncate text-[8px] font-bold ${
-          accent === 'fuchsia' ? 'text-fuchsia-200' : 'text-cyan-200'
+          accent === 'blue' ? 'text-blue-200' : 'text-amber-200'
         }`}
       >
         {name}
@@ -345,7 +370,7 @@ function PKAudioSideColumn({
 }: {
   side: 'a' | 'b';
   seats: PKAudioSeats['sideA'];
-  accent: 'fuchsia' | 'cyan';
+  accent: PKAccent;
   slotIds: { boss: PKAudioSlotId; guests: [PKAudioSlotId, PKAudioSlotId] };
   sideMuted: boolean;
   audioSlotSpeaking?: Partial<Record<PKAudioSlotId, boolean>>;
@@ -412,7 +437,7 @@ function PKAudioSeatsRow({
       <PKAudioSideColumn
         side="a"
         seats={audioSeats.sideA}
-        accent="fuchsia"
+        accent="blue"
         slotIds={{ boss: 'a_boss', guests: ['a_guest1', 'a_guest2'] }}
         sideMuted={sideAMuted}
         audioSlotSpeaking={audioSlotSpeaking}
@@ -423,7 +448,7 @@ function PKAudioSeatsRow({
       <PKAudioSideColumn
         side="b"
         seats={audioSeats.sideB}
-        accent="cyan"
+        accent="gold"
         slotIds={{ boss: 'b_boss', guests: ['b_guest1', 'b_guest2'] }}
         sideMuted={sideBMuted}
         audioSlotSpeaking={audioSlotSpeaking}
@@ -436,13 +461,10 @@ function PKAudioSeatsRow({
 }
 
 export function PKBattleStage({
-  teamA,
-  teamB,
+  battle: state,
   audioSeats,
   audioSlotSpeaking,
   canTakeBossSlot = false,
-  initialMode = 'single',
-  lastPk,
   isOwner,
   onEmitPk,
   onStartPk,
@@ -452,37 +474,32 @@ export function PKBattleStage({
   variant = 'stage',
   className = '',
 }: PKBattleStageProps) {
-  const fallbackTeams = useMemo(() => ({ teamA, teamB }), [teamA, teamB]);
-  const [state, setState] = useState<PKBattleState>(() => ({
-    ...DEFAULT_PK_STATE,
-    mode: initialMode,
-    teamA,
-    teamB,
-    teamAScore: sumPkTeamScore(teamA),
-    teamBScore: sumPkTeamScore(teamB),
-  }));
   const [secondsLeft, setSecondsLeft] = useState(0);
-  const [inviteMode, setInviteMode] = useState<PKMode>(initialMode);
+  const [inviteMode, setInviteMode] = useState<PKMode>(state.mode);
   const [sideAMuted, setSideAMuted] = useState(false);
   const [sideBMuted, setSideBMuted] = useState(false);
+  const endEmittedRef = useRef(false);
 
   useEffect(() => {
-    if (!lastPk) return;
-    setState((prev) => applyPkPayload(prev, lastPk, fallbackTeams));
-    if (lastPk.action === 'invite' && lastPk.mode) {
-      setInviteMode(lastPk.mode);
+    setInviteMode(state.mode);
+  }, [state.mode]);
+
+  useEffect(() => {
+    if (state.phase !== 'active') {
+      endEmittedRef.current = false;
     }
-  }, [lastPk, fallbackTeams]);
+  }, [state.phase]);
 
   useEffect(() => {
     if (state.phase !== 'active' || !state.endsAt) {
-      setSecondsLeft(0);
+      setSecondsLeft(state.phase === 'active' ? 0 : state.durationSec);
       return undefined;
     }
     const tick = () => {
       const left = Math.max(0, Math.ceil((state.endsAt! - Date.now()) / 1000));
       setSecondsLeft(left);
-      if (left <= 0 && isOwner) {
+      if (left <= 0 && isOwner && !endEmittedRef.current) {
+        endEmittedRef.current = true;
         onEmitPk({ action: 'end', winnerSide: pkWinnerSide(state) });
       }
     };
@@ -500,13 +517,13 @@ export function PKBattleStage({
       : state.teamB[0]?.name ?? 'Team B';
 
   const statusChip = (
-    <div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide text-fuchsia-200">
+    <div className="flex items-center justify-between gap-2 text-xs font-bold uppercase tracking-wide text-blue-100">
       <span className="inline-flex items-center gap-1">
         {state.mode === 'team' ? <Users className="h-3.5 w-3.5" /> : <Swords className="h-3.5 w-3.5" />}
         {modeLabel}
       </span>
       {state.phase === 'active' ? (
-        <span className="font-mono text-white">{secondsLeft}s</span>
+        <span className="font-mono text-white">{formatPkClock(secondsLeft)}</span>
       ) : state.phase === 'inviting' ? (
         <span className="text-amber-300">Connected</span>
       ) : state.phase === 'ended' ? (
@@ -532,14 +549,15 @@ export function PKBattleStage({
                 opponentUserId: state.teamB[0]?.userId ?? '',
                 opponentName: state.teamB[0]?.name ?? 'Opponent',
                 mode,
-                teamA: fallbackTeams.teamA,
-                teamB: fallbackTeams.teamB,
+                teamA: state.teamA,
+                teamB: state.teamB,
+                durationSec: state.durationSec,
               });
             }}
             className={`rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide transition ${
               inviteMode === mode
-                ? 'bg-fuchsia-500/30 text-fuchsia-100 border border-fuchsia-400/50'
-                : 'bg-white/5 text-white/60 border border-white/10'
+                ? 'border border-blue-400/50 bg-blue-500/30 text-blue-50'
+                : 'border border-white/10 bg-white/5 text-white/60'
             }`}
           >
             {mode === 'single' ? '1v1' : 'Team'}
@@ -574,45 +592,75 @@ export function PKBattleStage({
     ) : modePicker;
 
   if (variant === 'stage') {
+    const isSingle = state.mode === 'single';
     return (
-      <div className={`pk-battle-stage relative z-20 w-full shrink-0 px-2 sm:px-3 ${className}`}>
-        <div className="pk-battle-stage-frame overflow-hidden rounded-2xl border border-fuchsia-400/25 bg-black shadow-[0_0_32px_rgba(192,38,211,0.15)]">
-          <div className="pk-battle-stage-hud flex flex-col gap-2 border-b border-white/10 bg-black/70 px-3 py-2 backdrop-blur-md">
-            {statusChip}
-            {inviteActions}
-          </div>
+      <div className={`pk-battle-stage relative z-20 w-full shrink-0 ${isSingle ? '' : 'px-2 sm:px-3'} ${className}`}>
+        <div
+          className={`pk-battle-stage-frame overflow-hidden bg-black ${
+            isSingle
+              ? 'pk-battle-stage-frame--single rounded-xl border border-white/10 shadow-[0_8px_28px_rgba(0,0,0,0.45)]'
+              : 'rounded-2xl border border-blue-400/25 shadow-[0_0_32px_rgba(47,125,255,0.18)]'
+          }`}
+        >
+          {state.phase === 'inviting' || state.phase === 'ended' ? (
+            <div className="pk-battle-stage-hud flex flex-col gap-2 border-b border-white/10 bg-black/70 px-3 py-2 backdrop-blur-md">
+              {statusChip}
+              {inviteActions}
+            </div>
+          ) : null}
 
-          <div className="pk-battle-video-shell relative">
-            <PKLiveScoreBar teamAScore={state.teamAScore} teamBScore={state.teamBScore} mode={state.mode} />
+          <div className={`pk-battle-video-shell relative ${isSingle ? 'pk-battle-video-shell--single' : ''}`}>
+            <PKLiveScoreBar
+              teamAScore={state.teamAScore}
+              teamBScore={state.teamBScore}
+              secondsLeft={state.phase === 'active' ? secondsLeft : state.durationSec}
+              phase={state.phase}
+            />
             <div
               className={`pk-battle-stage-grid ${
-                state.mode === 'team' ? 'pk-battle-stage-grid--team' : 'pk-battle-stage-grid--single'
+                isSingle ? 'pk-battle-stage-grid--single' : 'pk-battle-stage-grid--team'
               }`}
             >
-              <div className={`pk-battle-side-column relative min-h-0 ${sideAMuted ? 'pk-battle-side-column--muted' : ''}`}>
+              <div
+                className={`pk-battle-side-column relative min-h-0 ${
+                  isSingle ? 'pk-battle-side-column--single pk-battle-side-column--blue' : ''
+                } ${sideAMuted ? 'pk-battle-side-column--muted' : ''}`}
+              >
                 <PKSideMuteButton side="a" muted={sideAMuted} onToggle={() => setSideAMuted((v) => !v)} />
-                {state.mode === 'single' ? (
+                {isSingle ? (
                   <PKVideoTile
                     fighter={state.teamA[0] ?? { userId: 'a', name: 'Host', score: state.teamAScore }}
-                    accent="fuchsia"
+                    accent="blue"
+                    layout="single"
                   />
                 ) : (
-                  <PKTeamPane fighters={state.teamA} accent="fuchsia" label="Team A" forceFour />
+                  <PKTeamPane fighters={state.teamA} accent="blue" label="Team A" forceFour />
                 )}
               </div>
-              <div className={`pk-battle-side-column relative min-h-0 ${sideBMuted ? 'pk-battle-side-column--muted' : ''}`}>
+              <div
+                className={`pk-battle-side-column relative min-h-0 ${
+                  isSingle ? 'pk-battle-side-column--single pk-battle-side-column--gold' : ''
+                } ${sideBMuted ? 'pk-battle-side-column--muted' : ''}`}
+              >
                 <PKSideMuteButton side="b" muted={sideBMuted} onToggle={() => setSideBMuted((v) => !v)} />
-                {state.mode === 'single' ? (
+                {isSingle ? (
                   <PKVideoTile
                     fighter={state.teamB[0] ?? { userId: 'b', name: 'Rival', score: state.teamBScore }}
-                    accent="cyan"
+                    accent="gold"
+                    layout="single"
                   />
                 ) : (
-                  <PKTeamPane fighters={state.teamB} accent="cyan" label="Team B" forceFour />
+                  <PKTeamPane fighters={state.teamB} accent="gold" label="Team B" forceFour />
                 )}
               </div>
             </div>
           </div>
+
+          <PKStatusBanner
+            mode={state.mode}
+            phase={state.phase}
+            winnerName={state.phase === 'ended' ? winnerName : undefined}
+          />
 
           <PKAudioSeatsRow
             audioSeats={audioSeats}
@@ -623,12 +671,6 @@ export function PKBattleStage({
             onJoinAudioSlot={onJoinAudioSlot}
             onToggleAudioSlotMic={onToggleAudioSlotMic}
           />
-
-          {state.phase === 'ended' && state.winnerSide ? (
-            <p className="border-t border-white/10 bg-black/80 py-2 text-center text-xs text-white/85">
-              {winnerName} wins
-            </p>
-          ) : null}
         </div>
       </div>
     );
@@ -638,12 +680,12 @@ export function PKBattleStage({
     <div
       className={`pointer-events-none absolute inset-x-0 top-[calc(var(--app-safe-top)+3.25rem)] z-[95] px-3 ${className}`}
     >
-      <div className="mx-auto max-w-lg rounded-2xl border border-fuchsia-400/30 bg-black/60 p-3 shadow-xl backdrop-blur-md">
+      <div className="mx-auto max-w-lg rounded-2xl border border-blue-400/30 bg-black/60 p-3 shadow-xl backdrop-blur-md">
         {statusChip}
         <div className="mt-2 flex justify-between text-sm font-semibold text-white">
-          <span className="text-fuchsia-300">{state.teamAScore}</span>
+          <span className="text-[#4da3ff]">{state.teamAScore}</span>
           <span className="text-white/50">vs</span>
-          <span className="text-cyan-300">{state.teamBScore}</span>
+          <span className="text-[#ffc44d]">{state.teamBScore}</span>
         </div>
       </div>
     </div>

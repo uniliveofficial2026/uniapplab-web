@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Filter, Search, X } from 'lucide-react';
-import { roomModeFromLiveKind } from '../../lib/liveRing';
+import { roomModeFromLiveKind, normalizeStorageRoomMode } from '../../lib/liveRing';
 import type { LiveKind } from '../../types';
 import {
   ROOM_MODE_OPTIONS,
@@ -35,7 +35,6 @@ const TYPE_SEARCH_ALIASES: Record<string, LiveTypeFilter> = {
   lounge: 'Chat',
   audio: 'Chat',
   party: 'Party',
-  pk: 'Party',
   karaoke: 'Karaoke',
   sing: 'Karaoke',
   radio: 'Radio',
@@ -45,6 +44,9 @@ const TYPE_SEARCH_ALIASES: Record<string, LiveTypeFilter> = {
   'multi-guest': 'Multi-Guest',
   multiguest: 'Multi-Guest',
   guest: 'Multi-Guest',
+  shop: 'Commerce-Live',
+  commerce: 'Commerce-Live',
+  'commerce-live': 'Commerce-Live',
 };
 
 export type LiveSearchableCard = {
@@ -166,7 +168,7 @@ export function resolveLiveRoomType(
   liveKind: LiveKind,
   roomMode?: string | null,
 ): RoomModePickerOption {
-  const mode = String(roomMode || '').trim();
+  const mode = normalizeStorageRoomMode(String(roomMode || '').trim());
   if ((ROOM_MODE_OPTIONS as readonly string[]).includes(mode)) {
     return mode as RoomModePickerOption;
   }

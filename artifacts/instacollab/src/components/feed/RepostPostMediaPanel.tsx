@@ -3,6 +3,7 @@ import { Post as PostType } from '../../types';
 import { Avatar } from '../common/Avatar';
 import { PostMediaStage, type PostMediaStageProps } from './PostMediaStage';
 import { formatContentDateTime, formatPostedDateTime, contentTimestampIso, openProfilePreview } from '../../lib/utils';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 
 type ResolvedPost = ReturnType<typeof import('../../lib/entityResolve').resolvePost>;
 
@@ -54,11 +55,12 @@ export function RepostPostMediaPanel({
             >
               {repost.user?.displayName || repost.user?.username || 'Unknown'}
             </span>
-            {repost.user?.isVerified && (
-              <span className="bg-primary/20 text-primary text-[10px] px-1 rounded-sm shrink-0">
-                ✓
-              </span>
-            )}
+            <UniLivesVerificationBadge
+              isVerified={!!repost.user?.isVerified}
+              userId={repost.user?.id}
+              className="bg-primary/20 text-primary text-[10px] px-1 rounded-sm shrink-0 inline-flex"
+              iconClassName="w-3 h-3 text-primary"
+            />
             <span className={`text-muted-foreground shrink-0 ${isMdHeader ? 'font-semibold text-[13px]' : ''}`}>
               • Follow
             </span>

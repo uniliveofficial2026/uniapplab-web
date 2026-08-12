@@ -7,7 +7,11 @@ export type RuntimeSupabaseConfig = {
 };
 
 /** Retired Supabase project refs — never use for auth (Vercel env may still point here). */
-export const STALE_SUPABASE_PROJECT_REFS = new Set(['kgiaflmukkguzjtmcuqd']);
+export const STALE_SUPABASE_PROJECT_REFS = new Set([
+  'kgiaflmukkguzjtmcuqd',
+  'otiqckextvdbudbxzmau',
+  'ffhvdoooxkthlvlvdiiu', // replaced by ldxrdbyznheayhbkvxlq (2026-07-17)
+]);
 
 const STALE_PROJECT_REFS = STALE_SUPABASE_PROJECT_REFS;
 
@@ -40,6 +44,11 @@ function applyConfig(data: RuntimeSupabaseConfig): void {
     supabaseUrl: data.supabaseUrl.trim().replace(/\/$/, ''),
     supabaseAnonKey: data.supabaseAnonKey.trim(),
   };
+  if (typeof window !== 'undefined') {
+    const ref = supabaseUrlProjectRef(runtime.supabaseUrl);
+    (window as unknown as { __UNILIVE_SUPABASE_REF__?: string | null }).__UNILIVE_SUPABASE_REF__ =
+      ref;
+  }
 }
 
 /** Instant — uses bundled config so UI never waits on network. */

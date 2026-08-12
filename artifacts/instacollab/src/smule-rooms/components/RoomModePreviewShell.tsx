@@ -553,7 +553,6 @@ export function RoomModePreviewShell({ mode }: RoomModePreviewShellProps) {
       <PartyLayoutPreview
         seats={buildPreviewPartySeats(false)}
         showAdmin={false}
-        showPkBanner
       />
     );
   }

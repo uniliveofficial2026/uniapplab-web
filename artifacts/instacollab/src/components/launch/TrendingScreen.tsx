@@ -1,10 +1,15 @@
 import React, { useMemo } from 'react';
-import { Flame, UserPlus } from 'lucide-react';
+import { Flame } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { resolveUser } from '../../lib/safe';
-import { handleAvatarError } from '../../lib/utils';
-import { LaunchPrimaryButton, LaunchShell } from './launchUi';
+import { LaunchPrimaryButton } from './launchUi';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
+import {
+  UniLivesCreatorCard,
+  UniLivesDiscoveryHeader,
+  UniLivesDiscoveryShell,
+  UniLivesPostCardFrame,
+} from '../discovery/brand';
 
 export function TrendingScreen() {
   const db = useDB();
@@ -27,19 +32,17 @@ export function TrendingScreen() {
   const finish = () => db.markTrendingSeen();
 
   return (
-    <LaunchShell className="overflow-y-auto">
+    <UniLivesDiscoveryShell surface="trending" className="overflow-y-auto">
       <div className="p-6 pb-4">
-        <div className="flex items-center gap-2 text-accent">
-          <Flame className="h-6 w-6" />
-          <h1 className="text-2xl font-black">Trending now</h1>
-        </div>
-        <p className="text-sm text-muted-foreground mt-1">
-          Follow a few accounts and see what is popular before your home feed.
-        </p>
+        <UniLivesDiscoveryHeader
+          icon={<Flame className="h-6 w-6" />}
+          title="Trending now"
+          subtitle="Follow a few accounts and see what is popular before your home feed."
+        />
       </div>
 
       <div className="px-6 pb-2">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[color:var(--color-unilives-discovery-muted)] mb-3">
           Creators
         </h2>
         <div className="flex gap-3 overflow-x-auto no-scrollbar pb-2">
@@ -47,61 +50,40 @@ export function TrendingScreen() {
             const resolved = resolveUser(db.users, user);
             const following = !!resolved.isFollowing;
             return (
-              <div
+              <UniLivesCreatorCard
                 key={user.id}
-                className="shrink-0 w-28 rounded-2xl border border-border bg-card/80 p-3 flex flex-col items-center text-center"
-              >
-                <div className="h-14 w-14 rounded-full overflow-hidden mb-2">
-                  <img
-                    src={resolved.avatarUrl}
-                    alt=""
-                    className="h-full w-full object-cover"
-                    onError={handleAvatarError}
-                  />
-                </div>
-                <span className="text-xs font-bold truncate w-full">{resolved.username}</span>
-                <button
-                  type="button"
-                  onClick={() => db.toggleFollow(user.id)}
-                  className={`mt-2 w-full py-1.5 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 ${
-                    following
-                      ? 'bg-secondary text-foreground'
-                      : 'bg-primary text-primary-foreground'
-                  }`}
-                >
-                  <UserPlus className="h-3 w-3" />
-                  {following ? 'Following' : 'Follow'}
-                </button>
-              </div>
+                userId={user.id}
+                username={resolved.username}
+                avatarUrl={resolved.avatarUrl}
+                following={following}
+                onFollowClick={() => db.toggleFollow(user.id)}
+              />
             );
           })}
         </div>
       </div>
 
       <div className="px-6 py-4">
-        <h2 className="text-xs font-bold uppercase tracking-wider text-muted-foreground mb-3">
+        <h2 className="text-xs font-bold uppercase tracking-wider text-[color:var(--color-unilives-discovery-muted)] mb-3">
           Popular posts
         </h2>
         <div className="grid grid-cols-3 gap-1.5 rounded-2xl overflow-hidden">
           {trendingPosts.map((post) => (
-            <div key={post.id} className="aspect-square relative bg-secondary">
-              <img
-                src={post.imageUrl}
-                alt=""
-                className="h-full w-full object-cover"
-                onError={handleAvatarError}
-              />
-              <span className="absolute bottom-1 left-1 text-[10px] font-bold text-white drop-shadow">
-                {post.likes} ♥
-              </span>
-            </div>
+            <UniLivesPostCardFrame
+              key={post.id}
+              postId={post.id}
+              imageUrl={post.imageUrl}
+              likesLabel={`${post.likes} ♥`}
+            />
           ))}
         </div>
       </div>
 
-      <div className="p-6 pt-2 mt-auto sticky bottom-0 bg-background/90 backdrop-blur border-t border-border">
-        <LaunchPrimaryButton onClick={finish}>Enter {APP_DISPLAY_NAME}</LaunchPrimaryButton>
+      <div className="p-6 pt-2 mt-auto sticky bottom-0 bg-[color:var(--color-unilives-discovery-background)]/90 backdrop-blur border-t border-[color:var(--color-unilives-discovery-border)]">
+        <LaunchPrimaryButton tone="onboarding" onClick={finish}>
+          Enter {APP_DISPLAY_NAME}
+        </LaunchPrimaryButton>
       </div>
-    </LaunchShell>
+    </UniLivesDiscoveryShell>
   );
 }

@@ -17,19 +17,12 @@ import {
 } from './postsCloud';
 import { fetchProfile, profileRowToUser } from '../supabase/profile';
 import type { ProfileRow } from '../supabase/types';
+import { isFirebaseConfigured } from '../firebase/config';
 import { isSocialCloudAvailable, shouldUseFirebaseForSocialCloud } from '../social/socialCloud';
-import {
-  deleteFirebaseComment,
-  deleteFirebaseEngagement,
-  fetchFirebaseActiveStories,
-  fetchFirebaseCommentsForTargets,
-  fetchFirebaseEngagementForTargets,
-  isFirebaseSocialContentAvailable,
-  subscribeFirebaseSocialContent,
-  upsertFirebaseComment,
-  upsertFirebaseEngagement,
-  upsertFirebaseStory,
-} from '../firebase/socialContent';
+
+async function firebaseSocialContent() {
+  return import('../firebase/socialContent');
+}
 
 export type SocialTargetKind = 'post' | 'reel' | 'comment';
 export type SocialEngagementKind = 'like' | 'save';
@@ -156,8 +149,11 @@ export function queueCloudCommentPublish(input: {
     created_at: new Date(payload.timestamp).toISOString(),
   };
 
-  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
-    void upsertFirebaseComment(row).catch((err) => {
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseConfigured()) {
+    void firebaseSocialContent().then((fb) => {
+      if (!fb.isFirebaseSocialContentAvailable()) return;
+      return fb.upsertFirebaseComment(row);
+    }).catch((err) => {
       console.warn('[social] comment publish failed:', err);
     });
     return;
@@ -272,10 +268,13 @@ export async function syncCloudCommentsForTargets(
   if (!isSocialCloudAvailable() || !targets.length) return;
   const me = meCloudId();
 
-  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
-    const rows = await fetchFirebaseCommentsForTargets(targets);
-    await applyCommentRows(rows);
-    return;
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseConfigured()) {
+    const fb = await firebaseSocialContent();
+    if (fb.isFirebaseSocialContentAvailable()) {
+      const rows = await fb.fetchFirebaseCommentsForTargets(targets);
+      await applyCommentRows(rows);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -322,22 +321,22 @@ export function queueCloudEngagement(input: {
   const me = meCloudId();
   if (!me || !isSocialCloudAvailable()) return;
 
-  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseConfigured()) {
     const row = {
       target_kind: input.targetKind,
       target_id: input.targetId,
       user_id: me,
       kind: input.kind,
     };
-    if (input.active) {
-      void upsertFirebaseEngagement(row).catch((err) => {
-        console.warn('[social] engagement upsert failed:', err);
-      });
-    } else {
-      void deleteFirebaseEngagement(row).catch((err) => {
-        console.warn('[social] engagement delete failed:', err);
-      });
-    }
+    void firebaseSocialContent().then((fb) => {
+      if (!fb.isFirebaseSocialContentAvailable()) return;
+      if (input.active) {
+        return fb.upsertFirebaseEngagement(row);
+      }
+      return fb.deleteFirebaseEngagement(row);
+    }).catch((err) => {
+      console.warn('[social] engagement publish failed:', err);
+    });
     return;
   }
 
@@ -438,10 +437,13 @@ export async function syncCloudEngagementForTargets(
   if (!isSocialCloudAvailable() || !targets.length) return;
   const me = meCloudId();
 
-  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
-    const rows = await fetchFirebaseEngagementForTargets(targets);
-    await applyEngagementRows(rows);
-    return;
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseConfigured()) {
+    const fb = await firebaseSocialContent();
+    if (fb.isFirebaseSocialContentAvailable()) {
+      const rows = await fb.fetchFirebaseEngagementForTargets(targets);
+      await applyEngagementRows(rows);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -493,8 +495,11 @@ export function queueCloudStoryPublish(authorId: string, segment: StoryDraftMedi
     created_at: new Date(createdAt).toISOString(),
   };
 
-  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
-    void upsertFirebaseStory(row).catch((err) => {
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseConfigured()) {
+    void firebaseSocialContent().then((fb) => {
+      if (!fb.isFirebaseSocialContentAvailable()) return;
+      return fb.upsertFirebaseStory(row);
+    }).catch((err) => {
       console.warn('[social] story publish failed:', err);
     });
     return;
@@ -534,10 +539,13 @@ export async function syncCloudStories(): Promise<void> {
   if (!isSocialCloudAvailable()) return;
   const me = meCloudId();
 
-  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
-    const rows = await fetchFirebaseActiveStories();
-    for (const row of rows) mergeStoryRow(row);
-    return;
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseConfigured()) {
+    const fb = await firebaseSocialContent();
+    if (fb.isFirebaseSocialContentAvailable()) {
+      const rows = await fb.fetchFirebaseActiveStories();
+      for (const row of rows) mergeStoryRow(row);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -665,9 +673,16 @@ export function startCloudSocialRealtime(): () => void {
   };
 
   const me = meCloudId();
-  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseSocialContentAvailable()) {
-    firebaseSocialRealtimeStop = subscribeFirebaseSocialContent(schedule);
-    return stopCloudSocialRealtime;
+  if (shouldUseFirebaseForSocialCloud(me) && isFirebaseConfigured()) {
+    let cancelled = false;
+    void firebaseSocialContent().then((fb) => {
+      if (cancelled || !fb.isFirebaseSocialContentAvailable()) return;
+      firebaseSocialRealtimeStop = fb.subscribeFirebaseSocialContent(schedule);
+    });
+    return () => {
+      cancelled = true;
+      stopCloudSocialRealtime();
+    };
   }
 
   const supabase = getSupabaseClient();

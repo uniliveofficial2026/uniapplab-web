@@ -8,14 +8,13 @@ import {
   fetchPlatformBrandFromApi,
   publishPlatformBrandViaApi,
 } from '../platformApi';
-import {
-  fetchFirebasePlatformAppBrand,
-  isFirebasePlatformAppBrandAvailable,
-  publishFirebasePlatformAppBrand,
-  subscribeFirebasePlatformAppBrand,
-} from '../firebase/platformAppBrand';
+import { isFirebaseConfigured } from '../firebase/config';
 import { isSupabaseConfigured } from '../supabase/config';
 import { getSupabaseClient } from '../supabase/client';
+import {
+  removeSafeRealtimeChannel,
+  subscribeSafeRealtimeChannel,
+} from '../supabase/safeRealtimeChannel';
 
 const REMOTE_CACHE_KEY = 'platform_app_brand_remote';
 const PLATFORM_ROW_ID = 'default';
@@ -28,6 +27,10 @@ export type PlatformAppBrand = {
 type BrandWithMeta = PlatformAppBrand & { updatedAt: string };
 
 export const PLATFORM_APP_BRAND_UPDATED_EVENT = 'platform-app-brand-updated';
+
+async function firebasePlatformAppBrand() {
+  return import('../firebase/platformAppBrand');
+}
 
 function normalizeSupabaseBrand(row: {
   logo_url?: string | null;
@@ -44,9 +47,11 @@ function normalizeSupabaseBrand(row: {
   };
 }
 
-function normalizeFirebaseBrand(
-  row: Awaited<ReturnType<typeof fetchFirebasePlatformAppBrand>>,
-): BrandWithMeta | null {
+function normalizeFirebaseBrand(row: {
+  logo_url: string | null;
+  logo_media_type: 'image' | 'video';
+  updated_at: string;
+} | null): BrandWithMeta | null {
   if (!row) return null;
   return {
     logoUrl: row.logo_url,
@@ -111,7 +116,7 @@ export function readPlatformAppBrandCache(): PlatformAppBrand {
 }
 
 export function isPlatformAppBrandCloudAvailable(): boolean {
-  return isSupabaseConfigured() || isFirebasePlatformAppBrandAvailable();
+  return isSupabaseConfigured() || isFirebaseConfigured();
 }
 
 async function fetchSupabasePlatformAppBrand(): Promise<BrandWithMeta | null> {
@@ -124,6 +129,14 @@ async function fetchSupabasePlatformAppBrand(): Promise<BrandWithMeta | null> {
     .maybeSingle();
   if (error) throw error;
   return normalizeSupabaseBrand(data);
+}
+
+async function fetchFirebasePlatformAppBrandLane(): Promise<BrandWithMeta | null> {
+  if (!isFirebaseConfigured()) return null;
+  const fb = await firebasePlatformAppBrand();
+  if (!fb.isFirebasePlatformAppBrandAvailable()) return null;
+  const row = await fb.fetchFirebasePlatformAppBrand();
+  return normalizeFirebaseBrand(row);
 }
 
 export async function fetchPlatformAppBrand(): Promise<PlatformAppBrand> {
@@ -147,12 +160,10 @@ export async function fetchPlatformAppBrand(): Promise<PlatformAppBrand> {
       console.warn('[platform-brand/supabase] fetch failed:', err);
       return null;
     }),
-    fetchFirebasePlatformAppBrand()
-      .then((row) => normalizeFirebaseBrand(row))
-      .catch((err) => {
-        console.warn('[platform-brand/firebase] fetch failed:', err);
-        return null;
-      }),
+    fetchFirebasePlatformAppBrandLane().catch((err) => {
+      console.warn('[platform-brand/firebase] fetch failed:', err);
+      return null;
+    }),
   ]);
 
   const brand = mergeBrands(
@@ -232,14 +243,19 @@ export async function publishPlatformAppBrand(
       }),
     );
   }
-  if (isFirebasePlatformAppBrandAvailable()) {
+  if (isFirebaseConfigured()) {
     tasks.push(
-      publishFirebasePlatformAppBrand({
-        logoUrl: brand.logoUrl,
-        mediaType: brand.mediaType,
-      }).catch((err) => {
-        console.warn('[platform-brand/firebase] publish failed:', err);
-      }),
+      firebasePlatformAppBrand()
+        .then((fb) => {
+          if (!fb.isFirebasePlatformAppBrandAvailable()) return;
+          return fb.publishFirebasePlatformAppBrand({
+            logoUrl: brand.logoUrl,
+            mediaType: brand.mediaType,
+          });
+        })
+        .catch((err) => {
+          console.warn('[platform-brand/firebase] publish failed:', err);
+        }),
     );
   }
 
@@ -269,7 +285,8 @@ export async function ensurePlatformBrandPublishedFromSettings(): Promise<void> 
 let unsubscribe: (() => void) | null = null;
 
 export function startPlatformAppBrandRealtime(): () => void {
-  stopPlatformAppBrandRealtime();
+  // Idempotent — fixed channel name + stop/start races blank the UI via Vite overlay.
+  if (unsubscribe) return stopPlatformAppBrandRealtime;
   if (!isPlatformAppBrandCloudAvailable()) return () => {};
 
   void fetchPlatformAppBrand();
@@ -278,9 +295,8 @@ export function startPlatformAppBrandRealtime(): () => void {
 
   const supabase = getSupabaseClient();
   if (supabase) {
-    const channel = supabase
-      .channel('platform-app-brand')
-      .on(
+    const channel = subscribeSafeRealtimeChannel(supabase, 'platform-app-brand', (ch) => {
+      ch.on(
         'postgres_changes',
         {
           event: '*',
@@ -291,19 +307,24 @@ export function startPlatformAppBrandRealtime(): () => void {
         () => {
           void fetchPlatformAppBrand();
         },
-      )
-      .subscribe();
-    stops.push(() => {
-      void supabase.removeChannel(channel);
+      );
     });
-  }
-
-  if (isFirebasePlatformAppBrandAvailable()) {
-    stops.push(
-      subscribeFirebasePlatformAppBrand(() => {
+    stops.push(() => {
+      removeSafeRealtimeChannel(supabase, channel);
+    });
+  } else if (isFirebaseConfigured()) {
+    let cancelled = false;
+    let fbUnsub: (() => void) | undefined;
+    void firebasePlatformAppBrand().then((fb) => {
+      if (cancelled || !fb.isFirebasePlatformAppBrandAvailable()) return;
+      fbUnsub = fb.subscribeFirebasePlatformAppBrand(() => {
         void fetchPlatformAppBrand();
-      }),
-    );
+      });
+    });
+    stops.push(() => {
+      cancelled = true;
+      fbUnsub?.();
+    });
   }
 
   unsubscribe = () => {
@@ -322,11 +343,29 @@ export function stopPlatformAppBrandRealtime(): void {
 export function bootstrapPlatformAppBrand(): void {
   void fetchPlatformAppBrand();
   startPlatformAppBrandRealtime();
-  void Promise.all([
-    import('../supabase/client').then((m) => m.initSupabaseClient()),
-    import('../firebase/app').then((m) => m.getFirebaseApp()),
-  ]).then(() => {
-    void fetchPlatformAppBrand();
-    void ensurePlatformBrandPublishedFromSettings();
-  });
+  void import('../supabase/client')
+    .then((m) => m.initSupabaseClient())
+    .then(() => {
+      void fetchPlatformAppBrand();
+      void ensurePlatformBrandPublishedFromSettings();
+    });
+  // Firebase brand lane loads only when Supabase is unavailable (backup path).
+  if (!isSupabaseConfigured() && isFirebaseConfigured()) {
+    void import('../firebase/app')
+      .then((m) => m.getFirebaseApp())
+      .then(() => {
+        void fetchPlatformAppBrand();
+      });
+  }
+
+  // Re-fetch published logo on every app access / tab return.
+  if (typeof window !== 'undefined') {
+    const refetchOnAccess = () => {
+      if (document.visibilityState && document.visibilityState !== 'visible') return;
+      void fetchPlatformAppBrand();
+    };
+    window.addEventListener('focus', refetchOnAccess);
+    document.addEventListener('visibilitychange', refetchOnAccess);
+    window.addEventListener('pageshow', refetchOnAccess);
+  }
 }

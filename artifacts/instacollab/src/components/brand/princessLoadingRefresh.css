@@ -1,0 +1,124 @@
+/* Locked UniLive’s princess splash / loading / refresh — original 9:16 fullscreen.
+   Do not change visual elements. Frame always fills viewport HEIGHT (no top/bottom blank).
+   Exact 9:16; when viewport is narrower, sides crop. Wider screens get side background extend. */
+
+.upr-root {
+  --upr-bg: #060821;
+  --upr-art-w: 720;
+  --upr-art-h: 1280;
+  position: relative;
+  isolation: isolate;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 100%;
+  min-height: 100dvh;
+  height: 100dvh;
+  max-height: 100dvh;
+  overflow: hidden;
+  background: var(--upr-bg);
+  color: #fff;
+}
+
+.upr-root[data-overlay='true'] {
+  position: fixed;
+  inset: 0;
+  z-index: 3200;
+}
+
+.upr-extend {
+  position: absolute;
+  inset: 0;
+  z-index: 0;
+  pointer-events: none;
+}
+
+.upr-extend img,
+.upr-extend svg {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: center;
+}
+
+.upr-frame {
+  position: relative;
+  z-index: 1;
+  /* Full height always — no top/bottom blank. Exact 9:16 (720×1280). */
+  height: 100dvh;
+  width: calc(100dvh * 720 / 1280);
+  max-height: 100dvh;
+  flex-shrink: 0;
+  overflow: hidden;
+  background: var(--upr-bg);
+}
+
+.upr-art {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  /* Fill the locked 9:16 frame — approved composition unchanged */
+  object-fit: fill;
+  object-position: center center;
+  pointer-events: none;
+  user-select: none;
+  -webkit-user-drag: none;
+  background: var(--upr-bg);
+}
+
+.upr-sr {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: -1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+  white-space: nowrap;
+  border: 0;
+}
+
+/* Breakpoints only confirm the same full-height 9:16 rule (scale/reposition/extend). */
+
+/* 375×812 */
+@media (min-width: 375px) and (max-width: 429.98px) {
+  .upr-frame {
+    height: 100dvh;
+    width: calc(100dvh * 720 / 1280);
+  }
+}
+
+/* 430×932 */
+@media (min-width: 430px) and (max-width: 767.98px) {
+  .upr-frame {
+    height: 100dvh;
+    width: calc(100dvh * 720 / 1280);
+  }
+}
+
+/* 768×1024 */
+@media (min-width: 768px) and (max-width: 1439.98px) {
+  .upr-frame {
+    height: 100dvh;
+    width: calc(100dvh * 720 / 1280);
+  }
+}
+
+/* 1440×900 */
+@media (min-width: 1440px) {
+  .upr-frame {
+    height: 100dvh;
+    width: calc(100dvh * 720 / 1280);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .upr-art[data-motion='video'] {
+    display: none;
+  }
+
+  .upr-art[data-motion='poster'] {
+    display: block;
+  }
+}

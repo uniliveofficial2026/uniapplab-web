@@ -11,7 +11,18 @@ export function isUnifiedLiveMode(): boolean {
 
 export function isForceDemoSession(search: string): boolean {
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
-  return params.get('force_demo') === '1';
+  if (params.get('force_demo') === '1') return true;
+  if (typeof window === 'undefined') return false;
+  try {
+    const stored = sessionStorage.getItem('instacollab_demo_bootstrap_search') || '';
+    if (!stored) return false;
+    const storedParams = new URLSearchParams(
+      stored.startsWith('?') ? stored.slice(1) : stored,
+    );
+    return storedParams.get('force_demo') === '1';
+  } catch {
+    return false;
+  }
 }
 
 /** Production app origin used for API proxy in unified local dev. */

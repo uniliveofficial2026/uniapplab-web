@@ -1,0 +1,378 @@
+{
+  "version": 1,
+  "category": "sharing",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "sharing.qr.profile.frame",
+      "brand": "UniLive\u2019s",
+      "name": "Profile QR frame",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/qr/profile-frame.webp",
+        "png": "/unilives-assets/sharing/qr/profile-frame.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true,
+      "safeZone": "quiet-zone-required",
+      "context": "profile-qr",
+      "notInPhaseUi": true
+    },
+    {
+      "id": "sharing.qr.room.frame",
+      "brand": "UniLive\u2019s",
+      "name": "Room QR frame",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/qr/room-frame.webp",
+        "png": "/unilives-assets/sharing/qr/room-frame.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true,
+      "safeZone": "quiet-zone-required",
+      "context": "room-qr",
+      "notInPhaseUi": true
+    },
+    {
+      "id": "sharing.qr.live.frame",
+      "brand": "UniLive\u2019s",
+      "name": "Live QR frame",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/qr/live-frame.webp",
+        "png": "/unilives-assets/sharing/qr/live-frame.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true,
+      "safeZone": "quiet-zone-required",
+      "notInPhaseUi": true
+    },
+    {
+      "id": "sharing.qr.invite.frame",
+      "brand": "UniLive\u2019s",
+      "name": "Invite QR frame",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/qr/invite-frame.webp",
+        "png": "/unilives-assets/sharing/qr/invite-frame.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true,
+      "safeZone": "quiet-zone-required",
+      "notInPhaseUi": true
+    },
+    {
+      "id": "sharing.qr.logo",
+      "brand": "UniLive\u2019s",
+      "name": "QR center logo",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/qr/logo.webp",
+        "png": "/unilives-assets/sharing/qr/logo.png",
+        "svg": "/unilives-assets/sharing/qr/logo.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true,
+      "safeZone": "do-not-obscure-modules",
+      "notInPhaseUi": true
+    },
+    {
+      "id": "sharing.qr.fallback",
+      "brand": "UniLive\u2019s",
+      "name": "QR fallback",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/brand/app-logo.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true,
+      "notInPhaseUi": true
+    },
+    {
+      "id": "sharing.card.profile.background",
+      "brand": "UniLive\u2019s",
+      "name": "Profile share card bg",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/cards/profile-bg.webp",
+        "png": "/unilives-assets/sharing/cards/profile-bg.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.card.post.background",
+      "brand": "UniLive\u2019s",
+      "name": "Post share card bg",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/cards/post-bg.webp",
+        "png": "/unilives-assets/sharing/cards/post-bg.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.card.room.background",
+      "brand": "UniLive\u2019s",
+      "name": "Room share card bg",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/cards/room-bg.webp",
+        "png": "/unilives-assets/sharing/cards/room-bg.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.card.live.background",
+      "brand": "UniLive\u2019s",
+      "name": "Live share card bg",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/cards/live-bg.webp",
+        "png": "/unilives-assets/sharing/cards/live-bg.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.card.invite.background",
+      "brand": "UniLive\u2019s",
+      "name": "Invite share card bg",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/cards/invite-bg.webp",
+        "png": "/unilives-assets/sharing/cards/invite-bg.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.card.logo",
+      "brand": "UniLive\u2019s",
+      "name": "Share sheet logo",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/cards/logo.webp",
+        "png": "/unilives-assets/sharing/cards/logo.png",
+        "svg": "/unilives-assets/sharing/cards/logo.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.card.watermark",
+      "brand": "UniLive\u2019s",
+      "name": "Share card watermark",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/cards/watermark.webp",
+        "png": "/unilives-assets/sharing/cards/watermark.png",
+        "svg": "/unilives-assets/sharing/cards/watermark.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.state.loading",
+      "brand": "UniLive\u2019s",
+      "name": "Share loading",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/states/loading.webp",
+        "png": "/unilives-assets/sharing/states/loading.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.state.success",
+      "brand": "UniLive\u2019s",
+      "name": "Share success",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/states/success.webp",
+        "png": "/unilives-assets/sharing/states/success.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.state.error",
+      "brand": "UniLive\u2019s",
+      "name": "Share error",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/sharing/states/error.webp",
+        "png": "/unilives-assets/sharing/states/error.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "sharing.fallback.default",
+      "brand": "UniLive\u2019s",
+      "name": "Sharing fallback",
+      "category": "sharing",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/brand/app-logo.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    }
+  ]
+}

@@ -1,10 +1,9 @@
 import React, { useEffect, useId, useRef, useState } from 'react';
-import { Camera } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { resolveUser } from '../../lib/safe';
 import { APP_DISPLAY_NAME } from '../../lib/appBrand';
-import { handleAvatarError, fileToBase64 } from '../../lib/utils';
+import { fileToBase64 } from '../../lib/utils';
 import { useAppCamera } from '../../contexts/AppCameraContext';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
 import {
@@ -13,20 +12,28 @@ import {
   type ProfilesTableStatus,
 } from '../../lib/supabase/profilesTableReady';
 import {
-  isCloudPublicUserIdAvailable,
   isCloudUsernameAvailable,
-  pushCloudProfile,
 } from '../../lib/auth/cloudProfile';
-import { isLocalPublicUserIdAvailable, validatePublicUserId } from '../../lib/publicUserId';
+import { commitUserProfile } from '../../lib/auth/userDataFlow';
+import { validatePublicUserId } from '../../lib/publicUserId';
+import {
+  usePublicUserIdAvailability,
+} from '../../hooks/usePublicUserIdAvailability';
 import { PublicUserIdField } from './PublicUserIdField';
+import { LegalAgreementCheckbox } from '../legal/LegalAgreementCheckbox';
+import { LEGAL_AGREEMENT_VERSION, writeLegalAcceptanceToStorage } from '../../lib/legalDocs';
 import {
   LaunchField,
   LaunchPrimaryButton,
-  LaunchShell,
-  launchInputClass,
 } from './launchUi';
-import { LegalAgreementCheckbox } from '../legal/LegalAgreementCheckbox';
-import { LEGAL_AGREEMENT_VERSION, writeLegalAcceptanceToStorage } from '../../lib/legalDocs';
+import {
+  UniLivesAvatarUploader,
+  UniLivesProfileSetupCard,
+  UniLivesProfileSetupHeader,
+  UniLivesProfileSetupShell,
+  UniLivesProfileSetupStatus,
+  unilivesProfileSetupInputClass,
+} from '../profile-setup/brand';
 
 export function ProfileSetupScreen() {
   const db = useDB();
@@ -48,6 +55,10 @@ export function ProfileSetupScreen() {
   );
   const [busy, setBusy] = useState(false);
   const [profilesTable, setProfilesTable] = useState<ProfilesTableStatus>('unknown');
+  const publicUserIdStatus = usePublicUserIdAvailability(publicUserId, {
+    exceptUserId: me.id,
+    currentPublicUserId: me.publicUserId || me.username,
+  });
 
   useEffect(() => {
     if (!isCloudAuthConfigured()) {
@@ -114,11 +125,6 @@ export function ProfileSetupScreen() {
           showToast('Username is taken');
           return;
         }
-        const userIdFree = await isCloudPublicUserIdAvailable(idCheck.value, me.id);
-        if (!userIdFree) {
-          showToast('User ID is taken');
-          return;
-        }
       } else {
         const taken = db.users.some(
           (u) => u.id !== me.id && u.username.toLowerCase() === trimmedUser
@@ -127,35 +133,41 @@ export function ProfileSetupScreen() {
           showToast('Username is taken');
           return;
         }
-        if (!isLocalPublicUserIdAvailable(db.users, idCheck.value, me.id)) {
-          showToast('User ID is taken');
-          return;
-        }
+      }
+
+      const idGateCheck = validatePublicUserId(publicUserId);
+      if (!idGateCheck.ok) {
+        showToast(idGateCheck.reason);
+        return;
       }
 
       const rawAvatar = avatarUrl.trim() || me.avatarUrl;
-      const changedAt = Date.now();
       const acceptedAt = Date.now();
       writeLegalAcceptanceToStorage(me.id, acceptedAt);
-      const nextUser = {
-        ...me,
-        displayName: trimmedName,
-        username: trimmedUser,
-        publicUserId: idCheck.value,
-        publicUserIdChangedAt: changedAt,
-        bio: bio.trim(),
-        avatarUrl: rawAvatar,
-        legalAgreementAcceptedAt: acceptedAt,
-        legalAgreementVersion: LEGAL_AGREEMENT_VERSION,
-      };
 
-      if (isCloudAuthConfigured()) {
-        await pushCloudProfile(nextUser, { profileSetupComplete: true });
+      const result = await commitUserProfile(
+        me.id,
+        {
+          displayName: trimmedName,
+          username: trimmedUser,
+          publicUserId: idGateCheck.value,
+          publicUserIdChangedAt: Date.now(),
+          bio: bio.trim(),
+          avatarUrl: rawAvatar,
+          legalAgreementAcceptedAt: acceptedAt,
+          legalAgreementVersion: LEGAL_AGREEMENT_VERSION,
+        },
+        {
+          profileSetupComplete: true,
+          enforceUniquePublicUserId: true,
+          localOnly: !isCloudAuthConfigured(),
+        },
+      );
+      if (!result.ok) {
+        showToast(result.reason);
+        return;
       }
 
-      db.updateUser(me.id, () => nextUser);
-
-      db.completeProfileSetup({ legalAgreementAccepted: true });
       showToast('Profile ready');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Could not save profile';
@@ -166,31 +178,28 @@ export function ProfileSetupScreen() {
   };
 
   return (
-    <LaunchShell className="p-4 sm:p-6 overflow-y-auto">
-      <div className="flex flex-1 w-full min-h-0 flex-col items-center justify-center py-6 sm:py-10">
-        <div className="w-full max-w-[420px] flex flex-col items-center gap-8">
-          <header className="flex w-full flex-col items-center gap-2 text-center">
-            <h1 className="text-2xl font-black tracking-tight">Set up your profile</h1>
-            <p className="text-sm text-muted-foreground leading-relaxed max-w-[320px]">
-              Tell people who you are before you join the feed.
-              {isCloudAuthConfigured() ? ' Synced to your cloud account.' : ''}
-            </p>
-          </header>
+    <UniLivesProfileSetupShell section="welcome">
+      <div className="flex flex-1 w-full min-h-0 flex-col items-center py-6 sm:py-10">
+        {/* my-auto: centered when short, scrollable to top/bottom when tall */}
+        <div className="my-auto w-full max-w-[420px] flex flex-col items-center gap-8">
+          <UniLivesProfileSetupHeader
+            title="Set up your profile"
+            subtitle={`Tell people who you are before you join the feed.${
+              isCloudAuthConfigured() ? ' Synced to your cloud account.' : ''
+            }`}
+          />
 
-          <div className="w-full flex flex-col gap-5">
+          <UniLivesProfileSetupCard>
             {profilesTable === 'missing' ? (
-              <div
-                className="w-full rounded-xl border border-amber-500/50 bg-amber-500/10 px-4 py-3 text-left text-sm text-foreground"
-                role="alert"
-              >
+              <UniLivesProfileSetupStatus tone="warning" role="alert">
                 <p className="font-semibold text-amber-700 dark:text-amber-300">
                   Cloud database setup required
                 </p>
-                <p className="mt-1 text-muted-foreground leading-relaxed">
+                <p className="mt-1 text-[color:var(--color-unilives-profile-setup-muted)] leading-relaxed">
                   The <code className="text-xs">profiles</code> table does not exist on your Supabase
                   project yet. Profile save will fail until you run the SQL once.
                 </p>
-                <ol className="mt-2 list-decimal list-inside space-y-1 text-muted-foreground text-xs">
+                <ol className="mt-2 list-decimal list-inside space-y-1 text-[color:var(--color-unilives-profile-setup-muted)] text-xs">
                   <li>
                     In <strong>Terminal</strong> (not SQL Editor):{' '}
                     <code className="rounded bg-muted px-1">npm run auth:bootstrap-db</code> — copies
@@ -206,59 +215,36 @@ export function ProfileSetupScreen() {
                   href={getSupabaseSqlEditorUrl()}
                   target="_blank"
                   rel="noopener noreferrer"
-                  className="mt-3 inline-block text-xs font-semibold text-primary hover:underline"
+                  className="mt-3 inline-block text-xs font-semibold text-[color:var(--color-unilives-primary)] hover:underline"
                 >
                   Open Supabase SQL Editor →
                 </a>
-              </div>
+              </UniLivesProfileSetupStatus>
             ) : null}
-            <div className="flex flex-col items-center gap-3">
-              <button
-                type="button"
-                onClick={() => {
-                  if (cameraAvailable) {
-                    openCamera({
-                      title: 'Profile photo',
-                      onCaptured: ({ kind, url }) => {
-                        if (kind === 'photo') setAvatarUrl(url);
-                      },
-                    });
-                    return;
-                  }
-                  avatarInputRef.current?.click();
-                }}
-                className="relative h-28 w-28 rounded-full overflow-hidden border-2 border-border shadow-lg group"
-              >
-                <img
-                  src={avatarUrl || me.avatarUrl}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  onError={handleAvatarError}
-                />
-                <span className="absolute inset-0 flex items-center justify-center bg-black/0 group-hover:bg-black/35 transition-colors">
-                  <Camera className="w-8 h-8 text-white opacity-0 group-hover:opacity-100 drop-shadow" />
-                </span>
-              </button>
-              <input
-                ref={avatarInputRef}
-                id={avatarInputId}
-                type="file"
-                className="sr-only"
-                accept="image/*,image/svg+xml,.svg,.webp"
-                onChange={(e) => void onPickAvatar(e)}
-              />
-              <button
-                type="button"
-                onClick={() => avatarInputRef.current?.click()}
-                className="text-xs font-semibold text-primary cursor-pointer hover:underline"
-              >
-                Upload profile photo
-              </button>
-            </div>
+            <UniLivesAvatarUploader
+              previewUrl={avatarUrl}
+              fallbackUrl={me.avatarUrl}
+              fileInputRef={avatarInputRef}
+              fileInputId={avatarInputId}
+              onFileChange={(e) => void onPickAvatar(e)}
+              onOpenPicker={() => {
+                if (cameraAvailable) {
+                  openCamera({
+                    title: 'Profile photo',
+                    onCaptured: ({ kind, url }) => {
+                      if (kind === 'photo') setAvatarUrl(url);
+                    },
+                  });
+                  return;
+                }
+                avatarInputRef.current?.click();
+              }}
+              onUploadClick={() => avatarInputRef.current?.click()}
+            />
 
             <LaunchField label="Display name">
               <input
-                className={launchInputClass}
+                className={unilivesProfileSetupInputClass}
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 required
@@ -266,7 +252,7 @@ export function ProfileSetupScreen() {
             </LaunchField>
             <LaunchField label="Username">
               <input
-                className={launchInputClass}
+                className={unilivesProfileSetupInputClass}
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 placeholder="creative_you"
@@ -279,11 +265,13 @@ export function ProfileSetupScreen() {
               value={publicUserId}
               onChange={setPublicUserId}
               onCopy={() => void onCopyUserId()}
-              hint="Choose your public User ID now. After setup you can change it once every 7 days in profile settings."
+              availability={publicUserIdStatus}
+              inputClass={unilivesProfileSetupInputClass}
+              hint="Choose your public User ID now. It must be unique. After setup you can change it once every 7 days in profile settings."
             />
             <LaunchField label="Bio">
               <textarea
-                className={`${launchInputClass} min-h-[88px] resize-none`}
+                className={`${unilivesProfileSetupInputClass} min-h-[88px] resize-none`}
                 value={bio}
                 onChange={(e) => setBio(e.target.value)}
                 placeholder="A short intro..."
@@ -292,7 +280,7 @@ export function ProfileSetupScreen() {
             </LaunchField>
             <LaunchField label="Avatar URL (optional)">
               <input
-                className={launchInputClass}
+                className={unilivesProfileSetupInputClass}
                 value={avatarUrl}
                 onChange={(e) => setAvatarUrl(e.target.value)}
                 placeholder="https://..."
@@ -302,14 +290,23 @@ export function ProfileSetupScreen() {
             <LegalAgreementCheckbox checked={legalAccepted} onChange={setLegalAccepted} />
 
             <LaunchPrimaryButton
+              tone="onboarding"
               onClick={() => void onSave()}
-              disabled={busy || profilesTable === 'missing' || !legalAccepted}
+              disabled={
+                busy ||
+                profilesTable === 'missing' ||
+                !legalAccepted ||
+                publicUserIdStatus === 'taken' ||
+                publicUserIdStatus === 'checking' ||
+                publicUserIdStatus === 'unreachable' ||
+                publicUserIdStatus === 'invalid'
+              }
             >
               {busy ? 'Saving…' : profilesTable === 'missing' ? 'Set up database first' : 'Continue'}
             </LaunchPrimaryButton>
-          </div>
+          </UniLivesProfileSetupCard>
         </div>
       </div>
-    </LaunchShell>
+    </UniLivesProfileSetupShell>
   );
 }

@@ -19,6 +19,8 @@ export type ProfileRow = {
   note_updated_at?: string | null;
   /** Private account — follow requests required. */
   is_private?: boolean | null;
+  /** Firebase lane only: Supabase UUID this Firebase profile mirrors. */
+  linked_supabase_user_id?: string | null;
   created_at?: string;
   updated_at?: string;
 };

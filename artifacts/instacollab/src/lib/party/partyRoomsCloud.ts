@@ -19,6 +19,7 @@ import {
   fetchRecentFirebasePartyRoomSyncEvents,
   insertFirebasePartyRoomSyncEvent,
   isFirebasePartyRoomLiveSyncAvailable,
+  markFirebasePartyRoomSyncEventSeen,
   subscribeFirebasePartyRoomSyncEvents,
 } from '../firebase/partyRoomLiveSync';
 import {
@@ -285,34 +286,22 @@ export async function persistAndBroadcastLiveRoomEvent(
   publish: (envelope: Omit<LiveRoomEnvelope, 'v'>) => boolean,
 ): Promise<LiveRoomEnvelope> {
   if (shouldUseFirebaseForPartyCloud(partial.senderId) && isFirebasePartyRoomLiveSyncAvailable()) {
-    const row = await insertFirebasePartyRoomSyncEvent({
+    const id =
+      typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function'
+        ? crypto.randomUUID()
+        : `fb_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    const ts = Date.now();
+    const envelope: LiveRoomEnvelope = {
+      v: 1,
+      id,
+      type: partial.type,
       roomId,
       senderId: partial.senderId,
       senderName: partial.senderName,
-      type: partial.type,
+      ts,
       payload: partial.payload,
-    });
-    const envelope: LiveRoomEnvelope = row
-      ? {
-          v: 1,
-          id: row.id,
-          type: row.event_type,
-          roomId: row.room_id,
-          senderId: row.sender_id,
-          senderName: partial.senderName,
-          ts: new Date(row.created_at).getTime(),
-          payload: row.payload,
-        }
-      : {
-          v: 1,
-          id: `local_${Date.now()}`,
-          type: partial.type,
-          roomId,
-          senderId: partial.senderId,
-          senderName: partial.senderName,
-          ts: Date.now(),
-          payload: partial.payload,
-        };
+    };
+    markFirebasePartyRoomSyncEventSeen(roomId, id);
     publish({
       id: envelope.id,
       type: envelope.type,
@@ -321,6 +310,16 @@ export async function persistAndBroadcastLiveRoomEvent(
       senderName: envelope.senderName,
       ts: envelope.ts,
       payload: envelope.payload,
+    });
+    void insertFirebasePartyRoomSyncEvent({
+      id,
+      roomId,
+      senderId: partial.senderId,
+      senderName: partial.senderName,
+      type: partial.type,
+      payload: partial.payload,
+    }).catch(() => {
+      /* LiveKit already delivered; cloud is durable backup only */
     });
     return envelope;
   }

@@ -12,7 +12,7 @@ import {
 } from 'livekit-client';
 import { isLiveKitConfigured } from './livekitConfig';
 import { isNetworkOnline } from '../networkStatus';
-import { NET_API_MS, withTimeout } from '../networkPolicy';
+import { NET_API_FAST_MS, withTimeout } from '../networkPolicy';
 
 export type LiveKitConnectResult =
   | { ok: true; room: Room }
@@ -55,7 +55,7 @@ export async function connectLiveKitRoom(options: {
     room.on(RoomEvent.Disconnected, options.onDisconnected);
   }
 
-  const timeoutMs = options.timeoutMs ?? NET_API_MS;
+  const timeoutMs = options.timeoutMs ?? NET_API_FAST_MS;
   try {
     await withTimeout(
       room.connect(options.url, options.token, options.connectOptions),
@@ -87,7 +87,7 @@ export async function connectWithTokenFetcher(
   if (!canAttemptLiveKit()) {
     return { ok: false, reason: 'offline_or_unconfigured' };
   }
-  const timeoutMs = options?.timeoutMs ?? NET_API_MS;
+  const timeoutMs = options?.timeoutMs ?? NET_API_FAST_MS;
   try {
     const { token, url } = await withTimeout(fetchToken(), timeoutMs, 'livekit.token');
     return connectLiveKitRoom({

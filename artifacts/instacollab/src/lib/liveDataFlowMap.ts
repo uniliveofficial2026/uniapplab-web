@@ -26,15 +26,21 @@ export const LIVE_DATA_FLOW_MAP = {
     transport: 'CU',
   },
   posts: {
-    write: 'scheduleCloudPostPublish / postsCloud → Supabase posts + post-media OR Firestore posts + Firebase Storage',
+    write: 'scheduleCloudPostPublish / postsCloud → Supabase posts metadata + R2 media URLs (uploadBlobToR2)',
     read: 'syncCloudSocialFeed + postsCloud realtime (Supabase postgres_changes or Firestore listeners)',
     users: 'resolveUser on author',
     transport: 'CU',
   },
   reels: {
-    write: 'scheduleCloudReelPublish → posts (payload.contentKind=reel) via postsCloud',
+    write: 'scheduleCloudReelPublish → posts (payload.contentKind=reel) via postsCloud; media on R2',
     read: 'syncCloudSocialFeed (split reels) + postsCloud realtime',
     users: 'resolveUser on author',
+    transport: 'CU',
+  },
+  media: {
+    write: 'uploadBlobToR2 → Cloudflare R2 (avatars/posts/chat/gifts/karaoke); Supabase stores URL only',
+    read: 'Cloudflare CDN in front of R2 public URL (Cache-Control immutable). Private-bucket fallback: /api/media/object → presigned GET',
+    users: 'n/a',
     transport: 'CU',
   },
   comments: {
@@ -80,20 +86,21 @@ export const LIVE_DATA_FLOW_MAP = {
     transport: 'CU',
   },
   live: {
-    write: 'setUserLiveStatus → profiles live_* + notifyLiveStarted',
-    read: 'useCloudLiveDiscovery streams/party_rooms/profiles realtime (Supabase + Firebase partyRoomsCloud)',
+    write:
+      'setUserLiveStatus → profiles live_*; Solo/Shop active PK only overlays live_kind=pk via liveKindForPkPresence (invite/ended/Party never publish pk)',
+    read: 'useCloudLiveDiscovery; discoveryLiveKindFromTags — party mode stays party; pk only when battle is active on Solo/Shop',
     users: 'resolveUser on host',
     transport: 'CU',
   },
   party: {
     write:
-      'partyRoomsCloud: insertPartyRoomMessage / upsertPartyRoom / presence / party_room_sync_events (gifts, PK, commerce, game, seats) — Supabase or Firestore',
-    read: 'partyRoomsCloud: usePartyRoomChat / usePartyRoomPresence / useCloudPartyRooms / useLiveRoomBus (incl. seats snapshot)',
+      'partyRoomsCloud: upsertPartyRoom (pk tags only for Solo-Live/Commerce-Live) / presence / party_room_sync_events — Party rooms have no PK battles',
+    read: 'useLiveRoomBus + Room applyPkPayload once by lastPkId → pkBattle → SoloLiveView (isPkEligibleRoomMode)',
     users: 'room host profile fetch',
     transport: 'CU',
   },
   profile: {
-    write: 'scheduleCloudProfileSync → profiles (incl. is_private)',
+    write: 'commitUserProfile → pushCloudProfile → profiles (incl. is_private)',
     read: 'subscribeProfileRow + syncCloudUserSocial',
     users: 'canonical profiles row',
     transport: 'CU',
@@ -110,11 +117,18 @@ export const LIVE_DATA_FLOW_MAP = {
     users: 'self account',
     transport: 'CU',
   },
+  adminControl: {
+    write: 'admin API mutations (archive/stop/end/credit) when profiles.role=admin',
+    read:
+      'AdminControlCenter → admin API when admin else adminCloudData Supabase SELECT + subscribeAdminCloudRealtime (postgres_changes) + 8s poll',
+    users: 'resolveUser / profile lite map on authors/hosts',
+    transport: 'CU',
+  },
   gifts: {
     write:
-      'adminCatalogStore upsert/delete → platform_gift_catalog (Supabase + Firestore) + admin_published_gifts; Room emitGiftPlay via liveRoomBus',
+      'sendGiftApi → settle_gift_send (single RPC: wallet + gift_transactions); catalog assets via uploadBlobToR2; admin catalog upsert',
     read:
-      'usePartyGiftCatalog + platformGiftCatalogCloud realtime (Supabase postgres_changes + Firestore onSnapshot) + getMergedPartyGiftCatalog; GiftPlayOverlay in Room',
+      'usePartyGiftCatalog + gift_catalog_items join by gift_id; GiftPlayOverlay via liveRoomBus (not Supabase video)',
     users: 'all viewers in live rooms; admin edits from Creation Studio or in-room gift panel',
     transport: 'CU+AS',
   },

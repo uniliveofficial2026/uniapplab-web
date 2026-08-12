@@ -72,7 +72,10 @@ function normalizedBaseUrl(): string {
 }
 
 export function isFaceARAvailable(): boolean {
-  return typeof window !== 'undefined' && Boolean(navigator.mediaDevices?.getUserMedia);
+  if (typeof window === 'undefined') return false;
+  if (!navigator.mediaDevices?.getUserMedia) return false;
+  if (window.isSecureContext === false) return false;
+  return true;
 }
 
 export function getAREffectPreviewUrl(effectId: string): string {

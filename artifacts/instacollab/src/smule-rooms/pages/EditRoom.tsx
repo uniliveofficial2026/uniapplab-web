@@ -15,6 +15,10 @@ import type { RoomSettingsNavState } from '../context/roomFlowContextCore';
 import { normalizeRoomRole } from '../utils/roles';
 import { formatRoomPrivacyLabel, resolveRoomPrivacy, resolveRoomKey, roomPrivacyPatch, verifyRoomKey } from '../utils/roomPrivacy';
 import {
+  formatSeatJoinModeLabel,
+  resolveSeatJoinMode,
+} from '../utils/roomJoinPolicy';
+import {
   ensureDemoRoomMediaRegistry,
   formatSettingPreview,
   isPlaceholderSetting,
@@ -126,6 +130,7 @@ const EditRoom = ({
             hostName: managed.hostName ?? next.owner,
           });
         }
+        syncPartyRoomToCloud(roomId, next.ownerUserId ?? getAppUserId(), next);
         return next;
       });
     },
@@ -420,6 +425,18 @@ const EditRoom = ({
               }
             />
             <RoomSettingsEditRow
+              label="Seat entry"
+              value={formatSeatJoinModeLabel(resolveSeatJoinMode(settings))}
+              onClick={() =>
+                openOptionEditor(
+                  'seatJoinMode',
+                  'Seat entry',
+                  ['free', 'approval'],
+                  formatSeatJoinModeLabel,
+                )
+              }
+            />
+            <RoomSettingsEditRow
               label="Manage Recommendations"
               value={formatSettingPreview(
                 settings.manageRecommendations,
@@ -548,7 +565,11 @@ const EditRoom = ({
         <RoomSettingsOptionPicker
           open
           title={editor.title}
-          value={String(settings[editor.key] ?? '')}
+          value={
+            editor.key === 'seatJoinMode'
+              ? resolveSeatJoinMode(settings)
+              : String(settings[editor.key] ?? '')
+          }
           options={editor.options}
           formatOptionLabel={editor.formatOptionLabel}
           onClose={() => setEditor(null)}

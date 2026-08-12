@@ -325,7 +325,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
         label: 'Edit room settings',
         icon: <Settings2 size={15} aria-hidden />,
         onClick: () => onOpenRoomEdit?.(),
-        hidden: !onOpenRoomEdit,
+        hidden: !canEditAnnouncement || !onOpenRoomEdit,
       },
       {
         id: 'mode',
@@ -666,7 +666,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
                   <img
                     key={v.id}
                     src={safeAvatarUrl(v.avatar)}
-                    className="rounded-full border-2 border-[#07010a] object-cover"
+                    className="rounded-full border-2 border-[#07010a] object-cover h-6 w-6 shrink-0 sm:h-7 sm:w-7"
                     alt=""
                   />
                 ))}

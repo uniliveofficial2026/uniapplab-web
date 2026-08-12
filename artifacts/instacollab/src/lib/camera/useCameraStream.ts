@@ -1,8 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import {
+  acquireAppCamera,
+  forceResetAppCamera,
+  getAppCameraFacing,
+  releaseAppCamera,
+  subscribeAppCamera,
+  type CameraFacingMode,
+} from './appCameraOwner';
 import { WEBAR_CAMERA_FRAME_RATE } from './cameraPipelinePolicy';
-import { isCameraPermissionError } from './errors';
+import { isCameraPermissionError, formatCameraError } from './errors';
 
-export type CameraFacingMode = 'user' | 'environment';
+export type { CameraFacingMode };
 
 export type UseCameraStreamOptions = {
   enabled: boolean;
@@ -14,62 +22,46 @@ export type UseCameraStreamOptions = {
   exactFacing?: boolean;
 };
 
-async function acquireCameraStream(options: {
-  facingMode: CameraFacingMode;
-  audio: boolean;
-  videoIdeal: { width: number; height: number };
-  frameRate: { ideal?: number; max?: number };
-  exactFacing: boolean;
-}): Promise<MediaStream> {
-  const video: MediaTrackConstraints = {
-    width: { ideal: options.videoIdeal.width },
-    height: { ideal: options.videoIdeal.height },
-    frameRate: options.frameRate,
-    facingMode: options.exactFacing
-      ? { exact: options.facingMode }
-      : options.facingMode,
-  };
-
-  try {
-    return await navigator.mediaDevices.getUserMedia({ video, audio: options.audio });
-  } catch (err) {
-    if (!options.exactFacing) throw err;
-    return navigator.mediaDevices.getUserMedia({
-      video: {
-        width: { ideal: options.videoIdeal.width },
-        height: { ideal: options.videoIdeal.height },
-        frameRate: options.frameRate,
-        facingMode: options.facingMode,
-      },
-      audio: options.audio,
-    });
-  }
+function isLiveVideoStream(stream: MediaStream | null): stream is MediaStream {
+  return Boolean(stream?.getVideoTracks().some((track) => track.readyState === 'live'));
 }
 
 export function useCameraStream({
   enabled,
   audio = false,
   facingMode = 'user',
-  videoIdeal = { width: 1280, height: 720 },
+  videoIdeal = { width: 640, height: 480 },
   frameRate = WEBAR_CAMERA_FRAME_RATE,
-  exactFacing = true,
+  exactFacing = false,
 }: UseCameraStreamOptions) {
+  const reactId = useId();
   const videoRef = useRef<HTMLVideoElement>(null);
   const streamRef = useRef<MediaStream | null>(null);
+  const leaseEpochRef = useRef(0);
   const [stream, setStream] = useState<MediaStream | null>(null);
   const [ready, setReady] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [permissionDenied, setPermissionDenied] = useState(false);
+  const [activeFacing, setActiveFacing] = useState<CameraFacingMode>(facingMode);
+  /** Bumped by retry() so getUserMedia runs from a user gesture (required on iOS). */
+  const [retryTick, setRetryTick] = useState(0);
+
+  const retry = useCallback(() => {
+    setError(null);
+    setPermissionDenied(false);
+    setReady(false);
+    streamRef.current = null;
+    setStream(null);
+    void forceResetAppCamera().finally(() => {
+      setRetryTick((n) => n + 1);
+    });
+  }, []);
 
   useEffect(() => {
     if (!enabled) {
       setReady(false);
       setError(null);
       setPermissionDenied(false);
-      const stream = streamRef.current;
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
       streamRef.current = null;
       setStream(null);
       if (videoRef.current) {
@@ -78,106 +70,61 @@ export function useCameraStream({
       return;
     }
 
-    if (!navigator.mediaDevices?.getUserMedia) {
+    if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) {
       setError('Camera is not supported in this browser.');
       return;
     }
 
+    const epoch = ++leaseEpochRef.current;
+    const leaseId = `ui-camera:${reactId}:${epoch}`;
     let cancelled = false;
-    let retryTimer: ReturnType<typeof setTimeout> | null = null;
+    let unsub: (() => void) | null = null;
 
-    const attachStream = async (stream: MediaStream) => {
-      const tryAttach = async (attempt = 0): Promise<void> => {
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        const videoEl = videoRef.current;
-        if (!videoEl) {
-          if (attempt < 24) {
-            await new Promise((resolve) => {
-              retryTimer = setTimeout(resolve, 40);
-            });
-            return tryAttach(attempt + 1);
-          }
-          stream.getTracks().forEach((track) => track.stop());
-          throw new Error('Camera preview failed to mount');
-        }
-
-        videoEl.srcObject = stream;
-
-        await new Promise<void>((resolve, reject) => {
-          const cleanup = () => {
-            videoEl.removeEventListener('loadedmetadata', onMetadata);
-            videoEl.removeEventListener('playing', onPlaying);
-            videoEl.removeEventListener('error', onError);
-          };
-          const onMetadata = () => {
-            void videoEl.play().catch(reject);
-          };
-          const onPlaying = () => {
-            cleanup();
-            resolve();
-          };
-          const onError = () => {
-            cleanup();
-            reject(new Error('Camera preview failed to start'));
-          };
-          videoEl.addEventListener('loadedmetadata', onMetadata);
-          videoEl.addEventListener('playing', onPlaying);
-          videoEl.addEventListener('error', onError);
-          if (videoEl.readyState >= 1) {
-            void videoEl.play().catch(reject);
-          }
-        });
-
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
-          return;
-        }
-
-        const previous = streamRef.current;
-        streamRef.current = stream;
-        setStream(stream);
-        if (previous && previous !== stream) {
-          previous.getTracks().forEach((track) => track.stop());
-        }
-
-        setReady(true);
-        setError(null);
-        setPermissionDenied(false);
-      };
-
-      await tryAttach();
+    const markStreamReady = (next: MediaStream) => {
+      if (cancelled || epoch !== leaseEpochRef.current || !isLiveVideoStream(next)) return;
+      streamRef.current = next;
+      setStream(next);
+      setActiveFacing(getAppCameraFacing());
+      setReady(true);
+      setError(null);
+      setPermissionDenied(false);
     };
 
-    void acquireCameraStream({
+    void acquireAppCamera(leaseId, {
       facingMode,
       audio,
       videoIdeal,
       frameRate,
       exactFacing,
     })
-      .then((stream) => attachStream(stream))
+      .then((acquired) => {
+        if (cancelled || epoch !== leaseEpochRef.current) {
+          releaseAppCamera(leaseId);
+          return;
+        }
+        markStreamReady(acquired);
+        unsub = subscribeAppCamera((shared) => {
+          if (cancelled || epoch !== leaseEpochRef.current || !shared) return;
+          markStreamReady(shared);
+        }, false);
+      })
       .catch((err) => {
-        if (cancelled) return;
+        if (cancelled || epoch !== leaseEpochRef.current) return;
         setReady(false);
         if (isCameraPermissionError(err)) {
           setPermissionDenied(true);
-          setError('Camera access is required.');
+          setError(
+            'Camera is blocked for this site. Allow camera in the address-bar icon, then tap Retry.',
+          );
         } else {
-          setError(err instanceof Error ? err.message : 'Could not access the camera');
+          setError(formatCameraError(err));
         }
       });
 
     return () => {
       cancelled = true;
-      if (retryTimer) clearTimeout(retryTimer);
-      const stream = streamRef.current;
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      unsub?.();
+      releaseAppCamera(leaseId);
       streamRef.current = null;
       setStream(null);
       setReady(false);
@@ -185,7 +132,47 @@ export function useCameraStream({
         videoRef.current.srcObject = null;
       }
     };
-  }, [enabled, audio, facingMode, videoIdeal.width, videoIdeal.height, frameRate.ideal, frameRate.max, exactFacing]);
+  }, [
+    enabled,
+    audio,
+    facingMode,
+    videoIdeal.width,
+    videoIdeal.height,
+    frameRate.ideal,
+    frameRate.max,
+    exactFacing,
+    reactId,
+    retryTick,
+  ]);
+
+  /**
+   * Self-healing preview bind — reads refs live each tick so the raw <video>
+   * gets the stream no matter when it mounts / remounts. Fixes blank preview
+   * when the element mounts after the initial acquire.
+   */
+  useEffect(() => {
+    if (!enabled) return undefined;
+
+    const bind = () => {
+      const el = videoRef.current;
+      const current = streamRef.current;
+      if (!el || !isLiveVideoStream(current)) return;
+      if (el.srcObject !== current) {
+        el.muted = true;
+        el.playsInline = true;
+        el.setAttribute('playsinline', 'true');
+        el.setAttribute('webkit-playsinline', 'true');
+        el.srcObject = current;
+      }
+      if (el.paused) {
+        void el.play().catch(() => undefined);
+      }
+    };
+
+    bind();
+    const id = window.setInterval(bind, 2000);
+    return () => window.clearInterval(id);
+  }, [enabled, stream]);
 
   return {
     videoRef,
@@ -194,7 +181,8 @@ export function useCameraStream({
     ready,
     error,
     permissionDenied,
-    facingMode,
+    facingMode: activeFacing,
+    retry,
   };
 }
 

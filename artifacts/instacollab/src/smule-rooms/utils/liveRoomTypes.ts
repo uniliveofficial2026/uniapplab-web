@@ -73,7 +73,15 @@ export type PKPayload =
       opponentRoomId?: string;
       opponentRoomMode?: string;
     }
-  | { action: 'accept' }
+  | {
+      action: 'accept';
+      startedAt?: number;
+      endsAt?: number;
+      durationSec?: number;
+      mode?: PKMode;
+      teamA?: PKFighter[];
+      teamB?: PKFighter[];
+    }
   | { action: 'decline' }
   | { action: 'score'; userId: string; delta: number }
   | { action: 'end'; winnerSide?: 'a' | 'b' }

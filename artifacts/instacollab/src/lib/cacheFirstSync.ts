@@ -24,13 +24,6 @@ function canSync(): boolean {
   return Boolean(userId && db.isLoggedIn && isCloudAuthUserId(userId));
 }
 
-async function paintThen<T>(fn: () => Promise<T>): Promise<T> {
-  await new Promise<void>((resolve) => {
-    requestAnimationFrame(() => resolve());
-  });
-  return fn();
-}
-
 /** Start all Realtime lanes + initial hydrate — never throws to UI. */
 export async function runSilentCloudSync(reason: string): Promise<void> {
   if (!canSync()) return;
@@ -78,8 +71,9 @@ export function startCacheFirstCloudSync(): void {
     const cooldown = cloudKickCooldownMs();
     if (!isUrgent && cooldown > 0 && now - lastKickAt < cooldown) return;
     lastKickAt = now;
+    // Microtask only — no rAF delay before realtime lanes arm.
     runInstant(() => {
-      void paintThen(() => runSilentCloudSync(reason));
+      void runSilentCloudSync(reason);
     });
   };
 
@@ -96,6 +90,6 @@ export function startCacheFirstCloudSync(): void {
 export function kickRealtimeAfterAuth(): void {
   if (!canSync()) return;
   runInstant(() => {
-    void paintThen(() => runSilentCloudSync('auth_ready'));
+    void runSilentCloudSync('auth_ready');
   });
 }

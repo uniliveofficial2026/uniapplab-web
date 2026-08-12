@@ -77,12 +77,10 @@ export const SoloLiveSelfMediaHost = React.memo(function SoloLiveSelfMediaHost({
         muted
         playsInline
         autoPlay
-        className={`solo-live-video${mirrorSelf && !showDeeparPreview && !showBeautyPreview ? ' solo-live-video--mirror' : ''}`}
+        className={`solo-live-video${mirrorSelf ? ' solo-live-video--mirror' : ''}`}
         style={{
           zIndex: 0,
-          ...(beautyFilter && !showDeeparPreview && !showBeautyPreview
-            ? { filter: beautyFilter }
-            : undefined),
+          ...(beautyFilter && !showDeeparPreview ? { filter: beautyFilter } : undefined),
         }}
       />
       {beautyVideoRef ? (
@@ -91,7 +89,7 @@ export const SoloLiveSelfMediaHost = React.memo(function SoloLiveSelfMediaHost({
           muted
           playsInline
           autoPlay
-          className="solo-live-video"
+          className={`solo-live-video${mirrorSelf ? ' solo-live-video--mirror' : ''}`}
           style={{
             zIndex: 1,
             opacity: showBeautyPreview ? 1 : 0,
@@ -100,7 +98,9 @@ export const SoloLiveSelfMediaHost = React.memo(function SoloLiveSelfMediaHost({
         />
       ) : null}
       <div
-        className={`solo-live-deepar-viewport${showDeeparPreview ? ' solo-live-deepar-viewport--live' : ''}`}
+        className={`solo-live-deepar-viewport${showDeeparPreview ? ' solo-live-deepar-viewport--live' : ''}${
+          mirrorSelf ? ' solo-live-video--mirror' : ''
+        }`}
       >
         <div
           ref={mergeProcessRef}

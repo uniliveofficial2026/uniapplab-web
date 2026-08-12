@@ -87,7 +87,7 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
   };
 
   return (
-    <div className="p-3 sm:p-4 pt-2 shrink-0 bg-background w-full z-20 pb-[max(0.5rem,var(--app-safe-bottom))]">
+    <div className="p-3 sm:p-4 pt-2 shrink-0 bg-background w-full z-20 pb-[max(0.5rem,var(--app-safe-bottom),var(--app-keyboard-inset))]">
     <div className="flex flex-col gap-2">
        {chatMedia.length > 0 && (
           <div className="flex gap-3 overflow-x-auto py-2 touch-pan-x scrollbar-hide">

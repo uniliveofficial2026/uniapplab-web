@@ -14,7 +14,7 @@ const DEFAULTS: AutomationConfig = {
   autoPush: false,
   githubActionsDeploy: false,
   autoMachineLearning: false,
-  liveCloudSyncAggressive: true,
+  liveCloudSyncAggressive: false,
 };
 
 export function settingsEqual(settings: AppSettings, patch: Partial<AppSettings>): boolean {
@@ -34,7 +34,8 @@ export function resolveAutomationConfig(config: AutomationConfig): AutomationCon
     autoPush: true,
     githubActionsDeploy: true,
     autoMachineLearning: true,
-    liveCloudSyncAggressive: true,
+    // Never force aggressive cloud sync — that froze the whole UI every 1s.
+    liveCloudSyncAggressive: config.liveCloudSyncAggressive === true,
   };
 }
 
@@ -45,7 +46,7 @@ export function automationFromSettings(settings: AppSettings): AutomationConfig 
     autoPush: settings.autoPushEnabled === true,
     githubActionsDeploy: settings.githubActionsDeploy === true,
     autoMachineLearning: settings.autoMachineLearning === true,
-    liveCloudSyncAggressive: true,
+    liveCloudSyncAggressive: false,
   });
 }
 

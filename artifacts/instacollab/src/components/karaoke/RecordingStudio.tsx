@@ -1,4 +1,4 @@
-import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useRef, useEffect, useMemo, useCallback, startTransition } from 'react';
 import { 
   Mic, 
   Video, 
@@ -109,7 +109,11 @@ import {
   EMPTY_BODY_SHAPE,
   type BodyShapeParams,
 } from '../../lib/ar/bodyShape';
-import { useStreamBeauty } from '../../lib/ar/useStreamBeauty';
+import { useStreamBeauty, beautyIdToKaraokeFilterName } from '../../lib/ar/useStreamBeauty';
+import {
+  acquireAppCamera,
+  releaseAppCamera,
+} from '../../lib/camera/appCameraOwner';
 import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
@@ -120,6 +124,7 @@ import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useDB } from '../../lib/useDB';
 import { safeAvatarUrl } from '../../lib/safe';
 import { handleAvatarError } from '../../lib/utils';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 
 const STUDIO_CAPTION_HASHTAGS = ['#karaoke', '#cover', '#singing', '#fyp', '#music', '#vocals'];
 
@@ -361,17 +366,37 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
   }, [cameraEnabled]);
 
   const streamBeauty = useStreamBeauty({
-    /** Keep TRTC warm whenever camera is on — avoids freeze when applying beauty. */
     enabled: cameraEnabled && isTencentWebARConfigured(),
     inputStream: cameraInputStream,
     beautyId: trtcBeautyId,
     effects: trtcBeautyEffects,
     bodyShape: trtcBodyShape,
+    beautyPanelOpen,
+    loadCatalogs: false,
+    // Warm WebAR when the panel opens so the expensive first-frame shader compile
+    // happens BEFORE the user taps a preset (taps then only send cheap uniforms).
+    // Safe now: WebAR runs on a cloned track, so the raw preview never blanks.
+    keepWarm:
+      cameraEnabled &&
+      isTencentWebARConfigured() &&
+      !deeparPanelOpen &&
+      !deeparActive &&
+      (trtcBeautyOn || beautyPanelOpen),
+    persistent: trtcBeautyOn && !deeparActive && !deeparPanelOpen,
   });
+
+  // Preload WebAR JS only (no GPU) so the first beauty tap isn't a cold module fetch.
+  useEffect(() => {
+    if (!cameraEnabled || !isTencentWebARConfigured()) return;
+    void import('../../lib/webar/tencentWebARPool').then((m) => {
+      m.preloadTencentWebARModule();
+      m.hydrateTencentWebARCatalogsFromStorage();
+    });
+  }, [cameraEnabled]);
 
   const trtcVideoReady = useVideoFrameReady(
     streamBeauty.outputVideoRef,
-    cameraEnabled && isTencentWebARConfigured(),
+    cameraEnabled && isTencentWebARConfigured() && trtcBeautyOn,
   );
 
   useEffect(() => {
@@ -382,8 +407,8 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
   const deepar = useDeepAR({
     previewRef: deeparPreviewRef,
     videoElementRef: videoRef,
-    /** Keep engine warm while camera is on — faster effect apply, no raw freeze. */
-    enabled: cameraEnabled && isDeepARConfigured(),
+    /** Only warm DeepAR when the AR panel/effect is active — dual GPU with TRTC freezes beauty. */
+    enabled: cameraEnabled && isDeepARConfigured() && (deeparPanelOpen || deeparActive),
     processingActive: deeparActive,
     effectSelection: deeparSelection,
     initialEffectId: deeparEffectId,
@@ -405,12 +430,11 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
 
   const handleSelectKaraokeBeauty = useCallback((beautyId: BeautyPresetId) => {
     setTrtcBeautyId(beautyId);
+    // Instant CSS look on the raw camera while WebAR boots — never wait for GPU.
+    setVideoBeautyFilter(beautyIdToKaraokeFilterName(beautyId));
     if (beautyId !== 'none') {
       setDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
-      // TRTC SDK handles beauty — never route through CSS compositor (causes lag/black frames).
-      setVideoBeautyFilter('None');
-    } else {
-      setVideoBeautyFilter('None');
+      setDeeparPanelOpen(false);
     }
   }, []);
 
@@ -421,6 +445,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     );
     if (active) {
       setDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
+      setDeeparPanelOpen(false);
       setVideoBeautyFilter('None');
     }
   }, []);
@@ -432,7 +457,11 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     }
     setDeeparPanelOpen((open) => {
       const next = !open;
-      if (next) setBeautyPanelOpen(false);
+      if (next) {
+        setBeautyPanelOpen(false);
+        setTrtcBeautyId('none');
+        setTrtcBeautyEffects(EMPTY_TENCENT_EFFECT_SELECTION);
+      }
       return next;
     });
   }, [cameraEnabled]);
@@ -442,10 +471,15 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
       window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Enable camera first' }));
       return;
     }
-    setBeautyPanelOpen((open) => {
-      const next = !open;
-      if (next) setDeeparPanelOpen(false);
-      return next;
+    startTransition(() => {
+      setBeautyPanelOpen((open) => {
+        const next = !open;
+        if (next) {
+          setDeeparPanelOpen(false);
+          setDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
+        }
+        return next;
+      });
     });
   }, [cameraEnabled]);
 
@@ -453,9 +487,18 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     cameraEnabled &&
     trtcBeautyOn &&
     streamBeauty.ready &&
-    trtcVideoReady &&
     !videoBackground &&
     !deeparActive;
+  // Prefer TRTC when frames are ready; if not yet, raw camera stays visible underneath (z-1).
+  const showTrtcOverlay = showDirectTrtcPreview && trtcVideoReady;
+
+  // Keep the instant CSS beauty on the raw camera as a persistent fallback. When the
+  // WebAR overlay is active it sits opaque on top (no double-beauty visible), but if
+  // WebAR ever stalls we fall back to a still-beautified camera instead of a blank.
+  const rawCameraCssFilter =
+    videoBeautyFilter !== 'None'
+      ? VIDEO_BEAUTY_FILTERS[videoBeautyFilter] ?? 'none'
+      : undefined;
   const showCompositorCanvas =
     cameraEnabled &&
     !deeparActive &&
@@ -1461,18 +1504,17 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
     videoRecorderRef.current = null;
   }, [deeparActive]);
 
-  // Camera stream acquisition
+  // Camera stream acquisition — single app camera owner (shared with TRTC beauty).
   useEffect(() => {
+    const leaseId = 'recording-studio';
     if (!cameraEnabled) {
       if (videoRecorderRef.current && videoRecorderRef.current.state !== 'inactive') {
         try { videoRecorderRef.current.stop(); } catch { /* ignore */ }
       }
       videoRecorderRef.current = null;
-      const stream = cameraStreamRef.current || (videoRef.current?.srcObject as MediaStream | null);
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      releaseAppCamera(leaseId);
       cameraStreamRef.current = null;
+      setCameraInputStream(null);
       if (videoRef.current) videoRef.current.srcObject = null;
       sharedMattingBgRef.current = null;
       closePersonSegmenter();
@@ -1483,18 +1525,19 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
 
     let cancelled = false;
 
-    navigator.mediaDevices.getUserMedia({
-      video: {
-        facingMode: 'user',
-        width: { ideal: window.innerWidth < 640 ? 640 : 1280 },
-        height: { ideal: window.innerWidth < 640 ? 480 : 720 },
-        frameRate: { ideal: 24, max: 30 },
-      },
+    void acquireAppCamera(leaseId, {
+      facingMode: 'user',
       audio: true,
+      exactFacing: false,
+      videoIdeal: {
+        width: 640,
+        height: 480,
+      },
+      frameRate: { ideal: 15, max: 15 },
     })
       .then((stream) => {
         if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop());
+          releaseAppCamera(leaseId);
           return;
         }
 
@@ -1528,10 +1571,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
         try { videoRecorderRef.current.stop(); } catch { /* ignore */ }
       }
       videoRecorderRef.current = null;
-      const stream = cameraStreamRef.current || (videoRef.current?.srcObject as MediaStream | null);
-      if (stream) {
-        stream.getTracks().forEach((track) => track.stop());
-      }
+      releaseAppCamera(leaseId);
       cameraStreamRef.current = null;
       if (videoRef.current) {
         videoRef.current.onloadedmetadata = null;
@@ -2439,7 +2479,11 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                                   <div className="flex-1 min-w-0">
                                     <div className="text-xs font-bold text-white truncate flex items-center gap-1">
                                       {u.username}
-                                      {u.isVerified ? <span className="text-sky-400">✓</span> : null}
+                                      <UniLivesVerificationBadge
+                                        isVerified={!!u.isVerified}
+                                        userId={u.id}
+                                        iconClassName="w-3 h-3 text-sky-400"
+                                      />
                                     </div>
                                     <div className="text-[10px] text-zinc-500 truncate">
                                       {u.displayName}
@@ -3164,6 +3208,8 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                 autoPlay
                 muted
                 playsInline
+                data-app-camera="1"
+                style={rawCameraCssFilter ? { filter: rawCameraCssFilter } : undefined}
                 className={`absolute inset-0 z-[1] object-cover scale-x-[-1] ${
                   (duetMode || groupMode) ? 'w-1/2 h-full border-r border-white/20' : 'w-full h-full'
                 }`}
@@ -3173,10 +3219,12 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
                 autoPlay
                 muted
                 playsInline
+                data-webar-output="1"
+                data-app-camera="1"
                 className={`absolute inset-0 z-[2] object-cover transition-opacity duration-150 ${
-                  showDirectTrtcPreview ? 'opacity-100' : 'opacity-0 pointer-events-none'
+                  showTrtcOverlay ? 'opacity-100' : 'opacity-0 pointer-events-none'
                 } ${(duetMode || groupMode) ? 'w-1/2 h-full' : 'w-full h-full'}`}
-                aria-hidden={!showDirectTrtcPreview}
+                aria-hidden={!showTrtcOverlay}
               />
               <canvas
                 ref={recorderCanvasRef}
@@ -3204,7 +3252,7 @@ export function RecordingStudio({ song, onClose, onPublished }: RecordingStudioP
               ) : null}
               {(duetMode || groupMode) && (
                  <div className="w-1/2 h-full bg-zinc-900 flex items-center justify-center relative overflow-hidden">
-                   <img src="https://images.unsplash.com/photo-1516280440502-6c9ab45187fb?w=800&auto=format&fit=crop&q=60" className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" />
+                   <img src="https://images.unsplash.com/photo-1514525253161-7a46d19cd819?w=800&auto=format&fit=crop&q=60" className="absolute inset-0 w-full h-full object-cover opacity-60" alt="" />
                    <div className="z-10 bg-black/50 px-4 py-2 rounded-full text-white font-medium text-sm backdrop-blur flex items-center gap-2">
                      <div className="w-2 h-2 rounded-full bg-rose-500 animate-pulse" /> @star_singer
                    </div>

@@ -2,10 +2,15 @@ import type { Post, User } from '../../types';
 import type { ProfileRow } from './types';
 import { hasSupabaseSessionForUser } from '../auth/activeBackend';
 import { isCloudAuthUserId } from '../auth/cloudProfile';
+import { uploadBlobToR2 } from '../media/r2Upload';
 import { getSupabaseClient } from './client';
 import { isSupabaseConfigured } from './config';
 import { profileRowToUser } from './profile';
 import { postUserId } from '../safe';
+import {
+  removeSafeRealtimeChannel,
+  subscribeSafeRealtimeChannel,
+} from './safeRealtimeChannel';
 
 const BUCKET = 'post-media';
 const TABLE = 'posts';
@@ -54,10 +59,19 @@ export async function uploadPostMediaBlob(
   fileName: string,
 ): Promise<string | null> {
   if (!(await canUseCloudPosts(userId))) return null;
+
+  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || `${kind}.bin`;
+  const r2Url = await uploadBlobToR2({
+    folder: 'posts',
+    blob,
+    fileName: safeName,
+    prefix: `${postId}/${kind}`,
+  });
+  if (r2Url) return r2Url;
+
   const supabase = getSupabaseClient();
   if (!supabase) return null;
 
-  const safeName = fileName.replace(/[^a-zA-Z0-9._-]/g, '_') || `${kind}.bin`;
   const path = `${userId}/${postId}/${kind}/${safeName}`;
   const { error } = await supabase.storage.from(BUCKET).upload(path, blob, {
     upsert: true,
@@ -180,12 +194,11 @@ export function subscribeCloudPosts(onChange: () => void): () => void {
   const supabase = getSupabaseClient();
   if (!supabase) return () => {};
 
-  const channel = supabase
-    .channel(`posts:feed:${Date.now()}`)
-    .on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => onChange())
-    .subscribe();
+  const channel = subscribeSafeRealtimeChannel(supabase, 'posts:feed', (ch) => {
+    ch.on('postgres_changes', { event: '*', schema: 'public', table: TABLE }, () => onChange());
+  });
 
   return () => {
-    void supabase.removeChannel(channel);
+    removeSafeRealtimeChannel(supabase, channel);
   };
 }

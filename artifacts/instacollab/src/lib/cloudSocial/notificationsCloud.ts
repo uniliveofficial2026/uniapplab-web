@@ -1,16 +1,18 @@
-import {
-  fetchFirebaseNotifications,
-  insertFirebaseUserNotification,
-  isFirebaseNotificationsAvailable,
-  markAllFirebaseNotificationsRead,
-  markFirebaseNotificationRead,
-  subscribeFirebaseNotifications,
-  type FirebaseNotificationRow,
-} from '../firebase/notifications';
+import type { CloudNotificationRow } from './cloudSocialTypes';
+import { isFirebaseConfigured } from '../firebase/config';
 import { isSocialCloudAvailable, shouldUseFirebaseForSocialCloud } from '../social/socialCloud';
 import { getSupabaseClient } from '../supabase/client';
+import {
+  removeSafeRealtimeChannel,
+  subscribeSafeRealtimeChannel,
+} from '../supabase/safeRealtimeChannel';
 
-export type { FirebaseNotificationRow as CloudNotificationRow };
+export type { CloudNotificationRow };
+export type FirebaseNotificationRow = CloudNotificationRow;
+
+async function firebaseNotifications() {
+  return import('../firebase/notifications');
+}
 
 export function isNotificationsCloudAvailable(): boolean {
   return isSocialCloudAvailable();
@@ -22,9 +24,12 @@ export async function insertUserNotification(input: {
   actorId: string;
   body?: string;
 }): Promise<void> {
-  if (shouldUseFirebaseForSocialCloud(input.actorId) && isFirebaseNotificationsAvailable()) {
-    await insertFirebaseUserNotification(input);
-    return;
+  if (shouldUseFirebaseForSocialCloud(input.actorId) && isFirebaseConfigured()) {
+    const fb = await firebaseNotifications();
+    if (fb.isFirebaseNotificationsAvailable()) {
+      await fb.insertFirebaseUserNotification(input);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -38,13 +43,19 @@ export async function insertUserNotification(input: {
     });
     if (error) throw error;
   } catch {
-    if (isFirebaseNotificationsAvailable()) await insertFirebaseUserNotification(input);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseNotifications();
+      if (fb.isFirebaseNotificationsAvailable()) await fb.insertFirebaseUserNotification(input);
+    }
   }
 }
 
-export async function fetchCloudNotifications(userId: string, limit = 100): Promise<FirebaseNotificationRow[]> {
-  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseNotificationsAvailable()) {
-    return fetchFirebaseNotifications(userId, limit);
+export async function fetchCloudNotifications(userId: string, limit = 100): Promise<CloudNotificationRow[]> {
+  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseConfigured()) {
+    const fb = await firebaseNotifications();
+    if (fb.isFirebaseNotificationsAvailable()) {
+      return fb.fetchFirebaseNotifications(userId, limit);
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -58,17 +69,23 @@ export async function fetchCloudNotifications(userId: string, limit = 100): Prom
       .order('created_at', { ascending: false })
       .limit(limit);
     if (error) throw error;
-    return (data ?? []) as FirebaseNotificationRow[];
+    return (data ?? []) as CloudNotificationRow[];
   } catch {
-    if (isFirebaseNotificationsAvailable()) return fetchFirebaseNotifications(userId, limit);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseNotifications();
+      if (fb.isFirebaseNotificationsAvailable()) return fb.fetchFirebaseNotifications(userId, limit);
+    }
     return [];
   }
 }
 
 export async function markCloudNotificationRead(notificationId: string, userId: string): Promise<void> {
-  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseNotificationsAvailable()) {
-    await markFirebaseNotificationRead(notificationId, userId);
-    return;
+  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseConfigured()) {
+    const fb = await firebaseNotifications();
+    if (fb.isFirebaseNotificationsAvailable()) {
+      await fb.markFirebaseNotificationRead(notificationId, userId);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -81,14 +98,20 @@ export async function markCloudNotificationRead(notificationId: string, userId: 
       .eq('user_id', userId);
     if (error) throw error;
   } catch {
-    if (isFirebaseNotificationsAvailable()) await markFirebaseNotificationRead(notificationId, userId);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseNotifications();
+      if (fb.isFirebaseNotificationsAvailable()) await fb.markFirebaseNotificationRead(notificationId, userId);
+    }
   }
 }
 
 export async function markAllCloudNotificationsRead(userId: string): Promise<void> {
-  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseNotificationsAvailable()) {
-    await markAllFirebaseNotificationsRead(userId);
-    return;
+  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseConfigured()) {
+    const fb = await firebaseNotifications();
+    if (fb.isFirebaseNotificationsAvailable()) {
+      await fb.markAllFirebaseNotificationsRead(userId);
+      return;
+    }
   }
 
   const supabase = getSupabaseClient();
@@ -101,45 +124,50 @@ export async function markAllCloudNotificationsRead(userId: string): Promise<voi
       .is('read_at', null);
     if (error) throw error;
   } catch {
-    if (isFirebaseNotificationsAvailable()) await markAllFirebaseNotificationsRead(userId);
+    if (isFirebaseConfigured()) {
+      const fb = await firebaseNotifications();
+      if (fb.isFirebaseNotificationsAvailable()) await fb.markAllFirebaseNotificationsRead(userId);
+    }
   }
 }
 
 export function subscribeCloudNotifications(
   userId: string,
-  onRow: (row: FirebaseNotificationRow) => void,
+  onRow: (row: CloudNotificationRow) => void,
 ): () => void {
-  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseNotificationsAvailable()) {
-    return subscribeFirebaseNotifications(userId, onRow);
+  if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseConfigured()) {
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
+    void firebaseNotifications().then((fb) => {
+      if (cancelled || !fb.isFirebaseNotificationsAvailable()) return;
+      unsub = fb.subscribeFirebaseNotifications(userId, onRow);
+    });
+    return () => {
+      cancelled = true;
+      unsub?.();
+    };
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return () => undefined;
 
   const apply = (payload: { new: Record<string, unknown> }) => {
-    onRow(payload.new as FirebaseNotificationRow);
+    onRow(payload.new as CloudNotificationRow);
   };
 
-  const channel = supabase
-    .channel(`user-notifications:${userId}:${Date.now()}`)
-    .on(
+  const channel = subscribeSafeRealtimeChannel(supabase, `user-notifications:${userId}`, (ch) => {
+    ch.on(
       'postgres_changes',
       { event: 'INSERT', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${userId}` },
       apply,
-    )
-    .on(
+    ).on(
       'postgres_changes',
       { event: 'UPDATE', schema: 'public', table: 'user_notifications', filter: `user_id=eq.${userId}` },
       apply,
-    )
-    .subscribe();
-
-  const unsubFb = isFirebaseNotificationsAvailable()
-    ? subscribeFirebaseNotifications(userId, onRow)
-    : () => undefined;
+    );
+  });
 
   return () => {
-    void supabase.removeChannel(channel);
-    unsubFb();
+    removeSafeRealtimeChannel(supabase, channel);
   };
 }

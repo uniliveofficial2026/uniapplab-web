@@ -8,6 +8,9 @@ import {
   getTencentWebARLicenseKey,
   getTencentWebARToken,
   isTencentWebARConfigured,
+  isTencentWebARRunnable,
+  explainTencentWebARAuthError,
+  ensureTencentWebARAllowedHostname,
 } from './webarConfig';
 import { WEBAR_CAMERA_FPS } from './webarCameraConfig';
 import type { TencentWebARInstance } from './webarTypes';
@@ -23,9 +26,23 @@ let sharedInputTrackId = '';
 let initPromise: Promise<TencentWebARInstance | null> | null = null;
 let consumerCount = 0;
 let destroyTimer: ReturnType<typeof setTimeout> | null = null;
+/** Last ensureShared failure — surfaced when instance comes back null. */
+let lastInitError: string | null = null;
 
-/** Keep GPU instance warm after last consumer — Create Room / next call reopen instantly. */
-const WARM_TTL_MS = 15 * 60_000;
+/**
+ * Keep GPU instance warm briefly after last consumer so quick reopen is instant,
+ * but release fast so a finished beauty session never hogs GPU/CPU app-wide.
+ */
+const WARM_TTL_MS = 60_000;
+
+function isLiveVideoStream(stream: MediaStream): boolean {
+  const track = stream.getVideoTracks()[0];
+  return Boolean(track && track.readyState === 'live');
+}
+
+export function getLastTencentWebARInitError(): string | null {
+  return lastInitError;
+}
 
 const CATALOG_STORAGE_KEY = 'tencentWebAREffectCatalogs.v1';
 
@@ -169,24 +186,28 @@ async function buildSignature() {
 }
 
 export function preloadTencentWebARModule(): void {
-  if (!isTencentWebARConfigured() || typeof window === 'undefined') return;
+  if (!isTencentWebARRunnable() || typeof window === 'undefined') return;
   modulePromise ??= import('tencentcloud-webar');
 }
 
 /** Preload JS module + AR asset manifest before a video call starts. */
 export function warmTencentWebARForVideoCall(): void {
-  if (!isTencentWebARConfigured() || typeof window === 'undefined') return;
+  if (!isTencentWebARRunnable() || typeof window === 'undefined') return;
   hydrateTencentWebARCatalogsFromStorage();
   preloadTencentWebARModule();
   void import('../ar/ensureArStack').then((m) => m.ensureArStackLoaded());
 }
 
 export async function loadTencentWebARModule(): Promise<SdkModule | null> {
-  if (!isTencentWebARConfigured()) return null;
+  if (!isTencentWebARRunnable()) return null;
   preloadTencentWebARModule();
   try {
     return await modulePromise!;
-  } catch {
+  } catch (err) {
+    // Allow a later call to retry the dynamic import (chunk flake / first-load race).
+    modulePromise = null;
+    lastInitError =
+      err instanceof Error ? err.message : 'Failed to load Tencent WebAR module';
     return null;
   }
 }
@@ -307,38 +328,71 @@ type EnsureSharedOptions = {
 export async function ensureSharedTencentWebAR(
   options: EnsureSharedOptions,
 ): Promise<{ instance: TencentWebARInstance | null; output: MediaStream | null }> {
-  if (!isTencentWebARConfigured()) return { instance: null, output: null };
+  // License allowlists localhost only — bounce loopback IPs before auth.
+  if (ensureTencentWebARAllowedHostname()) {
+    lastInitError = 'Redirecting to localhost for Tencent WebAR license…';
+    return { instance: null, output: null };
+  }
+
+  if (!isTencentWebARRunnable()) {
+    lastInitError = isTencentWebARConfigured()
+      ? 'Tencent WebAR needs HTTPS and WebGL on this device'
+      : 'Tencent WebAR credentials are not configured';
+    return { instance: null, output: null };
+  }
+
+  if (!isLiveVideoStream(options.inputStream)) {
+    lastInitError = 'Tencent WebAR input camera track is not live';
+    return { instance: null, output: null };
+  }
 
   acquireSharedTencentWebAR();
 
-  const fail = (): { instance: null; output: null } => {
+  const fail = (message?: string): { instance: null; output: null } => {
+    if (message) lastInitError = message;
     releaseSharedTencentWebAR();
     return { instance: null, output: null };
   };
 
   const bindCallerInput = async () => {
-    if (!sharedInstance || !sharedReady) return fail();
+    if (!sharedInstance || !sharedReady) {
+      return fail(lastInitError ?? 'Tencent WebAR failed to initialize');
+    }
+    try {
+      sharedInstance.setCommonConfig?.({ mirror: options.mirror });
+    } catch {
+      /* ignore */
+    }
     const output = await syncSharedTencentWebARInput(options.inputStream, options.outputFps);
     // Rebind failed (no updateInputStream / track dead) — still return instance; caller may retry.
     return { instance: sharedInstance, output: output ?? sharedOutputStream };
   };
 
-  try {
-    if (sharedInstance && sharedReady) {
-      return await bindCallerInput();
-    }
-
-    if (initPromise) {
-      const instance = await initPromise;
-      if (!instance) return fail();
-      return await bindCallerInput();
-    }
+  const startInit = async (): Promise<TencentWebARInstance | null> => {
+    if (initPromise) return initPromise;
 
     const inputTrackId = options.inputStream.getVideoTracks()[0]?.id ?? '';
+    if (!isLiveVideoStream(options.inputStream)) {
+      lastInitError = 'Tencent WebAR input camera track is not live';
+      return null;
+    }
 
     initPromise = (async () => {
       const mod = await loadTencentWebARModule();
-      if (!mod) return null;
+      if (!mod?.ArSdk) {
+        lastInitError = lastInitError ?? 'Failed to load Tencent WebAR module';
+        return null;
+      }
+
+      if (typeof mod.isWebGLSupported === 'function' && !mod.isWebGLSupported()) {
+        lastInitError = 'WebGL is required for Tencent WebAR';
+        return null;
+      }
+
+      if (!isLiveVideoStream(options.inputStream)) {
+        lastInitError = 'Tencent WebAR input camera track ended before init';
+        return null;
+      }
 
       const instance = new mod.ArSdk({
         module: {
@@ -374,11 +428,7 @@ export async function ensureSharedTencentWebAR(
           };
           const onError = (payload?: unknown) => {
             cleanup();
-            const message =
-              payload && typeof payload === 'object' && 'message' in payload
-                ? String((payload as { message?: unknown }).message)
-                : 'Tencent WebAR failed to initialize';
-            reject(new Error(message));
+            reject(new Error(explainTencentWebARAuthError(payload)));
           };
           const cleanup = () => {
             instance.off?.('ready', onReady);
@@ -396,6 +446,7 @@ export async function ensureSharedTencentWebAR(
         sharedInstance = instance;
         sharedReady = true;
         sharedInputTrackId = inputTrackId;
+        lastInitError = null;
         return instance;
       } catch (err) {
         try {
@@ -405,14 +456,50 @@ export async function ensureSharedTencentWebAR(
         }
         throw err;
       }
-    })().finally(() => {
-      initPromise = null;
-    });
+    })()
+      .catch((err) => {
+        lastInitError = explainTencentWebARAuthError(
+          err instanceof Error ? err.message : err,
+        );
+        sharedInstance = null;
+        sharedReady = false;
+        sharedOutputStream = null;
+        sharedInputTrackId = '';
+        void import('./tencentWebAREffectQueue').then((m) => {
+          m.resetTencentWebAREffectQueue();
+        });
+        return null;
+      })
+      .finally(() => {
+        initPromise = null;
+      });
 
-    const instance = await initPromise;
-    if (!instance) return fail();
+    return initPromise;
+  };
+
+  try {
+    if (sharedInstance && sharedReady) {
+      return await bindCallerInput();
+    }
+
+    // Wait for in-flight init, but do not inherit a failure forever — retry with this stream.
+    if (initPromise) {
+      const instance = await initPromise;
+      if (instance && sharedReady) {
+        return await bindCallerInput();
+      }
+    }
+
+    if (sharedInstance && sharedReady) {
+      return await bindCallerInput();
+    }
+
+    const instance = await startInit();
+    if (!instance) {
+      return fail(lastInitError ?? 'Tencent WebAR failed to initialize');
+    }
     return await bindCallerInput();
-  } catch {
+  } catch (err) {
     sharedInstance = null;
     sharedReady = false;
     sharedOutputStream = null;
@@ -420,6 +507,8 @@ export async function ensureSharedTencentWebAR(
     void import('./tencentWebAREffectQueue').then((m) => {
       m.resetTencentWebAREffectQueue();
     });
-    return fail();
+    return fail(
+      err instanceof Error ? err.message : 'Tencent WebAR failed to initialize',
+    );
   }
 }

@@ -36,7 +36,7 @@ function buildKaraokeUserUrlParam(
   return null;
 }
 
-/** Open the main InstaCollab profile tab (feed app profile). */
+/** Open the main UniLive profile tab (feed app profile). */
 export function openAppProfileSurface(options: {
   userId: string | null;
   displayName?: string | null;

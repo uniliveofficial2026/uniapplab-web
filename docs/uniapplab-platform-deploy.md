@@ -1,4 +1,4 @@
-# UniAppLab platform deployment
+# UniLive platform deployment
 
 ## Services
 
@@ -7,7 +7,11 @@
 | SPA | `app.uniapplab.com` | Vercel (`artifacts/instacollab`) |
 | REST API | `api.uniapplab.com` | Vercel Node (`artifacts/api-server`) or Render web service |
 | Chat WS | `chat.uniapplab.com` | Render web service (`artifacts/chat-ws`) |
-| DB/Auth | Supabase `otiqckextvdbudbxzmau` | Supabase |
+| DB/Auth | Supabase `ldxrdbyznheayhbkvxlq` (`uniapplab-web`) | Supabase Auth + Postgres + Realtime |
+| Images/Videos | Cloudflare R2 `uniapplab-media` | R2 + Worker CDN |
+| Livestream | LiveKit / Tencent TRTC | A/V transport |
+| Backend APIs | Supabase Edge Functions + Cloudflare Worker (media) | Edge / Workers |
+| Frontend | `app.uniapplab.com` | Vercel |
 
 Root `vercel.monorepo.json` routes `/api/*` to the built api-server bundle (use when Vercel Root Directory is `.`).
 

@@ -1,0 +1,47 @@
+# UniAppLab Supabase project (uniapplab-web)
+project_id = "ldxrdbyznheayhbkvxlq"
+
+[functions.architecture]
+verify_jwt = false
+
+[functions.media]
+verify_jwt = false
+
+# Custom auth (Supabase getUser + profile role) is done inside each function,
+# so the platform JWT gate is disabled to allow public sub-routes
+# (gifts/catalog, livekit/health) and Firebase-lane fallbacks.
+[functions.wallet]
+verify_jwt = false
+
+[functions.gifts]
+verify_jwt = false
+
+[functions.livekit]
+verify_jwt = false
+
+[functions.admin]
+verify_jwt = false
+
+[functions.me]
+verify_jwt = false
+
+[functions.chat]
+verify_jwt = false
+
+[functions.stream]
+verify_jwt = false
+
+[functions.presence]
+verify_jwt = false
+
+[functions.payments]
+verify_jwt = false
+
+[functions.platform]
+verify_jwt = false
+
+[functions.automation]
+verify_jwt = false
+
+[functions.disk-cleanup]
+verify_jwt = false

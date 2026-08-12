@@ -10,6 +10,7 @@ import {
 import { registerLiveKitRoom, unregisterLiveKitRoom } from '../../lib/livekit/liveRoomBus';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
 import { updateLiveKitLocalAudioTrack } from '../../lib/livekit/liveKitAudioPublish';
+import { prepareProcessedVideoTrackForLiveKit } from '../../lib/livekit/liveKitVideoPublish';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
 import { resolveRoomMemberIdentity } from '../utils/roomMemberProfile';
 
@@ -24,6 +25,8 @@ type UseMultiGuestLiveKitOptions = {
   processedAudioTrack?: MediaStreamTrack | null;
   /** Shared camera track from useMultiGuestCameraEffects */
   cameraTrack: MediaStreamTrack | null;
+  /** Platform-admin silent watch — LiveKit hidden grant. */
+  hidden?: boolean;
 };
 
 export type MultiGuestLiveKitState = {
@@ -68,6 +71,7 @@ export function useMultiGuestLiveKit({
   publishMic,
   processedAudioTrack = null,
   cameraTrack,
+  hidden = false,
 }: UseMultiGuestLiveKitOptions): MultiGuestLiveKitState {
   const configured = isLiveKitConfigured();
   const roomRef = useRef<Room | null>(null);
@@ -127,6 +131,20 @@ export function useMultiGuestLiveKit({
     });
 
     room.on(RoomEvent.TrackUnsubscribed, (track, _publication, participant) => {
+      if (track.kind === Track.Kind.Audio) {
+        try {
+          track.detach().forEach((el) => {
+            try {
+              el.remove();
+            } catch {
+              /* ignore */
+            }
+          });
+        } catch {
+          /* ignore */
+        }
+        return;
+      }
       if (track.kind !== Track.Kind.Video) return;
       const identity = participant.identity?.trim();
       if (!identity) return;
@@ -169,7 +187,11 @@ export function useMultiGuestLiveKit({
 
     void (async () => {
       try {
-        const { token, url } = await fetchPartyLiveKitToken(roomId, canPublish);
+        const { token, url } = await fetchPartyLiveKitToken(
+          roomId,
+          hidden ? false : canPublish,
+          { hidden },
+        );
         if (cancelled) return;
         await room.connect(url, token);
       } catch {
@@ -188,14 +210,14 @@ export function useMultiGuestLiveKit({
       room.disconnect();
       roomRef.current = null;
     };
-  }, [active, canPublish, configured, roomId]);
+  }, [active, canPublish, configured, roomId, hidden]);
 
   const processedAudioTrackRef = useRef(processedAudioTrack);
   processedAudioTrackRef.current = processedAudioTrack;
 
   useEffect(() => {
     const room = roomRef.current;
-    if (!configured || !active || !room || !connected) return undefined;
+    if (!configured || !active || hidden || !room || !connected) return undefined;
 
     let cancelled = false;
 
@@ -204,9 +226,10 @@ export function useMultiGuestLiveKit({
 
       try {
         if (publishVideo && cameraTrack) {
-          if (publishedVideoTrackIdRef.current !== cameraTrack.id) {
-            await publishOrReplaceCameraTrack(room, cameraTrack);
-            publishedVideoTrackIdRef.current = cameraTrack.id;
+          const prepared = prepareProcessedVideoTrackForLiveKit(cameraTrack);
+          if (publishedVideoTrackIdRef.current !== prepared.id) {
+            await publishOrReplaceCameraTrack(room, prepared);
+            publishedVideoTrackIdRef.current = prepared.id;
           }
         } else if (publishedVideoTrackIdRef.current) {
           await unpublishCameraTrack(room);
@@ -233,7 +256,7 @@ export function useMultiGuestLiveKit({
     return () => {
       cancelled = true;
     };
-  }, [active, cameraTrack, configured, connected, processedAudioTrack?.id, publishMic, publishVideo]);
+  }, [active, cameraTrack, configured, connected, hidden, processedAudioTrack?.id, publishMic, publishVideo]);
 
   return {
     configured,

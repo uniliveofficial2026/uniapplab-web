@@ -16,7 +16,7 @@ export function GoogleAuthButton({
       disabled={disabled}
       whileTap={{ scale: disabled ? 1 : 0.98 }}
       onClick={onClick}
-      className="w-full py-3.5 rounded-2xl font-semibold border border-border bg-card text-foreground shadow-sm flex items-center justify-center gap-3 disabled:opacity-50"
+      className="w-full py-3.5 rounded-2xl font-semibold border border-[color:var(--color-unilives-auth-border)] bg-[color:var(--color-unilives-auth-input)] text-[color:var(--color-unilives-auth-text)] shadow-sm flex items-center justify-center gap-3 disabled:opacity-50"
     >
       <GoogleMark />
       <span>{label}</span>

@@ -6,6 +6,7 @@ const PROVIDER_KEY = 'instacollab_auth_backend';
 const PROVIDER_AT_KEY = 'instacollab_auth_backend_at';
 /** OAuth redirect lane only — never blocks Supabase data/realtime/session restore. */
 const OAUTH_DEGRADED_KEY = 'instacollab_supabase_oauth_degraded';
+const OAUTH_DEGRADED_REF_KEY = 'instacollab_supabase_oauth_degraded_ref';
 const LEGACY_UNHEALTHY_LS_KEY = 'instacollab_supabase_unhealthy';
 
 const OAUTH_DEGRADED_TTL_MS = 5 * 60 * 1000;
@@ -13,6 +14,21 @@ const FIREBASE_OAUTH_PREFERENCE_TTL_MS = 15 * 60 * 1000;
 
 let oauthDegradedUntilMs = 0;
 let legacyPurged = false;
+
+function currentSupabaseProjectRef(): string | null {
+  try {
+    // Lazy import path via env — avoid circular deps with supabase/config.
+    const fromRuntime =
+      typeof window !== 'undefined'
+        ? (window as unknown as { __UNILIVE_SUPABASE_REF__?: string }).__UNILIVE_SUPABASE_REF__
+        : undefined;
+    if (fromRuntime) return fromRuntime;
+    const url = String(import.meta.env.VITE_SUPABASE_URL || '').trim();
+    return url.match(/https:\/\/([a-z0-9]+)\.supabase\.co/i)?.[1]?.toLowerCase() ?? null;
+  } catch {
+    return null;
+  }
+}
 
 function session(): Storage | null {
   if (typeof window === 'undefined') return null;
@@ -46,6 +62,17 @@ function syncOAuthDegradedFromSession(): void {
   const until = Number(raw);
   if (!Number.isFinite(until) || until <= Date.now()) {
     session()?.removeItem(OAUTH_DEGRADED_KEY);
+    session()?.removeItem(OAUTH_DEGRADED_REF_KEY);
+    oauthDegradedUntilMs = 0;
+    return;
+  }
+  // Drop sticky Firebase failover when the Supabase project changed (e.g. deleted → new),
+  // or when older builds stored degraded without a project ref.
+  const markedRef = session()?.getItem(OAUTH_DEGRADED_REF_KEY);
+  const liveRef = currentSupabaseProjectRef();
+  if (liveRef && markedRef !== liveRef) {
+    session()?.removeItem(OAUTH_DEGRADED_KEY);
+    session()?.removeItem(OAUTH_DEGRADED_REF_KEY);
     oauthDegradedUntilMs = 0;
     return;
   }
@@ -79,12 +106,17 @@ export function markSupabaseOAuthDegraded(): void {
   if (!legacyPurged) bootstrapSupabaseAuthState();
   const until = Date.now() + OAUTH_DEGRADED_TTL_MS;
   oauthDegradedUntilMs = until;
-  session()?.setItem(OAUTH_DEGRADED_KEY, String(until));
+  const s = session();
+  s?.setItem(OAUTH_DEGRADED_KEY, String(until));
+  const ref = currentSupabaseProjectRef();
+  if (ref) s?.setItem(OAUTH_DEGRADED_REF_KEY, ref);
+  else s?.removeItem(OAUTH_DEGRADED_REF_KEY);
 }
 
 export function clearSupabaseOAuthDegraded(): void {
   oauthDegradedUntilMs = 0;
   session()?.removeItem(OAUTH_DEGRADED_KEY);
+  session()?.removeItem(OAUTH_DEGRADED_REF_KEY);
   local()?.removeItem(LEGACY_UNHEALTHY_LS_KEY);
 }
 

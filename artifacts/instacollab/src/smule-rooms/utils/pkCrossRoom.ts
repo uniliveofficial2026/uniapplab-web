@@ -5,7 +5,7 @@ import type { PKFighter, PKMode, PKPayload } from './liveRoomTypes';
 /** Unified cross-room PK is disabled — same-room 1v1/team PK via `liveRoomBus.emitPk` stays on. */
 export const CROSS_ROOM_PK_ENABLED = false;
 
-/** Same-room PK (1v1 + team) is always available in eligible room modes. */
+/** Same-room PK (1v1 + team) on Solo Live / Shop Live only — Party rooms excluded. */
 export const SAME_ROOM_PK_ENABLED = true;
 
 export function buildCrossRoomPkInvitePayload(input: {

@@ -206,12 +206,12 @@ export type RoomModePickerOption = (typeof ROOM_MODE_OPTIONS)[number];
 /** Short helper copy shown under each layout in the room-mode picker. */
 export const ROOM_MODE_DESCRIPTIONS: Record<RoomModePickerOption, string> = {
   Chat: 'Chat-first · lighter audience layout',
-  Party: 'Full party stage · 8 guest seats · sing & chat',
+  Party: 'Full party stage · 8 guest seats · sing & chat (no PK)',
   Karaoke: 'Chorus stage · 12 seats (2 rows × 6) · song queue & duets',
   Radio: 'Watch Together · 9 seats · shared video or audio',
   'Multi-Guest': 'Square video grid · 15 seats (5×3) · 70% screen stage',
-  'Solo-Live': 'Solo host · full-screen live camera · chat & gifts',
-  'Commerce-Live': 'Shop live · pin products · viewers buy with coins',
+  'Solo-Live': 'Solo host · full-screen live · 1v1 / Team PK · chat & gifts',
+  'Commerce-Live': 'Shop live · pin products · 1v1 / Team PK · buy with coins',
   'Game-Live': 'Game live · host shares screen · viewers watch with host cam',
 };
 

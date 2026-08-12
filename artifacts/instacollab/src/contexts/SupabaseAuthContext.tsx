@@ -1,5 +1,3 @@
-/** @deprecated Import from CloudAuthContext — kept for existing imports. */
-export {
-  CloudAuthProvider as SupabaseAuthProvider,
-  useCloudAuth as useSupabaseAuth,
-} from './CloudAuthContext';
+/** @deprecated Prefer cloudAuthStore for hooks; CloudAuthContext for provider. */
+export { useCloudAuth as useSupabaseAuth } from './cloudAuthStore';
+export { CloudAuthProvider as SupabaseAuthProvider } from './CloudAuthContext';

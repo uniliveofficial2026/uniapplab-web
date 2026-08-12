@@ -1,6 +1,5 @@
 import type { ReactNode } from 'react';
-import { useState } from 'react';
-import { Mic, Sofa, Tv, Gamepad2, Music2, Users2, Swords, Users } from 'lucide-react';
+import { Mic, Sofa, Tv, Gamepad2, Music2, Users2 } from 'lucide-react';
 import { PREVIEW_AVATARS, buildPreviewPartySeats } from '../utils/roomModePreviewDemo';
 import type { PendingCreateRoomBeauty } from '../utils/pendingCreateRoomBeauty';
 import { CreateRoomLivePreview } from './CreateRoomLivePreview';
@@ -194,6 +193,7 @@ function KaraokeMockup() {
 }
 
 function GameMockup() {
+  const seats = buildPreviewPartySeats(true);
   return (
     <div className="space-y-3">
       <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
@@ -225,8 +225,23 @@ function GameMockup() {
         </div>
       </div>
 
+      <div className="grid grid-cols-5 gap-1.5 px-0.5">
+        <SeatChip label="No.1" avatar={seats.no1?.avatar} filled={Boolean(seats.no1)} />
+        <SeatChip label="No.2" avatar={seats.no2?.avatar} filled={Boolean(seats.no2)} />
+        <SeatChip label="No.3" avatar={seats.no3?.avatar} filled={Boolean(seats.no3)} />
+        <SeatChip label="No.4" avatar={null} filled={false} />
+        <SeatChip label="No.5" avatar={seats.no5?.avatar} filled={Boolean(seats.no5)} />
+      </div>
+      <div className="grid grid-cols-5 gap-1.5 px-0.5">
+        <SeatChip label="No.6" avatar={null} filled={false} />
+        <SeatChip label="No.7" avatar={null} filled={false} />
+        <SeatChip label="No.8" avatar={null} filled={false} />
+        <SeatChip label="No.9" avatar={null} filled={false} />
+        <SeatChip label="No.10" avatar={null} filled={false} />
+      </div>
+
       <p className="text-center text-[9px] font-semibold text-slate-500">
-        Fullscreen game share with host camera PiP — no sofa seats
+        Host: fullscreen cast + camera PiP. Viewer: Watch Together layout — cast player + 10 guest sofas (no host seat).
       </p>
     </div>
   );
@@ -276,169 +291,6 @@ function MultiMockup() {
   );
 }
 
-function PkVideoTile({
-  name,
-  avatar,
-  accent,
-  large = false,
-}: {
-  name: string;
-  avatar: string;
-  accent: 'fuchsia' | 'cyan';
-  large?: boolean;
-}) {
-  const ring =
-    accent === 'fuchsia'
-      ? 'border-fuchsia-400/50 shadow-[0_0_16px_rgba(232,121,249,0.25)]'
-      : 'border-cyan-400/50 shadow-[0_0_16px_rgba(34,211,238,0.25)]';
-  return (
-    <div
-      className={`relative overflow-hidden rounded-xl border bg-black ${ring} ${
-        large ? 'min-h-[7.5rem]' : 'aspect-square min-h-[3.5rem]'
-      }`}
-    >
-      <img src={avatar} alt="" className="absolute inset-0 h-full w-full object-cover" />
-      <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-transparent to-black/10" />
-      <span className="absolute bottom-1.5 left-1.5 rounded-full bg-black/55 px-1.5 py-0.5 text-[8px] font-black uppercase tracking-wide text-white">
-        {name}
-      </span>
-    </div>
-  );
-}
-
-function PkScoreBar({ left, right, mode }: { left: number; right: number; mode: 'single' | 'team' }) {
-  const total = Math.max(1, left + right);
-  const leftPct = (left / total) * 100;
-  return (
-    <div className="space-y-1">
-      <div className="flex items-center justify-between text-[9px] font-black uppercase tracking-wide">
-        <span className="text-fuchsia-200">{mode === 'team' ? 'Team A' : 'You'}</span>
-        <span className="text-white/80">
-          {left} : {right}
-        </span>
-        <span className="text-cyan-200">{mode === 'team' ? 'Team B' : 'Rival'}</span>
-      </div>
-      <div className="flex h-2 overflow-hidden rounded-full bg-white/10">
-        <div className="h-full bg-gradient-to-r from-fuchsia-600 to-fuchsia-400" style={{ width: `${leftPct}%` }} />
-        <div className="h-full flex-1 bg-gradient-to-r from-cyan-400 to-cyan-600" />
-      </div>
-    </div>
-  );
-}
-
-function PkMockup() {
-  const [pkKind, setPkKind] = useState<'single' | 'team'>('single');
-  const seats = buildPreviewPartySeats(true);
-  const teamA = [
-    { name: 'DJ Nova', avatar: PREVIEW_AVATARS.host },
-    { name: 'Melodia', avatar: PREVIEW_AVATARS.guest1 },
-    { name: 'Chou', avatar: PREVIEW_AVATARS.guest2 },
-    { name: 'Soul', avatar: PREVIEW_AVATARS.guest3 },
-  ];
-  const teamB = [
-    { name: 'Rival', avatar: PREVIEW_AVATARS.admin },
-    { name: 'Ace', avatar: PREVIEW_AVATARS.viewer1 },
-    { name: 'Kai', avatar: PREVIEW_AVATARS.viewer2 },
-    { name: 'Rin', avatar: PREVIEW_AVATARS.viewer3 },
-  ];
-
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center justify-between gap-2">
-        <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-          <Swords size={12} className="text-amber-300" />
-          PK · video battle
-        </div>
-        <div className="grid grid-cols-2 gap-1 rounded-full border border-white/10 bg-black/40 p-0.5">
-          {(
-            [
-              { id: 'single' as const, label: '1v1', icon: Swords },
-              { id: 'team' as const, label: 'Team', icon: Users },
-            ] as const
-          ).map((option) => {
-            const Icon = option.icon;
-            const selected = pkKind === option.id;
-            return (
-              <button
-                key={option.id}
-                type="button"
-                onClick={() => setPkKind(option.id)}
-                className={`flex items-center justify-center gap-1 rounded-full px-2.5 py-1 text-[9px] font-black uppercase tracking-wide transition ${
-                  selected
-                    ? 'bg-indigo-500/30 text-indigo-100'
-                    : 'text-slate-500 hover:text-slate-300'
-                }`}
-              >
-                <Icon size={11} aria-hidden />
-                {option.label}
-              </button>
-            );
-          })}
-        </div>
-      </div>
-
-      <div className="overflow-hidden rounded-2xl border border-white/10 bg-black/60 p-2">
-        <PkScoreBar
-          left={pkKind === 'single' ? 1280 : 3640}
-          right={pkKind === 'single' ? 980 : 2910}
-          mode={pkKind}
-        />
-
-        {pkKind === 'single' ? (
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <PkVideoTile
-              name={seats.host?.name ?? 'You'}
-              avatar={PREVIEW_AVATARS.host}
-              accent="fuchsia"
-              large
-            />
-            <PkVideoTile name="Rival" avatar={PREVIEW_AVATARS.admin} accent="cyan" large />
-          </div>
-        ) : (
-          <div className="mt-2 grid grid-cols-2 gap-2">
-            <div className="space-y-1.5 rounded-xl border border-fuchsia-400/25 bg-fuchsia-500/10 p-1.5">
-              <p className="text-center text-[8px] font-black uppercase tracking-wide text-fuchsia-200">
-                Team A · 4 video
-              </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                {teamA.map((fighter) => (
-                  <PkVideoTile
-                    key={fighter.name}
-                    name={fighter.name}
-                    avatar={fighter.avatar}
-                    accent="fuchsia"
-                  />
-                ))}
-              </div>
-            </div>
-            <div className="space-y-1.5 rounded-xl border border-cyan-400/25 bg-cyan-500/10 p-1.5">
-              <p className="text-center text-[8px] font-black uppercase tracking-wide text-cyan-200">
-                Team B · 4 video
-              </p>
-              <div className="grid grid-cols-2 gap-1.5">
-                {teamB.map((fighter) => (
-                  <PkVideoTile
-                    key={fighter.name}
-                    name={fighter.name}
-                    avatar={fighter.avatar}
-                    accent="cyan"
-                  />
-                ))}
-              </div>
-            </div>
-          </div>
-        )}
-
-        <p className="mt-2 text-center text-[9px] font-semibold text-slate-500">
-          {pkKind === 'single'
-            ? '1v1 video PK — two live stages with a shared score bar'
-            : 'Team video PK — up to 4 fighters per side on a split stage'}
-        </p>
-      </div>
-    </div>
-  );
-}
-
 export function CreateRoomSeatMockup({
   mode,
   livePreviewEnabled = true,
@@ -462,7 +314,7 @@ export function CreateRoomSeatMockup({
       body = <MultiMockup />;
       break;
     case 'Party':
-      body = <PkMockup />;
+      body = <ChatLikeMockup title="Party" icon={Users2} />;
       break;
     case 'Solo-Live':
     case 'Commerce-Live':
@@ -487,9 +339,9 @@ export function CreateRoomSeatMockup({
       {INLINE_SEAT_MODES.has(mode) ? (
         <p className="mt-3 text-center text-[10px] leading-relaxed text-slate-500">
           {mode === 'Party'
-            ? 'Toggle 1v1 or Team above to preview the video PK stage.'
+            ? 'Full party stage — 8 guest seats, sing & chat. PK battles are Solo Live and Shop Live only.'
             : mode === 'Game-Live'
-              ? 'Game Live casts the screen — viewers watch with floating chat.'
+              ? 'Host casts fullscreen with camera PiP. Viewers get Watch Together layout: cast player + 10 guest sofas (no host seat).'
               : mode === 'Karaoke'
                 ? 'Chorus stage with lyrics, host/co seats, and 12 guest sofas (2×6).'
                 : 'In-room seat preview — empty seats stay open for guests.'}

@@ -1,0 +1,9 @@
+{
+  "brand": "UniLive’s",
+  "name": "unilives-mascot-v1",
+  "stage": "refine",
+  "prompt": "UniLive's friendly stylized brand mascot character, clean silhouette, approachable, A-pose, game-ready topology, not a real celebrity",
+  "preview_task_id": "019f9284-a75c-7fd3-b202-95f206ddcb5c",
+  "created_at": "2026-07-24T05:09:30.677Z",
+  "output": "assets-source/unilives-character/references/meshy-reviews/unilives-mascot-v1-refine.glb"
+}

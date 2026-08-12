@@ -8,6 +8,9 @@ export type PartyRoomRow = {
   room_mode: string;
   privacy: string;
   join_policy: string | null;
+  room_key_hash: string | null;
+  seat_join_mode: string;
+  who_can_be_seated: string;
   cover_url: string | null;
   tags: string[];
   max_participants: number;
@@ -24,6 +27,9 @@ export type PartyRoomUpsert = {
   room_mode?: string;
   privacy?: string;
   join_policy?: string | null;
+  room_key_hash?: string | null;
+  seat_join_mode?: string | null;
+  who_can_be_seated?: string | null;
   cover_url?: string | null;
   tags?: string[];
   max_participants?: number;
@@ -42,6 +48,9 @@ export async function upsertPartyRoom(row: PartyRoomUpsert): Promise<PartyRoomRo
     room_mode: row.room_mode ?? 'Karaoke',
     privacy: row.privacy ?? 'Public',
     join_policy: row.join_policy ?? null,
+    room_key_hash: row.room_key_hash ?? null,
+    seat_join_mode: row.seat_join_mode ?? 'free',
+    who_can_be_seated: row.who_can_be_seated ?? 'Anyone',
     cover_url: row.cover_url ?? null,
     tags: row.tags ?? [],
     max_participants: row.max_participants ?? 50,
@@ -56,7 +65,18 @@ export async function upsertPartyRoom(row: PartyRoomUpsert): Promise<PartyRoomRo
     .select('*')
     .single();
   if (error) throw error;
-  return data as PartyRoomRow;
+  return normalizePartyRoomRow(data as PartyRoomRow);
+}
+
+function normalizePartyRoomRow(row: PartyRoomRow): PartyRoomRow {
+  return {
+    ...row,
+    privacy: row.privacy ?? 'Public',
+    join_policy: row.join_policy ?? null,
+    room_key_hash: row.room_key_hash ?? null,
+    seat_join_mode: row.seat_join_mode ?? 'free',
+    who_can_be_seated: row.who_can_be_seated ?? 'Anyone',
+  };
 }
 
 export async function fetchActivePartyRooms(limit = 40): Promise<PartyRoomRow[]> {
@@ -69,7 +89,7 @@ export async function fetchActivePartyRooms(limit = 40): Promise<PartyRoomRow[]>
     .order('updated_at', { ascending: false })
     .limit(limit);
   if (error) throw error;
-  return (data ?? []) as PartyRoomRow[];
+  return (data ?? []).map((row) => normalizePartyRoomRow(row as PartyRoomRow));
 }
 
 export async function fetchPartyRoomById(roomId: string): Promise<PartyRoomRow | null> {
@@ -81,7 +101,7 @@ export async function fetchPartyRoomById(roomId: string): Promise<PartyRoomRow |
     .eq('id', roomId)
     .maybeSingle();
   if (error) throw error;
-  return (data as PartyRoomRow | null) ?? null;
+  return data ? normalizePartyRoomRow(data as PartyRoomRow) : null;
 }
 
 /** Active cloud room owned by this user (canonical id for discovery). */
@@ -97,7 +117,7 @@ export async function fetchOwnerActivePartyRoom(ownerId: string): Promise<PartyR
     .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return (data as PartyRoomRow | null) ?? null;
+  return data ? normalizePartyRoomRow(data as PartyRoomRow) : null;
 }
 
 export async function endPartyRoom(roomId: string, ownerId: string): Promise<void> {

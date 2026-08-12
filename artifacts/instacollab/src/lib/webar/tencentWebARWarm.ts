@@ -1,16 +1,15 @@
 /**
- * Eager TRTC / Tencent WebAR warm — preload module + catalogs without stealing the preview camera.
- * Full SDK init with getUserMedia only when the engine is cold and nothing else is initializing.
+ * Eager TRTC / Tencent WebAR warm — preload module + catalogs without opening the camera.
+ * GPU init is deferred until beauty/effects are actually selected (keeps preview low-latency).
  */
-import { WEBAR_OUTPUT_FPS } from './webarCameraConfig';
-import { isTencentWebARConfigured } from './webarConfig';
+import { releaseAppCamera } from '../camera/appCameraOwner';
+import { ensureTencentWebARAllowedHostname, isTencentWebARConfigured } from './webarConfig';
 import {
-  ensureSharedTencentWebAR,
   getSharedTencentWebARInstance,
   hydrateTencentWebARCatalogsFromStorage,
   isSharedTencentWebARInitInProgress,
   isSharedTencentWebARReady,
-  releaseSharedTencentWebAR,
+  preloadTencentWebARModule,
   warmTencentWebARForVideoCall,
 } from './tencentWebARPool';
 import {
@@ -18,53 +17,15 @@ import {
   refreshSharedEffectCatalogs,
 } from './tencentWebARCatalogs';
 
-let warmPromise: Promise<boolean> | null = null;
-let keepalivePinned = false;
-let warmCameraStream: MediaStream | null = null;
+const WARM_LEASE_ID = 'trtc-warm';
 
-async function getWarmCameraStream(): Promise<MediaStream | null> {
-  if (typeof navigator === 'undefined' || !navigator.mediaDevices?.getUserMedia) return null;
-  const live = warmCameraStream?.getVideoTracks()[0]?.readyState === 'live';
-  if (live && warmCameraStream) return warmCameraStream;
-
-  try {
-    warmCameraStream?.getTracks().forEach((track) => track.stop());
-  } catch {
-    /* ignore */
-  }
-
-  try {
-    warmCameraStream = await navigator.mediaDevices.getUserMedia({
-      audio: false,
-      video: {
-        facingMode: 'user',
-        width: { ideal: 1280 },
-        height: { ideal: 720 },
-        frameRate: { ideal: 24, max: 30 },
-      },
-    });
-    return warmCameraStream;
-  } catch {
-    warmCameraStream = null;
-    return null;
-  }
-}
-
-function stopWarmCameraStream(): void {
-  if (!warmCameraStream) return;
-  try {
-    warmCameraStream.getTracks().forEach((track) => track.stop());
-  } catch {
-    /* ignore */
-  }
-  warmCameraStream = null;
+function releaseWarmCameraLease(): void {
+  releaseAppCamera(WARM_LEASE_ID);
 }
 
 /** Call when Create Room / call attaches a real camera so the warm LED can turn off. */
-export function onSharedInputReplaced(nextStream?: MediaStream | null): void {
-  if (!warmCameraStream) return;
-  if (nextStream && nextStream === warmCameraStream) return;
-  stopWarmCameraStream();
+export function onSharedInputReplaced(_nextStream?: MediaStream | null): void {
+  releaseWarmCameraLease();
 }
 
 async function refreshCatalogsIfPossible(): Promise<boolean> {
@@ -76,76 +37,33 @@ async function refreshCatalogsIfPossible(): Promise<boolean> {
 }
 
 /**
- * Start (or reuse) the shared WebAR engine and load makeup/sticker/filter catalogs.
- * Safe to call many times — deduped. Does not open a second camera when UI already owns one.
+ * Light warm: JS module + cached catalogs only — no GPU / getOutput loop.
+ * Safe to call on every camera open; does not add preview latency.
  */
 export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
   if (!isTencentWebARConfigured() || typeof window === 'undefined') {
     return Promise.resolve(false);
   }
+  if (ensureTencentWebARAllowedHostname()) {
+    return Promise.resolve(false);
+  }
 
   hydrateTencentWebARCatalogsFromStorage();
   warmTencentWebARForVideoCall();
+  void preloadTencentWebARModule();
 
-  if (isSharedTencentWebARReady() && hasSharedEffectCatalogRows()) {
+  if (hasSharedEffectCatalogRows()) {
     return Promise.resolve(true);
   }
 
-  // UI already owns / is initializing the SDK — refresh catalogs on that instance.
   if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
     return refreshCatalogsIfPossible();
   }
 
-  if (warmPromise) return warmPromise;
-
-  warmPromise = (async () => {
-    if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
-      return refreshCatalogsIfPossible();
-    }
-
-    const stream = await getWarmCameraStream();
-    if (!stream) return hasSharedEffectCatalogRows();
-
-    if (isSharedTencentWebARInitInProgress() || isSharedTencentWebARReady()) {
-      stopWarmCameraStream();
-      return refreshCatalogsIfPossible();
-    }
-
-    const shared = await ensureSharedTencentWebAR({
-      inputStream: stream,
-      mirror: true,
-      needsSegmentation: false,
-      outputFps: WEBAR_OUTPUT_FPS,
-    });
-
-    const instance = shared.instance;
-    if (!instance) {
-      // ensureShared already released its acquire on failure.
-      stopWarmCameraStream();
-      return false;
-    }
-
-    // Pin one consumer for the app session so the pool never cold-destroys mid-use.
-    if (!keepalivePinned) {
-      keepalivePinned = true;
-    } else {
-      releaseSharedTencentWebAR();
-    }
-
-    await refreshSharedEffectCatalogs(instance, 5);
-    return isSharedTencentWebARReady() && hasSharedEffectCatalogRows();
-  })()
-    .catch(() => hasSharedEffectCatalogRows())
-    .finally(() => {
-      if (!hasSharedEffectCatalogRows() || !isSharedTencentWebARReady()) {
-        warmPromise = null;
-      }
-    });
-
-  return warmPromise;
+  return Promise.resolve(hasSharedEffectCatalogRows());
 }
 
-/** Fire-and-forget warm from boot / Create Room / call entry. */
+/** Fire-and-forget light warm from boot / Create Room / call entry. */
 export function warmTencentWebARPipelineNow(): void {
   void ensureTencentWebARPipelineWarm();
 }

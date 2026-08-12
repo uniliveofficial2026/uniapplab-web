@@ -12,6 +12,7 @@ import type {
   PublishedGiftItem,
 } from './live/giftEffectCatalogTypes';
 import { GIFT_EFFECT_CATALOG_BASE } from './live/giftEffectCatalogBase';
+import { getStudioGiftMeta } from './live/giftStudioCatalog';
 import { giftTierFromStars } from './live/giftTiers';
 import { PARTY_GIFT_CATALOG, type PartyGiftDefinition } from '../smule-rooms/utils/roomGifts';
 
@@ -74,6 +75,7 @@ function mergePublishedGiftSources(): PublishedGiftItem[] {
 
 function toPartyGiftRow(gift: PublishedGiftItem): PartyGiftDefinition {
   const stars = Math.max(1, Number(gift.stars) || 1);
+  const meta = getStudioGiftMeta(gift.id);
   return {
     id: gift.id,
     name: gift.name,
@@ -83,6 +85,7 @@ function toPartyGiftRow(gift: PublishedGiftItem): PartyGiftDefinition {
     effectVideoUrl: gift.effectVideoUrl,
     effectSvgaUrl: gift.effectSvgaUrl,
     particleColor: gift.particleColor,
+    ...meta,
   };
 }
 

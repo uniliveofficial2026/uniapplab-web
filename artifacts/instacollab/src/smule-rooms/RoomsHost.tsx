@@ -14,10 +14,30 @@ import { RoomSelfProvider } from './context/RoomSelfContext';
 import { RoomFlowProvider } from './context/RoomFlowContext';
 import type { RoomFlowEntry } from './context/RoomFlowContext';
 import type { PendingLiveRoomOpen } from '../lib/live/pendingLiveRoomOpen';
+import { ErrorBoundary } from '../components/common/ErrorBoundary';
 import './smule-rooms.css';
 
 import { db } from '../lib/db/localDb';
 import { hasInstantSessionCache } from '../lib/instantCachePolicy';
+
+/** Recoverable room fallback — a room/beauty crash must never blank the whole app. */
+function RoomsCrashFallback({ onExit }: { onExit: () => void }) {
+  return (
+    <div className="flex h-full min-h-[40vh] w-full flex-col items-center justify-center gap-3 bg-black p-6 text-center text-white">
+      <p className="text-lg font-bold">This room hit a snag</p>
+      <p className="max-w-md text-sm text-white/70">
+        The live room stopped unexpectedly. Your app is fine — head back and try again.
+      </p>
+      <button
+        type="button"
+        onClick={onExit}
+        className="rounded-xl bg-white px-4 py-2 text-sm font-bold text-black"
+      >
+        Back
+      </button>
+    </div>
+  );
+}
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const [ready, setReady] = React.useState(() => hasInstantSessionCache() || db.isLoggedIn);
@@ -88,11 +108,12 @@ function AppContent({
   return (
     <RoomFlowProvider onExit={onFlowExit} entry={flowEntry}>
       <RoomsLiveOpenBridge />
-      <div className="flex w-full h-[100dvh] bg-black overflow-hidden relative">
+      <div className="flex w-full h-vv max-h-vv bg-black overflow-hidden relative min-h-0">
         <div className="flex-1 flex justify-center h-full">
           <div
             className={`w-full h-full relative flex flex-col overflow-hidden bg-gray-950 ${isFullscreen ? '' : 'sm:max-w-md md:max-w-lg lg:max-w-xl xl:max-w-2xl md:border-x border-gray-900 shadow-[0_0_40px_rgba(168,85,247,0.1)]'}`}
           >
+            <ErrorBoundary screen="rooms" fallback={<RoomsCrashFallback onExit={onFlowExit} />}>
             <Routes>
               <Route path="/party" element={<Party />} />
               <Route path="/room/:id" element={<RequireAuth><Room /></RequireAuth>} />
@@ -108,6 +129,7 @@ function AppContent({
               <Route path="/notifications" element={<OpenMainAppTab tab="notifications" />} />
               <Route path="*" element={<Navigate to="/party" replace />} />
             </Routes>
+            </ErrorBoundary>
           </div>
         </div>
       </div>

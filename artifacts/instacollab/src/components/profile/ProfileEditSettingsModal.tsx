@@ -34,18 +34,17 @@ import { handleAvatarError } from '../../lib/utils';
 import { resolveUser } from '../../lib/safe';
 import { applyDocumentTheme } from '../../lib/theme';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
-import {
-  isCloudPublicUserIdAvailable,
-  scheduleCloudProfileSync,
-} from '../../lib/auth/cloudProfile';
 import { syncDeviceAccountForAppUser } from '../../lib/auth/deviceAccounts';
+import { commitUserProfile } from '../../lib/auth/userDataFlow';
 import {
   canChangePublicUserId,
-  isLocalPublicUserIdAvailable,
   publicUserIdCooldownMessage,
   resolvePublicUserId,
   validatePublicUserId,
 } from '../../lib/publicUserId';
+import {
+  usePublicUserIdAvailability,
+} from '../../hooks/usePublicUserIdAvailability';
 import { PublicUserIdField } from '../launch/PublicUserIdField';
 import type { User } from '../../types';
 import type { AppSettings } from '../../lib/dbTypes';
@@ -59,6 +58,8 @@ import {
   PRIVACY_POLICY_PATH,
   TERMS_OF_SERVICE_PATH,
 } from '../../lib/legalDocs';
+import { UniLivesLegalMedia } from '../legal/brand/UniLivesLegalMedia';
+import { UniLivesLegalHeader } from '../legal/brand/UniLivesLegalHeader';
 
 export type ProfileEditSettingsModalProps = {
   onClose: () => void;
@@ -109,8 +110,15 @@ export function ProfileEditSettingsModal({
   );
   const canEditPublicUserId =
     canChangePublicUserId(localUser.publicUserIdChangedAt) || !localUser.publicUserId;
+  const publicUserIdStatus = usePublicUserIdAvailability(publicUserIdDraft, {
+    exceptUserId: localUser.id,
+    currentPublicUserId: resolvePublicUserId(localUser),
+    enabled: canEditPublicUserId,
+  });
   const publicUserIdHint = canEditPublicUserId
-    ? 'You can change your User ID once every 7 days.'
+    ? publicUserIdStatus === 'idle' || publicUserIdStatus === 'available'
+      ? 'You can change your User ID once every 7 days. It must be unique across all accounts.'
+      : null
     : publicUserIdCooldownMessage(localUser.publicUserIdChangedAt);
   const profileVisitorsEnabled = settings.profileVisitorsEnabled !== false;
 
@@ -189,29 +197,36 @@ export function ProfileEditSettingsModal({
     const current = resolvePublicUserId(localUser);
     if (validated.value === current) return;
 
-    if (isCloudAuthConfigured()) {
-      const available = await isCloudPublicUserIdAvailable(validated.value, localUser.id);
-      if (!available) {
-        showToast('User ID is taken');
-        setPublicUserIdDraft(current);
-        return;
-      }
-    } else if (!isLocalPublicUserIdAvailable(db.users, validated.value, localUser.id)) {
-      showToast('User ID is taken');
+    if (
+      publicUserIdStatus === 'taken' ||
+      publicUserIdStatus === 'unreachable' ||
+      publicUserIdStatus === 'checking'
+    ) {
+      showToast(
+        publicUserIdStatus === 'taken'
+          ? 'This User ID is already taken. Choose a different one.'
+          : 'Could not verify User ID. Try again.',
+      );
       setPublicUserIdDraft(current);
       return;
     }
 
-    const now = Date.now();
-    const next: User = {
-      ...localUser,
-      publicUserId: validated.value,
-      publicUserIdChangedAt: now,
-    };
-    db.updateUser(localUser.id, () => next);
-    setLocalUser(next);
-    setPublicUserIdDraft(validated.value);
-    if (isCloudAuthConfigured()) scheduleCloudProfileSync(next);
+    const result = await commitUserProfile(
+      localUser.id,
+      {
+        publicUserId: validated.value,
+        publicUserIdChangedAt: Date.now(),
+      },
+      { enforceUniquePublicUserId: true },
+    );
+    if (!result.ok) {
+      showToast(result.reason);
+      setPublicUserIdDraft(current);
+      return;
+    }
+
+    setLocalUser(result.user);
+    setPublicUserIdDraft(resolvePublicUserId(result.user));
     showToast('User ID updated');
   };
 
@@ -220,12 +235,15 @@ export function ProfileEditSettingsModal({
   };
 
   const commitProfilePatch = (patch: Partial<User>, toastMessage?: string) => {
-    const next: User = { ...localUser, ...patch };
-    setLocalUser(next);
-    db.updateUser(localUser.id, () => next);
-    syncDeviceAccountForAppUser(next);
-    if (isCloudAuthConfigured()) scheduleCloudProfileSync(next);
-    if (toastMessage) showToast(toastMessage);
+    void commitUserProfile(localUser.id, patch).then((result) => {
+      if (!result.ok) {
+        showToast(result.reason);
+        return;
+      }
+      setLocalUser(result.user);
+      syncDeviceAccountForAppUser(result.user);
+      if (toastMessage) showToast(toastMessage);
+    });
   };
 
   const applyAvatarUrl = (avatarUrl: string) => {
@@ -256,7 +274,7 @@ export function ProfileEditSettingsModal({
       void Promise.resolve(onLogout()).then(() => onClose());
       return;
     }
-    if (!window.confirm(`Log out of ${APP_DISPLAY_NAME} on this device?`)) return;
+    if (!window.confirm(`Completely log out of ${APP_DISPLAY_NAME} on this device?`)) return;
     void signOut().then(() => {
       onClose();
       showToast('Logged out');
@@ -358,6 +376,7 @@ export function ProfileEditSettingsModal({
           onChange={setPublicUserIdDraft}
           onBlur={() => void commitPublicUserId()}
           disabled={!canEditPublicUserId}
+          availability={canEditPublicUserId ? publicUserIdStatus : 'idle'}
           hint={publicUserIdHint}
           onCopy={() => {
             void navigator.clipboard
@@ -775,7 +794,8 @@ export function ProfileEditSettingsModal({
 
       <div className="pt-4 border-t border-border space-y-4">
         <h3 className="font-bold flex items-center gap-2"><Scale className="w-5 h-5 text-violet-500" /> Legal</h3>
-        <div className="bg-secondary/30 rounded-xl p-4 border border-border space-y-3">
+        <div className="bg-secondary/30 rounded-xl p-4 border border-border space-y-3" data-unilives-legal-settings="">
+          <UniLivesLegalHeader className="mb-1" />
           <p className="text-[11px] leading-relaxed text-muted-foreground">
             {APP_DISPLAY_NAME} is for users {LEGAL_AGE_REQUIREMENT_YEARS}+ only. We do not sell or share your
             personal data for advertising. The developer, service, and app are not responsible for underage use.
@@ -786,7 +806,12 @@ export function ProfileEditSettingsModal({
             className="w-full flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl bg-background/60 hover:bg-background border border-border text-sm font-semibold transition-colors"
           >
             <span className="inline-flex items-center gap-2">
-              <Shield className="w-4 h-4 text-sky-500" />
+              <UniLivesLegalMedia
+                kind="privacy-icon"
+                legacyNode={<Shield className="w-4 h-4 text-sky-500" aria-hidden />}
+                imgClassName="w-4 h-4"
+                decorative
+              />
               Privacy Policy
             </span>
             <ExternalLink className="w-4 h-4 text-muted-foreground" />
@@ -797,7 +822,12 @@ export function ProfileEditSettingsModal({
             className="w-full flex items-center justify-between gap-3 py-2.5 px-3 rounded-xl bg-background/60 hover:bg-background border border-border text-sm font-semibold transition-colors"
           >
             <span className="inline-flex items-center gap-2">
-              <FileText className="w-4 h-4 text-violet-500" />
+              <UniLivesLegalMedia
+                kind="terms-icon"
+                legacyNode={<FileText className="w-4 h-4 text-violet-500" aria-hidden />}
+                imgClassName="w-4 h-4"
+                decorative
+              />
               Terms of Service &amp; User Agreement
             </span>
             <ExternalLink className="w-4 h-4 text-muted-foreground" />

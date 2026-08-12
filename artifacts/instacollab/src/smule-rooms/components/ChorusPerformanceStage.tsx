@@ -67,7 +67,7 @@ export function ChorusPerformanceStage({
   useLyricAutoScroll(activeLyricIndex, scrollContainerRef, lineRefs);
 
   return (
-    <div className="mx-3 sm:mx-4 mt-2 shrink-0 chorus-performance-stage bg-gradient-to-b from-purple-900/40 to-black/40 backdrop-blur-xl rounded-[28px] border border-white/10 flex flex-col overflow-hidden shadow-2xl relative">
+    <div className="mx-3 sm:mx-4 mt-2 flex-none max-[767px]:!h-[min(280px,38dvh)] max-[767px]:!max-h-[min(280px,38dvh)] chorus-performance-stage bg-gradient-to-b from-purple-900/40 to-black/40 backdrop-blur-xl rounded-[28px] border border-white/10 flex flex-col overflow-hidden shadow-2xl relative">
       {isSelfPerforming && (
         <div className="pointer-events-none absolute inset-0 overflow-hidden rounded-[28px]">
           <div className="absolute inset-0 bg-gradient-to-br from-zinc-950/50 via-black/30 to-zinc-900/40" />

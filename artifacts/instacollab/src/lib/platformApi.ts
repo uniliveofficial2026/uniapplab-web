@@ -1,16 +1,17 @@
 import { uniapplabOrigin, isLocalDevHost, isUniapplabHost } from './domains/uniapplab';
 import { getSupabaseClient } from './supabase/client';
-import { isSupabaseConfigured } from './supabase/config';
+import { getSupabaseAnonKey, getSupabaseUrl, isSupabaseConfigured } from './supabase/config';
 import { fetchWithTimeout, NET_API_MS, NET_AUTH_MS, withTimeout } from './networkPolicy';
 
 function apiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     const { hostname, origin } = window.location;
-    // Same-origin /api/* on every UniAppLab app host (Vercel monorepo deploy).
+    // Same-origin /api/* on every UniLive app host (Vercel monorepo deploy).
     if (isUniapplabHost(hostname)) {
       return origin.replace(/\/$/, '');
     }
-    if (import.meta.env.DEV && isLocalDevHost(hostname)) {
+    // Local dev server and vite preview both use same-origin /api (dev proxy or soft 404).
+    if (isLocalDevHost(hostname)) {
       return origin.replace(/\/$/, '');
     }
   }
@@ -26,6 +27,8 @@ function apiBaseUrl(): string {
 
   return uniapplabOrigin('api');
 }
+
+export { apiBaseUrl };
 
 async function authHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
@@ -68,7 +71,146 @@ async function authHeaders(): Promise<HeadersInit> {
   return headers;
 }
 
+/**
+ * Route groups migrated to Supabase Edge Functions.
+ * `/api/<group>/...` → `${SUPABASE_URL}/functions/v1/<group>/...`.
+ * The Vercel Express API remains the fallback for the Firebase-auth lane,
+ * network failures, and any surface not yet cut over.
+ */
+const EDGE_MIGRATED_PREFIXES = [
+  '/api/wallet',
+  '/api/gifts',
+  '/api/livekit',
+  '/api/admin',
+  '/api/me',
+  '/api/chat',
+  '/api/stream',
+  '/api/presence',
+  '/api/payments',
+  '/api/automation',
+];
+
+/** Exact paths that should hit Edge (siblings under /api/platform stay on Express). */
+const EDGE_MIGRATED_EXACT = ['/api/platform/brand'];
+
+/** Live stop/ban/end need Express Firestore + LiveKit — never send these to Edge. */
+const EXPRESS_ONLY_ADMIN_MOD =
+  /^\/api\/admin\/(streams|party-rooms)\/[^/]+\/(stop|ban|end)$/;
+const EXPRESS_ONLY_ADMIN_MOD_UNIFIED = /^\/api\/admin\/moderation\/(stop-live|ban-host)$/;
+
+function edgeMigratedPath(path: string): string | null {
+  if (path.startsWith('http')) return null;
+  const clean = path.startsWith('/') ? path : `/${path}`;
+  const bare = clean.split('?')[0] ?? clean;
+  if (EXPRESS_ONLY_ADMIN_MOD.test(bare) || EXPRESS_ONLY_ADMIN_MOD_UNIFIED.test(bare)) {
+    return null;
+  }
+  if (EDGE_MIGRATED_EXACT.some((p) => bare === p)) {
+    return bare.replace(/^\/api/, '');
+  }
+  const matched = EDGE_MIGRATED_PREFIXES.some(
+    (p) => bare === p || bare.startsWith(`${p}/`),
+  );
+  return matched ? clean.replace(/^\/api/, '').split('?')[0]! : null;
+}
+
+/** Supabase access token only (no Firebase). Determines the Edge Function lane. */
+async function supabaseAccessToken(): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  try {
+    const { data } = await withTimeout(
+      supabase.auth.getSession(),
+      NET_AUTH_MS,
+      'auth.getSession',
+    );
+    return data.session?.access_token ?? null;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Attempt a migrated call against the Supabase Edge Function.
+ * Returns the Response when the Edge Function handled it authoritatively
+ * (including business errors like 400/402/403/404), or `null` to signal the
+ * caller should fall back to the Express API (Firebase lane / edge unreachable).
+ */
+async function tryEdgeFunction(
+  edgePath: string,
+  init: RequestInit | undefined,
+): Promise<Response | null> {
+  if (!isSupabaseConfigured()) return null;
+  const supabaseUrl = getSupabaseUrl().replace(/\/$/, '');
+  const anonKey = getSupabaseAnonKey();
+  if (!supabaseUrl || !anonKey) return null;
+
+  const token = await supabaseAccessToken();
+  // No Supabase session → Firebase or anonymous lane stays on Express.
+  if (!token) return null;
+
+  const headers: Record<string, string> = {
+    accept: 'application/json',
+    'content-type': 'application/json',
+    apikey: anonKey,
+    authorization: `Bearer ${token}`,
+    ...(init?.headers as Record<string, string> | undefined),
+  };
+
+  try {
+    const res = await fetchWithTimeout(
+      `${supabaseUrl}/functions/v1${edgePath}`,
+      { ...init, headers },
+      NET_API_MS,
+      `edge:${edgePath}`,
+    );
+    // A rejected token means the caller belongs to a lane the Edge Function
+    // can't verify (e.g. Firebase) — hand back to Express instead of erroring.
+    if (res.status === 401) return null;
+    // LiveKit party rooms may live only in Firestore, which the Edge Function
+    // can't resolve; let Express (with its Firestore fallback) try on 404.
+    if (res.status === 404 && edgePath.startsWith('/livekit/')) return null;
+    // Only fall back when the Edge route itself is missing — not business 404s.
+    // Also fall back for stream/party not found so Express can use Firestore/LiveKit.
+    if (res.status === 404 && edgePath.startsWith('/admin/')) {
+      const bodyText = await res.clone().text().catch(() => '');
+      if (
+        /"error"\s*:\s*"not_found"/i.test(bodyText) ||
+        /"error"\s*:\s*"(stream_not_found|party_room_not_found)"/i.test(bodyText) ||
+        (!bodyText.trim() && /\/(stop|ban|end)$/.test(edgePath))
+      ) {
+        return null;
+      }
+    }
+    return res;
+  } catch {
+    // Edge unreachable/timeout — fall back to the Express API.
+    return null;
+  }
+}
+
 async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const edgePath = edgeMigratedPath(path);
+  if (edgePath) {
+    const edgeRes = await tryEdgeFunction(edgePath, init);
+    if (edgeRes) {
+      if (!edgeRes.ok) {
+        const body = await edgeRes.text().catch(() => '');
+        let detail = body || edgeRes.statusText || 'Request failed';
+        try {
+          const parsed = JSON.parse(body) as { error?: string; message?: string };
+          if (parsed?.error) detail = String(parsed.error);
+          else if (parsed?.message) detail = String(parsed.message);
+        } catch {
+          /* keep raw body */
+        }
+        throw new Error(`API ${edgeRes.status}: ${detail}`);
+      }
+      if (edgeRes.status === 204) return null as T;
+      return (await edgeRes.json()) as T;
+    }
+  }
+
   const base = apiBaseUrl();
   const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetchWithTimeout(
@@ -85,11 +227,21 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   );
   if (!res.ok) {
     const body = await res.text().catch(() => '');
-    throw new Error(`API ${res.status}: ${body || res.statusText}`);
+    let detail = body || res.statusText || 'Request failed';
+    try {
+      const parsed = JSON.parse(body) as { error?: string; message?: string };
+      if (parsed?.error) detail = String(parsed.error);
+      else if (parsed?.message) detail = String(parsed.message);
+    } catch {
+      /* keep raw body */
+    }
+    throw new Error(`API ${res.status}: ${detail}`);
   }
   if (res.status === 204) return null as T;
   return (await res.json()) as T;
 }
+
+export { apiFetch };
 
 export type MeResponse = {
   id: string;
@@ -388,15 +540,21 @@ export type PartyLiveKitTokenResponse = {
   roomName: string;
   roomId: string;
   publish: boolean;
+  hidden?: boolean;
 };
 
 export async function fetchPartyLiveKitToken(
   roomId: string,
   publish = true,
+  options?: { hidden?: boolean },
 ): Promise<PartyLiveKitTokenResponse> {
   return apiFetch('/api/livekit/party/token', {
     method: 'POST',
-    body: JSON.stringify({ roomId, publish }),
+    body: JSON.stringify({
+      roomId,
+      publish: options?.hidden ? false : publish,
+      hidden: Boolean(options?.hidden),
+    }),
   });
 }
 

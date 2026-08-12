@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { fetchStreamViewers, isPlatformApiAvailable, postStreamViewer } from '../platformApi';
+import { realtimeLifecycleDebug } from '../realtime/realtimeLifecycleDebug';
 
-const POLL_MS = 15_000;
+const POLL_MS = 3_000;
 
 /** Report join/leave and poll viewer count for a live platform stream. */
 export function useStreamViewerPresence(streamId: string | null, watching: boolean) {
@@ -16,10 +17,11 @@ export function useStreamViewerPresence(streamId: string | null, watching: boole
 
     let cancelled = false;
     let pollTimer: number | null = null;
+    const activeStreamId = streamId;
 
     const refresh = async () => {
       try {
-        const data = await fetchStreamViewers(streamId);
+        const data = await fetchStreamViewers(activeStreamId);
         if (!cancelled) setViewers(data.viewers ?? 0);
       } catch {
         /* ignore */
@@ -28,12 +30,21 @@ export function useStreamViewerPresence(streamId: string | null, watching: boole
 
     void (async () => {
       try {
-        const data = await postStreamViewer(streamId, 'join');
+        const data = await postStreamViewer(activeStreamId, 'join');
+        if (cancelled) {
+          // Stale async join after leave/unmount — deregister immediately.
+          void postStreamViewer(activeStreamId, 'leave').catch(() => {});
+          realtimeLifecycleDebug('stream-viewer-stale-join-rolled-back', {
+            streamId: activeStreamId,
+          });
+          return;
+        }
         joinedRef.current = true;
-        if (!cancelled) setViewers(data.viewers ?? 0);
+        setViewers(data.viewers ?? 0);
       } catch {
         /* ignore */
       }
+      if (cancelled) return;
       pollTimer = window.setInterval(() => {
         void refresh();
       }, POLL_MS);
@@ -44,7 +55,7 @@ export function useStreamViewerPresence(streamId: string | null, watching: boole
       if (pollTimer) window.clearInterval(pollTimer);
       if (joinedRef.current) {
         joinedRef.current = false;
-        void postStreamViewer(streamId, 'leave').catch(() => {});
+        void postStreamViewer(activeStreamId, 'leave').catch(() => {});
       }
     };
   }, [streamId, watching]);

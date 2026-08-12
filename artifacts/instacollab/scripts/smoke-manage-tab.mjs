@@ -52,16 +52,29 @@ async function launchSmokeBrowser() {
 }
 
 async function ensureDemoMainApp(page) {
-  await page.goto(`${base}/?launch=main&as=u1&force_demo=1`, {
+  // Desktop width so sidebar labels (Karaoke) are visible; mobile bottom nav is icon-only.
+  await page.setViewportSize({ width: 1280, height: 900 });
+
+  await page.goto(`${base}/karaoke?launch=main&as=u1&force_demo=1`, {
     waitUntil: 'domcontentloaded',
     timeout: 60_000,
   });
 
   const deadline = Date.now() + 90_000;
   while (Date.now() < deadline) {
+    const skipOnboarding = page.getByRole('button', { name: /skip onboarding/i });
+    if (await skipOnboarding.isVisible().catch(() => false)) {
+      await skipOnboarding.click();
+    }
+
     const skip = page.getByRole('button', { name: /^skip$/i });
     if (await skip.isVisible().catch(() => false)) {
       await skip.click();
+    }
+
+    const next = page.getByRole('button', { name: /^next$/i });
+    if (await next.isVisible().catch(() => false)) {
+      await next.click();
     }
 
     const switchBtn = page.getByText('Switch as @designer_dude');
@@ -69,17 +82,19 @@ async function ensureDemoMainApp(page) {
       await switchBtn.click();
     }
 
-    const karaokeVisible = await page
-      .getByText('Karaoke', { exact: true })
-      .first()
-      .isVisible()
-      .catch(() => false);
-    if (karaokeVisible) return;
+    const profileEntry = page.locator('button:has(img[alt="Profile"])').first();
+    const karaokeNav = page.getByRole('button', { name: /^Karaoke$/i }).first();
+    const karaokeLabel = page.getByText('Karaoke', { exact: true }).first();
+    const ready =
+      (await profileEntry.isVisible().catch(() => false)) ||
+      (await karaokeNav.isVisible().catch(() => false)) ||
+      (await karaokeLabel.isVisible().catch(() => false));
+    if (ready) return;
 
     await page.waitForTimeout(1500);
   }
 
-  await page.getByText('Karaoke', { exact: true }).first().waitFor({
+  await page.locator('button:has(img[alt="Profile"])').first().waitFor({
     state: 'visible',
     timeout: 5_000,
   });
@@ -88,7 +103,16 @@ async function ensureDemoMainApp(page) {
 async function openKaraokeManageTab(page) {
   await ensureDemoMainApp(page);
 
-  await page.getByText('Karaoke', { exact: true }).first().click();
+  const karaokeNav = page.getByRole('button', { name: /^Karaoke$/i }).first();
+  if (await karaokeNav.isVisible().catch(() => false)) {
+    await karaokeNav.click();
+  } else {
+    const karaokeLabel = page.getByText('Karaoke', { exact: true }).first();
+    if (await karaokeLabel.isVisible().catch(() => false)) {
+      await karaokeLabel.click();
+    }
+  }
+
   const profileEntry = page.locator('button:has(img[alt="Profile"])').first();
   await profileEntry.waitFor({ state: 'visible', timeout: 30_000 });
   await profileEntry.click();

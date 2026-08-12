@@ -4,17 +4,18 @@
 import { db } from './db/localDb';
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { withCloudAppStateRemoteApply } from './auth/cloudAppStateFlags';
+import { isFirebaseConfigured } from './firebase/config';
 import { isSocialCloudAvailable, shouldUseFirebaseForSocialCloud } from './social/socialCloud';
-import {
-  fetchFirebaseProfilesByIds,
-  subscribeFirebaseProfileThoughtUpdates,
-} from './firebase/profile';
 import { getSupabaseClient } from './supabase/client';
 import { profileRowToUser } from './supabase/profile';
 import type { ProfileRow } from './supabase/types';
 import { isNetworkOnline, subscribeNetworkStatus } from './networkStatus';
 import { dispatchThoughtNoteReplay, normalizeUserThoughtEpoch } from './thoughtNoteLiveSync';
 import { isCloudAuthConfigured } from './auth/config';
+
+async function firebaseProfile() {
+  return import('./firebase/profile');
+}
 
 let installed = false;
 let channelUnsub: (() => void) | null = null;
@@ -97,10 +98,20 @@ function startThoughtNoteChannel(): void {
   if (channelUnsub || !isNetworkOnline()) return;
 
   const meId = db.currentUserId;
-  if (shouldUseFirebaseForSocialCloud(meId) && isSocialCloudAvailable()) {
-    channelUnsub = subscribeFirebaseProfileThoughtUpdates((row) => {
-      applyProfileThoughtRow(row);
+  if (shouldUseFirebaseForSocialCloud(meId) && isFirebaseConfigured()) {
+    let cancelled = false;
+    let unsub: (() => void) | undefined;
+    void firebaseProfile().then((fb) => {
+      if (cancelled) return;
+      unsub = fb.subscribeFirebaseProfileThoughtUpdates((row) => {
+        applyProfileThoughtRow(row);
+      });
     });
+    channelUnsub = () => {
+      cancelled = true;
+      unsub?.();
+      channelUnsub = null;
+    };
     return;
   }
 
@@ -178,8 +189,9 @@ export async function refreshThoughtNotesFromCloud(): Promise<void> {
   const queryIds = [...ids].slice(0, 40);
   if (!queryIds.length) return;
 
-  if (shouldUseFirebaseForSocialCloud(me?.id) && isSocialCloudAvailable()) {
-    const rows = await fetchFirebaseProfilesByIds(queryIds);
+  if (shouldUseFirebaseForSocialCloud(me?.id) && isFirebaseConfigured()) {
+    const fb = await firebaseProfile();
+    const rows = await fb.fetchFirebaseProfilesByIds(queryIds);
     for (const row of rows) {
       if (!row?.id) continue;
       applyProfileThoughtRow(row);

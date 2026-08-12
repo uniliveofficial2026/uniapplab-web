@@ -39,14 +39,28 @@ yarn-error.log
 testem.log
 /typings
 
-# Secrets / local env (never commit)
+# ---------------------------------------------------------------------------
+# Secrets / local env — NEVER commit or zip these
+# Permanent local key file: Universal-Fixer/.env.local
+# Provider secrets must NOT use VITE_ (browser-visible).
+# ---------------------------------------------------------------------------
 .env
+.env.local
+.env.*.local
 .env.*
+.env*.bak*
 !.env.example
+!.env.*.example
+!.env.providers.example
+!.env.meshy.local.example
+
+# Meshy local secrets
+.env.meshy.local
 
 # System Files
 .DS_Store
 Thumbs.db
+._*
 
 .cursor/rules/nx-rules.mdc
 .github/instructions/nx.instructions.md
@@ -61,15 +75,25 @@ Thumbs.db
 # Capacitor native build artifacts (keep ios/ android project sources)
 artifacts/instacollab/ios/App/Pods/
 artifacts/instacollab/ios/App/build/
+artifacts/instacollab/ios/build/
 artifacts/instacollab/ios/DerivedData/
 artifacts/instacollab/android/.gradle/
 artifacts/instacollab/android/app/build/
 artifacts/instacollab/android/build/
 artifacts/instacollab/android/local.properties
 artifacts/instacollab/android/.idea/
+artifacts/instacollab/android/key.properties
+artifacts/instacollab/android/keystore/
+artifacts/instacollab/android/**/*.jks
+artifacts/instacollab/android/**/*.keystore
 
 # Large vendor archives / media (CDN or download at build — not in git)
 **/vendor/archives/*.zip
 artifacts/instacollab/vendor/archives/
 artifacts/instacollab/public/trtc-webar/backgrounds/video-bg-2.mp4
-.env*
+
+# Local 3D master assets (too large for GitHub — keep on disk / CDN only)
+unilives_master_source/
+
+# Large regenerable / export archives (permanent portable zip is rebuilt via script)
+exports/

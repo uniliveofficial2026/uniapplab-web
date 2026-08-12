@@ -1,54 +1,67 @@
-import React, { useEffect } from 'react';
-import { motion } from 'motion/react';
+import React, { useEffect, useRef } from 'react';
 import { useDB } from '../../lib/useDB';
-import { hasInstantSessionCache } from '../../lib/instantCachePolicy';
-import { LaunchBrandMark, LaunchShell } from './launchUi';
-import { APP_DISPLAY_NAME, APP_TAGLINE } from '../../lib/appBrand';
+import { markSplashSeenThisSession } from '../../lib/splashSession';
+import { useIsOnline } from '../../hooks/useNetworkStatus';
+import {
+  waitBootSplashUntilReady,
+  dismissBootShellNow,
+  ensureBootSplashPlaying,
+  BOOT_SPLASH_MS,
+} from '../../lib/bootSplashVideo';
 
+/**
+ * Boot splash host — first video plays full ~5s online.
+ * Shell cannot be removed mid-play (that was the skip).
+ */
 export function SplashScreen() {
   const db = useDB();
-  const fastPath = hasInstantSessionCache() || db.getLaunchProgress().hasSeenSplash;
+  const isOnline = useIsOnline();
+  const dbReadyRef = useRef(false);
+  const onlineRef = useRef(isOnline);
+  onlineRef.current = isOnline;
+  const startedRef = useRef(false);
 
   useEffect(() => {
-    const delayMs = fastPath ? 0 : 800;
-    const timer = window.setTimeout(() => {
-      db.markSplashSeen();
-    }, delayMs);
-    return () => window.clearTimeout(timer);
-  }, [db, fastPath]);
+    let cancelled = false;
+    void Promise.resolve(db.whenReady?.())
+      .then(() => {
+        if (!cancelled) dbReadyRef.current = true;
+      })
+      .catch(() => {
+        if (!cancelled) dbReadyRef.current = true;
+      });
+    const t = window.setTimeout(() => {
+      dbReadyRef.current = true;
+    }, 300);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(t);
+    };
+  }, [db]);
 
-  return (
-    <LaunchShell className="items-center justify-center p-8 overflow-y-auto">
-      <motion.div
-        initial={{ opacity: 0, scale: 0.9 }}
-        animate={{ opacity: 1, scale: 1 }}
-        transition={{ duration: 0.6 }}
-        className="flex flex-col items-center gap-6 text-center"
-      >
-        <LaunchBrandMark size="hero" allowUpload />
-        <div>
-          <h1 className="text-3xl font-black tracking-tight">{APP_DISPLAY_NAME}</h1>
-          <p className="text-muted-foreground mt-3 text-sm font-medium leading-relaxed max-w-sm">
-            {APP_TAGLINE}
-          </p>
-          <p className="text-muted-foreground/80 mt-3 text-xs leading-relaxed max-w-sm">
-            Go live, chat, share posts, discover creators, and collaborate — all in {APP_DISPLAY_NAME}.
-          </p>
-        </div>
-        <motion.div
-          className="h-1 w-24 rounded-full bg-gradient-to-r from-[#fd5949] to-[#d6249f]"
-          initial={{ width: 0 }}
-          animate={{ width: 96 }}
-          transition={{ duration: 2, ease: 'easeInOut' }}
-        />
-      </motion.div>
-      <button
-        type="button"
-        onClick={() => db.markSplashSeen()}
-        className="mt-12 text-xs font-bold text-muted-foreground uppercase tracking-widest"
-      >
-        Tap to continue
-      </button>
-    </LaunchShell>
-  );
+  useEffect(() => {
+    if (startedRef.current) return;
+    startedRef.current = true;
+
+    ensureBootSplashPlaying({ loop: !onlineRef.current });
+
+    waitBootSplashUntilReady(
+      () => {
+        markSplashSeenThisSession();
+        try {
+          db.markSplashSeen();
+        } catch {
+          /* ignore */
+        }
+        dismissBootShellNow();
+      },
+      {
+        playMs: BOOT_SPLASH_MS,
+        isReady: () => dbReadyRef.current,
+        isOnline: () => onlineRef.current,
+      },
+    );
+  }, [db]);
+
+  return null;
 }

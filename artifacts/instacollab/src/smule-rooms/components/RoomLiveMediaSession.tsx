@@ -31,6 +31,8 @@ type RoomLiveMediaSessionProps = {
   bodyShape?: BodyShapeParams;
   beautyPanelOpen?: boolean;
   effectsPanelOpen?: boolean;
+  /** Platform-admin silent watch — LiveKit hidden grant. */
+  hiddenLiveKit?: boolean;
   children: (media: RoomLiveMediaBundle) => ReactNode;
 };
 
@@ -55,6 +57,7 @@ export function RoomLiveMediaSession({
   bodyShape,
   beautyPanelOpen,
   effectsPanelOpen,
+  hiddenLiveKit = false,
   children,
 }: RoomLiveMediaSessionProps) {
   const liveCameraEnabled = Boolean(userSeatKey) && userCameraOn;
@@ -74,12 +77,15 @@ export function RoomLiveMediaSession({
     roomId,
     active: true,
     sessionMode,
-    canPublish: Boolean(userSeatKey),
-    publishVideo: Boolean(userSeatKey && userCameraOn),
+    canPublish: hiddenLiveKit ? false : Boolean(userSeatKey),
+    publishVideo: hiddenLiveKit ? false : Boolean(userSeatKey && userCameraOn),
     publishMic:
-      publishMic ?? Boolean(userSeatKey && userMicOn && !userMicAdminMuted),
-    processedAudioTrack,
-    cameraTrack: camera.videoTrack,
+      hiddenLiveKit
+        ? false
+        : (publishMic ?? Boolean(userSeatKey && userMicOn && !userMicAdminMuted)),
+    processedAudioTrack: hiddenLiveKit ? null : processedAudioTrack,
+    cameraTrack: hiddenLiveKit ? null : camera.videoTrack,
+    hidden: hiddenLiveKit,
   });
 
   return <>{children({ camera, liveKit })}</>;
@@ -93,11 +99,15 @@ export function buildLiveViewMediaProps(media: RoomLiveMediaBundle) {
     deeparPreviewRef: media.camera.previewRef,
     beautyVideoRef: media.camera.beautyVideoRef,
     showDeeparPreview: media.camera.showDeeparPreview,
-    showBeautyPreview: media.camera.showBeautyPreview,
+    showBeautyPreview:
+      media.camera.showBeautyPreview || media.camera.showProcessedPreview,
     beautyVideoReady: media.camera.beautyVideoReady,
     effectsConfigured: media.camera.configured,
     effectsLoading: media.camera.arLoading,
     effectsCameraReady: media.camera.cameraReady,
+    cameraError: media.camera.cameraError,
+    cameraPermissionDenied: media.camera.cameraPermissionDenied,
+    onRetryCamera: media.camera.retryCamera,
     effectsArReady: media.camera.arReady,
     beautyConfigured: media.camera.beautyConfigured,
     beautyReady: media.camera.beautyReady,

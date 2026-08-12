@@ -36,6 +36,8 @@ export async function insertPartyRoomSyncEvent(input: {
   senderName?: string;
   type: LiveRoomEventType;
   payload: Record<string, unknown>;
+  /** Client-generated UUID so LiveKit + cloud share one id for dedup. */
+  id?: string;
 }): Promise<PartyRoomSyncRow | null> {
   if (!isSupabaseConfigured()) return null;
   const supabase = getSupabaseClient();
@@ -46,14 +48,29 @@ export async function insertPartyRoomSyncEvent(input: {
     ...(input.senderName ? { senderName: input.senderName } : {}),
   };
 
+  // Guard disk: oversized payloads caused party_room_sync_events to fill Free-tier storage.
+  let payloadJson = '';
+  try {
+    payloadJson = JSON.stringify(body);
+  } catch {
+    return null;
+  }
+  if (payloadJson.length > 8_000) {
+    console.warn('[partyRoomLiveSync] payload too large; skipping cloud persist', payloadJson.length);
+    return null;
+  }
+
+  const row: Record<string, unknown> = {
+    room_id: input.roomId,
+    sender_id: input.senderId,
+    event_type: input.type,
+    payload: body,
+  };
+  if (input.id) row.id = input.id;
+
   const { data, error } = await supabase
     .from('party_room_sync_events')
-    .insert({
-      room_id: input.roomId,
-      sender_id: input.senderId,
-      event_type: input.type,
-      payload: body,
-    })
+    .insert(row)
     .select('*')
     .single();
 
@@ -119,6 +136,17 @@ export function subscribePartyRoomSyncEvents(
   };
 }
 
+function newEventId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `00000000-0000-4000-8000-${Date.now().toString(16).padStart(12, '0').slice(-12)}`;
+}
+
+/**
+ * Broadcast on LiveKit immediately, then persist for late joiners.
+ * Same client UUID is used for LiveKit + DB so Realtime INSERT is deduped.
+ */
 export async function persistAndBroadcastLiveRoomEvent(
   roomId: string,
   partial: {
@@ -129,26 +157,23 @@ export async function persistAndBroadcastLiveRoomEvent(
   },
   publish: (envelope: Omit<LiveRoomEnvelope, 'v'>) => boolean,
 ): Promise<LiveRoomEnvelope> {
-  const row = await insertPartyRoomSyncEvent({
+  const id = newEventId();
+  const ts = Date.now();
+  const envelope: LiveRoomEnvelope = {
+    v: 1,
+    id,
+    type: partial.type,
     roomId,
     senderId: partial.senderId,
     senderName: partial.senderName,
-    type: partial.type,
+    ts,
     payload: partial.payload,
-  });
+  };
 
-  const envelope: LiveRoomEnvelope = row
-    ? rowToEnvelope(row)
-    : {
-        v: 1,
-        id: `local_${Date.now()}`,
-        type: partial.type,
-        roomId,
-        senderId: partial.senderId,
-        senderName: partial.senderName,
-        ts: Date.now(),
-        payload: partial.payload,
-      };
+  // Mark seen before publish so our own cloud echo is ignored.
+  const seen = seenCloudIds.get(roomId) ?? new Set<string>();
+  seen.add(id);
+  seenCloudIds.set(roomId, seen);
 
   publish({
     id: envelope.id,
@@ -158,6 +183,17 @@ export async function persistAndBroadcastLiveRoomEvent(
     senderName: envelope.senderName,
     ts: envelope.ts,
     payload: envelope.payload,
+  });
+
+  void insertPartyRoomSyncEvent({
+    id,
+    roomId,
+    senderId: partial.senderId,
+    senderName: partial.senderName,
+    type: partial.type,
+    payload: partial.payload,
+  }).catch(() => {
+    /* LiveKit already delivered; cloud is durable backup only */
   });
 
   return envelope;

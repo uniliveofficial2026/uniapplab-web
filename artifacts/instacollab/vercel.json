@@ -168,7 +168,23 @@
       "destination": "/api"
     },
     {
-      "source": "/((?!api/|__local_game__/|local-games/|home/|privacy-policy\\.html|terms-of-service\\.html|local-game-sw\\.js|sw\\.js|workbox-|assets/|deepar-resources/|effects/).*)",
+      "source": "/games/greedy-slot",
+      "destination": "/games/greedy-slot/index.html"
+    },
+    {
+      "source": "/games/greedy-slot/",
+      "destination": "/games/greedy-slot/index.html"
+    },
+    {
+      "source": "/games/greedy-slot/admin",
+      "destination": "/games/greedy-slot/index.html"
+    },
+    {
+      "source": "/games/greedy-slot/admin/(.*)",
+      "destination": "/games/greedy-slot/index.html"
+    },
+    {
+      "source": "/((?!api/|games/|__local_game__/|local-games/|home/|privacy-policy\\.html|terms-of-service\\.html|local-game-sw\\.js|sw\\.js|workbox-|assets/|deepar-resources/|effects/).*)",
       "destination": "/index.html"
     }
   ],

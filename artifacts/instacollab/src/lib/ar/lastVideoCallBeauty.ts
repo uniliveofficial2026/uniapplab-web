@@ -16,7 +16,16 @@ const STORAGE_KEY = 'lastVideoCallBeauty';
 
 export function stashLastVideoCallBeauty(detail: LastVideoCallBeauty): void {
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(detail));
+    const effects = detail.beautyEffects;
+    // Blob URLs die with the document; skip them so storage stays valid.
+    const beautyEffects =
+      effects.backgroundUrl?.startsWith('blob:')
+        ? { ...effects, backgroundUrl: null, backgroundType: null }
+        : effects;
+    localStorage.setItem(
+      STORAGE_KEY,
+      JSON.stringify({ ...detail, beautyEffects }),
+    );
   } catch {
     /* ignore */
   }

@@ -6,6 +6,7 @@ export type LiveKind =
   | 'audio-room'
   | 'video-multi'
   | 'pk'
+  | 'party'
   | 'commerce'
   | 'game';
 

@@ -13,8 +13,8 @@ type PlatformBrand = {
   updatedAt: string;
 };
 
-const APP_NAME = "UniLive";
-const APP_SHORT = "UniLive";
+const APP_NAME = "UniLive's";
+const APP_SHORT = "UniLive's";
 const THEME = "#020617";
 
 function normalizeBrand(row: {

@@ -1,11 +1,12 @@
 import {
-  addDoc,
   collection,
+  doc,
   limit,
   onSnapshot,
   orderBy,
   query,
   serverTimestamp,
+  setDoc,
   type Unsubscribe,
 } from 'firebase/firestore';
 import {
@@ -15,6 +16,13 @@ import {
 } from '../livekit/liveRoomBus';
 import { getFirebaseFirestore } from './app';
 import { isFirebaseConfigured } from './config';
+
+function newEventId(): string {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return crypto.randomUUID();
+  }
+  return `fb_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+}
 
 export type FirebasePartyRoomSyncRow = {
   id: string;
@@ -43,12 +51,16 @@ export function isFirebasePartyRoomLiveSyncAvailable(): boolean {
   return isFirebaseConfigured() && Boolean(getFirebaseFirestore());
 }
 
+const seenFirebaseCloudIds = new Map<string, Set<string>>();
+
 export async function insertFirebasePartyRoomSyncEvent(input: {
   roomId: string;
   senderId: string;
   senderName?: string;
   type: LiveRoomEventType;
   payload: Record<string, unknown>;
+  /** Client-generated id so LiveKit + Firestore share one id for dedup. */
+  id?: string;
 }): Promise<FirebasePartyRoomSyncRow | null> {
   const db = getFirebaseFirestore();
   if (!db) return null;
@@ -59,7 +71,9 @@ export async function insertFirebasePartyRoomSyncEvent(input: {
   };
 
   const createdAt = new Date().toISOString();
-  const ref = await addDoc(collection(db, 'party_room_sync_events'), {
+  const id = input.id || newEventId();
+  const ref = doc(collection(db, 'party_room_sync_events'), id);
+  await setDoc(ref, {
     room_id: input.roomId,
     sender_id: input.senderId,
     event_type: input.type,
@@ -68,13 +82,20 @@ export async function insertFirebasePartyRoomSyncEvent(input: {
   });
 
   return {
-    id: ref.id,
+    id,
     room_id: input.roomId,
     sender_id: input.senderId,
     event_type: input.type,
     payload: body,
     created_at: createdAt,
   };
+}
+
+/** Mark an event id as already handled so cloud echo is ignored. */
+export function markFirebasePartyRoomSyncEventSeen(roomId: string, id: string): void {
+  const seen = seenFirebaseCloudIds.get(roomId) ?? new Set<string>();
+  seen.add(id);
+  seenFirebaseCloudIds.set(roomId, seen);
 }
 
 export async function fetchRecentFirebasePartyRoomSyncEvents(
@@ -111,8 +132,6 @@ export async function fetchRecentFirebasePartyRoomSyncEvents(
 
   return rows.reverse();
 }
-
-const seenFirebaseCloudIds = new Map<string, Set<string>>();
 
 export function subscribeFirebasePartyRoomSyncEvents(
   roomId: string,

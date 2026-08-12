@@ -1,8 +1,8 @@
 import React from "react";
-import { isRoomAdminOrOwner, isRoomOwner, type RoomMemberRole } from '../utils/roles';
+import { isRoomOwner, type RoomMemberRole } from '../utils/roles';
 import { useRoomSelf } from '../context/RoomSelfContext';
 import { isRoomSelfName, isRoomSelfGuest } from '../utils/selfIdentity';
-import { X, Eye, UserPlus, Shield, ShieldAlert, Crown, UserX } from "lucide-react";
+import { X, Eye, UserPlus, Shield, ShieldAlert, Crown, UserX, Ban } from "lucide-react";
 
 interface Viewer {
   id: string;
@@ -24,9 +24,27 @@ interface RoomViewersOverlayProps {
   onToggleFollow?: (viewerId: string) => void;
   onSelectViewer?: (viewer: Viewer) => void;
   onKickUser?: (viewerId: string, viewerName: string) => void;
+  canBanFromSeats?: boolean;
+  seatBannedUserIds?: string[];
+  onBanFromSeats?: (userId: string, displayName: string) => void;
+  onUnbanFromSeats?: (userId: string, displayName: string) => void;
 }
 
-export function RoomViewersOverlay({ isOpen, onClose, viewers, currentUserRole, onToggleAdmin, onToggleCoOwner, onToggleFollow, onSelectViewer, onKickUser }: RoomViewersOverlayProps) {
+export function RoomViewersOverlay({
+  isOpen,
+  onClose,
+  viewers,
+  currentUserRole,
+  onToggleAdmin,
+  onToggleCoOwner,
+  onToggleFollow,
+  onSelectViewer,
+  onKickUser,
+  canBanFromSeats = false,
+  seatBannedUserIds = [],
+  onBanFromSeats,
+  onUnbanFromSeats,
+}: RoomViewersOverlayProps) {
   const self = useRoomSelf();
   if (!isOpen) return null;
 
@@ -55,6 +73,9 @@ export function RoomViewersOverlay({ isOpen, onClose, viewers, currentUserRole, 
               viewer.id === self.id ||
               isRoomSelfName(viewer.name, self) ||
               isRoomSelfGuest({ userId: viewer.id, name: viewer.name }, self);
+            const viewerSeatBanned = seatBannedUserIds.includes(viewer.id);
+            const canShowSeatBan =
+              canBanFromSeats && !isSelfViewer && !viewer.isOwner && Boolean(viewer.id);
 
             return (
             <div key={viewer.id} className="flex justify-between items-center bg-black/40 border border-white/5 rounded-2xl p-3.5 sm:p-4 animate-fade-in">
@@ -83,6 +104,11 @@ export function RoomViewersOverlay({ isOpen, onClose, viewers, currentUserRole, 
                         <Shield size={8} /> <span>Admin</span>
                       </span>
                     )}
+                    {viewerSeatBanned ? (
+                      <span className="bg-orange-500/20 text-orange-300 border border-orange-500/30 text-[8px] font-bold px-1.5 py-0.5 rounded">
+                        Seat banned
+                      </span>
+                    ) : null}
                   </div>
                 </div>
               </div>
@@ -124,6 +150,27 @@ export function RoomViewersOverlay({ isOpen, onClose, viewers, currentUserRole, 
                     <UserX size={14} />
                   </button>
                 )}
+
+                {canShowSeatBan ? (
+                  <button
+                    type="button"
+                    className={`p-1.5 rounded-full border transition active:scale-95 cursor-pointer ${
+                      viewerSeatBanned
+                        ? 'bg-emerald-500/10 text-emerald-400 border-emerald-500/20 hover:bg-emerald-500/20'
+                        : 'bg-orange-500/10 text-orange-400 border-orange-500/20 hover:bg-orange-500/20'
+                    }`}
+                    onClick={() => {
+                      if (viewerSeatBanned) {
+                        onUnbanFromSeats?.(viewer.id, viewer.name);
+                      } else {
+                        onBanFromSeats?.(viewer.id, viewer.name);
+                      }
+                    }}
+                    title={viewerSeatBanned ? `Unban ${viewer.name} from seats` : `Ban ${viewer.name} from seats`}
+                  >
+                    <Ban size={14} />
+                  </button>
+                ) : null}
 
                 {!isSelfViewer ? (
                 <button 

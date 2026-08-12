@@ -1,38 +1,19 @@
-import React, { useEffect, useMemo } from 'react';
+import React, { useEffect } from 'react';
 import { resolveGreedyTapAppUrl } from '../../lib/greedyTap/config';
 
 /**
- * Greedy tab — same-origin iframe on first paint for instant load on
- * http://localhost:5173/greedy-tap and https://app.uniapplab.com/greedy-tap.
+ * Greedy tab slot — the live iframe is owned by GreedySessionProvider
+ * (fullscreen on this tab, PiP / icon when browsing the rest of UniLive).
  */
 export function GreedyTapScreen() {
-  const appUrl = useMemo(() => resolveGreedyTapAppUrl(), []);
-
   useEffect(() => {
-    const onMessage = (event: MessageEvent) => {
-      const data = event.data;
-      if (!data || typeof data !== 'object') return;
-      if ((data as { source?: string }).source !== 'uniapplab-greedy') return;
-      if ((data as { type?: string }).type !== 'navigate') return;
-      const tab = (data as { tab?: string }).tab;
-      if (!tab) return;
-      window.dispatchEvent(new CustomEvent('navigate', { detail: { tab } }));
-    };
-    window.addEventListener('message', onMessage);
-    return () => window.removeEventListener('message', onMessage);
+    window.dispatchEvent(
+      new CustomEvent('uniapplab-greedy-session', { detail: { action: 'open-fullscreen' } }),
+    );
   }, []);
 
-  return (
-    <div className="relative flex h-full min-h-0 w-full flex-col bg-black">
-      <iframe
-        title="Greedy"
-        src={appUrl}
-        className="h-full min-h-0 w-full flex-1 border-0 bg-black"
-        allow="fullscreen; gamepad; autoplay; clipboard-read; clipboard-write"
-        loading="eager"
-      />
-    </div>
-  );
+  // Black underlay only; the provider portals the real game above the shell.
+  return <div className="relative h-full min-h-0 w-full flex-1 bg-black" aria-hidden />;
 }
 
 /** Prefetch Greedy so the browser starts loading before the tab is opened. */

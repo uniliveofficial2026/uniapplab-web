@@ -1,0 +1,3531 @@
+{
+  "version": 10,
+  "mappings": [
+    {
+      "existingId": "/brand/app-logo.png",
+      "newAssetId": "brand.logo.primary",
+      "type": "brand",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "appBrand.ts",
+        "PWA",
+        "notifications",
+        "LaunchBrandMark",
+        "index.html"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/brand/logos/primary/logo-primary.png",
+        "/unilives-assets/brand/logos/primary/logo-primary.webp",
+        "/unilives-assets/brand/logos/primary/logo-primary.svg"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-1-wired-fallback",
+      "rollbackPath": "/brand/app-logo.png"
+    },
+    {
+      "existingId": "/icons/icon-192.png",
+      "newAssetId": "brand.icon.pwa.192",
+      "type": "brand",
+      "preserveBusinessId": true,
+      "status": "blocked-missing-asset",
+      "existingReferences": [
+        "vite.config.ts PWA workbox"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/brand/app-icons/pwa-192.png"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "awaiting-production-files",
+      "rollbackPath": "/icons/icon-192.png"
+    },
+    {
+      "existingId": "/icons/icon-512.png",
+      "newAssetId": "brand.icon.pwa.512",
+      "type": "brand",
+      "preserveBusinessId": true,
+      "status": "blocked-missing-asset",
+      "existingReferences": [
+        "vite.config.ts PWA workbox"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/brand/app-icons/pwa-512.png"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "awaiting-production-files",
+      "rollbackPath": "/icons/icon-512.png"
+    },
+    {
+      "existingId": "/icons/icon-192-maskable.png",
+      "newAssetId": "brand.icon.maskable.192",
+      "type": "brand",
+      "preserveBusinessId": true,
+      "status": "blocked-missing-asset",
+      "existingReferences": [
+        "vite.config.ts PWA workbox"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/brand/app-icons/maskable-192.png"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "awaiting-production-files",
+      "rollbackPath": "/icons/icon-192-maskable.png"
+    },
+    {
+      "existingId": "/icons/icon-512-maskable.png",
+      "newAssetId": "brand.icon.maskable.512",
+      "type": "brand",
+      "preserveBusinessId": true,
+      "status": "blocked-missing-asset",
+      "existingReferences": [
+        "vite.config.ts PWA workbox"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/brand/app-icons/maskable-512.png"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "awaiting-production-files",
+      "rollbackPath": "/icons/icon-512-maskable.png"
+    },
+    {
+      "existingId": "/pwa-icon.png",
+      "newAssetId": "brand.icon.pwa.512",
+      "type": "brand",
+      "preserveBusinessId": true,
+      "status": "blocked-missing-asset",
+      "existingReferences": [
+        "vite.config.ts includeAssets"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/brand/app-icons/pwa-512.png"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "awaiting-production-files",
+      "rollbackPath": "/pwa-icon.png"
+    },
+    {
+      "existingId": "rose",
+      "newAssetId": "gift.normal.rose",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/rose/thumbnail.webp",
+        "/unilives-assets/gifts/normal/rose/rose.svga",
+        "/unilives-assets/gifts/normal/rose/rose.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "businessTier": "normal",
+      "price": 5,
+      "currency": "stars",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "heart",
+      "newAssetId": "gift.normal.heart",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/heart/thumbnail.webp",
+        "/unilives-assets/gifts/normal/heart/heart.svga",
+        "/unilives-assets/gifts/normal/heart/heart.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "businessTier": "normal",
+      "price": 10,
+      "currency": "stars",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "mic",
+      "newAssetId": "gift.normal.mic",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/mic/thumbnail.webp",
+        "/unilives-assets/gifts/normal/mic/mic.svga",
+        "/unilives-assets/gifts/normal/mic/mic.webm"
+      ],
+      "fallback": "/live-gifts/mic.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/mic.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "businessTier": "normal",
+      "price": 25,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/mic.svga"
+    },
+    {
+      "existingId": "star",
+      "newAssetId": "gift.normal.star",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/star/thumbnail.webp",
+        "/unilives-assets/gifts/normal/star/star.svga",
+        "/unilives-assets/gifts/normal/star/star.webm"
+      ],
+      "fallback": "/live-gifts/star.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/star.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "businessTier": "normal",
+      "price": 50,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/star.svga"
+    },
+    {
+      "existingId": "coffee",
+      "newAssetId": "gift.normal.coffee",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/coffee/thumbnail.webp",
+        "/unilives-assets/gifts/normal/coffee/coffee.svga",
+        "/unilives-assets/gifts/normal/coffee/coffee.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "cake",
+      "newAssetId": "gift.normal.cake",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/cake/thumbnail.webp",
+        "/unilives-assets/gifts/normal/cake/cake.svga",
+        "/unilives-assets/gifts/normal/cake/cake.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "teddy_bear",
+      "newAssetId": "gift.normal.teddy-bear",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/teddy-bear/thumbnail.webp",
+        "/unilives-assets/gifts/normal/teddy-bear/teddy-bear.svga",
+        "/unilives-assets/gifts/normal/teddy-bear/teddy-bear.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "chocolate",
+      "newAssetId": "gift.normal.chocolate",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/chocolate/thumbnail.webp",
+        "/unilives-assets/gifts/normal/chocolate/chocolate.svga",
+        "/unilives-assets/gifts/normal/chocolate/chocolate.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "flower_bouquet",
+      "newAssetId": "gift.normal.flower-bouquet",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/flower-bouquet/thumbnail.webp",
+        "/unilives-assets/gifts/normal/flower-bouquet/flower-bouquet.svga",
+        "/unilives-assets/gifts/normal/flower-bouquet/flower-bouquet.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "balloon",
+      "newAssetId": "gift.normal.balloon",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/balloon/thumbnail.webp",
+        "/unilives-assets/gifts/normal/balloon/balloon.svga",
+        "/unilives-assets/gifts/normal/balloon/balloon.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "lucky_clover",
+      "newAssetId": "gift.normal.lucky-clover",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/lucky/lucky-clover/thumbnail.webp",
+        "/unilives-assets/gifts/lucky/lucky-clover/lucky-clover.svga",
+        "/unilives-assets/gifts/lucky/lucky-clover/lucky-clover.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "kiss",
+      "newAssetId": "gift.normal.kiss",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/normal/kiss/thumbnail.webp",
+        "/unilives-assets/gifts/normal/kiss/kiss.svga",
+        "/unilives-assets/gifts/normal/kiss/kiss.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "normal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "crown",
+      "newAssetId": "gift.premium.crown",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/crown/thumbnail.webp",
+        "/unilives-assets/gifts/premium/crown/crown.svga",
+        "/unilives-assets/gifts/premium/crown/crown.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "businessTier": "premium",
+      "price": 100,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "rocket",
+      "newAssetId": "gift.premium.rocket",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/rocket/thumbnail.webp",
+        "/unilives-assets/gifts/premium/rocket/rocket.svga",
+        "/unilives-assets/gifts/premium/rocket/rocket.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "businessTier": "premium",
+      "price": 250,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "diamond",
+      "newAssetId": "gift.premium.diamond",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/diamond/thumbnail.webp",
+        "/unilives-assets/gifts/premium/diamond/diamond.svga",
+        "/unilives-assets/gifts/premium/diamond/diamond.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "businessTier": "premium",
+      "price": 500,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "castle",
+      "newAssetId": "gift.premium.castle",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/castle/thumbnail.webp",
+        "/unilives-assets/gifts/premium/castle/castle.svga",
+        "/unilives-assets/gifts/premium/castle/castle.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "businessTier": "premium",
+      "price": 999,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "royal_crown",
+      "newAssetId": "gift.premium.royal-crown",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/royal-crown/thumbnail.webp",
+        "/unilives-assets/gifts/premium/royal-crown/royal-crown.svga",
+        "/unilives-assets/gifts/premium/royal-crown/royal-crown.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "businessTier": "premium",
+      "price": 120,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "diamond_ring",
+      "newAssetId": "gift.premium.diamond-ring",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/diamond-ring/thumbnail.webp",
+        "/unilives-assets/gifts/premium/diamond-ring/diamond-ring.svga",
+        "/unilives-assets/gifts/premium/diamond-ring/diamond-ring.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "super_car",
+      "newAssetId": "gift.premium.super-car",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/super-car/thumbnail.webp",
+        "/unilives-assets/gifts/premium/super-car/super-car.svga",
+        "/unilives-assets/gifts/premium/super-car/super-car.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "crystal_diamond",
+      "newAssetId": "gift.premium.crystal-diamond",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/crystal-diamond/thumbnail.webp",
+        "/unilives-assets/gifts/premium/crystal-diamond/crystal-diamond.svga",
+        "/unilives-assets/gifts/premium/crystal-diamond/crystal-diamond.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "businessTier": "premium",
+      "price": 300,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "champagne",
+      "newAssetId": "gift.premium.champagne",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/champagne/thumbnail.webp",
+        "/unilives-assets/gifts/premium/champagne/champagne.svga",
+        "/unilives-assets/gifts/premium/champagne/champagne.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "treasure_chest",
+      "newAssetId": "gift.premium.treasure-chest",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/treasure-chest/thumbnail.webp",
+        "/unilives-assets/gifts/premium/treasure-chest/treasure-chest.svga",
+        "/unilives-assets/gifts/premium/treasure-chest/treasure-chest.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "luxury_bag",
+      "newAssetId": "gift.premium.luxury-bag",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/luxury-bag/thumbnail.webp",
+        "/unilives-assets/gifts/premium/luxury-bag/luxury-bag.svga",
+        "/unilives-assets/gifts/premium/luxury-bag/luxury-bag.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "luxury_watch",
+      "newAssetId": "gift.premium.luxury-watch",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/luxury-watch/thumbnail.webp",
+        "/unilives-assets/gifts/premium/luxury-watch/luxury-watch.svga",
+        "/unilives-assets/gifts/premium/luxury-watch/luxury-watch.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "yacht",
+      "newAssetId": "gift.premium.yacht",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/yacht/thumbnail.webp",
+        "/unilives-assets/gifts/premium/yacht/yacht.svga",
+        "/unilives-assets/gifts/premium/yacht/yacht.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "private_jet",
+      "newAssetId": "gift.premium.private-jet",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/premium/private-jet/thumbnail.webp",
+        "/unilives-assets/gifts/premium/private-jet/private-jet.svga",
+        "/unilives-assets/gifts/premium/private-jet/private-jet.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "premium",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "unicorn",
+      "newAssetId": "gift.epic.unicorn",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/unicorn/thumbnail.webp",
+        "/unilives-assets/gifts/epic/unicorn/unicorn.svga",
+        "/unilives-assets/gifts/epic/unicorn/unicorn.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 2500,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "galaxy",
+      "newAssetId": "gift.epic.galaxy",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/galaxy/thumbnail.webp",
+        "/unilives-assets/gifts/epic/galaxy/galaxy.svga",
+        "/unilives-assets/gifts/epic/galaxy/galaxy.webm"
+      ],
+      "fallback": "/live-gifts/star.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/star.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 5000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/star.svga"
+    },
+    {
+      "existingId": "golden_dragon",
+      "newAssetId": "gift.epic.golden-dragon",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/golden-dragon/thumbnail.webp",
+        "/unilives-assets/gifts/epic/golden-dragon/golden-dragon.svga",
+        "/unilives-assets/gifts/epic/golden-dragon/golden-dragon.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 1200,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "studio_phoenix",
+      "newAssetId": "gift.epic.studio-phoenix",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/studio-phoenix/thumbnail.webp",
+        "/unilives-assets/gifts/epic/studio-phoenix/studio-phoenix.svga",
+        "/unilives-assets/gifts/epic/studio-phoenix/studio-phoenix.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 1800,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "crystal_castle",
+      "newAssetId": "gift.epic.crystal-castle",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/crystal-castle/thumbnail.webp",
+        "/unilives-assets/gifts/epic/crystal-castle/crystal-castle.svga",
+        "/unilives-assets/gifts/epic/crystal-castle/crystal-castle.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 2500,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "galaxy_portal",
+      "newAssetId": "gift.epic.galaxy-portal",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/galaxy-portal/thumbnail.webp",
+        "/unilives-assets/gifts/epic/galaxy-portal/galaxy-portal.svga",
+        "/unilives-assets/gifts/epic/galaxy-portal/galaxy-portal.webm"
+      ],
+      "fallback": "/live-gifts/star.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/star.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 3000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/star.svga"
+    },
+    {
+      "existingId": "flying_unicorn",
+      "newAssetId": "gift.epic.flying-unicorn",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/flying-unicorn/thumbnail.webp",
+        "/unilives-assets/gifts/epic/flying-unicorn/flying-unicorn.svga",
+        "/unilives-assets/gifts/epic/flying-unicorn/flying-unicorn.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 3500,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "star_whale",
+      "newAssetId": "gift.epic.star-whale",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/star-whale/thumbnail.webp",
+        "/unilives-assets/gifts/epic/star-whale/star-whale.svga",
+        "/unilives-assets/gifts/epic/star-whale/star-whale.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "ice_queen",
+      "newAssetId": "gift.epic.ice-queen",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/ice-queen/thumbnail.webp",
+        "/unilives-assets/gifts/epic/ice-queen/ice-queen.svga",
+        "/unilives-assets/gifts/epic/ice-queen/ice-queen.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "magic_tree",
+      "newAssetId": "gift.epic.magic-tree",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/magic-tree/thumbnail.webp",
+        "/unilives-assets/gifts/epic/magic-tree/magic-tree.svga",
+        "/unilives-assets/gifts/epic/magic-tree/magic-tree.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "rainbow_pegasus",
+      "newAssetId": "gift.epic.rainbow-pegasus",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/rainbow-pegasus/thumbnail.webp",
+        "/unilives-assets/gifts/epic/rainbow-pegasus/rainbow-pegasus.svga",
+        "/unilives-assets/gifts/epic/rainbow-pegasus/rainbow-pegasus.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "space_rocket",
+      "newAssetId": "gift.epic.space-rocket",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/epic/space-rocket/thumbnail.webp",
+        "/unilives-assets/gifts/epic/space-rocket/space-rocket.svga",
+        "/unilives-assets/gifts/epic/space-rocket/space-rocket.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "epic",
+      "businessTier": "epic",
+      "price": 9999,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "dragon",
+      "newAssetId": "gift.legendary.dragon",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/dragon/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/dragon/dragon.svga",
+        "/unilives-assets/gifts/legendary/dragon/dragon.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "businessTier": "legendary",
+      "price": 10000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "universe",
+      "newAssetId": "gift.legendary.universe",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/universe/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/universe/universe.svga",
+        "/unilives-assets/gifts/legendary/universe/universe.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "businessTier": "legendary",
+      "price": 50000,
+      "currency": "stars",
+      "notes": "Active visual: gift.legendary.universe only; gift.mythic.universe remains reserved/unassigned; legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "phoenix",
+      "newAssetId": "gift.legendary.phoenix",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/phoenix/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/phoenix/phoenix.svga",
+        "/unilives-assets/gifts/legendary/phoenix/phoenix.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "businessTier": "epic",
+      "price": 1000,
+      "currency": "stars",
+      "notes": "MISMATCH documented: business phoenix is epic @ 1000 stars; visual ID is gift.legendary.phoenix \u2014 visual-only, do not change catalog tier/price; legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "golden_palace",
+      "newAssetId": "gift.legendary.golden-palace",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/golden-palace/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/golden-palace/golden-palace.svga",
+        "/unilives-assets/gifts/legendary/golden-palace/golden-palace.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "lion_king",
+      "newAssetId": "gift.legendary.lion-king",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/lion-king/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/lion-king/lion-king.svga",
+        "/unilives-assets/gifts/legendary/lion-king/lion-king.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "titan_robot",
+      "newAssetId": "gift.legendary.titan-robot",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/titan-robot/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/titan-robot/titan-robot.svga",
+        "/unilives-assets/gifts/legendary/titan-robot/titan-robot.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "emperor_throne",
+      "newAssetId": "gift.legendary.emperor-throne",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/emperor-throne/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/emperor-throne/emperor-throne.svga",
+        "/unilives-assets/gifts/legendary/emperor-throne/emperor-throne.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "celestial_angel",
+      "newAssetId": "gift.legendary.celestial-angel",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/celestial-angel/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/celestial-angel/celestial-angel.svga",
+        "/unilives-assets/gifts/legendary/celestial-angel/celestial-angel.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "universe_creation",
+      "newAssetId": "gift.legendary.universe-creation",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/universe-creation/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/universe-creation/universe-creation.svga",
+        "/unilives-assets/gifts/legendary/universe-creation/universe-creation.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "businessTier": "legendary",
+      "price": 50000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "time_portal",
+      "newAssetId": "gift.legendary.time-portal",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/time-portal/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/time-portal/time-portal.svga",
+        "/unilives-assets/gifts/legendary/time-portal/time-portal.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "king_of_dragons",
+      "newAssetId": "gift.legendary.king-of-dragons",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/king-of-dragons/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/king-of-dragons/king-of-dragons.svga",
+        "/unilives-assets/gifts/legendary/king-of-dragons/king-of-dragons.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "businessTier": "legendary",
+      "price": 80000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "space_battleship",
+      "newAssetId": "gift.legendary.space-battleship",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/space-battleship/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/space-battleship/space-battleship.svga",
+        "/unilives-assets/gifts/legendary/space-battleship/space-battleship.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "cosmic_explosion",
+      "newAssetId": "gift.legendary.cosmic-explosion",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/legendary/cosmic-explosion/thumbnail.webp",
+        "/unilives-assets/gifts/legendary/cosmic-explosion/cosmic-explosion.svga",
+        "/unilives-assets/gifts/legendary/cosmic-explosion/cosmic-explosion.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "legendary",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "eternity",
+      "newAssetId": "gift.mythic.eternity",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/eternity/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/eternity/eternity.svga",
+        "/unilives-assets/gifts/mythic/eternity/eternity.webm"
+      ],
+      "fallback": "/live-gifts/star.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/star.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "businessTier": "mythic",
+      "price": 100000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/star.svga"
+    },
+    {
+      "existingId": "divine",
+      "newAssetId": "gift.mythic.divine",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/divine/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/divine/divine.svga",
+        "/unilives-assets/gifts/mythic/divine/divine.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "businessTier": "mythic",
+      "price": 250000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "galaxy_emperor",
+      "newAssetId": "gift.mythic.galaxy-emperor",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/galaxy-emperor/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/galaxy-emperor/galaxy-emperor.svga",
+        "/unilives-assets/gifts/mythic/galaxy-emperor/galaxy-emperor.webm"
+      ],
+      "fallback": "/live-gifts/star.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/star.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "businessTier": "mythic",
+      "price": 120000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/star.svga"
+    },
+    {
+      "existingId": "cosmic_phoenix",
+      "newAssetId": "gift.mythic.cosmic-phoenix",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/cosmic-phoenix/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/cosmic-phoenix/cosmic-phoenix.svga",
+        "/unilives-assets/gifts/mythic/cosmic-phoenix/cosmic-phoenix.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "businessTier": "mythic",
+      "price": 150000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "mythic_citadel",
+      "newAssetId": "gift.mythic.mythic-citadel",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/mythic-citadel/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/mythic-citadel/mythic-citadel.svga",
+        "/unilives-assets/gifts/mythic/mythic-citadel/mythic-citadel.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "eternal_ocean",
+      "newAssetId": "gift.mythic.eternal-ocean",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/eternal-ocean/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/eternal-ocean/eternal-ocean.svga",
+        "/unilives-assets/gifts/mythic/eternal-ocean/eternal-ocean.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "businessTier": "mythic",
+      "price": 250000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "solar_dragon",
+      "newAssetId": "gift.mythic.solar-dragon",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/solar-dragon/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/solar-dragon/solar-dragon.svga",
+        "/unilives-assets/gifts/mythic/solar-dragon/solar-dragon.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "businessTier": "mythic",
+      "price": 350000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "supernova_prime",
+      "newAssetId": "gift.mythic.supernova-prime",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/mythic/supernova-prime/thumbnail.webp",
+        "/unilives-assets/gifts/mythic/supernova-prime/supernova-prime.svga",
+        "/unilives-assets/gifts/mythic/supernova-prime/supernova-prime.webm"
+      ],
+      "fallback": "/live-gifts/star.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/star.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "mythic",
+      "businessTier": "mythic",
+      "price": 500000,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/star.svga"
+    },
+    {
+      "existingId": "xmas_tree",
+      "newAssetId": "gift.seasonal.xmas-tree",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/xmas-tree/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/xmas-tree/xmas-tree.svga",
+        "/unilives-assets/gifts/seasonal/xmas-tree/xmas-tree.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "santa_sleigh",
+      "newAssetId": "gift.seasonal.santa-sleigh",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/santa-sleigh/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/santa-sleigh/santa-sleigh.svga",
+        "/unilives-assets/gifts/seasonal/santa-sleigh/santa-sleigh.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "red_packet",
+      "newAssetId": "gift.seasonal.red-packet",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/red-packet/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/red-packet/red-packet.svga",
+        "/unilives-assets/gifts/seasonal/red-packet/red-packet.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "lion_dance",
+      "newAssetId": "gift.seasonal.lion-dance",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/lion-dance/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/lion-dance/lion-dance.svga",
+        "/unilives-assets/gifts/seasonal/lion-dance/lion-dance.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "cupids_arrow",
+      "newAssetId": "gift.seasonal.cupids-arrow",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/cupids-arrow/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/cupids-arrow/cupids-arrow.svga",
+        "/unilives-assets/gifts/seasonal/cupids-arrow/cupids-arrow.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "true_love",
+      "newAssetId": "gift.seasonal.true-love",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/true-love/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/true-love/true-love.svga",
+        "/unilives-assets/gifts/seasonal/true-love/true-love.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "pumpkin_lantern",
+      "newAssetId": "gift.seasonal.pumpkin-lantern",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/pumpkin-lantern/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/pumpkin-lantern/pumpkin-lantern.svga",
+        "/unilives-assets/gifts/seasonal/pumpkin-lantern/pumpkin-lantern.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "dracula_castle",
+      "newAssetId": "gift.seasonal.dracula-castle",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/seasonal/dracula-castle/thumbnail.webp",
+        "/unilives-assets/gifts/seasonal/dracula-castle/dracula-castle.svga",
+        "/unilives-assets/gifts/seasonal/dracula-castle/dracula-castle.webm"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": null,
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "seasonal",
+      "notes": "no dedicated legacy SVGA; temporary emoji thumbnail until production media"
+    },
+    {
+      "existingId": "vip_crown",
+      "newAssetId": "gift.vip-exclusive.vip-crown",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/vip-exclusive/vip-crown/thumbnail.webp",
+        "/unilives-assets/gifts/vip-exclusive/vip-crown/vip-crown.svga",
+        "/unilives-assets/gifts/vip-exclusive/vip-crown/vip-crown.webm"
+      ],
+      "fallback": "/live-gifts/crown.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/crown.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "vip-exclusive",
+      "businessTier": "premium",
+      "price": 500,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/crown.svga"
+    },
+    {
+      "existingId": "vip_lambo",
+      "newAssetId": "gift.vip-exclusive.vip-lambo",
+      "type": "gift",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "wallet transactions",
+        "gift history",
+        "gift rankings",
+        "realtime events",
+        "admin-published gifts",
+        "database records"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/gifts/vip-exclusive/vip-lambo/thumbnail.webp",
+        "/unilives-assets/gifts/vip-exclusive/vip-lambo/vip-lambo.svga",
+        "/unilives-assets/gifts/vip-exclusive/vip-lambo/vip-lambo.webm"
+      ],
+      "fallback": "/live-gifts/rocket.svga",
+      "validationStatus": "phase-7-wired-with-legacy-fallback",
+      "rollbackPath": "/live-gifts/",
+      "legacyAnimation": "/live-gifts/rocket.svga",
+      "legacyThumbnail": "catalog-emoji-or-media",
+      "visualTier": "vip-exclusive",
+      "businessTier": "epic",
+      "price": 1500,
+      "currency": "stars",
+      "notes": "legacy-active-fallback animation /live-gifts/rocket.svga"
+    },
+    {
+      "existingId": "onboarding-slide-welcome-lucide-sparkles",
+      "newAssetId": "onboarding.welcome.illustration",
+      "status": "wired-with-fallback",
+      "type": "onboarding",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "OnboardingScreen.tsx",
+        "LaunchShell",
+        "hasCompletedOnboarding"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-2-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/OnboardingScreen.tsx"
+    },
+    {
+      "existingId": "onboarding-slide-connect-lucide-users",
+      "newAssetId": "onboarding.connect.illustration",
+      "status": "wired-with-fallback",
+      "type": "onboarding",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "OnboardingScreen.tsx",
+        "LaunchShell",
+        "hasCompletedOnboarding"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-2-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/OnboardingScreen.tsx"
+    },
+    {
+      "existingId": "onboarding-slide-create-lucide-message",
+      "newAssetId": "onboarding.create.illustration",
+      "status": "wired-with-fallback",
+      "type": "onboarding",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "OnboardingScreen.tsx",
+        "LaunchShell",
+        "hasCompletedOnboarding"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-2-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/OnboardingScreen.tsx"
+    },
+    {
+      "existingId": "onboarding-slide-discover-lucide-camera",
+      "newAssetId": "onboarding.discover.illustration",
+      "status": "wired-with-fallback",
+      "type": "onboarding",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "OnboardingScreen.tsx",
+        "LaunchShell",
+        "hasCompletedOnboarding"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-2-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/OnboardingScreen.tsx"
+    },
+    {
+      "existingId": "onboarding-shell-vibe-orbs",
+      "newAssetId": "onboarding.welcome.background",
+      "status": "wired-with-fallback",
+      "type": "onboarding",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "OnboardingScreen.tsx",
+        "LaunchShell",
+        "hasCompletedOnboarding"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-2-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/OnboardingScreen.tsx"
+    },
+    {
+      "existingId": "onboarding-permissions",
+      "newAssetId": "onboarding.permissions.illustration",
+      "status": "not-in-phase",
+      "type": "onboarding",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "OnboardingScreen.tsx",
+        "LaunchShell",
+        "hasCompletedOnboarding"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "not-in-phase",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/OnboardingScreen.tsx"
+    },
+    {
+      "existingId": "launch-AuthScreen-brand-mark",
+      "newAssetId": "auth.login.illustration",
+      "status": "wired-with-fallback",
+      "type": "auth",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/AuthScreen.tsx",
+        "GoogleAuthButton.tsx",
+        "EmailOtpPanel.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-3-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/AuthScreen.tsx"
+    },
+    {
+      "existingId": "launch-AuthScreen-shell-orbs",
+      "newAssetId": "auth.login.background",
+      "status": "wired-with-fallback",
+      "type": "auth",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/AuthScreen.tsx",
+        "GoogleAuthButton.tsx",
+        "EmailOtpPanel.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-3-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/AuthScreen.tsx"
+    },
+    {
+      "existingId": "GoogleAuthButton-inline-svg",
+      "newAssetId": "auth.social.google",
+      "status": "wired-with-fallback",
+      "type": "auth",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/AuthScreen.tsx",
+        "GoogleAuthButton.tsx",
+        "EmailOtpPanel.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-3-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/AuthScreen.tsx"
+    },
+    {
+      "existingId": "AppleAuthButton-inline-svg",
+      "newAssetId": "auth.social.apple",
+      "status": "wired-with-fallback",
+      "type": "auth",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/AuthScreen.tsx",
+        "GoogleAuthButton.tsx",
+        "EmailOtpPanel.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-3-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/AuthScreen.tsx"
+    },
+    {
+      "existingId": "EmailOtpPanel-visuals",
+      "newAssetId": "auth.otp.illustration",
+      "status": "wired-with-fallback",
+      "type": "auth",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/AuthScreen.tsx",
+        "GoogleAuthButton.tsx",
+        "EmailOtpPanel.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-3-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/AuthScreen.tsx"
+    },
+    {
+      "existingId": "legacy-auth-AuthScreen",
+      "newAssetId": "auth.welcome.illustration",
+      "status": "wired-with-fallback",
+      "type": "auth",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/AuthScreen.tsx",
+        "GoogleAuthButton.tsx",
+        "EmailOtpPanel.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-3-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/AuthScreen.tsx"
+    },
+    {
+      "existingId": "auth.social.facebook",
+      "newAssetId": "auth.social.facebook",
+      "status": "not-in-phase",
+      "type": "auth",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/AuthScreen.tsx",
+        "GoogleAuthButton.tsx",
+        "EmailOtpPanel.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "not-in-phase",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/AuthScreen.tsx"
+    },
+    {
+      "existingId": "ProfileSetupScreen-shell",
+      "newAssetId": "profile-setup.welcome.background",
+      "status": "wired-with-fallback",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/ProfileSetupScreen.tsx",
+        "auth/ProfileSetup.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-4-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "ProfileSetupScreen-header",
+      "newAssetId": "profile-setup.welcome.illustration",
+      "status": "wired-with-fallback",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/ProfileSetupScreen.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-4-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "ProfileSetupScreen-avatar",
+      "newAssetId": "profile-setup.avatar.placeholder",
+      "status": "wired-with-fallback",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/ProfileSetupScreen.tsx",
+        "auth/ProfileSetup.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-4-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "ProfileSetupScreen-identity-fields",
+      "newAssetId": "profile-setup.identity.illustration",
+      "status": "wired-with-fallback",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/ProfileSetupScreen.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-4-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "ProfileSetupScreen-bio",
+      "newAssetId": "profile-setup.bio.illustration",
+      "status": "wired-with-fallback",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/ProfileSetupScreen.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-4-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "ProfileSetupScreen-saving",
+      "newAssetId": "profile-setup.state.loading",
+      "status": "wired-with-fallback",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "launch/ProfileSetupScreen.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-4-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "profile-setup-interests-ui",
+      "newAssetId": "profile-setup.interests.illustration",
+      "status": "not-in-phase",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "not-in-phase",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "profile-setup-creator-ui",
+      "newAssetId": "profile-setup.creator.illustration",
+      "status": "not-in-phase",
+      "type": "profile-setup",
+      "preserveBusinessId": true,
+      "existingReferences": [],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "not-in-phase",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx"
+    },
+    {
+      "existingId": "launch-TrendingScreen",
+      "newAssetId": "discovery.trending.header",
+      "status": "wired-with-fallback",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-5-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "SearchScreen-explore",
+      "newAssetId": "discovery.explore.background",
+      "status": "wired-with-fallback",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-5-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "SearchScreen-search",
+      "newAssetId": "discovery.search.background",
+      "status": "wired-with-fallback",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-5-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "LiveScreen-discovery",
+      "newAssetId": "discovery.live.header",
+      "status": "wired-with-fallback",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-5-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "LiveDiscoveryCardChrome",
+      "newAssetId": "discovery.live.live-indicator",
+      "status": "wired-with-fallback",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-5-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "Party-lobby",
+      "newAssetId": "discovery.party.header",
+      "status": "wired-with-fallback",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-5-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "auth-TrendingScreen-legacy",
+      "newAssetId": "discovery.trending.header",
+      "status": "wired-with-fallback",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-5-wired-fallback",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "discovery.category.games",
+      "newAssetId": "discovery.category.games",
+      "status": "not-in-phase",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "not-in-phase",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "discovery.party.team-pk-indicator",
+      "newAssetId": "discovery.party.team-pk-indicator",
+      "status": "not-in-phase",
+      "type": "discovery",
+      "preserveBusinessId": true,
+      "existingReferences": [
+        "TrendingScreen.tsx",
+        "SearchScreen.tsx",
+        "LiveScreen.tsx",
+        "Party.tsx"
+      ],
+      "newFilePaths": [],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "not-in-phase",
+      "rollbackPath": "artifacts/instacollab/src/components/launch/TrendingScreen.tsx"
+    },
+    {
+      "existingId": "fire",
+      "newAssetId": "sticker.reaction.fire",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/fire/thumbnail.webp",
+        "/unilives-assets/stickers/animated/fire/fire.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83d\udd25",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \ud83d\udd25 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "sparkles",
+      "newAssetId": "sticker.reaction.sparkles",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/sparkles/thumbnail.webp",
+        "/unilives-assets/stickers/animated/sparkles/sparkles.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\u2728",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \u2728 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "hundred",
+      "newAssetId": "sticker.reaction.hundred",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/hundred/thumbnail.webp",
+        "/unilives-assets/stickers/animated/hundred/hundred.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83d\udcaf",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \ud83d\udcaf until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "party",
+      "newAssetId": "sticker.reaction.party",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/party/thumbnail.webp",
+        "/unilives-assets/stickers/animated/party/party.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83c\udf89",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \ud83c\udf89 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "heart",
+      "newAssetId": "sticker.reaction.heart",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/heart/thumbnail.webp",
+        "/unilives-assets/stickers/animated/heart/heart.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\u2764\ufe0f",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \u2764\ufe0f until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "joy",
+      "newAssetId": "sticker.reaction.joy",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/joy/thumbnail.webp",
+        "/unilives-assets/stickers/animated/joy/joy.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83d\ude02",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \ud83d\ude02 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "mountain",
+      "newAssetId": "sticker.static.mountain",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/static/mountain/thumbnail.webp",
+        "/unilives-assets/stickers/animated/mountain/mountain.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83c\udfd4\ufe0f",
+      "legacyAnimation": null,
+      "category": "static",
+      "notes": "Temporary emoji \ud83c\udfd4\ufe0f until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "camera",
+      "newAssetId": "sticker.static.camera",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/static/camera/thumbnail.webp",
+        "/unilives-assets/stickers/animated/camera/camera.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83d\udcf8",
+      "legacyAnimation": null,
+      "category": "static",
+      "notes": "Temporary emoji \ud83d\udcf8 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "music",
+      "newAssetId": "sticker.static.music",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/static/music/thumbnail.webp",
+        "/unilives-assets/stickers/animated/music/music.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83c\udfb5",
+      "legacyAnimation": null,
+      "category": "static",
+      "notes": "Temporary emoji \ud83c\udfb5 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "star",
+      "newAssetId": "sticker.reaction.star",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/star/thumbnail.webp",
+        "/unilives-assets/stickers/animated/star/star.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\u2b50",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \u2b50 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "eyes",
+      "newAssetId": "sticker.reaction.eyes",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/eyes/thumbnail.webp",
+        "/unilives-assets/stickers/animated/eyes/eyes.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83d\udc40",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \ud83d\udc40 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "rocket",
+      "newAssetId": "sticker.reaction.rocket",
+      "type": "sticker",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "story/editor sticker overlay draft.sticker (emoji value)"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/stickers/reaction/rocket/thumbnail.webp",
+        "/unilives-assets/stickers/animated/rocket/rocket.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "STICKER_EMOJIS in EditorToolPanels",
+      "legacyThumbnail": "\ud83d\ude80",
+      "legacyAnimation": null,
+      "category": "reaction",
+      "notes": "Temporary emoji \ud83d\ude80 until production sticker media; draft still stores emoji string"
+    },
+    {
+      "existingId": "kiss",
+      "newAssetId": "interaction.kiss",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/kiss/kiss.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83d\udc8b",
+      "legacyAnimation": null,
+      "category": "social",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "hug",
+      "newAssetId": "interaction.hug",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/hug/hug.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83e\udd17",
+      "legacyAnimation": null,
+      "category": "social",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "high_five",
+      "newAssetId": "interaction.high-five",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/high-five/high-five.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83d\ude4c",
+      "legacyAnimation": null,
+      "category": "social",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "pillow_fight",
+      "newAssetId": "interaction.pillow-fight",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/pillow-fight/pillow-fight.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83d\udecf\ufe0f",
+      "legacyAnimation": null,
+      "category": "social",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "love_you",
+      "newAssetId": "interaction.love-you",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/love-you/love-you.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83d\ude0d",
+      "legacyAnimation": null,
+      "category": "social",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "cheer",
+      "newAssetId": "interaction.cheer",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/cheer/cheer.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83d\udce3",
+      "legacyAnimation": null,
+      "category": "social",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "crown",
+      "newAssetId": "interaction.crown",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/crown/crown.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83d\udc51",
+      "legacyAnimation": null,
+      "category": "effect",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "host-or-moderator-unset",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "freeze",
+      "newAssetId": "interaction.freeze",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/freeze/freeze.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\u2744\ufe0f",
+      "legacyAnimation": null,
+      "category": "effect",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "host-or-moderator-unset",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "fire",
+      "newAssetId": "interaction.fire",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/fire/fire.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83d\udd25",
+      "legacyAnimation": null,
+      "category": "effect",
+      "sourceTargetMode": "user-to-user",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "confetti",
+      "newAssetId": "interaction.confetti",
+      "type": "seat-interaction",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "registry-reserved; room picker not yet in product UI"
+      ],
+      "newFilePaths": [
+        "/unilives-assets/seat-interactions/confetti/confetti.svga"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-8-wired-with-emoji-fallback",
+      "rollbackPath": "SEAT_INTERACTION_CATALOG temporary emoji",
+      "legacyThumbnail": "\ud83c\udf8a",
+      "legacyAnimation": null,
+      "category": "effect",
+      "sourceTargetMode": "room-or-target",
+      "permissionScope": "any-seated",
+      "cooldownReference": "client-catalog-unset",
+      "notes": "No runtime seat-interaction send UI in Room yet; visual registry + components only. Do not invent events."
+    },
+    {
+      "existingId": "verification:true",
+      "newAssetId": "badge.official.verified",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "CheckCircle2 / \u2713 text",
+      "legacyThumbnail": "CheckCircle2 / \u2713 text",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "verification:true:alias",
+      "newAssetId": "badge.verification.default",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "alias canonical",
+      "legacyThumbnail": "alias canonical",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "vip:active",
+      "newAssetId": "badge.vip.default",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "profile premium active",
+      "legacyThumbnail": "profile premium active",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "vip:svip",
+      "newAssetId": "badge.vip.svip",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "explicit vipTier",
+      "legacyThumbnail": "explicit vipTier",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "vip:vvip",
+      "newAssetId": "badge.vip.vvip",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "explicit vipTier",
+      "legacyThumbnail": "explicit vipTier",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "level:1-9",
+      "newAssetId": "badge.level.default",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "display bucket",
+      "legacyThumbnail": "display bucket",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "level:10-24",
+      "newAssetId": "badge.level.10",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "display bucket",
+      "legacyThumbnail": "display bucket",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "level:25-49",
+      "newAssetId": "badge.level.25",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "display bucket",
+      "legacyThumbnail": "display bucket",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "level:50+",
+      "newAssetId": "badge.level.50",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "display bucket",
+      "legacyThumbnail": "display bucket",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "role:host",
+      "newAssetId": "badge.host.elite",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "room host",
+      "legacyThumbnail": "room host",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "role:cohost",
+      "newAssetId": "badge.role.cohost",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "room cohost",
+      "legacyThumbnail": "room cohost",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "role:moderator",
+      "newAssetId": "badge.role.moderator",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "moderation",
+      "legacyThumbnail": "moderation",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "role:admin",
+      "newAssetId": "badge.role.admin",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "admin",
+      "legacyThumbnail": "admin",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "role:creator",
+      "newAssetId": "badge.creator.default",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "creator",
+      "legacyThumbnail": "creator",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "role:supporter",
+      "newAssetId": "badge.role.supporter",
+      "type": "badge",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "supporter",
+      "legacyThumbnail": "supporter",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "ring:vip:active",
+      "newAssetId": "ring.vip.default",
+      "type": "avatar-ring",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "premium active",
+      "legacyThumbnail": "premium active",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "ring:status:live-or-story",
+      "newAssetId": "ring.standard.default",
+      "type": "avatar-ring",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "status CSS ring remains primary fallback",
+      "legacyThumbnail": "status CSS ring remains primary fallback",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "ring:host",
+      "newAssetId": "ring.host.elite",
+      "type": "avatar-ring",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "host",
+      "legacyThumbnail": "host",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "frame-style:cyan-crown",
+      "newAssetId": "frame.seat.video.host",
+      "type": "frame",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "legacy CSS frameStyle",
+      "legacyThumbnail": "legacy CSS frameStyle",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "frame-style:gold-wings",
+      "newAssetId": "frame.seat.audio.vip",
+      "type": "frame",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "legacy CSS frameStyle",
+      "legacyThumbnail": "legacy CSS frameStyle",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "frame-style:vip",
+      "newAssetId": "frame.comment.vip",
+      "type": "frame",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "legacy",
+      "legacyThumbnail": "legacy",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "frame-style:unicorn-dream",
+      "newAssetId": "frame.profile.unicorn-dream",
+      "type": "frame",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "authoritative identity display"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-9-wired-with-legacy-fallback",
+      "rollbackPath": "legacy",
+      "legacyThumbnail": "legacy",
+      "notes": "visualOnly; does not grant entitlement",
+      "visualOnly": true
+    },
+    {
+      "existingId": "/privacy-policy.html",
+      "newAssetId": "legal.document.background",
+      "type": "legal",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "privacy-policy.html styling",
+      "legacyThumbnail": "privacy-policy.html styling",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "/terms-of-service.html",
+      "newAssetId": "legal.document.background",
+      "type": "legal",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "terms-of-service.html styling",
+      "legacyThumbnail": "terms-of-service.html styling",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "legal:privacy-link",
+      "newAssetId": "legal.privacy.icon",
+      "type": "legal",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "Shield Lucide",
+      "legacyThumbnail": "Shield Lucide",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "legal:terms-link",
+      "newAssetId": "legal.terms.icon",
+      "type": "legal",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "FileText Lucide",
+      "legacyThumbnail": "FileText Lucide",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "legal:consent-card",
+      "newAssetId": "legal.consent.icon",
+      "type": "legal",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "LegalAgreementCheckbox chrome",
+      "legacyThumbnail": "LegalAgreementCheckbox chrome",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "sharing:share-modal",
+      "newAssetId": "sharing.card.logo",
+      "type": "sharing",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "ShareModal header",
+      "legacyThumbnail": "ShareModal header",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "sharing:shared-link-card",
+      "newAssetId": "sharing.card.watermark",
+      "type": "sharing",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "SharedLinkCard chrome",
+      "legacyThumbnail": "SharedLinkCard chrome",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "sharing:copy-success",
+      "newAssetId": "sharing.state.success",
+      "type": "sharing",
+      "preserveBusinessId": true,
+      "status": "wired-with-fallback",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "Copied CheckCircle2",
+      "legacyThumbnail": "Copied CheckCircle2",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "sharing:qr-profile",
+      "newAssetId": "sharing.qr.profile.frame",
+      "type": "sharing",
+      "preserveBusinessId": true,
+      "status": "not-in-phase",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "no product QR UI",
+      "legacyThumbnail": "no product QR UI",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    },
+    {
+      "existingId": "sharing:qr-room",
+      "newAssetId": "sharing.qr.room.frame",
+      "type": "sharing",
+      "preserveBusinessId": true,
+      "status": "not-in-phase",
+      "existingReferences": [
+        "phase-10 legal/sharing visual"
+      ],
+      "fallback": "/brand/app-logo.png",
+      "validationStatus": "phase-10",
+      "rollbackPath": "no product QR UI",
+      "legacyThumbnail": "no product QR UI",
+      "notes": "phase-10 visualOnly; no payload/consent changes",
+      "visualOnly": true
+    }
+  ]
+}

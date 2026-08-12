@@ -4,21 +4,24 @@
  */
 import { isCloudAuthUserId } from '../auth/cloudProfile';
 import { db } from '../db/localDb';
-import {
-  fetchFirebasePlatformGiftCatalog,
-  isFirebasePlatformGiftCatalogAvailable,
-  publishFirebasePlatformGiftCatalog,
-  subscribeFirebasePlatformGiftCatalog,
-} from '../firebase/platformGiftCatalog';
+import { isFirebaseConfigured } from '../firebase/config';
 import type { PublishedGiftItem } from '../live/giftEffectCatalogTypes';
 import { isSocialCloudAvailable } from '../social/socialCloud';
 import { isSupabaseConfigured } from '../supabase/config';
 import { getSupabaseClient } from '../supabase/client';
+import {
+  removeSafeRealtimeChannel,
+  subscribeSafeRealtimeChannel,
+} from '../supabase/safeRealtimeChannel';
 
 const REMOTE_CACHE_KEY = 'platform_gift_catalog_remote';
 const PLATFORM_ROW_ID = 'default';
 
 export const PARTY_GIFT_CATALOG_UPDATED_EVENT = 'party-gift-catalog-updated';
+
+async function firebasePlatformGiftCatalog() {
+  return import('../firebase/platformGiftCatalog');
+}
 
 export function dispatchPartyGiftCatalogUpdated(): void {
   if (typeof window === 'undefined') return;
@@ -26,7 +29,7 @@ export function dispatchPartyGiftCatalogUpdated(): void {
 }
 
 export function isPlatformGiftCatalogCloudAvailable(): boolean {
-  return isSocialCloudAvailable() || isFirebasePlatformGiftCatalogAvailable();
+  return isSocialCloudAvailable() || isFirebaseConfigured();
 }
 
 function readRemoteCache(): PublishedGiftItem[] {
@@ -64,6 +67,13 @@ async function fetchSupabasePlatformGiftCatalog(): Promise<PublishedGiftItem[]> 
   return Array.isArray(data?.gifts) ? (data.gifts as PublishedGiftItem[]) : [];
 }
 
+async function fetchFirebasePlatformGiftCatalogLane(): Promise<PublishedGiftItem[]> {
+  if (!isFirebaseConfigured()) return [];
+  const fb = await firebasePlatformGiftCatalog();
+  if (!fb.isFirebasePlatformGiftCatalogAvailable()) return [];
+  return fb.fetchFirebasePlatformGiftCatalog();
+}
+
 export async function fetchPlatformGiftCatalog(): Promise<PublishedGiftItem[]> {
   if (!isPlatformGiftCatalogCloudAvailable()) return readRemoteCache();
 
@@ -72,7 +82,7 @@ export async function fetchPlatformGiftCatalog(): Promise<PublishedGiftItem[]> {
       console.warn('[platform-gifts/supabase] fetch failed:', err);
       return [] as PublishedGiftItem[];
     }),
-    fetchFirebasePlatformGiftCatalog().catch((err) => {
+    fetchFirebasePlatformGiftCatalogLane().catch((err) => {
       console.warn('[platform-gifts/firebase] fetch failed:', err);
       return [] as PublishedGiftItem[];
     }),
@@ -112,11 +122,16 @@ export async function publishPlatformGiftCatalog(items: PublishedGiftItem[]): Pr
       }),
     );
   }
-  if (isFirebasePlatformGiftCatalogAvailable()) {
+  if (isFirebaseConfigured()) {
     tasks.push(
-      publishFirebasePlatformGiftCatalog(published).catch((err) => {
-        console.warn('[platform-gifts/firebase] publish failed:', err);
-      }),
+      firebasePlatformGiftCatalog()
+        .then((fb) => {
+          if (!fb.isFirebasePlatformGiftCatalogAvailable()) return;
+          return fb.publishFirebasePlatformGiftCatalog(published);
+        })
+        .catch((err) => {
+          console.warn('[platform-gifts/firebase] publish failed:', err);
+        }),
     );
   }
 
@@ -131,7 +146,8 @@ export async function publishPlatformGiftCatalog(items: PublishedGiftItem[]): Pr
 let unsubscribe: (() => void) | null = null;
 
 export function startPlatformGiftCatalogRealtime(): () => void {
-  stopPlatformGiftCatalogRealtime();
+  // Idempotent — stop+start with a fixed channel name throws after subscribe() and blanks the UI.
+  if (unsubscribe) return stopPlatformGiftCatalogRealtime;
   if (!isPlatformGiftCatalogCloudAvailable()) return () => {};
 
   void fetchPlatformGiftCatalog();
@@ -139,9 +155,8 @@ export function startPlatformGiftCatalogRealtime(): () => void {
   const stops: Array<() => void> = [];
   const supabase = getSupabaseClient();
   if (supabase) {
-    const channel = supabase
-      .channel('platform-gift-catalog')
-      .on(
+    const channel = subscribeSafeRealtimeChannel(supabase, 'platform-gift-catalog', (ch) => {
+      ch.on(
         'postgres_changes',
         {
           event: '*',
@@ -152,19 +167,24 @@ export function startPlatformGiftCatalogRealtime(): () => void {
         () => {
           void fetchPlatformGiftCatalog();
         },
-      )
-      .subscribe();
-    stops.push(() => {
-      void supabase.removeChannel(channel);
+      );
     });
-  }
-
-  if (isFirebasePlatformGiftCatalogAvailable()) {
-    stops.push(
-      subscribeFirebasePlatformGiftCatalog(() => {
+    stops.push(() => {
+      removeSafeRealtimeChannel(supabase, channel);
+    });
+  } else if (isFirebaseConfigured()) {
+    let cancelled = false;
+    let fbUnsub: (() => void) | undefined;
+    void firebasePlatformGiftCatalog().then((fb) => {
+      if (cancelled || !fb.isFirebasePlatformGiftCatalogAvailable()) return;
+      fbUnsub = fb.subscribeFirebasePlatformGiftCatalog(() => {
         void fetchPlatformGiftCatalog();
-      }),
-    );
+      });
+    });
+    stops.push(() => {
+      cancelled = true;
+      fbUnsub?.();
+    });
   }
 
   unsubscribe = () => {

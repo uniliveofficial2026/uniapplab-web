@@ -1,5 +1,5 @@
 /**
- * Public legal documents for UniLive / UniappLab.
+ * Public legal documents for UniLive’s.
  * HTML pages are the canonical public URLs; this module holds in-app copy + acceptance helpers.
  */
 import { APP_DISPLAY_NAME, WORKSPACE_DISPLAY_NAME } from './appBrand';
@@ -18,7 +18,7 @@ export const LEGAL_AGE_REQUIREMENT_YEARS = 18;
 export const LEGAL_AGE_DISCLAIMER =
   `You must be at least ${LEGAL_AGE_REQUIREMENT_YEARS} years old to create an account or use ${APP_DISPLAY_NAME}. ` +
   `If you are under ${LEGAL_AGE_REQUIREMENT_YEARS}, you are not permitted to use this service. ` +
-  `The developer, ${WORKSPACE_DISPLAY_NAME}, ${APP_DISPLAY_NAME}, and related operators accept no responsibility ` +
+  `The developer, ${APP_DISPLAY_NAME}, and related operators accept no responsibility ` +
   `or liability for any use of the app, website, or services by anyone under ${LEGAL_AGE_REQUIREMENT_YEARS}. ` +
   `You may not hack, steal, sell, or copy other users’ information.`;
 

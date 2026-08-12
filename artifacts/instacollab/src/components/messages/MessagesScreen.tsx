@@ -88,10 +88,17 @@ import {
   postChatTyping,
   postPresenceHeartbeat,
 } from '../../lib/platformApi';
+import {
+  isChatTypingPresenceAvailable,
+  setChatTypingPresence,
+  subscribeChatTypingPresence,
+  unsubscribeChatTypingPresence,
+} from '../../lib/chat/chatTypingPresence';
 import { useDiscoverableUserSearch } from '../../hooks/useDiscoverableUserSearch';
 import { useChatCallContext } from '../../contexts/ChatCallContext';
 import { resolveActiveGroupCall } from '../../lib/chat/chatCallKit';
 import { GroupActiveCallBanner } from './GroupActiveCallBanner';
+import { useKeepAliveTabActive } from '../../lib/keepAliveTabContext';
 
 const EMPTY_CHAT_MESSAGES: ChatMessage[] = [];
 
@@ -107,6 +114,7 @@ export function MessagesScreen({
   embedded?: boolean;
 }) {
   const db = useDB();
+  const tabActive = useKeepAliveTabActive();
   const USERS = db.users;
   const currentUser = resolveUser(db.users, db.currentUser);
   const { showToast } = useToast();
@@ -595,6 +603,8 @@ export function MessagesScreen({
   useEffect(() => {
     const OFFLINE_THRESHOLD_MS = 65_000;
     const liveCloud = isPlatformApiAvailable() && isCloudAuthUserId(currentUser.id);
+    // Hidden KeepAlive messages tab must not tick every 4s — that re-rendered the tree app-wide.
+    if (!tabActive) return undefined;
     const statusIntervalId = window.setInterval(() => {
       const now = Date.now();
       setClockTick(now);
@@ -622,12 +632,12 @@ export function MessagesScreen({
         });
         return nextSeen;
       });
-    }, 4000);
+    }, 12_000);
 
     return () => {
       window.clearInterval(statusIntervalId);
     };
-  }, [USERS, lastActiveByUserId, currentUser.id]);
+  }, [USERS, lastActiveByUserId, currentUser.id, tabActive]);
 
   useEffect(() => {
     if (!persistedPresence || typeof persistedPresence !== 'object') return;
@@ -1849,7 +1859,7 @@ export function MessagesScreen({
     isLiveCloudDm,
   ]);
 
-  // Push/poll typing indicators over the platform API (1:1 + group cloud threads).
+  // Realtime typing (Supabase Presence); HTTP poll is fallback when channel is down.
   useEffect(() => {
     if (!viewerInActiveChat || !selectedChatId || !selectedUser) return;
     const isGroup = 'isGroup' in selectedUser;
@@ -1858,47 +1868,77 @@ export function MessagesScreen({
 
     let cancelled = false;
     let threadId: string | null = null;
+    let pollId: number | null = null;
+    let useHttpFallback = !isChatTypingPresenceAvailable();
+
+    const applyTypers = (typers: Set<string>) => {
+      typers.delete(currentUser.id);
+      if (isGroup) {
+        const groupTyping = typers.size > 0;
+        setGroupTypingByChatId((prev) => {
+          if (prev[selectedChatId] === groupTyping) return prev;
+          return { ...prev, [selectedChatId]: groupTyping };
+        });
+        return;
+      }
+      const peerTyping = selectedPeerId ? typers.has(selectedPeerId) : false;
+      setTypingByUserId((prev) => {
+        if (!selectedPeerId || prev[selectedPeerId] === peerTyping) return prev;
+        return { ...prev, [selectedPeerId]: peerTyping };
+      });
+      if (peerTyping && selectedPeerId) markUserActive(selectedPeerId);
+    };
 
     const resolveThread = async () => {
       if (!threadId) threadId = await ensureCloudThreadForChat(selectedChatId);
       return threadId;
     };
 
-    const pushAndPoll = async (typing: boolean) => {
+    const pushHttp = async (typing: boolean) => {
       const tid = await resolveThread();
       if (!tid || cancelled) return;
       try {
         const res = await postChatTyping(tid, typing);
         if (cancelled) return;
-        const typers = new Set(res.userIds ?? []);
-        typers.delete(currentUser.id);
-        if (isGroup) {
-          const groupTyping = typers.size > 0;
-          setGroupTypingByChatId((prev) => {
-            if (prev[selectedChatId] === groupTyping) return prev;
-            return { ...prev, [selectedChatId]: groupTyping };
-          });
-          return;
-        }
-        const peerTyping = selectedPeerId ? typers.has(selectedPeerId) : false;
-        setTypingByUserId((prev) => {
-          if (!selectedPeerId || prev[selectedPeerId] === peerTyping) return prev;
-          return { ...prev, [selectedPeerId]: peerTyping };
-        });
-        if (peerTyping && selectedPeerId) markUserActive(selectedPeerId);
+        applyTypers(new Set(res.userIds ?? []));
       } catch {
         /* typing is best-effort */
       }
     };
 
-    void pushAndPoll(isComposeTyping);
-    const pollId = window.setInterval(() => {
-      void pushAndPoll(isComposeTyping);
-    }, 800);
+    void (async () => {
+      const tid = await resolveThread();
+      if (!tid || cancelled) return;
+      threadId = tid;
+
+      if (isChatTypingPresenceAvailable()) {
+        const channel = subscribeChatTypingPresence(tid, currentUser.id, (userIds) => {
+          if (cancelled) return;
+          applyTypers(new Set(userIds));
+        });
+        if (channel) {
+          useHttpFallback = false;
+          await setChatTypingPresence(tid, currentUser.id, isComposeTyping);
+        } else {
+          useHttpFallback = true;
+        }
+      }
+
+      if (useHttpFallback) {
+        void pushHttp(isComposeTyping);
+        pollId = window.setInterval(() => {
+          void pushHttp(isComposeTyping);
+        }, 5_000);
+      }
+    })();
 
     return () => {
       cancelled = true;
-      window.clearInterval(pollId);
+      if (pollId != null) window.clearInterval(pollId);
+      if (threadId) {
+        void setChatTypingPresence(threadId, currentUser.id, false);
+        unsubscribeChatTypingPresence(threadId);
+      }
       void (async () => {
         const tid = threadId ?? (await ensureCloudThreadForChat(selectedChatId).catch(() => null));
         if (tid) await postChatTyping(tid, false).catch(() => {});
@@ -1909,16 +1949,47 @@ export function MessagesScreen({
         setTypingByUserId((prev) => ({ ...prev, [selectedPeerId]: false }));
       }
     };
+    // Channel lifecycle is tied to the open chat; typing track updates in the next effect.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [
     viewerInActiveChat,
     selectedChatId,
     selectedUser,
     selectedPeerId,
     currentUser.id,
-    isComposeTyping,
     isLiveCloudDm,
     liveCloudChat,
     markUserActive,
+  ]);
+
+  // Push local typing onto Realtime presence (or HTTP fallback).
+  useEffect(() => {
+    if (!viewerInActiveChat || !selectedChatId || !selectedUser || !liveCloudChat) return;
+    const isGroup = 'isGroup' in selectedUser;
+    if (!isGroup && (!selectedPeerId || !isLiveCloudDm(selectedPeerId))) return;
+
+    let cancelled = false;
+    void (async () => {
+      const tid = await ensureCloudThreadForChat(selectedChatId).catch(() => null);
+      if (!tid || cancelled) return;
+      if (isChatTypingPresenceAvailable()) {
+        await setChatTypingPresence(tid, currentUser.id, isComposeTyping);
+        return;
+      }
+      await postChatTyping(tid, isComposeTyping).catch(() => {});
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    isComposeTyping,
+    viewerInActiveChat,
+    selectedChatId,
+    selectedUser,
+    selectedPeerId,
+    currentUser.id,
+    isLiveCloudDm,
+    liveCloudChat,
   ]);
 
   const isPeerTyping = React.useMemo(() => {

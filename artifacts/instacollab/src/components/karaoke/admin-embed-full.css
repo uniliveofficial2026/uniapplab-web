@@ -62,3 +62,17 @@ html.admin-embed-room-active #root {
 .karaoke-smule-room-embed-full #party-room-footer .party-room-footer-row {
   padding-bottom: max(0.5rem, env(safe-area-inset-bottom, 0px));
 }
+
+/* Viewer chip — same compact sizing as panel embed (avoids full-res avatar blowout). */
+.karaoke-smule-room-embed-full .party-viewers-chip {
+  max-height: 2.5rem;
+}
+
+.karaoke-smule-room-embed-full .party-viewers-chip img {
+  width: clamp(1.375rem, 5.5vw, 1.75rem);
+  height: clamp(1.375rem, 5.5vw, 1.75rem);
+}
+
+.karaoke-smule-room-embed-full .party-viewers-chip .party-viewers-count {
+  font-size: clamp(0.6875rem, 2.8vw, 0.8125rem);
+}

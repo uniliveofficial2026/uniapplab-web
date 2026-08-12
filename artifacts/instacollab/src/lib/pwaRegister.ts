@@ -1,4 +1,5 @@
 import { registerSW } from 'virtual:pwa-register';
+import { isNativeShell } from './nativeShell';
 
 let updateSw: ((reloadPage?: boolean) => Promise<void>) | null = null;
 
@@ -18,6 +19,8 @@ export function isPwaInstallableHost(hostname = typeof window !== 'undefined' ? 
 
 export function shouldRegisterPwa(): boolean {
   if (typeof window === 'undefined') return false;
+  // Native Capacitor WebView must not register a SW — it fights the shell cache.
+  if (isNativeShell()) return false;
   if (import.meta.env.DEV && import.meta.env.VITE_PWA_DEV !== 'true') return false;
   if (isPrivateDevHost(window.location.hostname)) return false;
   return true;
@@ -33,10 +36,13 @@ export function registerAppServiceWorker() {
       window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
     },
     onNeedRefresh() {
+      // Stage the update; PwaUpdateToast applies when the user is idle or taps Restart.
       window.dispatchEvent(new CustomEvent('pwa-need-refresh'));
     },
     onRegistered(registration) {
       if (!registration) return;
+      // Check for a fresh build shortly after load and hourly thereafter.
+      window.setTimeout(() => void registration.update(), 3_000);
       const interval = window.setInterval(() => {
         void registration.update();
       }, 60 * 60 * 1000);

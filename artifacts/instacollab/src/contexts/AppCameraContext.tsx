@@ -1,5 +1,7 @@
 import React, {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useRef,
@@ -7,10 +9,15 @@ import React, {
   type ReactNode,
 } from 'react';
 import {
-  AppCameraCaptureOverlay,
   isAppCameraCaptureAvailable,
   type AppCameraCapturePayload,
-} from '../components/camera/AppCameraCaptureOverlay';
+} from '../components/camera/appCameraCaptureTypes';
+
+const AppCameraCaptureOverlay = lazy(() =>
+  import('../components/camera/AppCameraCaptureOverlay').then((m) => ({
+    default: m.AppCameraCaptureOverlay,
+  })),
+);
 
 export type OpenAppCameraOptions = {
   title?: string;
@@ -47,15 +54,12 @@ export function AppCameraProvider({ children }: { children: ReactNode }) {
     setOpen(true);
   }, []);
 
-  const handleCaptured = useCallback(
-    async (payload: AppCameraCapturePayload) => {
-      const handler = optionsRef.current?.onCaptured;
-      optionsRef.current = null;
-      setOpen(false);
-      await handler?.(payload);
-    },
-    [],
-  );
+  const handleCaptured = useCallback(async (payload: AppCameraCapturePayload) => {
+    const handler = optionsRef.current?.onCaptured;
+    optionsRef.current = null;
+    setOpen(false);
+    await handler?.(payload);
+  }, []);
 
   return (
     <AppCameraContext.Provider
@@ -67,14 +71,18 @@ export function AppCameraProvider({ children }: { children: ReactNode }) {
       }}
     >
       {children}
-      <AppCameraCaptureOverlay
-        open={open}
-        onClose={closeCamera}
-        title={title}
-        onCaptured={(payload) => {
-          void handleCaptured(payload);
-        }}
-      />
+      {open ? (
+        <Suspense fallback={null}>
+          <AppCameraCaptureOverlay
+            open={open}
+            onClose={closeCamera}
+            title={title}
+            onCaptured={(payload) => {
+              void handleCaptured(payload);
+            }}
+          />
+        </Suspense>
+      ) : null}
     </AppCameraContext.Provider>
   );
 }

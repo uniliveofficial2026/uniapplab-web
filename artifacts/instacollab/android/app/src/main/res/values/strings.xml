@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">UniLive\u2019s</string>
+    <string name="title_activity_main">UniLive\u2019s</string>
+    <string name="package_name">com.uniapplab.unilive</string>
+    <string name="custom_url_scheme">com.uniapplab.unilive</string>
+</resources>

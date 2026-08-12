@@ -1,0 +1,42 @@
+Universal-Fixer permanent portable package
+Limit: 500MB hard gate (scripts/package-permanent-zip.sh)
+
+Rebuild anytime:
+  ./scripts/package-permanent-zip.sh
+
+Stable pointer:
+  exports/Universal-Fixer-permanent-latest.zip
+
+INCLUDED
+- Project source needed for cross-tool workflows
+- UniLive’s Phase 12 migration docs under docs/unilives-assets/
+- Workspace config, scripts, workers, supabase, lib
+- .env.providers.example (provider key name checklist only)
+
+EXCLUDED (regenerable / secrets / caches / oversized)
+- node_modules/ (run: pnpm install)
+- .git/
+- .local/ and **/ .local/
+- .vercel/
+- Native android/ios trees + vendor/archives (DeepAR zips)
+- DeepAR public effect/runtime blobs (pnpm deepar:install)
+- unilives_master_source/models/
+- Previous export .zip files under exports/
+- .env / .env.local / .env.*.local
+
+Permanent secrets stay on disk here (never in the zip):
+  Universal-Fixer/.env.local
+
+Required provider key names (never VITE_):
+  OPENAI_API_KEY
+  MESHY_API_KEY
+  ELEVENLABS_API_KEY
+  RUNWAY_API_KEY
+  KLING_API_KEY
+  KLING_ACCESS_KEY   # optional — only if your Kling account uses this format
+  KLING_SECRET_KEY   # optional — only if your Kling account uses this format
+
+After unzip:
+  1. Copy keys into Universal-Fixer/.env.local from your private store
+  2. pnpm install
+  3. test -d docs/unilives-assets && echo "Phase 12 project found"

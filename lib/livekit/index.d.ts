@@ -11,6 +11,8 @@ declare module "@workspace/livekit" {
     room: string;
     role?: "host" | "viewer";
     canPublish?: boolean;
+    /** Invisible to other participants (admin silent watch). */
+    hidden?: boolean;
   }): Promise<string>;
   export function ensureLiveKitRoom(roomName: string): Promise<boolean>;
   export function deleteLiveKitRoom(roomName: string): Promise<boolean>;

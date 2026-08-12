@@ -2,6 +2,7 @@ import type { LaunchProgress, AuthAccountRecord } from '../../dbTypes';
 import type { User } from '../../../types';
 import type { AuthLaunchLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
+import { markSplashSeenThisSession, markOnboardingCompleteThisSession } from '../../splashSession';
 
 const LAUNCH_KEY = 'launch_progress';
 const LAUNCH_USER_GATES_KEY = 'launch_user_gates';
@@ -140,10 +141,12 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
     }
 
     markSplashSeen() {
+      markSplashSeenThisSession();
       this.saveLaunchProgress({ hasSeenSplash: true });
     }
 
     completeOnboarding() {
+      markOnboardingCompleteThisSession();
       this.saveLaunchProgress({ hasCompletedOnboarding: true });
     }
 

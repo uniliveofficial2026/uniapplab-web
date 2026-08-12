@@ -1,15 +1,14 @@
-import React from 'react';
-import { ARCameraCapture } from '../ar/ARCameraCapture';
-import { DeepARCameraCapture } from '../deepar/DeepARCameraCapture';
+import React, { lazy, Suspense } from 'react';
 import { isFaceARAvailable } from '../../lib/ar/arConfig';
 import { isDeepARConfigured } from '../../lib/deepar/deeparConfig';
 import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
+import {
+  isAppCameraCaptureAvailable,
+  type AppCameraCapturePayload,
+} from './appCameraCaptureTypes';
 
-export type AppCameraCapturePayload = {
-  kind: 'photo' | 'video';
-  url: string;
-  blob?: Blob;
-};
+export type { AppCameraCapturePayload };
+export { isAppCameraCaptureAvailable } from './appCameraCaptureTypes';
 
 export type AppCameraCaptureOverlayProps = {
   open: boolean;
@@ -18,35 +17,34 @@ export type AppCameraCaptureOverlayProps = {
   onCaptured: (payload: AppCameraCapturePayload) => void;
 };
 
-/** TRTC / Tencent beauty capture when configured; DeepAR only as fallback. */
-export function isAppCameraCaptureAvailable(): boolean {
-  return isTencentWebARConfigured() || isFaceARAvailable() || isDeepARConfigured();
-}
+const ARCameraCapture = lazy(() =>
+  import('../ar/ARCameraCapture').then((m) => ({ default: m.ARCameraCapture })),
+);
+const DeepARCameraCapture = lazy(() =>
+  import('../deepar/DeepARCameraCapture').then((m) => ({ default: m.DeepARCameraCapture })),
+);
 
+/** Capture UI — AR SDKs load only when overlay opens. */
 export function AppCameraCaptureOverlay({
   open,
   onClose,
   title = 'Camera',
   onCaptured,
 }: AppCameraCaptureOverlayProps) {
+  if (!open) return null;
+
   const tencentCamera = isTencentWebARConfigured();
   const deeparCamera = isDeepARConfigured();
   const useTencentCapture = tencentCamera || isFaceARAvailable();
 
   return (
-    <>
-      <ARCameraCapture
-        open={open && useTencentCapture}
-        onClose={onClose}
-        title={title}
-        onCaptured={onCaptured}
-      />
-      <DeepARCameraCapture
-        open={open && deeparCamera && !tencentCamera}
-        onClose={onClose}
-        title={title}
-        onCaptured={onCaptured}
-      />
-    </>
+    <Suspense fallback={null}>
+      {useTencentCapture ? (
+        <ARCameraCapture open onClose={onClose} title={title} onCaptured={onCaptured} />
+      ) : null}
+      {deeparCamera && !tencentCamera ? (
+        <DeepARCameraCapture open onClose={onClose} title={title} onCaptured={onCaptured} />
+      ) : null}
+    </Suspense>
   );
 }

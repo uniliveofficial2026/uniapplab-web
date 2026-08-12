@@ -15,6 +15,7 @@ import { useDB, useDbRevision } from '../../lib/useDB';
 import { handleAvatarError, handleMediaError, fileToBase64 } from '../../lib/utils';
 import { AppNativeVideo } from '../common/AppNativeVideo';
 import { resolveUser, safeAvatarUrl } from '../../lib/safe';
+import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
 import { useAuth } from '../../lib/AuthContext';
@@ -23,8 +24,12 @@ import { GoogleKeepTab } from './GoogleKeepTab';
 import { GmailTab } from './GmailTab';
 import { AdminControlCenter, useModerationFlagCount } from '../admin/AdminControlCenter';
 import { AutomationControlToggles } from './AutomationControlToggles';
-import { WORKSPACE_DISPLAY_NAME } from '../../lib/appBrand';
-import { consumeWorkspaceAdminTabHint } from '../../lib/appBrandRuntime';
+import { APP_DISPLAY_NAME, WORKSPACE_DISPLAY_NAME } from '../../lib/appBrand';
+import {
+  consumeWorkspaceAdminTabHint,
+  peekWorkspaceAdminTabHint,
+  WORKSPACE_GREEDY_ADMIN_EVENT,
+} from '../../lib/appBrandRuntime';
 import { GoogleContactsTab } from './GoogleContactsTab';
 import { GoogleCalendarTab } from './GoogleCalendarTab';
 import { GoogleDocsTab } from './GoogleDocsTab';
@@ -107,7 +112,7 @@ function getCollaboratorLiveInfo(
       ? `Note: ${user.note.trim().slice(0, 72)}`
       : user.bio?.trim()
         ? user.bio.trim().slice(0, 72)
-        : 'Active on UniLive';
+        : `Active on ${APP_DISPLAY_NAME}`;
 
   const timestamp = Math.max(
     lastActive,
@@ -178,9 +183,22 @@ export function WorkspaceScreen() {
     const performanceChartTheme = useRechartsTheme();
     const performanceTooltipProps = rechartsTooltipProps(performanceChartTheme);
 
-    const [activeTab, setActiveTab ] = useState<TabType>(() =>
-      consumeWorkspaceAdminTabHint() ? 'admin' : 'dashboard',
+    const [activeTab, setActiveTab] = useState<TabType>(() =>
+      peekWorkspaceAdminTabHint() ? 'admin' : 'dashboard',
     );
+
+    // Admin Panel → after staff unlock (or if already inside), open Admin & Portal.
+    useEffect(() => {
+      const openAdminPortal = () => {
+        if (consumeWorkspaceAdminTabHint()) {
+          setActiveTab('admin');
+        }
+      };
+      openAdminPortal();
+      window.addEventListener(WORKSPACE_GREEDY_ADMIN_EVENT, openAdminPortal);
+      return () => window.removeEventListener(WORKSPACE_GREEDY_ADMIN_EVENT, openAdminPortal);
+    }, []);
+
     const workspaceTabsScrollRef = useRef<HTMLDivElement | null>(null);
     const [presenceTick, setPresenceTick] = useState(0);
 
@@ -336,7 +354,7 @@ export function WorkspaceScreen() {
     });
 
     // --- FILES & VERSIONS ---
-    const { googleAccessToken, loginWithGoogle } = useAuth();
+    const { googleAccessToken, connectGoogleWorkspace } = useAuth();
     const [fileQuery, setFileQuery] = useState('');
     const filesLocal = db.files;
     const [uploading, setUploading] = useState(false);
@@ -752,11 +770,11 @@ export function WorkspaceScreen() {
                                                     <div className="font-extrabold text-sm text-foreground flex items-center gap-1.5">
                                                         {user.displayName}
                                                         <span className="text-[11px] font-medium text-muted-foreground">@{user.username}</span>
-                                                        {user.isVerified && (
-                                                            <span className="w-4 h-4 text-primary shrink-0">
-                                                                <ShieldCheck className="w-4 h-4 fill-primary/10" />
-                                                            </span>
-                                                        )}
+                                                        <UniLivesVerificationBadge
+                                                            isVerified={!!user.isVerified}
+                                                            userId={user.id}
+                                                            iconClassName="w-4 h-4 text-primary fill-primary/10"
+                                                        />
                                                     </div>
                                                     <div className="text-[11px] font-bold text-primary/80 mt-0.5">{info.role}</div>
                                                 </div>
@@ -1041,7 +1059,7 @@ export function WorkspaceScreen() {
                                    <span>Link Google Drive to browse live documents.</span>
                                    <button
                                      type="button"
-                                     onClick={loginWithGoogle}
+                                     onClick={connectGoogleWorkspace}
                                      className="bg-primary hover:bg-primary/95 text-primary-foreground text-[10px] py-1 px-3 rounded-lg shadow-sm whitespace-nowrap"
                                    >
                                      Link Account

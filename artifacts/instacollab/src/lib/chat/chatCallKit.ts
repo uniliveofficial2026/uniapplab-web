@@ -1,5 +1,6 @@
 /**
- * TRTC CallKit-style shared types + peer resolution for 1v1 and group calls.
+ * CallKit-style shared types + peer resolution for 1v1 and group calls.
+ * Media: LiveKit room. Local video: TRTC WebAR via useChatCallTrtcPipeline.
  */
 import { db } from '../db/localDb';
 import { findUserById } from '../safe';

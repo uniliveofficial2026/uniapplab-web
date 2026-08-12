@@ -5,14 +5,27 @@ import { safeDecodeOAuthError } from './safeDecodeOAuthError';
 import { isSupabaseOAuthReturnInUrl, stripSupabaseOAuthParamsFromUrl } from './supabaseOAuthReturn';
 import { markSupabaseOAuthDegraded, writeStoredAuthBackend } from './providerState';
 import { withTimeout } from '../networkPolicy';
+import { saveGoogleAccessToken } from './deviceAccounts';
+import type { Session } from '@supabase/supabase-js';
 
 export type SupabaseOAuthReturnResult = {
   handled: boolean;
   ok: boolean;
   reason?: string;
+  googleAccessToken?: string | null;
 };
 
 const OAUTH_EXCHANGE_MS = 5_000;
+
+/** Persist Google provider_token from a Supabase session (Workspace / YouTube APIs). */
+export function persistGoogleProviderTokenFromSession(session: Session | null | undefined): string | null {
+  const token = session?.provider_token?.trim() || null;
+  const uid = session?.user?.id;
+  if (token && uid) {
+    saveGoogleAccessToken(uid, token);
+  }
+  return token;
+}
 
 /**
  * After Google/Apple redirect, Supabase client exchanges ?code= for a session.
@@ -58,8 +71,9 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
       }
       if (data.session?.user) {
         writeStoredAuthBackend('supabase');
+        const googleAccessToken = persistGoogleProviderTokenFromSession(data.session);
         stripSupabaseOAuthParamsFromUrl();
-        return { handled: true, ok: true };
+        return { handled: true, ok: true, googleAccessToken };
       }
     }
 
@@ -76,8 +90,9 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
       }
       if (data.session?.user) {
         writeStoredAuthBackend('supabase');
+        const googleAccessToken = persistGoogleProviderTokenFromSession(data.session);
         stripSupabaseOAuthParamsFromUrl();
-        return { handled: true, ok: true };
+        return { handled: true, ok: true, googleAccessToken };
       }
     }
 
@@ -92,8 +107,9 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
     }
     if (data.session?.user) {
       writeStoredAuthBackend('supabase');
+      const googleAccessToken = persistGoogleProviderTokenFromSession(data.session);
       stripSupabaseOAuthParamsFromUrl();
-      return { handled: true, ok: true };
+      return { handled: true, ok: true, googleAccessToken };
     }
     return {
       handled: true,

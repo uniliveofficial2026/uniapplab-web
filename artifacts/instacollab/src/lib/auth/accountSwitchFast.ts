@@ -11,6 +11,7 @@ import {
   writeActiveDeviceUid,
   type StoredDeviceAccount,
 } from './deviceAccounts';
+import { canonicalDeviceAccountUid } from './accountIdentity';
 import { getFirebaseAuth } from '../firebase/app';
 import {
   resolveAppUserIdForDeviceAccount,
@@ -34,17 +35,20 @@ export async function persistOutgoingAccountSessionFast(): Promise<void> {
 
     const session = data.session;
     if (session?.user?.id && session.refresh_token) {
+      // Only store under this session's identity aliases — never under an unrelated
+      // currentUserId (that caused account B to restore account A's tokens).
       saveStoredAccountSessionMirrored(session.user.id, session);
-      if (outgoingAppId && outgoingAppId !== session.user.id) {
-        saveStoredAccountSessionMirrored(outgoingAppId, session);
-      }
       upsertDeviceAccount(accountFromSupabaseUser(session.user));
     }
   }
 
   const fbUser = getFirebaseAuth()?.currentUser;
   if (fbUser) {
-    upsertDeviceAccount(accountFromFirebaseUser(fbUser));
+    const accounts = readDeviceAccounts();
+    const fromFirebase = accountFromFirebaseUser(fbUser);
+    // Collapse onto Supabase uuid when this Firebase lane is the same person.
+    const uid = canonicalDeviceAccountUid(fromFirebase.uid, [...accounts, fromFirebase]);
+    upsertDeviceAccount({ ...fromFirebase, uid }, accounts);
   } else if (outgoingAppId && db.currentUser) {
     upsertDeviceAccount(
       accountFromAppUser({
@@ -69,19 +73,24 @@ export function applyInstantAccountSwitch(deviceUid: string): InstantAccountSwit
     db.users.find((user) => user.id === deviceUid) ??
     null;
 
+  writeActiveDeviceUid(appUserId || deviceUid);
+
   if (cached) {
-    writeActiveDeviceUid(appUserId);
-    db.syncAuthUser(cached);
+    // Prefer canonical app id so local snapshots / cloud sync stay on one key.
+    db.syncAuthUser({ ...cached, id: appUserId || cached.id });
+  } else if (appUserId && appUserId !== deviceUid) {
+    db.login(appUserId);
   } else {
-    writeActiveDeviceUid(deviceUid);
+    db.login(deviceUid);
   }
 
+  const accounts = readDeviceAccounts();
   const account =
-    readDeviceAccounts().find((row) => row.uid === deviceUid) ??
-    readDeviceAccounts().find((row) => row.uid === appUserId) ??
+    accounts.find((row) => row.uid === appUserId) ??
+    accounts.find((row) => row.uid === deviceUid) ??
     null;
 
-  return { appUserId, deviceUid, account };
+  return { appUserId: appUserId || deviceUid, deviceUid, account };
 }
 
 export function firebaseUserFromDeviceAccount(
