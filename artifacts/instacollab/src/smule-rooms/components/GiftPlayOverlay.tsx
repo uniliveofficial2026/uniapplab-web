@@ -13,6 +13,8 @@ import { GiftSvgaPlayer } from './GiftSvgaPlayer';
 import { UniLivesGiftThumbnail } from '../../components/gifts/brand';
 import { resolveGiftPlayMedia } from '../../lib/unilives-assets/giftResolve';
 import { UniLivesGiftFallback } from '../../components/gifts/brand/UniLivesGiftFallback';
+import { findV14GiftSpec } from './liveToolsV14Artwork';
+import { V14AnimatedGiftArtwork } from './V14AnimatedArtwork';
 
 type GiftPlayOverlayProps = {
   gift: GiftPlayPayload | null;
@@ -65,6 +67,7 @@ function GiftVideoEffect({ url, onEnded }: { url: string; onEnded: () => void })
 
 /** Normal · 1–99 — small icon barrage (bottom-left). */
 function ComboBarrage({ combo }: { combo: ComboState }) {
+  const approved = findV14GiftSpec(combo.giftId, combo.giftName);
   return (
     <motion.div
       key={`${combo.key}-${combo.count}`}
@@ -81,11 +84,22 @@ function ComboBarrage({ combo }: { combo: ComboState }) {
         sent
       </span>
       <span className="shrink-0 text-xl leading-none drop-shadow-[0_2px_6px_rgba(0,0,0,0.75)]">
-        <UniLivesGiftThumbnail
-          businessGiftId={combo.giftId}
-          legacyIcon={combo.giftIcon}
-          imgClassName="inline-block h-5 w-5 object-contain align-middle"
-        />
+        {approved ? (
+          <V14AnimatedGiftArtwork
+            giftId={approved.giftId}
+            giftName={approved.name}
+            src={approved.artwork}
+            className="h-5 w-5 align-middle"
+            imgClassName="h-full w-full object-contain"
+            playKey={`${combo.key}-${combo.count}`}
+          />
+        ) : (
+          <UniLivesGiftThumbnail
+            businessGiftId={combo.giftId}
+            legacyIcon={combo.giftIcon}
+            imgClassName="inline-block h-5 w-5 object-contain align-middle"
+          />
+        )}
       </span>
       {combo.count > 1 ? (
         <motion.span
@@ -103,6 +117,7 @@ function ComboBarrage({ combo }: { combo: ComboState }) {
 
 /** Premium fallback — flies from bottom-right toward host. */
 function StandardFlyIn({ gift }: { gift: QueuedGift }) {
+  const approved = findV14GiftSpec(gift.giftId, gift.giftName);
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.45, x: '34vw', y: '28vh' }}
@@ -115,11 +130,22 @@ function StandardFlyIn({ gift }: { gift: QueuedGift }) {
       transition={{ duration: 2.8, ease: 'easeInOut', times: [0, 0.22, 0.72, 1] }}
       className="pointer-events-none absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 text-6xl sm:text-7xl drop-shadow-[0_6px_20px_rgba(0,0,0,0.55)]"
     >
-      <UniLivesGiftThumbnail
-        businessGiftId={gift.giftId}
-        legacyIcon={gift.giftIcon}
-        imgClassName="h-20 w-20 sm:h-24 sm:w-24 object-contain"
-      />
+      {approved ? (
+        <V14AnimatedGiftArtwork
+          giftId={approved.giftId}
+          giftName={approved.name}
+          src={approved.artwork}
+          className="h-20 w-20 sm:h-24 sm:w-24"
+          imgClassName="h-full w-full object-contain"
+          playKey={gift.queueKey}
+        />
+      ) : (
+        <UniLivesGiftThumbnail
+          businessGiftId={gift.giftId}
+          legacyIcon={gift.giftIcon}
+          imgClassName="h-20 w-20 sm:h-24 sm:w-24 object-contain"
+        />
+      )}
     </motion.div>
   );
 }
@@ -169,6 +195,7 @@ function FullscreenSvgaEffect({
   videoUrl?: string;
   onFinished: () => void;
 }) {
+  const approved = findV14GiftSpec(gift.giftId, gift.giftName);
   if (videoUrl) {
     return (
       <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -198,11 +225,22 @@ function FullscreenSvgaEffect({
         className="pointer-events-none absolute inset-0 flex items-center justify-center"
       >
         <span className="text-[clamp(4.5rem,20vw,8rem)] drop-shadow-[0_10px_32px_rgba(0,0,0,0.55)]">
-          <UniLivesGiftThumbnail
-            businessGiftId={gift.giftId}
-            legacyIcon={gift.giftIcon}
-            imgClassName="h-[clamp(4.5rem,20vw,8rem)] w-[clamp(4.5rem,20vw,8rem)] object-contain"
-          />
+          {approved ? (
+            <V14AnimatedGiftArtwork
+              giftId={approved.giftId}
+              giftName={approved.name}
+              src={approved.artwork}
+              className="h-[clamp(4.5rem,20vw,8rem)] w-[clamp(4.5rem,20vw,8rem)]"
+              imgClassName="h-full w-full object-contain"
+              playKey={gift.queueKey}
+            />
+          ) : (
+            <UniLivesGiftThumbnail
+              businessGiftId={gift.giftId}
+              legacyIcon={gift.giftIcon}
+              imgClassName="h-[clamp(4.5rem,20vw,8rem)] w-[clamp(4.5rem,20vw,8rem)] object-contain"
+            />
+          )}
         </span>
       </motion.div>
       <motion.p
@@ -342,6 +380,7 @@ function ActiveGiftEffect({
   onFinished: () => void;
 }) {
   const definition = resolveGiftEffect(gift.giftId, gift.giftName);
+  const approved = findV14GiftSpec(gift.giftId, gift.giftName);
   const media = resolveGiftPlayMedia({
     businessGiftId: gift.giftId,
     legacySvgaUrl: gift.effectSvgaUrl ?? definition.effectSvgaUrl,
@@ -385,10 +424,22 @@ function ActiveGiftEffect({
   if (media.preferStatic) {
     return (
       <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-2">
-        <UniLivesGiftFallback
-          src={media.staticUrl}
-          className="max-h-[40vh] max-w-[min(70vw,280px)] object-contain"
-        />
+        {approved ? (
+          <V14AnimatedGiftArtwork
+            giftId={approved.giftId}
+            giftName={approved.name}
+            src={approved.artwork}
+            className="h-[min(40vh,280px)] w-[min(70vw,280px)]"
+            imgClassName="h-full w-full object-contain"
+            animate={false}
+            playKey={gift.queueKey}
+          />
+        ) : (
+          <UniLivesGiftFallback
+            src={media.staticUrl}
+            className="max-h-[40vh] max-w-[min(70vw,280px)] object-contain"
+          />
+        )}
         <p className="px-4 text-center text-sm font-bold text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.85)]">
           {gift.senderName} sent {gift.giftName} to {gift.receiverName}
         </p>
@@ -453,12 +504,23 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
       if (tier === 'normal') {
         queueRef.current.shift();
         const comboKey = `${next.senderId ?? next.senderName}:${next.giftId ?? next.giftName}`;
+        // Paid units only — never count events. A sends Kiss×1 + Kiss×5 + Kiss×10 => ×16.
+        const unitQty = Math.max(
+          1,
+          Math.floor(
+            typeof next.quantity === 'number' && Number.isFinite(next.quantity)
+              ? next.quantity
+              : typeof next.combo === 'number' && Number.isFinite(next.combo)
+                ? next.combo
+                : 1,
+          ),
+        );
         setCombos((prev) => {
           const existing = prev.find((entry) => entry.key === comboKey);
           if (existing) {
             return prev.map((entry) =>
               entry.key === comboKey
-                ? { ...entry, count: entry.count + 1, expiresAt: Date.now() + 2600 }
+                ? { ...entry, count: entry.count + unitQty, expiresAt: Date.now() + 2600 }
                 : entry,
             );
           }
@@ -470,7 +532,7 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
               giftName: next.giftName,
               giftIcon: next.giftIcon,
               giftId: next.giftId,
-              count: 1,
+              count: unitQty,
               expiresAt: Date.now() + 2600,
             },
           ];
