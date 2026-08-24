@@ -126,7 +126,8 @@
     "test:reels": "node scripts/test-reels-playback.mjs",
     "smoke:live-multiguest-chrome": "node scripts/smoke-live-multiguest-chrome.mjs",
     "smoke:live-shop-chrome": "node scripts/smoke-live-shop-chrome.mjs",
-    "smoke:live-pk-invite-stage": "node scripts/smoke-live-pk-invite-stage.mjs"
+    "smoke:live-pk-invite-stage": "node scripts/smoke-live-pk-invite-stage.mjs",
+    "smoke:live-beauty-chrome": "node scripts/smoke-live-beauty-chrome.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

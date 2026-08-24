@@ -1,3 +1,7 @@
+## 2026-08-24T02:15:30Z — Solo live beauty/effects chrome smoke PASS
+- Added `smoke:live-beauty-chrome` → Effects control + beauty panel text/markers **PASS**.
+- uiUxChanged: false. Stage B locked.
+
 ## 2026-08-24T02:14:30Z — WebAR warm no loopback redirect + PK invite path PASS
 - `tencentWebARWarm`: stop calling `ensureTencentWebARAllowedHostname` during Create Room warm (was `location.replace` 127→localhost and tearing down InstantRoom).
 - Live Playwright smokes default to `http://localhost:5173` (license-safe host).

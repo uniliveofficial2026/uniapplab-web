@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-webar-warm-no-redirect-pk-invite-path",
+  "currentSlice": "A-beauty-chrome",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -40,7 +40,8 @@
     "livekit-api-reachable",
     "webar-warm-skip-hostname-redirect",
     "smoke-live-base-localhost",
-    "smoke-live-pk-invite-path-pass"
+    "smoke-live-pk-invite-path-pass",
+    "smoke-live-beauty-chrome-pass"
   ],
   "failing": [],
   "blocked": [
@@ -87,7 +88,8 @@
     "messages_outbox": "3/3",
     "marketplace_ledger": "4/4",
     "media_games": "6/6",
-    "webar_warm_no_loopback_redirect": "PASS"
+    "webar_warm_no_loopback_redirect": "PASS",
+    "smoke_live_beauty_chrome": "PASS"
   },
-  "updatedAt": "2026-08-24T02:14:30Z"
+  "updatedAt": "2026-08-24T02:15:30Z"
 }
