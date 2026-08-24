@@ -74,6 +74,7 @@
     "test:messages-outbox": "node --test test/messages-outbox-stage-a.test.mjs",
     "test:media-games": "./node_modules/.bin/tsx --test test/media-games-stage-a.test.mjs",
     "test:pk-seat": "./node_modules/.bin/tsx --test test/pk-seat-stage-a.test.mjs",
+    "test:marketplace-ledger": "node --test test/marketplace-ledger-stage-a.test.mjs",
     "test:responsive": "node --test test/responsive-layout-integrity.test.mjs",
     "test:layout-integrity": "node --test test/responsive-layout-integrity.test.mjs",
     "i18n:generate": "node scripts/generate-i18n-catalogs.mjs",
