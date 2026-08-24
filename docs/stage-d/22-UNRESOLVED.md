@@ -7,6 +7,7 @@
 | Formal LICENSE file | Legal decision | Required before public OSS claim |
 | npm registry publish | Registry auth + LICENSE | RELEASE_READY_EXTERNAL_STEP |
 | Managed cloud production deploy | Infra + persistence layer | NOT_DEPLOYED |
+| Hosted Vercel preview/production | Vercel account blocked | BLOCKED_EXTERNAL_VERCEL_ACCOUNT |
 | ghcr.io image publish | Container build/push pipeline | Reference compose only |
 | Production SFU cutover | Product decision + qualification | NOT_PERFORMED |
 

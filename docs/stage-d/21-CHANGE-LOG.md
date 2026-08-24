@@ -38,3 +38,10 @@ Baseline: Stage C seal `6e178efda203a31d947d6afd99a59784936f5598`
 - Production RTC: UniLiveRTC → LiveKit
 - No SFU cutover
 - No UI/UX visual changes
+
+## 2026-08-24 — CI seal
+
+- Committed `artifacts/api-server/test/live-pk-challenge.test.mjs` (16/16)
+- CI step runs via `tsx` (`test:live-pk-challenge`)
+- Remote GitHub Actions `verify` PASS: https://github.com/uniliveofficial2026/uniapplab-web/actions/runs/32782293889
+- Hosted Vercel preview/production remains blocked (account blocked)

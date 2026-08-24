@@ -18,4 +18,5 @@
 | --- | --- |
 | Deployment control plane (library) | PASS |
 | Production cloud deploy | NOT_DEPLOYED |
-| Preview deploy (live) | NOT_DEPLOYED |
+| Preview deploy (live) | NOT_DEPLOYED — Vercel account blocked |
+| Remote CI `verify` | PASS |

@@ -53,7 +53,9 @@
   "docsBuild": "PASS",
   "androidBuild": "PASS",
   "iosSimulatorBuild": "PASS",
-  "ci": "CONFIGURED_AWAITING_REMOTE",
+  "ci": "PASS",
+  "ciRunUrl": "https://github.com/uniliveofficial2026/uniapplab-web/actions/runs/32782293889",
+  "ciHeadSha": "c70b10a4745bb5906c32d742603f718144c57fe2",
   "productionRtcApi": "UniLiveRTC",
   "productionMediaProvider": "LiveKit",
   "productionSfuCutover": "NOT_PERFORMED",
@@ -65,14 +67,15 @@
   "productionCloudDeploy": "NOT_DEPLOYED",
   "productionPreviewHosted": "NOT_DEPLOYED",
   "hostedPreviewDeploy": "BLOCKED_EXTERNAL_VERCEL_ACCOUNT",
+  "hostedPreviewDeployReason": "Vercel account is blocked (deployment protection / billing gate). Control-plane preview/rollback orchestration remains PASS in-process.",
   "worktree": "/Volumes/Wei2TB/Universal-Fixer-Stage-D",
   "branch": "stage-d/unilives-platform-release",
   "implementationSha": "6e178efda203a31d947d6afd99a59784936f5598",
-  "finalSha": "938bb14cf64ceea1559d573c42680ec52db70544",
+  "finalSha": "c70b10a4745bb5906c32d742603f718144c57fe2",
   "pushed": true,
-  "sealCommit": "938bb14cf64ceea1559d573c42680ec52db70544",
+  "sealCommit": "pending-seal-docs",
   "pr": "https://github.com/uniliveofficial2026/uniapplab-web/pull/31",
-  "updatedAt": "2026-08-24T21:26:00Z",
+  "updatedAt": "2026-08-24T22:05:00Z",
   "evidence": {
     "stageDSuite": {
       "script": "scripts/test-stage-d.mjs",
@@ -84,6 +87,8 @@
       "testStageB": "PASS",
       "testStageC": "PASS",
       "visualLock": "22/22 PASS"
-    }
+    },
+    "apiLivePkChallenge": "16/16 PASS",
+    "remoteCiVerify": "PASS"
   }
 }

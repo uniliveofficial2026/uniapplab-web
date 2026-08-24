@@ -22,7 +22,8 @@ Stage D adds **managed cloud MVP**, **marketplace**, **AI Builder**, and **self-
 - Release pipeline — 12 public tarballs + SHA-256 manifest
 - Qualification — security matrix, load harness, DR scenarios, pack validate, secret scan, package consumer
 - Examples — cloud-project, deploy, provider-plugin, ai-builder, self-host
-- CI — `test:stage-d` in GitHub Actions
+- CI — `test:stage-d` in GitHub Actions; remote `verify` **PASS** on `c70b10a` ([run 32782293889](https://github.com/uniliveofficial2026/uniapplab-web/actions/runs/32782293889))
+- API live PK challenge authority — 16/16 PASS (committed suite)
 
 ## Classifications
 

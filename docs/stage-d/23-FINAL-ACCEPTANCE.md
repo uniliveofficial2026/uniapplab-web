@@ -10,6 +10,8 @@
 | Stage D suite | PASS |
 | Visual regression | PASS (inherited, `uiUxChanged=false`) |
 | CI `test:stage-d` | PASS |
+| Remote GitHub Actions `verify` | PASS ([run 32782293889](https://github.com/uniliveofficial2026/uniapplab-web/actions/runs/32782293889)) |
+| API live PK challenge | 16/16 PASS |
 
 ## Evidence files
 
