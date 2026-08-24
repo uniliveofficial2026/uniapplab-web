@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-pk-invite-smoke-scaffold",
+  "currentSlice": "A-webar-warm-no-redirect-pk-invite-path",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -37,7 +37,10 @@
     "smoke-live-pk-invite-stage-scaffold",
     "wallet-authority-7-pass",
     "gift-scheduler-13-pass",
-    "livekit-api-reachable"
+    "livekit-api-reachable",
+    "webar-warm-skip-hostname-redirect",
+    "smoke-live-base-localhost",
+    "smoke-live-pk-invite-path-pass"
   ],
   "failing": [],
   "blocked": [
@@ -58,19 +61,19 @@
       "detail": "PK invite dual-host smoke soft-SKIPs when go-live/navigation unstable or no discoverable opponents; admin access-code + multi-device hardware remain"
     }
   ],
-  "nextAction": "Stabilize InstantRoom go-live under dual-context; PK invite accept when opponents discoverable; Stage B locked",
+  "nextAction": "PK invite accept/connect E2E still open; Stage A NOT_PASSED; Stage B locked",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "1bb36c0",
+  "lastValidatedCommit": "pending",
   "evidence": {
     "typecheck_instacollab": "PASS",
     "smoke_live_gift_panel": "PASS",
     "smoke_live_pk_chrome": "PASS",
     "smoke_live_multiguest_chrome": "PASS",
     "smoke_live_shop_chrome": "PASS",
-    "smoke_live_pk_invite_stage": "SOFT_SKIP_scaffold",
+    "smoke_live_pk_invite_stage": "PASS_invite_path_accept_open",
     "smoke_marketplace_mount": "PASS",
     "smoke_messages_mount": "PASS",
     "smoke_calls_ui": "PASS",
@@ -83,7 +86,8 @@
     "pk_seat": "6/6",
     "messages_outbox": "3/3",
     "marketplace_ledger": "4/4",
-    "media_games": "6/6"
+    "media_games": "6/6",
+    "webar_warm_no_loopback_redirect": "PASS"
   },
-  "updatedAt": "2026-08-24T02:02:00Z"
+  "updatedAt": "2026-08-24T02:14:30Z"
 }

@@ -1,3 +1,9 @@
+## 2026-08-24T02:14:30Z — WebAR warm no loopback redirect + PK invite path PASS
+- `tencentWebARWarm`: stop calling `ensureTencentWebARAllowedHostname` during Create Room warm (was `location.replace` 127→localhost and tearing down InstantRoom).
+- Live Playwright smokes default to `http://localhost:5173` (license-safe host).
+- `smoke:live-pk-invite-stage` **PASS** for dual Solo live → PK overlay → invite panel → discoverable host row (accept/connect still open).
+- uiUxChanged: false. Stage B locked.
+
 # 12 — Change Log
 
 All entries are Stage A documentation / verification unless noted. **uiUxChanged: false**

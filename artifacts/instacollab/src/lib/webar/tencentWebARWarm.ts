@@ -3,7 +3,7 @@
  * GPU init is deferred until beauty/effects are actually selected (keeps preview low-latency).
  */
 import { releaseAppCamera } from '../camera/appCameraOwner';
-import { ensureTencentWebARAllowedHostname, isTencentWebARConfigured } from './webarConfig';
+import { isTencentWebARConfigured } from './webarConfig';
 import {
   getSharedTencentWebARInstance,
   hydrateTencentWebARCatalogsFromStorage,
@@ -44,9 +44,9 @@ export function ensureTencentWebARPipelineWarm(): Promise<boolean> {
   if (!isTencentWebARConfigured() || typeof window === 'undefined') {
     return Promise.resolve(false);
   }
-  if (ensureTencentWebARAllowedHostname()) {
-    return Promise.resolve(false);
-  }
+  // Do NOT call ensureTencentWebARAllowedHostname here — that location.replace
+  // would tear down InstantRoomEntryHost mid-create when opened on 127.0.0.1.
+  // Redirect stays in pool/useTencentWebAR right before GPU auth.
 
   hydrateTencentWebARCatalogsFromStorage();
   warmTencentWebARForVideoCall();

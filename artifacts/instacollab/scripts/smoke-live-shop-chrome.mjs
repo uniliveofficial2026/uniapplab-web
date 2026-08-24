@@ -10,7 +10,7 @@ import { chromium } from 'playwright';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const REPO_ROOT = path.resolve(__dirname, '../../..');
-const base = (process.argv[2] ?? 'http://127.0.0.1:5173').replace(/\/$/, '');
+const base = (process.argv[2] ?? 'http://localhost:5173').replace(/\/$/, '');
 const OUT_DIR = path.join(REPO_ROOT, '.local/live-smoke');
 const stamp = new Date().toISOString().replace(/[:.]/g, '-');
 

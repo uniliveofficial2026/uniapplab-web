@@ -34,6 +34,7 @@ Updated: 2026-08-24T00:20:00Z
 
 ## PK topology / invite E2E (remaining)
 
+- **PASS (invite path):** dual-host Solo live + invite host list (`smoke:live-pk-invite-stage`) — accept/connect still open
 - **PASS (chrome):** `smoke:live-pk-chrome` — Solo live mounts **Open PK creation** + PK setup sheet hint (2026-08-24)
 - **Still open:** browser E2E for invite accept + 1v1–6v6 dual-room stress
 - Structural visual lock + topology + `stage-a-mount-contracts` cover Team/1v1 PK + invite sheet source (PASS)
