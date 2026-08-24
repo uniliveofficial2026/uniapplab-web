@@ -125,7 +125,8 @@
     "posts:bootstrap-db": "node scripts/posts-bootstrap-db.mjs",
     "test:reels": "node scripts/test-reels-playback.mjs",
     "smoke:live-multiguest-chrome": "node scripts/smoke-live-multiguest-chrome.mjs",
-    "smoke:live-shop-chrome": "node scripts/smoke-live-shop-chrome.mjs"
+    "smoke:live-shop-chrome": "node scripts/smoke-live-shop-chrome.mjs",
+    "smoke:live-pk-invite-stage": "node scripts/smoke-live-pk-invite-stage.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",
