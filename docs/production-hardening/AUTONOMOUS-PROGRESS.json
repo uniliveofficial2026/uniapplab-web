@@ -66,7 +66,7 @@
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "pending",
+  "lastValidatedCommit": "cc44259",
   "evidence": {
     "typecheck_instacollab": "PASS",
     "smoke_live_gift_panel": "PASS",
