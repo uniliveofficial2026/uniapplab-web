@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" fill="none">
+  <rect width="512" height="512" rx="108" fill="#020617"/>
+  <rect x="96" y="96" width="320" height="320" rx="72" fill="#0f172a" stroke="#334155" stroke-width="4"/>
+  <text x="256" y="300" text-anchor="middle" fill="#e2e8f0" font-family="Inter, system-ui, sans-serif" font-size="148" font-weight="800">UL</text>
+</svg>

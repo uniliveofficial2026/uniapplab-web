@@ -1,0 +1,29 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>09-PROVIDER-REGISTRY.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>09 — Provider Registry</h1></p><p>Providers are pluggable adapters behind stable UniLive capability kinds.</p><p><h2>Registry API</h2></p><p><code>createProviderRegistry()</code> in <code>@unilives/platform-core</code>:</p><p>``<code>javascript
+registry.resolve('rtc')   // → { provider: 'livekit', adapterPackage: '@unilives/rtc-livekit', status: 'active' }
+registry.list()           // all registered providers
+registry.register(entry)  // add or override
+</code>`<code></p><p><h2>Capability kinds</h2></p><p></code>rtc | database | auth | storage | realtime | functions | deployment | git | notification | ai<code></p><p><h2>Default adapters (Stage B)</h2></p><p>| Kind | Default | Package |
+|---|---|---|
+| rtc | livekit | </code>@unilives/rtc-livekit<code> |
+| auth | supabase | </code>@unilives/auth<code> |
+| database | supabase | </code>@unilives/database<code> |
+| storage | cloudflare-r2 | </code>@unilives/storage<code> |
+| realtime | supabase | </code>@unilives/realtime<code> |
+| deployment | vercel | </code>@unilives/deploy<code> |
+| git | github | </code>@unilives/git<code> |
+| functions | vercel | foundation only |</p><p><h2>Connection model</h2></p><p></code>connectProvider({ projectId, environmentId, kind, provider, secretRef, config })<code>:</p><p>- Stores </code>secretRef<code> (e.g. </code>secret://cred_xxx<code>), not secret value
+- Updates environment's </code>providers[kind]<code> pointer</p><p><h2>API exposure</h2></p><p>- </code>GET /v1/providers<code> — public list (no secrets)
+- MCP </code>inspect_provider_health<code> — status + adapter package names</p><p><h2>RTC special case</h2></p><p>Media provider implements </code>UniLivesRTCProvider<code>. Business orchestrators never import provider SDKs. See </code>docs/rtc-platform/15-PROVIDER-INDEPENDENCE.md<code>.</p><p><h2>Fake adapters</h2></p><p>RTC fake provider is for tests/MCP — not registered as production </code>active<code> media.</p><p><h2>Legacy coupling</h2></p><p>Reference app and api-server still contain direct Firebase/Supabase/LiveKit imports. Stage B added boundaries; full migration tracked in </code>docs/rtc-platform/PROVIDER-COUPLING-MANIFEST.md<code>.</p><p><h2>Stage C target</h2></p><p>- Registry-driven SDK adapter resolution (auto-wire auth/database/storage from project env)
+- Cloudflare Realtime qualification remains lab-only
+- Document adapter authoring guide for third-party SFU/storage</p><p><h2>Evidence</h2></p><p></code>scripts/test-stage-b.mjs<code> → </code>deploy_git_registry`
+</p></main></body></html>

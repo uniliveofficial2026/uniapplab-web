@@ -1,0 +1,25 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>08-PROJECT-MODEL.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>08 — Project Model</h1></p><p>Projects are the top-level tenant boundary for UniLive Platform apps.</p><p><h2>Hierarchy</h2></p><p>``<code>
+Organization
+  └── Project
+        └── Environment (development | preview | production)
+              └── Provider connections (per kind)
+</code>`<code></p><p><h2>Project graph</h2></p><p></code>createProjectGraph({ projectId, name })<code> — machine-readable app model:</p><p>- </code>pages<code>, </code>routes<code>, </code>components<code>, </code>dataSources<code>
+- </code>bindings<code>: data, actions, permissions, auth, rtc, storage, deployment</p><p>Version: </code>1<code>. Serializable via </code>toJSON()<code>.</p><p><h2>API</h2></p><p>| Method | Path | Action |
+|---|---|---|
+| GET | </code>/v1/projects<code> | List projects |
+| POST | </code>/v1/projects<code> | Create project (+ auto environments) |
+| GET | </code>/v1/projects/:projectId<code> | Project + environments + empty graph |
+| GET | </code>/v1/environments?projectId=<code> | List environments |</p><p><h2>Local config</h2></p><p>CLI </code>init<code> produces </code>.unilive.json<code> (see </code>06-CLI.md<code>).</p><p><h2>SDK binding</h2></p><p></code>createUniLive({ projectId, credentialPublicId, controlPlane, provider })<code> scopes all capability calls to a project.</p><p><h2>Reference app mapping</h2></p><p>Today </code>uniapplab-web<code> bootstrap project maps to the instacollab deployment. Full project graph authoring is future App Builder scope.</p><p><h2>App Builder (foundation)</h2></p><p>Graph structure exists; no visual builder UI. MCP agents can programmatically add pages/routes.</p><p><h2>Stage C notes</h2></p><p>- Graph </code>bindings.rtc[]` should reference room types, default roles, token endpoints
+- Not yet populated in reference app (hand-authored React)
+- Stage C: document graph schema as stable v1 contract</p><p><h2>Status</h2></p><p>**FOUNDATION** — structure implemented; productization = schema docs + MCP examples.
+</p></main></body></html>

@@ -1,0 +1,1 @@
+const C=Object.freeze(["CREATED","RINGING","ACCEPTED","CONNECTING","CONNECTED","RECONNECTING","ENDED","DECLINED","CANCELLED","BUSY","TIMED_OUT","MISSED","FAILED"]);function N(E){return String(E||"").trim()}function n(E){return String(E||"").trim()}export{C,N as a,n as b};

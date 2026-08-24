@@ -1,0 +1,1 @@
+let n=Promise.resolve(),e=0;function i(t){const c=++e,r=n.then(async()=>{c===e&&await t()},async()=>{c===e&&await t()});return n=r.catch(()=>{}),r}function o(){e+=1,n=Promise.resolve()}export{i as enqueueTencentWebAREffect,o as resetTencentWebAREffectQueue};

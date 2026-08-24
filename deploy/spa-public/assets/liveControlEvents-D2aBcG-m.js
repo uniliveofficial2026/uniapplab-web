@@ -1,0 +1,1 @@
+const i="unilives-live-ended";function o(e){const n=e.trim();!n||typeof window>"u"||window.dispatchEvent(new CustomEvent(i,{detail:{roomId:n}}))}function t(e){const n=e.detail?.roomId;return typeof n=="string"&&n.trim()?n.trim():null}export{i as L,t as l,o as s};

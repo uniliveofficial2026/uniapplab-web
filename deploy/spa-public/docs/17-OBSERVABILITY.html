@@ -1,0 +1,32 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>17-OBSERVABILITY.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>17 — Observability (<code>@unilives/observe</code>)</h1></p><p>Platform observability: audit logs, RTC usage rollup, trace correlation — without leaking secrets.</p><p><h2>Package</h2></p><p>- Path: <code>lib/unilives-observe</code>
+- Name: <code>@unilives/observe</code> v0.1.0</p><p>Also implemented in <code>@unilives/platform-core</code>: <code>createTraceContext()</code>.</p><p><h2>Trace context</h2></p><p>``<code>javascript
+{
+  traceId,           // auto-minted if omitted
+  canonicalUserId, sessionId, roomId, callId,
+  pkId, giftEventId, deploymentId
+}
+</code>`<code></p><p>Used by SDK </code>events.createTrace<code> and </code>observe.createTrace<code>.</p><p><h2>Audit log</h2></p><p>Control plane records project/member/provider/deployment/api key lifecycle.</p><p>| Consumer | Access |
+|---|---|
+| API | </code>GET /v1/logs?limit=50<code> |
+| MCP | </code>get_logs<code> |
+| CLI | </code>unilive logs<code> |</p><p><h2>Metrics</h2></p><p>| Source | Content |
+|---|---|
+| </code>createRtcUsageMeter().rollup()<code> | Room/participant/track sessions |
+| </code>controlPlane.listUsage()<code> | Platform usage rows |
+| API | </code>GET /v1/metrics<code> |
+| MCP | </code>get_metrics<code> |</p><p><h2>Provider health</h2></p><p></code>GET /v1/providers<code> and MCP </code>inspect_provider_health<code> — adapter status without credentials.</p><p><h2>Product observability (migration)</h2></p><p>Reference app retains LiveKit telemetry (</code>hostLiveKitTelemetry.ts<code>) during migration. Target: provider </code>getStats()<code> + platform trace ids.</p><p><h2>Logging rules</h2></p><p>1. Never log raw tokens or API keys
+2. Prefer event ids over full payloads in audit
+3. Correlate RTC webhooks via </code>{provider}:{providerEventId}`</p><p><h2>Stage C work</h2></p><p>- [ ] OpenTelemetry export from api-server
+- [ ] QoE time-series from governor samples
+- [ ] Persist audit/metrics to Postgres</p><p><h2>Classification</h2></p><p>**IMPLEMENTED** + **NEEDS_PRODUCTIZATION**</p><p><h2>Evidence</h2></p><p>Platform-core trace + usage meter in Stage B suite; observe package implemented.
+</p></main></body></html>

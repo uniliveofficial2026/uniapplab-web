@@ -1,0 +1,30 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>20-SELF-HOST-READINESS.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>20 — Self-Host Readiness</h1></p><p>Honest BYO infrastructure guide for UniLive Platform. Stage B validated contract swap via Fake provider; self-host production is **FOUNDATION_READY**, not fully automated.</p><p><h2>Component map</h2></p><p>| Layer | Self-host option |
+|---|---|
+| Web app | Static/Vercel/any CDN — build <code>artifacts/instacollab</code> |
+| API | Node on Render/Railway/self — <code>artifacts/api-server</code>, bind <code>0.0.0.0:$PORT</code> |
+| Postgres | Supabase CLI local, managed Supabase, or plain Postgres |
+| Media SFU | LiveKit OSS cluster |
+| Object storage | Cloudflare R2, MinIO, S3 |
+| Realtime | Supabase Realtime, custom WS, or memory (dev) |
+| Git/CI | GitHub (default adapter) |</p><p><h2>Control plane persistence</h2></p><p>Current <code>createControlPlaneStore()</code> is in-memory. Self-host production **requires** Postgres adapter — Stage C priority.</p><p><h2>Secret management</h2></p><p>Environment variables + secret refs:</p><p>- LiveKit: <code>@workspace/livekit</code> config
+- Supabase: service role via env (not exposed in <code>/v1/*</code>)
+- R2: worker bindings or S3-compatible env</p><p><h2>RTC self-host</h2></p><p>1. Deploy LiveKit OSS
+2. Configure api-server LiveKit env
+3. Use <code>/v1/rtc/tokens</code> for grant + JWT mint
+4. Clients use <code>@unilives/rtc-livekit</code> with self-hosted URL</p><p>Alternate SFU: implement new adapter package + registry entry (no production cutover required for platform acceptance).</p><p><h2>Deploy boundary</h2></p><p><code>@unilives/deploy</code> records deployments; actual promotion uses existing Vercel integration today. Render/Railway adapters are Stage C foundation work.</p><p><h2>Render notes</h2></p><p>- Bind <code>0.0.0.0:$PORT</code>
+- Ephemeral disk — persist usage/audit to Postgres, not local files
+- Linux paths case-sensitive</p><p><h2>Local stack (CLI <code>dev</code> / <code>start</code>)</h2></p><p>Documented targets: <code>postgres, auth, realtime, storage, rtc-fake|livekit, api, mcp</code></p><p>Full orchestration script **pending** — Stage C deliverable.</p><p><h2>Docker compose</h2></p><p>Stage B documents orchestration intent; production-grade compose stack is **NOT SHIPPED**. Fake provider sufficient for CI.</p><p><h2>Stage C acceptance criteria (self-host slice)</h2></p><p>- [ ] Postgres control plane adapter documented + tested
+- [ ] LiveKit OSS env var matrix documented
+- [ ] <code>unilive start</code> boots minimal local stack
+- [ ] No claim of one-click production deploy until verified</p><p><h2>Evidence</h2></p><p><code>docs/rtc-platform/16-SELF-HOST-READINESS.md</code>, <code>docs/platform/SELF-HOST-ARCHITECTURE.md</code>
+</p></main></body></html>

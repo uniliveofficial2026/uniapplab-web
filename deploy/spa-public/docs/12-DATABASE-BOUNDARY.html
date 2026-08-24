@@ -1,0 +1,16 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>12-DATABASE-BOUNDARY.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>12 — Database Boundary (<code>@unilives/database</code>)</h1></p><p>Provider-neutral database adapter boundary.</p><p><h2>Package</h2></p><p>- Path: <code>lib/unilives-database</code>
+- Name: <code>@unilives/database</code> v0.1.0</p><p><h2>Purpose</h2></p><p>Abstracts data persistence behind capability kind <code>database</code>. Default registry entry: Supabase.</p><p><h2>Stage B status</h2></p><p>**FOUNDATION** — adapter boundary stub. MCP <code>inspect_database</code> returns provider info only (no query execution).</p><p><h2>SDK integration</h2></p><p>SDK <code>database</code> namespace throws <code>DATABASE_ADAPTER_REQUIRED</code>.</p><p><h2>Reference app</h2></p><p>Uses Supabase client directly + <code>lib/db</code> workspace helpers. Platform boundary does not yet replace app queries.</p><p><h2>Stage C work</h2></p><p>- [ ] Define minimal query interface (read/write/migrate hooks)
+- [ ] Supabase adapter implementation
+- [ ] Postgres plain adapter for self-host
+- [ ] Wire SDK + document migration from direct Supabase imports</p><p><h2>Self-host</h2></p><p>Supabase CLI local, managed Supabase, or plain Postgres — see <code>20-SELF-HOST-READINESS.md</code>.</p><p><h2>Classification</h2></p><p>**FOUNDATION** + **NEEDS_PRODUCTIZATION**</p><p><h2>Evidence</h2></p><p>Package present + platform docs; MCP inspect tool in Stage B suite.
+</p></main></body></html>

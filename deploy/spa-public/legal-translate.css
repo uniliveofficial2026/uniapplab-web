@@ -1,0 +1,74 @@
+/* Legal pages — language bar + hide Google Translate chrome */
+#legal-lang-bar {
+  position: sticky;
+  top: 0;
+  z-index: 1000;
+  background: rgba(11, 6, 18, 0.94);
+  backdrop-filter: blur(10px);
+  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 0.65rem 1rem;
+}
+
+.legal-lang-inner {
+  max-width: 760px;
+  margin: 0 auto;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.55rem 0.85rem;
+}
+
+.legal-lang-inner label {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #f5f0fa;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+#legal-lang-select {
+  min-width: 11rem;
+  max-width: 100%;
+  border-radius: 0.65rem;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  background: #16101f;
+  color: #f5f0fa;
+  font-size: 0.85rem;
+  padding: 0.4rem 0.65rem;
+  min-height: 2.1rem;
+}
+
+.legal-lang-hint {
+  font-size: 0.7rem;
+  color: #b7a9c9;
+}
+
+#google_translate_element {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* Hide Google Translate top banner / branding */
+.goog-te-banner-frame,
+.skiptranslate > iframe.skiptranslate,
+body > .skiptranslate,
+.goog-te-gadget-icon {
+  display: none !important;
+}
+
+body {
+  top: 0 !important;
+}
+
+.goog-te-gadget {
+  font-size: 0 !important;
+}
+
+font {
+  background: transparent !important;
+  box-shadow: none !important;
+}

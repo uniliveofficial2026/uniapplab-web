@@ -1,0 +1,23 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>24-UNRESOLVED.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>24 — Unresolved (Stage C)</h1></p><p>Honest open items blocking or deferring Stage C acceptance. Updated at bootstrap — not exhaustive of all future work.</p><p><h2>License decision — **PENDING**</h2></p><p>| Item | Status |
+|---|---|
+| SPDX license per <code>@unilives/*</code> package | **NOT DECIDED** |
+| Reference app license (proprietary vs open) | **NOT DECIDED** |
+| Contributor agreement / CLA | **NOT DECIDED** |</p><p>See <code>LICENSE-DECISION.md</code>. **No silent license inventing.**</p><p>Public npm publish is likely a **<code>RELEASE_READY_EXTERNAL_STEP</code>** — separate from Stage C foundation PASS.</p><p><h2>Public npm publish — **DEFERRED**</h2></p><p>| Blocker | Notes |
+|---|---|
+| License decision | Required before any publish |
+| CI publish pipeline | Not configured |
+| Semver policy | Documented in Stage C target, not enforced |
+| <code>@unilives/*</code> currently <code>"private": true</code> | Workspace-only |</p><p><h2>Control plane persistence — **NOT STARTED**</h2></p><p>In-memory store is acceptable for Stage B foundation; self-host and multi-instance API require Postgres adapter.</p><p><h2>SDK capability stubs — **OPEN**</h2></p><p><code>auth</code>, <code>database</code>, <code>storage</code>, <code>realtime</code>, <code>functions</code> throw adapter-required errors. Boundary packages exist but are not wired through SDK/registry.</p><p><h2>API auth middleware — **OPEN**</h2></p><p><code>controlPlane.authorize()</code> exists; not enforced on all <code>/v1/*</code> mutating routes. MCP enforces auth.</p><p><h2>Reference app RTC migration — **IN PROGRESS**</h2></p><p>- <code>hostLiveKitRoom</code> still uses compatibility boundary
+- Legacy <code>lib/livekit/*</code> paths active
+- Target: full <code>createUniLiveRTC</code> attach without UI change</p><p><h2>Production RTC cutover — **NOT PERFORMED** (intentional)</h2></p><p><code>productionRtcCutover: NOT_PERFORMED</code> — UniLiveRTC API is product-facing; LiveKit remains media provider. Not a Stage C blocker unless explicitly scoped.</p><p><h2>Visual Builder / Studio UI — **OUT OF SCOPE**</h2></p><p><code>ProjectGraph</code> foundation only. No WYSIWYG editor in Stage C.</p><p><h2>Native CallKit/PushKit — **ACCEPTED EXTERNAL BLOCKER** (Stage A)</h2></p><p>VoIP cert + online device required. Unchanged.</p><p><h2>APNs provider key — **ACCEPTED EXTERNAL BLOCKER** (Stage A)</h2></p><p>Key absent after credential exhaust. FCM topic healthcheck PASS.</p><p><h2>Commerce UI kit (Checkout/Orders/Seller) — **FOUNDATION ONLY**</h2></p><p>Registry entries exist; no new checkout screens. Not blocking platform productization.</p><p><h2><code>@workspace/unilives-asset-studio</code> scope — **OPEN**</h2></p><p>Separate media pipeline product under workspace scope. Relationship to <code>@unilives/*</code> platform TBD.</p><p><h2>Resolution tracking</h2></p><p>Items move to <code>23-CHANGE-LOG.md</code> when resolved. Stage C acceptance (<code>25-FINAL-ACCEPTANCE.md</code>) remains **NOT PASS** until checklist items are honestly checked.
+</p></main></body></html>

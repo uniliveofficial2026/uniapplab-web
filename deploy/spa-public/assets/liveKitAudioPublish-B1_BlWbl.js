@@ -1,0 +1,1 @@
+import{LocalAudioTrack as r,Track as i}from"./vendor-livekit-CZz8WIZy.js";async function n(c,a){for(const u of c.audioTrackPublications.values()){const o=u.track;o&&(await c.unpublishTrack(o),o instanceof r&&o.stop())}if(!a||a.readyState==="ended")return;const t=new r(a,void 0,!0);await c.publishTrack(t,{source:i.Source.Microphone})}export{n as u};

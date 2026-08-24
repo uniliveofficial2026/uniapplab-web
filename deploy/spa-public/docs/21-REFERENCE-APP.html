@@ -1,0 +1,31 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>21-REFERENCE-APP.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>21 — Reference App</h1></p><p><code>artifacts/instacollab</code> is the UniLive reference application — production UI for live, calls, PK, shop, games, messaging.</p><p><h2>RTC facade</h2></p><p>Primary entry: <code>src/lib/unilive-rtc/</code></p><p>| File | Role |
+|---|---|
+| <code>index.ts</code> | Re-exports packages + <code>createReferenceRtcProvider()</code> |
+| <code>callDomain.ts</code> | Singleton call orchestrator wrappers |
+| <code>pkDomain.ts</code> | PkOrchestrator mirror for gift settle |
+| <code>eventLanes.ts</code> | Likes/gifts via <code>@unilives/realtime</code> |</p><p><h2>Provider selection</h2></p><p>``<code>typescript
+createReferenceRtcProvider({ identity, roomType, preferFake })
+</code>`<code></p><p>1. If </code>preferFake<code> → </code>@unilives/rtc-fake<code>
+2. Else try </code>@unilives/rtc-livekit<code>
+3. Catch → fake fallback (dev/tests)</p><p><h2>Stage B integration (no UI redesign)</h2></p><p>- </code>connectLiveKitRoom<code> uses </code>createLiveKitRTCProvider<code>
+- </code>demoCallBus<code> mirrors signals into </code>CallOrchestrator<code>
+- Gift settle mirrors into </code>PkOrchestrator<code> via lifecycle-settle route
+- </code>livekit-client<code> static imports: only </code>livekitCompatibilityBoundary.ts<code> (+ dynamic import in adapter)</p><p><h2>Legacy paths (migration — Stage C continues)</h2></p><p>Still active:</p><p>- </code>src/lib/livekit/*<code> — publish, room bus, telemetry
+- </code>src/lib/rtc/livekitCompatibilityBoundary.ts<code> — typed re-exports
+- smule-rooms hooks/components with direct LiveKit room attach
+- </code>hostLiveKitRoom<code> via compatibility boundary (interim attach path)</p><p>**UI unchanged** — only import path and join authority migrate.</p><p><h2>API consumption</h2></p><p>Reference app can adopt </code>/v1/rtc/tokens<code> for grant minting; today many flows use legacy </code>/livekit<code> routes and client-side config.</p><p><h2>Assets</h2></p><p></code>src/lib/unilives-assets/<code> — stickers, gifts, brand resolution (separate from RTC platform packages).</p><p><h2>Smule rooms</h2></p><p>Live room chrome (v15 approved UI), gift overlay, PK sheets, beauty/voice sheets — Stage A visual lock applies.</p><p><h2>Testing</h2></p><p>| Suite | Scope |
+|---|---|
+| Stage A smokes | live base, PK lifecycle, multiguest, shop, calls dual-party, reconnect |
+| Stage B unit | </code>node scripts/test-stage-b.mjs<code> — orchestrators independent of UI |
+| Visual lock | 22/22 baselines |</p><p><h2>Target end state (Stage C)</h2></p><p>All RTC join/publish through </code>createUniLiveRTC<code> + server grants; delete compatibility boundary and legacy livekit lib shims when import scan hits zero offenders outside allowlist.</p><p><h2>Classification</h2></p><p>Reference app remains **proprietary** — not published as </code>@unilives/*<code>. See </code>19-OPEN-SOURCE-BOUNDARIES.md`.
+</p></main></body></html>

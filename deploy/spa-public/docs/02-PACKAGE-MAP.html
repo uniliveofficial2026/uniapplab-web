@@ -1,0 +1,90 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>02-PACKAGE-MAP.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>02 — Package Map (Stage C inventory)</h1></p><p>All packages live under <code>lib/unilives-*</code>. Names read from each <code>package.json</code> <code>name</code> field.</p><p><h2>Package inventory (20 packages)</h2></p><p>| Directory | npm name | Version |
+|---|---|---|
+| <code>lib/unilives-platform-core</code> | <code>@unilives/platform-core</code> | 0.1.0 |
+| <code>lib/unilives-sdk</code> | <code>@unilives/sdk</code> | 0.1.0 |
+| <code>lib/unilives-rtc-contracts</code> | <code>@unilives/rtc-contracts</code> | 0.1.0 |
+| <code>lib/unilives-rtc-core</code> | <code>@unilives/rtc-core</code> | 0.1.0 |
+| <code>lib/unilives-rtc-client</code> | <code>@unilives/rtc-client</code> | 0.1.0 |
+| <code>lib/unilives-rtc-server</code> | <code>@unilives/rtc-server</code> | 0.1.0 |
+| <code>lib/unilives-rtc-livekit</code> | <code>@unilives/rtc-livekit</code> | 0.1.0 |
+| <code>lib/unilives-rtc-fake</code> | <code>@unilives/rtc-fake</code> | 0.1.0 |
+| <code>lib/unilives-rtc-qoe</code> | <code>@unilives/rtc-qoe</code> | 0.1.0 |
+| <code>lib/unilives-mcp</code> | <code>@unilives/mcp</code> | 0.1.0 |
+| <code>lib/unilives-cli</code> | <code>@unilives/cli</code> | 0.1.0 |
+| <code>lib/unilives-auth</code> | <code>@unilives/auth</code> | 0.1.0 |
+| <code>lib/unilives-database</code> | <code>@unilives/database</code> | 0.1.0 |
+| <code>lib/unilives-storage</code> | <code>@unilives/storage</code> | 0.1.0 |
+| <code>lib/unilives-realtime</code> | <code>@unilives/realtime</code> | 0.1.0 |
+| <code>lib/unilives-deploy</code> | <code>@unilives/deploy</code> | 0.1.0 |
+| <code>lib/unilives-git</code> | <code>@unilives/git</code> | 0.1.0 |
+| <code>lib/unilives-observe</code> | <code>@unilives/observe</code> | 0.1.0 |
+| <code>lib/unilives-ui</code> | <code>@unilives/ui</code> | 0.1.0 |
+| <code>lib/unilives-asset-studio</code> | <code>@workspace/unilives-asset-studio</code> | 0.0.0 |</p><p>**Note:** <code>unilives-asset-studio</code> uses workspace scope and is a separate media pipeline product — not part of the core platform productization track.</p><p><h2>Classification legend</h2></p><p>| Label | Meaning |
+|---|---|
+| **IMPLEMENTED** | Working code with Stage B test coverage |
+| **FOUNDATION** | Real code; intentionally scoped; not full commercial product |
+| **INTERNAL_ONLY** | Workspace/monorepo use only; not intended for external publish |
+| **PUBLIC_READY** | Stable API, types, docs sufficient for npm publish (pending license) |
+| **NEEDS_PRODUCTIZATION** | Stage C must add README, semver, exports audit, publish prep |</p><p><h2>Classification by domain</h2></p><p><h3>platform-core — <code>@unilives/platform-core</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **IMPLEMENTED** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Control plane store, provider registry, usage meter, project graph, trace context. In-memory only — Postgres adapter is Stage C work. |</p><p><h3>sdk — <code>@unilives/sdk</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **IMPLEMENTED** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | <code>createUniLive()</code> active for RTC/events/control plane. Auth/database/storage/realtime/functions stubs throw adapter-required errors. |</p><p><h3>rtc-* (8 packages)</h3></p><p>| Package | Classification | Notes |
+|---|---|---|
+| <code>@unilives/rtc-contracts</code> | **IMPLEMENTED**, **PUBLIC_READY** | Pure types; no provider leakage. Best first publish candidate. |
+| <code>@unilives/rtc-core</code> | **IMPLEMENTED**, **NEEDS_PRODUCTIZATION** | Orchestrators + runtime; 16-test coverage. |
+| <code>@unilives/rtc-client</code> | **IMPLEMENTED**, **NEEDS_PRODUCTIZATION** | <code>createUniLiveRTC</code> join/publish/leave. |
+| <code>@unilives/rtc-server</code> | **IMPLEMENTED**, **NEEDS_PRODUCTIZATION** | Grants, webhook normalize, token mint. |
+| <code>@unilives/rtc-livekit</code> | **IMPLEMENTED**, **NEEDS_PRODUCTIZATION** | Only package with <code>livekit-client</code> dep (dynamic import). |
+| <code>@unilives/rtc-fake</code> | **IMPLEMENTED**, **INTERNAL_ONLY** | CI/MCP test double; not production media. |
+| <code>@unilives/rtc-qoe</code> | **IMPLEMENTED**, **NEEDS_PRODUCTIZATION** | QoE governor, thermal profiles. |
+| <code>@unilives/rtc-server</code> | (listed above) | |
+| <code>@workspace/unilives-asset-studio</code> | **FOUNDATION**, **INTERNAL_ONLY** | Asset pipeline; separate scope. |</p><p><h3>mcp — <code>@unilives/mcp</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **IMPLEMENTED** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | 17 tools; auth required by default. Stdio binary foundation. |</p><p><h3>cli — <code>@unilives/cli</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **IMPLEMENTED** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | <code>init</code>, <code>doctor</code>, <code>rtc status</code>, delegates to repo scripts. <code>unilive start</code> documented, not complete. |</p><p><h3>auth — <code>@unilives/auth</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **FOUNDATION** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Memory + Supabase adapters. SDK stub not wired. Reference app still uses Firebase directly. |</p><p><h3>database — <code>@unilives/database</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **FOUNDATION** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Adapter boundary stub. Supabase default in registry. No ORM/query layer yet. |</p><p><h3>storage — <code>@unilives/storage</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **FOUNDATION** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Adapter boundary stub. R2 default in registry. API returns bucket stub. |</p><p><h3>realtime — <code>@unilives/realtime</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **IMPLEMENTED** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Topic lanes (authoritative vs loss-tolerant). Tested in Stage B suite. |</p><p><h3>deploy — <code>@unilives/deploy</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **FOUNDATION** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Deployment lifecycle records. Actual promotion delegates to Vercel integration. |</p><p><h3>git — <code>@unilives/git</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **FOUNDATION** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Repository metadata abstraction. GitHub default adapter. |</p><p><h3>observe — <code>@unilives/observe</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **IMPLEMENTED** + **NEEDS_PRODUCTIZATION** |
+| Stage C notes | Trace + sanitized logging. Feeds MCP <code>get_logs</code> / <code>get_metrics</code>. |</p><p><h3>ui — <code>@unilives/ui</code></h3></p><p>| Attribute | Value |
+|---|---|
+| Classification | **FOUNDATION** + **INTERNAL_ONLY** |
+| Stage C notes | <code>createUiKitRegistry()</code> maps surfaces to reference app paths. No React components exported. Checkout/Orders/Seller are <code>foundation</code> only. |</p><p><h2>Stage C productization priority</h2></p><p>1. <code>@unilives/rtc-contracts</code> → **PUBLIC_READY** (license pending)
+2. <code>@unilives/rtc-core</code>, <code>rtc-client</code>, <code>rtc-server</code> → document + semver
+3. <code>@unilives/platform-core</code>, <code>sdk</code> → Postgres persistence + wire stubs
+4. <code>@unilives/mcp</code>, <code>cli</code> → publish prep + bin packaging
+5. Boundary packages → adapter completion or honest "stub" docs
+6. <code>@unilives/ui</code> → remain **INTERNAL_ONLY** until extractable components exist</p><p><h2>Dependency rule (enforced)</h2></p><p>No <code>lib/unilives-*</code> package may import from <code>artifacts/instacollab</code>. Reference app imports platform packages — not reverse.
+</p></main></body></html>

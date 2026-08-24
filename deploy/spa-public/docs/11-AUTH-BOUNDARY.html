@@ -1,0 +1,19 @@
+<!doctype html><html lang="en"><head><meta charset="utf-8"/><title>11-AUTH-BOUNDARY.md · UniLive Docs</title>
+<style>
+body{font-family:ui-sans-serif,system-ui;margin:0;display:grid;grid-template-columns:240px 1fr;min-height:100vh;background:#0b0b0f;color:#f5f5f7}
+nav{padding:1rem;border-right:1px solid #2a2a36;background:#14141a}
+nav a{display:block;color:#a1a1aa;text-decoration:none;padding:.35rem 0}
+nav a:hover{color:#fff}
+main{padding:2rem;max-width:880px}
+code{background:#1c1c24;padding:0 .25rem;border-radius:4px}
+</style></head><body>
+<nav><strong>UniLive Docs</strong><a href="./00-STAGE-C-BASELINE.html">Getting Started</a><a href="./01-PRODUCT-SCOPE.html">Installation</a><a href="./02-PACKAGE-MAP.html">Architecture</a><a href="./06-CLI.html">CLI</a><a href="./04-SDK.html">SDK</a><a href="./05-MCP.html">MCP</a><a href="./18-UI-KIT-FOUNDATION.html">UI Kit</a><a href="./10-SECURITY-MODEL.html">Security</a><a href="./20-SELF-HOST-READINESS.html">Self Host</a><a href="./03-PUBLIC-API.html">API</a><a href="./22-TEST-MATRIX.html">Test Matrix</a><a href="./LICENSE-DECISION.html">License Decision</a></nav>
+<main><p><h1>11 — Auth Boundary (<code>@unilives/auth</code>)</h1></p><p>Provider-neutral auth adapter boundary.</p><p><h2>Package</h2></p><p>- Path: <code>lib/unilives-auth</code>
+- Name: <code>@unilives/auth</code> v0.1.0</p><p><h2>Factory</h2></p><p><code>createUniLiveAuth({ adapter, supabaseClient })</code></p><p>| Adapter | Status |
+|---|---|
+| <code>memory</code> | **IMPLEMENTED** — Stage B test coverage |
+| <code>supabase</code> | **FOUNDATION** — wraps <code>@supabase/supabase-js</code> when client injected |</p><p><h2>Session model</h2></p><p>PERSON / DEVICE / APP SESSION remain distinct (documented intent). Memory adapter returns canonical user ids for tests.</p><p><h2>SDK integration</h2></p><p>Stage B: SDK <code>auth</code> namespace throws <code>AUTH_ADAPTER_REQUIRED</code>.</p><p>Stage C target: wire registry default (<code>supabase</code>) when project env has auth connection.</p><p><h2>Reference app</h2></p><p>Still uses Firebase auth directly in <code>artifacts/instacollab</code>. Migration to <code>@unilives/auth</code> is incremental — no UI change.</p><p><h2>Classification</h2></p><p>**FOUNDATION** + **NEEDS_PRODUCTIZATION**</p><p><h2>Stage C work</h2></p><p>- [ ] Complete Supabase adapter (session refresh, OAuth hooks)
+- [ ] Optional Firebase adapter for reference app bridge
+- [ ] Wire SDK stub
+- [ ] Document canonical user id mapping rules</p><p><h2>Evidence</h2></p><p><code>scripts/test-stage-b.mjs</code> → <code>auth_memory_and_realtime_lanes</code>
+</p></main></body></html>

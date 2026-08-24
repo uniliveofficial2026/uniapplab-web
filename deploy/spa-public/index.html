@@ -1,0 +1,217 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <meta name="apple-mobile-web-app-title" content="UniLive’s" />
+    <meta name="application-name" content="UniLive’s" />
+    <meta name="theme-color" content="#000000" />
+    <script>
+      (function () {
+        try {
+          var raw = localStorage.getItem('app_settings');
+          var theme = 'dark';
+          var s = null;
+          if (raw && raw !== 'undefined') {
+            s = JSON.parse(raw);
+            if (s && (s.theme === 'light' || s.theme === 'dark')) theme = s.theme;
+          }
+          var root = document.documentElement;
+          if (theme === 'dark') root.classList.add('dark');
+          root.style.colorScheme = theme;
+          document.documentElement.style.backgroundColor = '#060821';
+          document.documentElement.style.color = '#ffffff';
+          var brandHref = null;
+          try {
+            var platformRaw = localStorage.getItem('platform_app_brand_remote');
+            if (platformRaw) {
+              var platform = JSON.parse(platformRaw);
+              if (platform && typeof platform.logoUrl === 'string' && platform.logoUrl && platform.mediaType !== 'video') {
+                brandHref = platform.logoUrl;
+              }
+            }
+          } catch (e) {}
+          if (!brandHref && s && typeof s.appLogoUrl === 'string' && s.appLogoUrl && s.appLogoMediaType !== 'video') {
+            brandHref = s.appLogoUrl.indexOf('data:') === 0 ? '/api/platform/brand-icon' : s.appLogoUrl;
+          }
+          if (!brandHref) brandHref = '/brand/app-logo.png';
+          if (brandHref) {
+            var href = brandHref;
+            var icon = document.createElement('link');
+            icon.rel = 'icon';
+            icon.href = href;
+            document.head.appendChild(icon);
+            var apple = document.createElement('link');
+            apple.rel = 'apple-touch-icon';
+            apple.href = href;
+            document.head.appendChild(apple);
+            var manifest = document.createElement('link');
+            manifest.rel = 'manifest';
+            manifest.href = '/api/platform/manifest.webmanifest';
+            document.head.appendChild(manifest);
+          }
+        } catch (e) {}
+      })();
+    </script>
+    <link rel="icon" href="/brand/app-logo.png" type="image/png" />
+    <link rel="apple-touch-icon" href="/brand/app-logo.png" />
+    <link rel="preload" href="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg" as="image" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+      rel="stylesheet"
+      media="print"
+      onload="this.media='all'"
+    />
+    <noscript>
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+    </noscript>
+    <title>UniLive’s</title>
+    <meta
+      name="description"
+      content="UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
+    />
+    <meta property="og:title" content="UniLive’s" />
+    <meta
+      property="og:description"
+      content="UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
+    />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="UniLive’s" />
+    <meta property="og:url" content="https://app.uniapplab.com/" />
+    <meta property="og:image" content="https://app.uniapplab.com/brand/app-logo.png" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:title" content="UniLive’s" />
+    <meta
+      name="twitter:description"
+      content="UniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time."
+    />
+    <meta name="twitter:image" content="https://app.uniapplab.com/brand/app-logo.png" />
+    <style>
+      html, body {
+        margin: 0;
+        min-height: 100dvh;
+        background: #060821;
+        color: #fff;
+        font-family: system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+      }
+      /* Boot splash — first locked 9:16 video (always on cold start) */
+      #boot-shell {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: #060821;
+        pointer-events: none;
+      }
+      #boot-shell .boot-extend {
+        position: absolute;
+        inset: 0;
+        z-index: 0;
+      }
+      #boot-shell .boot-extend img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+        object-position: center;
+      }
+      #boot-shell .boot-frame {
+        position: relative;
+        z-index: 1;
+        height: 100dvh;
+        width: calc(100dvh * 720 / 1280);
+        max-height: 100dvh;
+        overflow: hidden;
+        background: #060821;
+        flex-shrink: 0;
+      }
+      #boot-shell .boot-art {
+        position: absolute;
+        inset: 0;
+        width: 100%;
+        height: 100%;
+        object-fit: fill;
+        object-position: center center;
+        background: #060821;
+      }
+    </style>
+    <script type="module" crossorigin src="/assets/index-D4Yt399m.js"></script>
+    <link rel="modulepreload" crossorigin href="/assets/vendor-react-D0evzek3.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-utils-Ce1ZTWB2.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-CXjp-iK5.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-motion-Cfwjp0w_.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-icons-CuIEIDna.js">
+    <link rel="stylesheet" crossorigin href="/assets/index-bgqA60HJ.css">
+  <link rel="manifest" href="/manifest.webmanifest"></head>
+  <body>
+    <div id="root"></div>
+    <div id="boot-shell" data-unilives-boot-splash="" aria-busy="true" aria-label="UniLive’s splash">
+      <div class="boot-extend" aria-hidden="true">
+        <img src="/unilives-assets/brand/loading/princess-loading-refresh-bg-extend.svg" alt="" />
+        <img
+          src="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg"
+          alt=""
+          style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;object-position:center;opacity:0.55;filter:blur(28px) saturate(1.15);transform:scale(1.12)"
+        />
+      </div>
+      <div class="boot-frame">
+        <img
+          class="boot-art"
+          src="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg"
+          alt=""
+          width="720"
+          height="1280"
+          decoding="async"
+          fetchpriority="high"
+          aria-hidden="true"
+        />
+        <video
+          id="unilives-splash-video"
+          class="boot-art"
+          src="/unilives-assets/brand/loading/princess-boot-splash-locked.mp4"
+          poster="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg"
+          width="720"
+          height="1280"
+          autoplay
+          muted
+          playsinline
+          preload="auto"
+          data-playing="1"
+          style="z-index:1"
+          aria-label="UniLive’s splash"
+        ></video>
+      </div>
+    </div>
+    <script>
+      (function () {
+        // Boot splash: online = single play; offline = loop. React advances & removes shell.
+        var v = document.getElementById('unilives-splash-video');
+        if (!v) return;
+        v.muted = true;
+        v.dataset.playing = '1';
+        var syncLoop = function () {
+          v.loop = !navigator.onLine;
+        };
+        syncLoop();
+        var play = function () {
+          var p = v.play();
+          if (p && typeof p.catch === 'function') p.catch(function () {});
+        };
+        play();
+        document.addEventListener('touchstart', play, { once: true, passive: true });
+        window.addEventListener('online', syncLoop);
+        window.addEventListener('offline', function () {
+          syncLoop();
+          play();
+        });
+      })();
+    </script>
+  </body>
+</html>
