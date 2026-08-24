@@ -1249,7 +1249,15 @@ export async function notifyLifecycleGiftSettlement(input: {
 }> {
   const roomId = input.roomId.trim();
   if (!roomId) return { ok: false, reason: 'missing_room' };
-  const result = await apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/gifts/lifecycle-settle`, {
+  const result = await apiFetch<{
+    ok: boolean;
+    applied?: boolean;
+    duplicate?: boolean;
+    giftEventId?: string;
+    localScore?: number | null;
+    opponentScore?: number | null;
+    reason?: string;
+  }>(`/api/live/rooms/${encodeURIComponent(roomId)}/gifts/lifecycle-settle`, {
     method: 'POST',
     body: JSON.stringify({
       clientRequestId: input.clientRequestId,

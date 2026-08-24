@@ -43,6 +43,7 @@ export function canAttemptLiveKit(): boolean {
 export async function connectLiveKitRoom(options: {
   token: string;
   url: string;
+  roomName?: string;
   timeoutMs?: number;
   roomOptions?: RoomOptions;
   connectOptions?: RoomConnectOptions;
@@ -68,6 +69,7 @@ export async function connectLiveKitRoom(options: {
   try {
     await withTimeout(
       provider.connect({
+        roomName: options.roomName || 'instant',
         url: options.url,
         token: options.token,
       }),
