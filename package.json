@@ -13,6 +13,7 @@
     "test:stage-b": "node scripts/test-stage-b.mjs",
     "test:stage-c": "node scripts/test-stage-c.mjs",
     "test:stage-d": "node scripts/test-stage-d.mjs",
+    "test:gifts": "pnpm --filter @workspace/instacollab run test:gift-scheduler && pnpm --filter @workspace/instacollab run test:gift-storm",
     "test:stage-c:pack": "node scripts/stage-c-pack-validate.mjs",
     "test:stage-c:local": "node scripts/stage-c-local-e2e.mjs",
     "test:stage-c:studio": "node scripts/stage-c-studio-e2e.mjs",
