@@ -123,7 +123,8 @@
     "playwright:install": "node scripts/install-playwright-browsers.mjs",
     "check:health": "node scripts/check-health.mjs",
     "posts:bootstrap-db": "node scripts/posts-bootstrap-db.mjs",
-    "test:reels": "node scripts/test-reels-playback.mjs"
+    "test:reels": "node scripts/test-reels-playback.mjs",
+    "smoke:live-multiguest-chrome": "node scripts/smoke-live-multiguest-chrome.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

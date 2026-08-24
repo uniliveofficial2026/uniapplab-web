@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-pk-chrome-smoke-instant-room-buffer",
+  "currentSlice": "A-multiguest-chrome-marketplace-mount",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -25,7 +25,10 @@
     "instant-room-open-buffer-uselayouteffect",
     "create-room-sessionstorage-hint",
     "smoke-live-pk-chrome-pass",
-    "games-livekit-cleanup-contracts"
+    "games-livekit-cleanup-contracts",
+    "smoke-live-multiguest-chrome-pass",
+    "smoke-marketplace-mount-pass",
+    "smoke-messages-mount-pass"
   ],
   "failing": [],
   "blocked": [
@@ -46,20 +49,22 @@
       "detail": "PK invite accept dual-room E2E, workspace admin access-code E2E, multi-device hardware"
     }
   ],
-  "nextAction": "Continue Stage A: PK invite accept E2E where feasible, marketplace open reliability, messages outbox; Stage B locked until Stage A PASS",
+  "nextAction": "Continue Stage A: PK invite accept E2E, Shop Live commerce chrome, long-run where feasible; Stage B locked until Stage A PASS",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "12fb428",
+  "lastValidatedCommit": "72d156d",
   "evidence": {
-    "typecheck": "PASS_PRIOR",
     "smoke_live_gift_panel": "PASS",
     "smoke_live_pk_chrome": "PASS",
+    "smoke_live_multiguest_chrome": "PASS",
+    "smoke_marketplace_mount": "PASS",
+    "smoke_messages_mount": "PASS",
+    "smoke_calls_ui": "PASS",
     "media_games_contracts": "6/6",
-    "pk_seat_contracts": "6/6",
-    "android_assembleDebug": "PASS",
-    "ios_simulator_build": "PASS"
+    "messages_outbox": "3/3",
+    "marketplace_ledger_tests": "4/4"
   },
-  "updatedAt": "2026-08-24T01:37:00Z"
+  "updatedAt": "2026-08-24T01:40:00Z"
 }

@@ -2,6 +2,11 @@
 
 All entries are Stage A documentation / verification unless noted. **uiUxChanged: false**
 
+## 2026-08-24T01:40:00Z — Multi-Guest chrome smoke + marketplace mount revalidated PASS
+- Added `smoke:live-multiguest-chrome` (Multi mode hint → go live → seat/guest chrome) **PASS**.
+- Revalidated: marketplace mount, messages mount, calls UI, live gift panel — all **PASS**.
+- uiUxChanged: false. Stage B locked. No production RTC cutover.
+
 ## 2026-08-24T01:37:00Z — Instant-room open buffer + Solo live PK chrome smoke PASS
 - `InstantRoomEntryHost`: module-level event buffer + `useLayoutEffect` so `instant-room-open` cannot be lost before listeners attach; always-on `data-instant-room-host` sentinel.
 - `CreateRoom`: `sessionStorage` hint `uni.createRoom.hint` for smoke/deep-link Solo + room name (re-applied after cloud hydrate).
