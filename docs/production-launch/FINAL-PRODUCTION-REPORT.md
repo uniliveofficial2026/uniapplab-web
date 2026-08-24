@@ -7,7 +7,7 @@ https://app.uniapplab.com
 LIVE / PASS
 
 ## Final Git SHA
-`dc7fed987ee9b6be33696d14f7de9927916a8738`
+`7fa1c7e17a8bd3a470b1f050e4fd8913a973dd3b`
 
 ## Branch
 `release/app-uniapplab-production`
@@ -30,6 +30,7 @@ LIVE / PASS
 - Socket.IO WSS upgrade PASS
 - Game healthz PASS
 - SPA deep links PASS
+- GitHub CI PASS on release branch
 
 ## SFU Cutover
 NOT_PERFORMED
