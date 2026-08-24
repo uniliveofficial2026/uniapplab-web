@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-shop-live-chrome",
+  "currentSlice": "A-live-modes-chrome-matrix",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -25,11 +25,15 @@
     "instant-room-open-buffer-uselayouteffect",
     "create-room-sessionstorage-hint",
     "smoke-live-pk-chrome-pass",
+    "smoke-live-pk-setup-sheet-required",
     "games-livekit-cleanup-contracts",
     "smoke-live-multiguest-chrome-pass",
+    "smoke-live-shop-chrome-pass",
     "smoke-marketplace-mount-pass",
     "smoke-messages-mount-pass",
-    "smoke-live-shop-chrome-pass"
+    "smoke-posts-reels-remount-pass",
+    "visual-lock-22-pass",
+    "typecheck-instacollab-pass"
   ],
   "failing": [],
   "blocked": [
@@ -50,23 +54,28 @@
       "detail": "PK invite accept dual-room E2E, workspace admin access-code E2E, multi-device hardware"
     }
   ],
-  "nextAction": "Continue Stage A: PK invite accept E2E, Shop Live commerce chrome, long-run where feasible; Stage B locked until Stage A PASS",
+  "nextAction": "Continue Stage A deep E2E (PK invite accept) and remaining matrix rows; Stage B locked until Stage A acceptance PASS",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "b6cc8f0",
+  "lastValidatedCommit": "e51f3a5",
   "evidence": {
+    "typecheck_instacollab": "PASS",
     "smoke_live_gift_panel": "PASS",
     "smoke_live_pk_chrome": "PASS",
     "smoke_live_multiguest_chrome": "PASS",
+    "smoke_live_shop_chrome": "PASS",
     "smoke_marketplace_mount": "PASS",
     "smoke_messages_mount": "PASS",
     "smoke_calls_ui": "PASS",
-    "media_games_contracts": "6/6",
+    "smoke_posts_feed": "PASS",
+    "smoke_reels": "PASS",
+    "visual_lock": "22/22",
+    "pk_seat": "6/6",
     "messages_outbox": "3/3",
-    "marketplace_ledger_tests": "4/4",
-    "smoke_live_shop_chrome": "PASS"
+    "marketplace_ledger": "4/4",
+    "media_games": "6/6"
   },
-  "updatedAt": "2026-08-24T01:42:30Z"
+  "updatedAt": "2026-08-24T01:51:00Z"
 }
