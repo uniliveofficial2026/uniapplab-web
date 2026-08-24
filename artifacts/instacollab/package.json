@@ -110,6 +110,7 @@
     "smoke:full-app": "node scripts/smoke-full-app.mjs",
     "smoke:platform": "node scripts/smoke-platform-runtime.mjs",
     "smoke:live-room-mount": "node scripts/smoke-live-room-mount.mjs",
+    "smoke:live-gift-panel": "node scripts/smoke-live-gift-panel.mjs",
     "smoke:messages-mount": "node scripts/smoke-messages-mount.mjs",
     "smoke:marketplace-mount": "node scripts/smoke-marketplace-mount.mjs",
     "smoke:posts-feed-mount": "node scripts/smoke-posts-feed-mount.mjs",
