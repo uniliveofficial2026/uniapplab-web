@@ -16,8 +16,8 @@ Invariant: **uiUxChanged: false** (ZERO redesign).
 | G-07 | Database matrix + RLS/writer map reviewed | **PARTIAL** (tables listed) |
 | G-08 | Performance risks inventoried (no UX redesign) | **PARTIAL** |
 | G-09 | Security controls checked / risks filed | **PARTIAL** |
-| G-10 | Test matrix executed for Stage A checks | **PARTIAL** (PK lifecycle round1, workspace admin, multi-device, long-run, call-state matrix green; PK round2 leak-free + dual-party calls + APNS/FCM still open) |
-| G-11 | Provider state unblocked or explicitly waived | **PARTIAL** (Cloudflare inventory ACCESSIBLE; APNS/FCM + native device QA still external) |
+| G-10 | Test matrix executed for Stage A checks | **PARTIAL** (PK full lifecycle+gift score, dual-party calls+reconnect, workspace admin, multi-device, long-run, push registry remote green; marketplace deep / reels decoder / thermal E2E / APNS still open) |
+| G-11 | Provider state unblocked or explicitly waived | **PARTIAL** (Cloudflare media mapped; FCM topic healthcheck PASS; APNS + native device QA external) |
 | G-12 | Change log complete for Stage A | **PARTIAL** |
 | G-13 | Unresolved list empty or accepted with owners | **FAIL** (external blockers remain) |
 | G-14 | Audit claims re-verified (`AUDIT-CLAIM-REVERIFY.md`) | **PASS** (updated) |

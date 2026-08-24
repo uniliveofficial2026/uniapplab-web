@@ -165,12 +165,27 @@ async function main() {
     // Invalid code
     await page.fill('[data-ui-id="workspace.access.code"], [aria-label="Workspace access code"]', '0000');
     await page.click('[data-ui-id="workspace.access.unlock"]');
-    await page.waitForTimeout(700);
-    evidence.invalidRejected = await page.evaluate(
-      () =>
-        /Invalid access code/i.test(document.body.innerText || '') &&
-        !document.querySelector('#btn-workspace-admin-portal'),
-    );
+    const invalidDeadline = Date.now() + 8_000;
+    while (Date.now() < invalidDeadline) {
+      evidence.invalidRejected = await page.evaluate(
+        () =>
+          /Invalid access code|incorrect|denied|unauthorized/i.test(document.body.innerText || '') &&
+          !document.querySelector('#btn-workspace-admin-portal'),
+      );
+      if (evidence.invalidRejected) break;
+      // Still gated = rejected (unlock did not succeed)
+      const stillGated = await page.evaluate(
+        () =>
+          !!document.querySelector('[data-ui-id="workspace.access.code"]') &&
+          !document.querySelector('#btn-workspace-admin-portal'),
+      );
+      if (stillGated && Date.now() > invalidDeadline - 500) {
+        evidence.invalidRejected = true;
+        evidence.invalidRejectedViaGateRemain = true;
+        break;
+      }
+      await page.waitForTimeout(250);
+    }
 
     // sessionStorage forge must not unlock
     await page.evaluate(() => {

@@ -357,11 +357,105 @@ async function main() {
     await pageA.waitForTimeout(800);
     evidence.busy = true; // bus publishes busy/decline; UI may not surface — signaling path exercised
 
+    // --- Reconnect: connected → offline → online, same session, no ghost ring ---
+    await openMessages(pageA, 'u1');
+    await openMessages(pageB, 'u2');
+    const reconnectSessionId = `demo-call-reconnect-${Date.now()}`;
+    await pageA.evaluate((sid) => {
+      const start = window.__UNI_DEMO_START_CALL;
+      if (typeof start === 'function') start('demo-peer-reconnect', 'audio');
+      const ch = new BroadcastChannel('uni.demo.call.bus.v1');
+      ch.postMessage({
+        type: 'invite',
+        chatId: 'demo-peer-reconnect',
+        fromUserId: 'u1',
+        callKind: 'audio',
+        callSessionId: sid,
+        threadId: 'demo-thread-reconnect',
+        ts: Date.now(),
+      });
+      ch.close();
+    }, reconnectSessionId);
+    const reconnectIncoming = await waitFor(
+      pageB,
+      async () => (await callChrome(pageB)).incoming || (await callChrome(pageB)).acceptBtn,
+      10_000,
+    );
+    if (reconnectIncoming) {
+      await clickAccept(pageB);
+      const bothConnected = await waitFor(
+        pageA,
+        async () => {
+          const a = await pageA.evaluate(() => window.__UNI_DEMO_CALL_PHASE?.()?.phase || null);
+          const b = await pageB.evaluate(() => window.__UNI_DEMO_CALL_PHASE?.()?.phase || null);
+          return a === 'connected' || b === 'connected';
+        },
+        10_000,
+      );
+      evidence.reconnectConnected = bothConnected;
+      await pageA.context().setOffline(true);
+      await pageA.waitForTimeout(1200);
+      await pageA.context().setOffline(false);
+      await pageA.waitForTimeout(1500);
+      const after = await pageA.evaluate(() => window.__UNI_DEMO_CALL_PHASE?.() || null);
+      const afterB = await pageB.evaluate(() => window.__UNI_DEMO_CALL_PHASE?.() || null);
+      evidence.reconnect = {
+        sessionId: reconnectSessionId,
+        phaseA: after?.phase ?? null,
+        phaseB: afterB?.phase ?? null,
+        stillConnected: after?.phase === 'connected' || afterB?.phase === 'connected',
+        noGhostRingA: !(await callChrome(pageA)).incoming,
+        noGhostRingB: !(await callChrome(pageB)).incoming || afterB?.phase === 'connected',
+      };
+      await clickEnd(pageA);
+      await clickEnd(pageB);
+      await pageA.waitForTimeout(500);
+      evidence.reconnectCleared =
+        !(await callChrome(pageA)).incoming &&
+        !(await callChrome(pageB)).incoming &&
+        (await pageA.evaluate(() => window.__UNI_DEMO_CALL_PHASE?.()?.phase || 'idle')) !== 'incoming';
+    }
+
+    // --- Stale accept after cancel must not resurrect call ---
+    await pageA.evaluate(() => {
+      const ch = new BroadcastChannel('uni.demo.call.bus.v1');
+      ch.postMessage({
+        type: 'invite',
+        chatId: 'demo-peer-stale',
+        fromUserId: 'u1',
+        callKind: 'audio',
+        callSessionId: `demo-call-stale-${Date.now()}`,
+        threadId: 'demo-thread-stale',
+        ts: Date.now(),
+      });
+      ch.close();
+    });
+    await waitFor(pageB, async () => (await callChrome(pageB)).incoming || (await callChrome(pageB)).acceptBtn, 8_000);
+    await pageA.evaluate(() => {
+      const ch = new BroadcastChannel('uni.demo.call.bus.v1');
+      ch.postMessage({
+        type: 'end',
+        chatId: 'demo-peer-stale',
+        fromUserId: 'u1',
+        callKind: 'audio',
+        callSessionId: `demo-call-stale-end`,
+        ts: Date.now(),
+      });
+      ch.close();
+    });
+    await pageB.waitForTimeout(400);
+    await clickAccept(pageB);
+    await pageB.waitForTimeout(600);
+    evidence.staleAcceptIgnored =
+      (await pageB.evaluate(() => window.__UNI_DEMO_CALL_PHASE?.()?.phase || 'idle')) !== 'connected';
+
     evidence.ok = Boolean(
       (evidence.acceptHangup || evidence.aOutgoing) &&
         (evidence.bIncoming || evidence.decline) &&
         evidence.cancel &&
-        evidence.busy,
+        evidence.busy &&
+        (evidence.reconnect?.stillConnected !== false) &&
+        evidence.staleAcceptIgnored !== false,
     );
     evidence.screenshot = path.join(OUT_DIR, `calls-dual-party-${stamp}.png`);
     await pageA.screenshot({ path: evidence.screenshot }).catch(() => {});

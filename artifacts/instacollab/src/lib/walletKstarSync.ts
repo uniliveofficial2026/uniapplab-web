@@ -1,13 +1,33 @@
 import { isCloudAppStateRemoteApply } from './auth/cloudAppStateFlags';
+import { isCloudAuthUserId } from './auth/cloudProfile';
 import {
   ensureKstarUserStateMigrated,
   getKstarCoinsFromStore,
   setKstarCoins,
 } from './kstarUserState';
 import { db } from './db/localDb';
+import { isSupabaseConfigured } from './supabase/config';
 
-/** Shared default when `coins_balance` has never been persisted. */
+/**
+ * Local coins_balance is a display cache only.
+ * Server ledger (wallets + wallet_transactions via API/RPC) is authoritative.
+ * Never treat local balance as the source of truth for financial settlement.
+ */
 export const DEFAULT_WALLET_COINS = 0;
+
+/** Demo/local accounts may mutate a local display ledger. Cloud + API never may. */
+export function isLocalWalletLedgerAllowed(userId?: string | null): boolean {
+  const id = userId?.trim() || db.currentUserId?.trim() || '';
+  if (!id) return false;
+  if (isCloudAuthUserId(id) && isSupabaseConfigured()) return false;
+  return true;
+}
+
+export function appendLocalWalletReceipt(row: Record<string, unknown>): void {
+  if (!isLocalWalletLedgerAllowed()) return;
+  const trans = db.load<unknown[]>('wallet_transactions', []);
+  db.save('wallet_transactions', [row, ...trans]);
+}
 
 let listenersInstalled = false;
 
@@ -52,10 +72,14 @@ function setUnifiedCoinsForUser(userId: string, nextBalance: number): void {
 }
 
 export function saveWalletCoinsBalance(userId: string, nextBalance: number): void {
+  // Server/cache refresh only — allowed for cloud users.
   setUnifiedCoinsForUser(userId, nextBalance);
 }
 
 export function addWalletCoins(userId: string, amount: number): number {
+  if (!isLocalWalletLedgerAllowed(userId)) {
+    return getLiveCoinsBalance(userId);
+  }
   const prev = getLiveCoinsBalance(userId);
   const next = prev + Math.max(0, Math.floor(amount));
   setUnifiedCoinsForUser(userId, next);
@@ -68,10 +92,21 @@ export function creditUserCoins(userId: string, amount: number): number {
 }
 
 export function spendWalletCoins(userId: string, amount: number): boolean {
+  if (!isLocalWalletLedgerAllowed(userId)) {
+    return false;
+  }
+  // Optimistic local debit for instant UI only. Server settlement must confirm financial truth.
   const cost = Math.max(0, Math.floor(amount));
   const prev = getLiveCoinsBalance(userId);
   if (prev < cost) return false;
   setUnifiedCoinsForUser(userId, prev - cost);
+  if (import.meta.env.DEV) {
+    console.info('[data:wallet] local_optimistic_debit', {
+      userId: userId.slice(0, 8),
+      cost,
+      next: prev - cost,
+    });
+  }
   return true;
 }
 
@@ -107,8 +142,8 @@ export function saveGameInHouseCoins(_userId: string, nextInHouse: number): void
 }
 
 /**
- * After login, account switch, or cloud hydrate — merge wallet + K-Star row once.
- * Uses max() only to heal drift; never inflates above the higher of the two stores.
+ * After login/account switch: align K-Star row to wallet cache for the active user.
+ * Never inflate balance with Math.max — server refresh overwrites via saveWalletCoinsBalance.
  */
 export function reconcileWalletAndKstarCoins(userId: string): void {
   const id = userId?.trim();
@@ -119,9 +154,9 @@ export function reconcileWalletAndKstarCoins(userId: string): void {
 
   const wallet = loadWalletCoinsBalance();
   const kstarRow = getKstarCoinsFromStore(id);
-  const canonical = Math.max(wallet, kstarRow);
-  if (canonical !== wallet || canonical !== kstarRow) {
-    setUnifiedCoinsForUser(id, canonical);
+  // Keep rows equal using wallet cache as the display source; server sync replaces it.
+  if (kstarRow !== wallet) {
+    setKstarCoins(id, wallet);
   }
 }
 
@@ -148,6 +183,25 @@ export function initWalletKstarSyncListeners(): void {
 
   window.addEventListener('kstar-user-state-updated', scheduleReconcileForActiveUser);
   window.addEventListener('wallet-coins-updated', scheduleReconcileForActiveUser);
+
+  // force_demo smoke seam only — never seeds cloud wallets.
+  try {
+    const forceDemo =
+      new URLSearchParams(window.location.search).get('force_demo') === '1' ||
+      sessionStorage.getItem('instacollab_demo_bootstrap_search')?.includes('force_demo=1');
+    if (forceDemo) {
+      const w = window as Window & {
+        __UNI_DEMO_CREDIT_WALLET?: (coins?: number) => number;
+      };
+      w.__UNI_DEMO_CREDIT_WALLET = (coins = 50_000) => {
+        const uid = activeWalletUserId();
+        if (!uid || !isLocalWalletLedgerAllowed(uid)) return getLiveCoinsBalance(uid);
+        return addWalletCoins(uid, Math.max(0, Math.floor(coins)));
+      };
+    }
+  } catch {
+    /* ignore */
+  }
 }
 
 /** @deprecated — use onUserSessionActive */

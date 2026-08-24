@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-pk-calls-workspace-complete",
+  "currentSlice": "A-pk-gift-push-calls-reconnect-cf",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -54,81 +54,75 @@
     "smoke-live-pk-reconnect-pass",
     "smoke-calls-dual-party-pass",
     "workspace-staff-code-local-env-remote-unlock-pass",
-    "demo-call-bus-force-demo"
+    "demo-call-bus-force-demo",
+    "pk-lifecycle-gift-score-delta-idempotent-pass",
+    "lifecycle-gift-settle-route",
+    "smoke-calls-reconnect-stale-accept-pass",
+    "fcm-topic-healthcheck-via-firebase-mcp",
+    "android-assembleDebug-revalidated",
+    "push-devices-remote-migration-ldxrd",
+    "push-registry-ownership-switch-multi-device-pass",
+    "cloudflare-uniapplab-media-worker-role-mapped"
   ],
   "failing": [],
   "blocked": [
     {
       "id": "native-callkit-pushkit-device-qa",
-      "detail": "CallKit linked + Android FGS present; FEATURE_ENABLED=false until VoIP certs + physical device QA \u2014 not flipped for PASS"
+      "detail": "CallKit linked + Android FGS present; FEATURE_ENABLED=false. Physical iPhone/iPad paired but Offline; no VoIP PushKit cert found after env/Keychain/CI exhaust."
     },
     {
-      "id": "push-remote-apns-fcm-send",
-      "detail": "push_devices registry + auth-bound PERSON contracts PASS; remote APNS/FCM send needs provider credentials"
-    },
-    {
-      "id": "pk-browser-gift-score-delta",
-      "detail": "PK gift settlement authority PASS in api-server unit tests; browser UI score delta still 0 in demo wallet path"
-    },
-    {
-      "id": "push-remote-apns-fcm-send",
-      "detail": "No APNS/FCM provider keys in env files; registry contracts PASS"
-    },
-    {
-      "id": "native-callkit-pushkit-device-qa",
-      "detail": "Physical iPhone/iPad paired; FEATURE_ENABLED=false until VoIP certs operational"
+      "id": "push-apns-provider-send",
+      "detail": "APNS key/cert not present in authorized env sources. FCM topic healthcheck PASS via Firebase MCP (uchat-app-c1b8e)."
     }
   ],
-  "nextAction": "Push/native/provider deep gates; gift browser delta; full matrix builds; Stage B locked",
+  "nextAction": "Complete remaining automatable matrix (marketplace deep E2E, reels decoder budget, thermal/beauty, games resource, LiveKit room cleanup, CI, builds) then Stage A PASS decision; Stage B locked",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "9f17b12",
+  "lastValidatedCommit": "pending",
   "evidence": {
     "typecheck_instacollab": "PASS",
-    "smoke_live_gift_panel": "PASS",
-    "smoke_live_pk_chrome": "PASS",
-    "smoke_live_multiguest_chrome": "PASS",
-    "smoke_live_shop_chrome": "PASS",
-    "smoke_live_pk_invite_stage": "PASS",
-    "smoke_live_pk_lifecycle": "PASS_round1_round2_reconnect",
+    "smoke_live_pk_lifecycle": "PASS_round1_round2_reconnect_gift_score_idempotent",
+    "smoke_calls_dual_party": "PASS_accept_decline_cancel_busy_reconnect_stale",
     "smoke_workspace_admin": "PASS_remote_local_env",
-    "smoke_multi_device_isolation": "PASS",
-    "smoke_stage_a_longrun": "PASS",
-    "smoke_marketplace_mount": "PASS",
-    "smoke_messages_mount": "PASS",
-    "smoke_calls_ui": "PASS",
-    "call_lifecycle_state": "4/4",
-    "stage_a_security_push_native": "PASS",
-    "smoke_posts_feed": "PASS",
-    "smoke_reels": "PASS",
+    "push_registry_remote": "PASS_ownership_switch_multi_device_forge_ignored",
+    "fcm_provider_send": "PASS_topic_healthcheck_message_id",
+    "android_assembleDebug": "PASS",
     "visual_lock": "22/22",
-    "wallet": "7/7",
-    "gift_scheduler": "13/13",
-    "livekit_check": "PASS",
-    "pk_seat": "6/6",
-    "messages_outbox": "3/3",
-    "marketplace_ledger": "4/4",
-    "media_games": "6/6",
-    "webar_warm_no_loopback_redirect": "PASS",
-    "smoke_live_beauty_chrome": "PASS",
-    "cloudflare_workers_r2": "INVENTORY_OK",
-    "smoke_calls_dual_party": "PASS",
-    "pk_gift_score_units": "PASS_api_server"
+    "pk_gift_score_units": "PASS_api_server",
+    "cloudflare_uniapplab_media": "R2_media_worker_presign_upload_cors",
+    "cloudflare_uniapplab_web": "stub_hello_world",
+    "supabase_push_devices": "PASS_applied_ldxrd_person_id_text"
   },
   "cloudflare": {
     "status": "ACCESSIBLE",
     "workers": [
-      "empty-recipe-8fd7",
-      "uniapplab-media",
-      "uniapplab-web"
+      {
+        "name": "uniapplab-media",
+        "role": "media_upload_presign_r2_object_delivery",
+        "r2_binding": "MEDIA"
+      },
+      {
+        "name": "uniapplab-web",
+        "role": "stub_placeholder_hello_world",
+        "note": "not production web shell"
+      },
+      {
+        "name": "empty-recipe-8fd7",
+        "role": "unused_scaffold"
+      }
     ],
     "r2": [
-      "livestream-assets",
-      "uniapplab-media"
-    ],
-    "note": "Bindings/builds MCP listing succeeded; EXTERNAL_AUTH_BLOCKED lifted for inventory path"
+      {
+        "name": "uniapplab-media",
+        "role": "bound_to_uniapplab-media_worker"
+      },
+      {
+        "name": "livestream-assets",
+        "role": "livestream_static_assets"
+      }
+    ]
   },
-  "updatedAt": "2026-08-24T03:56:00Z"
+  "updatedAt": "2026-08-24T04:17:30Z"
 }

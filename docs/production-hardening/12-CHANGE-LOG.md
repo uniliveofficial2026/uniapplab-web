@@ -1,3 +1,11 @@
+## 2026-08-24T04:17:30Z — PK gift score + calls reconnect + push registry remote + CF media map
+- **PK:** `POST /api/live/rooms/:roomId/gifts/lifecycle-settle` (auth participant, idempotent). Local demo gift settle notifies lifecycle. `smoke:live-pk-lifecycle` **PASS** gift delta (+25) + duplicate settle no double-score + round2 + reconnect.
+- **Calls:** dual-party smoke extended — reconnect offline/online, stale accept ignored **PASS**.
+- **Push:** remote `push_devices` applied on app project `ldxrd…`; `person_id` → text; ownership switch / multi-device / forged body.personId ignored **PASS**. FCM topic healthcheck via Firebase MCP **PASS**. APNS still no key.
+- **Cloudflare:** `uniapplab-media` mapped as R2 media worker (presign/upload/CORS); `uniapplab-web` stub.
+- **Native:** FEATURE_ENABLED=false; iPhone/iPad Offline.
+- uiUxChanged: false. Stage A **NOT_PASSED**. Stage B locked.
+
 ## 2026-08-24T03:56:00Z — PK full lifecycle + dual-party calls + workspace remote unlock
 - **PK:** `smoke:live-pk-lifecycle` **PASS** round1+round2 (invite→accept→timer sync→reconnect→host end→clear→repeat leak-free). `PkLiveOverlay` remote-end cleanup. Challenge ttlSec 60. Browser gift UI delta still 0 in demo; API gift→PK score units PASS.
 - **Calls:** `smoke:calls-dual-party` **PASS** (same BrowserContext BroadcastChannel demo bus): outgoing→incoming→accept→connected→hangup, decline, cancel, busy. `demoCallBus` + `__UNI_DEMO_START_CALL` force_demo seam (no UI redesign).

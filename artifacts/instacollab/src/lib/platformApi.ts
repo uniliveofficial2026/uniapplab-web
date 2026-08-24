@@ -1232,6 +1232,33 @@ export async function fetchHostDashboardSnapshot(roomId: string, afterSequence =
   );
 }
 
+/** After a gift wallet settle, notify lifecycle so PK scores consume the event once. */
+export async function notifyLifecycleGiftSettlement(input: {
+  roomId: string;
+  clientRequestId: string;
+  receiverId: string;
+  value: number;
+}): Promise<{
+  ok: boolean;
+  applied?: boolean;
+  duplicate?: boolean;
+  giftEventId?: string;
+  localScore?: number | null;
+  opponentScore?: number | null;
+  reason?: string;
+}> {
+  const roomId = input.roomId.trim();
+  if (!roomId) return { ok: false, reason: 'missing_room' };
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/gifts/lifecycle-settle`, {
+    method: 'POST',
+    body: JSON.stringify({
+      clientRequestId: input.clientRequestId,
+      receiverId: input.receiverId,
+      value: input.value,
+    }),
+  });
+}
+
 export type LiveHostDashboardIngest = {
   kind: 'comment' | 'reaction' | 'share' | 'follow' | 'audience' | 'media';
   count?: number;

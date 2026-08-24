@@ -3,7 +3,8 @@
 
 create table if not exists public.push_devices (
   device_id text primary key,
-  person_id uuid references auth.users (id) on delete set null,
+  -- Canonical PERSON id (auth user / linked subject). Not required to be auth.users uuid.
+  person_id text,
   platform text not null check (platform in ('apns', 'fcm', 'web_push', 'unknown')),
   push_token text,
   updated_at timestamptz not null default now()
