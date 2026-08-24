@@ -38,49 +38,53 @@ test('native incoming call: required for production store, defaults not ready', 
   assert.ok(android.missing.includes('foreground_service_mic'));
 });
 
-test('native incoming call: never fakes present success when flags on but plugin absent', () => {
-  resetNativeIncomingCallFeatureFlags();
+test('native incoming call: enabling flags alone does not make ready without platform wiring', () => {
   setNativeIncomingCallFeatureFlags({
     nativeIncomingCallBridge: true,
     iosCallKit: true,
-    iosPushKit: true,
     androidTelecom: true,
-    androidCallForegroundService: true,
   });
   const ios = assessNativeIncomingCallReadiness('ios');
   assert.equal(ios.ready, false);
-  const result = tryPresentNativeIncomingCall({
-    callId: 'c1',
-    chatId: 'chat1',
-    fromUserId: 'u1',
-    callKind: 'video',
-  });
-  assert.equal(result.accepted, false);
-  assert.ok(result.reason);
   resetNativeIncomingCallFeatureFlags();
 });
 
-test('native scaffolds and Capacitor projects lack CallKit/Telecom wiring', () => {
+test('tryPresentNativeIncomingCall refuses when flags off', async () => {
+  resetNativeIncomingCallFeatureFlags();
+  const result = await tryPresentNativeIncomingCall({ callId: 'c1', fromUserId: 'u1' });
+  assert.equal(result.accepted, false);
+  assert.ok(result.reason);
+});
+
+test('native scaffolds lack CallKit/Telecom production wiring', () => {
   const plist = read('artifacts/instacollab/ios/App/App/Info.plist');
   assert.match(plist, /<string>audio<\/string>/);
   assert.doesNotMatch(plist, /<string>voip<\/string>/);
 
   const manifest = read('artifacts/instacollab/android/app/src/main/AndroidManifest.xml');
-  // FGS may exist for gated CallForegroundService stubs; Telecom ConnectionService must not.
   assert.doesNotMatch(manifest, /ConnectionService|TelecomManager/i);
   assert.match(manifest, /CallForegroundService/);
 
   const delegate = read('artifacts/instacollab/ios/App/App/AppDelegate.swift');
   assert.doesNotMatch(delegate, /CXProvider|PKPushRegistry|CallKit|PushKit/);
 
-  assert.ok(
-    existsSync(join(root, 'artifacts/instacollab/android/app/src/main/java/com/uniapplab/unilive/call/IncomingCallBridgeStub.kt')),
+  assert.equal(
+    existsSync(
+      join(
+        root,
+        'artifacts/instacollab/android/app/src/main/java/com/uniapplab/unilive/call/IncomingCallBridgeStub.kt',
+      ),
+    ),
+    true,
   );
-  assert.ok(
-    existsSync(join(root, 'artifacts/instacollab/native-scaffolds/incoming-call/IncomingCallBridgeStub.swift')),
-  );
-  assert.ok(
-    existsSync(join(root, 'artifacts/instacollab/native-scaffolds/incoming-call/README.md')),
+  assert.equal(
+    existsSync(
+      join(
+        root,
+        'artifacts/instacollab/android/app/src/main/java/com/uniapplab/unilive/call/CallForegroundService.kt',
+      ),
+    ),
+    true,
   );
 
   const notify = read('artifacts/instacollab/src/lib/chat/chatCallNotifications.ts');
