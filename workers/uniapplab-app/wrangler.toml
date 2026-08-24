@@ -1,0 +1,15 @@
+name = "uniapplab-app"
+main = "src/index.ts"
+compatibility_date = "2026-08-01"
+workers_dev = true
+
+[[r2_buckets]]
+binding = "ASSETS"
+bucket_name = "livestream-assets"
+
+[vars]
+API_ORIGIN = "https://uniapplab-web.onrender.com"
+GAME_ORIGIN = "https://uniapplab-greedy-tap.onrender.com"
+MEDIA_ORIGIN = "https://uniapplab-media.uniliveofficial2026.workers.dev"
+ASSET_PREFIX = "app-production"
+PLATFORM_VERSION = "0.1.0"

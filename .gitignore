@@ -111,3 +111,7 @@ release/artifacts/*.tgz
 *.tgz
 !package.json
 
+
+# Allow slim Render API deploy bundle
+!deploy/render-api/dist/
+!deploy/render-api/dist/**
