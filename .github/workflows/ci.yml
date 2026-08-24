@@ -71,13 +71,13 @@ jobs:
 
       - name: Call + PK readiness
         run: |
-          pnpm --filter @workspace/instacollab exec ./node_modules/.bin/tsx --test test/call-lifecycle-state.test.mjs test/native-incoming-call-readiness.test.mjs test/pk-team-topology.test.mjs test/pk-seat-stage-a.test.mjs
+          pnpm --filter @workspace/instacollab exec tsx --test test/call-lifecycle-state.test.mjs test/native-incoming-call-readiness.test.mjs test/pk-team-topology.test.mjs test/pk-seat-stage-a.test.mjs
 
       - name: Stage A security + thermal + beauty contracts
         run: |
           pnpm --filter @workspace/instacollab run test:stage-a-security-push-native
           pnpm --filter @workspace/instacollab run test:stage-a-mount-contracts
-          pnpm --filter @workspace/instacollab exec ./node_modules/.bin/tsx --test test/thermal-perception-cadence.test.mjs test/reels-thermal-preload-stage-a.test.mjs test/beauty-slo.test.mjs
+          pnpm --filter @workspace/instacollab exec tsx --test test/thermal-perception-cadence.test.mjs test/reels-thermal-preload-stage-a.test.mjs test/beauty-slo.test.mjs
 
       - name: API live PK challenge authority
         run: pnpm --filter @workspace/api-server exec node --test test/live-pk-challenge.test.mjs
