@@ -41,3 +41,12 @@ export declare function createUniLiveCloud(options?: {
   setQuota(kind: string, max: number): void;
   softDeleteProject(input: { projectId: string; actorId: string }): unknown;
 };
+
+export declare function createDurableUniLiveCloud(options: {
+  supabase: unknown;
+  controlPlane?: unknown;
+}): Promise<ReturnType<typeof createUniLiveCloud>>;
+
+export declare function loadCloudSnapshot(supabase: unknown): Promise<Record<string, unknown>>;
+export declare function createSupabaseCloudDurable(supabase: unknown): Record<string, unknown>;
+
