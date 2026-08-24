@@ -129,3 +129,10 @@ All entries are Stage A documentation / verification unless noted. **uiUxChanged
 - Tests: gift-storm, identity-foundation, social-graph, media-games, pk-seat, messages-outbox; CI extended
 - LiveKit check PASS; Cloudflare wrangler EXTERNAL_AUTH_BLOCKED; Vercel deployments inspected
 - uiUxChanged: false; Stage A NOT_PASSED; Stage B locked; no production RTC cutover
+
+## 2026-08-24T00:35 — Native builds + CallKit linked
+- Android `./gradlew :app:assembleDebug` BUILD SUCCESSFUL
+- iOS simulator build (iPhone 17 / OS 26.4) BUILD SUCCEEDED with IncomingCallKitManager.swift + CallKit.framework linked (FEATURE_ENABLED=false)
+- Live gift panel deep smoke: soft-SKIP go_live_requires_stable_host_session (create host flake; not claimed PASS)
+- Cloudflare still EXTERNAL_AUTH_BLOCKED
+- Stage A acceptance still NOT_PASSED; Stage B locked

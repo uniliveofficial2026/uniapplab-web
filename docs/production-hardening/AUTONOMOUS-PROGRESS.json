@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-security-push-native-stress-20260824",
+  "currentSlice": "A-native-builds-callkit-linked",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -22,7 +22,11 @@
     "social-graph-contracts",
     "pk-seat-publish-contracts",
     "messages-outbox-contracts",
-    "accountSwitchFast-import-fix"
+    "accountSwitchFast-import-fix",
+    "android-assembleDebug-pass",
+    "ios-simulator-build-pass",
+    "incoming-callkit-manager-linked-xcode",
+    "smoke-live-gift-panel-soft-skip"
   ],
   "failing": [],
   "blocked": [
@@ -36,14 +40,14 @@
     },
     {
       "id": "cloudflare-auth",
-      "detail": "Wrangler token expired/missing; Cloudflare MCP needsAuth — EXTERNAL_AUTH_BLOCKED for CF deploy/inspection"
+      "detail": "Wrangler token expired/missing; Cloudflare MCP needsAuth \u2014 EXTERNAL_AUTH_BLOCKED for CF deploy/inspection"
     },
     {
       "id": "deep-e2e-pk-admin-multidevice",
       "detail": "PK live invite session E2E, workspace admin access-code E2E, multi-device hardware stress"
     }
   ],
-  "nextAction": "Continue Stage A deep live-session/browser E2E where secretless; do not start Stage B until acceptance PASS; do not production-deploy until Stage A+B PASS",
+  "nextAction": "Stabilize go-live Playwright host session; continue Stage A deep E2E; Stage B locked",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
@@ -65,7 +69,10 @@
     "media_games": "4/4",
     "pk_seat": "6/6",
     "is_platform_admin_authenticated_exec": false,
-    "push_devices_table": true
+    "push_devices_table": true,
+    "android_assembleDebug": "PASS",
+    "ios_simulator_build": "PASS",
+    "lastValidatedCommit": "51729c7"
   },
-  "updatedAt": "2026-08-24T00:20:00Z"
+  "updatedAt": "2026-08-24T00:35:00Z"
 }
