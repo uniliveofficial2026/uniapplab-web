@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-live-modes-chrome-matrix",
+  "currentSlice": "A-pk-invite-smoke-scaffold",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -33,7 +33,11 @@
     "smoke-messages-mount-pass",
     "smoke-posts-reels-remount-pass",
     "visual-lock-22-pass",
-    "typecheck-instacollab-pass"
+    "typecheck-instacollab-pass",
+    "smoke-live-pk-invite-stage-scaffold",
+    "wallet-authority-7-pass",
+    "gift-scheduler-13-pass",
+    "livekit-api-reachable"
   ],
   "failing": [],
   "blocked": [
@@ -51,31 +55,35 @@
     },
     {
       "id": "deep-e2e-pk-invite-accept-admin-multidevice",
-      "detail": "PK invite accept dual-room E2E, workspace admin access-code E2E, multi-device hardware"
+      "detail": "PK invite dual-host smoke soft-SKIPs when go-live/navigation unstable or no discoverable opponents; admin access-code + multi-device hardware remain"
     }
   ],
-  "nextAction": "Continue Stage A deep E2E (PK invite accept) and remaining matrix rows; Stage B locked until Stage A acceptance PASS",
+  "nextAction": "Stabilize InstantRoom go-live under dual-context; PK invite accept when opponents discoverable; Stage B locked",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "e51f3a5",
+  "lastValidatedCommit": "1bb36c0",
   "evidence": {
     "typecheck_instacollab": "PASS",
     "smoke_live_gift_panel": "PASS",
     "smoke_live_pk_chrome": "PASS",
     "smoke_live_multiguest_chrome": "PASS",
     "smoke_live_shop_chrome": "PASS",
+    "smoke_live_pk_invite_stage": "SOFT_SKIP_scaffold",
     "smoke_marketplace_mount": "PASS",
     "smoke_messages_mount": "PASS",
     "smoke_calls_ui": "PASS",
     "smoke_posts_feed": "PASS",
     "smoke_reels": "PASS",
     "visual_lock": "22/22",
+    "wallet": "7/7",
+    "gift_scheduler": "13/13",
+    "livekit_check": "PASS",
     "pk_seat": "6/6",
     "messages_outbox": "3/3",
     "marketplace_ledger": "4/4",
     "media_games": "6/6"
   },
-  "updatedAt": "2026-08-24T01:51:00Z"
+  "updatedAt": "2026-08-24T02:02:00Z"
 }
