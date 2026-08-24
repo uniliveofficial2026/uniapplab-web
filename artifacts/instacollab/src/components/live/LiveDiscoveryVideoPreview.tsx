@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import type { RemoteTrack } from 'livekit-client';
+import type { RemoteTrack } from '../../lib/rtc/livekitCompatibilityBoundary';
 import { FALLBACK_MEDIA } from '../../lib/safe';
 import { connectDiscoveryPreview } from '../../lib/live/liveDiscoveryPreviewKit';
 import { SafeMediaImage } from '../common/SafeMediaImage';

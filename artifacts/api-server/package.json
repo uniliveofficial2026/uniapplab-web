@@ -19,6 +19,8 @@
     "@upstash/ratelimit": "^2.0.7",
     "@upstash/redis": "^1.36.2",
     "@vercel/functions": "^3.7.5",
+    "@unilives/platform-core": "workspace:*",
+    "@unilives/rtc-server": "workspace:*",
     "@workspace/api-zod": "workspace:*",
     "@workspace/db": "workspace:*",
     "@workspace/linear": "workspace:*",

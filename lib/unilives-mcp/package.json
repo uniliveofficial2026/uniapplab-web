@@ -1,0 +1,18 @@
+{
+  "name": "@unilives/mcp",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "unilive-mcp": "./bin.mjs"
+  },
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "dependencies": {
+    "@unilives/platform-core": "workspace:*",
+    "@unilives/sdk": "workspace:*",
+    "@unilives/rtc-fake": "workspace:*",
+    "@unilives/rtc-core": "workspace:*"
+  }
+}

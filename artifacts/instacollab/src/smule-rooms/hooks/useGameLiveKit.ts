@@ -5,7 +5,7 @@ import {
   Room,
   RoomEvent,
   Track,
-} from 'livekit-client';
+} from '../../lib/rtc/livekitCompatibilityBoundary';
 import {
   acquireAppCamera,
   getAppCameraStream,

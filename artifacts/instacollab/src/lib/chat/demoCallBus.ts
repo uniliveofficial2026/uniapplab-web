@@ -1,7 +1,10 @@
 /**
  * Cross-context demo call bus (BroadcastChannel).
  * Active only when force_demo=1 (or uni.forceDemo). Production cloud path unchanged.
+ * Domain lifecycle is mirrored into UniLiveRTC CallOrchestrator (Stage B).
  */
+import { applyDomainCallSignal, startDomainCall } from '../unilive-rtc/callDomain';
+
 export type DemoCallBusMessage =
   | {
       type: 'invite' | 'accept' | 'decline' | 'end' | 'busy';
@@ -11,9 +14,33 @@ export type DemoCallBusMessage =
       callSessionId: string;
       threadId?: string;
       ts: number;
+      toUserId?: string;
     };
 
 const CHANNEL = 'uni.demo.call.bus.v1';
+
+function mirrorDomain(msg: DemoCallBusMessage) {
+  try {
+    if (msg.type === 'invite') {
+      startDomainCall({
+        callerId: msg.fromUserId,
+        calleeId: msg.toUserId || msg.chatId,
+        kind: msg.callKind,
+        callSessionId: msg.callSessionId,
+      });
+      return;
+    }
+    const type =
+      msg.type === 'end' ? 'hangup' : msg.type === 'decline' ? 'decline' : msg.type === 'busy' ? 'busy' : msg.type;
+    applyDomainCallSignal({
+      callSessionId: msg.callSessionId,
+      signalId: `${msg.type}:${msg.ts}`,
+      type,
+    });
+  } catch {
+    /* domain mirror must never break transport */
+  }
+}
 
 export function isDemoCallBusEnabled(): boolean {
   if (typeof window === 'undefined') return false;
@@ -37,6 +64,7 @@ export function newDemoCallSessionId(): string {
 
 export function publishDemoCallSignal(msg: DemoCallBusMessage): void {
   if (!isDemoCallBusEnabled() || typeof BroadcastChannel === 'undefined') return;
+  mirrorDomain(msg);
   try {
     const ch = new BroadcastChannel(CHANNEL);
     ch.postMessage(msg);
@@ -57,6 +85,7 @@ export function subscribeDemoCallSignal(
     const data = event.data as DemoCallBusMessage | null;
     if (!data || typeof data !== 'object') return;
     if (!data.type || !data.chatId || !data.fromUserId) return;
+    mirrorDomain(data);
     handler(data);
   };
   ch.addEventListener('message', onMessage);

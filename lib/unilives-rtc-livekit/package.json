@@ -1,0 +1,23 @@
+{
+  "name": "@unilives/rtc-livekit",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "@unilives/rtc-contracts": "workspace:*",
+    "@workspace/livekit": "workspace:*"
+  },
+  "peerDependencies": {
+    "livekit-client": ">=2.0.0"
+  },
+  "peerDependenciesMeta": {
+    "livekit-client": { "optional": true }
+  }
+}

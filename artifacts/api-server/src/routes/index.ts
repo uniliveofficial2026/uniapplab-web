@@ -37,6 +37,7 @@ import mediaRouter from "./media";
 import mongoRouter from "./mongo";
 import auroraRouter from "./aurora";
 import discordRouter from "./discord";
+import uniliveV1Router from "./uniliveV1";
 import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
@@ -44,6 +45,7 @@ const router: IRouter = Router();
 // Discord must verify Ed25519 + respond within 3s — keep ahead of rate limiting.
 router.use(discordRouter);
 router.use(upstashRateLimit);
+router.use(uniliveV1Router);
 router.use(healthRouter);
 router.use(upstashRouter);
 router.use(qstashRouter);

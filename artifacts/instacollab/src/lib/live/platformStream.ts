@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import type { Room } from 'livekit-client';
+import type { Room } from '../rtc/livekitCompatibilityBoundary';
 import {
   acquireAppCamera,
   releaseAppCamera,

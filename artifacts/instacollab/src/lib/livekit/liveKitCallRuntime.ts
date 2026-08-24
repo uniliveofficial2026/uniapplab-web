@@ -7,7 +7,7 @@ import type {
   RemoteTrack,
   RemoteTrackPublication,
   Room,
-} from 'livekit-client';
+} from '../rtc/livekitCompatibilityBoundary';
 import type { connectWithTokenFetcher } from './liveKitInstant';
 import type {
   PROCESSED_VIDEO_LIVEKIT_PUBLISH,
@@ -16,8 +16,8 @@ import type {
 } from './liveKitVideoPublish';
 
 export type LiveKitCallRuntime = {
-  RoomEvent: typeof import('livekit-client').RoomEvent;
-  Track: typeof import('livekit-client').Track;
+  RoomEvent: typeof import('../rtc/livekitCompatibilityBoundary').RoomEvent;
+  Track: typeof import('../rtc/livekitCompatibilityBoundary').Track;
   canAttemptLiveKit: () => boolean;
   connectWithTokenFetcher: typeof connectWithTokenFetcher;
   PROCESSED_VIDEO_LIVEKIT_PUBLISH: typeof PROCESSED_VIDEO_LIVEKIT_PUBLISH;
@@ -32,7 +32,7 @@ let loadPromise: Promise<LiveKitCallRuntime> | null = null;
 export function loadLiveKitCallRuntime(): Promise<LiveKitCallRuntime> {
   if (!loadPromise) {
     loadPromise = Promise.all([
-      import('livekit-client'),
+      import('../rtc/livekitCompatibilityBoundary'),
       import('./liveKitInstant'),
       import('./liveKitVideoPublish'),
     ]).then(([lk, instant, publish]) => ({

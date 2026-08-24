@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { ConnectionState, Room } from 'livekit-client';
+import { ConnectionState, Room } from '../../lib/rtc/livekitCompatibilityBoundary';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
 import { registerLiveKitRoom, unregisterLiveKitRoom } from '../../lib/livekit/liveRoomBus';
 import { canAttemptLiveKit, connectWithTokenFetcher } from '../../lib/livekit/liveKitInstant';

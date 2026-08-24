@@ -1,4 +1,4 @@
-import { LocalAudioTrack, type LocalParticipant, Track } from 'livekit-client';
+import { LocalAudioTrack, type LocalParticipant, Track } from '../rtc/livekitCompatibilityBoundary';
 
 /**
  * Publish (or replace) the local microphone track on a LiveKit room.

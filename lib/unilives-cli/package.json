@@ -1,0 +1,18 @@
+{
+  "name": "@unilives/cli",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "bin": {
+    "unilive": "./bin.mjs"
+  },
+  "exports": {
+    ".": "./index.mjs"
+  },
+  "dependencies": {
+    "@unilives/platform-core": "workspace:*",
+    "@unilives/sdk": "workspace:*",
+    "@unilives/mcp": "workspace:*",
+    "@unilives/rtc-fake": "workspace:*"
+  }
+}

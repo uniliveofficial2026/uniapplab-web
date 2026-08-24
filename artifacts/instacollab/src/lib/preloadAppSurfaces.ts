@@ -38,6 +38,19 @@ export function warmWebARForLiveIntent(): void {
   });
 }
 
+/**
+ * Prefetch host camera / lightweight beauty / LiveKit chunks on Go Live intent.
+ * Does not download every premium effect, mask, layout, or gift animation.
+ */
+export function preloadHostMediaPath(): void {
+  if (typeof window === 'undefined') return;
+  warmWebARForLiveIntent();
+  preloadInstant(() => import('./camera/hostMediaSession'));
+  preloadInstant(() => import('./livekit/hostLiveKitRoom'));
+  preloadInstant(() => import('./ar/beautyEngineAdapter'));
+  preloadInstant(() => import('./rtc/livekitCompatibilityBoundary'));
+}
+
 /** Karaoke, live, rooms, DeepAR — only when user opens those features. */
 export function preloadHeavyAppSurfaces(): void {
   if (heavyWarmed || typeof window === 'undefined') return;

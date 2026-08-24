@@ -127,7 +127,7 @@ export function preloadRoomsHost(): Promise<unknown> {
 /** Warm LiveKit client so A/V connect is not blocked on a cold vendor chunk. */
 export function preloadLiveKitClient(): Promise<unknown> {
   if (!liveKitPreload) {
-    liveKitPreload = import('livekit-client').catch(() => {
+    liveKitPreload = import('../rtc/livekitCompatibilityBoundary').catch(() => {
       liveKitPreload = null;
     });
   }
@@ -156,6 +156,7 @@ export function preloadLiveRoomEntry(): Promise<unknown> {
 /** Open Create Room (Go Live) — instant App-level room shell. */
 export function openGoLiveCreateRoom(): void {
   void preloadLiveRoomEntry();
+  void import('../preloadAppSurfaces').then((m) => m.preloadHostMediaPath());
   openInstantRoomFlow({
     path: '/room/create',
     entry: 'karaoke-party',

@@ -9,8 +9,9 @@ import {
   Track,
   type LocalParticipant,
   type TrackPublishOptions,
-} from 'livekit-client';
+} from '../rtc/livekitCompatibilityBoundary';
 import { WEBAR_OUTPUT_FPS } from '../webar/webarCameraConfig';
+import { resolveLiveKitVideoPublishOptions } from '../rtc/liveKitPublishProfile';
 
 export const PROCESSED_VIDEO_LIVEKIT_PUBLISH: TrackPublishOptions = {
   source: Track.Source.Camera,
@@ -43,7 +44,8 @@ export async function updateLiveKitLocalVideoTrack(
 ): Promise<LiveKitVideoUpdateResult> {
   const publication = participant.getTrackPublication(Track.Source.Camera);
   const localTrack = publication?.track;
-  const publishOptions = options ?? PROCESSED_VIDEO_LIVEKIT_PUBLISH;
+  // Capability-driven profile when caller does not pass explicit options.
+  const publishOptions = options ?? resolveLiveKitVideoPublishOptions();
 
   if (!track) {
     if (localTrack) {

@@ -1,6 +1,7 @@
 import { useEffect, useRef, type RefObject } from 'react';
-import { Track, type RemoteTrack } from 'livekit-client';
+import { Track, type RemoteTrack } from '../../lib/rtc/livekitCompatibilityBoundary';
 import { useSeatTileTap } from '../hooks/useSeatTileTap';
+import { useOptionalLiveLike } from '../liveLike/LiveLikeContext';
 import { safeAvatarUrl } from '../../lib/safe';
 
 export type LiveSeatFullscreenTarget = {
@@ -48,6 +49,7 @@ export function LiveSeatFullscreenOverlay({
   const mirrorSelfRef = useRef(mirrorSelf);
   mirrorSelfRef.current = mirrorSelf;
   const handleSeatTileTap = useSeatTileTap();
+  const liveLike = useOptionalLiveLike();
 
   const remoteTrack =
     target && !target.isSelf && target.guestUserId
@@ -115,13 +117,21 @@ export function LiveSeatFullscreenOverlay({
       <button
         type="button"
         className="live-seat-fullscreen-surface"
-        onClick={() =>
+        onPointerDown={(event) => {
+          if (event.button !== 0) return;
+          const rect = event.currentTarget.getBoundingClientRect();
+          liveLike?.tapLike({
+            xPct: ((event.clientX - rect.left) / Math.max(1, rect.width)) * 100,
+            yPct: ((event.clientY - rect.top) / Math.max(1, rect.height)) * 100,
+          });
+        }}
+        onClick={() => {
           handleSeatTileTap(
             () => {},
             () => onClose(),
-          )
-        }
-        aria-label="Double tap to close fullscreen"
+          );
+        }}
+        aria-label="Tap to like, double tap to close fullscreen"
       >
         {target.isSelf ? (
           showSelfDeepar ? (

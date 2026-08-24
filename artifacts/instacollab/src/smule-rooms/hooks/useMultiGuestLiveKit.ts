@@ -1,17 +1,30 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   ConnectionState,
-  LocalVideoTrack,
   RemoteTrack,
   Room,
   RoomEvent,
   Track,
-} from 'livekit-client';
+} from '../../lib/rtc/livekitCompatibilityBoundary';
 import { registerLiveKitRoom, unregisterLiveKitRoom } from '../../lib/livekit/liveRoomBus';
 import { isLiveKitConfigured } from '../../lib/livekit/livekitConfig';
 import { updateLiveKitLocalAudioTrack } from '../../lib/livekit/liveKitAudioPublish';
-import { prepareProcessedVideoTrackForLiveKit } from '../../lib/livekit/liveKitVideoPublish';
+import {
+  prepareProcessedVideoTrackForLiveKit,
+  updateLiveKitLocalVideoTrack,
+} from '../../lib/livekit/liveKitVideoPublish';
+import {
+  connectHostLiveKitRoom,
+  disposeHostLiveKitRoom,
+  getOrCreateHostLiveKitRoom,
+  reconnectHostLiveKitWithNewGrants,
+} from '../../lib/livekit/hostLiveKitRoom';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
+import {
+  noteHostPublishing,
+  noteHostTrackPublished,
+  setHostMediaState,
+} from '../../lib/camera/hostMediaSession';
 import { resolveRoomMemberIdentity } from '../utils/roomMemberProfile';
 
 type UseMultiGuestLiveKitOptions = {
@@ -36,32 +49,9 @@ export type MultiGuestLiveKitState = {
   activeSpeakerUserIds: ReadonlySet<string>;
 };
 
-async function publishOrReplaceCameraTrack(room: Room, track: MediaStreamTrack): Promise<void> {
-  const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
-  const localTrack = publication?.track;
-
-  if (localTrack instanceof LocalVideoTrack) {
-    if (localTrack.mediaStreamTrack?.id !== track.id) {
-      await localTrack.replaceTrack(track);
-    }
-    return;
-  }
-
-  await room.localParticipant.publishTrack(track, {
-    source: Track.Source.Camera,
-    simulcast: true,
-  });
-}
-
-async function unpublishCameraTrack(room: Room): Promise<void> {
-  const publication = room.localParticipant.getTrackPublication(Track.Source.Camera);
-  if (publication?.track) {
-    await room.localParticipant.unpublishTrack(publication.track);
-  }
-}
-
 /**
  * LiveKit A/V for Multi-Guest — all viewers subscribe; seated users publish camera (+ mic when unmuted).
+ * Uses the exclusive host Room instance (prepareConnection + single connect).
  */
 export function useMultiGuestLiveKit({
   roomId,
@@ -77,6 +67,7 @@ export function useMultiGuestLiveKit({
   const roomRef = useRef<Room | null>(null);
   const publishedVideoTrackIdRef = useRef<string | null>(null);
   const publishedAudioTrackIdRef = useRef<string | null>(null);
+  const grantKeyRef = useRef(`${canPublish}:${hidden}`);
   const [connected, setConnected] = useState(false);
   const [remoteVideoByUserId, setRemoteVideoByUserId] = useState<Map<string, RemoteTrack>>(new Map());
   const [activeSpeakerUserIds, setActiveSpeakerUserIds] = useState<Set<string>>(new Set());
@@ -106,17 +97,16 @@ export function useMultiGuestLiveKit({
     }
 
     let cancelled = false;
-    const room = new Room({ adaptiveStream: true, dynacast: true });
+    const room = getOrCreateHostLiveKitRoom(roomId);
     roomRef.current = room;
 
     const onVideoChange = () => syncRemoteVideos(room);
 
-    room.on(RoomEvent.TrackSubscribed, (track, publication, participant) => {
+    const onTrackSubscribed = (track: RemoteTrack, publication: unknown, participant: { identity?: string }) => {
       if (track.kind === Track.Kind.Audio) {
         const el = track.attach();
         void el.play().catch(() => {});
         void publication;
-        void participant;
         return;
       }
       if (track.kind !== Track.Kind.Video) return;
@@ -128,9 +118,9 @@ export function useMultiGuestLiveKit({
         return next;
       });
       void publication;
-    });
+    };
 
-    room.on(RoomEvent.TrackUnsubscribed, (track, _publication, participant) => {
+    const onTrackUnsubscribed = (track: RemoteTrack, _publication: unknown, participant: { identity?: string }) => {
       if (track.kind === Track.Kind.Audio) {
         try {
           track.detach().forEach((el) => {
@@ -154,23 +144,21 @@ export function useMultiGuestLiveKit({
         next.delete(identity);
         return next;
       });
-    });
+    };
 
-    room.on(RoomEvent.ParticipantDisconnected, onVideoChange);
-    room.on(RoomEvent.TrackMuted, onVideoChange);
-    room.on(RoomEvent.TrackUnmuted, onVideoChange);
-    room.on(RoomEvent.ActiveSpeakersChanged, (speakers) => {
+    const onActiveSpeakers = (speakers: Array<{ identity?: string }>) => {
       const ids = new Set(
         speakers
           .map((participant) => participant.identity?.trim())
           .filter((identity): identity is string => Boolean(identity)),
       );
       setActiveSpeakerUserIds(ids);
-    });
+    };
 
-    room.on(RoomEvent.Connected, () => {
+    const onConnected = () => {
       registerLiveKitRoom(roomId, room);
       setConnected(true);
+      setHostMediaState('connecting');
       syncRemoteVideos(room);
       const ids = new Set(
         room.activeSpeakers
@@ -178,22 +166,40 @@ export function useMultiGuestLiveKit({
           .filter((identity): identity is string => Boolean(identity)),
       );
       setActiveSpeakerUserIds(ids);
-    });
-    room.on(RoomEvent.Disconnected, () => {
+    };
+
+    const onDisconnected = () => {
       setConnected(false);
       setRemoteVideoByUserId(new Map());
       setActiveSpeakerUserIds(new Set());
-    });
+    };
+
+    room.on(RoomEvent.TrackSubscribed, onTrackSubscribed);
+    room.on(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
+    room.on(RoomEvent.ParticipantDisconnected, onVideoChange);
+    room.on(RoomEvent.TrackMuted, onVideoChange);
+    room.on(RoomEvent.TrackUnmuted, onVideoChange);
+    room.on(RoomEvent.ActiveSpeakersChanged, onActiveSpeakers);
+    room.on(RoomEvent.Connected, onConnected);
+    room.on(RoomEvent.Disconnected, onDisconnected);
+
+    const fetchToken = () =>
+      fetchPartyLiveKitToken(roomId, hidden ? false : canPublish, { hidden });
+
+    const grantKey = `${canPublish}:${hidden}`;
+    const grantChanged = grantKeyRef.current !== grantKey;
+    grantKeyRef.current = grantKey;
 
     void (async () => {
       try {
-        const { token, url } = await fetchPartyLiveKitToken(
-          roomId,
-          hidden ? false : canPublish,
-          { hidden },
-        );
+        if (grantChanged && room.state === ConnectionState.Connected) {
+          await reconnectHostLiveKitWithNewGrants(roomId, fetchToken);
+        } else {
+          setHostMediaState('connecting');
+          await connectHostLiveKitRoom(roomId, fetchToken);
+        }
         if (cancelled) return;
-        await room.connect(url, token);
+        if (room.state === ConnectionState.Connected) onConnected();
       } catch {
         /* local UI still works without LiveKit */
       }
@@ -201,13 +207,21 @@ export function useMultiGuestLiveKit({
 
     return () => {
       cancelled = true;
+      room.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
+      room.off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
+      room.off(RoomEvent.ParticipantDisconnected, onVideoChange);
+      room.off(RoomEvent.TrackMuted, onVideoChange);
+      room.off(RoomEvent.TrackUnmuted, onVideoChange);
+      room.off(RoomEvent.ActiveSpeakersChanged, onActiveSpeakers);
+      room.off(RoomEvent.Connected, onConnected);
+      room.off(RoomEvent.Disconnected, onDisconnected);
       setConnected(false);
       setRemoteVideoByUserId(new Map());
       setActiveSpeakerUserIds(new Set());
       publishedVideoTrackIdRef.current = null;
       publishedAudioTrackIdRef.current = null;
       unregisterLiveKitRoom(roomId, room);
-      room.disconnect();
+      void disposeHostLiveKitRoom(roomId);
       roomRef.current = null;
     };
   }, [active, canPublish, configured, roomId, hidden]);
@@ -228,21 +242,25 @@ export function useMultiGuestLiveKit({
         if (publishVideo && cameraTrack) {
           const prepared = prepareProcessedVideoTrackForLiveKit(cameraTrack);
           if (publishedVideoTrackIdRef.current !== prepared.id) {
-            await publishOrReplaceCameraTrack(room, prepared);
+            noteHostPublishing();
+            await updateLiveKitLocalVideoTrack(room.localParticipant, prepared);
             publishedVideoTrackIdRef.current = prepared.id;
+            noteHostTrackPublished();
           }
         } else if (publishedVideoTrackIdRef.current) {
-          await unpublishCameraTrack(room);
+          await updateLiveKitLocalVideoTrack(room.localParticipant, null);
           publishedVideoTrackIdRef.current = null;
         }
 
         if (publishMic) {
           const track = processedAudioTrackRef.current;
-          if (!track || track.readyState === 'ended' || cancelled) return;
-          if (publishedAudioTrackIdRef.current === track.id) return;
-          await updateLiveKitLocalAudioTrack(room.localParticipant, track);
-          publishedAudioTrackIdRef.current = track.id;
-        } else {
+          if (track && track.readyState !== 'ended' && !cancelled) {
+            if (publishedAudioTrackIdRef.current !== track.id) {
+              await updateLiveKitLocalAudioTrack(room.localParticipant, track);
+              publishedAudioTrackIdRef.current = track.id;
+            }
+          }
+        } else if (publishedAudioTrackIdRef.current) {
           await updateLiveKitLocalAudioTrack(room.localParticipant, null);
           publishedAudioTrackIdRef.current = null;
         }

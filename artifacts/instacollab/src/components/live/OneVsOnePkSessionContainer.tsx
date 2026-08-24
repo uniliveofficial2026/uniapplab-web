@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Room, RoomEvent, Track } from 'livekit-client';
+import { Room, RoomEvent, Track } from '../../lib/rtc/livekitCompatibilityBoundary';
 import { useDB } from '../../lib/useDB';
 import { findUserById, resolveUser } from '../../lib/safe';
 import { useOptionalI18n } from '../../lib/i18n';

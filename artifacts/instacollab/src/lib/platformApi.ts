@@ -1249,7 +1249,7 @@ export async function notifyLifecycleGiftSettlement(input: {
 }> {
   const roomId = input.roomId.trim();
   if (!roomId) return { ok: false, reason: 'missing_room' };
-  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/gifts/lifecycle-settle`, {
+  const result = await apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/gifts/lifecycle-settle`, {
     method: 'POST',
     body: JSON.stringify({
       clientRequestId: input.clientRequestId,
@@ -1257,6 +1257,22 @@ export async function notifyLifecycleGiftSettlement(input: {
       value: input.value,
     }),
   });
+  // Mirror into UniLiveRTC PK domain (idempotent by giftEventId).
+  try {
+    const { applyDomainPkGiftScore } = await import('./unilive-rtc/pkDomain');
+    const giftEventId = String(result?.giftEventId || input.clientRequestId || '').trim();
+    if (giftEventId && Number(input.value) > 0) {
+      applyDomainPkGiftScore({
+        roomId,
+        recipientUserId: input.receiverId,
+        points: Number(input.value) || 0,
+        giftEventId,
+      });
+    }
+  } catch {
+    /* domain mirror must not break settlement */
+  }
+  return result;
 }
 
 export type LiveHostDashboardIngest = {

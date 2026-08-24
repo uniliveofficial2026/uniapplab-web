@@ -1,6 +1,6 @@
 import React, { useEffect, useRef } from 'react';
-import type { RemoteTrack } from 'livekit-client';
-import { Track } from 'livekit-client';
+import type { RemoteTrack } from '../../lib/rtc/livekitCompatibilityBoundary';
+import { Track } from '../../lib/rtc/livekitCompatibilityBoundary';
 import { safeAvatarUrl } from '../../lib/safe';
 
 type MultiGuestSeatMediaProps = {

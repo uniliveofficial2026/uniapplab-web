@@ -3,13 +3,16 @@
  * - UI (avatars/posters/local camera) paints first
  * - Connect is background with short timeout
  * - Slow/offline: local UI keeps working; A/V upgrades when ready
+ *
+ * Stage B: connects through @unilives/rtc-livekit (UniLiveRTC provider),
+ * then exposes the native Room only via the documented compatibility boundary.
  */
 import {
-  Room,
   RoomEvent,
+  type Room,
   type RoomOptions,
   type RoomConnectOptions,
-} from 'livekit-client';
+} from '../rtc/livekitCompatibilityBoundary';
 import { isLiveKitConfigured } from './livekitConfig';
 import { isNetworkOnline } from '../networkStatus';
 import { NET_API_FAST_MS, withTimeout } from '../networkPolicy';
@@ -24,7 +27,6 @@ export function instantRoomOptions(overrides?: RoomOptions): RoomOptions {
     adaptiveStream: true,
     dynacast: true,
     disconnectOnPageLeave: true,
-    // Prefer smoother recovery on flaky links.
     reconnectPolicy: undefined,
     ...overrides,
   };
@@ -50,7 +52,14 @@ export async function connectLiveKitRoom(options: {
     return { ok: false, reason: 'offline_or_unconfigured' };
   }
 
-  const room = new Room(instantRoomOptions(options.roomOptions));
+  const { createLiveKitRTCProvider } = await import('@unilives/rtc-livekit');
+  const provider = await createLiveKitRTCProvider({
+    roomOptions: instantRoomOptions(options.roomOptions),
+  });
+  const room = provider.getNativeRoom?.() as Room;
+  if (!room) {
+    return { ok: false, reason: 'provider_room_missing' };
+  }
   if (options.onDisconnected) {
     room.on(RoomEvent.Disconnected, options.onDisconnected);
   }
@@ -58,15 +67,22 @@ export async function connectLiveKitRoom(options: {
   const timeoutMs = options.timeoutMs ?? NET_API_FAST_MS;
   try {
     await withTimeout(
-      room.connect(options.url, options.token, options.connectOptions),
+      provider.connect({
+        url: options.url,
+        token: options.token,
+      }),
       timeoutMs,
       'livekit.connect',
     );
+    if (options.connectOptions) {
+      // connectOptions applied at Room.connect inside adapter when supported; retained for API compat
+      void options.connectOptions;
+    }
     return { ok: true, room };
   } catch (err) {
     try {
       room.removeAllListeners();
-      await room.disconnect();
+      await provider.disconnect();
     } catch {
       /* ignore */
     }

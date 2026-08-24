@@ -1,0 +1,81 @@
+{
+  "currentStage": "B",
+  "currentSlice": "B-final-documentation",
+  "completed": [
+    "rtc-contracts-package",
+    "rtc-core-orchestrators",
+    "rtc-client-facade",
+    "rtc-server-grants-webhooks",
+    "rtc-livekit-adapter",
+    "rtc-fake-provider",
+    "rtc-qoe-governor",
+    "platform-core-control-plane",
+    "sdk-mcp-cli-foundation",
+    "auth-database-storage-realtime-boundaries",
+    "deploy-git-observe-ui-kit",
+    "unilive-v1-api-routes",
+    "reference-app-unilive-rtc-facade",
+    "livekit-compatibility-boundary",
+    "livekit-import-boundary-scan-pass",
+    "connectLiveKitRoom-via-createLiveKitRTCProvider",
+    "demoCallBus-callOrchestrator-mirror",
+    "gift-settle-pkOrchestrator-mirror",
+    "event-lanes-likes-gifts",
+    "cloudflare-qualification-lab-adapter",
+    "stage-b-unit-suite-pass",
+    "stage-a-regression-verified-this-session",
+    "ci-stage-b-gate",
+    "stage-b-final-documentation-set"
+  ],
+  "inProgress": [],
+  "failing": [],
+  "blocked": [
+    {
+      "id": "native-callkit-pushkit-device-qa",
+      "detail": "Accepted external from Stage A; unchanged for Stage B"
+    },
+    {
+      "id": "production-rtc-cutover",
+      "detail": "NOT_PERFORMED — owner approval required; NOT_REQUIRED_FOR_STAGE_B acceptance"
+    }
+  ],
+  "nextAction": "Owner review Stage B final docs; commit when ready; production cutover only on explicit directive",
+  "uiUxChanged": false,
+  "stageAAcceptance": "PASS",
+  "stageBAcceptance": "PASS",
+  "stageBStarted": true,
+  "productionRtcCutover": "NOT_PERFORMED",
+  "productionMediaProvider": "LiveKit",
+  "productionRtcApi": "UniLiveRTC",
+  "productionMediaProviderCutover": "NOT_REQUIRED_FOR_STAGE_B",
+  "baselineSha": "4786a68",
+  "branch": "fix/vercel-api-root-now",
+  "workingTree": "uncommitted",
+  "lastValidatedSha": "4786a68",
+  "evidence": {
+    "stage_b_unit_suite": {
+      "result": "PASS",
+      "tests": 16,
+      "script": "scripts/test-stage-b.mjs"
+    },
+    "livekit_import_boundary": {
+      "staticImportSites": 1,
+      "allowedPaths": [
+        "artifacts/instacollab/src/lib/rtc/livekitCompatibilityBoundary.ts",
+        "lib/unilives-rtc-livekit/ (dynamic import)"
+      ],
+      "result": "PASS"
+    },
+    "stage_a_regression_this_session": {
+      "gift_playback_scheduler": "13/13",
+      "visual_regression_lock": "22/22",
+      "call_lifecycle_state": "4/4",
+      "pk_team_topology": "6/6",
+      "pk_seat_stage_a": "6/6",
+      "wallet_authority": "7/7",
+      "live_pk_challenge": "16/16"
+    },
+    "ci_gate": "pnpm run test:stage-b in .github/workflows/ci.yml"
+  },
+  "updatedAt": "2026-08-24T08:24:00Z"
+}

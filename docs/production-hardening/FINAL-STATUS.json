@@ -1,13 +1,17 @@
 {
-  "stage": "A",
+  "stage": "B",
   "stageAAcceptance": "PASS",
+  "stageBAcceptance": "PASS",
   "uiUxChanged": false,
-  "stageBStarted": false,
+  "stageBStarted": true,
   "productionRtcCutover": "NOT_PERFORMED",
+  "productionMediaProvider": "LiveKit",
+  "productionRtcApi": "UniLiveRTC",
+  "productionMediaProviderCutover": "NOT_REQUIRED_FOR_STAGE_B",
   "acceptedExternalBlockers": [
     "native-callkit-pushkit-FEATURE_ENABLED-false-until-voip-cert-and-online-device",
     "apns-provider-key-absent-after-credential-exhaust"
   ],
-  "finalSha": "92e7541",
-  "updatedAt": "2026-08-24T04:27:00Z"
+  "finalSha": "4786a68 baseline; Stage B work uncommitted on fix/vercel-api-root-now",
+  "updatedAt": "2026-08-24T08:24:00Z"
 }

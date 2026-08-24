@@ -1,34 +1,36 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
-import { Track } from 'livekit-client';
+import { Track } from '../../lib/rtc/livekitCompatibilityBoundary';
 import {
+  Activity,
+  Info,
   LayoutGrid,
-  Check,
-  Copy,
   Lock,
-  LogOut,
   Mic,
   MicOff,
+  Music2,
   Pencil,
-  Send,
+  Power,
+  RefreshCw,
+  Settings2,
   Sofa,
+  Sparkles,
+  Star,
   Users,
   Video,
   VideoOff,
+  Wallet,
 } from 'lucide-react';
 import { CoinIcon } from '../../components/common/CoinIcon';
+import { useOptionalLiveLike } from '../liveLike/LiveLikeContext';
 import { DEEPAR_ENABLED } from '../../lib/deepar/deeparEnabled';
 import { RoomBackgroundLayer } from './RoomBackgroundLayer';
-import { RoomFooterTrayActions } from './RoomFooterTrayActions';
-import { RoomHeaderActionsMenu, createSingHeaderMenuItem, createYoutubeMiniHeaderMenuItem, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
 import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
-import { RoomOwnerSocialControls } from './RoomOwnerSocialControls';
-import { RoomArenaOpenButton } from './RoomArenaLeaderboard';
 import { SoloLiveVideoStage } from './SoloLiveVideoStage';
 import { MultiGuestEffectsSheet } from './MultiGuestEffectsSheet';
 import { LiveBeautySheet } from './LiveBeautySheet';
 import { MultiGuestSeatMedia } from './MultiGuestSeatMedia';
 import { MultiGuestSelfMediaHost } from './MultiGuestSelfMediaHost';
-import { PKBattleStage } from './PKBattleStage';
+import { V15LiveRoomChrome } from './V15LiveRoomChrome';
 import { LiveSeatFullscreenOverlay, type LiveSeatFullscreenTarget } from './LiveSeatFullscreenOverlay';
 import { SeatSpeakingLevelBars } from './SeatVoiceVisuals';
 import { useSeatTileTap } from '../hooks/useSeatTileTap';
@@ -37,6 +39,7 @@ import type { CameraFacingMode } from '../../lib/camera/useCameraStream';
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
 import { deeparSelectionActive, type DeepAREffectSelection } from '../../lib/deepar/deeparEffectSelection';
 import type {
+  TencentBeautifyParams,
   TencentBodyShapeParams,
   TencentEffectItem,
   TencentEffectSelection,
@@ -47,8 +50,6 @@ import {
   type MultiGuestLiveKitState,
 } from '../hooks/useMultiGuestLiveKit';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
-import { EMPTY_PK_AUDIO_SEATS } from '../utils/pkBattleLayout';
-import type { PKBattleState, PKPayload } from '../utils/liveRoomTypes';
 import type { RoomExpProgress } from '../utils/roomExp';
 import type { RoomGiftSummary } from '../utils/roomGifts';
 import {
@@ -63,11 +64,16 @@ import {
 import type { RoomViewerEntry } from '../utils/roomViewers';
 import { safeAvatarUrl } from '../../lib/safe';
 import { CommerceLivePanel } from './CommerceLivePanel';
-import { CommerceLiveProductCard } from './CommerceLiveProductCard';
 import { CommerceLiveCheckoutModal } from './CommerceLiveCheckoutModal';
 import type { CommerceCheckoutResult } from './CommerceLiveCheckoutModal';
 import { CommerceLiveOrderDetailSheet } from './CommerceLiveOrderDetailSheet';
 import type { CommerceCardPosition, CommerceOrder, CommercePayload, CommerceProduct } from '../utils/liveRoomTypes';
+import {
+  SoloShopLiveComposerActions,
+  SoloShopLiveControls,
+  SoloShopLiveDailyGiftSheet,
+  type SoloShopLiveMoreAction,
+} from './SoloShopLiveControls';
 
 type ChatViewerPayload = {
   id: string;
@@ -103,8 +109,12 @@ export type SoloLiveViewProps = {
   isRoomSaved: boolean;
   roomIdCopied: boolean;
   onCopyRoomId: (event: React.MouseEvent) => void;
-  onToggleSaveRoom: (event: React.MouseEvent) => void;
+  onToggleSaveRoom: (event?: React.MouseEvent) => void;
   onLeaveRoom: () => void;
+  onShareRoom?: () => void;
+  onRequestEndLive?: () => void;
+  onOpenHostDashboard?: () => void;
+  hostLiveMetrics?: import('./HostLiveMetricsStrip').HostLiveMetrics | null;
   onOpenRoomDetails: () => void;
   onOpenRoomEdit?: () => void;
   activeSeats: PartySeatMap;
@@ -120,7 +130,10 @@ export type SoloLiveViewProps = {
   setIsRoomBackgroundMenuOpen: (open: boolean) => void;
   setIsRoomViewersOpen: (open: boolean) => void;
   setIsGiftPickerOpen: (open: boolean) => void;
+  onOpenStickers?: () => void;
+  stickersOpen?: boolean;
   setIsGuestManagementOpen: (open: boolean) => void;
+  onOpenGuestManagement?: () => void;
   liveChatMsgs: LiveChatMsg[];
   chatInput: string;
   handleChatInputChange: (val: string) => void;
@@ -163,6 +176,9 @@ export type SoloLiveViewProps = {
     isSelfOwner: boolean;
     ownerViewerPayload: ChatViewerPayload;
   };
+  liveFollowCount?: number;
+  followerTotal?: number;
+  followTappers?: Array<{ userId: string; name: string; avatarUrl?: string; followedThisLive?: boolean }>;
   multiGuestLiveKit: MultiGuestLiveKitState;
   rawVideoRef?: React.RefObject<HTMLVideoElement | null>;
   deeparPreviewRef?: React.RefObject<HTMLDivElement | null>;
@@ -198,6 +214,8 @@ export type SoloLiveViewProps = {
   beautyPanelOpen?: boolean;
   onToggleBeautyPanel?: () => void;
   onSelectBeauty?: (beautyId: BeautyPresetId) => void;
+  onBeautifyParamsChange?: (params: TencentBeautifyParams) => void;
+  beautifyOverride?: TencentBeautifyParams | null;
   onBeautyEffectsChange?: (effects: TencentEffectSelection) => void;
   beautyBodyShape?: TencentBodyShapeParams;
   onBeautyBodyShapeChange?: (shape: TencentBodyShapeParams) => void;
@@ -208,12 +226,9 @@ export type SoloLiveViewProps = {
   onPkClick?: () => void;
   onGameClick?: () => void;
   pkEnabled?: boolean;
-  pkBattle?: PKBattleState | null;
-  onEmitPk?: (payload: PKPayload) => void;
-  onStartPk?: () => void;
-  onDisconnectPk?: () => void;
-  pkSelfUserId?: string;
-  pkIsOwner?: boolean;
+  coinBalance?: number;
+  onOpenRecharge?: () => void;
+  pkTimerLabel?: string | null;
   showVoiceChanger?: boolean;
   voiceChangerEligible?: boolean;
   voiceChangerOpen?: boolean;
@@ -241,6 +256,7 @@ export type SoloLiveViewProps = {
   onCommerceCheckoutComplete?: (result: CommerceCheckoutResult) => void;
   onCommerceSelectOrder?: (order: CommerceOrder) => void;
   onCommerceCloseOrderDetail?: () => void;
+  onCommerceMarkShipped?: (order: CommerceOrder) => void;
   buyerUserId?: string;
   buyerDisplayName?: string;
   commerceHostUserId?: string;
@@ -261,6 +277,10 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   onCopyRoomId,
   onToggleSaveRoom,
   onLeaveRoom,
+  onShareRoom,
+  onRequestEndLive,
+  onOpenHostDashboard,
+  hostLiveMetrics = null,
   onOpenRoomDetails,
   onOpenRoomEdit,
   activeSeats,
@@ -273,10 +293,11 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   buildViewerFromGuest,
   onOpenGiftSenders,
   lockedSeats,
-  setIsRoomBackgroundMenuOpen,
   setIsRoomViewersOpen,
   setIsGiftPickerOpen,
+  onOpenStickers,
   setIsGuestManagementOpen,
+  onOpenGuestManagement,
   liveChatMsgs,
   chatInput,
   handleChatInputChange,
@@ -302,13 +323,15 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   userMicLevel = 0,
   audioPulse = 0,
   onOpenArenaRankings,
-  canChangeRoomBackground,
   backgroundMode,
   canEditAnnouncement = false,
   onEditAnnouncement,
   canChangeRoomMode = false,
   onOpenRoomModePicker,
   ownerSocial,
+  liveFollowCount = 0,
+  followerTotal,
+  followTappers = [],
   multiGuestLiveKit,
   rawVideoRef,
   deeparPreviewRef,
@@ -332,24 +355,19 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   onPkClick,
   onGameClick,
   pkEnabled = false,
-  pkBattle = null,
-  onEmitPk,
-  onStartPk,
-  onDisconnectPk,
-  pkSelfUserId = '',
-  pkIsOwner = false,
+  coinBalance = 0,
+  onOpenRecharge,
+  pkTimerLabel = null,
   showVoiceChanger = false,
   voiceChangerEligible = false,
   voiceChangerOpen = false,
   voiceEffectActive = false,
-  voiceEffectEmoji,
   onToggleVoiceChanger,
   isSelfHost,
   isCommerceLive = false,
   commerceShopOpen = false,
   commerceCatalog = [],
   commercePinnedProduct = null,
-  commerceCardPosition = { x: 50, y: 72 },
   commerceOrders = [],
   commerceCheckoutProduct = null,
   commerceSelectedOrder = null,
@@ -360,11 +378,11 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   onCommerceUnpin,
   onCommercePurchase,
   onCommerceCreateProduct,
-  onCommerceCardPositionChange,
   onCommerceCheckoutClose,
   onCommerceCheckoutComplete,
   onCommerceSelectOrder,
   onCommerceCloseOrderDetail,
+  onCommerceMarkShipped,
   buyerUserId = '',
   buyerDisplayName = '',
   commerceHostUserId = '',
@@ -381,6 +399,8 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   beautyPanelOpen = false,
   onToggleBeautyPanel,
   onSelectBeauty,
+  onBeautifyParamsChange,
+  beautifyOverride = null,
   onBeautyEffectsChange,
   beautyBodyShape = EMPTY_BODY_SHAPE,
   onBeautyBodyShapeChange,
@@ -388,7 +408,6 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
 }) => {
   const remoteVideoRef = useRef<HTMLVideoElement>(null);
   const guestStageRef = useRef<HTMLDivElement>(null);
-  const arenaSlotRef = useRef<HTMLDivElement>(null);
   const selfGuestAnchorRef = useRef<HTMLDivElement>(null);
   const deeparEffectActive = effectsConfigured && (
     activeDeeparSelection
@@ -401,17 +420,12 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       (onDeeparSelectionChange || onSelectEffect),
   );
   const showBeautyControls = Boolean(onToggleBeautyPanel && onSelectBeauty);
-  const beautyActive =
-    beautyEffectId !== 'none' ||
-    Boolean(
-      beautyEffects.makeupId ||
-        beautyEffects.stickerId ||
-        beautyEffects.filterId ||
-        beautyEffects.backgroundUrl ||
-        beautyEffects.shapeEffectId,
-    );
   const isSelfGuest = Boolean(userSeatKey && isSoloLiveGuestSeat(userSeatKey));
   const isSelfSeated = isSelfHost || isSelfGuest;
+  const occupiedGuestSeatKeys = useMemo(
+    () => SOLO_LIVE_GUEST_SEAT_KEYS.filter((seatKey) => Boolean(activeSeats[seatKey])),
+    [activeSeats],
+  );
   const selfUsesCssMirror =
     cameraFacingMode === 'user' &&
     !(effectsConfigured && deeparEffectActive && effectsArReady);
@@ -419,12 +433,13 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   const selfMediaMounted = isSelfHost;
 
   const hostGuest = activeSeats.host;
+  const liveFeaturedProduct = commercePinnedProduct ?? commerceCatalog[0] ?? null;
   const hostUserId = hostGuest ? resolveSeatVideoUserId(hostGuest, roomDisplayId) : null;
   const openSeatFullscreen = (seatKey: RoomSeatKey, guest: RoomGuest) => {
     setSeatFullscreenTarget(
       buildLiveSeatFullscreenTarget(seatKey, guest, roomDisplayId, {
         userSeatKey,
-        selfUserId: pkSelfUserId,
+        selfUserId: buyerUserId,
       }),
     );
   };
@@ -442,8 +457,65 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
     };
   }, [hostRemoteTrack, isSelfHost]);
 
-  const headerMenuItems = useMemo<RoomHeaderMenuItem[]>(
+  const hostEndLiveOnly = isSelfHost || Boolean(onRequestEndLive);
+
+  const moreActions = useMemo<SoloShopLiveMoreAction[]>(
     () => [
+      {
+        id: 'seat',
+        label: userSeatKey ? 'Leave Seat' : 'Join Guest',
+        icon: <Users size={17} aria-hidden />,
+        onClick: onToggleSeatParticipation,
+        hidden: isSelfHost,
+      },
+      {
+        id: 'switch-camera',
+        label: 'Switch Camera',
+        icon: <RefreshCw size={17} aria-hidden />,
+        onClick: () => onToggleCameraFacing?.(),
+        hidden: !isSelfSeated || !onToggleCameraFacing,
+      },
+      {
+        id: 'ar-effects',
+        label: 'AR Effects',
+        icon: <Sparkles size={17} aria-hidden />,
+        onClick: () => onToggleEffectsPanel?.(),
+        hidden: !showDeepARControls,
+      },
+      {
+        id: 'voice-changer',
+        label: 'Voice Changer',
+        icon: <Mic size={17} aria-hidden />,
+        onClick: () => onToggleVoiceChanger?.(),
+        hidden: !showVoiceChanger || !onToggleVoiceChanger,
+        disabled: !voiceChangerEligible,
+      },
+      {
+        id: 'save-room',
+        label: isRoomSaved ? 'Room Saved' : 'Save Room',
+        icon: <Star size={17} aria-hidden />,
+        onClick: () => onToggleSaveRoom(),
+      },
+      {
+        id: 'game',
+        label: 'Game',
+        icon: <LayoutGrid size={17} aria-hidden />,
+        onClick: () => onGameClick?.(),
+        hidden: !isCommerceLive || !onGameClick,
+      },
+      {
+        id: 'details',
+        label: 'Room details',
+        icon: <Info size={15} aria-hidden />,
+        onClick: onOpenRoomDetails,
+      },
+      {
+        id: 'edit',
+        label: 'Edit room settings',
+        icon: <Settings2 size={15} aria-hidden />,
+        onClick: () => onOpenRoomEdit?.(),
+        hidden: !onOpenRoomEdit,
+      },
       {
         id: 'mode',
         label: 'Change room mode',
@@ -453,22 +525,75 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       },
       ...(onOpenSing
         ? [
-            createSingHeaderMenuItem(onOpenSing, {
-              hasActiveSong,
+            {
+              id: 'sing',
+              label: hasActiveSong ? 'Now Singing' : songQueueLength > 0 ? `Sing (${songQueueLength})` : 'Sing',
+              icon: <Music2 size={17} aria-hidden />,
+              onClick: onOpenSing,
               hidden: hideSingMenu,
-              queueLength: songQueueLength,
-            }),
+            },
           ]
         : []),
-      createYoutubeMiniHeaderMenuItem(),
+      {
+        id: 'announcement',
+        label: 'Edit announcement',
+        icon: <Pencil size={15} aria-hidden />,
+        onClick: () => onEditAnnouncement?.(),
+        hidden: !canEditAnnouncement || !onEditAnnouncement,
+      },
+      {
+        id: 'host-dashboard',
+        label: 'Live dashboard',
+        icon: <Activity size={15} aria-hidden />,
+        onClick: () => onOpenHostDashboard?.(),
+        hidden: !onOpenHostDashboard,
+      },
+      {
+        id: 'recharge',
+        label: coinBalance > 0 ? `Recharge (${coinBalance.toLocaleString()})` : 'Recharge',
+        icon: <Wallet size={17} aria-hidden />,
+        onClick: () => onOpenRecharge?.(),
+        hidden: !onOpenRecharge,
+      },
+      {
+        id: 'end-live',
+        label: hostEndLiveOnly ? 'End Live' : 'Leave Live',
+        icon: <Power size={15} aria-hidden />,
+        onClick: hostEndLiveOnly && onRequestEndLive ? onRequestEndLive : onLeaveRoom,
+        danger: true,
+      },
     ],
     [
       canChangeRoomMode,
+      canEditAnnouncement,
+      coinBalance,
       hasActiveSong,
       hideSingMenu,
+      hostEndLiveOnly,
+      isRoomSaved,
+      isCommerceLive,
+      isSelfHost,
+      isSelfSeated,
+      onGameClick,
+      onEditAnnouncement,
+      onOpenHostDashboard,
+      onOpenRecharge,
+      onOpenRoomDetails,
+      onOpenRoomEdit,
       onOpenRoomModePicker,
       onOpenSing,
+      onRequestEndLive,
+      onLeaveRoom,
+      onToggleCameraFacing,
+      onToggleEffectsPanel,
+      onToggleSeatParticipation,
+      onToggleSaveRoom,
+      onToggleVoiceChanger,
+      showDeepARControls,
+      showVoiceChanger,
       songQueueLength,
+      userSeatKey,
+      voiceChangerEligible,
     ],
   );
 
@@ -523,11 +648,28 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
     ],
   );
   const footerRef = useRef<HTMLDivElement>(null);
+  const stageShellRef = useRef<HTMLDivElement>(null);
   const [footerHeight, setFooterHeight] = useState(0);
   const handleSeatTileTap = useSeatTileTap();
+  const liveLike = useOptionalLiveLike();
+  const [chatComposerOpen, setChatComposerOpen] = useState(true);
+  const [dailyGiftOpen, setDailyGiftOpen] = useState(false);
   const [seatFullscreenTarget, setSeatFullscreenTarget] = useState<LiveSeatFullscreenTarget | null>(
     null,
   );
+
+  const tapLikeAtClientPoint = (clientX: number, clientY: number) => {
+    if (!liveLike) return;
+    const stage =
+      (stageShellRef.current?.closest('.room-shell') as HTMLElement | null) ??
+      stageShellRef.current;
+    if (!stage) return;
+    const rect = stage.getBoundingClientRect();
+    liveLike.tapLike({
+      xPct: ((clientX - rect.left) / Math.max(1, rect.width)) * 100,
+      yPct: ((clientY - rect.top) / Math.max(1, rect.height)) * 100,
+    });
+  };
 
   useLayoutEffect(() => {
     const footer = footerRef.current;
@@ -601,7 +743,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
         aria-disabled={hostCannotTakeGuestSeat}
         className={`solo-live-guest-tile group text-left cursor-pointer${
           hostCannotTakeGuestSeat ? ' solo-live-guest-tile--host-locked' : ''
-        }`}
+        }${guest ? '' : ' solo-live-guest-tile--empty'}`}
         aria-label={
           hostCannotTakeGuestSeat
             ? `${label} — guest co-host seat`
@@ -720,9 +862,16 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       className={`solo-live-layout relative flex h-full min-h-0 flex-1 flex-col w-full font-sans ${
         effectsPanelOpen || beautyPanelOpen ? 'overflow-visible' : 'overflow-hidden'
       }`}
+      style={
+        {
+          ['--approved-live-footer-height' as string]: `${Math.max(footerHeight, 104)}px`,
+          ['--solo-live-guest-rail-bottom' as string]: `${Math.max(footerHeight, 104) + 10}px`,
+        } as React.CSSProperties
+      }
     >
       <RoomBackgroundLayer mode={backgroundMode} />
       <div
+        ref={stageShellRef}
         className={`solo-live-shell relative h-full min-h-0 w-full flex-1 ${
           effectsPanelOpen || beautyPanelOpen ? 'overflow-visible' : 'overflow-hidden'
         }`}
@@ -737,159 +886,89 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           <button
             type="button"
             className="absolute inset-0 z-[2] cursor-default border-none bg-transparent p-0"
-            aria-label={`${hostGuest.name} live camera — double tap for fullscreen`}
-            onClick={() =>
+            aria-label={`${hostGuest.name} live camera — tap to like, double tap for fullscreen`}
+            onPointerDown={(event) => {
+              if (event.button !== 0) return;
+              tapLikeAtClientPoint(event.clientX, event.clientY);
+            }}
+            onClick={() => {
               handleSeatTileTap(
                 () => {},
                 () => openSeatFullscreen('host', hostGuest),
-              )
-            }
+              );
+            }}
           />
         ) : null}
 
-        <div className="pointer-events-none absolute inset-0 z-[35]">
-          {isCommerceLive &&
-          commercePinnedProduct &&
-          onCommercePurchase &&
-          onCommerceCardPositionChange ? (
-            <CommerceLiveProductCard
-              product={commercePinnedProduct}
-              salesCount={commerceSalesCount}
-              isHost={isSelfHost}
-              position={commerceCardPosition}
-              onBuy={() => onCommercePurchase(commercePinnedProduct)}
-              onUnpin={isSelfHost ? onCommerceUnpin : undefined}
-              onPositionChange={onCommerceCardPositionChange}
-            />
-          ) : null}
-        </div>
+        <div className="approved-live-overlay-canvas">
+        {/* Host close: aria-label="End Live". Viewer close: aria-label="Leave room". */}
+        <V15LiveRoomChrome
+          hostName={hostGuest?.name ?? ownerSocial.ownerIdentity.name}
+          hostAvatarUrl={hostGuest?.avatar ?? ownerSocial.ownerIdentity.avatarUrl}
+          roomId={roomDisplayId}
+          caption={announcement.trim() || roomTitle.trim() || undefined}
+          canEditCaption={canEditAnnouncement}
+          onEditCaption={onEditAnnouncement}
+          roomIdCopied={roomIdCopied}
+          onCopyRoomId={onCopyRoomId}
+          popularityLabel={
+            hostGuest?.stars != null && hostGuest.stars > 0
+              ? hostGuest.stars.toLocaleString()
+              : ownerSocial.starCount > 0
+                ? ownerSocial.starCount.toLocaleString()
+                : undefined
+          }
+          isFollowing={ownerSocial.isFollowingOwner}
+          showFollow={!ownerSocial.isSelfOwner}
+          onToggleFollow={ownerSocial.toggleFollowOwner}
+          liveFollowCount={liveFollowCount}
+          followerTotal={followerTotal}
+          followTappers={followTappers}
+          isCommerceLive={isCommerceLive}
+          liveStartedAt={hostLiveMetrics?.startedAt ?? null}
+          viewerCount={hostLiveMetrics?.currentViewers ?? viewers.length}
+          viewerAvatars={viewers.map((viewer) => ({ id: viewer.id, avatar: viewer.avatar }))}
+          pkTimerLabel={pkTimerLabel}
+          onOpenHostDashboard={onOpenHostDashboard}
+          onViewers={() => setIsRoomViewersOpen(true)}
+          onShare={onShareRoom}
+          onHourlyTop={onOpenArenaRankings}
+          onDailyGift={() => setDailyGiftOpen(true)}
+          onMyGifts={() =>
+            onOpenGiftSenders({
+              name: hostGuest?.name ?? ownerSocial.ownerIdentity.name,
+              userId: hostGuest?.userId ?? ownerSocial.ownerViewerPayload.id,
+            })
+          }
+          flashSaleProduct={isCommerceLive ? liveFeaturedProduct : null}
+          flashSaleSalesCount={commerceSalesCount}
+          onFlashSale={
+            isCommerceLive && liveFeaturedProduct
+              ? isSelfHost
+                ? onToggleCommerceShop
+                : onCommercePurchase
+                  ? () => onCommercePurchase(liveFeaturedProduct)
+                  : undefined
+              : undefined
+          }
+          onClose={hostEndLiveOnly && onRequestEndLive ? onRequestEndLive : onLeaveRoom}
+          closeAriaLabel={hostEndLiveOnly && onRequestEndLive ? 'End Live' : 'Leave room'}
+          onHostProfile={() =>
+            handleSelectViewer(
+              hostGuest
+                ? buildViewerFromGuest(hostGuest, 'host')
+                : ownerSocial.ownerViewerPayload,
+            )
+          }
+        />
 
-        <header className="solo-live-header absolute inset-x-0 top-0 z-50 flex flex-col gap-1 overflow-visible bg-gradient-to-b from-black/85 via-black/55 to-transparent px-3 pb-2 pt-2 sm:px-4 sm:pt-3">
-          <div className="flex min-w-0 items-start justify-between gap-2">
-            <div className="flex min-w-0 flex-1 flex-col gap-0.5">
-              <div className="flex min-w-0 items-center gap-1.5 overflow-visible pr-0.5">
-                <RoomOwnerSocialControls
-                  name={hostGuest?.name ?? ownerSocial.ownerIdentity.name}
-                  avatarUrl={hostGuest?.avatar ?? ownerSocial.ownerIdentity.avatarUrl}
-                  starCount={hostGuest?.stars ?? ownerSocial.starCount}
-                  isSpeaking={Boolean(hostGuest?.isSpeaking)}
-                  isFollowing={ownerSocial.isFollowingOwner}
-                  onToggleFollow={ownerSocial.toggleFollowOwner}
-                  showFollowButton={!ownerSocial.isSelfOwner}
-                  onProfileClick={() =>
-                    handleSelectViewer(
-                      hostGuest
-                        ? buildViewerFromGuest(hostGuest, 'host')
-                        : ownerSocial.ownerViewerPayload,
-                    )
-                  }
-                  className="min-w-0 flex-1 overflow-hidden"
-                />
-              </div>
-              <div className="solo-live-caption inline-flex w-fit max-w-full min-w-0 items-center gap-1.5 rounded-lg border border-white/10 bg-black/30 px-2 py-0.5 pl-0.5 backdrop-blur-sm">
-                <p
-                  className="min-w-0 max-w-[9.5rem] truncate text-left text-[11px] font-semibold leading-snug text-white/90 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)] sm:max-w-[12rem]"
-                  title={announcement}
-                >
-                  {announcement.trim() || 'Welcome to the live room'}
-                </p>
-                <div className="flex shrink-0 items-center gap-0.5 border-l border-white/10 pl-1">
-                  {isSelfHost && onEditAnnouncement ? (
-                    <button
-                      type="button"
-                      onClick={onEditAnnouncement}
-                      className="shrink-0 rounded-md p-0.5 text-pink-300/90 transition hover:bg-white/10 hover:text-pink-200"
-                      title="Edit live caption"
-                      aria-label="Edit live caption"
-                    >
-                      <Pencil size={12} />
-                    </button>
-                  ) : null}
-                  <span className="solo-live-badge shrink-0 whitespace-nowrap leading-none inline-flex items-center gap-1 rounded-full border border-red-500/40 bg-red-500/20 px-1.5 py-0.5 text-[8.5px] font-black uppercase tracking-wide text-red-200">
-                    <span className="solo-live-badge-dot" aria-hidden />
-                    {isCommerceLive ? 'Shop Live' : 'Live'}
-                  </span>
-                </div>
-              </div>
-              <div className="flex min-w-0 items-center gap-1 pl-0.5">
-                <span
-                  className="truncate font-mono text-[10px] font-semibold tracking-wide text-white/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]"
-                  title={`Live room ID ${roomDisplayId}`}
-                >
-                  ID:{roomDisplayId}
-                </span>
-                <button
-                  type="button"
-                  onClick={onCopyRoomId}
-                  className="shrink-0 rounded-md p-0.5 text-white/60 transition hover:bg-white/10 hover:text-white/90"
-                  aria-label={roomIdCopied ? 'Live ID copied' : 'Copy live ID'}
-                >
-                  {roomIdCopied ? (
-                    <Check size={12} className="text-emerald-400" />
-                  ) : (
-                    <Copy size={12} />
-                  )}
-                </button>
-              </div>
-            </div>
-            <div className="flex shrink-0 items-center space-x-1.5 sm:space-x-2">
-              <button
-                type="button"
-                onClick={() => setIsRoomViewersOpen(true)}
-                aria-label={`${viewers.length} viewers in room`}
-                className="party-viewers-chip party-glass-chip flex min-h-[32px] shrink-0 cursor-pointer items-center space-x-2 rounded-full px-2.5 py-1.5 sm:px-3 transition"
-              >
-                <div className="-space-x-2 mr-0.5 flex">
-                  {viewers.slice(0, 3).map((viewer) => (
-                    <img
-                      key={viewer.id}
-                      src={safeAvatarUrl(viewer.avatar)}
-                      className="h-6 w-6 shrink-0 rounded-full border-2 border-[#07010a] object-cover sm:h-7 sm:w-7"
-                      alt=""
-                    />
-                  ))}
-                </div>
-                <div className="flex items-center space-x-1.5 opacity-90">
-                  <Users size={16} className="shrink-0 text-gray-300" />
-                  <span className="party-viewers-count font-black text-gray-100">{viewers.length}</span>
-                </div>
-              </button>
-              <RoomHeaderYoutubeMiniButton />
-              <RoomHeaderActionsMenu items={headerMenuItems} />
-              <button
-                type="button"
-                onClick={onLeaveRoom}
-                className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-black/30 text-gray-300 transition hover:border-red-500/40 hover:bg-red-500/20 hover:text-red-200 active:scale-90 sm:h-9 sm:w-9"
-                aria-label="Leave room"
-              >
-                <LogOut size={15} />
-              </button>
-            </div>
-          </div>
-        </header>
-
-        {pkEnabled && onEmitPk && pkBattle && pkBattle.phase !== 'idle' ? (
-          <div className="pointer-events-auto absolute inset-x-2 top-[5.25rem] z-[28] max-h-[38%] sm:inset-x-4">
-            <PKBattleStage
-              selfUserId={pkSelfUserId}
-              battle={pkBattle}
-              audioSeats={EMPTY_PK_AUDIO_SEATS}
-              isOwner={pkIsOwner}
-              onEmitPk={onEmitPk}
-              onStartPk={onStartPk}
-              onDisconnectPk={onDisconnectPk}
-              variant="stage"
-              className="overflow-hidden"
-            />
-          </div>
-        ) : null}
-
+        {occupiedGuestSeatKeys.length > 0 ? (
         <div
           ref={guestStageRef}
           className="solo-live-guest-rail"
         >
           <div className="solo-live-guest-grid">
-            {SOLO_LIVE_GUEST_SEAT_KEYS.map((seatKey) => renderGuestSeat(seatKey))}
+            {occupiedGuestSeatKeys.map((seatKey) => renderGuestSeat(seatKey))}
           </div>
           {rawVideoRef && deeparPreviewRef && isSelfGuest ? (
             <MultiGuestSelfMediaHost
@@ -897,6 +976,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
               anchorRef={selfGuestAnchorRef}
               seatKey={userSeatKey}
               active={Boolean(isSelfGuest && userCameraOn)}
+              layoutNonce={footerHeight}
               rawVideoRef={rawVideoRef}
               deeparPreviewRef={deeparPreviewRef}
               showDeeparPreview={showDeeparPreview}
@@ -907,12 +987,10 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
             />
           ) : null}
         </div>
+        ) : null}
 
-        <div
-          className={`solo-live-conversation absolute inset-x-0 bottom-0 z-30 flex max-h-[46%] min-h-0 flex-col ${
-            effectsPanelOpen || beautyPanelOpen ? 'overflow-visible' : 'overflow-hidden'
-          }`}
-        >
+        <div className="solo-live-conversation absolute inset-x-0 bottom-0 z-30 flex max-h-[46%] min-h-0 flex-col overflow-visible">
+          {chatComposerOpen ? (
           <div
             id="chat_and_action_container"
             className="party-chat-grid room-conversation flex min-h-0 flex-1 overflow-hidden px-3 sm:px-4 pt-1 pb-0"
@@ -952,7 +1030,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                         { ...msg, id: messageId },
                         {
                           layout: 'inline',
-                          bubbleClassName: 'bg-black/30 backdrop-blur-xl border border-white/5 shadow-sm',
+                          bubbleClassName: 'bg-transparent border-0 shadow-none',
                         },
                       ),
                     );
@@ -960,97 +1038,74 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                 </div>
               </div>
             </div>
-            <div
-              ref={arenaSlotRef}
-              className="solo-live-arena-slot flex shrink-0 flex-col items-center justify-end self-stretch pb-1"
-              id="gameday-widgets-column"
-            >
-              <RoomArenaOpenButton onOpen={onOpenArenaRankings} />
-            </div>
           </div>
+          ) : null}
 
           <div
             id="solo-live-footer"
             ref={footerRef}
-            className="solo-live-footer relative z-50 shrink-0 px-2 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 sm:px-4"
+            className="solo-live-footer relative z-50 shrink-0"
           >
-            <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
-              <form onSubmit={handleSendMessage} className="relative min-w-0 w-full sm:flex-1">
+            {chatComposerOpen ? (
+            <SoloShopLiveComposerActions
+              open
+              onOpenStickers={onOpenStickers}
+              cameraOn={userCameraOn}
+              cameraEnabled={isSelfSeated}
+              onToggleCamera={onToggleUserCamera}
+              micOn={userMicOn}
+              micEnabled={Boolean(userSeatKey)}
+              onToggleMic={onToggleUserMic}
+            >
+              <form onSubmit={handleSendMessage} className="approved-live-chat-form">
                 {mentionSearch !== null ? (
-                  <div className="absolute bottom-full left-0 z-[100] mb-2 w-44 overflow-hidden rounded-2xl border border-purple-500/30 bg-[#1a0f2e]/95 shadow-lg backdrop-blur-xl">
-                    <div className="max-h-40 overflow-y-auto py-1 scrollbar-hide">
-                      {getMentionSuggestions().length > 0 ? (
-                        getMentionSuggestions().map((user, index) => (
-                          <button
-                            key={`${user.name}-${index}`}
-                            type="button"
-                            onClick={() => selectMention(user.name)}
-                            className="flex w-full items-center space-x-2 px-3 py-2 text-left hover:bg-white/10"
-                          >
-                            <img src={safeAvatarUrl(user.avatar)} className="h-6 w-6 rounded-full object-cover" alt="" />
-                            <span className="truncate text-xs font-bold text-gray-200">{user.name}</span>
-                          </button>
-                        ))
-                      ) : (
-                        <div className="px-3 py-3 text-center text-[10px] text-gray-500">No users found</div>
-                      )}
-                    </div>
+                  <div className="approved-live-mention-menu">
+                    {getMentionSuggestions().length > 0 ? (
+                      getMentionSuggestions().map((user, index) => (
+                        <button key={`${user.name}-${index}`} type="button" onClick={() => selectMention(user.name)}>
+                          <img src={safeAvatarUrl(user.avatar)} alt="" />
+                          <span>{user.name}</span>
+                        </button>
+                      ))
+                    ) : (
+                      <div>No users found</div>
+                    )}
                   </div>
                 ) : null}
                 <input
                   type="text"
                   value={chatInput}
-                  onChange={(e) => handleChatInputChange(e.target.value)}
-                  placeholder="Say Hi..."
-                  className="party-glass-input w-full min-w-0 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] font-bold text-white placeholder:text-white/30"
+                  onChange={(event) => handleChatInputChange(event.target.value)}
+                  placeholder="Say something..."
+                  aria-label="Live chat message"
                 />
-                {chatInput.trim() ? (
-                  <button
-                    type="submit"
-                    className="absolute right-2 top-1/2 -translate-y-1/2 text-pink-500"
-                    aria-label="Send message"
-                  >
-                    <Send size={14} />
-                  </button>
-                ) : null}
               </form>
+            </SoloShopLiveComposerActions>
+            ) : null}
 
-              <RoomFooterTrayActions
-                userSeatKey={userSeatKey}
-                userMicOn={userMicOn}
-                userVoiceActive={userVoiceActive}
-                onToggleUserMic={onToggleUserMic}
-                onToggleSeatParticipation={onToggleSeatParticipation}
-                onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
-                guestManagementOpen={guestManagementOpen}
-                onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
-                showCamera={isSelfSeated}
-                userCameraOn={userCameraOn}
-                onToggleUserCamera={onToggleUserCamera}
-                showDeepAR={showDeepARControls}
-                effectsPanelOpen={effectsPanelOpen}
-                deeparEffectActive={deeparEffectActive}
-                onToggleEffectsPanel={onToggleEffectsPanel}
-                showBeauty={showBeautyControls}
-                beautyPanelOpen={beautyPanelOpen}
-                beautyActive={beautyActive}
-                onToggleBeautyPanel={onToggleBeautyPanel}
-                showShop={isCommerceLive && isSelfHost}
-                shopPanelOpen={commerceShopOpen}
-                shopActive={Boolean(commercePinnedProduct)}
-                onToggleShopPanel={isSelfHost ? onToggleCommerceShop : undefined}
-                onPkClick={pkEnabled && isSelfHost ? onPkClick : undefined}
-                onGameClick={onGameClick}
-                showVoiceChanger={showVoiceChanger}
-                voiceChangerEligible={voiceChangerEligible}
-                voiceChangerOpen={voiceChangerOpen}
-                voiceEffectActive={voiceEffectActive}
-                voiceEffectEmoji={voiceEffectEmoji}
-                onToggleVoiceChanger={onToggleVoiceChanger}
-                micAccent="purple"
+            <SoloShopLiveControls
+                isCommerceLive={isCommerceLive}
+                chatComposerOpen={chatComposerOpen}
+                onToggleChatComposer={() => setChatComposerOpen((open) => !open)}
+                onOpenGuests={() =>
+                  onOpenGuestManagement ? onOpenGuestManagement() : setIsGuestManagementOpen(true)
+                }
+                guestsOpen={guestManagementOpen}
+                onOpenPk={onPkClick}
+                pkEnabled={pkEnabled}
+                onOpenGift={() => setIsGiftPickerOpen(true)}
+                onOpenEffects={showBeautyControls ? onToggleBeautyPanel : onToggleEffectsPanel}
+                effectsOpen={showBeautyControls ? beautyPanelOpen : effectsPanelOpen}
+                effectsEnabled={showBeautyControls || showDeepARControls}
+                onOpenGame={onGameClick}
+                onOpenShop={onToggleCommerceShop}
+                shopOpen={commerceShopOpen}
+                shopActive={Boolean(liveFeaturedProduct)}
+                moreActions={moreActions}
+                moreExtras={<RoomHeaderYoutubeMiniButton className="approved-live-more-extra" label="YouTube" />}
               />
-            </div>
           </div>
+        </div>
         </div>
       </div>
 
@@ -1060,6 +1115,10 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           onClose={onToggleBeautyPanel}
           activeBeautyId={beautyEffectId}
           onSelectBeauty={onSelectBeauty}
+          onBeautifyParamsChange={onBeautifyParamsChange}
+          beautifyOverride={beautifyOverride}
+          selfName={isSelfHost ? ownerSocial.ownerIdentity.name : 'You'}
+          selfAvatarUrl={isSelfHost ? ownerSocial.ownerIdentity.avatarUrl : undefined}
           effects={beautyEffects}
           onEffectsChange={onBeautyEffectsChange}
           bodyShape={beautyBodyShape}
@@ -1089,13 +1148,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
         />
       ) : null}
 
-      {isSelfHost &&
-      isCommerceLive &&
-      onCommercePin &&
-      onCommerceUnpin &&
-      onToggleCommerceShop &&
-      onCommerceCreateProduct &&
-      onCommerceSelectOrder ? (
+      {isCommerceLive && onToggleCommerceShop ? (
         <CommerceLivePanel
           open={commerceShopOpen}
           isHost={isSelfHost}
@@ -1109,6 +1162,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           onUnpin={onCommerceUnpin}
           onCreateProduct={onCommerceCreateProduct}
           onSelectOrder={onCommerceSelectOrder}
+          onPurchase={onCommercePurchase}
         />
       ) : null}
 
@@ -1133,8 +1187,22 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
         <CommerceLiveOrderDetailSheet
           order={commerceSelectedOrder}
           onClose={onCommerceCloseOrderDetail}
+          onMarkShipped={onCommerceMarkShipped}
         />
       ) : null}
+
+      <SoloShopLiveDailyGiftSheet
+        open={dailyGiftOpen}
+        hostName={hostGuest?.name ?? ownerSocial.ownerIdentity.name}
+        isHost={isSelfHost}
+        giftCount={roomGiftSummary.giftCount}
+        totalStars={roomGiftSummary.totalStars}
+        todayExp={roomExpProgress.todayExp}
+        dailyCap={roomExpProgress.dailyCap}
+        giftBonusExp={roomExpProgress.todayBonusExp}
+        onClose={() => setDailyGiftOpen(false)}
+        onOpenGiftPanel={() => setIsGiftPickerOpen(true)}
+      />
 
       <LiveSeatFullscreenOverlay
         target={seatFullscreenTarget}

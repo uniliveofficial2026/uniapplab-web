@@ -1,11 +1,24 @@
-import { Room } from 'livekit-client';
+import { Room } from '../rtc/livekitCompatibilityBoundary';
 import {
   acquireAppCamera,
   getAppCameraStream,
   releaseAppCamera,
 } from '../camera/appCameraOwner';
 import { fetchLiveKitToken } from '../platformApi';
-import { canAttemptLiveKit, connectWithTokenFetcher } from '../livekit/liveKitInstant';
+import { canAttemptLiveKit } from '../livekit/liveKitInstant';
+import {
+  connectHostLiveKitRoom,
+  disposeHostLiveKitRoom,
+  getActiveHostLiveKitRoomKey,
+} from '../livekit/hostLiveKitRoom';
+import { updateLiveKitLocalVideoTrack } from '../livekit/liveKitVideoPublish';
+import { updateLiveKitLocalAudioTrack } from '../livekit/liveKitAudioPublish';
+import {
+  noteHostPublishing,
+  noteHostRawPreviewReady,
+  noteHostTrackPublished,
+  setHostMediaState,
+} from '../camera/hostMediaSession';
 
 export type LiveKitConnection = {
   room: Room;
@@ -15,13 +28,14 @@ export type LiveKitConnection = {
 };
 
 /**
- * Host live stream — local camera/mic starts first, LiveKit publishes when connect succeeds.
+ * Host live stream — local camera/mic starts first, LiveKit publishes the same prepared track.
  */
 export async function connectLiveKitHost(
   streamId: string,
   options?: { mediaStream?: MediaStream },
 ): Promise<LiveKitConnection> {
   const leaseId = options?.mediaStream ? undefined : `livekit-host:${streamId}`;
+  const sessionKey = `stream:${streamId}`;
   // Instant local media (clear self-view) before any network — single device owner.
   const media =
     options?.mediaStream ??
@@ -31,28 +45,28 @@ export async function connectLiveKitHost(
       exactFacing: false,
     }));
 
+  noteHostRawPreviewReady();
+
   if (!canAttemptLiveKit()) {
-    // Return a stub-less error path: caller can still show local media.
     const err = new Error('LiveKit unavailable — local camera is ready.');
     (err as Error & { localStream?: MediaStream }).localStream = media;
     throw err;
   }
 
-  const result = await connectWithTokenFetcher(() => fetchLiveKitToken(streamId, 'host'));
-  if (!result.ok) {
-    const err = new Error(result.reason || 'LiveKit connect failed');
-    (err as Error & { localStream?: MediaStream }).localStream = media;
-    throw err;
-  }
+  setHostMediaState('connecting');
+  const room = await connectHostLiveKitRoom(sessionKey, () => fetchLiveKitToken(streamId, 'host'));
 
-  const room = result.room;
-  for (const track of media.getTracks()) {
-    try {
-      await room.localParticipant.publishTrack(track);
-    } catch {
-      /* keep trying other tracks */
-    }
+  const video = media.getVideoTracks().find((track) => track.readyState === 'live') ?? null;
+  const audio = media.getAudioTracks().find((track) => track.readyState === 'live') ?? null;
+
+  noteHostPublishing();
+  if (video) {
+    await updateLiveKitLocalVideoTrack(room.localParticipant, video);
   }
+  if (audio) {
+    await updateLiveKitLocalAudioTrack(room.localParticipant, audio);
+  }
+  noteHostTrackPublished();
 
   return {
     room,
@@ -68,7 +82,12 @@ export async function disconnectLiveKit(
   cameraLeaseId?: string,
 ) {
   try {
-    room?.disconnect();
+    const activeKey = getActiveHostLiveKitRoomKey();
+    if (activeKey?.startsWith('stream:')) {
+      await disposeHostLiveKitRoom(activeKey);
+    } else {
+      room?.disconnect();
+    }
   } catch {
     /* ignore */
   }

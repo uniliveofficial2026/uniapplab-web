@@ -2,7 +2,7 @@
  * LiveKit remote audio attach/detach helpers (Phase 11).
  * Ensures TrackUnsubscribed / disconnect cleans attached elements.
  */
-import { Room, RoomEvent, Track, type RemoteTrack } from 'livekit-client';
+import { Room, RoomEvent, Track, type RemoteTrack } from '../rtc/livekitCompatibilityBoundary';
 
 type BoundRemoteAudio = {
   detach: () => void;

@@ -1,6 +1,15 @@
-import { Room, RoomEvent, type RemoteParticipant } from 'livekit-client';
+import { Room, RoomEvent, type RemoteParticipant } from '../rtc/livekitCompatibilityBoundary';
 
-export type LiveRoomEventType = 'gift' | 'gift_play' | 'pk' | 'commerce' | 'game' | 'seats';
+export type LiveRoomEventType =
+  | 'gift'
+  | 'gift_play'
+  | 'pk'
+  | 'commerce'
+  | 'game'
+  | 'seats'
+  | 'lifecycle'
+  | 'like'
+  | 'follow';
 
 export type LiveRoomEnvelope<T = unknown> = {
   v: 1;
@@ -40,8 +49,16 @@ function bindDataChannel(room: Room, roomId: string) {
   room.on(RoomEvent.DataReceived, (payload, participant?: RemoteParticipant) => {
     const event = decodeEnvelope(payload);
     if (!event || event.roomId !== roomId) return;
-    if (!event.senderId && participant?.identity) {
-      event.senderId = participant.identity;
+    // Transport identity wins for peer-originated packets (prevents spoofed senderId).
+    if (participant?.identity) {
+      const claimed = String(event.senderId || '').trim();
+      const authentic = participant.identity;
+      if (claimed && claimed !== authentic) {
+        // Keep payload for UX names, but never trust a mismatched paid/identity claim.
+        event.senderId = authentic;
+      } else if (!claimed) {
+        event.senderId = authentic;
+      }
     }
     dispatchLiveRoomEvent(roomId, event);
   });
@@ -97,7 +114,12 @@ export function subscribeLiveRoomEvents(
 /** Broadcast to all peers in connected LiveKit rooms for this party room. */
 export function publishLiveRoomEvent(
   roomId: string,
-  partial: Omit<LiveRoomEnvelope, 'v' | 'id' | 'ts' | 'roomId'> & { id?: string; ts?: number },
+  partial: Omit<LiveRoomEnvelope, 'v' | 'id' | 'ts' | 'roomId'> & {
+    id?: string;
+    ts?: number;
+    /** LOSS-TOLERANT lane (likes / ephemeral FX). Default reliable for control/paid. */
+    reliable?: boolean;
+  },
 ): boolean {
   const id = roomId.trim();
   const envelope: LiveRoomEnvelope = {
@@ -111,13 +133,27 @@ export function publishLiveRoomEvent(
     payload: partial.payload,
   };
 
+  const reliable = partial.reliable !== false && partial.type !== 'like';
+  // UniLive event-lane mirror (Stage B) — LiveKit remains transport adapter underneath.
+  void import('../unilive-rtc/eventLanes')
+    .then((lanes) => {
+      if (partial.type === 'like') {
+        return lanes.publishLikesBatch(envelope as unknown as Record<string, unknown>);
+      }
+      if (partial.type === 'gift') {
+        return lanes.publishAuthoritativeGift(envelope as unknown as Record<string, unknown>);
+      }
+      return undefined;
+    })
+    .catch(() => undefined);
+
   const data = encodeEnvelope(envelope);
   const rooms = roomsById.get(id);
   let sent = false;
   if (rooms) {
     for (const room of rooms) {
       try {
-        void room.localParticipant.publishData(data, { reliable: true });
+        void room.localParticipant.publishData(data, { reliable });
         sent = true;
       } catch {
         /* try next connection */

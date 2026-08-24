@@ -3,7 +3,7 @@
  * Never blindly enable expensive simulcast on every device.
  */
 
-import { Track, type TrackPublishOptions, VideoPresets } from 'livekit-client';
+import { Track, type TrackPublishOptions, VideoPresets } from './livekitCompatibilityBoundary';
 import { WEBAR_OUTPUT_FPS } from '../webar/webarCameraConfig';
 import { getThermalPolicy } from '../performance/thermalGovernor';
 import { getNetworkQoEPolicy } from './networkQoEGovernor';

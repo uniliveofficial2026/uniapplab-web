@@ -1,4 +1,4 @@
-import { RoomEvent, Track, type RemoteTrack, type Room } from 'livekit-client';
+import { RoomEvent, Track, type RemoteTrack, type Room } from '../rtc/livekitCompatibilityBoundary';
 import { isLiveKitConfigured } from '../livekit/livekitConfig';
 import { canAttemptLiveKit, connectWithTokenFetcher } from '../livekit/liveKitInstant';
 import {
