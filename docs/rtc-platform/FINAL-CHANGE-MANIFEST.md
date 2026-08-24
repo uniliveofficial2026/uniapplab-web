@@ -1,6 +1,6 @@
 # Stage B Change Manifest
 
-**Baseline SHA:** `4786a68` · **Branch:** `fix/vercel-api-root-now` · **Seal tip:** `2f3c18315ed6380a27b684275260d1300d12fcb7` · **Impl:** `a6b2e43faac6c137fd899e4b3f64120e196ef79b`
+**Baseline SHA:** `4786a68` · **Branch:** `fix/vercel-api-root-now` · **Seal tip:** `90883734bfbf14518e3a196a2dc6335d63069017` · **Impl:** `a6b2e43faac6c137fd899e4b3f64120e196ef79b` · **Pushed:** yes
 
 ## New packages (`lib/unilives-*`)
 

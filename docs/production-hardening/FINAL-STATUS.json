@@ -12,8 +12,8 @@
     "native-callkit-pushkit-FEATURE_ENABLED-false-until-voip-cert-and-online-device",
     "apns-provider-key-absent-after-credential-exhaust"
   ],
-  "finalSha": "2f3c18315ed6380a27b684275260d1300d12fcb7",
-  "updatedAt": "2026-08-24T17:47:34Z",
+  "finalSha": "90883734bfbf14518e3a196a2dc6335d63069017",
+  "updatedAt": "2026-08-24T17:48:00Z",
   "implementationSha": "a6b2e43faac6c137fd899e4b3f64120e196ef79b",
-  "pushed": false
+  "pushed": true
 }

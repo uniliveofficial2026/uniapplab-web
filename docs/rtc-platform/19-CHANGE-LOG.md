@@ -57,3 +57,5 @@
 ## Seal
 - Stage B sealed tip `7ac8e642b7abff9b7192db66fe9644f976f77888` (impl `a6b2e43`) on fix/vercel-api-root-now
 - UI unchanged; LiveKit remains production media provider; SFU cutover NOT_PERFORMED
+
+- Pushed seal tip `90883734bfbf14518e3a196a2dc6335d63069017` to origin/fix/vercel-api-root-now

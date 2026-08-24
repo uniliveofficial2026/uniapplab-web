@@ -1,4 +1,4 @@
-**Final sealed tip SHA:** `2f3c18315ed6380a27b684275260d1300d12fcb7`
+**Final sealed tip SHA:** `90883734bfbf14518e3a196a2dc6335d63069017`
 **Implementation SHA:** `a6b2e43faac6c137fd899e4b3f64120e196ef79b`
 
 # 20 — Final Acceptance (Stage B)
