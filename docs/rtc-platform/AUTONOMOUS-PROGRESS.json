@@ -51,7 +51,7 @@
   "baselineSha": "4786a68",
   "branch": "fix/vercel-api-root-now",
   "workingTree": "stage_b_committed; unrelated dirty files may remain",
-  "lastValidatedSha": "7434bba4f388260a974dce6cd225e85abfe6a7ca",
+  "lastValidatedSha": "7ac8e642b7abff9b7192db66fe9644f976f77888",
   "evidence": {
     "stage_b_unit_suite": {
       "result": "PASS",
@@ -77,6 +77,6 @@
     },
     "ci_gate": "pnpm run test:stage-b in .github/workflows/ci.yml"
   },
-  "updatedAt": "2026-08-24T11:46:09Z",
+  "updatedAt": "2026-08-24T17:46:01Z",
   "implementationSha": "a6b2e43faac6c137fd899e4b3f64120e196ef79b"
 }

@@ -1,14 +1,9 @@
 # Stage B Final Report
 
-**Final Stage B SHA:** 
-
-# Stage B Final Report
-
-**Date:** 2026-08-24  
-**Baseline SHA:** `4786a68` (Stage A locked)  
-**Branch:** `fix/vercel-api-root-now`  
-**Final Stage B SHA (tip):**   
-**Implementation commit:**   
+**Final Stage B SHA (tip):** `7ac8e642b7abff9b7192db66fe9644f976f77888`
+**Implementation commit:** `a6b2e43faac6c137fd899e4b3f64120e196ef79b`
+**Baseline SHA:** `4786a68` (Stage A locked)
+**Branch:** `fix/vercel-api-root-now`
 **Working tree:** Stage B committed; unrelated dirty files may remain outside the Stage B manifest.
 
 ## Executive summary
@@ -132,3 +127,4 @@ node --test artifacts/api-server/test/live-pk-challenge.test.mjs
 **PASS** — foundation gates implemented, automated tests green, Stage A regressions preserved, UI lock held, production cutover correctly deferred.
 
 See `FINAL-STAGE-B-STATUS.json` for machine-readable gate matrix (handoff §97 shape).
+
