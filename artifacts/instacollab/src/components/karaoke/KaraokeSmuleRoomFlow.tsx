@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
+import { MemoryRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom';
 import CreateRoom from '../../smule-rooms/pages/CreateRoom';
 import { Room } from '../../smule-rooms/pages/Room';
 import EditRoom from '../../smule-rooms/pages/EditRoom';
@@ -10,17 +10,30 @@ import {
   type RoomFlowEntry,
 } from '../../smule-rooms/context/RoomFlowContext';
 import { ErrorBoundary } from '../common/ErrorBoundary';
+import { isDemoContentEnabled } from '../../lib/demoContentPolicy';
 import '../../smule-rooms/smule-rooms.css';
 import './karaoke-smule-embed.css';
 import './admin-embed-full.css';
 
-function KaraokeFlowBack({ onClose }: { onClose: () => void }) {
+function KaraokeFlowBack({
+  onClose,
+  recoverToCreate = false,
+}: {
+  onClose: () => void;
+  /** InstantRoomEntryHost / full embed: recover instead of tearing the host down. */
+  recoverToCreate?: boolean;
+}) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
 
   useEffect(() => {
+    if (recoverToCreate) return;
     onCloseRef.current();
-  }, []);
+  }, [recoverToCreate]);
+
+  if (recoverToCreate) {
+    return <Navigate to="/room/create" replace />;
+  }
 
   return null;
 }
@@ -54,7 +67,13 @@ function FlowPageShell({ children }: { children: React.ReactNode }) {
 }
 
 /** Same route chrome as smule-rooms/RoomsHost AppContent — verbatim shell, no main nav. */
-function AppContent({ onClose }: { onClose: () => void }) {
+function AppContent({
+  onClose,
+  recoverBackToCreate = false,
+}: {
+  onClose: () => void;
+  recoverBackToCreate?: boolean;
+}) {
   const location = useLocation();
   const isFullscreen =
     location.pathname.startsWith('/record/') ||
@@ -70,9 +89,18 @@ function AppContent({ onClose }: { onClose: () => void }) {
         >
           <ErrorBoundary screen="karaoke-room" fallback={<RoomCrashFallback onClose={onClose} />}>
             <Routes>
-              <Route path="/karaoke/party-back" element={<KaraokeFlowBack onClose={onClose} />} />
-              <Route path="/party" element={<KaraokeFlowBack onClose={onClose} />} />
-              <Route path="/" element={<KaraokeFlowBack onClose={onClose} />} />
+              <Route
+                path="/karaoke/party-back"
+                element={<KaraokeFlowBack onClose={onClose} recoverToCreate={recoverBackToCreate} />}
+              />
+              <Route
+                path="/party"
+                element={<KaraokeFlowBack onClose={onClose} recoverToCreate={recoverBackToCreate} />}
+              />
+              <Route
+                path="/"
+                element={<KaraokeFlowBack onClose={onClose} recoverToCreate={recoverBackToCreate} />}
+              />
               <Route path="/room/create" element={<FlowPageShell><CreateRoom /></FlowPageShell>} />
               <Route path="/room/edit/:id" element={<FlowPageShell><EditRoom /></FlowPageShell>} />
               <Route path="/room/details/:id" element={<FlowPageShell><RoomDetails /></FlowPageShell>} />
@@ -104,15 +132,18 @@ export function KaraokeSmuleRoomFlow({
 }: KaraokeSmuleRoomFlowProps) {
   useEffect(() => {
     if (flowEntry === 'admin-embed') return;
+    if (!isDemoContentEnabled()) return;
     if (!localStorage.getItem('auth_token')) {
       localStorage.setItem('auth_token', 'demo');
     }
   }, [flowEntry]);
 
   const initialEntries =
-    initialPath === '/room/create' || initialPath.startsWith('/room/')
-      ? ['/karaoke/party-back', initialPath]
-      : [initialPath];
+    embedVariant === 'full'
+      ? [initialPath]
+      : initialPath === '/room/create' || initialPath.startsWith('/room/')
+        ? ['/karaoke/party-back', initialPath]
+        : [initialPath];
   const initialIndex = initialEntries.length - 1;
   const embedRootClass =
     embedVariant === 'full'
@@ -127,7 +158,7 @@ export function KaraokeSmuleRoomFlow({
           <MemoryRouter key={flowKey} initialEntries={initialEntries} initialIndex={initialIndex}>
             <RoomSelfProvider>
               <RoomFlowProvider onExit={onClose} entry={flowEntry}>
-                <AppContent onClose={onClose} />
+                <AppContent onClose={onClose} recoverBackToCreate={embedVariant === 'full'} />
               </RoomFlowProvider>
             </RoomSelfProvider>
           </MemoryRouter>

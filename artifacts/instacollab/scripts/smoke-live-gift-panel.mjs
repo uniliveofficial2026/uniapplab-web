@@ -193,12 +193,24 @@ async function main() {
       skip?.click();
     }).catch(() => {});
 
-    for (let i = 0; i < 50; i += 1) {
-      const giftBtn = await page.locator('button[aria-label="Send gift"]').count();
-      if (giftBtn > 0) {
-        evidence.liveRoom = true;
-        evidence.path = await mount.getAttribute('data-room-path').catch(() => null);
-        break;
+    const giftBtnLocator = page.locator(
+      'button[aria-label="Send gift"], button[aria-label="Open gifts"], button[aria-label^="Send gift to"]',
+    );
+
+    for (let i = 0; i < 60; i += 1) {
+      try {
+        const giftBtn = await giftBtnLocator.count();
+        const pathAttr = await mount.getAttribute('data-room-path').catch(() => '');
+        const roomIdChrome = await page.getByText(/Room ID/i).count();
+        const endLive = await page.getByRole('button', { name: /end live|leave room/i }).count();
+        if (giftBtn > 0 || ((pathAttr && pathAttr !== '/room/create') && (roomIdChrome > 0 || endLive > 0))) {
+          evidence.liveRoom = true;
+          evidence.path = pathAttr;
+          evidence.giftButton = giftBtn;
+          break;
+        }
+      } catch {
+        /* navigation */
       }
       await page.waitForTimeout(400);
     }
@@ -213,7 +225,12 @@ async function main() {
       return;
     }
 
-    await page.locator('button[aria-label="Send gift"]').first().click({ timeout: 5_000 });
+    if ((await giftBtnLocator.count()) === 0) {
+      // Live chrome present but gift control naming differs — try footer gift icon via text fallback.
+      await page.getByRole('button', { name: /^gifts?$/i }).first().click({ timeout: 3000 }).catch(() => {});
+    } else {
+      await giftBtnLocator.first().click({ timeout: 5_000 });
+    }
     await page.waitForTimeout(800);
     evidence.giftPanel =
       (await page.locator('[data-ui-id="live.gifts.v14.exact"]').count()) > 0 ||
