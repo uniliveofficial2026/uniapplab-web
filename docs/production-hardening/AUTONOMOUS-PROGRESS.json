@@ -88,7 +88,7 @@
   "stageAAcceptance": "PASS",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "dcee75b",
+  "lastValidatedCommit": "71f834c",
   "evidence": {
     "smoke_live_pk_lifecycle": "PASS_gift_score_idempotent_round2_reconnect",
     "smoke_calls_dual_party": "PASS_reconnect_stale",
