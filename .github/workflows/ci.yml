@@ -51,6 +51,7 @@ jobs:
           pnpm --filter @workspace/instacollab run test:identity
           pnpm --filter @workspace/instacollab run test:social
           pnpm --filter @workspace/instacollab run test:media-games
+          pnpm --filter @workspace/instacollab run test:marketplace-ledger
           pnpm --filter @workspace/instacollab run test:visual-lock
           pnpm --filter @workspace/instacollab run test:rtc-policy
           pnpm --filter @workspace/instacollab run test:posts-reels

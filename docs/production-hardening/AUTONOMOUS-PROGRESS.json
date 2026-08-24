@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-live-gift-panel-smoke-pass",
+  "currentSlice": "A-live-gift-pass-marketplace-ledger",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -11,71 +11,51 @@
     "native-call-fail-closed-scaffold",
     "push-device-person-identity",
     "pixel-baselines-and-mount-smokes",
-    "final-docs-written",
     "revoke-authenticated-is-platform-admin",
     "push-devices-table-and-api",
     "facear-newest-frame-shared-vision",
     "android-call-fgs-scaffold",
-    "ios-callkit-manager-fail-closed",
-    "gift-storm-stress",
-    "identity-foundation-tests",
-    "social-graph-contracts",
-    "pk-seat-publish-contracts",
-    "messages-outbox-contracts",
-    "accountSwitchFast-import-fix",
+    "ios-callkit-manager-linked",
     "android-assembleDebug-pass",
     "ios-simulator-build-pass",
-    "incoming-callkit-manager-linked-xcode",
-    "smoke-live-gift-panel-soft-skip",
     "smoke-live-gift-panel-pass",
-    "instant-room-host-recover-fix"
+    "instant-room-host-recover-fix",
+    "marketplace-ledger-contracts",
+    "calls-ui-mount-pass"
   ],
   "failing": [],
   "blocked": [
     {
       "id": "native-callkit-pushkit-device-qa",
-      "detail": "CallKit manager + Android FGS present but FEATURE_ENABLED=false until VoIP certs + physical device QA; PushKit/voip background mode intentionally not declared"
+      "detail": "CallKit linked + Android FGS present; FEATURE_ENABLED=false until VoIP certs + physical device QA"
     },
     {
       "id": "push-remote-apns-fcm-send",
-      "detail": "Server push_devices registry exists; remote APNS/FCM send still needs provider credentials"
+      "detail": "push_devices registry exists; remote send needs provider credentials"
     },
     {
       "id": "cloudflare-auth",
-      "detail": "Wrangler token expired/missing; Cloudflare MCP needsAuth \u2014 EXTERNAL_AUTH_BLOCKED for CF deploy/inspection"
+      "detail": "Wrangler/MCP EXTERNAL_AUTH_BLOCKED"
     },
     {
       "id": "deep-e2e-pk-admin-multidevice",
-      "detail": "PK live invite session E2E, workspace admin access-code E2E, multi-device hardware stress"
+      "detail": "PK invite live-session E2E, workspace admin access-code E2E, multi-device hardware"
     }
   ],
-  "nextAction": "Continue Stage A deep PK/multi-guest/marketplace E2E; Stage B locked",
+  "nextAction": "Continue PK/multi-guest deep E2E and marketplace open reliability; Stage B locked until Stage A PASS",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "providers": {
-    "supabase": "inspected+migrations_applied",
-    "livekit": "api_reachable",
-    "cloudflare": "EXTERNAL_AUTH_BLOCKED",
-    "vercel": "inspected_deployments",
-    "github": "ci_extended"
-  },
+  "lastValidatedCommit": "1c48f4b",
   "evidence": {
-    "typecheck_instacollab": "PASS",
-    "typecheck_api_server": "PASS",
-    "build_instacollab": "PASS",
-    "gift_storm": "2/2",
-    "identity": "13/13",
-    "social": "6/6",
-    "media_games": "4/4",
-    "pk_seat": "6/6",
-    "is_platform_admin_authenticated_exec": false,
-    "push_devices_table": true,
+    "typecheck": "PASS",
+    "build": "PASS",
+    "smoke_live_gift_panel": "PASS",
+    "smoke_calls_ui": "PASS",
     "android_assembleDebug": "PASS",
     "ios_simulator_build": "PASS",
-    "lastValidatedCommit": "51729c7",
-    "smoke_live_gift_panel": "PASS"
+    "marketplace_ledger_tests": "4/4"
   },
-  "updatedAt": "2026-08-24T00:59:30Z"
+  "updatedAt": "2026-08-24T01:02:00Z"
 }
