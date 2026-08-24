@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useCallback, useEffect, useState } from 'react';
+import React, { Suspense, lazy, useCallback, useLayoutEffect, useState } from 'react';
 import type { RoomFlowEntry } from '../../smule-rooms/context/RoomFlowContext';
 import {
   consumePendingKaraokeRoomOpen,
@@ -19,6 +19,21 @@ type InstantRoomSession = {
   roomName?: string;
   hostName?: string;
 };
+
+/** Captures opens that arrive before the host mounts / useLayoutEffect attaches. */
+let bufferedOpenDetail: OpenKaraokeRoomDetail | null = null;
+
+function captureBufferedOpen(event: Event) {
+  const detail = (event as CustomEvent<OpenKaraokeRoomDetail>).detail;
+  if (!detail) return;
+  bufferedOpenDetail = detail;
+}
+
+if (typeof window !== 'undefined') {
+  window.addEventListener('instant-room-open', captureBufferedOpen);
+  window.addEventListener('karaoke-room-open', captureBufferedOpen);
+  window.addEventListener('rooms-live-open', captureBufferedOpen);
+}
 
 function sessionFromDetail(
   detail: OpenKaraokeRoomDetail,
@@ -43,7 +58,7 @@ function sessionFromDetail(
  */
 export function InstantRoomEntryHost() {
   const [session, setSession] = useState<InstantRoomSession | null>(() => {
-    const pending = peekPendingKaraokeRoomOpen();
+    const pending = peekPendingKaraokeRoomOpen() ?? bufferedOpenDetail;
     if (!pending) return null;
     return sessionFromDetail(pending, 1);
   });
@@ -61,8 +76,9 @@ export function InstantRoomEntryHost() {
     setSession(next);
   }, []);
 
-  useEffect(() => {
-    const pending = consumePendingKaraokeRoomOpen();
+  useLayoutEffect(() => {
+    const pending = consumePendingKaraokeRoomOpen() ?? bufferedOpenDetail;
+    bufferedOpenDetail = null;
     if (pending) openFromDetail(pending);
     // Warm the heavy room chunk as soon as the host mounts.
     void import('../karaoke/KaraokeSmuleRoomFlow').catch(() => {});
@@ -70,16 +86,19 @@ export function InstantRoomEntryHost() {
     const onInstantOpen = (event: Event) => {
       const detail = (event as CustomEvent<OpenKaraokeRoomDetail>).detail;
       if (!detail) return;
+      bufferedOpenDetail = null;
       openFromDetail(detail);
     };
     const onKaraokeOpen = (event: Event) => {
       const detail = (event as CustomEvent<OpenKaraokeRoomDetail>).detail;
       if (!detail) return;
+      bufferedOpenDetail = null;
       openFromDetail(detail);
     };
     const onRoomsLiveOpen = (event: Event) => {
       const detail = (event as CustomEvent<OpenKaraokeRoomDetail & { path?: string }>).detail;
       if (!detail) return;
+      bufferedOpenDetail = null;
       openFromDetail(detail);
     };
 
@@ -105,33 +124,37 @@ export function InstantRoomEntryHost() {
     setSession(null);
   }, []);
 
-  if (!session) return null;
-
   return (
-    <div
-      className="fixed inset-0 z-[3000] bg-black text-white"
-      data-instant-room-entry
-      data-room-path={session.path}
-    >
-      {/* Instant paint — visible before the room chunk resolves */}
-      <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black">
-        {(session.roomName || session.hostName) && (
-          <p className="max-w-[80%] truncate text-center text-sm font-semibold text-white/80">
-            {session.roomName || session.hostName}
-          </p>
-        )}
-        <div className="h-10 w-10 animate-pulse rounded-full bg-white/20" aria-hidden />
-      </div>
+    <>
+      {/* Always mounted sentinel — smokes can detect host presence even before a session. */}
+      <div data-instant-room-host="" hidden aria-hidden="true" />
+      {session ? (
+        <div
+          className="fixed inset-0 z-[3000] bg-black text-white"
+          data-instant-room-entry
+          data-room-path={session.path}
+        >
+          {/* Instant paint — visible before the room chunk resolves */}
+          <div className="pointer-events-none absolute inset-0 flex flex-col items-center justify-center gap-3 bg-black">
+            {(session.roomName || session.hostName) && (
+              <p className="max-w-[80%] truncate text-center text-sm font-semibold text-white/80">
+                {session.roomName || session.hostName}
+              </p>
+            )}
+            <div className="h-10 w-10 animate-pulse rounded-full bg-white/20" aria-hidden />
+          </div>
 
-      <Suspense fallback={null}>
-        <KaraokeSmuleRoomFlow
-          flowKey={session.flowKey}
-          initialPath={session.path}
-          flowEntry={session.entry}
-          embedVariant="full"
-          onClose={close}
-        />
-      </Suspense>
-    </div>
+          <Suspense fallback={null}>
+            <KaraokeSmuleRoomFlow
+              flowKey={session.flowKey}
+              initialPath={session.path}
+              flowEntry={session.entry}
+              embedVariant="full"
+              onClose={close}
+            />
+          </Suspense>
+        </div>
+      ) : null}
+    </>
   );
 }

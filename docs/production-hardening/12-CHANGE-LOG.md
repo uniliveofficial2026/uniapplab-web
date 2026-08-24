@@ -2,6 +2,13 @@
 
 All entries are Stage A documentation / verification unless noted. **uiUxChanged: false**
 
+## 2026-08-24T01:37:00Z — Instant-room open buffer + Solo live PK chrome smoke PASS
+- `InstantRoomEntryHost`: module-level event buffer + `useLayoutEffect` so `instant-room-open` cannot be lost before listeners attach; always-on `data-instant-room-host` sentinel.
+- `CreateRoom`: `sessionStorage` hint `uni.createRoom.hint` for smoke/deep-link Solo + room name (re-applied after cloud hydrate).
+- Playwright: hardened `smoke:live-gift-panel` (evaluate waits; no cold Vite import hang); added `smoke:live-pk-chrome` → Solo live **Open PK creation** + PK setup sheet hint **PASS**.
+- Games contracts: `useGameLiveKit` disconnect/cleanup + `LocalGamePlayer` message listener revoke **PASS** (6/6).
+- uiUxChanged: false. Stage B locked. No production RTC cutover.
+
 | When (UTC) | Change | Scope | uiUxChanged |
 |---|---|---|---|
 | 2026-08-23T06:49:55Z | Baseline backup created: `backups/production-hardening/baseline-20260823T064955Z` (tracked.diff, status, untracked list) | backup | false |

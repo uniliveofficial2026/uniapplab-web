@@ -1,6 +1,6 @@
 #!/usr/bin/env node
 /**
- * Stage A smoke: Solo live → open approved gift panel.
+ * Stage A smoke: Solo live → Solo live → PK battle control chrome.
  * Reuses the proven instant-room-open mount pattern from smoke-live-room-mount.
  */
 import fs from 'node:fs';
@@ -118,12 +118,12 @@ async function dispatchCreate(page) {
       window.dispatchEvent(new CustomEvent('instant-room-open', { detail }));
       window.dispatchEvent(new CustomEvent('karaoke-room-open', { detail }));
     });
-  }, 'StageA Gift Smoke');
+  }, 'StageA PK Smoke');
 }
 
 async function main() {
   const hardDeadline = setTimeout(() => {
-    console.error('[smoke-live-gift-panel] HARD_TIMEOUT');
+    console.error('[smoke-live-pk-chrome] HARD_TIMEOUT');
     process.exit(2);
   }, 120_000);
 
@@ -134,36 +134,36 @@ async function main() {
     ok: false,
     skipped: null,
     liveRoom: false,
-    giftPanel: false,
+    pkChrome: false,
     blocker: null,
     screenshot: null,
   };
   const browser = await launchBrowser();
   const page = await browser.newPage({ viewport: { width: 1280, height: 900 } });
   try {
-    console.log(`[smoke-live-gift-panel] base=${base}`);
-    console.log('[smoke-live-gift-panel] goto…');
+    console.log(`[smoke-live-pk-chrome] base=${base}`);
+    console.log('[smoke-live-pk-chrome] goto…');
     await page.goto(`${base}/home?launch=main&as=u1&force_demo=1`, {
       waitUntil: 'domcontentloaded',
       timeout: 45_000,
     });
-    console.log('[smoke-live-gift-panel] dismiss…');
+    console.log('[smoke-live-pk-chrome] dismiss…');
     if (!(await dismiss(page))) {
       evidence.skipped = 'shell_not_ready';
       evidence.ok = true;
-      console.log('[smoke-live-gift-panel] SKIP (shell_not_ready)');
+      console.log('[smoke-live-pk-chrome] SKIP (shell_not_ready)');
       console.log(JSON.stringify(evidence, null, 2));
       clearTimeout(hardDeadline);
       return;
     }
 
-    console.log('[smoke-live-gift-panel] open create…');
+    console.log('[smoke-live-pk-chrome] open create…');
     const hostReady = await waitForSelector(page, '[data-instant-room-host]', 12_000);
-    console.log(`[smoke-live-gift-panel] host=${hostReady}`);
+    console.log(`[smoke-live-pk-chrome] host=${hostReady}`);
     await dispatchCreate(page);
-    console.log('[smoke-live-gift-panel] dispatched');
+    console.log('[smoke-live-pk-chrome] dispatched');
     const entryReady = await waitForSelector(page, '[data-instant-room-entry]', 10_000);
-    console.log(`[smoke-live-gift-panel] entry=${entryReady}`);
+    console.log(`[smoke-live-pk-chrome] entry=${entryReady}`);
 
     const deadline = Date.now() + 20_000;
     let createReady = false;
@@ -186,74 +186,57 @@ async function main() {
       }
       await page.waitForTimeout(250);
     }
-    console.log(`[smoke-live-gift-panel] createReady=${createReady}`);
+    console.log(`[smoke-live-pk-chrome] createReady=${createReady}`);
     if (!createReady) {
       evidence.skipped = 'create_room_not_hydrated';
       evidence.ok = true;
-      console.log('[smoke-live-gift-panel] SKIP (create_room_not_hydrated)');
+      console.log('[smoke-live-pk-chrome] SKIP (create_room_not_hydrated)');
       console.log(JSON.stringify(evidence, null, 2));
       clearTimeout(hardDeadline);
       return;
     }
 
-    await page.waitForLoadState('domcontentloaded').catch(() => {});
+    await page.waitForTimeout(800);
+    await page.evaluate(() => {
+      const solo = Array.from(document.querySelectorAll('button')).find((b) =>
+        /^\s*Solo\s*$/i.test((b.textContent || '').trim()),
+      );
+      solo?.click();
+    }).catch(() => {});
     await page.waitForTimeout(500);
-
-    try {
-      await page.evaluate(() => {
-        const solo = Array.from(document.querySelectorAll('button')).find((b) =>
-          /^\s*Solo\s*$/i.test((b.textContent || '').trim()),
-        );
-        solo?.click();
-      });
-    } catch {
-      /* ignore */
-    }
-    await page.waitForTimeout(300);
-    try {
-      await page.evaluate(() => {
-        const input = document.querySelector('#create-room-name-live, #create-room-name');
-        if (!input) return;
-        const proto = Object.getOwnPropertyDescriptor(window.HTMLInputElement.prototype, 'value');
-        proto?.set?.call(input, 'StageA Gift Smoke');
-        input.dispatchEvent(new Event('input', { bubbles: true }));
-        input.dispatchEvent(new Event('change', { bubbles: true }));
-      });
-    } catch {
-      /* ignore */
-    }
-
     await page.evaluate(() => {
       const go = Array.from(document.querySelectorAll('button')).find((b) =>
         /go live|launch room/i.test(b.textContent || ''),
       );
       go?.click();
     }).catch(() => {});
-    await page.waitForTimeout(700);
+    await page.waitForTimeout(900);
     await page.evaluate(() => {
-      const skip = Array.from(document.querySelectorAll('button')).find((b) =>
-        /skip countdown|tap to skip/i.test(`${b.getAttribute('aria-label') || ''} ${b.textContent || ''}`),
-      );
-      skip?.click();
+      const skip = document.querySelector('[aria-label="Skip countdown and go live"]');
+      skip?.dispatchEvent(new MouseEvent('click', { bubbles: true }));
     }).catch(() => {});
 
-    for (let i = 0; i < 45; i += 1) {
+    for (let i = 0; i < 50; i += 1) {
       try {
         const snap = await page.evaluate(() => {
           const giftBtn = document.querySelectorAll(
             'button[aria-label="Send gift"], button[aria-label="Open gifts"], button[aria-label^="Send gift to"]',
+          ).length;
+          const pkBtn = document.querySelectorAll(
+            'button[aria-label="Open PK creation"], button[aria-label="PK battle"]',
           ).length;
           const pathAttr = document.querySelector('[data-instant-room-entry]')?.getAttribute('data-room-path') || '';
           const roomIdChrome = /Room ID/i.test(document.body.innerText);
           const endLive = Array.from(document.querySelectorAll('button')).some((b) =>
             /end live|leave room/i.test(b.textContent || ''),
           );
-          return { giftBtn, pathAttr, roomIdChrome, endLive };
+          return { giftBtn, pkBtn, pathAttr, roomIdChrome, endLive };
         });
-        if (snap.giftBtn > 0 || snap.roomIdChrome || snap.endLive) {
+        if (snap.giftBtn > 0 || snap.pkBtn > 0 || snap.roomIdChrome || snap.endLive) {
           evidence.liveRoom = true;
           evidence.path = snap.pathAttr;
           evidence.giftButton = snap.giftBtn;
+          evidence.pkButtonEarly = snap.pkBtn;
           break;
         }
       } catch {
@@ -265,33 +248,38 @@ async function main() {
     if (!evidence.liveRoom) {
       evidence.skipped = 'go_live_requires_stable_host_session';
       evidence.ok = true;
-      evidence.screenshot = path.join(OUT_DIR, `live-gift-panel-${stamp}.png`);
+      evidence.screenshot = path.join(OUT_DIR, `live-pk-chrome-${stamp}.png`);
       await page.screenshot({ path: evidence.screenshot }).catch(() => {});
-      console.log('[smoke-live-gift-panel] SKIP (go_live_requires_stable_host_session)');
+      console.log('[smoke-live-pk-chrome] SKIP (go_live_requires_stable_host_session)');
       console.log(JSON.stringify(evidence, null, 2));
       clearTimeout(hardDeadline);
       return;
     }
 
-    await page.evaluate(() => {
-      const gift =
-        document.querySelector(
-          'button[aria-label="Send gift"], button[aria-label="Open gifts"], button[aria-label^="Send gift to"]',
-        ) ||
-        Array.from(document.querySelectorAll('button')).find((b) => /^gifts?$/i.test((b.textContent || '').trim()));
-      gift?.click();
-    }).catch(() => {});
-    await page.waitForTimeout(800);
-    evidence.giftPanel = await page.evaluate(
+    evidence.pkChrome = await page.evaluate(
       () =>
-        !!document.querySelector('[data-ui-id="live.gifts.v14.exact"]') ||
-        !!document.querySelector('.lt15-gifts'),
+        !!document.querySelector('button[aria-label="Open PK creation"], button[aria-label="PK battle"]'),
     );
-    evidence.ok = evidence.giftPanel;
-    if (!evidence.giftPanel) evidence.blocker = 'gift_panel_missing_after_open';
-    evidence.screenshot = path.join(OUT_DIR, `live-gift-panel-${stamp}.png`);
+    if (evidence.pkChrome) {
+      await page
+        .evaluate(() =>
+          document
+            .querySelector('button[aria-label="Open PK creation"], button[aria-label="PK battle"]')
+            ?.click(),
+        )
+        .catch(() => {});
+      await page.waitForTimeout(500);
+      evidence.pkSheetHint = await page.evaluate(
+        () =>
+          !!document.querySelector('[aria-label="PK setup"], [data-pk-invite], [data-ui-id*="pk"]') ||
+          /invite|challenge|opponent/i.test(document.body.innerText),
+      );
+    }
+    evidence.ok = evidence.pkChrome;
+    if (!evidence.pkChrome) evidence.blocker = 'pk_control_missing_in_live_room';
+    evidence.screenshot = path.join(OUT_DIR, `live-pk-chrome-${stamp}.png`);
     await page.screenshot({ path: evidence.screenshot }).catch(() => {});
-    console.log(`[smoke-live-gift-panel] ${evidence.ok ? 'PASS' : 'FAIL'}`);
+    console.log(`[smoke-live-pk-chrome] ${evidence.ok ? 'PASS' : 'FAIL'}`);
     console.log(JSON.stringify(evidence, null, 2));
     if (!evidence.ok) process.exitCode = 1;
   } finally {
@@ -301,6 +289,6 @@ async function main() {
 }
 
 main().catch((err) => {
-  console.error('[smoke-live-gift-panel] FATAL', err);
+  console.error('[smoke-live-pk-chrome] FATAL', err);
   process.exit(1);
 });

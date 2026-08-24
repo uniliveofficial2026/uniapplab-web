@@ -34,9 +34,10 @@ Updated: 2026-08-24T00:20:00Z
 
 ## PK topology / invite E2E (remaining)
 
-- **No authless public route** for `PKInviteSheet` — only opens inside live `Room` after host action
-- Browser/native E2E for invite accept + 1v1–6v6 dual-room stress still open
+- **PASS (chrome):** `smoke:live-pk-chrome` — Solo live mounts **Open PK creation** + PK setup sheet hint (2026-08-24)
+- **Still open:** browser E2E for invite accept + 1v1–6v6 dual-room stress
 - Structural visual lock + topology + `stage-a-mount-contracts` cover Team/1v1 PK + invite sheet source (PASS)
+- Instant-room open race fixed: module buffer + `useLayoutEffect` on `InstantRoomEntryHost`
 
 ## Admin panel
 
@@ -73,11 +74,13 @@ Updated: 2026-08-24T00:20:00Z
 **PASS:** `pnpm visual:capture-baselines` + `pnpm test:visual-pixel` for home-feed, messages, live-create-room, marketplace.
 
 ## Stage A still open (continue)
-- PK invite live-session browser E2E (blocked on authless route / live host session)
+- PK invite accept + dual-room live-session browser E2E
 - Workspace Admin Panel E2E (blocked on access-code secret policy)
 - Native CallKit / Android call FGS (**assessed + scaffolded; implementation blocked on certs/devices**)
-- Games open/close resource cleanup audit
-- Remote push provider (APNS/FCM send + server device registry)
+- Remote push provider (APNS/FCM send)
+- Marketplace UI open reliability under load (ledger contracts PASS; mount soft-skip paths)
+- Long-run thermal→memory stress suites
+- Games open/close resource cleanup audit — **contracts PASS** for GameLivePanel / useGameLiveKit / LocalGamePlayer
 - Marketplace/seller/orders full E2E + `commerce_settle` RPC
 - Long-run stress memory suites
 

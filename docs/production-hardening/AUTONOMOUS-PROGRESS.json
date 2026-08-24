@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-live-gift-pass-marketplace-ledger",
+  "currentSlice": "A-pk-chrome-smoke-instant-room-buffer",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -21,7 +21,11 @@
     "smoke-live-gift-panel-pass",
     "instant-room-host-recover-fix",
     "marketplace-ledger-contracts",
-    "calls-ui-mount-pass"
+    "calls-ui-mount-pass",
+    "instant-room-open-buffer-uselayouteffect",
+    "create-room-sessionstorage-hint",
+    "smoke-live-pk-chrome-pass",
+    "games-livekit-cleanup-contracts"
   ],
   "failing": [],
   "blocked": [
@@ -38,24 +42,24 @@
       "detail": "Wrangler/MCP EXTERNAL_AUTH_BLOCKED"
     },
     {
-      "id": "deep-e2e-pk-admin-multidevice",
-      "detail": "PK invite live-session E2E, workspace admin access-code E2E, multi-device hardware"
+      "id": "deep-e2e-pk-invite-accept-admin-multidevice",
+      "detail": "PK invite accept dual-room E2E, workspace admin access-code E2E, multi-device hardware"
     }
   ],
-  "nextAction": "Continue PK/multi-guest deep E2E and marketplace open reliability; Stage B locked until Stage A PASS",
+  "nextAction": "Continue Stage A: PK invite accept E2E where feasible, marketplace open reliability, messages outbox; Stage B locked until Stage A PASS",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "1c48f4b",
+  "lastValidatedCommit": "12fb428",
   "evidence": {
-    "typecheck": "PASS",
-    "build": "PASS",
+    "typecheck": "PASS_PRIOR",
     "smoke_live_gift_panel": "PASS",
-    "smoke_calls_ui": "PASS",
+    "smoke_live_pk_chrome": "PASS",
+    "media_games_contracts": "6/6",
+    "pk_seat_contracts": "6/6",
     "android_assembleDebug": "PASS",
-    "ios_simulator_build": "PASS",
-    "marketplace_ledger_tests": "4/4"
+    "ios_simulator_build": "PASS"
   },
-  "updatedAt": "2026-08-24T01:02:00Z"
+  "updatedAt": "2026-08-24T01:37:00Z"
 }

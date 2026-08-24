@@ -36,3 +36,23 @@ test('games: GameLivePanel clears intervals and releases active game on close', 
   assert.match(src, /releaseActiveGame/);
   assert.match(src, /setArcadeGameActive\(id, playerKey, false\)/);
 });
+
+test('games: useGameLiveKit disconnects room and clears retry on unmount', () => {
+  const src = fs.readFileSync(
+    path.join(root, 'src/smule-rooms/hooks/useGameLiveKit.ts'),
+    'utf8',
+  );
+  assert.match(src, /game-livekit-cleanup/);
+  assert.match(src, /room\?\.disconnect\(\)/);
+  assert.match(src, /clearTimeout\(retryTimer\)/);
+  assert.match(src, /unregisterLiveKitRoom/);
+});
+
+test('games: LocalGamePlayer removes window message listener on close path', () => {
+  const src = fs.readFileSync(
+    path.join(root, 'src/components/games/LocalGamePlayer.tsx'),
+    'utf8',
+  );
+  assert.match(src, /removeEventListener\('message'/);
+  assert.match(src, /revokeObjectURL/);
+});
