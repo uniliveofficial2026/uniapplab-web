@@ -66,8 +66,9 @@ test('native scaffolds and Capacitor projects lack CallKit/Telecom wiring', () =
   assert.doesNotMatch(plist, /<string>voip<\/string>/);
 
   const manifest = read('artifacts/instacollab/android/app/src/main/AndroidManifest.xml');
-  assert.doesNotMatch(manifest, /FOREGROUND_SERVICE/);
+  // FGS may exist for gated CallForegroundService stubs; Telecom ConnectionService must not.
   assert.doesNotMatch(manifest, /ConnectionService|TelecomManager/i);
+  assert.match(manifest, /CallForegroundService|IncomingCallBridgeStub|FEATURE_ENABLED/);
 
   const delegate = read('artifacts/instacollab/ios/App/App/AppDelegate.swift');
   assert.doesNotMatch(delegate, /CXProvider|PKPushRegistry|CallKit|PushKit/);
