@@ -1,3 +1,5 @@
+**Final sealed tip SHA:** 
+
 # 20 — Final Acceptance (Stage B)
 
 **Honest status as of 2026-08-24.** Stage B foundation **PASS**; production cutover **NOT_PERFORMED**; UI lock **HELD**.

@@ -7,7 +7,9 @@
 **Date:** 2026-08-24  
 **Baseline SHA:** `4786a68` (Stage A locked)  
 **Branch:** `fix/vercel-api-root-now`  
-**Working tree:** Stage B packages, API routes, reference-app RTC facade, and docs are **uncommitted** on top of baseline.
+**Final Stage B SHA (tip):**   
+**Implementation commit:**   
+**Working tree:** Stage B committed; unrelated dirty files may remain outside the Stage B manifest.
 
 ## Executive summary
 

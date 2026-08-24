@@ -50,8 +50,8 @@
   "productionMediaProviderCutover": "NOT_REQUIRED_FOR_STAGE_B",
   "baselineSha": "4786a68",
   "branch": "fix/vercel-api-root-now",
-  "workingTree": "uncommitted",
-  "lastValidatedSha": "a6b2e43faac6c137fd899e4b3f64120e196ef79b",
+  "workingTree": "stage_b_committed; unrelated dirty files may remain",
+  "lastValidatedSha": "289bbcde2cd44b090c8d474a8a4efd1fbc739142",
   "evidence": {
     "stage_b_unit_suite": {
       "result": "PASS",
@@ -77,5 +77,6 @@
     },
     "ci_gate": "pnpm run test:stage-b in .github/workflows/ci.yml"
   },
-  "updatedAt": "2026-08-24T11:45:19Z"
+  "updatedAt": "2026-08-24T11:46:09Z",
+  "implementationSha": "a6b2e43faac6c137fd899e4b3f64120e196ef79b"
 }
