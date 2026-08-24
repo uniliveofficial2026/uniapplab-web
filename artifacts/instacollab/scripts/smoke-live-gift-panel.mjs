@@ -99,6 +99,11 @@ async function dispatchCreate(page) {
 }
 
 async function main() {
+  const hardDeadline = setTimeout(() => {
+    console.error('[smoke-live-gift-panel] HARD_TIMEOUT');
+    process.exit(2);
+  }, 90_000);
+
   fs.mkdirSync(OUT_DIR, { recursive: true });
   const evidence = {
     base,
@@ -123,6 +128,7 @@ async function main() {
       evidence.ok = true;
       console.log('[smoke-live-gift-panel] SKIP (shell_not_ready)');
       console.log(JSON.stringify(evidence, null, 2));
+      clearTimeout(hardDeadline);
       return;
     }
 
@@ -153,6 +159,7 @@ async function main() {
       evidence.ok = true;
       console.log('[smoke-live-gift-panel] SKIP (create_room_not_hydrated)');
       console.log(JSON.stringify(evidence, null, 2));
+      clearTimeout(hardDeadline);
       return;
     }
 
@@ -222,6 +229,7 @@ async function main() {
       await page.screenshot({ path: evidence.screenshot }).catch(() => {});
       console.log('[smoke-live-gift-panel] SKIP (go_live_requires_stable_host_session)');
       console.log(JSON.stringify(evidence, null, 2));
+      clearTimeout(hardDeadline);
       return;
     }
 
@@ -243,6 +251,7 @@ async function main() {
     console.log(JSON.stringify(evidence, null, 2));
     if (!evidence.ok) process.exitCode = 1;
   } finally {
+    clearTimeout(hardDeadline);
     await browser.close().catch(() => {});
   }
 }

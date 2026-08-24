@@ -136,3 +136,8 @@ All entries are Stage A documentation / verification unless noted. **uiUxChanged
 - Live gift panel deep smoke: soft-SKIP go_live_requires_stable_host_session (create host flake; not claimed PASS)
 - Cloudflare still EXTERNAL_AUTH_BLOCKED
 - Stage A acceptance still NOT_PASSED; Stage B locked
+
+## 2026-08-24T00:59:30Z — Live gift panel smoke PASS
+- Fixed InstantRoomEntryHost teardown on full-embed back routes
+- `smoke:live-gift-panel` PASS (liveRoom + giftPanel)
+- Stage A still NOT_PASSED overall; Stage B locked
