@@ -43,14 +43,16 @@ test('PK side mapping is by canonical user id', () => {
   assert.equal(mapUserIdToPkSide('x', ['u1'], ['u2']), null);
 });
 
-test('seat publish: LiveKit token route derives canPublish from seat/host not client flag', () => {
+test('seat publish: LiveKit party token derives canPublish server-side (not client forge)', () => {
   const src = fs.readFileSync(
     path.join(root, '../api-server/src/routes/livekit.ts'),
     'utf8',
   );
-  assert.match(src, /seatedPublisher/);
+  // Stage B/C sealed authority: server computes canPublish; hidden admin watch is subscribe-only.
   assert.match(src, /canPublish/);
   assert.match(src, /wantHidden/);
+  assert.match(src, /Boolean\(publish\)/);
+  assert.doesNotMatch(src, /canPublish:\s*Boolean\(\s*req\.body/);
 });
 
 test('multi-guest hook publishes only when canPublish true', () => {
