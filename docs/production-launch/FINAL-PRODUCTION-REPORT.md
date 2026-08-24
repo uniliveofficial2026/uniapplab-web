@@ -7,7 +7,7 @@ https://app.uniapplab.com
 LIVE / PASS
 
 ## Final Git SHA
-`a8eb0df6b3c7b5c78af753011a3480f97258c28e`
+`dc7fed987ee9b6be33696d14f7de9927916a8738`
 
 ## Branch
 `release/app-uniapplab-production`

@@ -6,7 +6,7 @@
   "productionLaunch": "PASS",
   "uiUxChanged": false,
   "productionUrl": "https://app.uniapplab.com",
-  "gitSha": "a8eb0df6b3c7b5c78af753011a3480f97258c28e",
+  "gitSha": "dc7fed987ee9b6be33696d14f7de9927916a8738",
   "branch": "release/app-uniapplab-production",
   "dns": "PASS",
   "tls": "PASS",
@@ -45,11 +45,11 @@
   "docsBuild": "PASS_SHELL",
   "androidBuild": "DEFERRED",
   "iosSimulatorBuild": "DEFERRED",
-  "ci": "PENDING_ACTIONS",
+  "ci": "IN_PROGRESS",
   "productionRtcApi": "UniLiveRTC",
   "productionMediaProvider": "LiveKit",
   "productionSfuCutover": "NOT_PERFORMED",
   "publicNpmRelease": "RELEASE_READY_EXTERNAL_STEP",
-  "cloudPersistence": "PASS_DURABLE_SUPABASE",
-  "verifiedAt": "2026-08-24T23:23:54Z"
+  "cloudPersistence": "PASS_DURABLE_SUPABASE_RESTART_VERIFIED",
+  "verifiedAt": "2026-08-24T23:28:54Z"
 }

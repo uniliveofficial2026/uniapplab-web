@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master, 'stage-d/**', 'stage-c/**']
+    branches: [main, master, 'stage-d/**', 'stage-c/**', 'release/**']
   pull_request:
   workflow_dispatch:
 
