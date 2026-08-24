@@ -48,7 +48,7 @@
   "baselineSha": "4786a68",
   "branch": "fix/vercel-api-root-now",
   "workingTree": "stage_b_committed; unrelated dirty files may remain",
-  "updatedAt": "2026-08-24T17:46:01Z",
+  "updatedAt": "2026-08-24T17:47:34Z",
   "evidence": {
     "stageBUnitSuite": {
       "script": "scripts/test-stage-b.mjs",
@@ -85,7 +85,7 @@
   "iosSimulatorBuild": "PASS",
   "apiBuild": "PASS",
   "fakeProvider": "PASS",
-  "finalSha": "7ac8e642b7abff9b7192db66fe9644f976f77888",
+  "finalSha": "2f3c18315ed6380a27b684275260d1300d12fcb7",
   "pushed": false,
   "implementationSha": "a6b2e43faac6c137fd899e4b3f64120e196ef79b"
 }

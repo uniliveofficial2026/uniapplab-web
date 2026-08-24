@@ -1,6 +1,6 @@
 # Stage B Final Report
 
-**Final Stage B SHA (tip):** `7ac8e642b7abff9b7192db66fe9644f976f77888`
+**Final Stage B SHA (tip):** `2f3c18315ed6380a27b684275260d1300d12fcb7`
 **Implementation commit:** `a6b2e43faac6c137fd899e4b3f64120e196ef79b`
 **Baseline SHA:** `4786a68` (Stage A locked)
 **Branch:** `fix/vercel-api-root-now`
