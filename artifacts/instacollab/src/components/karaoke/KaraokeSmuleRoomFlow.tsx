@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from 'react';
-import { MemoryRouter, Navigate, Routes, Route, useLocation } from 'react-router-dom';
+import { MemoryRouter, Routes, Route, useLocation } from 'react-router-dom';
 import CreateRoom from '../../smule-rooms/pages/CreateRoom';
 import { Room } from '../../smule-rooms/pages/Room';
 import EditRoom from '../../smule-rooms/pages/EditRoom';
@@ -20,7 +20,7 @@ function KaraokeFlowBack({
   recoverToCreate = false,
 }: {
   onClose: () => void;
-  /** InstantRoomEntryHost / full embed: recover instead of tearing the host down. */
+  /** InstantRoomEntryHost / full embed: do not tear down the host. */
   recoverToCreate?: boolean;
 }) {
   const onCloseRef = useRef(onClose);
@@ -31,8 +31,13 @@ function KaraokeFlowBack({
     onCloseRef.current();
   }, [recoverToCreate]);
 
+  // Full-embed: keep host alive. Prefer create screen over exiting to Home.
   if (recoverToCreate) {
-    return <Navigate to="/room/create" replace />;
+    return (
+      <FlowPageShell>
+        <CreateRoom />
+      </FlowPageShell>
+    );
   }
 
   return null;
