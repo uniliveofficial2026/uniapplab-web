@@ -1,0 +1,27 @@
+{
+  "name": "@unilives/selfhost",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Production-like UniLive self-host compose, config, backup, and upgrade helpers",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "@unilives/errors": "workspace:*"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "README.md",
+    "compose",
+    "templates"
+  ]
+}

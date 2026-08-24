@@ -1,0 +1,111 @@
+{
+  "platform": "UniLive",
+  "version": "0.1.0",
+  "channel": "stable",
+  "createdAt": "2026-08-24T21:10:31.513Z",
+  "publicRegistryRelease": "RELEASE_READY_EXTERNAL_STEP",
+  "licenseStatus": "FORMAL_LICENSE_PENDING",
+  "artifacts": [
+    {
+      "package": "@unilives/sdk",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-sdk-0.1.0.tgz",
+      "checksum": "sha256:29e95477223d05a03ef96f66fc9b260881a91da8143e62ef256d3e65f373c618",
+      "bytes": 3418,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/cli",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-cli-0.1.0.tgz",
+      "checksum": "sha256:f99bdfcaaa02c7de418e47216d43aca5bb8e1f7e56be30eb7aa8c62e4e3dcc09",
+      "bytes": 4820,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/mcp",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-mcp-0.1.0.tgz",
+      "checksum": "sha256:7a92d84a7091f240fe1467dc3da9236b7be9caa6ab316d8dca49a7bc0c6b984d",
+      "bytes": 3047,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/ui",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-ui-0.1.0.tgz",
+      "checksum": "sha256:96c608bf219f06aba584bc52c02fa1f0429f4890b4815001f9fbf6fa47421d4f",
+      "bytes": 8272,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/rtc-client",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-rtc-client-0.1.0.tgz",
+      "checksum": "sha256:e7185b7c87f4e6b1376fe9f18a2195559bf009cc29dc18834d0b77edc771c88c",
+      "bytes": 1108,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/rtc-react",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-rtc-react-0.1.0.tgz",
+      "checksum": "sha256:8dfbd1c765bc2a14de47bea9cf45fca9aed3db41124c4994a018cfa38e357642",
+      "bytes": 2646,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/project-graph",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-project-graph-0.1.0.tgz",
+      "checksum": "sha256:07629606d78b4db4e68d99796eed44005f160d7b217956eb4629c77bc683e09a",
+      "bytes": 3651,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/provider-sdk",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-provider-sdk-0.1.0.tgz",
+      "checksum": "sha256:facca2c4fe251ab8262c52937971be9c67f6049b6c6766ebcc4145b9f3486431",
+      "bytes": 1489,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/plugin-sdk",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-plugin-sdk-0.1.0.tgz",
+      "checksum": "sha256:5e92d2601defe1d8b0a91dc139fc7b7f2bf41ed2d5761d5ee46b53bbe6fafaed",
+      "bytes": 1274,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/errors",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-errors-0.1.0.tgz",
+      "checksum": "sha256:2dbb67ab3f35701d6cae1c5ee1d00798e01ea7b99d6b0fba10c8e781c7e18abe",
+      "bytes": 1382,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/observe",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-observe-0.1.0.tgz",
+      "checksum": "sha256:c8b5d1f0f16576004cce59e736ceb00f6dead624898413cdb4994848ba57521e",
+      "bytes": 1711,
+      "status": "RELEASE_READY"
+    },
+    {
+      "package": "@unilives/templates",
+      "version": "0.1.0",
+      "artifact": "release/artifacts/unilives-templates-0.1.0.tgz",
+      "checksum": "sha256:6ccbcce5ab8a6be639eb0542b4b9e7e8688bb10c8f96977cac44aadd8229f8d3",
+      "bytes": 2696,
+      "status": "RELEASE_READY"
+    }
+  ],
+  "baselines": {
+    "stageA": "4786a68",
+    "stageB": "fb94cafc120995006c6368d30b7df32ae94dcea3",
+    "stageC": "6e178efda203a31d947d6afd99a59784936f5598"
+  }
+}

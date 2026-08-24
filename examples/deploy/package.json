@@ -1,0 +1,13 @@
+{
+  "name": "@unilives/example-deploy",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "dependencies": {
+    "@unilives/deploy": "workspace:*",
+    "@unilives/platform-core": "workspace:*"
+  },
+  "scripts": {
+    "test": "node index.mjs"
+  }
+}

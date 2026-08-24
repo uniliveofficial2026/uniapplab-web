@@ -22,6 +22,9 @@
     "@unilives/platform-core": "workspace:*",
     "@unilives/sdk": "workspace:*",
     "@unilives/rtc-fake": "workspace:*",
-    "@unilives/rtc-core": "workspace:*"
+    "@unilives/rtc-core": "workspace:*",
+    "@unilives/cloud": "workspace:*",
+    "@unilives/marketplace": "workspace:*",
+    "@unilives/ai-builder": "workspace:*"
   }
 }

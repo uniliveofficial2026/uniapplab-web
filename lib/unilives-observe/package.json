@@ -6,7 +6,7 @@
   "type": "module",
   "license": "UNLICENSED",
   "sideEffects": false,
-  "files": ["index.mjs", "index.d.ts", "README.md"],
+  "files": ["index.mjs", "index.d.ts", "redact.mjs", "README.md"],
   "types": "./index.d.ts",
   "exports": {
     ".": {

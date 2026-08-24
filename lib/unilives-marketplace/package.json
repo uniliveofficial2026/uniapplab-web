@@ -1,0 +1,26 @@
+{
+  "name": "@unilives/marketplace",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Curated local registry for UniLive provider, plugin, and template artifacts",
+  "license": "UNLICENSED",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "@unilives/errors": "workspace:*"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "README.md",
+    "seed"
+  ]
+}

@@ -49,6 +49,9 @@ jobs:
       - name: Stage C platform productization gates
         run: pnpm run test:stage-c
 
+      - name: Stage D release / cloud / self-host gates
+        run: pnpm run test:stage-d
+
       - name: Gift scheduler + wallet authority
         run: |
           pnpm --filter @workspace/instacollab run test:gift-scheduler

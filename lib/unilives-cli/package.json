@@ -24,6 +24,11 @@
     "@unilives/mcp": "workspace:*",
     "@unilives/rtc-fake": "workspace:*",
     "@unilives/templates": "workspace:*",
-    "@unilives/studio": "workspace:*"
+    "@unilives/studio": "workspace:*",
+    "@unilives/cloud": "workspace:*",
+    "@unilives/selfhost": "workspace:*",
+    "@unilives/marketplace": "workspace:*",
+    "@unilives/ai-builder": "workspace:*",
+    "@unilives/release": "workspace:*"
   }
 }

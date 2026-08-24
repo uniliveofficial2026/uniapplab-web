@@ -1,0 +1,14 @@
+{
+  "name": "@unilives/release",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "UniLive platform version source of truth and release manifest helpers",
+  "license": "UNLICENSED",
+  "files": ["index.mjs", "index.d.ts", "version.mjs", "README.md"],
+  "exports": {
+    ".": { "types": "./index.d.ts", "default": "./index.mjs" },
+    "./version": { "default": "./version.mjs" }
+  },
+  "scripts": { "test": "node --test test/*.test.mjs" }
+}

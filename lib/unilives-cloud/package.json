@@ -1,0 +1,16 @@
+{
+  "name": "@unilives/cloud",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "UniLive Cloud control plane — orgs, projects, environments, RBAC, secrets, deploy, usage",
+  "license": "UNLICENSED",
+  "files": ["index.mjs", "index.d.ts", "README.md"],
+  "exports": { ".": { "types": "./index.d.ts", "default": "./index.mjs" } },
+  "dependencies": {
+    "@unilives/platform-core": "workspace:*",
+    "@unilives/errors": "workspace:*",
+    "@unilives/release": "workspace:*"
+  },
+  "scripts": { "test": "node --test test/*.test.mjs" }
+}

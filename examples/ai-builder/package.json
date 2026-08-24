@@ -1,0 +1,12 @@
+{
+  "name": "@unilives/example-ai-builder",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "dependencies": {
+    "@unilives/ai-builder": "workspace:*"
+  },
+  "scripts": {
+    "test": "node index.mjs"
+  }
+}

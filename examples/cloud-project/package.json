@@ -1,0 +1,12 @@
+{
+  "name": "@unilives/example-cloud-project",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "dependencies": {
+    "@unilives/cloud": "workspace:*"
+  },
+  "scripts": {
+    "test": "node index.mjs"
+  }
+}

@@ -21,7 +21,9 @@
     "@unilives/sdk": "workspace:*",
     "@unilives/storage": "workspace:*",
     "@unilives/templates": "workspace:*",
-    "@unilives/rtc-fake": "workspace:*"
+    "@unilives/rtc-fake": "workspace:*",
+    "@unilives/cloud": "workspace:*",
+    "@unilives/release": "workspace:*"
   },
   "scripts": {
     "test": "node --test test/*.test.mjs"

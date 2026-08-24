@@ -1,0 +1,92 @@
+# UniLive self-host reference stack (single-node)
+# TLS termination: use Caddy or another reverse proxy in front — see README.
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-unilives}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES}
+      POSTGRES_DB: ${POSTGRES_DB:-unilives}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER:-unilives}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  auth:
+    image: ghcr.io/unilives/auth:latest
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-unilives}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES}@postgres:5432/${POSTGRES_DB:-unilives}
+      JWT_SECRET: ${JWT_SECRET:-CHANGE_ME_JWT}
+
+  realtime:
+    image: ghcr.io/unilives/realtime:latest
+    restart: unless-stopped
+    depends_on:
+      - auth
+    environment:
+      REALTIME_URL: ${REALTIME_URL:-ws://realtime:4001}
+
+  storage:
+    image: ghcr.io/unilives/storage:latest
+    restart: unless-stopped
+    environment:
+      STORAGE_BUCKET: ${STORAGE_BUCKET:-unilives-local}
+      STORAGE_ACCESS_KEY: ${STORAGE_ACCESS_KEY:-CHANGE_ME_STORAGE_KEY}
+      STORAGE_SECRET_KEY: ${STORAGE_SECRET_KEY:-CHANGE_ME_STORAGE_SECRET}
+
+  api:
+    image: ghcr.io/unilives/api:latest
+    restart: unless-stopped
+    depends_on:
+      - postgres
+      - auth
+      - storage
+    ports:
+      - '${API_PORT:-8080}:8080'
+    environment:
+      DATABASE_URL: postgres://${POSTGRES_USER:-unilives}:${POSTGRES_PASSWORD:-CHANGE_ME_POSTGRES}@postgres:5432/${POSTGRES_DB:-unilives}
+      API_BIND: 0.0.0.0:8080
+
+  mcp:
+    image: ghcr.io/unilives/mcp:latest
+    restart: unless-stopped
+    depends_on:
+      - api
+
+  studio:
+    image: ghcr.io/unilives/studio:latest
+    restart: unless-stopped
+    depends_on:
+      - api
+    ports:
+      - '${STUDIO_PORT:-3000}:3000'
+
+  livekit:
+    image: livekit/livekit-server:latest
+    restart: unless-stopped
+    command: ['--config', '/etc/livekit.yaml']
+    ports:
+      - '7880:7880'
+      - '7881:7881/udp'
+    volumes:
+      - ./livekit.yaml:/etc/livekit.yaml:ro
+
+  observability:
+    image: ghcr.io/unilives/observe:latest
+    restart: unless-stopped
+    depends_on:
+      - api
+    environment:
+      OTEL_EXPORTER_OTLP_ENDPOINT: ${OTEL_EXPORTER_OTLP_ENDPOINT:-http://observability:4318}
+
+volumes:
+  postgres_data:
