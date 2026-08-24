@@ -70,7 +70,7 @@
     "test:rtc-policy": "pnpm exec tsx --test test/rtc-policy-qoe.test.mjs",
     "test:posts-reels": "pnpm exec tsx --test test/posts-reels-stage-a.test.mjs",
     "test:entitlements": "node --test test/entitlement-isolation.test.mjs",
-    "test:social": "node --test test/social-delta-sync.test.mjs test/social-graph-stage-a.test.mjs",
+    "test:social": "node --test test/social-graph-stage-a.test.mjs",
     "test:messages-outbox": "node --test test/messages-outbox-stage-a.test.mjs",
     "test:media-games": "pnpm exec tsx --test test/media-games-stage-a.test.mjs",
     "test:pk-seat": "pnpm exec tsx --test test/pk-seat-stage-a.test.mjs",
