@@ -18,6 +18,11 @@ function actorOf(req: Request): string {
   ).trim();
 }
 
+function param(req: Request, key: string): string {
+  const value = req.params[key];
+  return String(Array.isArray(value) ? value[0] : value || "").trim();
+}
+
 function sendErr(res: Response, err: unknown) {
   const e = err as { name?: string; message?: string; status?: number; code?: string; details?: unknown };
   const code = e.code || e.name || "error";
@@ -60,7 +65,7 @@ router.get("/v1/cloud/organizations/:organizationId/projects", async (req: Reque
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    const projects = cloud.listProjects(req.params.organizationId, actorId);
+    const projects = cloud.listProjects(param(req, "organizationId"), actorId);
     res.json({ projects });
   } catch (err) {
     sendErr(res, err);
@@ -73,7 +78,7 @@ router.post("/v1/cloud/organizations/:organizationId/projects", async (req: Requ
     const actorId = actorOf(req);
     const name = String(req.body?.name || "").trim() || "project";
     const created = cloud.createProject({
-      organizationId: req.params.organizationId,
+      organizationId: param(req, "organizationId"),
       name,
       actorId,
     });
@@ -88,8 +93,8 @@ router.get("/v1/cloud/projects/:projectId", async (req: Request, res: Response) 
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    const project = cloud.getProject(req.params.projectId, actorId);
-    const environments = cloud.listEnvironments(req.params.projectId, actorId);
+    const project = cloud.getProject(param(req, "projectId"), actorId);
+    const environments = cloud.listEnvironments(param(req, "projectId"), actorId);
     res.json({ project, environments });
   } catch (err) {
     sendErr(res, err);
@@ -100,7 +105,7 @@ router.get("/v1/cloud/projects/:projectId/environments", async (req: Request, re
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    res.json({ environments: cloud.listEnvironments(req.params.projectId, actorId) });
+    res.json({ environments: cloud.listEnvironments(param(req, "projectId"), actorId) });
   } catch (err) {
     sendErr(res, err);
   }
@@ -110,8 +115,8 @@ router.get("/v1/cloud/projects/:projectId/audit", async (req: Request, res: Resp
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    cloud.getProject(req.params.projectId, actorId);
-    res.json({ audit: cloud.listAudit({ projectId: req.params.projectId, limit: 100 }) });
+    cloud.getProject(param(req, "projectId"), actorId);
+    res.json({ audit: cloud.listAudit({ projectId: param(req, "projectId"), limit: 100 }) });
   } catch (err) {
     sendErr(res, err);
   }
@@ -122,7 +127,7 @@ router.post("/v1/cloud/projects/:projectId/providers", async (req: Request, res:
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
     const row = cloud.connectProvider({
-      projectId: req.params.projectId,
+      projectId: param(req, "projectId"),
       environmentId: String(req.body?.environmentId || ""),
       providerType: String(req.body?.providerType || "rtc"),
       actorId,
@@ -140,7 +145,7 @@ router.get("/v1/cloud/providers/:providerConnectionId/health", async (req: Reque
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    res.json({ health: cloud.providerHealth(req.params.providerConnectionId, actorId) });
+    res.json({ health: cloud.providerHealth(param(req, "providerConnectionId"), actorId) });
   } catch (err) {
     sendErr(res, err);
   }
