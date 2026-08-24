@@ -80,4 +80,4 @@ jobs:
           pnpm --filter @workspace/instacollab exec tsx --test test/thermal-perception-cadence.test.mjs test/reels-thermal-preload-stage-a.test.mjs test/beauty-slo.test.mjs
 
       - name: API live PK challenge authority
-        run: pnpm --filter @workspace/api-server exec node --test test/live-pk-challenge.test.mjs
+        run: pnpm --filter @workspace/api-server run test:live-pk-challenge
