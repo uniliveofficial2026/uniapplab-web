@@ -51,7 +51,7 @@
   "baselineSha": "4786a68",
   "branch": "fix/vercel-api-root-now",
   "workingTree": "stage_b_committed; unrelated dirty files may remain",
-  "lastValidatedSha": "289bbcde2cd44b090c8d474a8a4efd1fbc739142",
+  "lastValidatedSha": "7434bba4f388260a974dce6cd225e85abfe6a7ca",
   "evidence": {
     "stage_b_unit_suite": {
       "result": "PASS",
