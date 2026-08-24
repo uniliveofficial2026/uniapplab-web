@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-multiguest-chrome-marketplace-mount",
+  "currentSlice": "A-shop-live-chrome",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -28,7 +28,8 @@
     "games-livekit-cleanup-contracts",
     "smoke-live-multiguest-chrome-pass",
     "smoke-marketplace-mount-pass",
-    "smoke-messages-mount-pass"
+    "smoke-messages-mount-pass",
+    "smoke-live-shop-chrome-pass"
   ],
   "failing": [],
   "blocked": [
@@ -54,7 +55,7 @@
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "72d156d",
+  "lastValidatedCommit": "b6cc8f0",
   "evidence": {
     "smoke_live_gift_panel": "PASS",
     "smoke_live_pk_chrome": "PASS",
@@ -64,7 +65,8 @@
     "smoke_calls_ui": "PASS",
     "media_games_contracts": "6/6",
     "messages_outbox": "3/3",
-    "marketplace_ledger_tests": "4/4"
+    "marketplace_ledger_tests": "4/4",
+    "smoke_live_shop_chrome": "PASS"
   },
-  "updatedAt": "2026-08-24T01:40:00Z"
+  "updatedAt": "2026-08-24T01:42:30Z"
 }

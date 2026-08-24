@@ -2,6 +2,10 @@
 
 All entries are Stage A documentation / verification unless noted. **uiUxChanged: false**
 
+## 2026-08-24T01:42:30Z — Shop Live commerce chrome smoke PASS
+- Added `smoke:live-shop-chrome` (Commerce-Live hint → go live → shop/product chrome) **PASS**.
+- uiUxChanged: false. Stage B locked.
+
 ## 2026-08-24T01:40:00Z — Multi-Guest chrome smoke + marketplace mount revalidated PASS
 - Added `smoke:live-multiguest-chrome` (Multi mode hint → go live → seat/guest chrome) **PASS**.
 - Revalidated: marketplace mount, messages mount, calls UI, live gift panel — all **PASS**.
