@@ -275,8 +275,9 @@ async function main() {
           /invite|challenge|opponent/i.test(document.body.innerText),
       );
     }
-    evidence.ok = evidence.pkChrome;
+    evidence.ok = Boolean(evidence.pkChrome && evidence.pkSheetHint);
     if (!evidence.pkChrome) evidence.blocker = 'pk_control_missing_in_live_room';
+    else if (!evidence.pkSheetHint) evidence.blocker = 'pk_setup_sheet_missing_after_open';
     evidence.screenshot = path.join(OUT_DIR, `live-pk-chrome-${stamp}.png`);
     await page.screenshot({ path: evidence.screenshot }).catch(() => {});
     console.log(`[smoke-live-pk-chrome] ${evidence.ok ? 'PASS' : 'FAIL'}`);
