@@ -38,6 +38,7 @@ import mongoRouter from "./mongo";
 import auroraRouter from "./aurora";
 import discordRouter from "./discord";
 import uniliveV1Router from "./uniliveV1";
+import cloudControlPlaneRouter from "./cloudControlPlane";
 import { upstashRateLimit } from "../lib/ratelimit";
 
 const router: IRouter = Router();
@@ -46,6 +47,7 @@ const router: IRouter = Router();
 router.use(discordRouter);
 router.use(upstashRateLimit);
 router.use(uniliveV1Router);
+router.use(cloudControlPlaneRouter);
 router.use(healthRouter);
 router.use(upstashRouter);
 router.use(qstashRouter);

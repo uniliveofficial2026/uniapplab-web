@@ -20503,27 +20503,27 @@ var require_router = __commonJS({
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var methods = METHODS.map((method) => method.toLowerCase());
-    module.exports = Router61;
+    module.exports = Router62;
     module.exports.Route = Route;
-    function Router61(options) {
-      if (!(this instanceof Router61)) {
-        return new Router61(options);
+    function Router62(options) {
+      if (!(this instanceof Router62)) {
+        return new Router62(options);
       }
       const opts = options || {};
-      function router61(req, res, next2) {
-        router61.handle(req, res, next2);
+      function router62(req, res, next2) {
+        router62.handle(req, res, next2);
       }
-      Object.setPrototypeOf(router61, this);
-      router61.caseSensitive = opts.caseSensitive;
-      router61.mergeParams = opts.mergeParams;
-      router61.params = {};
-      router61.strict = opts.strict;
-      router61.stack = [];
-      return router61;
+      Object.setPrototypeOf(router62, this);
+      router62.caseSensitive = opts.caseSensitive;
+      router62.mergeParams = opts.mergeParams;
+      router62.params = {};
+      router62.strict = opts.strict;
+      router62.stack = [];
+      return router62;
     }
-    Router61.prototype = function() {
+    Router62.prototype = function() {
     };
-    Router61.prototype.param = function param(name24, fn) {
+    Router62.prototype.param = function param(name24, fn) {
       if (!name24) {
         throw new TypeError("argument name is required");
       }
@@ -20543,7 +20543,7 @@ var require_router = __commonJS({
       params.push(fn);
       return this;
     };
-    Router61.prototype.handle = function handle(req, res, callback) {
+    Router62.prototype.handle = function handle(req, res, callback) {
       if (!callback) {
         throw new TypeError("argument callback is required");
       }
@@ -20670,7 +20670,7 @@ var require_router = __commonJS({
         }
       }
     };
-    Router61.prototype.use = function use(handler) {
+    Router62.prototype.use = function use(handler) {
       let offset = 0;
       let path17 = "/";
       if (typeof handler !== "function") {
@@ -20703,7 +20703,7 @@ var require_router = __commonJS({
       }
       return this;
     };
-    Router61.prototype.route = function route(path17) {
+    Router62.prototype.route = function route(path17) {
       const route2 = new Route(path17);
       const layer = new Layer(path17, {
         sensitive: this.caseSensitive,
@@ -20718,7 +20718,7 @@ var require_router = __commonJS({
       return route2;
     };
     methods.concat("all").forEach(function(method) {
-      Router61.prototype[method] = function(path17) {
+      Router62.prototype[method] = function(path17) {
         const route = this.route(path17);
         route[method].apply(route, slice.call(arguments, 1));
         return this;
@@ -20901,13 +20901,13 @@ var require_application = __commonJS({
     var compileTrust = require_utils3().compileTrust;
     var resolve2 = __require("node:path").resolve;
     var once = require_once();
-    var Router61 = require_router();
+    var Router62 = require_router();
     var slice = Array.prototype.slice;
     var flatten = Array.prototype.flat;
     var app2 = exports = module.exports = {};
     var trustProxyDefaultSymbol = "@@symbol:trust_proxy_default";
     app2.init = function init() {
-      var router61 = null;
+      var router62 = null;
       this.cache = /* @__PURE__ */ Object.create(null);
       this.engines = /* @__PURE__ */ Object.create(null);
       this.settings = /* @__PURE__ */ Object.create(null);
@@ -20916,13 +20916,13 @@ var require_application = __commonJS({
         configurable: true,
         enumerable: true,
         get: function getrouter() {
-          if (router61 === null) {
-            router61 = new Router61({
+          if (router62 === null) {
+            router62 = new Router62({
               caseSensitive: this.enabled("case sensitive routing"),
               strict: this.enabled("strict routing")
             });
           }
-          return router61;
+          return router62;
         }
       });
     };
@@ -20993,15 +20993,15 @@ var require_application = __commonJS({
       if (fns.length === 0) {
         throw new TypeError("app.use() requires a middleware function");
       }
-      var router61 = this.router;
+      var router62 = this.router;
       fns.forEach(function(fn2) {
         if (!fn2 || !fn2.handle || !fn2.set) {
-          return router61.use(path17, fn2);
+          return router62.use(path17, fn2);
         }
         debug(".use app under %s", path17);
         fn2.mountpath = path17;
         fn2.parent = this;
-        router61.use(path17, function mounted_app(req, res, next2) {
+        router62.use(path17, function mounted_app(req, res, next2) {
           var orig = req.app;
           fn2.handle(req, res, function(err4) {
             Object.setPrototypeOf(req, orig.request);
@@ -23574,7 +23574,7 @@ var require_express = __commonJS({
     var EventEmitter2 = __require("node:events").EventEmitter;
     var mixin = require_merge_descriptors();
     var proto = require_application();
-    var Router61 = require_router();
+    var Router62 = require_router();
     var req = require_request();
     var res = require_response();
     exports = module.exports = createApplication;
@@ -23596,8 +23596,8 @@ var require_express = __commonJS({
     exports.application = proto;
     exports.request = req;
     exports.response = res;
-    exports.Route = Router61.Route;
-    exports.Router = Router61;
+    exports.Route = Router62.Route;
+    exports.Router = Router62;
     exports.json = bodyParser.json;
     exports.raw = bodyParser.raw;
     exports.static = require_serve_static();
@@ -40590,7 +40590,7 @@ var require_GoTrueClient = __commonJS({
           try {
             await this._acquireLock(0, async () => {
               try {
-                const now2 = Date.now();
+                const now3 = Date.now();
                 try {
                   return await this._useSession(async (result) => {
                     const { data: { session } } = result;
@@ -40598,7 +40598,7 @@ var require_GoTrueClient = __commonJS({
                       this._debug("#_autoRefreshTokenTick()", "no session");
                       return;
                     }
-                    const expiresInTicks = Math.floor((session.expires_at * 1e3 - now2) / constants_1.AUTO_REFRESH_TICK_DURATION_MS);
+                    const expiresInTicks = Math.floor((session.expires_at * 1e3 - now3) / constants_1.AUTO_REFRESH_TICK_DURATION_MS);
                     this._debug("#_autoRefreshTokenTick()", `access token expires in ${expiresInTicks} ticks, a tick lasts ${constants_1.AUTO_REFRESH_TICK_DURATION_MS}ms, refresh threshold is ${constants_1.AUTO_REFRESH_TICK_THRESHOLD} ticks`);
                     if (expiresInTicks <= constants_1.AUTO_REFRESH_TICK_THRESHOLD) {
                       await this._callRefreshToken(session.refresh_token);
@@ -40625,7 +40625,7 @@ var require_GoTrueClient = __commonJS({
           return;
         }
         try {
-          const now2 = Date.now();
+          const now3 = Date.now();
           try {
             await this._useSession(async (result) => {
               const { data: { session } } = result;
@@ -40633,7 +40633,7 @@ var require_GoTrueClient = __commonJS({
                 this._debug("#_autoRefreshTokenTick()", "no session");
                 return;
               }
-              const expiresInTicks = Math.floor((session.expires_at * 1e3 - now2) / constants_1.AUTO_REFRESH_TICK_DURATION_MS);
+              const expiresInTicks = Math.floor((session.expires_at * 1e3 - now3) / constants_1.AUTO_REFRESH_TICK_DURATION_MS);
               this._debug("#_autoRefreshTokenTick()", `access token expires in ${expiresInTicks} ticks, a tick lasts ${constants_1.AUTO_REFRESH_TICK_DURATION_MS}ms, refresh threshold is ${constants_1.AUTO_REFRESH_TICK_THRESHOLD} ticks`);
               if (expiresInTicks <= constants_1.AUTO_REFRESH_TICK_THRESHOLD) {
                 await this._callRefreshToken(session.refresh_token);
@@ -41125,9 +41125,9 @@ var require_GoTrueClient = __commonJS({
         if (jwk) {
           return jwk;
         }
-        const now2 = Date.now();
+        const now3 = Date.now();
         jwk = this.jwks.keys.find((key) => key.kid === kid);
-        if (jwk && this.jwks_cached_at + constants_1.JWKS_TTL > now2) {
+        if (jwk && this.jwks_cached_at + constants_1.JWKS_TTL > now3) {
           return jwk;
         }
         const { data, error: error45 } = await (0, fetch_1._request)(this.fetch, "GET", `${this.url}/.well-known/jwks.json`, {
@@ -41140,7 +41140,7 @@ var require_GoTrueClient = __commonJS({
           return null;
         }
         this.jwks = data;
-        this.jwks_cached_at = now2;
+        this.jwks_cached_at = now3;
         jwk = data.keys.find((key) => key.kid === kid);
         if (!jwk) {
           return null;
@@ -51353,7 +51353,7 @@ var init_jwt_claims_set = __esm({
           throw new TypeError("Invalid clockTolerance option type");
       }
       const { currentDate } = options;
-      const now2 = epoch_default(currentDate || /* @__PURE__ */ new Date());
+      const now3 = epoch_default(currentDate || /* @__PURE__ */ new Date());
       if ((payload.iat !== void 0 || maxTokenAge) && typeof payload.iat !== "number") {
         throw new JWTClaimValidationFailed('"iat" claim must be a number', payload, "iat", "invalid");
       }
@@ -51361,7 +51361,7 @@ var init_jwt_claims_set = __esm({
         if (typeof payload.nbf !== "number") {
           throw new JWTClaimValidationFailed('"nbf" claim must be a number', payload, "nbf", "invalid");
         }
-        if (payload.nbf > now2 + tolerance) {
+        if (payload.nbf > now3 + tolerance) {
           throw new JWTClaimValidationFailed('"nbf" claim timestamp check failed', payload, "nbf", "check_failed");
         }
       }
@@ -51369,12 +51369,12 @@ var init_jwt_claims_set = __esm({
         if (typeof payload.exp !== "number") {
           throw new JWTClaimValidationFailed('"exp" claim must be a number', payload, "exp", "invalid");
         }
-        if (payload.exp <= now2 - tolerance) {
+        if (payload.exp <= now3 - tolerance) {
           throw new JWTExpired('"exp" claim timestamp check failed', payload, "exp", "check_failed");
         }
       }
       if (maxTokenAge) {
-        const age = now2 - payload.iat;
+        const age = now3 - payload.iat;
         const max = typeof maxTokenAge === "number" ? maxTokenAge : secs_default(maxTokenAge);
         if (age - tolerance > max) {
           throw new JWTExpired('"iat" claim timestamp check failed (too far in the past)', payload, "iat", "check_failed");
@@ -53528,7 +53528,7 @@ var init_LiveLifecycleService = __esm({
           throw Object.assign(new Error("room_not_accepting"), { code: "error.partyRoomEnded", status: 409 });
         }
         const durationSec = Math.max(30, Math.min(3600, Math.floor(input.durationSec ?? 180)));
-        const now2 = this.clock();
+        const now3 = this.clock();
         const status = input.status ?? "active";
         const hostUserId = input.hostUserId?.trim() || room.hostUserId;
         const opponentUserId = input.opponentUserId?.trim() || null;
@@ -53571,8 +53571,8 @@ var init_LiveLifecycleService = __esm({
           status,
           localScore: 0,
           opponentScore: 0,
-          endsAt: input.endsAt ?? (status === "active" ? nowIso(now2 + durationSec * 1e3) : null),
-          startedAt: status === "active" ? nowIso(now2) : null,
+          endsAt: input.endsAt ?? (status === "active" ? nowIso(now3 + durationSec * 1e3) : null),
+          startedAt: status === "active" ? nowIso(now3) : null,
           durationSec,
           multiplier: Math.max(1, Math.min(99, Math.floor(input.multiplier ?? 1))),
           version: 1,
@@ -53746,7 +53746,7 @@ var init_LiveLifecycleService = __esm({
             existing.version += 1;
           }
         }
-        const now2 = this.clock();
+        const now3 = this.clock();
         const ttlSec = Math.max(10, Math.min(120, Math.floor(input.ttlSec ?? 30)));
         const durationSec = Math.max(30, Math.min(3600, Math.floor(input.durationSec ?? 180)));
         const pkType = input.pkType === "pk_team" ? "pk_team" : "pk_1v1";
@@ -53787,8 +53787,8 @@ var init_LiveLifecycleService = __esm({
           hostMediaSurface,
           challengerMediaSurface,
           status: "pending",
-          createdAt: nowIso(now2),
-          expiresAt: nowIso(now2 + ttlSec * 1e3),
+          createdAt: nowIso(now3),
+          expiresAt: nowIso(now3 + ttlSec * 1e3),
           durationSec,
           version: 1,
           pkId: null
@@ -71984,10 +71984,10 @@ var require_utils4 = __commonJS({
     function squashError(_error) {
       return;
     }
-    var randomBytes2 = (size) => {
+    var randomBytes3 = (size) => {
       return Promise.resolve(crypto.getRandomValues(new Uint8Array(size)));
     };
-    exports.randomBytes = randomBytes2;
+    exports.randomBytes = randomBytes3;
     async function once(ee, name24, options) {
       options?.signal?.throwIfAborted();
       const { promise: promise2, resolve: resolve2, reject } = promiseWithResolvers();
@@ -108503,7 +108503,7 @@ var require_utils_webcrypto = __commonJS({
     var nodeCrypto2 = __require("crypto");
     module.exports = {
       postgresMd5PasswordHash,
-      randomBytes: randomBytes2,
+      randomBytes: randomBytes3,
       deriveKey,
       sha256,
       hashByName,
@@ -108513,7 +108513,7 @@ var require_utils_webcrypto = __commonJS({
     var webCrypto = nodeCrypto2.webcrypto || globalThis.crypto;
     var subtleCrypto = webCrypto.subtle;
     var textEncoder = new TextEncoder();
-    function randomBytes2(length) {
+    function randomBytes3(length) {
       return webCrypto.getRandomValues(Buffer.alloc(length));
     }
     async function md5(string4) {
@@ -112462,7 +112462,7 @@ var require_exchange_vercel_oidc_token = __commonJS({
       exchangeVercelOidcToken: () => exchangeVercelOidcToken2
     });
     module.exports = __toCommonJS2(exchange_vercel_oidc_token_exports);
-    var import_version = require_version3();
+    var import_version2 = require_version3();
     var TokenCache = class {
       constructor(maxEntries) {
         this.maxEntries = maxEntries;
@@ -112528,7 +112528,7 @@ var require_exchange_vercel_oidc_token = __commonJS({
         headers: {
           "Content-Type": "application/json",
           Accept: "application/json",
-          "User-Agent": `@vercel/oidc@${import_version.version}`
+          "User-Agent": `@vercel/oidc@${import_version2.version}`
         },
         body: JSON.stringify({
           token: options.token,
@@ -115699,17 +115699,17 @@ var require_exec = __commonJS({
     var import_node_path24 = __toESM2(__require("node:path"));
     var import_execa = __toESM2(require_execa());
     var import_envpath = require_envpath();
-    var import_errors18 = require_errors4();
+    var import_errors19 = require_errors4();
     var import_lookup = require_lookup();
     async function execVercelCli2(args, options = {}) {
       const cwd = import_node_path24.default.resolve(options.cwd ?? process.cwd());
-      await (0, import_errors18.assertValidCwd)(cwd);
+      await (0, import_errors19.assertValidCwd)(cwd);
       const env4 = mergeExecEnv(options.env);
       const pathValue = (0, import_envpath.getEnvPath)(env4);
       try {
         return await execResolvedVercelCli(args, options, cwd, env4, pathValue);
       } catch (error45) {
-        if (error45 instanceof import_errors18.VercelCliError && error45.code === "VERCEL_CLI_NOT_FOUND") {
+        if (error45 instanceof import_errors19.VercelCliError && error45.code === "VERCEL_CLI_NOT_FOUND") {
           (0, import_lookup.clearCachedCliInvocation)(cwd, pathValue);
           return await execResolvedVercelCli(args, options, cwd, env4, pathValue);
         }
@@ -115740,15 +115740,15 @@ var require_exec = __commonJS({
         );
         return { stdout, stderr, invocation };
       } catch (error45) {
-        throw (0, import_errors18.toVercelCliError)(invocation, error45);
+        throw (0, import_errors19.toVercelCliError)(invocation, error45);
       }
     }
     async function resolveInvocationOrThrow(cwd, pathValue) {
       const resolution = await (0, import_lookup.resolveCachedCliInvocation)(cwd, pathValue);
       if (!resolution.found) {
-        throw new import_errors18.VercelCliError({
+        throw new import_errors19.VercelCliError({
           code: "VERCEL_CLI_NOT_FOUND",
-          message: (0, import_errors18.getCliNotFoundMessage)(resolution.diagnostics)
+          message: (0, import_errors19.getCliNotFoundMessage)(resolution.diagnostics)
         });
       }
       return (0, import_lookup.toVercelCliInvocation)(resolution);
@@ -115798,13 +115798,13 @@ var require_dist7 = __commonJS({
     var __toCommonJS2 = (mod) => __copyProps2(__defProp4({}, "__esModule", { value: true }), mod);
     var src_exports2 = {};
     __export4(src_exports2, {
-      VercelCliError: () => import_errors18.VercelCliError,
+      VercelCliError: () => import_errors19.VercelCliError,
       clearVercelCliLookupCache: () => import_lookup.clearVercelCliLookupCache,
       execVercelCli: () => import_exec.execVercelCli,
       findVercelCli: () => import_lookup.findVercelCli
     });
     module.exports = __toCommonJS2(src_exports2);
-    var import_errors18 = require_errors4();
+    var import_errors19 = require_errors4();
     var import_exec = require_exec();
     var import_lookup = require_lookup();
   }
@@ -134660,7 +134660,7 @@ var require_jwt_claims_set = __commonJS({
           throw new TypeError("Invalid clockTolerance option type");
       }
       const { currentDate } = options;
-      const now2 = (0, epoch_js_1.default)(currentDate || /* @__PURE__ */ new Date());
+      const now3 = (0, epoch_js_1.default)(currentDate || /* @__PURE__ */ new Date());
       if ((payload.iat !== void 0 || maxTokenAge) && typeof payload.iat !== "number") {
         throw new errors_js_1.JWTClaimValidationFailed('"iat" claim must be a number', payload, "iat", "invalid");
       }
@@ -134668,7 +134668,7 @@ var require_jwt_claims_set = __commonJS({
         if (typeof payload.nbf !== "number") {
           throw new errors_js_1.JWTClaimValidationFailed('"nbf" claim must be a number', payload, "nbf", "invalid");
         }
-        if (payload.nbf > now2 + tolerance) {
+        if (payload.nbf > now3 + tolerance) {
           throw new errors_js_1.JWTClaimValidationFailed('"nbf" claim timestamp check failed', payload, "nbf", "check_failed");
         }
       }
@@ -134676,12 +134676,12 @@ var require_jwt_claims_set = __commonJS({
         if (typeof payload.exp !== "number") {
           throw new errors_js_1.JWTClaimValidationFailed('"exp" claim must be a number', payload, "exp", "invalid");
         }
-        if (payload.exp <= now2 - tolerance) {
+        if (payload.exp <= now3 - tolerance) {
           throw new errors_js_1.JWTExpired('"exp" claim timestamp check failed', payload, "exp", "check_failed");
         }
       }
       if (maxTokenAge) {
-        const age = now2 - payload.iat;
+        const age = now3 - payload.iat;
         const max = typeof maxTokenAge === "number" ? maxTokenAge : (0, secs_js_1.default)(maxTokenAge);
         if (age - tolerance > max) {
           throw new errors_js_1.JWTExpired('"iat" claim timestamp check failed (too far in the past)', payload, "iat", "check_failed");
@@ -139560,7 +139560,7 @@ var require_websocket = __commonJS({
     var http4 = __require("http");
     var net2 = __require("net");
     var tls = __require("tls");
-    var { randomBytes: randomBytes2, createHash: createHash16 } = __require("crypto");
+    var { randomBytes: randomBytes3, createHash: createHash17 } = __require("crypto");
     var { Duplex, Readable } = __require("stream");
     var { URL: URL2 } = __require("url");
     var PerMessageDeflate2 = require_permessage_deflate();
@@ -140098,7 +140098,7 @@ var require_websocket = __commonJS({
         }
       }
       const defaultPort = isSecure ? 443 : 80;
-      const key = randomBytes2(16).toString("base64");
+      const key = randomBytes3(16).toString("base64");
       const request = isSecure ? https3.request : http4.request;
       const protocolSet = /* @__PURE__ */ new Set();
       let perMessageDeflate;
@@ -140228,7 +140228,7 @@ var require_websocket = __commonJS({
           abortHandshake(websocket, socket, "Invalid Upgrade header");
           return;
         }
-        const digest2 = createHash16("sha1").update(key + GUID).digest("base64");
+        const digest2 = createHash17("sha1").update(key + GUID).digest("base64");
         if (res.headers["sec-websocket-accept"] !== digest2) {
           abortHandshake(websocket, socket, "Invalid Sec-WebSocket-Accept header");
           return;
@@ -140597,7 +140597,7 @@ var require_websocket_server = __commonJS({
     var EventEmitter2 = __require("events");
     var http4 = __require("http");
     var { Duplex } = __require("stream");
-    var { createHash: createHash16 } = __require("crypto");
+    var { createHash: createHash17 } = __require("crypto");
     var extension2 = require_extension();
     var PerMessageDeflate2 = require_permessage_deflate();
     var subprotocol2 = require_subprotocol();
@@ -140904,7 +140904,7 @@ var require_websocket_server = __commonJS({
           );
         }
         if (this._state > RUNNING) return abortHandshake(socket, 503);
-        const digest2 = createHash16("sha1").update(key + GUID).digest("base64");
+        const digest2 = createHash17("sha1").update(key + GUID).digest("base64");
         const headers = [
           "HTTP/1.1 101 Switching Protocols",
           "Upgrade: websocket",
@@ -142350,8 +142350,8 @@ var require_dist12 = __commonJS({
     var MILLISECONDS_IN_DAY = 24 * MILLISECONDS_IN_HOUR;
     var MILLISECONDS_TO_2AM = 2 * MILLISECONDS_IN_HOUR;
     var getIpListTTL = (time3) => {
-      const now2 = time3 || Date.now();
-      const timeSinceLast2AM = (now2 - MILLISECONDS_TO_2AM) % MILLISECONDS_IN_DAY;
+      const now3 = time3 || Date.now();
+      const timeSinceLast2AM = (now3 - MILLISECONDS_TO_2AM) % MILLISECONDS_IN_DAY;
       return MILLISECONDS_IN_DAY - timeSinceLast2AM;
     };
     var baseUrl = "https://raw.githubusercontent.com/stamparm/ipsum/master/levels";
@@ -142989,8 +142989,8 @@ var require_dist12 = __commonJS({
         return () => ({
           async limit(ctx, identifier, rate) {
             const requestId = randomId();
-            const now2 = Date.now();
-            const currentWindow = Math.floor(now2 / windowSize);
+            const now3 = Date.now();
+            const currentWindow = Math.floor(now3 / windowSize);
             const currentKey = [identifier, currentWindow].join(":");
             const previousWindow = currentWindow - 1;
             const previousKey = [identifier, previousWindow].join(":");
@@ -143014,11 +143014,11 @@ var require_dist12 = __commonJS({
                 regionContext,
                 SCRIPTS.multiRegion.slidingWindow.limit,
                 [currentKey, previousKey],
-                [tokens, now2, windowDuration, requestId, incrementBy]
+                [tokens, now3, windowDuration, requestId, incrementBy]
                 // lua seems to return `1` for true and `null` for false
               )
             }));
-            const percentageInCurrent = now2 % windowDuration / windowDuration;
+            const percentageInCurrent = now3 % windowDuration / windowDuration;
             const [current, previous, success2] = await Promise.any(
               dbs.map((s2) => s2.request)
             );
@@ -143109,8 +143109,8 @@ var require_dist12 = __commonJS({
             };
           },
           async getRemaining(ctx, identifier) {
-            const now2 = Date.now();
-            const currentWindow = Math.floor(now2 / windowSize);
+            const now3 = Date.now();
+            const currentWindow = Math.floor(now3 / windowSize);
             const currentKey = [identifier, currentWindow].join(":");
             const previousWindow = currentWindow - 1;
             const previousKey = [identifier, previousWindow].join(":");
@@ -143120,7 +143120,7 @@ var require_dist12 = __commonJS({
                 regionContext,
                 SCRIPTS.multiRegion.slidingWindow.getRemaining,
                 [currentKey, previousKey],
-                [now2, windowSize]
+                [now3, windowSize]
                 // lua seems to return `1` for true and `null` for false
               )
             }));
@@ -143278,8 +143278,8 @@ var require_dist12 = __commonJS({
         const windowSize = ms(window2);
         return () => ({
           async limit(ctx, identifier, rate) {
-            const now2 = Date.now();
-            const currentWindow = Math.floor(now2 / windowSize);
+            const now3 = Date.now();
+            const currentWindow = Math.floor(now3 / windowSize);
             const currentKey = [identifier, currentWindow].join(":");
             const previousWindow = currentWindow - 1;
             const previousKey = [identifier, previousWindow].join(":");
@@ -143302,7 +143302,7 @@ var require_dist12 = __commonJS({
               ctx,
               SCRIPTS.singleRegion.slidingWindow.limit,
               [currentKey, previousKey, dynamicLimitKey],
-              [tokens, now2, windowSize, incrementBy]
+              [tokens, now3, windowSize, incrementBy]
             );
             const success2 = remainingTokens >= 0;
             const reset = (currentWindow + 1) * windowSize;
@@ -143322,8 +143322,8 @@ var require_dist12 = __commonJS({
             };
           },
           async getRemaining(ctx, identifier) {
-            const now2 = Date.now();
-            const currentWindow = Math.floor(now2 / windowSize);
+            const now3 = Date.now();
+            const currentWindow = Math.floor(now3 / windowSize);
             const currentKey = [identifier, currentWindow].join(":");
             const previousWindow = currentWindow - 1;
             const previousKey = [identifier, previousWindow].join(":");
@@ -143332,7 +143332,7 @@ var require_dist12 = __commonJS({
               ctx,
               SCRIPTS.singleRegion.slidingWindow.getRemaining,
               [currentKey, previousKey, dynamicLimitKey],
-              [tokens, now2, windowSize]
+              [tokens, now3, windowSize]
             );
             return {
               remaining: Math.max(0, remaining),
@@ -143371,7 +143371,7 @@ var require_dist12 = __commonJS({
         const intervalDuration = ms(interval);
         return () => ({
           async limit(ctx, identifier, rate) {
-            const now2 = Date.now();
+            const now3 = Date.now();
             const incrementBy = rate ?? 1;
             if (ctx.cache && incrementBy > 0) {
               const { blocked, reset: reset2 } = ctx.cache.isBlocked(identifier);
@@ -143391,7 +143391,7 @@ var require_dist12 = __commonJS({
               ctx,
               SCRIPTS.singleRegion.tokenBucket.limit,
               [identifier, dynamicLimitKey],
-              [maxTokens, intervalDuration, refillRate, now2, incrementBy]
+              [maxTokens, intervalDuration, refillRate, now3, incrementBy]
             );
             const success2 = remaining >= 0;
             if (ctx.cache) {
@@ -143562,12 +143562,12 @@ var require_dist12 = __commonJS({
 });
 
 // src/app.ts
-var import_express61 = __toESM(require_express2(), 1);
+var import_express62 = __toESM(require_express2(), 1);
 var import_cors = __toESM(require_lib3(), 1);
 var import_pino_http = __toESM(require_logger(), 1);
 
 // src/routes/index.ts
-var import_express60 = __toESM(require_express2(), 1);
+var import_express61 = __toESM(require_express2(), 1);
 
 // src/routes/health.ts
 var import_express = __toESM(require_express2(), 1);
@@ -153489,15 +153489,15 @@ async function getFirestoreAccessToken() {
   }
   const sa = parseServiceAccount();
   if (!sa?.client_email || !sa.private_key) return null;
-  const now2 = Math.floor(Date.now() / 1e3);
+  const now3 = Math.floor(Date.now() / 1e3);
   const header = base64Url(JSON.stringify({ alg: "RS256", typ: "JWT" }));
   const claim = base64Url(
     JSON.stringify({
       iss: sa.client_email,
       sub: sa.client_email,
       aud: "https://oauth2.googleapis.com/token",
-      iat: now2,
-      exp: now2 + 3600,
+      iat: now3,
+      exp: now3 + 3600,
       scope: "https://www.googleapis.com/auth/datastore"
     })
   );
@@ -162699,14 +162699,14 @@ async function lookupIdentity(provider, providerUserId) {
   return row.user_id;
 }
 async function insertIdentity(userId, provider, providerUserId) {
-  const now2 = (/* @__PURE__ */ new Date()).toISOString();
+  const now3 = (/* @__PURE__ */ new Date()).toISOString();
   const { error: error45 } = await getSupabaseService().from("auth_identities").insert({
     user_id: userId,
     provider,
     provider_user_id: providerUserId,
     verified: true,
     linkage_status: "verified",
-    updated_at: now2
+    updated_at: now3
   });
   if (!error45) return "ok";
   if (error45.code === "23505") return "conflict";
@@ -166258,9 +166258,9 @@ var LIVE_SEED_VIDEO_IDS = [
 var CACHE_PREFIX = "youtube:v1:";
 async function getYoutubeCache(key) {
   const full = `${CACHE_PREFIX}${key}`;
-  const now2 = Date.now();
+  const now3 = Date.now();
   const local = memory.get(full);
-  if (local && local.expiresAt > now2) {
+  if (local && local.expiresAt > now3) {
     try {
       return JSON.parse(local.value);
     } catch {
@@ -166274,7 +166274,7 @@ async function getYoutubeCache(key) {
     const raw = await redis2.get(full);
     if (!raw) return null;
     const text2 = typeof raw === "string" ? raw : JSON.stringify(raw);
-    memory.set(full, { expiresAt: now2 + 6e4, value: text2 });
+    memory.set(full, { expiresAt: now3 + 6e4, value: text2 });
     return JSON.parse(text2);
   } catch {
     return null;
@@ -172609,10 +172609,10 @@ function mapCatalogItem(row) {
     stars: Number(row.price)
   };
 }
-function isGiftAvailableNow(row, now2 = Date.now()) {
+function isGiftAvailableNow(row, now3 = Date.now()) {
   if (row.status !== "published") return false;
-  if (row.available_from && new Date(row.available_from).getTime() > now2) return false;
-  if (row.available_until && new Date(row.available_until).getTime() < now2) return false;
+  if (row.available_from && new Date(row.available_from).getTime() > now3) return false;
+  if (row.available_until && new Date(row.available_until).getTime() < now3) return false;
   return true;
 }
 async function withTimeout(promise2, ms, label) {
@@ -173328,9 +173328,9 @@ function stableBucket(seed) {
 }
 function matchesRule(rule, ctx) {
   if (!rule.active) return false;
-  const now2 = ctx.now ?? Date.now();
-  if (rule.startsAt && now2 < rule.startsAt) return false;
-  if (rule.endsAt && now2 > rule.endsAt) return false;
+  const now3 = ctx.now ?? Date.now();
+  if (rule.startsAt && now3 < rule.startsAt) return false;
+  if (rule.endsAt && now3 > rule.endsAt) return false;
   const c = rule.conditions || {};
   if (c.sessionTypes?.length && !c.sessionTypes.includes(ctx.sessionType)) return false;
   if (c.platforms?.length && !c.platforms.includes(ctx.platform) && !c.platforms.includes("all")) return false;
@@ -176222,39 +176222,39 @@ function validateConfigVersion(id) {
 // src/config/ConfigHealthService.ts
 init_livekit2();
 function healthCheckVersion(rec) {
-  const now2 = (/* @__PURE__ */ new Date()).toISOString();
+  const now3 = (/* @__PURE__ */ new Date()).toISOString();
   const results = [];
   for (const [id, ref] of Object.entries(rec.bindings)) {
     const def = RUNTIME_CONFIG_INVENTORY.find((d) => d.id === id);
     if (!def || def.valueType !== "secret-reference") continue;
     const avail = secretReferenceAvailable(ref);
     if (!avail.ok && def.required) {
-      results.push({ providerId: def.provider, ok: false, reason: avail.reason || "missing_secret_reference", checkedAt: now2 });
+      results.push({ providerId: def.provider, ok: false, reason: avail.reason || "missing_secret_reference", checkedAt: now3 });
     }
   }
   results.push({
     providerId: "livekit",
     ok: isLiveKitConfigured() || !envPresent("LIVEKIT_API_SECRET"),
     reason: isLiveKitConfigured() ? void 0 : envPresent("LIVEKIT_API_SECRET") ? "incomplete" : "optional_unset",
-    checkedAt: now2
+    checkedAt: now3
   });
   results.push({
     providerId: "cloudflare-r2",
     ok: isR2Configured() || envPresent("MEDIA_WORKER_URL") || !envPresent("R2_SECRET_ACCESS_KEY"),
     reason: isR2Configured() || envPresent("MEDIA_WORKER_URL") ? void 0 : "optional_unset",
-    checkedAt: now2
+    checkedAt: now3
   });
   results.push({
     providerId: "stripe",
     ok: envPresent("STRIPE_SECRET_KEY") || !String(rec.publicValues.paymentsEnabled || false),
     reason: envPresent("STRIPE_SECRET_KEY") ? void 0 : "optional_unset",
-    checkedAt: now2
+    checkedAt: now3
   });
   results.push({
     providerId: "supabase",
     ok: envPresent("SUPABASE_URL") && (envPresent("SUPABASE_ANON_KEY") || envPresent("VITE_SUPABASE_ANON_KEY")),
     reason: envPresent("SUPABASE_URL") ? void 0 : "missing_public_url",
-    checkedAt: now2
+    checkedAt: now3
   });
   const requiredFail = results.some((r2) => r2.ok === false && (r2.providerId === "supabase" && envPresent("SUPABASE_URL") === false ? false : r2.reason === "missing_secret_reference"));
   const ok4 = !requiredFail && !results.some((r2) => r2.reason === "missing_secret_reference");
@@ -176340,11 +176340,11 @@ function rateLimit(req, res, next2) {
     return;
   }
   const key = req.authUser?.id || req.ip || "anon";
-  const now2 = Date.now();
-  const rec = hits.get(key) || { n: 0, t: now2 };
-  if (now2 - rec.t > 6e4) {
+  const now3 = Date.now();
+  const rec = hits.get(key) || { n: 0, t: now3 };
+  if (now3 - rec.t > 6e4) {
     rec.n = 0;
-    rec.t = now2;
+    rec.t = now3;
   }
   rec.n += 1;
   hits.set(key, rec);
@@ -176821,11 +176821,11 @@ function controlPlaneRateLimit(req, res, next2) {
     return;
   }
   const key = req.authUser?.id || req.ip || "anon";
-  const now2 = Date.now();
-  const rec = hits2.get(key) || { n: 0, t: now2 };
-  if (now2 - rec.t > 6e4) {
+  const now3 = Date.now();
+  const rec = hits2.get(key) || { n: 0, t: now3 };
+  if (now3 - rec.t > 6e4) {
     rec.n = 0;
-    rec.t = now2;
+    rec.t = now3;
   }
   rec.n += 1;
   hits2.set(key, rec);
@@ -180155,9 +180155,9 @@ function localDevOnly2(_req, res, next2) {
   next2();
 }
 function purgeExpired() {
-  const now2 = Date.now();
+  const now3 = Date.now();
   for (const [key, entry] of handoffs) {
-    if (entry.exp <= now2) handoffs.delete(key);
+    if (entry.exp <= now3) handoffs.delete(key);
   }
 }
 var router46 = (0, import_express46.Router)();
@@ -202450,9 +202450,9 @@ function createGateway(options = {}) {
   };
   const getAvailableModels = async () => {
     var _a123, _b122, _c;
-    const now2 = (_c = (_b122 = (_a123 = options._internal) == null ? void 0 : _a123.currentDate) == null ? void 0 : _b122.call(_a123).getTime()) != null ? _c : Date.now();
-    if (!pendingMetadata || now2 - lastFetchTime > cacheRefreshMillis) {
-      lastFetchTime = now2;
+    const now3 = (_c = (_b122 = (_a123 = options._internal) == null ? void 0 : _a123.currentDate) == null ? void 0 : _b122.call(_a123).getTime()) != null ? _c : Date.now();
+    if (!pendingMetadata || now3 - lastFetchTime > cacheRefreshMillis) {
+      lastFetchTime = now3;
       pendingMetadata = new GatewayFetchMetadata({
         baseURL,
         headers: getHeaders,
@@ -207002,7 +207002,7 @@ async function generateText({
   _internal: {
     generateId: generateId2 = originalGenerateId,
     generateCallId = originalGenerateCallId,
-    now: now2 = now
+    now: now22 = now
   } = {},
   onStart,
   experimental_onStart,
@@ -207315,7 +207315,7 @@ async function generateText({
                 callId,
                 ...languageModelCallContext
               };
-              const stepStartTimestampMs = now2();
+              const stepStartTimestampMs = now22();
               await notify({
                 event: languageModelCallStartEvent,
                 callbacks: [
@@ -207350,7 +207350,7 @@ async function generateText({
                 };
                 return { ...result, response: responseData };
               });
-              const responseTimeMs = now2() - stepStartTimestampMs;
+              const responseTimeMs = now22() - stepStartTimestampMs;
               const stepUsage = asLanguageModelUsage(
                 currentModelResponse.usage
               );
@@ -207553,7 +207553,7 @@ async function generateText({
                   clientToolOutputs.push(result.output);
                 }
               }
-              const stepTimeMs = now2() - stepStartTimestampMs;
+              const stepTimeMs = now22() - stepStartTimestampMs;
               const stepPerformance = {
                 effectiveOutputTokensPerSecond: calculateTokensPerSecond({
                   tokens: stepUsage.outputTokens,
@@ -215424,11 +215424,11 @@ var GoogleRealtimeModel = class {
         "Google Generative AI API key is required for realtime token creation."
       );
     }
-    const now2 = Date.now();
+    const now3 = Date.now();
     const openWindowMs = ((_b18 = options.expiresAfterSeconds) != null ? _b18 : 60) * 1e3;
-    const newSessionExpireTime = new Date(now2 + openWindowMs).toISOString();
+    const newSessionExpireTime = new Date(now3 + openWindowMs).toISOString();
     const expireTime = new Date(
-      now2 + openWindowMs + 30 * 60 * 1e3
+      now3 + openWindowMs + 30 * 60 * 1e3
     ).toISOString();
     const setupPayload = buildGoogleSessionConfig(
       options.sessionConfig,
@@ -222247,15 +222247,15 @@ function jobPath3(id) {
 }
 function createProviderJob(input) {
   const id = createHash14("sha256").update(`${input.providerId}:${input.actionId}:${Date.now()}:${Math.random()}`).digest("hex").slice(0, 16);
-  const now2 = (/* @__PURE__ */ new Date()).toISOString();
+  const now3 = (/* @__PURE__ */ new Date()).toISOString();
   const job = {
     id,
     providerId: input.providerId,
     actionId: input.actionId,
     status: input.externalTaskId ? "running" : "queued",
     externalTaskId: input.externalTaskId || null,
-    createdAt: now2,
-    updatedAt: now2
+    createdAt: now3,
+    updatedAt: now3
   };
   writeProviderJob(job);
   return job;
@@ -225566,13 +225566,13 @@ function createRtcUsageMeter() {
     apply(evt) {
       if (seen.has(evt.eventId)) return { duplicate: true };
       seen.add(evt.eventId);
-      const now2 = nowIso4();
+      const now3 = nowIso4();
       if (evt.type === "room_started") {
         roomSessions.set(evt.roomId || evt.eventId, {
           roomId: evt.roomId,
           roomType: evt.roomType,
           provider: evt.provider || "livekit",
-          startedAt: now2,
+          startedAt: now3,
           endedAt: null,
           peakParticipants: 0
         });
@@ -225583,7 +225583,7 @@ function createRtcUsageMeter() {
           roomId: evt.roomId,
           canonicalUserId: evt.canonicalUserId,
           role: evt.role,
-          joinedAt: now2,
+          joinedAt: now3,
           leftAt: null
         });
         const room = roomSessions.get(evt.roomId);
@@ -225595,14 +225595,14 @@ function createRtcUsageMeter() {
       if (evt.type === "participant_left") {
         const key = `${evt.roomId}:${evt.canonicalUserId}`;
         const row = participantSessions.get(key);
-        if (row) row.leftAt = now2;
+        if (row) row.leftAt = now3;
       }
       if (evt.type === "track_published") {
         trackSessions.set(evt.trackId || evt.eventId, {
           trackId: evt.trackId,
           roomId: evt.roomId,
           kind: evt.kind,
-          startedAt: now2,
+          startedAt: now3,
           endedAt: null,
           bytes: 0
         });
@@ -225610,13 +225610,13 @@ function createRtcUsageMeter() {
       if (evt.type === "track_unpublished") {
         const row = trackSessions.get(evt.trackId);
         if (row) {
-          row.endedAt = now2;
+          row.endedAt = now3;
           row.bytes = (row.bytes || 0) + (evt.bytes || 0);
         }
       }
       if (evt.type === "room_ended") {
         const room = roomSessions.get(evt.roomId);
-        if (room) room.endedAt = now2;
+        if (room) room.endedAt = now3;
       }
       return { duplicate: false };
     },
@@ -225920,6 +225920,975 @@ router59.get("/v1/providers", (_req, res) => {
 });
 var uniliveV1_default = router59;
 
+// src/routes/cloudControlPlane.ts
+var import_express60 = __toESM(require_express2(), 1);
+
+// ../../lib/unilives-errors/index.mjs
+var UniLiveError = class extends Error {
+  /**
+   * @param {string} code
+   * @param {string} message
+   * @param {{ details?: Record<string, unknown>, cause?: unknown, traceId?: string }} [opts]
+   */
+  constructor(code, message2, opts = {}) {
+    super(message2, opts.cause !== void 0 ? { cause: opts.cause } : void 0);
+    this.name = "UniLiveError";
+    this.code = String(code || "UNILIVE_ERROR");
+    this.details = sanitizeDetails(opts.details || {});
+    this.traceId = opts.traceId || null;
+  }
+  toJSON() {
+    return {
+      name: this.name,
+      code: this.code,
+      message: this.message,
+      details: this.details,
+      traceId: this.traceId
+    };
+  }
+};
+function sanitizeDetails(details) {
+  const out = { ...details };
+  for (const k of Object.keys(out)) {
+    if (/secret|password|token|authorization|apikey|private.?key|credential/i.test(k)) {
+      out[k] = "[redacted]";
+    }
+  }
+  return out;
+}
+var ValidationError = class extends UniLiveError {
+  constructor(message2, opts) {
+    super("VALIDATION_ERROR", message2, opts);
+    this.name = "ValidationError";
+  }
+};
+var PermissionError = class extends UniLiveError {
+  constructor(message2, opts) {
+    super("PERMISSION_ERROR", message2, opts);
+    this.name = "PermissionError";
+  }
+};
+var NotFoundError = class extends UniLiveError {
+  constructor(message2, opts) {
+    super("NOT_FOUND", message2, opts);
+    this.name = "NotFoundError";
+  }
+};
+var RateLimitError = class extends UniLiveError {
+  constructor(message2, opts) {
+    super("RATE_LIMIT", message2, opts);
+    this.name = "RateLimitError";
+  }
+};
+
+// ../../lib/unilives-release/version.mjs
+var PLATFORM_VERSION = "0.1.0";
+
+// ../../lib/unilives-cloud/index.mjs
+import { randomBytes as randomBytes2, createHash as createHash16 } from "node:crypto";
+
+// ../../lib/unilives-cloud/durable-supabase.mjs
+async function loadCloudSnapshot(supabase) {
+  const [
+    orgs,
+    members,
+    projects,
+    environments,
+    secrets,
+    providers,
+    deployments,
+    domains,
+    audit5,
+    usage
+  ] = await Promise.all([
+    supabase.from("unilive_organizations").select("*"),
+    supabase.from("unilive_organization_members").select("*"),
+    supabase.from("unilive_projects").select("*"),
+    supabase.from("unilive_environments").select("*"),
+    supabase.from("unilive_secret_refs").select("*"),
+    supabase.from("unilive_provider_connections").select("*"),
+    supabase.from("unilive_deployments").select("*"),
+    supabase.from("unilive_domains").select("*"),
+    supabase.from("unilive_audit_events").select("*").order("at", { ascending: true }).limit(5e3),
+    supabase.from("unilive_usage_events").select("*").order("at", { ascending: true }).limit(5e3)
+  ]);
+  const err4 = orgs.error || members.error || projects.error || environments.error || secrets.error || providers.error || deployments.error || domains.error || audit5.error || usage.error;
+  if (err4) throw new Error(`cloud_snapshot_load_failed:${err4.message}`);
+  return {
+    orgs: (orgs.data || []).map((r2) => ({
+      organizationId: r2.organization_id,
+      name: r2.name,
+      ownerActorId: r2.owner_actor_id,
+      createdAt: r2.created_at
+    })),
+    members: (members.data || []).map((r2) => ({
+      memberId: r2.member_id,
+      organizationId: r2.organization_id,
+      actorId: r2.actor_id,
+      role: r2.role,
+      createdAt: r2.created_at,
+      revoked: !!r2.revoked
+    })),
+    projects: (projects.data || []).map((r2) => ({
+      projectId: r2.project_id,
+      organizationId: r2.organization_id,
+      name: r2.name,
+      controlPlaneProjectId: r2.control_plane_project_id,
+      createdAt: r2.created_at,
+      createdBy: r2.created_by,
+      deleted: !!r2.deleted,
+      deletedAt: r2.deleted_at
+    })),
+    environments: (environments.data || []).map((r2) => ({
+      environmentId: r2.environment_id,
+      projectId: r2.project_id,
+      kind: r2.kind,
+      createdAt: r2.created_at
+    })),
+    secrets: (secrets.data || []).map((r2) => ({
+      secretId: r2.secret_id,
+      projectId: r2.project_id,
+      environmentId: r2.environment_id,
+      name: r2.name,
+      secretRef: r2.secret_ref,
+      status: r2.status,
+      version: r2.version,
+      createdAt: r2.created_at,
+      createdBy: r2.created_by
+    })),
+    providers: (providers.data || []).map((r2) => ({
+      providerConnectionId: r2.provider_connection_id,
+      projectId: r2.project_id,
+      environmentId: r2.environment_id,
+      providerType: r2.provider_type,
+      capabilities: r2.capabilities || [],
+      secretRef: r2.secret_ref,
+      status: r2.status,
+      lastCheckedAt: r2.last_checked_at,
+      createdAt: r2.created_at
+    })),
+    deployments: (deployments.data || []).map((r2) => ({
+      deploymentId: r2.deployment_id,
+      projectId: r2.project_id,
+      environmentId: r2.environment_id,
+      gitSha: r2.git_sha,
+      provider: r2.provider,
+      providerDeploymentId: r2.provider_deployment_id,
+      status: r2.status,
+      startedAt: r2.started_at,
+      completedAt: r2.completed_at,
+      health: r2.health,
+      rollbackTarget: r2.rollback_target
+    })),
+    domains: (domains.data || []).map((r2) => ({
+      domainId: r2.domain_id,
+      projectId: r2.project_id,
+      environmentId: r2.environment_id,
+      domain: r2.domain,
+      verificationStatus: r2.verification_status,
+      tlsStatus: r2.tls_status,
+      providerMapping: r2.provider_mapping,
+      createdAt: r2.created_at
+    })),
+    audit: (audit5.data || []).map((r2) => ({
+      auditId: r2.audit_id,
+      action: r2.action,
+      resource: r2.resource,
+      actor: r2.actor,
+      details: r2.details || {},
+      at: r2.at,
+      platformVersion: r2.platform_version
+    })),
+    usage: (usage.data || []).map((r2) => ({
+      eventId: r2.event_id,
+      projectId: r2.project_id,
+      environmentId: r2.environment_id,
+      kind: r2.kind,
+      amount: Number(r2.amount || 1),
+      at: r2.at
+    }))
+  };
+}
+function createSupabaseCloudDurable(supabase) {
+  const pending = [];
+  function track(p) {
+    const wrapped = Promise.resolve(p).catch((err4) => {
+      console.error("[unilive-cloud-durable]", err4?.message || err4);
+    });
+    pending.push(wrapped);
+    return wrapped;
+  }
+  return {
+    async flush() {
+      await Promise.all(pending.splice(0, pending.length));
+    },
+    saveOrganization(org) {
+      return track(
+        supabase.from("unilive_organizations").upsert({
+          organization_id: org.organizationId,
+          name: org.name,
+          owner_actor_id: org.ownerActorId,
+          created_at: org.createdAt,
+          updated_at: (/* @__PURE__ */ new Date()).toISOString()
+        })
+      );
+    },
+    saveMember(m2) {
+      return track(
+        supabase.from("unilive_organization_members").upsert({
+          member_id: m2.memberId,
+          organization_id: m2.organizationId,
+          actor_id: m2.actorId,
+          role: m2.role,
+          created_at: m2.createdAt,
+          revoked: !!m2.revoked
+        })
+      );
+    },
+    saveProject(p) {
+      return track(
+        supabase.from("unilive_projects").upsert({
+          project_id: p.projectId,
+          organization_id: p.organizationId,
+          name: p.name,
+          control_plane_project_id: p.controlPlaneProjectId || null,
+          created_at: p.createdAt,
+          updated_at: (/* @__PURE__ */ new Date()).toISOString(),
+          created_by: p.createdBy || null,
+          deleted: !!p.deleted,
+          deleted_at: p.deletedAt || null
+        })
+      );
+    },
+    saveEnvironment(e2) {
+      return track(
+        supabase.from("unilive_environments").upsert({
+          environment_id: e2.environmentId,
+          project_id: e2.projectId,
+          kind: e2.kind,
+          created_at: e2.createdAt
+        })
+      );
+    },
+    saveSecret(s2) {
+      return track(
+        supabase.from("unilive_secret_refs").upsert({
+          secret_id: s2.secretId,
+          project_id: s2.projectId,
+          environment_id: s2.environmentId,
+          name: s2.name,
+          secret_ref: s2.secretRef,
+          status: s2.status,
+          version: s2.version,
+          created_at: s2.createdAt,
+          created_by: s2.createdBy || null
+        })
+      );
+    },
+    saveProvider(p) {
+      return track(
+        supabase.from("unilive_provider_connections").upsert({
+          provider_connection_id: p.providerConnectionId,
+          project_id: p.projectId,
+          environment_id: p.environmentId,
+          provider_type: p.providerType,
+          capabilities: p.capabilities || [],
+          secret_ref: p.secretRef || null,
+          status: p.status,
+          last_checked_at: p.lastCheckedAt || null,
+          created_at: p.createdAt
+        })
+      );
+    },
+    saveDeployment(d) {
+      return track(
+        supabase.from("unilive_deployments").upsert({
+          deployment_id: d.deploymentId,
+          project_id: d.projectId,
+          environment_id: d.environmentId,
+          git_sha: d.gitSha,
+          provider: d.provider || null,
+          provider_deployment_id: d.providerDeploymentId || null,
+          status: d.status,
+          started_at: d.startedAt,
+          completed_at: d.completedAt || null,
+          health: d.health || null,
+          rollback_target: d.rollbackTarget || null
+        })
+      );
+    },
+    saveDomain(d) {
+      return track(
+        supabase.from("unilive_domains").upsert({
+          domain_id: d.domainId,
+          project_id: d.projectId,
+          environment_id: d.environmentId || null,
+          domain: d.domain,
+          verification_status: d.verificationStatus,
+          tls_status: d.tlsStatus,
+          provider_mapping: d.providerMapping || null,
+          created_at: d.createdAt
+        })
+      );
+    },
+    saveAudit(a) {
+      return track(
+        supabase.from("unilive_audit_events").upsert({
+          audit_id: a.auditId,
+          action: a.action,
+          resource: a.resource || null,
+          actor: a.actor || null,
+          details: a.details || {},
+          at: a.at,
+          platform_version: a.platformVersion || null
+        })
+      );
+    },
+    saveUsage(u) {
+      return track(
+        supabase.from("unilive_usage_events").upsert({
+          event_id: u.eventId,
+          project_id: u.projectId || null,
+          environment_id: u.environmentId || null,
+          kind: u.kind,
+          amount: u.amount ?? 1,
+          at: u.at
+        })
+      );
+    }
+  };
+}
+
+// ../../lib/unilives-cloud/index.mjs
+var ROLES = /* @__PURE__ */ new Set([
+  "organization_owner",
+  "organization_admin",
+  "developer",
+  "operator",
+  "viewer"
+]);
+var ROLE_PERMS = {
+  organization_owner: ["*"],
+  organization_admin: [
+    "project:read",
+    "project:write",
+    "member:write",
+    "provider:write",
+    "secret:write",
+    "deploy:write",
+    "deploy:read",
+    "logs:read",
+    "usage:read",
+    "plugin:write"
+  ],
+  developer: [
+    "project:read",
+    "project:write",
+    "provider:read",
+    "secret:read",
+    "deploy:write",
+    "deploy:read",
+    "logs:read",
+    "usage:read",
+    "plugin:write"
+  ],
+  operator: ["project:read", "provider:read", "deploy:read", "deploy:write", "logs:read", "usage:read"],
+  viewer: ["project:read", "provider:read", "deploy:read", "logs:read", "usage:read"]
+};
+function mint2(prefix) {
+  return `${prefix}_${Date.now().toString(36)}_${randomBytes2(4).toString("hex")}`;
+}
+function now2() {
+  return (/* @__PURE__ */ new Date()).toISOString();
+}
+function hashRef(value) {
+  return `secret://${createHash16("sha256").update(String(value)).digest("hex").slice(0, 24)}`;
+}
+function createUniLiveCloud(options = {}) {
+  const controlPlane2 = options.controlPlane || createControlPlaneStore();
+  const durable = options.durable || null;
+  const snap = options.initialSnapshot || null;
+  const orgs = /* @__PURE__ */ new Map();
+  const members = /* @__PURE__ */ new Map();
+  const projects = /* @__PURE__ */ new Map();
+  const environments = /* @__PURE__ */ new Map();
+  const secrets = /* @__PURE__ */ new Map();
+  const providers = /* @__PURE__ */ new Map();
+  const deployments = /* @__PURE__ */ new Map();
+  const domains = /* @__PURE__ */ new Map();
+  const audit5 = [];
+  const usage = [];
+  const rateBuckets = /* @__PURE__ */ new Map();
+  const quotas = /* @__PURE__ */ new Map([
+    ["project.create", 100],
+    ["api.requests", 1e4],
+    ["rtc.rooms", 50]
+  ]);
+  if (snap) {
+    for (const row of snap.orgs || []) orgs.set(row.organizationId, row);
+    for (const row of snap.members || []) members.set(row.memberId, row);
+    for (const row of snap.projects || []) projects.set(row.projectId, row);
+    for (const row of snap.environments || []) environments.set(row.environmentId, row);
+    for (const row of snap.secrets || []) secrets.set(row.secretId, row);
+    for (const row of snap.providers || []) providers.set(row.providerConnectionId, row);
+    for (const row of snap.deployments || []) deployments.set(row.deploymentId, row);
+    for (const row of snap.domains || []) domains.set(row.domainId, row);
+    for (const row of snap.audit || []) audit5.push(row);
+    for (const row of snap.usage || []) usage.push(row);
+  }
+  function auditEvent(action, resource, actor3, details = {}) {
+    const row = {
+      auditId: mint2("audit"),
+      action,
+      resource,
+      actor: actor3 || "system",
+      details,
+      at: now2(),
+      platformVersion: PLATFORM_VERSION
+    };
+    audit5.push(row);
+    if (durable?.saveAudit) durable.saveAudit(row);
+    return row;
+  }
+  function getMember(orgId, actorId) {
+    return [...members.values()].find((m2) => m2.organizationId === orgId && m2.actorId === actorId && !m2.revoked);
+  }
+  function assertPerm(orgId, actorId, perm) {
+    const m2 = getMember(orgId, actorId);
+    if (!m2) throw new PermissionError("not_organization_member", { details: { orgId, actorId } });
+    const allowed = ROLE_PERMS[m2.role] || [];
+    if (!allowed.includes("*") && !allowed.includes(perm)) {
+      throw new PermissionError("role_denied", { details: { role: m2.role, perm } });
+    }
+    return m2;
+  }
+  function assertProjectAccess(projectId, actorId, perm) {
+    const project = projects.get(projectId);
+    if (!project || project.deleted) throw new NotFoundError("project_not_found", { details: { projectId } });
+    assertPerm(project.organizationId, actorId, perm);
+    return project;
+  }
+  function rateLimit2(key, limit = 60, windowMs = 6e4) {
+    const t2 = Date.now();
+    const b = rateBuckets.get(key);
+    if (!b || b.resetAt < t2) {
+      rateBuckets.set(key, { count: 1, resetAt: t2 + windowMs });
+      return true;
+    }
+    b.count += 1;
+    if (b.count > limit) {
+      throw new RateLimitError("rate_limit_exceeded", { details: { key, limit } });
+    }
+    return true;
+  }
+  function checkQuota(kind, current) {
+    const max = quotas.get(kind);
+    if (max != null && current >= max) {
+      throw new ValidationError("quota_exceeded", { details: { kind, max, current } });
+    }
+  }
+  return {
+    PLATFORM_VERSION,
+    controlPlane: controlPlane2,
+    ROLES: [...ROLES],
+    createOrganization({ name: name24, ownerActorId }) {
+      if (!name24 || !ownerActorId) throw new ValidationError("name_and_owner_required");
+      rateLimit2(`org.create:${ownerActorId}`, 20);
+      const organizationId = mint2("org");
+      const org = { organizationId, name: name24, createdAt: now2(), ownerActorId };
+      orgs.set(organizationId, org);
+      if (durable?.saveOrganization) durable.saveOrganization(org);
+      const memberId = mint2("om");
+      const member = {
+        memberId,
+        organizationId,
+        actorId: ownerActorId,
+        role: "organization_owner",
+        createdAt: now2(),
+        revoked: false
+      };
+      members.set(memberId, member);
+      if (durable?.saveMember) durable.saveMember(member);
+      auditEvent("organization.created", organizationId, ownerActorId, { name: name24 });
+      return org;
+    },
+    addMember({ organizationId, actorId, role, byActorId }) {
+      if (!ROLES.has(role)) throw new ValidationError("invalid_role", { details: { role } });
+      assertPerm(organizationId, byActorId, "member:write");
+      if (role === "organization_owner") {
+        throw new PermissionError("cannot_assign_owner_via_add");
+      }
+      const memberId = mint2("om");
+      const row = { memberId, organizationId, actorId, role, createdAt: now2(), revoked: false };
+      members.set(memberId, row);
+      if (durable?.saveMember) durable.saveMember(row);
+      auditEvent("member.role.changed", memberId, byActorId, { actorId, role, organizationId });
+      return row;
+    },
+    listMembers(organizationId, actorId) {
+      assertPerm(organizationId, actorId, "project:read");
+      return [...members.values()].filter((m2) => m2.organizationId === organizationId && !m2.revoked);
+    },
+    createProject({ organizationId, name: name24, actorId }) {
+      assertPerm(organizationId, actorId, "project:write");
+      checkQuota(
+        "project.create",
+        [...projects.values()].filter((p) => p.organizationId === organizationId && !p.deleted).length
+      );
+      rateLimit2(`project.create:${actorId}`, 30);
+      const projectId = mint2("project");
+      const cpOrg = controlPlane2.listOrganizations?.()?.[0] || controlPlane2.createOrganization({ name: `${name24}-bridge`, actor: actorId });
+      const cpProject = controlPlane2.createProject({
+        organizationId: cpOrg.organizationId,
+        name: name24,
+        actor: actorId
+      });
+      const project = {
+        projectId,
+        organizationId,
+        name: name24,
+        controlPlaneProjectId: cpProject.projectId,
+        createdAt: now2(),
+        createdBy: actorId,
+        deleted: false
+      };
+      projects.set(projectId, project);
+      if (durable?.saveProject) durable.saveProject(project);
+      for (const kind of ["development", "preview", "production"]) {
+        const environmentId = mint2("env");
+        const envRow = {
+          environmentId,
+          projectId,
+          kind,
+          createdAt: now2()
+        };
+        environments.set(environmentId, envRow);
+        if (durable?.saveEnvironment) durable.saveEnvironment(envRow);
+      }
+      auditEvent("project.created", projectId, actorId, { organizationId, name: name24 });
+      return {
+        project,
+        environments: this.listEnvironments(projectId, actorId)
+      };
+    },
+    softDeleteProject({ projectId, actorId }) {
+      const project = assertProjectAccess(projectId, actorId, "project:write");
+      assertPerm(project.organizationId, actorId, "member:write");
+      project.deleted = true;
+      project.deletedAt = now2();
+      if (durable?.saveProject) durable.saveProject(project);
+      auditEvent("project.soft_deleted", projectId, actorId, {});
+      return project;
+    },
+    getProject(projectId, actorId) {
+      return assertProjectAccess(projectId, actorId, "project:read");
+    },
+    listProjects(organizationId, actorId) {
+      assertPerm(organizationId, actorId, "project:read");
+      return [...projects.values()].filter((p) => p.organizationId === organizationId && !p.deleted);
+    },
+    listEnvironments(projectId, actorId) {
+      assertProjectAccess(projectId, actorId, "project:read");
+      return [...environments.values()].filter((e2) => e2.projectId === projectId);
+    },
+    getEnvironment(environmentId, actorId) {
+      const env4 = environments.get(environmentId);
+      if (!env4) throw new NotFoundError("environment_not_found");
+      assertProjectAccess(env4.projectId, actorId, "project:read");
+      return env4;
+    },
+    createSecretRef({ projectId, environmentId, name: name24, actorId, plaintextForHashOnly }) {
+      assertProjectAccess(projectId, actorId, "secret:write");
+      const env4 = environments.get(environmentId);
+      if (!env4 || env4.projectId !== projectId) throw new ValidationError("environment_mismatch");
+      const secretId = mint2("secret");
+      const secretRef = hashRef(`${projectId}:${environmentId}:${name24}:${plaintextForHashOnly || randomBytes2(16).toString("hex")}`);
+      const row = {
+        secretId,
+        projectId,
+        environmentId,
+        name: name24,
+        secretRef,
+        status: "active",
+        version: 1,
+        createdAt: now2(),
+        createdBy: actorId
+      };
+      secrets.set(secretId, row);
+      if (durable?.saveSecret) durable.saveSecret(row);
+      auditEvent("secret.ref.created", secretId, actorId, { projectId, environmentId, name: name24, secretRef });
+      return { ...row };
+    },
+    listSecretMetadata({ projectId, actorId }) {
+      assertProjectAccess(projectId, actorId, "secret:read");
+      return [...secrets.values()].filter((s2) => s2.projectId === projectId && s2.status === "active").map(({ secretId, projectId: p, environmentId, name: name24, secretRef, status, version: version4, createdAt }) => ({
+        secretId,
+        projectId: p,
+        environmentId,
+        name: name24,
+        secretRef,
+        status,
+        version: version4,
+        createdAt
+      }));
+    },
+    connectProvider({
+      projectId,
+      environmentId,
+      providerType,
+      actorId,
+      capabilities = [],
+      secretRef
+    }) {
+      assertProjectAccess(projectId, actorId, "provider:write");
+      const env4 = environments.get(environmentId);
+      if (!env4 || env4.projectId !== projectId) throw new ValidationError("environment_mismatch");
+      const providerConnectionId = mint2("providerconn");
+      const row = {
+        providerConnectionId,
+        projectId,
+        environmentId,
+        providerType,
+        capabilities,
+        secretRef: secretRef || null,
+        status: "HEALTHY",
+        lastCheckedAt: now2(),
+        createdAt: now2()
+      };
+      providers.set(providerConnectionId, row);
+      if (durable?.saveProvider) durable.saveProvider(row);
+      auditEvent("provider.connected", providerConnectionId, actorId, {
+        providerType,
+        projectId,
+        environmentId
+      });
+      return row;
+    },
+    providerHealth(providerConnectionId, actorId) {
+      const row = providers.get(providerConnectionId);
+      if (!row) throw new NotFoundError("provider_not_found");
+      assertProjectAccess(row.projectId, actorId, "provider:read");
+      const states = ["HEALTHY", "DEGRADED", "UNAVAILABLE", "MISCONFIGURED"];
+      row.lastCheckedAt = now2();
+      if (!states.includes(row.status)) row.status = "HEALTHY";
+      if (durable?.saveProvider) durable.saveProvider(row);
+      return {
+        providerConnectionId,
+        providerType: row.providerType,
+        status: row.status,
+        lastCheckedAt: row.lastCheckedAt,
+        capabilities: row.capabilities,
+        reason: row.status === "HEALTHY" ? null : "check_required"
+      };
+    },
+    listProviders(projectId, actorId) {
+      assertProjectAccess(projectId, actorId, "provider:read");
+      return [...providers.values()].filter((p) => p.projectId === projectId).map((p) => ({
+        providerConnectionId: p.providerConnectionId,
+        environmentId: p.environmentId,
+        providerType: p.providerType,
+        status: p.status,
+        capabilities: p.capabilities,
+        lastCheckedAt: p.lastCheckedAt
+      }));
+    },
+    startDeployment({ projectId, environmentId, gitSha, actorId, provider = "vercel" }) {
+      assertProjectAccess(projectId, actorId, "deploy:write");
+      const env4 = environments.get(environmentId);
+      if (!env4 || env4.projectId !== projectId) throw new ValidationError("environment_mismatch");
+      if (!gitSha) throw new ValidationError("gitSha_required");
+      rateLimit2(`deploy:${projectId}`, 20);
+      const previous = [...deployments.values()].filter((d) => d.projectId === projectId && d.environmentId === environmentId && d.status === "READY").sort((a, b) => a.completedAt < b.completedAt ? 1 : -1)[0];
+      const deploymentId = mint2("deployment");
+      const row = {
+        deploymentId,
+        projectId,
+        environmentId,
+        gitSha,
+        provider,
+        providerDeploymentId: `prov_${randomBytes2(6).toString("hex")}`,
+        status: "QUEUED",
+        startedAt: now2(),
+        completedAt: null,
+        health: null,
+        rollbackTarget: previous?.deploymentId || null
+      };
+      deployments.set(deploymentId, row);
+      if (durable?.saveDeployment) durable.saveDeployment(row);
+      auditEvent("deployment.started", deploymentId, actorId, { projectId, environmentId, gitSha });
+      return row;
+    },
+    advanceDeployment(deploymentId, status, actorId) {
+      const row = deployments.get(deploymentId);
+      if (!row) throw new NotFoundError("deployment_not_found");
+      assertProjectAccess(row.projectId, actorId, "deploy:write");
+      const allowed = /* @__PURE__ */ new Set([
+        "QUEUED",
+        "BUILDING",
+        "DEPLOYING",
+        "VERIFYING",
+        "READY",
+        "FAILED",
+        "ROLLED_BACK",
+        "CANCELLED"
+      ]);
+      if (!allowed.has(status)) throw new ValidationError("invalid_deployment_status");
+      row.status = status;
+      if (status === "READY" || status === "FAILED" || status === "ROLLED_BACK") {
+        row.completedAt = now2();
+        row.health = status === "READY" ? "ok" : "failed";
+      }
+      if (durable?.saveDeployment) durable.saveDeployment(row);
+      auditEvent("deployment.status", deploymentId, actorId, { status });
+      return row;
+    },
+    rollbackDeployment({ deploymentId, actorId }) {
+      const row = deployments.get(deploymentId);
+      if (!row) throw new NotFoundError("deployment_not_found");
+      assertProjectAccess(row.projectId, actorId, "deploy:write");
+      if (!row.rollbackTarget) throw new ValidationError("no_rollback_target");
+      const target = deployments.get(row.rollbackTarget);
+      if (!target) throw new NotFoundError("rollback_target_missing");
+      row.status = "ROLLED_BACK";
+      row.completedAt = now2();
+      target.status = "READY";
+      target.completedAt = now2();
+      target.health = "ok";
+      if (durable?.saveDeployment) {
+        durable.saveDeployment(row);
+        durable.saveDeployment(target);
+      }
+      auditEvent("deployment.rolled_back", deploymentId, actorId, { to: target.deploymentId });
+      return { rolledBack: row, restored: target };
+    },
+    listDeployments(projectId, actorId) {
+      assertProjectAccess(projectId, actorId, "deploy:read");
+      return [...deployments.values()].filter((d) => d.projectId === projectId);
+    },
+    addDomain({ projectId, environmentId, domain: domain2, actorId }) {
+      assertProjectAccess(projectId, actorId, "project:write");
+      const domainId = mint2("domain");
+      const row = {
+        domainId,
+        projectId,
+        environmentId,
+        domain: domain2,
+        verificationStatus: "pending",
+        tlsStatus: "pending",
+        providerMapping: null,
+        createdAt: now2()
+      };
+      domains.set(domainId, row);
+      if (durable?.saveDomain) durable.saveDomain(row);
+      return row;
+    },
+    recordUsage({ projectId, environmentId, kind, amount = 1, eventId, actorId }) {
+      if (actorId) assertProjectAccess(projectId, actorId, "usage:read");
+      const id = eventId || mint2("usage");
+      if (usage.some((u) => u.eventId === id)) return usage.find((u) => u.eventId === id);
+      const row = {
+        eventId: id,
+        projectId,
+        environmentId: environmentId || null,
+        kind,
+        amount,
+        at: now2()
+      };
+      usage.push(row);
+      if (durable?.saveUsage) durable.saveUsage(row);
+      return row;
+    },
+    listUsage(projectId, actorId, { limit = 50 } = {}) {
+      assertProjectAccess(projectId, actorId, "usage:read");
+      return usage.filter((u) => u.projectId === projectId).slice(-limit);
+    },
+    setQuota(kind, max) {
+      quotas.set(kind, max);
+    },
+    listAudit({ projectId, organizationId, limit = 50 } = {}) {
+      let rows = audit5.slice();
+      if (projectId) rows = rows.filter((a) => a.details?.projectId === projectId || a.resource === projectId);
+      if (organizationId) rows = rows.filter((a) => a.details?.organizationId === organizationId || a.resource === organizationId);
+      return rows.slice(-limit);
+    },
+    /** Cross-tenant probe helper for tests */
+    _unsafePeekProject(projectId) {
+      return projects.get(projectId) || null;
+    },
+    /** Await pending durable writes (production persistence). */
+    async flushDurable() {
+      if (durable?.flush) await durable.flush();
+    },
+    persistenceMode: durable ? "durable" : "memory"
+  };
+}
+async function createDurableUniLiveCloud({ supabase, controlPlane: controlPlane2 } = {}) {
+  if (!supabase) throw new Error("supabase_required");
+  const initialSnapshot = await loadCloudSnapshot(supabase);
+  const durable = createSupabaseCloudDurable(supabase);
+  return createUniLiveCloud({ controlPlane: controlPlane2, initialSnapshot, durable });
+}
+
+// src/lib/uniliveCloud.ts
+var cloudPromise = null;
+function createServiceClient() {
+  const url2 = String(process.env.SUPABASE_URL || process.env.VITE_SUPABASE_URL || "").trim();
+  const key = String(
+    process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_SECRET_KEY || process.env.SUPABASE_SECRET_KET || ""
+  ).trim();
+  if (!url2 || !key) return null;
+  return createClient(url2, key, {
+    auth: { persistSession: false, autoRefreshToken: false }
+  });
+}
+function getUniLiveCloud() {
+  if (!cloudPromise) {
+    cloudPromise = (async () => {
+      const controlPlane2 = createControlPlaneStore();
+      const forceMemory = String(process.env.UNILIVE_CLOUD_PERSISTENCE || "").toLowerCase() === "memory";
+      const wantDurable = !forceMemory && (process.env.NODE_ENV === "production" || String(process.env.UNILIVE_CLOUD_PERSISTENCE || "").toLowerCase() === "supabase");
+      if (wantDurable) {
+        const supabase = createServiceClient();
+        if (supabase) {
+          try {
+            const cloud = await createDurableUniLiveCloud({ supabase, controlPlane: controlPlane2 });
+            logger.info(
+              { persistenceMode: cloud.persistenceMode || "durable" },
+              "UniLive Cloud durable persistence enabled"
+            );
+            return cloud;
+          } catch (err4) {
+            logger.error({ err: err4 }, "UniLive Cloud durable init failed; falling back to memory");
+          }
+        } else {
+          logger.warn("UniLive Cloud durable requested but Supabase service credentials missing");
+        }
+      }
+      return createUniLiveCloud({ controlPlane: controlPlane2 });
+    })();
+  }
+  return cloudPromise;
+}
+
+// src/routes/cloudControlPlane.ts
+var router60 = (0, import_express60.Router)();
+function actorOf(req) {
+  return String(
+    req.header("x-unilive-actor") || req.body?.actorId || req.body?.actor || req.query.actorId || ""
+  ).trim();
+}
+function sendErr(res, err4) {
+  const e2 = err4;
+  const code = e2.code || e2.name || "error";
+  const status = e2.status || (code.includes("Permission") || code === "PermissionError" ? 403 : code.includes("NotFound") || code === "NotFoundError" ? 404 : code.includes("Validation") || code === "ValidationError" ? 400 : 500);
+  res.status(status).json({ error: code, message: e2.message || "request_failed", details: e2.details });
+}
+router60.get("/v1/cloud/health", async (_req, res) => {
+  const cloud = await getUniLiveCloud();
+  res.json({
+    ok: true,
+    persistenceMode: cloud.persistenceMode || "memory",
+    productionRtcApi: "UniLiveRTC",
+    productionMediaProvider: "LiveKit"
+  });
+});
+router60.post("/v1/cloud/organizations", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const name24 = String(req.body?.name || "").trim();
+    const ownerActorId = actorOf(req) || String(req.body?.ownerActorId || "").trim();
+    const org = cloud.createOrganization({ name: name24, ownerActorId });
+    await cloud.flushDurable?.();
+    res.status(201).json({ organization: org });
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+router60.get("/v1/cloud/organizations/:organizationId/projects", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const actorId = actorOf(req);
+    const projects = cloud.listProjects(req.params.organizationId, actorId);
+    res.json({ projects });
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+router60.post("/v1/cloud/organizations/:organizationId/projects", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const actorId = actorOf(req);
+    const name24 = String(req.body?.name || "").trim() || "project";
+    const created = cloud.createProject({
+      organizationId: req.params.organizationId,
+      name: name24,
+      actorId
+    });
+    await cloud.flushDurable?.();
+    res.status(201).json(created);
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+router60.get("/v1/cloud/projects/:projectId", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const actorId = actorOf(req);
+    const project = cloud.getProject(req.params.projectId, actorId);
+    const environments = cloud.listEnvironments(req.params.projectId, actorId);
+    res.json({ project, environments });
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+router60.get("/v1/cloud/projects/:projectId/environments", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const actorId = actorOf(req);
+    res.json({ environments: cloud.listEnvironments(req.params.projectId, actorId) });
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+router60.get("/v1/cloud/projects/:projectId/audit", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const actorId = actorOf(req);
+    cloud.getProject(req.params.projectId, actorId);
+    res.json({ audit: cloud.listAudit({ projectId: req.params.projectId, limit: 100 }) });
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+router60.post("/v1/cloud/projects/:projectId/providers", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const actorId = actorOf(req);
+    const row = cloud.connectProvider({
+      projectId: req.params.projectId,
+      environmentId: String(req.body?.environmentId || ""),
+      providerType: String(req.body?.providerType || "rtc"),
+      actorId,
+      capabilities: Array.isArray(req.body?.capabilities) ? req.body.capabilities : ["livekit"],
+      secretRef: req.body?.secretRef || null
+    });
+    await cloud.flushDurable?.();
+    res.status(201).json({ provider: row });
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+router60.get("/v1/cloud/providers/:providerConnectionId/health", async (req, res) => {
+  try {
+    const cloud = await getUniLiveCloud();
+    const actorId = actorOf(req);
+    res.json({ health: cloud.providerHealth(req.params.providerConnectionId, actorId) });
+  } catch (err4) {
+    sendErr(res, err4);
+  }
+});
+var cloudControlPlane_default = router60;
+
 // src/lib/ratelimit.ts
 var import_ratelimit = __toESM(require_dist12(), 1);
 var limiter = null;
@@ -225975,51 +226944,52 @@ async function upstashRateLimit(req, res, next2) {
 }
 
 // src/routes/index.ts
-var router60 = (0, import_express60.Router)();
-router60.use(discord_default);
-router60.use(upstashRateLimit);
-router60.use(uniliveV1_default);
-router60.use(health_default);
-router60.use(upstash_default);
-router60.use(qstash_default);
-router60.use(linear_default);
-router60.use(livekit_default);
-router60.use(tencentRtc_default);
-router60.use(youtube_default);
-router60.use(feed_default);
-router60.use(media_default);
-router60.use(mongo_default);
-router60.use(aurora_default);
-router60.use("/me", me_default);
-router60.use("/ui-config", uiConfig_default);
-router60.use("/ui-sessions", uiSessions_default);
-router60.use("/app-config", appConfig_default);
-router60.use("/admin/ui-config", adminUiConfig_default);
-router60.use("/admin/runtime-config", adminRuntimeConfig_default);
-router60.use("/admin", admin_default2);
-router60.use("/admin", admin_default);
-router60.use("/wallet", wallet_default);
-router60.use("/push", push_default);
-router60.use("/workspace", workspaceUnlock_default);
-router60.use("/gifts", gifts_default);
-router60.use("/entitlements", entitlements_default);
-router60.use("/i18n", i18n_default);
-router60.use("/payments", payments_default);
-router60.use("/chat", chat_default);
-router60.use("/stream", stream_default);
-router60.use("/live/rooms", liveLifecycle_default);
-router60.use("/live/pk/challenges", livePkChallenge_default);
-router60.use("/live", liveSeats_default);
-router60.use(presence_default);
-router60.use(ux_default);
-router60.use(handoff_default);
-router60.use(automation_default);
-router60.use(platformBrand_default);
-router60.use(ai_default);
-var routes_default = router60;
+var router61 = (0, import_express61.Router)();
+router61.use(discord_default);
+router61.use(upstashRateLimit);
+router61.use(uniliveV1_default);
+router61.use(cloudControlPlane_default);
+router61.use(health_default);
+router61.use(upstash_default);
+router61.use(qstash_default);
+router61.use(linear_default);
+router61.use(livekit_default);
+router61.use(tencentRtc_default);
+router61.use(youtube_default);
+router61.use(feed_default);
+router61.use(media_default);
+router61.use(mongo_default);
+router61.use(aurora_default);
+router61.use("/me", me_default);
+router61.use("/ui-config", uiConfig_default);
+router61.use("/ui-sessions", uiSessions_default);
+router61.use("/app-config", appConfig_default);
+router61.use("/admin/ui-config", adminUiConfig_default);
+router61.use("/admin/runtime-config", adminRuntimeConfig_default);
+router61.use("/admin", admin_default2);
+router61.use("/admin", admin_default);
+router61.use("/wallet", wallet_default);
+router61.use("/push", push_default);
+router61.use("/workspace", workspaceUnlock_default);
+router61.use("/gifts", gifts_default);
+router61.use("/entitlements", entitlements_default);
+router61.use("/i18n", i18n_default);
+router61.use("/payments", payments_default);
+router61.use("/chat", chat_default);
+router61.use("/stream", stream_default);
+router61.use("/live/rooms", liveLifecycle_default);
+router61.use("/live/pk/challenges", livePkChallenge_default);
+router61.use("/live", liveSeats_default);
+router61.use(presence_default);
+router61.use(ux_default);
+router61.use(handoff_default);
+router61.use(automation_default);
+router61.use(platformBrand_default);
+router61.use(ai_default);
+var routes_default = router61;
 
 // src/app.ts
-var app = (0, import_express61.default)();
+var app = (0, import_express62.default)();
 app.use(
   (0, import_pino_http.default)({
     logger,
@@ -226041,7 +227011,7 @@ app.use(
 );
 app.use((0, import_cors.default)());
 app.use(
-  import_express61.default.json({
+  import_express62.default.json({
     verify: (req, _res, buf) => {
       const url2 = String(req.originalUrl || req.url || "");
       if (url2.includes("/livekit/webhook") || url2.includes("/qstash/") || url2.includes("/discord/interactions")) {
@@ -226050,7 +227020,7 @@ app.use(
     }
   })
 );
-app.use(import_express61.default.urlencoded({ extended: true }));
+app.use(import_express62.default.urlencoded({ extended: true }));
 app.use("/api", routes_default);
 app.use("/api", (_req, res) => {
   res.status(404).json({ error: "Not found" });

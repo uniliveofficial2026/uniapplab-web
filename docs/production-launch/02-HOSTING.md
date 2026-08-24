@@ -1,15 +1,18 @@
-# Hosting Decision
+# Hosting Topology
 
-## Vercel (checked once)
-- Account/projects exist but public app returns `x-vercel-error: DEPLOYMENT_DISABLED` / HTTP 402.
-- Not used for this cutover.
+Vercel account deployment remains blocked (`DEPLOYMENT_DISABLED`). Abandoned after one check.
 
-## Selected topology (authorized existing infra)
-1. **Cloudflare Worker edge** `uniapplab-app` — SPA/docs/studio static + reverse proxy
-2. **Render** `uniapplab-web` — Node API (`https://uniapplab-web.onrender.com`)
-3. **Render** `uniapplab-greedy-tap` — Socket.IO game (`https://uniapplab-greedy-tap.onrender.com`)
-4. **Cloudflare Worker** `uniapplab-media` + R2 — media
-5. **Supabase** — DB/Auth/Realtime
-6. **LiveKit** — RTC SFU
+## Production
+- Edge: Cloudflare Worker `uniapplab-app` on `app.uniapplab.com`
+- SPA/Docs/Studio shell: Render Static `uniapplab-spa` (`deploy/spa-public`)
+- API: Render Web `uniapplab-web` (`deploy/render-api`)
+- Game/Socket.IO: Render Web `uniapplab-greedy-tap`
+- Media: Cloudflare Worker `uniapplab-media` + R2 `livestream-assets`
+- DB/Auth/Realtime: Supabase `ldxrdbyznheayhbkvxlq`
+- RTC: LiveKit via UniLiveRTC
 
-Workers subdomain: `uniliveofficial2026.workers.dev`
+## Route map
+- `/api/*` → Render API
+- `/games/greedy-slot/*`, `/socket.io` → Greedy
+- `/media/*` → media Worker
+- `/*` → SPA origin with Worker SPA deep-link fallback

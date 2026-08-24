@@ -6,9 +6,13 @@ export declare const ROLE_PERMS: Record<string, string[]>;
 
 export declare function createUniLiveCloud(options?: {
   controlPlane?: unknown;
+  initialSnapshot?: Record<string, unknown>;
+  durable?: Record<string, unknown>;
 }): {
   PLATFORM_VERSION: typeof ReleaseVersion | string;
   ROLES: string[];
+  persistenceMode: 'durable' | 'memory';
+  flushDurable(): Promise<void>;
   createOrganization(input: { name: string; ownerActorId: string }): { organizationId: string; name: string };
   addMember(input: {
     organizationId: string;

@@ -191,6 +191,9 @@ importers:
       '@supabase/supabase-js':
         specifier: ^2.106.2
         version: 2.107.0
+      '@unilives/cloud':
+        specifier: workspace:*
+        version: link:../../lib/unilives-cloud
       '@unilives/platform-core':
         specifier: workspace:*
         version: link:../../lib/unilives-platform-core

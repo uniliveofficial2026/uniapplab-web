@@ -22,6 +22,7 @@
     "@vercel/functions": "^3.7.5",
     "@unilives/platform-core": "workspace:*",
     "@unilives/rtc-server": "workspace:*",
+    "@unilives/cloud": "workspace:*",
     "@workspace/api-zod": "workspace:*",
     "@workspace/admin-access": "workspace:*",
     "@workspace/db": "workspace:*",

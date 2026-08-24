@@ -1,15 +1,40 @@
 {
-  "currentSlice": "hosting-inventory",
+  "currentSlice": "dns-cutover-verified",
   "baseSha": "47e15f9bd56d5893be08415971a269b895073037",
   "branch": "release/app-uniapplab-production",
   "worktree": "/Volumes/Wei2TB/Universal-Fixer-Production-Launch",
   "productionUrl": "https://app.uniapplab.com",
   "beforeState": "402_DEPLOYMENT_DISABLED_via_weglot_vercel",
-  "vercel": "BLOCKED_DEPLOYMENT_DISABLED",
-  "hostingPath": "cloudflare-edge + render-api + render-greedy",
-  "completed": ["worktree", "dns-before", "dns-rollback-capture", "cloudflare-inventory", "vercel-check-once", "render-inventory"],
+  "afterState": "LIVE_via_cloudflare_worker_route_plus_render_origins",
+  "vercel": "BLOCKED_DEPLOYMENT_DISABLED_abandoned",
+  "hostingPath": "cloudflare-edge-worker + render-api + render-spa + render-greedy + supabase + livekit + r2-media",
+  "dns": {
+    "app": "AAAA 100:: proxied + workers route app.uniapplab.com/* -> uniapplab-app",
+    "rollback": "CNAME 5fb89dd6.translate-cf.weglot.io proxied=false id was fa09e163..."
+  },
+  "completed": [
+    "worktree",
+    "dns-before",
+    "dns-rollback-capture",
+    "cloudflare-inventory",
+    "vercel-check-once",
+    "render-api-live",
+    "render-spa-live",
+    "render-greedy-live",
+    "edge-worker",
+    "dns-cutover",
+    "tls",
+    "spa-deep-links",
+    "socketio-wss",
+    "cloud-tables-migration",
+    "cloud-durable-code"
+  ],
   "failing": [],
-  "externalOnly": ["formal-license-npm", "fly-auth-login", "apns"],
-  "nextAction": "build-and-deploy-origins",
-  "updatedAt": "2026-08-24T22:35:33Z"
+  "externalOnly": [
+    "formal-license-npm",
+    "apns",
+    "human-pr-review-if-required"
+  ],
+  "nextAction": "redeploy-api-with-durable-cloud-then-e2e-seal",
+  "updatedAt": "2026-08-24T23:15:24Z"
 }

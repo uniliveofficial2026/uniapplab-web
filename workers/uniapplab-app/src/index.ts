@@ -1,10 +1,12 @@
 type Env = {
-  ASSETS: R2Bucket;
+  ASSETS?: R2Bucket;
   API_ORIGIN: string;
   GAME_ORIGIN: string;
   MEDIA_ORIGIN: string;
-  ASSET_PREFIX: string;
+  SPA_ORIGIN: string;
+  ASSET_PREFIX?: string;
   PLATFORM_VERSION: string;
+  GIT_SHA?: string;
 };
 
 const SECURITY_HEADERS: Record<string, string> = {
@@ -19,12 +21,9 @@ function withHeaders(res: Response, extra: Record<string, string> = {}): Respons
   return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
 }
 
-async function proxy(request: Request, origin: string, stripPrefix?: string): Promise<Response> {
+async function proxy(request: Request, origin: string, rewritePath?: string): Promise<Response> {
   const url = new URL(request.url);
-  let path = url.pathname + url.search;
-  if (stripPrefix && path.startsWith(stripPrefix)) {
-    // keep path as-is for game which expects /games/greedy-slot
-  }
+  const path = rewritePath ?? url.pathname + url.search;
   const target = new URL(path, origin);
   const init: RequestInit = {
     method: request.method,
@@ -33,45 +32,43 @@ async function proxy(request: Request, origin: string, stripPrefix?: string): Pr
   };
   if (request.method !== "GET" && request.method !== "HEAD") {
     init.body = request.body;
-    // @ts-expect-error duplex for streaming
+    // @ts-expect-error duplex for streaming bodies
     init.duplex = "half";
   }
   const upstream = await fetch(target.toString(), init);
-  // WebSocket upgrade
   if (upstream.status === 101) return upstream;
   const headers = new Headers(upstream.headers);
-  headers.delete("content-encoding");
-  headers.delete("content-length");
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
-  return new Response(upstream.body, { status: upstream.status, statusText: upstream.statusText, headers });
+  return new Response(upstream.body, {
+    status: upstream.status,
+    statusText: upstream.statusText,
+    headers,
+  });
 }
 
-function contentType(path: string): string {
-  const p = path.toLowerCase();
-  if (p.endsWith(".html")) return "text/html; charset=utf-8";
-  if (p.endsWith(".js")) return "application/javascript; charset=utf-8";
-  if (p.endsWith(".css")) return "text/css; charset=utf-8";
-  if (p.endsWith(".json")) return "application/json; charset=utf-8";
-  if (p.endsWith(".svg")) return "image/svg+xml";
-  if (p.endsWith(".png")) return "image/png";
-  if (p.endsWith(".jpg") || p.endsWith(".jpeg")) return "image/jpeg";
-  if (p.endsWith(".webp")) return "image/webp";
-  if (p.endsWith(".woff2")) return "font/woff2";
-  if (p.endsWith(".mp4")) return "video/mp4";
-  if (p.endsWith(".webm")) return "video/webm";
-  if (p.endsWith(".map")) return "application/json";
-  return "application/octet-stream";
+function looksLikeStaticAsset(pathname: string): boolean {
+  const last = pathname.split("/").pop() || "";
+  return last.includes(".") && !pathname.endsWith(".html");
 }
 
-async function serveAsset(env: Env, key: string, cacheControl: string): Promise<Response | null> {
-  const obj = await env.ASSETS.get(key);
-  if (!obj) return null;
-  const headers = new Headers();
-  headers.set("Content-Type", contentType(key));
-  headers.set("Cache-Control", cacheControl);
-  headers.set("ETag", obj.httpEtag);
+async function spaProxy(request: Request, env: Env): Promise<Response> {
+  const url = new URL(request.url);
+  const upstream = await proxy(request, env.SPA_ORIGIN);
+  if (upstream.status !== 404) return upstream;
+  // Render static does not honor Netlify-style _redirects; SPA deep links need index.html.
+  if (request.method !== "GET" && request.method !== "HEAD") return upstream;
+  if (looksLikeStaticAsset(url.pathname)) return upstream;
+  const indexUrl = new URL("/index.html", env.SPA_ORIGIN);
+  const indexRes = await fetch(indexUrl.toString(), {
+    method: "GET",
+    headers: { Accept: "text/html" },
+    redirect: "manual",
+  });
+  if (!indexRes.ok) return upstream;
+  const headers = new Headers(indexRes.headers);
+  headers.set("Cache-Control", "public, max-age=0, must-revalidate");
   for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
-  return new Response(obj.body, { status: 200, headers });
+  return new Response(indexRes.body, { status: 200, headers });
 }
 
 export default {
@@ -84,15 +81,25 @@ export default {
         Response.json({
           ok: true,
           service: "uniapplab-app",
-          platformVersion: env.PLATFORM_VERSION,
+          platformVersion: env.PLATFORM_VERSION || "0.1.0",
           productionRtcApi: "UniLiveRTC",
           productionMediaProvider: "LiveKit",
+          gitSha: env.GIT_SHA || null,
         }),
       );
     }
 
     if (path.startsWith("/api/") || path === "/api") {
       return proxy(request, env.API_ORIGIN);
+    }
+
+    // Game health lives at origin /api/health; expose stable same-origin paths.
+    if (
+      path === "/games/greedy-slot/healthz" ||
+      path === "/games/greedy-slot/api/health" ||
+      path === "/games/greedy-slot/health"
+    ) {
+      return proxy(request, env.GAME_ORIGIN, "/api/health");
     }
 
     if (path.startsWith("/games/greedy-slot") || path.startsWith("/socket.io")) {
@@ -103,38 +110,8 @@ export default {
       return proxy(request, env.MEDIA_ORIGIN);
     }
 
-    // Docs portal
-    if (path === "/docs" || path.startsWith("/docs/")) {
-      const rel = path === "/docs" || path === "/docs/" ? "index.html" : path.slice("/docs/".length);
-      const key = `${env.ASSET_PREFIX}/docs/${rel || "index.html"}`;
-      const hit = await serveAsset(env, key, rel.includes(".") && !rel.endsWith(".html") ? "public, max-age=31536000, immutable" : "public, max-age=60");
-      if (hit) return hit;
-      const fallback = await serveAsset(env, `${env.ASSET_PREFIX}/docs/index.html`, "public, max-age=60");
-      if (fallback) return fallback;
-      return withHeaders(new Response("Docs not deployed", { status: 503 }));
-    }
-
-    // Studio static MVP shell (docs-like placeholder until full studio host)
-    if (path === "/studio" || path.startsWith("/studio/")) {
-      const rel = path === "/studio" || path === "/studio/" ? "index.html" : path.slice("/studio/".length);
-      const key = `${env.ASSET_PREFIX}/studio/${rel || "index.html"}`;
-      const hit = await serveAsset(env, key, "public, max-age=60");
-      if (hit) return hit;
-      const fallback = await serveAsset(env, `${env.ASSET_PREFIX}/studio/index.html`, "public, max-age=60");
-      if (fallback) return fallback;
-      return withHeaders(new Response("Studio not deployed", { status: 503 }));
-    }
-
-    // SPA assets
-    let rel = path === "/" ? "index.html" : path.replace(/^\//, "");
-    if (rel.endsWith("/")) rel += "index.html";
-    const assetKey = `${env.ASSET_PREFIX}/spa/${rel}`;
-    const hashed = rel.includes("/assets/") || /\.[a-f0-9]{8,}\./i.test(rel);
-    let res = await serveAsset(env, assetKey, hashed ? "public, max-age=31536000, immutable" : "public, max-age=60, must-revalidate");
-    if (!res && !rel.includes(".")) {
-      res = await serveAsset(env, `${env.ASSET_PREFIX}/spa/index.html`, "public, max-age=60, must-revalidate");
-    }
-    if (res) return res;
-    return withHeaders(new Response("App assets missing", { status: 503 }));
+    // Studio + docs + SPA all served from the production static origin,
+    // with Worker-side SPA fallback for deep links.
+    return spaProxy(request, env);
   },
 };
