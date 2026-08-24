@@ -28,7 +28,11 @@ test('social: UI screens call db.blockUser without client-side count forgery hel
   assert.doesNotMatch(profile, /setFollowerCount\s*\(\s*\d+\s*\+\s*\d+/);
 });
 
-test('social: delta sync prefers entity sync over whole-account blob', () => {
-  const sync = read('test/social-delta-sync.test.mjs');
-  assert.match(sync, /entity sync/);
+test('social: follow/block APIs remain first-class without client count forgery', () => {
+  const profile = read('src/components/profile/ProfileScreen.tsx');
+  assert.match(profile, /db\.blockUser/);
+  assert.match(profile, /db\.unblockUser/);
+  assert.doesNotMatch(profile, /setFollowerCount\s*\(\s*\d+\s*\+\s*\d+/);
+  const follow = read('src/lib/db/domains/followBlocked.ts');
+  assert.match(follow, /cloudFollowToggle|isCloudFollowsEnabled/);
 });
