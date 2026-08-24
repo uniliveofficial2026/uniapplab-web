@@ -226111,16 +226111,28 @@ async function loadCloudSnapshot(supabase) {
 }
 function createSupabaseCloudDurable(supabase) {
   const pending = [];
+  let chain = Promise.resolve();
   function track(p) {
-    const wrapped = Promise.resolve(p).catch((err4) => {
+    chain = chain.then(() => p).then((result) => {
+      if (result && typeof result === "object" && "error" in result && result.error) {
+        throw new Error(result.error.message || "durable_write_failed");
+      }
+      return result;
+    }).catch((err4) => {
       console.error("[unilive-cloud-durable]", err4?.message || err4);
+      throw err4;
     });
-    pending.push(wrapped);
-    return wrapped;
+    pending.push(chain);
+    return chain;
   }
   return {
     async flush() {
-      await Promise.all(pending.splice(0, pending.length));
+      const batch = pending.splice(0, pending.length);
+      const results = await Promise.allSettled(batch);
+      const failed = results.filter((r2) => r2.status === "rejected");
+      if (failed.length) {
+        throw new Error(`durable_flush_failed:${failed[0].reason?.message || failed[0].reason}`);
+      }
     },
     saveOrganization(org) {
       return track(
