@@ -1,6 +1,6 @@
 {
   "currentStage": "A",
-  "currentSlice": "A-beauty-chrome",
+  "currentSlice": "A-pk-calls-workspace-complete",
   "completed": [
     "gift-combo-fifo-authority-replay",
     "likes-loss-tolerant-thermal",
@@ -26,7 +26,7 @@
     "create-room-sessionstorage-hint",
     "smoke-live-pk-chrome-pass",
     "smoke-live-pk-setup-sheet-required",
-    "games-livekit-cleanup-contracts",
+    "game-livekit-cleanup-contracts",
     "smoke-live-multiguest-chrome-pass",
     "smoke-live-shop-chrome-pass",
     "smoke-marketplace-mount-pass",
@@ -41,43 +41,66 @@
     "webar-warm-skip-hostname-redirect",
     "smoke-live-base-localhost",
     "smoke-live-pk-invite-path-pass",
-    "smoke-live-beauty-chrome-pass"
+    "smoke-live-beauty-chrome-pass",
+    "smoke-live-pk-lifecycle-round1-pass",
+    "pk-remote-end-clears-challenger-overlay",
+    "workspace-admin-access-code-e2e-pass",
+    "workspace-unlock-api-route",
+    "call-lifecycle-state-matrix-pass",
+    "smoke-multi-device-isolation-pass",
+    "smoke-stage-a-longrun-bounded-pass",
+    "cloudflare-bindings-workers-r2-inventory",
+    "smoke-live-pk-lifecycle-round2-leak-free-pass",
+    "smoke-live-pk-reconnect-pass",
+    "smoke-calls-dual-party-pass",
+    "workspace-staff-code-local-env-remote-unlock-pass",
+    "demo-call-bus-force-demo"
   ],
   "failing": [],
   "blocked": [
     {
       "id": "native-callkit-pushkit-device-qa",
-      "detail": "CallKit linked + Android FGS present; FEATURE_ENABLED=false until VoIP certs + physical device QA"
+      "detail": "CallKit linked + Android FGS present; FEATURE_ENABLED=false until VoIP certs + physical device QA \u2014 not flipped for PASS"
     },
     {
       "id": "push-remote-apns-fcm-send",
-      "detail": "push_devices registry exists; remote send needs provider credentials"
+      "detail": "push_devices registry + auth-bound PERSON contracts PASS; remote APNS/FCM send needs provider credentials"
     },
     {
-      "id": "cloudflare-auth",
-      "detail": "Wrangler/MCP EXTERNAL_AUTH_BLOCKED"
+      "id": "pk-browser-gift-score-delta",
+      "detail": "PK gift settlement authority PASS in api-server unit tests; browser UI score delta still 0 in demo wallet path"
     },
     {
-      "id": "deep-e2e-pk-invite-accept-admin-multidevice",
-      "detail": "PK invite dual-host smoke soft-SKIPs when go-live/navigation unstable or no discoverable opponents; admin access-code + multi-device hardware remain"
+      "id": "push-remote-apns-fcm-send",
+      "detail": "No APNS/FCM provider keys in env files; registry contracts PASS"
+    },
+    {
+      "id": "native-callkit-pushkit-device-qa",
+      "detail": "Physical iPhone/iPad paired; FEATURE_ENABLED=false until VoIP certs operational"
     }
   ],
-  "nextAction": "PK invite accept/connect E2E still open; Stage A NOT_PASSED; Stage B locked",
+  "nextAction": "Push/native/provider deep gates; gift browser delta; full matrix builds; Stage B locked",
   "uiUxChanged": false,
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "cc44259",
+  "lastValidatedCommit": "9f17b12",
   "evidence": {
     "typecheck_instacollab": "PASS",
     "smoke_live_gift_panel": "PASS",
     "smoke_live_pk_chrome": "PASS",
     "smoke_live_multiguest_chrome": "PASS",
     "smoke_live_shop_chrome": "PASS",
-    "smoke_live_pk_invite_stage": "PASS_invite_path_accept_open",
+    "smoke_live_pk_invite_stage": "PASS",
+    "smoke_live_pk_lifecycle": "PASS_round1_round2_reconnect",
+    "smoke_workspace_admin": "PASS_remote_local_env",
+    "smoke_multi_device_isolation": "PASS",
+    "smoke_stage_a_longrun": "PASS",
     "smoke_marketplace_mount": "PASS",
     "smoke_messages_mount": "PASS",
     "smoke_calls_ui": "PASS",
+    "call_lifecycle_state": "4/4",
+    "stage_a_security_push_native": "PASS",
     "smoke_posts_feed": "PASS",
     "smoke_reels": "PASS",
     "visual_lock": "22/22",
@@ -89,7 +112,23 @@
     "marketplace_ledger": "4/4",
     "media_games": "6/6",
     "webar_warm_no_loopback_redirect": "PASS",
-    "smoke_live_beauty_chrome": "PASS"
+    "smoke_live_beauty_chrome": "PASS",
+    "cloudflare_workers_r2": "INVENTORY_OK",
+    "smoke_calls_dual_party": "PASS",
+    "pk_gift_score_units": "PASS_api_server"
   },
-  "updatedAt": "2026-08-24T02:15:30Z"
+  "cloudflare": {
+    "status": "ACCESSIBLE",
+    "workers": [
+      "empty-recipe-8fd7",
+      "uniapplab-media",
+      "uniapplab-web"
+    ],
+    "r2": [
+      "livestream-assets",
+      "uniapplab-media"
+    ],
+    "note": "Bindings/builds MCP listing succeeded; EXTERNAL_AUTH_BLOCKED lifted for inventory path"
+  },
+  "updatedAt": "2026-08-24T03:56:00Z"
 }

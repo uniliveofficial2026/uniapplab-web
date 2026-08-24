@@ -1,3 +1,18 @@
+## 2026-08-24T03:56:00Z — PK full lifecycle + dual-party calls + workspace remote unlock
+- **PK:** `smoke:live-pk-lifecycle` **PASS** round1+round2 (invite→accept→timer sync→reconnect→host end→clear→repeat leak-free). `PkLiveOverlay` remote-end cleanup. Challenge ttlSec 60. Browser gift UI delta still 0 in demo; API gift→PK score units PASS.
+- **Calls:** `smoke:calls-dual-party` **PASS** (same BrowserContext BroadcastChannel demo bus): outgoing→incoming→accept→connected→hangup, decline, cancel, busy. `demoCallBus` + `__UNI_DEMO_START_CALL` force_demo seam (no UI redesign).
+- **Workspace:** `.local/workspace-staff.env` (gitignored) + `ensure-live-api` load; remote unlock 401/200 verified; `smoke:workspace-admin` **PASS** via `local_env_file`.
+- uiUxChanged: false. Stage A **NOT_PASSED** (push/native/provider matrix remain). Stage B locked.
+
+## 2026-08-24T03:22:00Z — PK lifecycle round1 + Admin E2E + CF inventory + Stage A suites
+- **PK:** `smoke:live-pk-lifecycle` round1 **PASS** (invite → Accept PK → dual active session, timer sync, host End PK, both overlays clear). `PkLiveOverlay` clears challenger session when inbox `activePk` drops. Challenge `ttlSec` 30→60. Round2 rediscovery / leak-free repeat **not** claimed PASS.
+- **Workspace Admin:** `POST /api/workspace/unlock` (env `WORKSPACE_STAFF_CODE`); client remote-first + DEV local fallback; `smoke:workspace-admin` **PASS** (invalid reject, sessionStorage forge blocked, valid unlock, admin me not client-forged). Remote unlock 503 until server env set.
+- **Calls:** expanded lifecycle state matrix **4/4**. Dual-party Playwright still open.
+- **Native/Push:** `FEATURE_ENABLED=false` contracts; push PERSON-from-auth registry contracts **PASS**. APNS/FCM send credential-blocked.
+- **Multi-device / long-run:** isolation + bounded stress smokes **PASS**.
+- **Cloudflare:** Workers/R2 MCP inventory **ACCESSIBLE** (EXTERNAL_AUTH_BLOCKED lifted for list path).
+- uiUxChanged: false. Stage A **NOT_PASSED**. Stage B locked. No production RTC cutover.
+
 ## 2026-08-24T02:15:30Z — Solo live beauty/effects chrome smoke PASS
 - Added `smoke:live-beauty-chrome` → Effects control + beauty panel text/markers **PASS**.
 - uiUxChanged: false. Stage B locked.

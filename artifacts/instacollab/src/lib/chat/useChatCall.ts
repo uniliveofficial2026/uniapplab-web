@@ -29,10 +29,17 @@ import { WEBAR_CAMERA_FRAME_RATE, WEBAR_CAMERA_IDEAL } from '../webar/webarCamer
 import { isNetworkOnline } from '../networkStatus';
 import { isCloudAuthUserId } from '../auth/cloudProfile';
 import { fetchChatLiveKitToken } from '../platformApi';
-import { queueCloudCallInvite, resolveChatThreadId } from './cloudChatSync';
+import { isGroupChatId, queueCloudCallInvite, resolveChatThreadId } from './cloudChatSync';
+import {
+  isDemoCallBusEnabled,
+  newDemoCallSessionId,
+  publishDemoCallSignal,
+  subscribeDemoCallSignal,
+} from './demoCallBus';
 import { exitNativeVideoPip, tryEnterNativeVideoPip } from './chatCallPip';
 import {
   INCOMING_RING_TIMEOUT_MS,
+  OUTGOING_RING_TIMEOUT_MS,
   SLOW_CONNECT_MS,
   normalizeCallKind,
   type CallPresentation,
@@ -61,10 +68,14 @@ export type {
 
 export type { UseChatCallValue } from './chatCallTypes';
 import type { UseChatCallValue } from './chatCallTypes';
+import { mapChatCallToLifecycle, type CallLifecycleState } from './callLifecycleState';
 
 export function useChatCall(currentUserId: string | null | undefined): UseChatCallValue {
   const [phase, setPhase] = useState<ChatCallPhase>('idle');
   const [connectPhase, setConnectPhase] = useState<ChatConnectPhase>('idle');
+  const [endReason, setEndReason] = useState<
+    'declined' | 'cancelled' | 'busy' | 'timeout' | 'missed' | 'failed' | 'hangup' | null
+  >(null);
   const [presentation, setPresentation] = useState<CallPresentation>('fullscreen');
   const [callKind, setCallKind] = useState<ChatCallKind>('audio');
   const [activeChatId, setActiveChatId] = useState<string | null>(null);
@@ -77,6 +88,8 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
   const [remoteParticipants, setRemoteParticipants] = useState<RemoteCallParticipant[]>([]);
   const [isMicMuted, setIsMicMuted] = useState(false);
   const [isCameraEnabled, setIsCameraEnabled] = useState(true);
+  const [isSpeakerOn, setIsSpeakerOn] = useState(false);
+  const [connectedAt, setConnectedAt] = useState(0);
   const [cameraFacingMode, setCameraFacingMode] = useState<CameraFacingMode>('user');
   const [connectStartedAt, setConnectStartedAt] = useState(0);
   const [connectTick, setConnectTick] = useState(0);
@@ -93,6 +106,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
   const localVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteVideoRef = useRef<HTMLVideoElement | null>(null);
   const remoteAudioRef = useRef<HTMLAudioElement | null>(null);
+  const demoCallSessionIdRef = useRef<string | null>(null);
 
   phaseRef.current = phase;
   connectPhaseRef.current = connectPhase;
@@ -198,6 +212,8 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     setError(null);
     setIsMicMuted(false);
     setIsCameraEnabled(true);
+    setIsSpeakerOn(false);
+    setConnectedAt(0);
     threadIdRef.current = null;
     exitNativeVideoPip();
   }, []);
@@ -396,6 +412,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       });
 
       setError(null);
+      setConnectedAt((value) => value || Date.now());
       setPhase('connected');
       setConnectPhase('connected');
       return true;
@@ -404,12 +421,27 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
   );
 
   const dismissCall = useCallback(
-    async (options?: { notifyRemote?: boolean }) => {
+    async (options?: {
+      notifyRemote?: boolean;
+      endReason?: 'declined' | 'cancelled' | 'busy' | 'timeout' | 'missed' | 'failed' | 'hangup' | null;
+    }) => {
       const notify = options?.notifyRemote !== false;
       const kind = normalizeCallKind(callKindRef.current);
       const chatId = activeChatIdRef.current;
       const inc = incomingRef.current;
+      if (options?.endReason) setEndReason(options.endReason);
       if (notify) {
+        const targetChat = chatId || inc?.chatId;
+        if (targetChat && isDemoCallBusEnabled()) {
+          publishDemoCallSignal({
+            type: options?.endReason === 'declined' ? 'decline' : options?.endReason === 'busy' ? 'busy' : 'end',
+            chatId: targetChat,
+            fromUserId: currentUserId || 'demo',
+            callKind: kind,
+            callSessionId: demoCallSessionIdRef.current || newDemoCallSessionId(),
+            ts: Date.now(),
+          });
+        }
         if (chatId) {
           queueCloudCallInvite(chatId, kind, 'end');
         } else if (inc) {
@@ -419,12 +451,13 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       resetCallState();
       await cleanupRoom();
     },
-    [cleanupRoom, resetCallState],
+    [cleanupRoom, currentUserId, resetCallState],
   );
 
   const startCall = useCallback(
     (chatId: string, kind: ChatCallKind) => {
       const callType = normalizeCallKind(kind);
+      const groupCall = isGroupChatId(chatId);
       if (callType === 'video' && isTencentWebARConfigured()) {
         warmWebARIfNeeded();
       }
@@ -432,8 +465,12 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       setCallKind(callType);
       setActiveChatId(chatId);
       setPhase('outgoing');
-      setConnectPhase('connecting');
-      setConnectStartedAt(Date.now());
+      setEndReason(null);
+      // 1v1 calls ring first and only join LiveKit after the callee accepts.
+      // Group calls remain joinable immediately because the room is shared.
+      setConnectPhase(groupCall ? 'connecting' : 'idle');
+      setConnectStartedAt(groupCall ? Date.now() : 0);
+      setConnectedAt(0);
       setIncoming(null);
       setError(null);
 
@@ -446,7 +483,8 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       }
 
       const meId = currentUserId;
-      if (!meId || !isCloudAuthUserId(meId)) {
+      const demoBus = isDemoCallBusEnabled();
+      if (!meId || (!isCloudAuthUserId(meId) && !demoBus)) {
         setError('Sign in with a cloud account to call other people.');
         setConnectPhase('failed');
         return;
@@ -454,13 +492,37 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
 
       void (async () => {
         try {
+          if (demoBus && !isCloudAuthUserId(meId)) {
+            const sessionId = newDemoCallSessionId();
+            demoCallSessionIdRef.current = sessionId;
+            const threadId = `demo-thread-${chatId}`;
+            threadIdRef.current = threadId;
+            publishDemoCallSignal({
+              type: 'invite',
+              chatId,
+              fromUserId: meId,
+              callKind: callType,
+              callSessionId: sessionId,
+              threadId,
+              ts: Date.now(),
+            });
+            if (!groupCall) return;
+          }
+
           const threadId = await resolveChatThreadId(chatId);
           if (!threadId) {
+            if (demoBus) {
+              // Demo path already published invite; keep ringing without cloud thread.
+              return;
+            }
             setError('Could not open chat thread for this call.');
             setConnectPhase('failed');
             return;
           }
+          threadIdRef.current = threadId;
           queueCloudCallInvite(chatId, callType, 'invite');
+          if (!groupCall) return;
+
           const ok = await connectToThread(threadId, callType);
           if (!ok && connectPhaseRef.current !== 'connected') {
             setPhase('outgoing');
@@ -501,24 +563,45 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
         setConnectPhase('failed');
         return;
       }
+      threadIdRef.current = threadId;
+      // Explicitly acknowledge the call so the caller joins the same LiveKit thread.
+      if (isDemoCallBusEnabled()) {
+        publishDemoCallSignal({
+          type: 'accept',
+          chatId: inc.chatId,
+          fromUserId: currentUserId || 'demo',
+          callKind: callType,
+          callSessionId: demoCallSessionIdRef.current || newDemoCallSessionId(),
+          threadId,
+          ts: Date.now(),
+        });
+      }
+      queueCloudCallInvite(inc.chatId, callType, 'accept');
+      // Demo bus: both sides connect locally with preview; LiveKit may require cloud auth.
+      if (isDemoCallBusEnabled() && !isCloudAuthUserId(currentUserId || '')) {
+        setConnectedAt((value) => value || Date.now());
+        setPhase('connected');
+        setConnectPhase('connected');
+        return;
+      }
       const ok = await connectToThread(threadId, callType);
       if (!ok) setPhase('outgoing');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not join call');
       setConnectPhase('failed');
     }
-  }, [connectToThread, startLocalPreview]);
+  }, [connectToThread, currentUserId, startLocalPreview]);
 
   const declineCall = useCallback(async () => {
     const inc = incomingRef.current;
     if (inc) {
       queueCloudCallInvite(inc.chatId, normalizeCallKind(inc.callKind), 'decline');
     }
-    await dismissCall({ notifyRemote: false });
+    await dismissCall({ notifyRemote: false, endReason: 'declined' });
   }, [dismissCall]);
 
   const endCall = useCallback(async () => {
-    await dismissCall({ notifyRemote: true });
+    await dismissCall({ notifyRemote: true, endReason: 'hangup' });
   }, [dismissCall]);
 
   const retryConnect = useCallback(async () => {
@@ -637,6 +720,29 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     }
   }, [bindLocalVideoStream, cameraFacingMode]);
 
+  const toggleSpeaker = useCallback(async () => {
+    const nextSpeaker = !isSpeakerOn;
+    setIsSpeakerOn(nextSpeaker);
+
+    // Native shells can use this event to switch between receiver and speakerphone.
+    window.dispatchEvent(
+      new CustomEvent('unilive-call-audio-route', {
+        detail: { speaker: nextSpeaker, chatId: activeChatIdRef.current },
+      }),
+    );
+
+    // On browsers that support output-device routing, use the best available sink.
+    const audio = remoteAudioRef.current as (HTMLAudioElement & { setSinkId?: (deviceId: string) => Promise<void> }) | null;
+    if (!audio?.setSinkId || !navigator.mediaDevices?.enumerateDevices) return;
+    try {
+      const outputs = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === 'audiooutput');
+      const speakerOutput = outputs.find((device) => /speaker|speakerphone/i.test(device.label));
+      await audio.setSinkId(nextSpeaker && speakerOutput ? speakerOutput.deviceId : 'default');
+    } catch {
+      // iOS/Safari does not expose setSinkId; native bridge remains the source of truth there.
+    }
+  }, [isSpeakerOn]);
+
   useEffect(() => {
     if (connectPhase !== 'connecting' || !connectStartedAt) return;
     const id = window.setInterval(() => setConnectTick((t) => t + 1), 500);
@@ -656,8 +762,22 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
       if (!detail?.chatId || !detail.fromUserId) return;
       if (detail.fromUserId === currentUserId) return;
       const currentPhase = phaseRef.current;
-      if (currentPhase === 'connected' || currentPhase === 'outgoing') return;
       const callType = normalizeCallKind(detail.callKind);
+      if (currentPhase !== 'idle' && currentPhase !== 'ended') {
+        // Do not replace an active/ringing call with a second invitation.
+        if (isDemoCallBusEnabled()) {
+          publishDemoCallSignal({
+            type: 'busy',
+            chatId: detail.chatId,
+            fromUserId: currentUserId || 'demo',
+            callKind: callType,
+            callSessionId: demoCallSessionIdRef.current || newDemoCallSessionId(),
+            ts: Date.now(),
+          });
+        }
+        queueCloudCallInvite(detail.chatId, callType, 'decline');
+        return;
+      }
       setIncoming({
         chatId: detail.chatId,
         fromUserId: detail.fromUserId,
@@ -677,6 +797,39 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
   }, [currentUserId]);
 
   useEffect(() => {
+    if (!isDemoCallBusEnabled()) return;
+    return subscribeDemoCallSignal((msg) => {
+      if (!msg.fromUserId || msg.fromUserId === currentUserId) return;
+      if (msg.type === 'invite') {
+        window.dispatchEvent(
+          new CustomEvent('chat-call-invite', {
+            detail: {
+              chatId: msg.chatId,
+              fromUserId: msg.fromUserId,
+              callKind: msg.callKind,
+              callRoomName: `demo-room-${msg.callSessionId}`,
+              threadId: msg.threadId || `demo-thread-${msg.chatId}`,
+              isGroup: false,
+            },
+          }),
+        );
+        demoCallSessionIdRef.current = msg.callSessionId;
+        return;
+      }
+      window.dispatchEvent(
+        new CustomEvent('chat-call-signal', {
+          detail: {
+            chatId: msg.chatId,
+            fromUserId: msg.fromUserId,
+            action: msg.type === 'busy' ? 'decline' : msg.type,
+            callKind: msg.callKind,
+          },
+        }),
+      );
+    });
+  }, [currentUserId]);
+
+  useEffect(() => {
     const onSignal = (event: Event) => {
       const detail = (event as CustomEvent<ChatCallSignal>).detail;
       if (!detail?.chatId) return;
@@ -688,6 +841,35 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
         inc?.chatId === detail.chatId ||
         (currentPhase === 'incoming' && inc?.chatId === detail.chatId);
       if (!matches) return;
+
+      if (detail.action === 'accept' && currentPhase === 'outgoing' && connectPhaseRef.current !== 'connected') {
+        const callType = normalizeCallKind(detail.callKind || callKindRef.current);
+        setConnectPhase('connecting');
+        setConnectStartedAt(Date.now());
+        setError(null);
+        void (async () => {
+          try {
+            if (isDemoCallBusEnabled() && !isCloudAuthUserId(currentUserId || '')) {
+              setConnectedAt((value) => value || Date.now());
+              setPhase('connected');
+              setConnectPhase('connected');
+              return;
+            }
+            const threadId = threadIdRef.current || (await resolveChatThreadId(detail.chatId));
+            if (!threadId) {
+              setError('The call was accepted, but the call room could not be opened.');
+              setConnectPhase('failed');
+              return;
+            }
+            await connectToThread(threadId, callType);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Could not connect accepted call');
+            setConnectPhase('failed');
+          }
+        })();
+        return;
+      }
+
       if (detail.action === 'end' || detail.action === 'decline') {
         if (currentPhase === 'connected' && detail.action === 'end') {
           void dismissCall({ notifyRemote: false });
@@ -700,7 +882,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     };
     window.addEventListener('chat-call-signal', onSignal);
     return () => window.removeEventListener('chat-call-signal', onSignal);
-  }, [dismissCall]);
+  }, [connectToThread, dismissCall]);
 
   useEffect(() => {
     if (phase !== 'incoming') return;
@@ -710,11 +892,24 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
         if (inc) {
           queueCloudCallInvite(inc.chatId, normalizeCallKind(inc.callKind), 'decline');
         }
-        void dismissCall({ notifyRemote: false });
+        void dismissCall({ notifyRemote: false, endReason: 'missed' });
       }
     }, INCOMING_RING_TIMEOUT_MS);
     return () => window.clearTimeout(id);
   }, [phase, dismissCall]);
+
+  useEffect(() => {
+    if (phase !== 'outgoing' || connectPhase !== 'idle') return;
+    const chatId = activeChatIdRef.current;
+    if (!chatId || isGroupChatId(chatId)) return;
+    const id = window.setTimeout(() => {
+      if (phaseRef.current !== 'outgoing' || connectPhaseRef.current !== 'idle') return;
+      queueCloudCallInvite(chatId, callKindRef.current, 'end');
+      setError('No answer.');
+      void dismissCall({ notifyRemote: false, endReason: 'timeout' });
+    }, OUTGOING_RING_TIMEOUT_MS);
+    return () => window.clearTimeout(id);
+  }, [connectPhase, dismissCall, phase]);
 
   useEffect(() => {
     return () => {
@@ -722,9 +917,31 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     };
   }, [cleanupRoom]);
 
+  useEffect(() => {
+    if (!isDemoCallBusEnabled()) return;
+    const w = window as Window & {
+      __UNI_DEMO_START_CALL?: (chatId: string, kind?: 'audio' | 'video') => void;
+      __UNI_DEMO_CALL_PHASE?: () => { phase: ChatCallPhase; connectPhase: ChatConnectPhase };
+    };
+    w.__UNI_DEMO_START_CALL = (chatId: string, kind: 'audio' | 'video' = 'audio') => {
+      if (kind === 'video') startVideoCall(chatId);
+      else startAudioCall(chatId);
+    };
+    w.__UNI_DEMO_CALL_PHASE = () => ({ phase: phaseRef.current, connectPhase: connectPhaseRef.current });
+    return () => {
+      delete w.__UNI_DEMO_START_CALL;
+      delete w.__UNI_DEMO_CALL_PHASE;
+    };
+  }, [startAudioCall, startVideoCall]);
+
   return {
     phase,
     connectPhase,
+    lifecycleState: mapChatCallToLifecycle({
+      phase: phase === 'idle' && endReason ? 'ended' : phase,
+      connectPhase,
+      endReason,
+    }),
     presentation,
     callKind,
     activeChatId,
@@ -737,6 +954,8 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     remoteParticipants,
     isMicMuted,
     isCameraEnabled,
+    isSpeakerOn,
+    connectedAt,
     cameraFacingMode,
     mirrorLocalPreview: shouldMirrorCameraPreview(cameraFacingMode),
     localVideoRef,
@@ -757,6 +976,7 @@ export function useChatCall(currentUserId: string | null | undefined): UseChatCa
     toggleMic,
     toggleCamera,
     flipCamera,
+    toggleSpeaker,
     isLiveKitConfigured: isLiveKitConfigured(),
   };
 }

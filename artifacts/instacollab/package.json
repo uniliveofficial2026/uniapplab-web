@@ -127,7 +127,14 @@
     "smoke:live-multiguest-chrome": "node scripts/smoke-live-multiguest-chrome.mjs",
     "smoke:live-shop-chrome": "node scripts/smoke-live-shop-chrome.mjs",
     "smoke:live-pk-invite-stage": "node scripts/smoke-live-pk-invite-stage.mjs",
-    "smoke:live-beauty-chrome": "node scripts/smoke-live-beauty-chrome.mjs"
+    "smoke:live-pk-lifecycle": "node scripts/smoke-live-pk-lifecycle.mjs",
+    "smoke:live-beauty-chrome": "node scripts/smoke-live-beauty-chrome.mjs",
+    "smoke:workspace-admin": "node scripts/smoke-workspace-admin.mjs",
+    "smoke:multi-device-isolation": "node scripts/smoke-multi-device-isolation.mjs",
+    "smoke:stage-a-longrun": "node scripts/smoke-stage-a-longrun.mjs",
+    "smoke:calls-dual-party": "node scripts/smoke-calls-dual-party.mjs",
+    "test:call-lifecycle": "./node_modules/.bin/tsx --test test/call-lifecycle-state.test.mjs",
+    "test:stage-a-security-push-native": "node --test test/stage-a-security-push-native.test.mjs"
   },
   "dependencies": {
     "@capacitor/app": "^8.1.1",

@@ -16,8 +16,8 @@ Invariant: **uiUxChanged: false** (ZERO redesign).
 | G-07 | Database matrix + RLS/writer map reviewed | **PARTIAL** (tables listed) |
 | G-08 | Performance risks inventoried (no UX redesign) | **PARTIAL** |
 | G-09 | Security controls checked / risks filed | **PARTIAL** |
-| G-10 | Test matrix executed for Stage A checks | **PARTIAL** (gifts/wallet/pk-chrome/multiguest/shop/mounts green; invite-accept/admin/native still open) |
-| G-11 | Provider state unblocked or explicitly waived | **PARTIAL** (CF needsAuth) |
+| G-10 | Test matrix executed for Stage A checks | **PARTIAL** (PK lifecycle round1, workspace admin, multi-device, long-run, call-state matrix green; PK round2 leak-free + dual-party calls + APNS/FCM still open) |
+| G-11 | Provider state unblocked or explicitly waived | **PARTIAL** (Cloudflare inventory ACCESSIBLE; APNS/FCM + native device QA still external) |
 | G-12 | Change log complete for Stage A | **PARTIAL** |
 | G-13 | Unresolved list empty or accepted with owners | **FAIL** (external blockers remain) |
 | G-14 | Audit claims re-verified (`AUDIT-CLAIM-REVERIFY.md`) | **PASS** (updated) |
@@ -32,6 +32,11 @@ See master report: `DONE-VS-REMAINING-REPORT.md`
 |---|---|---|
 | Solo gift panel | `smoke:live-gift-panel` | PASS |
 | Solo PK + setup sheet | `smoke:live-pk-chrome` | PASS |
+| PK invite path | `smoke:live-pk-invite-stage` | PASS |
+| PK lifecycle (round1) | `smoke:live-pk-lifecycle` | PASS (round2 leak-free open) |
+| Workspace Admin access-code | `smoke:workspace-admin` | PASS |
+| Multi-device isolation | `smoke:multi-device-isolation` | PASS |
+| Bounded long-run | `smoke:stage-a-longrun` | PASS |
 | Multi-Guest seats | `smoke:live-multiguest-chrome` | PASS |
 | Shop Live commerce chrome | `smoke:live-shop-chrome` | PASS |
 | Marketplace modal | `smoke:marketplace-mount` | PASS |

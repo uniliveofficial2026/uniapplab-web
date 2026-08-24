@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { LayoutDashboard, Lock, Shield } from 'lucide-react';
-import { verifyWorkspaceAccessCode } from '../../lib/workspaceAccess';
+import { unlockWorkspaceRemote, verifyWorkspaceAccessCode } from '../../lib/workspaceAccess';
 
 type WorkspaceAuthScreenProps = {
   onUnlocked: () => void;
@@ -9,19 +9,35 @@ type WorkspaceAuthScreenProps = {
 /**
  * Staff-only gate for Workspace.
  * Access code is required on every visit (never shown in the UI, never persisted).
+ * Prefer server unlock; local verify is DEV/UX fallback only (not Admin API privilege).
  */
 export function WorkspaceAuthScreen({ onUnlocked }: WorkspaceAuthScreenProps) {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
 
-  const handleSubmit = (event: React.FormEvent) => {
+  const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
     if (submitting) return;
     setSubmitting(true);
     setError(null);
 
-    const ok = verifyWorkspaceAccessCode(code);
+    const trimmed = code.trim();
+    const remote = await unlockWorkspaceRemote(trimmed);
+    if (remote === 'ok') {
+      onUnlocked();
+      setSubmitting(false);
+      return;
+    }
+    if (remote === 'invalid') {
+      setError('Invalid access code.');
+      setCode('');
+      setSubmitting(false);
+      return;
+    }
+
+    // Remote unavailable — local UX fallback only.
+    const ok = verifyWorkspaceAccessCode(trimmed);
     if (!ok) {
       setError('Invalid access code.');
       setCode('');
@@ -73,6 +89,7 @@ export function WorkspaceAuthScreen({ onUnlocked }: WorkspaceAuthScreenProps) {
                 className="w-full rounded-2xl border border-border bg-background px-4 py-3 text-base font-semibold tracking-[0.35em] text-center text-foreground placeholder:tracking-normal placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary"
                 aria-label="Workspace access code"
                 aria-invalid={Boolean(error)}
+                data-ui-id="workspace.access.code"
               />
             </label>
 
@@ -86,6 +103,7 @@ export function WorkspaceAuthScreen({ onUnlocked }: WorkspaceAuthScreenProps) {
               type="submit"
               disabled={submitting || !code.trim()}
               className="w-full inline-flex items-center justify-center gap-2 rounded-2xl bg-primary text-primary-foreground font-bold py-3 px-4 transition-opacity disabled:opacity-50"
+              data-ui-id="workspace.access.unlock"
             >
               <Shield className="w-4 h-4" />
               Unlock Workspace

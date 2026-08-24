@@ -44,17 +44,22 @@ test('contract: Team PK + 1v1 PK room surfaces keep approved data-ui-ids', () =>
 test('contract: Workspace admin panel is access-code gated (no secretless E2E)', () => {
   const gate = read('src/components/workspace/WorkspaceGate.tsx');
   const access = read('src/lib/workspaceAccess.ts');
+  const authScreen = read('src/components/workspace/WorkspaceAuthScreen.tsx');
   const screen = read('src/components/workspace/WorkspaceScreen.tsx');
   const admin = read('src/components/admin/AdminControlCenter.tsx');
   assert.match(gate, /Workspace always requires the staff access code/);
   assert.match(gate, /WorkspaceAuthScreen/);
   assert.match(access, /verifyWorkspaceAccessCode/);
+  assert.match(access, /unlockWorkspaceRemote/);
+  assert.match(access, /clearWorkspaceSessionUnlock/);
+  assert.match(authScreen, /unlockWorkspaceRemote/);
   assert.match(screen, /AdminControlCenter/);
   assert.match(screen, /id="btn-workspace-admin-portal"/);
   assert.match(admin, /export function AdminControlCenter/);
   assert.match(admin, /System overview/);
   // Do not assert the staff code value — secrets stay out of smoke claims.
   assert.doesNotMatch(gate, /1998/);
+  assert.doesNotMatch(authScreen, /1998/);
 });
 
 test('contract: Admin embed gift-preview host is a secretless admin route', () => {

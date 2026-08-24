@@ -1,43 +1,44 @@
 # 13-UNRESOLVED
 
-Updated: 2026-08-24T00:20:00Z
+Updated: 2026-08-24T03:22:00Z
 
 ## External / access
-- Cloudflare MCP: needsAuth (optional inspection) — not blocking independent work
+- Cloudflare Workers/R2 inventory via MCP: **ACCESSIBLE** (workers: empty-recipe-8fd7, uniapplab-media, uniapplab-web; R2: livestream-assets, uniapplab-media). Further repair/observability may still need account-scoped auth for mutating ops.
 - LiveKit CLI / wrangler often absent — SDK/API/scripts used instead
 - Production deploy / RTC cutover: intentionally blocked until gates pass
 - Leaked-password protection (Supabase Auth): WARN — enable in dashboard (external product setting)
+- `WORKSPACE_STAFF_CODE` unset on api-server → `/api/workspace/unlock` returns 503; UI E2E uses DEV local fallback (never print code)
 
-## Native incoming calls (assessed 2026-08-23)
+## Native incoming calls (assessed 2026-08-24)
 
-**Verdict: required for production store background/killed incoming calls; not ready.**
+**Verdict: required for production store background/killed incoming calls; fail-closed scaffolds present; FEATURE_ENABLED=false.**
 
-| Platform | Capability | Capacitor status | Notes |
+| Platform | Capability | Status | Notes |
 |---|---|---|---|
-| iOS | CallKit | NOT PRESENT | `AppDelegate.swift` has no CXProvider; `chatCallKit` is web-style naming only |
-| iOS | PushKit (VoIP) | NOT PRESENT | `Info.plist` `UIBackgroundModes` = `audio` only — do **not** add `voip` until PushKit is real |
-| Android | Telecom / ConnectionService | NOT PRESENT | No Telecom entries in `AndroidManifest.xml` |
-| Android | mic/camera FGS | NOT PRESENT | Permissions for CAMERA/RECORD_AUDIO exist; no `FOREGROUND_SERVICE*` |
+| iOS | CallKit | LINKED, OFF | `IncomingCallKitManager.FEATURE_ENABLED = false` until VoIP cert + device QA |
+| iOS | PushKit (VoIP) | NOT READY | Do **not** add `voip` UIBackgroundModes until PushKit is real |
+| Android | Telecom / ConnectionService | STUB | `IncomingCallBridgeStub.FEATURE_ENABLED = false` |
+| Android | mic/camera FGS | SCAFFOLD, OFF | FGS class present; flag false until Play policy + device QA |
 
-**Live path today:** in-app ring + browser `Notification` via `chatCallNotifications.ts` (foreground / granted notification permission only).
-
-**Scaffolding (flags default OFF, no fake success):**
-- `src/lib/chat/nativeIncomingCallBridge.ts` — readiness probe + `tryPresentNativeIncomingCall` always fails closed until plugin + flags ready
-- `native-scaffolds/incoming-call/` — README + Swift stub (not linked into Xcode target)
-- `android/.../call/IncomingCallBridgeStub.kt` — returns false; not registered as ConnectionService/FGS
-
-**True external blockers:**
-- Apple VoIP push certificate + PushKit entitlement
-- Physical iOS device CallKit verification
-- Android 14+ FGS type declarations (`microphone`, `camera`) + Play policy
-- Physical Android device Telecom + FGS verification
+**True external blockers:** Apple VoIP push certificate + PushKit entitlement; physical iOS/Android device QA.
 
 ## PK topology / invite E2E (remaining)
 
-- **PASS (invite path):** dual-host Solo live + invite host list (`smoke:live-pk-invite-stage`) — accept/connect still open
-- **PASS (chrome):** `smoke:live-pk-chrome` — Solo live mounts **Open PK creation** + PK setup sheet hint (2026-08-24)
-- **Still open:** browser E2E for invite accept + 1v1–6v6 dual-room stress
-- Structural visual lock + topology + `stage-a-mount-contracts` cover Team/1v1 PK + invite sheet source (PASS)
+- **PASS (invite path):** `smoke:live-pk-invite-stage`
+- **PASS (lifecycle round1):** `smoke:live-pk-lifecycle` invite→accept→active→timer sync→host end→both clear
+- **OPEN:** round2 rediscovery / leak-free repeat; gift-score delta during active PK in same smoke; reconnect mid-PK
+- Structural visual lock + topology contracts remain PASS
+
+## Calls deeper E2E
+
+- Unit lifecycle mapping PASS (busy/cancel/missed/timeout/etc.)
+- Outgoing UI smoke PASS
+- Dual-context ring→accept→connected→hangup / decline / busy / timeout Playwright still open
+
+## Push
+
+- Registry + PERSON-from-auth + clear-person contracts PASS
+- APNS/FCM provider send: **BLOCKED_EXTERNAL** (credentials)
 - Instant-room open race fixed: module buffer + `useLayoutEffect` on `InstantRoomEntryHost`
 
 ## Admin panel

@@ -6,7 +6,7 @@ import {
   Crown, Shield, Pencil, ChevronRight, LayoutGrid,
   Volume2, Sparkle, FolderClosed, Sofa, User, Activity, Music,
   UserPlus, UserMinus, LogOut, Eye, ShieldAlert, UserX, Lock, Unlock, Search, HelpCircle,
-  Info, Settings2, Ban,
+  Info, Settings2, Ban, Power,
 } from "lucide-react";
 
 import { ShareIcon } from "../../components/common/ShareIcon";
@@ -83,6 +83,62 @@ import {
 } from "../utils/roomPrivacy";
 import { hydrateRoomPrivacyFromCloud } from "../utils/hydrateRoomPrivacyFromCloud";
 import { canChangeRoomBackground as roleCanChangeRoomBackground, isRoomAdminOrOwner, isRoomCoOwner, isRoomEditorRole, isRoomOwner, normalizeRoomRole, type RoomMemberRole } from "../utils/roles";
+import { beginInstantAction } from "../../lib/performance";
+import { useOptionalI18n } from "../../lib/i18n";
+import {
+  applyHostDashboardDelta,
+  emptyHostDashboard,
+  newLifecycleCommandId,
+  newParticipantSessionId,
+} from "../../lib/liveLifecycle";
+import { readHostLiveKitTelemetry } from "../../lib/livekit/hostLiveKitTelemetry";
+import type { HostLiveMetrics } from "../components/HostLiveMetricsStrip";
+import {
+  connectLiveLifecycleSession,
+  createPkChallenge,
+  endLivePk,
+  ensureLiveLifecycleRoom,
+  fetchHostDashboardSnapshot,
+  ingestLiveHostDashboard,
+  leaveLiveRoom,
+  previewLiveLeave,
+  setLivePkTeamRoster,
+  type LiveHostDashboardSnapshot,
+  type LiveHostSummary,
+  type LiveLifecycleRoomType,
+  type LiveParticipantRole,
+} from "../../lib/platformApi";
+import { endPartyRoom } from "../../lib/party/partyRoomsCloud";
+import { LIVE_ROOM_ENDED_EVENT, liveRoomEndedDetail } from "../../lib/live/liveControlEvents";
+import { endHostMediaSession } from "../../lib/camera/hostMediaSession";
+import {
+  isHostLiveEnded,
+  isHostUserLiveEnded,
+  markHostLiveEnded,
+} from "../../lib/live/hostLiveEndedRegistry";
+import { liveEndedIdMatchesRoom, permanentlyEndHostLive } from "../../lib/live/permanentlyEndHostLive";
+import { usdFromCoins } from "../../lib/coinPricing";
+import {
+  pushLiveChartSample,
+  resetLiveChartHistory,
+} from "../../lib/liveLifecycle/hostLiveChartHistory";
+import { parsePkLiveMediaRef } from "../../lib/live/pkLiveMediaRef";
+import {
+  clearTeamPkRoomRoster,
+  getTeamPkRoomRoster,
+  getTeamPkRoomUserIds,
+  setTeamPkRoomRoster,
+} from "../../lib/live/teamPkRosterRegistry";
+import {
+  logProductionPkRoute,
+  setProductionPkActiveId,
+  setProductionPkChallengePending,
+} from "../../lib/live/productionOneVsOnePkGate";
+import { useProductionOneVsOnePkGate } from "../../hooks/useProductionOneVsOnePkGate";
+import { LiveLifecycleConfirmOverlay } from "../components/LiveLifecycleConfirmOverlay";
+import { HostRealtimeDashboard } from "../components/HostRealtimeDashboard";
+import { LiveLikeFx } from "../components/LiveLikeFx";
+import { LiveLikeProvider } from "../liveLike/LiveLikeContext";
 import { isRoomSavedById, toggleSavedRoom } from "../utils/savedRooms";
 import { formatRoomHostMeta, resolveRoomHostDisplay } from "../utils/roomHostDisplay";
 import {
@@ -91,7 +147,7 @@ import {
 } from "../utils/roomProfilePreview";
 import { settlePartyGiftSend } from "../../lib/partyGiftPayments";
 import { mergeRemotePartySeats } from "../../lib/party/partySeatCloudSync";
-import { creditUserCoins, getLiveCoinsBalance, spendWalletCoins } from "../../lib/walletKstarSync";
+import { getLiveCoinsBalance } from "../../lib/walletKstarSync";
 import { useDbRevision, useDB } from "../../lib/useDB";
 import { getChorusPanelSongs, CHORUS_SONG_TABS, type ChorusSongTab } from "../utils/songCatalog";
 import { isKaraokeUploadSongId } from "../utils/karaokeUploadBridge";
@@ -223,10 +279,23 @@ import {
   settleCommerceCashBalanceSale,
   settleCommerceCoinSale,
 } from "../../lib/commercePayments";
+import {
+  markCommerceOrderShipped,
+  setPinnedCommerceProduct,
+  upsertCommerceOrder,
+} from "../../lib/commerce/commerceOrderStore";
 import { PartyGiftPickerPanel } from "../components/PartyGiftPickerPanel";
+import { PkStickerSheet } from "../../components/live/PkStickerSheet";
+import type { LiveStickerPayload } from "../components/liveToolsV14Artwork";
+import { V14AnimatedStickerArtwork } from "../components/V14AnimatedArtwork";
 import { GiftPlayOverlay } from "../components/GiftPlayOverlay";
 import { useGiftRechargeReturnSync } from "../components/LiveGiftRechargeModal";
 import { giftTierFromStars } from "../../lib/live/giftTiers";
+import {
+  canAcceptGiftPlayForFx,
+  canAcceptGiftPlayForRoomCredit,
+} from "../../lib/live/giftAuthority";
+import { GIFT_FULL_FX_REPLAY_TTL_MS } from "../../lib/live/giftPlaybackScheduler";
 import { buildLiveViewMediaProps, RoomLiveMediaSession } from "../components/RoomLiveMediaSession";
 import {
   LiveSeatFullscreenOverlay,
@@ -245,6 +314,7 @@ import {
   EMPTY_BODY_SHAPE,
   EMPTY_TENCENT_EFFECT_SELECTION,
   type TencentBodyShapeParams,
+  type TencentBeautifyParams,
   type TencentEffectSelection,
 } from "../../lib/webar/webarTypes";
 import { takePendingCreateRoomBeauty } from "../utils/pendingCreateRoomBeauty";
@@ -255,7 +325,8 @@ import { useUploadSongPlayback } from "../hooks/useUploadSongPlayback";
 import { safeAvatarUrl } from "../../lib/safe";
 import { getActiveLyricIndex, resolveActiveSong, DEFAULT_TRACK_DURATION_SEC, type ActiveSong } from "../utils/songPerformance";
 import type { VoiceChangerEffectId } from "../utils/voiceEffects";
-import { getVoiceChangerEffect } from "../utils/voiceEffects";
+import { getVoiceChangerEffect, isOriginalVoiceEffect } from "../utils/voiceEffects";
+import { openLiveToolPanel } from "../utils/liveToolPanel";
 import { useRoomVoiceChanger } from "../hooks/useRoomVoiceChanger";
 import { VoiceChangerSheet } from "../components/VoiceChangerSheet";
 import { PKInviteSheet, type PKConnectOptions } from "../components/PKInviteSheet";
@@ -294,6 +365,7 @@ export function Room() {
   const { id } = useParams();
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
+  const i18n = useOptionalI18n();
   const self = useRoomSelf();
   const db = useDB();
   useGiftRechargeReturnSync(self.id);
@@ -307,6 +379,7 @@ export function Room() {
    */
   const isSilentAdminWatch = flowEntry === 'admin-embed';
   const roomDisplayId = id ?? "1181033";
+  const productionPkGate = useProductionOneVsOnePkGate();
   const [liveSettings, setLiveSettings] = useState(() =>
     ensureRoomRoleUserIds(roomDisplayId),
   );
@@ -430,6 +503,7 @@ export function Room() {
     roomId: roomDisplayId,
     userId: self.id,
     userName: self.roomName || self.chatLabel,
+    userAvatarUrl: self.avatarUrl,
     enabled: usesLivePartyFeed,
   });
   const processedGiftPlayIdsRef = useRef<Set<string>>(new Set());
@@ -468,8 +542,6 @@ export function Room() {
   const [isEditingGreeting, setIsEditingGreeting] = useState(false);
   const [newGreetingInput, setNewGreetingInput] = useState("Show your enthusiasm");
   
-  const [likes, setLikes] = useState(0);
-  const [isMuted, setIsMuted] = useState(false);
   const [chatInput, setChatInput] = useState("");
   const [gameLiveState, setGameLiveState] = useState<GameLiveState>(DEFAULT_GAME_STATE);
   const [gamePanelOpen, setGamePanelOpen] = useState(false);
@@ -494,9 +566,26 @@ export function Room() {
   const [roomGiftSummary, setRoomGiftSummary] = useState<RoomGiftSummary>(() =>
     getRoomGiftSummary(roomDisplayId),
   );
+  const liveCoinsReceivedRef = useRef(0);
+  const liveGiftCountRef = useRef(0);
+  const canCreditHostLiveCoinsRef = useRef(false);
+  const [liveCoinsReceived, setLiveCoinsReceived] = useState(0);
+  const [liveGiftCount, setLiveGiftCount] = useState(0);
+
+  const creditHostLiveCoins = useCallback((coins: number) => {
+    if (!canCreditHostLiveCoinsRef.current) return;
+    const value = Math.max(0, Math.floor(coins));
+    if (value <= 0) return;
+    liveCoinsReceivedRef.current += value;
+    liveGiftCountRef.current += 1;
+    setLiveCoinsReceived(liveCoinsReceivedRef.current);
+    setLiveGiftCount(liveGiftCountRef.current);
+  }, []);
   const [isGiftPickerOpen, setIsGiftPickerOpen] = useState(false);
+  const [isStickerPickerOpen, setIsStickerPickerOpen] = useState(false);
   const [giftPickerReceiver, setGiftPickerReceiver] = useState<Guest | null>(null);
   const activeSeatsRef = useRef<PartySeatMap>({} as PartySeatMap);
+  const flipCameraRef = useRef<(() => void) | null>(null);
   const applyRoomGiftRef = useRef<
     ((
       input: {
@@ -714,8 +803,10 @@ export function Room() {
   const cancelCurrentSongRef = useRef<() => void>(() => {});
   const [isInstructionsOpen, setIsInstructionsOpen] = useState(false);
   const [isLyricsOverlayOpen, setIsLyricsOverlayOpen] = useState(false);
-  const [singingVoiceEffect, setSingingVoiceEffect] = useState<VoiceChangerEffectId>('studio');
-  const [roomVoiceEffect, setRoomVoiceEffect] = useState<VoiceChangerEffectId>('studio');
+  const [singingVoiceEffect, setSingingVoiceEffect] = useState<VoiceChangerEffectId>('original');
+  const [roomVoiceEffect, setRoomVoiceEffect] = useState<VoiceChangerEffectId>('original');
+  const [roomVoiceEffectStrength, setRoomVoiceEffectStrength] = useState(70);
+  const [roomVoiceBackgroundOn, setRoomVoiceBackgroundOn] = useState(true);
   const [isRoomVoiceChangerOpen, setIsRoomVoiceChangerOpen] = useState(false);
   const [roomVoiceMonitorEnabled, setRoomVoiceMonitorEnabled] = useState(() => {
     try {
@@ -741,33 +832,51 @@ export function Room() {
       return;
     }
     setGiftPickerReceiver(null);
+    openLiveToolPanel('gift', {
+      setGift: setIsGiftPickerOpen,
+      setGuests: setIsGuestManagementOpen,
+      setGames: setGamePanelOpen,
+      setVoice: setIsRoomVoiceChangerOpen,
+      setBeauty: setIsLiveBeautyOpen,
+      setEffects: setIsMultiGuestEffectsOpen,
+      setStickers: setIsStickerPickerOpen,
+    });
     setIsGiftPickerOpen(true);
   }, []);
 
   const openGiftPickerForGuest = useCallback((guest: Guest) => {
     setGiftPickerReceiver(guest);
+    openLiveToolPanel('gift', {
+      setGift: setIsGiftPickerOpen,
+      setGuests: setIsGuestManagementOpen,
+      setGames: setGamePanelOpen,
+      setVoice: setIsRoomVoiceChangerOpen,
+      setBeauty: setIsLiveBeautyOpen,
+      setEffects: setIsMultiGuestEffectsOpen,
+      setStickers: setIsStickerPickerOpen,
+    });
     setIsGiftPickerOpen(true);
   }, []);
   const [userCameraOn, setUserCameraOn] = useState(true);
   const [multiGuestDeeparSelection, setMultiGuestDeeparSelection] =
     useState<DeepAREffectSelection>(EMPTY_DEEPAR_EFFECT_SELECTION);
   const [isMultiGuestEffectsOpen, setIsMultiGuestEffectsOpen] = useState(false);
-  const [liveBeautyEffectId, setLiveBeautyEffectId] = useState<BeautyPresetId>(() => {
-    return takePendingCreateRoomBeauty()?.beautyId ?? 'none';
-  });
-  const [liveBeautyEffects, setLiveBeautyEffects] = useState<TencentEffectSelection>(() => {
-    const pending = takePendingCreateRoomBeauty();
-    return {
-      ...EMPTY_TENCENT_EFFECT_SELECTION,
-      ...(pending?.beautyEffects ?? {}),
-    };
-  });
-  const [liveBodyShape, setLiveBodyShape] = useState<TencentBodyShapeParams>(() => {
-    const pending = takePendingCreateRoomBeauty();
-    return pending?.bodyShape
-      ? { ...EMPTY_BODY_SHAPE, ...pending.bodyShape }
-      : EMPTY_BODY_SHAPE;
-  });
+  const [createRoomBeautyHandoff] = useState(takePendingCreateRoomBeauty);
+  const [liveBeautyEffectId, setLiveBeautyEffectId] = useState<BeautyPresetId>(
+    () => createRoomBeautyHandoff?.beautyId ?? 'none',
+  );
+  const [liveBeautyEffects, setLiveBeautyEffects] = useState<TencentEffectSelection>(() => ({
+    ...EMPTY_TENCENT_EFFECT_SELECTION,
+    ...(createRoomBeautyHandoff?.beautyEffects ?? {}),
+  }));
+  const [liveBeautifyOverride, setLiveBeautifyOverride] = useState<TencentBeautifyParams | null>(
+    () => createRoomBeautyHandoff?.beautifyOverride ?? null,
+  );
+  const [liveBodyShape, setLiveBodyShape] = useState<TencentBodyShapeParams>(() =>
+    createRoomBeautyHandoff?.bodyShape
+      ? { ...EMPTY_BODY_SHAPE, ...createRoomBeautyHandoff.bodyShape }
+      : EMPTY_BODY_SHAPE,
+  );
   const [isLiveBeautyOpen, setIsLiveBeautyOpen] = useState(false);
   const [isCommerceShopOpen, setIsCommerceShopOpen] = useState(false);
   const [commerceCatalog, setCommerceCatalog] = useState<CommerceProduct[]>(() => [...DEFAULT_COMMERCE_CATALOG]);
@@ -807,7 +916,7 @@ export function Room() {
     if (roomMode === 'SoloLive' || roomMode === 'MultiGuest' || roomMode === 'GameLive') {
       void import('../../lib/preloadAppSurfaces').then((m) => {
         m.preloadHeavyAppSurfaces();
-        m.warmWebARForLiveIntent();
+        m.preloadHostMediaPath();
       });
     }
   }, [roomMode]);
@@ -904,11 +1013,6 @@ export function Room() {
     const updated = getRoomSettings(roomDisplayId);
     setLiveSettings(ensureRoomRoleUserIds(roomDisplayId));
     syncPartyRoomToCloud(roomDisplayId, updated.ownerUserId ?? self.id, updated);
-    showToast(
-      nextMode === 'free'
-        ? 'Seat entry updated: guests can sit freely.'
-        : 'Seat entry updated: guests must request approval to sit.',
-    );
   };
 
   const handleMultiGuestSeatCountChange = (count: MultiGuestSeatCount) => {
@@ -917,7 +1021,6 @@ export function Room() {
     setLiveSettings(getRoomSettings(roomDisplayId));
     setActiveSeats((prev) => prunePartySeatsForMultiGuestCount(prev, count));
     setLockedSeats((prev) => pruneLockedSeatsForMultiGuestCount(prev, count));
-    showToast(`Video seat count updated to ${count}.`);
   };
 
   useEffect(() => {
@@ -931,17 +1034,10 @@ export function Room() {
       showToast('You do not have permission to lock this seat.');
       return;
     }
-    const seatLabel =
-      roomMode === 'MultiGuest'
-        ? formatMultiGuestSeatLabel(seatKey, multiGuestSeatCount)
-        : formatSeatDisplayLabel(seatKey);
     setLockedSeats(prev => {
       const isLocked = !prev[seatKey];
       if (isLocked) {
-        showToast(`${seatLabel} has been locked.`);
         setActiveSeats(curr => ({ ...curr, [seatKey]: null }));
-      } else {
-        showToast(`${seatLabel} has been unlocked.`);
       }
       return { ...prev, [seatKey]: isLocked };
     });
@@ -1050,11 +1146,48 @@ export function Room() {
     activeSeatsRef.current = activeSeats;
   }, [activeSeats]);
 
+  useEffect(() => {
+    const lifecycleRoomId = parsePkLiveMediaRef(roomDisplayId).lifecycleRoomId || roomDisplayId;
+    const captain = {
+      userId: self.id,
+      name: self.roomName ?? self.chatLabel ?? 'Host',
+      avatarUrl: activeSeats.host?.avatar,
+    };
+    const teammates = Object.entries(activeSeats)
+      .filter(([seatKey, guest]) => seatKey !== 'host' && Boolean(guest))
+      .map(([, guest]) => guest)
+      .filter((guest): guest is Guest => Boolean(guest && guest.userId && guest.userId !== self.id))
+      .slice(0, 5);
+    setTeamPkRoomRoster(lifecycleRoomId, [
+      captain,
+      ...teammates.map((guest) => ({ userId: guest.userId as string, name: guest.name, avatarUrl: guest.avatar })),
+    ]);
+    const rosterIds = getTeamPkRoomUserIds(lifecycleRoomId, self.id, 6);
+    void setLivePkTeamRoster(lifecycleRoomId, rosterIds).catch(() => undefined);
+    return () => clearTeamPkRoomRoster(lifecycleRoomId);
+  }, [activeSeats, roomDisplayId, self.chatLabel, self.id, self.roomName]);
+
   const defaultGiftReceiver = useCallback((): Guest | null => {
     if (activeSeats.host) return activeSeats.host;
     const seated = Object.values(activeSeats).find((guest): guest is Guest => guest !== null);
     return seated ?? null;
   }, [activeSeats]);
+
+  const seatedGiftTargets = useMemo(
+    () => Object.values(activeSeats).filter((guest): guest is Guest => Boolean(guest)),
+    [activeSeats],
+  );
+
+  const cycleGiftReceiver = useCallback(() => {
+    if (!seatedGiftTargets.length) return;
+    const current = giftPickerReceiver ?? defaultGiftReceiver();
+    const idx = seatedGiftTargets.findIndex(
+      (guest) =>
+        (current?.userId && guest.userId === current.userId) || guest.name === current?.name,
+    );
+    const next = seatedGiftTargets[(idx + 1) % seatedGiftTargets.length];
+    if (next) setGiftPickerReceiver(next);
+  }, [defaultGiftReceiver, giftPickerReceiver, seatedGiftTargets]);
 
   const applyRoomGift = useCallback(
     (
@@ -1108,9 +1241,31 @@ export function Room() {
         'gold',
       );
       setRoomExpProgress(progress);
+
+      const ownerId = liveSettings.ownerUserId?.trim() || self.id;
+      const hostSeat = activeSeatsRef.current.host;
+      const receiverIsHost = Boolean(
+        (input.receiverUserId && (input.receiverUserId === ownerId || input.receiverUserId === self.id)) ||
+          (!input.receiverUserId &&
+            (input.receiverName === self.roomName ||
+              input.receiverName === self.chatLabel ||
+              (hostSeat && input.receiverName === hostSeat.name))),
+      );
+      const senderIsSelf =
+        input.senderName === self.roomName || input.senderName === self.chatLabel;
+      if (receiverIsHost && !senderIsSelf) {
+        creditHostLiveCoins(event.starValue);
+      }
       return event;
     },
-    [roomDisplayId],
+    [
+      creditHostLiveCoins,
+      liveSettings.ownerUserId,
+      roomDisplayId,
+      self.chatLabel,
+      self.id,
+      self.roomName,
+    ],
   );
 
   useEffect(() => {
@@ -1121,19 +1276,30 @@ export function Room() {
     const gift = liveRoomBus.lastGiftPlay;
     if (!gift?.playId || processedGiftPlayIdsRef.current.has(gift.playId)) return;
     if (gift.senderId && gift.senderId === self.id) return;
+    // Paid FX + room credit require settlement id — ignore spoofed gift_play packets.
+    if (!canAcceptGiftPlayForFx(gift)) return;
+    if (
+      gift.replayPolicy === 'ACTIVE_FX' &&
+      typeof gift.expiresAt === 'number' &&
+      gift.expiresAt <= Date.now()
+    ) {
+      return;
+    }
     processedGiftPlayIdsRef.current.add(gift.playId);
-    setActiveGiftPlay(gift);
-    applyRoomGiftRef.current?.(
-      {
-        senderName: gift.senderName,
-        receiverName: gift.receiverName,
-        receiverUserId: gift.receiverUserId,
-        giftName: gift.giftName,
-        giftIcon: gift.giftIcon,
-        starValue: gift.starValue,
-      },
-      { creditSeat: true, showChat: true },
-    );
+    if (canAcceptGiftPlayForRoomCredit(gift)) {
+      setActiveGiftPlay(gift);
+      applyRoomGiftRef.current?.(
+        {
+          senderName: gift.senderName,
+          receiverName: gift.receiverName,
+          receiverUserId: gift.receiverUserId,
+          giftName: gift.giftName,
+          giftIcon: gift.giftIcon,
+          starValue: gift.starValue,
+        },
+        { creditSeat: true, showChat: true },
+      );
+    }
   }, [liveRoomBus.lastGiftPlay, self.id]);
 
   useEffect(() => {
@@ -1160,9 +1326,15 @@ export function Room() {
 
   const finalizeCommerceOrder = useCallback(
     (order: CommerceOrder) => {
-      void liveRoomBus.emitCommerce({ action: 'purchase', order });
+      const stored = upsertCommerceOrder({
+        ...order,
+        hostUserId: order.hostUserId || commerceHostUserId,
+        status: order.status ?? (order.paid ? 'confirmed' : 'pending'),
+        quantity: order.quantity ?? 1,
+      });
+      void liveRoomBus.emitCommerce({ action: 'purchase', order: stored });
     },
-    [liveRoomBus],
+    [commerceHostUserId, liveRoomBus],
   );
 
   useEffect(() => {
@@ -1185,6 +1357,7 @@ export function Room() {
           buyerUserId: string;
           buyerDisplayName: string;
           paymentMethod: 'card';
+          quantity?: number;
         };
         const normalized = normalizeCommerceProduct(pending.product);
         const hostUserId = result.hostUserId || pending.hostUserId;
@@ -1209,6 +1382,8 @@ export function Room() {
           paymentMethod: 'card',
           shipping: pending.shipping,
           createdAt: Date.now(),
+          status: 'confirmed',
+          quantity: typeof pending.quantity === 'number' ? pending.quantity : 1,
         };
         finalizeCommerceOrder(order);
         showToast(`Purchased ${normalized.title}`);
@@ -1376,7 +1551,7 @@ export function Room() {
         const settlement = await settleCommerceCoinSale(
           self.id,
           commerceHostUserId,
-          normalized.priceCoins ?? 0,
+          (normalized.priceCoins ?? 0) * (result.quantity ?? 1),
         );
         if (!settlement.ok) {
           showToast(settlement.reason ?? 'Coin payment failed');
@@ -1386,7 +1561,7 @@ export function Room() {
         const settlement = settleCommerceCashBalanceSale(
           self.id,
           commerceHostUserId,
-          normalized.priceUsd ?? 0,
+          (normalized.priceUsd ?? 0) * (result.quantity ?? 1),
         );
         if (!settlement.ok) {
           showToast(settlement.reason ?? 'Cash payment failed');
@@ -1408,10 +1583,13 @@ export function Room() {
         priceUsd: normalized.priceUsd,
         buyerUserId: self.id,
         buyerName: self.roomName || self.chatLabel,
+        hostUserId: commerceHostUserId,
         paid: result.paid,
         paymentMethod: result.paymentMethod,
         shipping: result.shipping,
         createdAt: Date.now(),
+        status: result.paid ? 'confirmed' : 'pending',
+        quantity: result.quantity ?? 1,
       };
 
       setCommerceCheckoutProduct(null);
@@ -1437,6 +1615,28 @@ export function Room() {
     setCommerceSelectedOrder(null);
   }, []);
 
+  const handleCommerceMarkShipped = useCallback((order: CommerceOrder) => {
+    const updated = markCommerceOrderShipped(order.id);
+    if (!updated) return;
+    setCommerceOrders((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
+    setCommerceSelectedOrder(updated);
+    showToast(`Order ${updated.id} marked as shipped`);
+  }, [showToast]);
+
+  useEffect(() => {
+    setPinnedCommerceProduct(resolveCommerceProduct(commercePinnedId) ?? null);
+  }, [commercePinnedId, resolveCommerceProduct]);
+
+  useEffect(() => {
+    const onBuy = (event: Event) => {
+      const product = (event as CustomEvent<{ product?: CommerceProduct }>).detail?.product;
+      if (!product) return;
+      setCommerceCheckoutProduct(normalizeCommerceProduct(product));
+    };
+    window.addEventListener('unilive-commerce-buy', onBuy);
+    return () => window.removeEventListener('unilive-commerce-buy', onBuy);
+  }, []);
+
   const handleCommercePurchase = handleCommerceStartCheckout;
 
   const handleSendPartyGift = useCallback(
@@ -1453,37 +1653,6 @@ export function Room() {
         showToast('Not enough coins');
         return;
       }
-      if (!spendWalletCoins(self.id, totalStars)) {
-        showToast('Not enough coins');
-        return;
-      }
-
-      // Optimistic: close picker, play effect, broadcast peers immediately.
-      setGiftPickerReceiver(null);
-      setIsGiftPickerOpen(false);
-      applyRoomGift({
-        senderName: self.roomName,
-        receiverName: target.name,
-        receiverUserId: target.userId,
-        giftName: gift.name,
-        giftIcon: gift.icon,
-        starValue: totalStars,
-      });
-      const playPayload = giftFromDefinition(
-        gift,
-        { id: self.id, name: self.roomName || self.chatLabel },
-        { name: target.name, userId: target.userId },
-        {
-          quantity: qty,
-          combo: isComboSend ? qty : 1,
-          roomId: roomDisplayId,
-        },
-      );
-      processedGiftPlayIdsRef.current.add(playPayload.playId ?? `local_${Date.now()}`);
-      setActiveGiftPlay(playPayload);
-      void liveRoomBus.emitGiftPlay(playPayload);
-      const qtyLabel = qty > 1 ? ` x${qty}` : '';
-      showToast(`Sent ${gift.icon} ${gift.name}${qtyLabel} to ${target.name} (+${totalStars} coins)`);
 
       void settlePartyGiftSend(self.id, target.userId, totalStars, {
         giftId: gift.id ?? gift.name,
@@ -1493,11 +1662,50 @@ export function Room() {
         combo: isComboSend ? qty : 1,
         clientRequestId,
         tier: gift.tier ?? giftTierFromStars(gift.stars),
-        alreadyDebitedLocally: true,
       }).then((settled) => {
-        if (settled.ok) return;
-        creditUserCoins(self.id, totalStars);
-        showToast(settled.reason ?? 'Gift failed — coins restored');
+        if (!settled.ok) {
+          showToast(settled.reason ?? 'Gift failed');
+          return;
+        }
+        const giftTransactionId =
+          settled.settle?.giftTransactionId ??
+          settled.settle?.event?.giftTransactionId ??
+          undefined;
+        if (!giftTransactionId) {
+          showToast('Gift settlement incomplete');
+          return;
+        }
+        setGiftPickerReceiver(null);
+        setIsGiftPickerOpen(false);
+        applyRoomGift({
+          senderName: self.roomName,
+          receiverName: target.name,
+          receiverUserId: target.userId,
+          giftName: gift.name,
+          giftIcon: gift.icon,
+          starValue: totalStars,
+        });
+        const occurredAt = Date.now();
+        const playPayload = giftFromDefinition(
+          gift,
+          { id: self.id, name: self.roomName || self.chatLabel },
+          { name: target.name, userId: target.userId },
+          {
+            quantity: qty,
+            combo: isComboSend ? qty : 1,
+            roomId: roomDisplayId,
+            giftTransactionId,
+            eventId: giftTransactionId,
+            occurredAt,
+            expiresAt: occurredAt + GIFT_FULL_FX_REPLAY_TTL_MS,
+            replayPolicy: 'ACTIVE_FX',
+          },
+        );
+        processedGiftPlayIdsRef.current.add(playPayload.playId ?? giftTransactionId);
+        setActiveGiftPlay(playPayload);
+        void liveRoomBus.emitGiftPlay(playPayload);
+        const qtyLabel = qty > 1 ? ` x${qty}` : '';
+        showToast(`Sent ${gift.icon} ${gift.name}${qtyLabel} to ${target.name} (+${totalStars} coins)`);
       });
     },
     [applyRoomGift, defaultGiftReceiver, giftPickerReceiver, liveRoomBus, roomDisplayId, self.chatLabel, self.id, self.roomName, showToast],
@@ -1545,9 +1753,13 @@ export function Room() {
     isVoiceActive: roomVoiceActive,
     audioLevel: roomVoiceLevel,
   } = useRoomVoiceChanger({
-    enabled: voiceMicEligible,
+    enabled:
+      (voiceMicEligible || isRoomVoiceChangerOpen) &&
+      (!isOriginalVoiceEffect(roomVoiceEffect) || roomVoiceBackgroundOn || roomVoiceMonitorEnabled),
     effectId: roomVoiceEffect,
     monitorEnabled: roomVoiceMonitorEnabled,
+    effectStrength: roomVoiceEffectStrength,
+    backgroundSound: roomVoiceBackgroundOn ? 'magic-forest' : null,
   });
 
   const { isVoiceActive: micDetectorActive, audioLevel: micDetectorLevel } = useMicVoiceActivity(
@@ -1560,9 +1772,26 @@ export function Room() {
     showVoiceChanger: true,
     voiceChangerEligible: voiceMicEligible,
     voiceChangerOpen: isRoomVoiceChangerOpen,
-    voiceEffectActive: roomVoiceEffect !== 'studio',
+    voiceEffectActive: !isOriginalVoiceEffect(roomVoiceEffect) || roomVoiceBackgroundOn,
     voiceEffectEmoji: getVoiceChangerEffect(roomVoiceEffect).emoji,
-    onToggleVoiceChanger: () => setIsRoomVoiceChangerOpen((open) => !open),
+    onToggleVoiceChanger: () => {
+      if (isRoomVoiceChangerOpen) {
+        setIsRoomVoiceChangerOpen(false);
+        return;
+      }
+      openLiveToolPanel('voice', {
+        setGift: (open) => {
+          if (!open) setIsGiftPickerOpen(false);
+        },
+        setGuests: setIsGuestManagementOpen,
+        setGames: setGamePanelOpen,
+        setVoice: setIsRoomVoiceChangerOpen,
+        setBeauty: setIsLiveBeautyOpen,
+        setEffects: setIsMultiGuestEffectsOpen,
+        setStickers: setIsStickerPickerOpen,
+      });
+      setIsRoomVoiceChangerOpen(true);
+    },
   };
 
   // All non-camera room modes (Chat, Radio, Karaoke, Party, Chorus, WatchTogether):
@@ -1582,11 +1811,15 @@ export function Room() {
     Boolean(userSeatKey === 'host' && activeSeats.host && isRoomSelfGuest(activeSeats.host, self));
 
   const [pkInviteRefreshKey, setPkInviteRefreshKey] = useState(0);
+  const refreshPkLiveHosts = useCallback(() => {
+    setPkInviteRefreshKey((key) => key + 1);
+  }, []);
 
   const pkLiveHosts = usePkLiveHosts({
     enabled: isPkEligibleStream && roomMode === 'SoloLive' && isSelfSoloHost,
     selfUserId: self.id,
     selfRoomId: roomDisplayId,
+    selfRoomMode: isCommerceLive ? 'Commerce-Live' : 'Solo-Live',
     refreshKey: pkInviteRefreshKey,
   });
 
@@ -1606,7 +1839,18 @@ export function Room() {
   const toggleLiveEffectsPanel = useCallback(() => {
     setIsMultiGuestEffectsOpen((open) => {
       const next = !open;
-      if (next) setIsLiveBeautyOpen(false);
+      if (next) {
+        openLiveToolPanel('effects', {
+          setGift: (v) => { if (!v) setIsGiftPickerOpen(false); },
+          setGuests: setIsGuestManagementOpen,
+          setGames: setGamePanelOpen,
+          setVoice: setIsRoomVoiceChangerOpen,
+          setBeauty: setIsLiveBeautyOpen,
+          setEffects: setIsMultiGuestEffectsOpen,
+          setStickers: setIsStickerPickerOpen,
+        });
+        setIsLiveBeautyOpen(false);
+      }
       return next;
     });
   }, []);
@@ -1614,7 +1858,18 @@ export function Room() {
   const toggleLiveBeautyPanel = useCallback(() => {
     setIsLiveBeautyOpen((open) => {
       const next = !open;
-      if (next) setIsMultiGuestEffectsOpen(false);
+      if (next) {
+        openLiveToolPanel('beauty', {
+          setGift: (v) => { if (!v) setIsGiftPickerOpen(false); },
+          setGuests: setIsGuestManagementOpen,
+          setGames: setGamePanelOpen,
+          setVoice: setIsRoomVoiceChangerOpen,
+          setBeauty: setIsLiveBeautyOpen,
+          setEffects: setIsMultiGuestEffectsOpen,
+          setStickers: setIsStickerPickerOpen,
+        });
+        setIsMultiGuestEffectsOpen(false);
+      }
       return next;
     });
   }, []);
@@ -1629,6 +1884,7 @@ export function Room() {
   }, []);
 
   const handleSelectLiveBeauty = useCallback((beautyId: BeautyPresetId) => {
+    setLiveBeautifyOverride(null);
     setLiveBeautyEffectId(beautyId);
     if (beautyId !== 'none') {
       setMultiGuestDeeparSelection({ ...EMPTY_DEEPAR_EFFECT_SELECTION });
@@ -1653,6 +1909,10 @@ export function Room() {
     [],
   );
 
+  const handleLiveBeautifyParamsChange = useCallback((params: TencentBeautifyParams) => {
+    setLiveBeautifyOverride(params);
+  }, []);
+
   const liveDeepArViewProps = DEEPAR_ENABLED
     ? {
         effectsPanelOpen: isMultiGuestEffectsOpen,
@@ -1669,12 +1929,22 @@ export function Room() {
   );
   /** Discovery heartbeat reads PK phase without reordering hooks above pkBattle state. */
   const pkPhaseForDiscoveryRef = useRef<string>('idle');
+  const liveBroadcastEndedRef = useRef(
+    isHostLiveEnded(roomDisplayId) || isHostUserLiveEnded(self.id),
+  );
+  const [liveBroadcastEnded, setLiveBroadcastEnded] = useState(
+    () => isHostLiveEnded(roomDisplayId) || isHostUserLiveEnded(self.id),
+  );
 
   useEffect(() => {
-    if (!isOwnerHost || !self.id || !isDiscoverableRoom) return undefined;
+    if (!isOwnerHost || !self.id || !isDiscoverableRoom || liveBroadcastEnded) return undefined;
+    if (liveBroadcastEndedRef.current) return undefined;
+    if (isHostLiveEnded(roomDisplayId) || isHostUserLiveEnded(self.id)) return undefined;
 
     const settingsMode = String(liveSettings.roomMode || roomMode);
     const publishPresence = () => {
+      if (liveBroadcastEndedRef.current) return;
+      if (isHostLiveEnded(roomDisplayId) || isHostUserLiveEnded(self.id)) return;
       const liveKind = liveKindForPkPresence(settingsMode, pkPhaseForDiscoveryRef.current);
       const pkActive = pkPhaseForDiscoveryRef.current === 'active';
       db.setUserLiveStatus(self.id!, true, liveKind);
@@ -1685,7 +1955,7 @@ export function Room() {
 
     publishPresence();
 
-    // Sticky presence — do NOT clear on React remount; only on explicit leave.
+    // Sticky presence — do NOT clear on React remount; only on explicit End Live.
     const heartbeat = window.setInterval(publishPresence, 25_000);
 
     return () => window.clearInterval(heartbeat);
@@ -1705,6 +1975,7 @@ export function Room() {
     roomMode,
     isOwnerHost,
     isDiscoverableRoom,
+    liveBroadcastEnded,
   ]);
 
   const performanceKey = isSingingMode && currentlySinging ? currentlySinging.id : null;
@@ -1755,8 +2026,8 @@ export function Room() {
     voiceStatus: singingVoiceStatus,
   } = useSingingSession(isSelfPerforming, singingVoiceEffect);
 
-  const handleToggleSaveRoom = (event: React.MouseEvent) => {
-    event.stopPropagation();
+  const handleToggleSaveRoom = (event?: React.MouseEvent) => {
+    event?.stopPropagation();
     const nextSaved = toggleSavedRoom({
       id: roomDisplayId,
       name: roomTitle,
@@ -1775,14 +2046,26 @@ export function Room() {
   const [pkBattle, setPkBattle] = useState<PKBattleState>(() => ({ ...DEFAULT_PK_STATE }));
   const appliedPkEventIdsRef = useRef(new Set<string>());
   const processedPkGiftPlayIdsRef = useRef(new Set<string>());
-  pkPhaseForDiscoveryRef.current = pkBattle.phase;
+  const productionPkPhase = productionPkGate.activePkId
+    ? 'active'
+    : productionPkGate.challengePending
+      ? 'inviting'
+      : 'idle';
+  pkPhaseForDiscoveryRef.current = isPkEligibleStream ? productionPkPhase : pkBattle.phase;
 
   // Push Live feed presence as soon as PK phase changes (don't wait for heartbeat).
   useEffect(() => {
-    if (!isOwnerHost || !self.id || !isDiscoverableRoom || !isPkEligibleStream) return;
+    if (!isOwnerHost || !self.id || !isDiscoverableRoom || !isPkEligibleStream || liveBroadcastEnded) return;
+    if (liveBroadcastEndedRef.current) return;
+    if (isHostLiveEnded(roomDisplayId) || isHostUserLiveEnded(self.id)) return;
     const settingsMode = String(liveSettings.roomMode || roomMode);
-    const liveKind = liveKindForPkPresence(settingsMode, pkBattle.phase);
-    const pkActive = pkBattle.phase === 'active';
+    const phase = productionPkGate.activePkId
+      ? 'active'
+      : productionPkGate.challengePending
+        ? 'inviting'
+        : 'idle';
+    const liveKind = liveKindForPkPresence(settingsMode, phase);
+    const pkActive = phase === 'active';
     db.setUserLiveStatus(self.id, true, liveKind);
     syncPartyRoomToCloud(roomDisplayId, liveSettings.ownerUserId ?? self.id, liveSettings, {
       pkActive,
@@ -1792,10 +2075,12 @@ export function Room() {
     self.id,
     isDiscoverableRoom,
     isPkEligibleStream,
-    pkBattle.phase,
+    productionPkGate.activePkId,
+    productionPkGate.challengePending,
     liveSettings,
     roomDisplayId,
     roomMode,
+    liveBroadcastEnded,
   ]);
 
   const [backgroundMode, setBackgroundMode] = useState<RoomBackgroundMode>(() =>
@@ -1886,6 +2171,263 @@ export function Room() {
     setIsSongSelectorOpen(true);
   }, [currentlySinging]);
 
+  const isCanonicalLiveHost =
+    !isSilentAdminWatch &&
+    (isRoomOwner(currentUserRole) ||
+      liveSettings.ownerUserId === self.id ||
+      isSelfSoloHost ||
+      isSelfGameHost);
+
+  const lifecycleRole: LiveParticipantRole = isCanonicalLiveHost
+    ? 'host'
+    : isUserSeated
+      ? 'guest'
+      : 'viewer';
+
+  const lifecycleRoomType = useMemo<LiveLifecycleRoomType>(() => {
+    const pkActive = Boolean(pkBattle && pkBattle.phase !== 'idle');
+    if (pkActive) return pkBattle?.mode === 'team' ? 'pk_team' : 'pk_1v1';
+    if (isCommerceLive) return 'commerce';
+    if (roomMode === 'SoloLive') return 'solo_video';
+    if (roomMode === 'MultiGuest') return 'video_multi';
+    if (roomMode === 'GameLive') return 'game';
+    return 'audio_party';
+  }, [isCommerceLive, pkBattle, roomMode]);
+
+  const participantSessionIdRef = useRef(newParticipantSessionId(self.id || 'anon'));
+  const roomVersionRef = useRef(1);
+  const liveStartedAtRef = useRef(new Date().toISOString());
+  const dashboardSeenRef = useRef(new Set<string>());
+  const leavePendingRef = useRef(false);
+  const endPendingRef = useRef(false);
+  const [leaveConfirmOpen, setLeaveConfirmOpen] = useState(false);
+  const [endConfirmOpen, setEndConfirmOpen] = useState(false);
+  const [leaveConfirmKey, setLeaveConfirmKey] = useState('live.leave.confirm.viewer');
+  const [lifecyclePending, setLifecyclePending] = useState(false);
+  const [hostDashboardOpen, setHostDashboardOpen] = useState(false);
+  const [hostDashboard, setHostDashboard] = useState<LiveHostDashboardSnapshot | null>(null);
+  const [hostDashboardSyncing, setHostDashboardSyncing] = useState(false);
+  const [hostSummary, setHostSummary] = useState<LiveHostSummary | null>(null);
+  canCreditHostLiveCoinsRef.current = isCanonicalLiveHost && !liveBroadcastEnded;
+
+  useEffect(() => {
+    participantSessionIdRef.current = newParticipantSessionId(self.id || 'anon');
+    liveStartedAtRef.current = new Date().toISOString();
+    liveCoinsReceivedRef.current = 0;
+    liveGiftCountRef.current = 0;
+    setLiveCoinsReceived(0);
+    setLiveGiftCount(0);
+    setHostDashboard(null);
+    setHostSummary(null);
+    resetLiveChartHistory(roomDisplayId);
+  }, [self.id, roomDisplayId]);
+
+  useEffect(() => {
+    if (!isCanonicalLiveHost || liveBroadcastEnded) return;
+    setHostDashboard((prev) => prev ?? emptyHostDashboard(roomDisplayId, liveStartedAtRef.current));
+  }, [isCanonicalLiveHost, liveBroadcastEnded, roomDisplayId]);
+
+  useEffect(() => {
+    let cancelled = false;
+    void (async () => {
+      try {
+        if (lifecycleRole === 'host') {
+          const ensured = await ensureLiveLifecycleRoom({
+            roomId: roomDisplayId,
+            roomType: lifecycleRoomType,
+            hasCanonicalCohostTransfer: false,
+          });
+          if (cancelled) return;
+          roomVersionRef.current = ensured.roomVersion;
+          if (ensured.startedAt) liveStartedAtRef.current = ensured.startedAt;
+          setHostDashboard((prev) => ({
+            ...(prev ?? emptyHostDashboard(roomDisplayId, liveStartedAtRef.current)),
+            startedAt: ensured.startedAt || liveStartedAtRef.current,
+            roomVersion: ensured.roomVersion,
+            roomState: (ensured.roomState as LiveHostDashboardSnapshot['roomState']) || 'live',
+          }));
+        }
+        await connectLiveLifecycleSession({
+          roomId: roomDisplayId,
+          participantSessionId: participantSessionIdRef.current,
+          role: lifecycleRole,
+          seated: isUserSeated,
+          roomType: lifecycleRoomType,
+        });
+      } catch (err) {
+        logProductionPkRoute({
+          event: 'live_lifecycle_connect_failed',
+          roomId: roomDisplayId,
+          role: lifecycleRole,
+          error: err instanceof Error ? err.message : String(err),
+        });
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [roomDisplayId, lifecycleRoomType, lifecycleRole, isUserSeated]);
+
+  const exitAfterLeave = useCallback(() => {
+    cancelCurrentSongRef.current();
+    const clearedSeats = clearSelfFromPartySeats(roomDisplayId, activeSeatsRef.current, self);
+    setActiveSeats(clearedSeats);
+    clearActiveRoomSession(roomDisplayId);
+    exitRoomFlow();
+  }, [exitRoomFlow, roomDisplayId, self]);
+
+  const requestLeaveRoom = useCallback(async () => {
+    beginInstantAction('live.room.leave');
+    if (leavePendingRef.current) return;
+    try {
+      const preview = await previewLiveLeave(roomDisplayId, lifecycleRole);
+      roomVersionRef.current = preview.roomVersion || roomVersionRef.current;
+      setLeaveConfirmKey(preview.confirmationKey || 'live.leave.confirm.viewer');
+      if (preview.policy === 'end-required') {
+        setLeaveConfirmOpen(true);
+        return;
+      }
+      setLeaveConfirmOpen(true);
+    } catch {
+      setLeaveConfirmKey(
+        lifecycleRole === 'guest'
+          ? 'live.leave.confirm.guest'
+          : lifecycleRole === 'host'
+            ? 'live.leave.confirm.hostGrace'
+            : 'live.leave.confirm.viewer',
+      );
+      setLeaveConfirmOpen(true);
+    }
+  }, [lifecycleRole, roomDisplayId]);
+
+  const confirmLeaveRoom = useCallback(async () => {
+    if (leavePendingRef.current) return;
+    leavePendingRef.current = true;
+    setLifecyclePending(true);
+    try {
+      const result = await leaveLiveRoom(roomDisplayId, {
+        commandId: newLifecycleCommandId('leave'),
+        participantSessionId: participantSessionIdRef.current,
+        expectedRoomVersion: roomVersionRef.current,
+        reason: 'user_selected_leave',
+        roomType: lifecycleRoomType,
+        role: lifecycleRole,
+        seated: isUserSeated,
+      });
+      roomVersionRef.current = result.roomVersion;
+      if (result.hostDeparturePolicy === 'end-required') {
+        setLeaveConfirmOpen(false);
+        setLeaveConfirmKey(result.confirmationKey);
+        setEndConfirmOpen(true);
+        return;
+      }
+      setLeaveConfirmOpen(false);
+      exitAfterLeave();
+    } catch {
+      exitAfterLeave();
+    } finally {
+      leavePendingRef.current = false;
+      setLifecyclePending(false);
+    }
+  }, [exitAfterLeave, isUserSeated, lifecycleRole, lifecycleRoomType, roomDisplayId]);
+
+  const requestEndLive = useCallback(async () => {
+    beginInstantAction('live.room.end');
+    if (!isCanonicalLiveHost || endPendingRef.current) return;
+    setEndConfirmOpen(true);
+  }, [isCanonicalLiveHost]);
+
+  const confirmEndLive = useCallback(async () => {
+    if (endPendingRef.current) return;
+    endPendingRef.current = true;
+    setLifecyclePending(true);
+    liveBroadcastEndedRef.current = true;
+    setLiveBroadcastEnded(true);
+    const ownerId = liveSettings.ownerUserId ?? self.id;
+    markHostLiveEnded(roomDisplayId, ownerId);
+    if (self.id) db.setUserLiveStatus(self.id, false);
+    void liveRoomBus.emitLifecycle({ action: 'ended', roomId: roomDisplayId });
+    try {
+      const result = await permanentlyEndHostLive({
+        roomId: roomDisplayId,
+        hostUserId: ownerId,
+        expectedRoomVersion: roomVersionRef.current,
+        roomType: lifecycleRoomType,
+      });
+      if (result?.roomVersion) roomVersionRef.current = result.roomVersion;
+      setEndConfirmOpen(false);
+      setLeaveConfirmOpen(false);
+      if (result?.summary) {
+        setHostSummary(result.summary);
+        setHostDashboardOpen(true);
+        return;
+      }
+      exitAfterLeave();
+    } catch {
+      setEndConfirmOpen(false);
+      setLeaveConfirmOpen(false);
+      exitAfterLeave();
+    } finally {
+      endPendingRef.current = false;
+      setLifecyclePending(false);
+    }
+  }, [
+    exitAfterLeave,
+    lifecycleRoomType,
+    liveRoomBus,
+    liveSettings.ownerUserId,
+    roomDisplayId,
+    self.id,
+  ]);
+
+  useEffect(() => {
+    const onRemoteEnd = (event: Event) => {
+      const endedRoomId = liveRoomEndedDetail(event);
+      if (!endedRoomId) return;
+      if (!liveEndedIdMatchesRoom(endedRoomId, roomDisplayId)) return;
+      if (liveBroadcastEndedRef.current) return;
+      liveBroadcastEndedRef.current = true;
+      setLiveBroadcastEnded(true);
+      const ownerId = liveSettings.ownerUserId ?? self.id;
+      markHostLiveEnded(roomDisplayId, ownerId);
+      if (self.id) db.setUserLiveStatus(self.id, false);
+      void liveRoomBus.emitLifecycle({ action: 'ended', roomId: roomDisplayId });
+      void endPartyRoom(roomDisplayId, ownerId).catch(() => undefined);
+      void endHostMediaSession('ended').catch(() => undefined);
+      setEndConfirmOpen(false);
+      setLeaveConfirmOpen(false);
+      exitAfterLeave();
+    };
+    window.addEventListener(LIVE_ROOM_ENDED_EVENT, onRemoteEnd);
+    return () => window.removeEventListener(LIVE_ROOM_ENDED_EVENT, onRemoteEnd);
+  }, [exitAfterLeave, liveRoomBus, liveSettings.ownerUserId, roomDisplayId, self.id]);
+
+  const openHostDashboard = useCallback(async () => {
+    if (!isCanonicalLiveHost) return;
+    setHostDashboard((prev) => prev ?? emptyHostDashboard(roomDisplayId, liveStartedAtRef.current));
+    setHostDashboardOpen(true);
+    setHostDashboardSyncing(true);
+    try {
+      const { snapshot, deltas } = await fetchHostDashboardSnapshot(roomDisplayId, hostDashboard?.sequence ?? 0);
+      let next = snapshot;
+      for (const delta of deltas) {
+        const applied = applyHostDashboardDelta(next, delta, dashboardSeenRef.current);
+        if (!applied.ok && applied.reason === 'gap') {
+          const recovered = await fetchHostDashboardSnapshot(roomDisplayId, 0);
+          next = recovered.snapshot;
+          break;
+        }
+        if (applied.ok && !applied.duplicate) next = applied.snapshot;
+      }
+      setHostDashboard(next);
+      roomVersionRef.current = next.roomVersion;
+    } catch {
+      /* keep last valid dashboard visible */
+    } finally {
+      setHostDashboardSyncing(false);
+    }
+  }, [hostDashboard?.sequence, isCanonicalLiveHost, roomDisplayId]);
+
   const partyHeaderMenuItems = useMemo<RoomHeaderMenuItem[]>(
     () => [
       {
@@ -1930,6 +2472,20 @@ export function Room() {
         hidden: !canChangeRoomBackground,
       }),
       createYoutubeMiniHeaderMenuItem(),
+      {
+        id: 'host-dashboard',
+        label: i18n?.t('live.host.dashboard') ?? 'Live dashboard',
+        icon: <Activity size={15} aria-hidden />,
+        onClick: () => void openHostDashboard(),
+        hidden: !isCanonicalLiveHost,
+      },
+      {
+        id: 'end-live',
+        label: i18n?.t('live.endLive') ?? 'End Live',
+        icon: <Power size={15} aria-hidden />,
+        onClick: () => void requestEndLive(),
+        hidden: !isCanonicalLiveHost,
+      },
     ],
     [
       openRoomDetails,
@@ -1942,6 +2498,8 @@ export function Room() {
       handleOpenAnnouncementEditor,
       handleOpenRoomModePicker,
       canChangeRoomBackground,
+      i18n,
+      isCanonicalLiveHost,
     ],
   );
 
@@ -1989,6 +2547,20 @@ export function Room() {
         hidden: !canChangeRoomBackground,
       }),
       createYoutubeMiniHeaderMenuItem(),
+      {
+        id: 'host-dashboard',
+        label: i18n?.t('live.host.dashboard') ?? 'Live dashboard',
+        icon: <Activity size={15} aria-hidden />,
+        onClick: () => void openHostDashboard(),
+        hidden: !isCanonicalLiveHost,
+      },
+      {
+        id: 'end-live',
+        label: i18n?.t('live.endLive') ?? 'End Live',
+        icon: <Power size={15} aria-hidden />,
+        onClick: () => void requestEndLive(),
+        hidden: !isCanonicalLiveHost,
+      },
     ],
     [
       openRoomDetails,
@@ -2001,6 +2573,8 @@ export function Room() {
       handleOpenAnnouncementEditor,
       handleOpenRoomModePicker,
       canChangeRoomBackground,
+      i18n,
+      isCanonicalLiveHost,
     ],
   );
 
@@ -2093,9 +2667,355 @@ export function Room() {
   ]);
 
   useEffect(() => {
-    if (!isDiscoverableRoom || !isOwnerHost) return;
+    if (isCanonicalLiveHost || liveBroadcastEnded) return;
+    const action = liveRoomBus.lastLifecycle?.action;
+    if (action !== 'ended' && action !== 'ending') return;
+    const endedRoomId = liveRoomBus.lastLifecycle?.roomId;
+    if (endedRoomId && endedRoomId !== roomDisplayId) return;
+    exitAfterLeave();
+  }, [
+    exitAfterLeave,
+    isCanonicalLiveHost,
+    liveBroadcastEnded,
+    liveRoomBus.lastLifecycle,
+    roomDisplayId,
+  ]);
+
+  const lastIngestedCommentCountRef = useRef(0);
+  useEffect(() => {
+    if (!isCanonicalLiveHost || liveBroadcastEnded || !usesLivePartyFeed) return;
+    const count = liveChatMsgs.filter(
+      (m) => !m.isSystem && !m.isJoinEvent && !m.isGiftEvent,
+    ).length;
+    const delta = count - lastIngestedCommentCountRef.current;
+    lastIngestedCommentCountRef.current = count;
+    if (delta <= 0) return;
+    const n = Math.min(delta, 20);
+    for (let i = 0; i < n; i++) {
+      void ingestLiveHostDashboard(roomDisplayId, {
+        kind: 'comment',
+        roomType: lifecycleRoomType,
+      }).catch(() => undefined);
+    }
+  }, [
+    isCanonicalLiveHost,
+    liveBroadcastEnded,
+    liveChatMsgs,
+    lifecycleRoomType,
+    roomDisplayId,
+    usesLivePartyFeed,
+  ]);
+
+  const seatedCount = useMemo(
+    () => Object.values(activeSeats).filter(Boolean).length,
+    [activeSeats],
+  );
+
+  useEffect(() => {
+    if (!isCanonicalLiveHost || liveBroadcastEnded) return undefined;
+    const pushAudience = () => {
+      if (liveBroadcastEndedRef.current) return;
+      void ingestLiveHostDashboard(roomDisplayId, {
+        kind: 'audience',
+        roomType: lifecycleRoomType,
+        audience: {
+          currentUniqueViewers: viewers.length,
+          currentConnections: viewers.length,
+          seated: seatedCount,
+          pendingSeatRequests: guestRequests.length,
+        },
+      })
+        .then((dash) => {
+          if (dash && typeof dash === 'object' && 'sequence' in dash) {
+            setHostDashboard(dash as LiveHostDashboardSnapshot);
+          }
+        })
+        .catch(() => undefined);
+    };
+    pushAudience();
+    const id = window.setInterval(pushAudience, 8_000);
+    return () => window.clearInterval(id);
+  }, [
+    guestRequests.length,
+    isCanonicalLiveHost,
+    liveBroadcastEnded,
+    lifecycleRoomType,
+    roomDisplayId,
+    seatedCount,
+    viewers.length,
+  ]);
+
+  const hostDashboardSequenceRef = useRef(0);
+  hostDashboardSequenceRef.current = hostDashboard?.sequence ?? 0;
+
+  useEffect(() => {
+    if (!hostDashboardOpen || !isCanonicalLiveHost || hostSummary) return undefined;
+    let cancelled = false;
+    const poll = async () => {
+      try {
+        const { snapshot, deltas } = await fetchHostDashboardSnapshot(
+          roomDisplayId,
+          hostDashboardSequenceRef.current,
+        );
+        if (cancelled) return;
+        let next = snapshot;
+        for (const delta of deltas) {
+          const applied = applyHostDashboardDelta(next, delta, dashboardSeenRef.current);
+          if (!applied.ok && applied.reason === 'gap') {
+            const recovered = await fetchHostDashboardSnapshot(roomDisplayId, 0);
+            next = recovered.snapshot;
+            break;
+          }
+          if (applied.ok && !applied.duplicate) next = applied.snapshot;
+        }
+        setHostDashboard(next);
+        roomVersionRef.current = next.roomVersion;
+      } catch {
+        /* keep last valid dashboard */
+      }
+    };
+    void poll();
+    const id = window.setInterval(() => void poll(), 5_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [hostDashboardOpen, hostSummary, isCanonicalLiveHost, roomDisplayId]);
+
+  useEffect(() => {
+    if (!isCanonicalLiveHost || liveBroadcastEnded) return undefined;
+    const pushMedia = async () => {
+      if (liveBroadcastEndedRef.current) return;
+      const telemetry = await readHostLiveKitTelemetry(roomDisplayId);
+      if (!telemetry) return;
+      try {
+        const dash = await ingestLiveHostDashboard(roomDisplayId, {
+          kind: 'media',
+          roomType: lifecycleRoomType,
+          media: telemetry,
+        });
+        if (dash && typeof dash === 'object' && 'sequence' in dash) {
+          setHostDashboard((prev) => ({
+            ...(prev ?? emptyHostDashboard(roomDisplayId, liveStartedAtRef.current)),
+            ...(dash as LiveHostDashboardSnapshot),
+            media: (dash as LiveHostDashboardSnapshot).media ?? telemetry,
+          }));
+        } else {
+          setHostDashboard((prev) =>
+            prev
+              ? { ...prev, media: { ...prev.media, ...telemetry } }
+              : {
+                  ...emptyHostDashboard(roomDisplayId, liveStartedAtRef.current),
+                  media: { ...emptyHostDashboard(roomDisplayId, liveStartedAtRef.current).media, ...telemetry },
+                },
+          );
+        }
+      } catch {
+        setHostDashboard((prev) =>
+          prev ? { ...prev, media: { ...prev.media, ...telemetry } } : prev,
+        );
+      }
+    };
+    void pushMedia();
+    const id = window.setInterval(() => void pushMedia(), 8_000);
+    return () => window.clearInterval(id);
+  }, [isCanonicalLiveHost, liveBroadcastEnded, lifecycleRoomType, roomDisplayId]);
+
+  const hostCoinsReceived = Math.max(
+    liveCoinsReceived,
+    hostDashboard?.gifts.confirmedGrossGiftValue ?? 0,
+    hostSummary?.giftValue ?? 0,
+  );
+  const hostGiftCount = Math.max(
+    liveGiftCount,
+    hostDashboard?.gifts.confirmedGiftCount ?? 0,
+    hostSummary?.confirmedGiftCount ?? 0,
+  );
+  const hostCashUsd = usdFromCoins(hostCoinsReceived, true);
+  const liveLikeCount = Math.max(
+    liveRoomBus.likeCount,
+    hostDashboard?.engagement.reactions ?? 0,
+    hostSummary?.reactions ?? 0,
+  );
+  const liveFollowCount = Math.max(
+    liveRoomBus.followCount,
+    hostDashboard?.engagement.followersGained ?? 0,
+    hostSummary?.followersGained ?? 0,
+  );
+
+  // Realtime chart history for Live Data Dashboard (viewers + engagement counters).
+  useEffect(() => {
+    if (!isCanonicalLiveHost || liveBroadcastEnded) return undefined;
+    const sample = () => {
+      if (liveBroadcastEndedRef.current) return;
+      const commentCount = liveChatMsgs.filter((m) => !m.isSystem && !m.isJoinEvent && !m.isGiftEvent).length;
+      pushLiveChartSample(roomDisplayId, {
+        viewers: viewers.length,
+        comments: commentCount,
+        likes: liveLikeCount,
+        gifts: hostGiftCount,
+        coins: hostCoinsReceived,
+      });
+    };
+    sample();
+    const id = window.setInterval(sample, 5_000);
+    return () => window.clearInterval(id);
+  }, [
+    hostCoinsReceived,
+    hostGiftCount,
+    isCanonicalLiveHost,
+    liveBroadcastEnded,
+    liveChatMsgs,
+    liveLikeCount,
+    roomDisplayId,
+    viewers.length,
+  ]);
+
+  const hostOwnerUserId = liveSettings.ownerUserId?.trim() || self.id;
+  const hostFollowerTotal = useMemo(() => {
+    void dbRevision;
+    if (!hostOwnerUserId) return liveFollowCount;
+    return Math.max(db.getFollowListMembers(hostOwnerUserId, 'followers').length, liveFollowCount);
+  }, [db, dbRevision, hostOwnerUserId, liveFollowCount]);
+  const hostFollowers = useMemo(() => {
+    void dbRevision;
+    if (!hostOwnerUserId) {
+      return liveRoomBus.followTappers.map((tapper) => ({
+        userId: tapper.userId,
+        name: tapper.name,
+        avatarUrl: tapper.avatarUrl,
+        followedThisLive: true,
+      }));
+    }
+    const liveFollowIds = new Set(liveRoomBus.followTappers.map((tapper) => tapper.userId));
+    const members = db.getFollowListMembers(hostOwnerUserId, 'followers').map((user) => ({
+      userId: user.id,
+      name: user.displayName || user.username || 'Guest',
+      avatarUrl: user.avatarUrl,
+      followedThisLive: liveFollowIds.has(user.id),
+    }));
+    const memberIds = new Set(members.map((member) => member.userId));
+    const liveOnly = liveRoomBus.followTappers
+      .filter((tapper) => !memberIds.has(tapper.userId))
+      .map((tapper) => ({
+        userId: tapper.userId,
+        name: tapper.name,
+        avatarUrl: tapper.avatarUrl,
+        followedThisLive: true,
+      }));
+    return [...liveOnly, ...members];
+  }, [db, dbRevision, hostOwnerUserId, liveRoomBus.followTappers]);
+
+  const emitLiveLike = liveRoomBus.emitLike;
+  const tapLiveLike = useCallback(
+    (origin?: { xPct: number; yPct: number }) => {
+      if (liveBroadcastEndedRef.current) return;
+      emitLiveLike(origin ?? {});
+    },
+    [emitLiveLike],
+  );
+
+  const prevLikeCountRef = useRef(0);
+  const pendingLikeIngestRef = useRef(0);
+  const likeIngestTimerRef = useRef<number | null>(null);
+  useEffect(() => {
+    prevLikeCountRef.current = 0;
+    pendingLikeIngestRef.current = 0;
+    if (likeIngestTimerRef.current != null) {
+      window.clearTimeout(likeIngestTimerRef.current);
+      likeIngestTimerRef.current = null;
+    }
+  }, [roomDisplayId]);
+
+  useEffect(() => {
+    const next = liveRoomBus.likeCount;
+    const delta = next - prevLikeCountRef.current;
+    prevLikeCountRef.current = next;
+    if (delta <= 0 || !isCanonicalLiveHost || liveBroadcastEnded) return;
+    pendingLikeIngestRef.current += delta;
+    if (likeIngestTimerRef.current != null) return;
+    likeIngestTimerRef.current = window.setTimeout(() => {
+      likeIngestTimerRef.current = null;
+      const n = pendingLikeIngestRef.current;
+      pendingLikeIngestRef.current = 0;
+      if (n <= 0 || liveBroadcastEndedRef.current) return;
+      void ingestLiveHostDashboard(roomDisplayId, {
+        kind: 'reaction',
+        count: n,
+        roomType: lifecycleRoomType,
+      }).catch(() => undefined);
+    }, 400);
+    return () => {
+      if (likeIngestTimerRef.current != null) {
+        window.clearTimeout(likeIngestTimerRef.current);
+        likeIngestTimerRef.current = null;
+      }
+    };
+  }, [
+    isCanonicalLiveHost,
+    liveBroadcastEnded,
+    liveRoomBus.likeCount,
+    lifecycleRoomType,
+    roomDisplayId,
+  ]);
+
+  useEffect(() => {
+    if (!isCanonicalLiveHost || hostCoinsReceived <= 0) return;
+    setHostDashboard((prev) => {
+      if (!prev) return prev;
+      const nextCount = Math.max(prev.gifts.confirmedGiftCount, hostGiftCount);
+      const nextCoins = Math.max(prev.gifts.confirmedGrossGiftValue ?? 0, hostCoinsReceived);
+      if (nextCount === prev.gifts.confirmedGiftCount && nextCoins === (prev.gifts.confirmedGrossGiftValue ?? 0)) {
+        return prev;
+      }
+      return {
+        ...prev,
+        gifts: {
+          confirmedGiftCount: nextCount,
+          confirmedGrossGiftValue: nextCoins,
+          settlementState: 'confirmed',
+        },
+      };
+    });
+  }, [hostCoinsReceived, hostGiftCount, isCanonicalLiveHost]);
+
+  const hostLiveMetrics = useMemo<HostLiveMetrics | null>(() => {
+    if (!isCanonicalLiveHost || liveBroadcastEnded) return null;
+    return {
+      startedAt: hostDashboard?.startedAt || liveStartedAtRef.current,
+      currentViewers: viewers.length,
+      peakViewers: hostDashboard?.audience.peakConcurrentViewers,
+      comments: hostDashboard?.engagement.comments,
+      likes: liveLikeCount,
+      follows: liveFollowCount,
+      gifts: hostGiftCount,
+      coinsReceived: hostCoinsReceived,
+      cashUsd: hostCashUsd,
+      seated: seatedCount,
+      connectionQuality: hostDashboard?.media.connectionQuality,
+      onOpenDashboard: () => void openHostDashboard(),
+    };
+  }, [
+    hostCashUsd,
+    hostCoinsReceived,
+    hostDashboard?.audience.peakConcurrentViewers,
+    hostDashboard?.engagement.comments,
+    liveLikeCount,
+    liveFollowCount,
+    hostDashboard?.media.connectionQuality,
+    hostDashboard?.startedAt,
+    hostGiftCount,
+    isCanonicalLiveHost,
+    liveBroadcastEnded,
+    openHostDashboard,
+    seatedCount,
+    viewers.length,
+  ]);
+
+  useEffect(() => {
+    if (!isDiscoverableRoom || !isOwnerHost || liveBroadcastEnded) return;
     syncPartyRoomToCloud(roomDisplayId, liveSettings.ownerUserId ?? self.id, liveSettings);
-  }, [isDiscoverableRoom, isOwnerHost, roomDisplayId, liveSettings, self.id]);
+  }, [isDiscoverableRoom, isOwnerHost, liveBroadcastEnded, roomDisplayId, liveSettings, self.id]);
 
   useEffect(() => {
     if (isSilentAdminWatch) return;
@@ -2143,10 +3063,18 @@ export function Room() {
         const toggled = db.toggleFollow(targetUserId);
         if (toggled !== null) {
           nextFollowing = toggled;
+          if (
+            nextFollowing &&
+            (v.isOwner || targetUserId === resolveOwnerUserId(liveSettings))
+          ) {
+            liveRoomBus.emitFollow({ followerId: self.id });
+            void ingestLiveHostDashboard(roomDisplayId, {
+              kind: 'follow',
+              roomType: lifecycleRoomType,
+            }).catch(() => undefined);
+          }
         }
       }
-
-      showToast(nextFollowing ? `Followed ${v.name}` : `Unfollowed ${v.name}`);
 
       return { ...v, isFollowing: nextFollowing };
     }));
@@ -2233,17 +3161,12 @@ export function Room() {
     // 2. Free up any occupied seats
     setActiveSeats(prev => {
       const copy = { ...prev };
-      let seatKicked = false;
       Object.keys(copy).forEach(k => {
         const occupant = copy[k];
         if (occupant && occupant.name === viewerName) {
           copy[k] = null;
-          seatKicked = true;
         }
       });
-      if (seatKicked) {
-        showToast(`Freed seat held by ${viewerName}`);
-      }
       return copy;
     });
 
@@ -2649,7 +3572,14 @@ export function Room() {
 
   const renderStandardChatMessage = useCallback(
     (
-      message: ChatAuthorMsg & { id: string | number; text?: string },
+      message: ChatAuthorMsg & {
+        id: string | number;
+        text?: string;
+        isStickerEvent?: boolean;
+        stickerAssetUrl?: string;
+        stickerLabel?: string;
+        stickerId?: string;
+      },
       options?: { bubbleClassName?: string; layout?: 'stacked' | 'inline' },
     ) => {
       const chatAuthor = resolveChatAuthor(message);
@@ -2684,7 +3614,18 @@ export function Room() {
           } px-2.5 py-1.5 text-left`}
         >
           <div className="party-chat-bubble-text font-bold text-[#faf9f3] tracking-wide break-words">
-            {renderMessageTextWithMentions(message.text ?? '')}
+            {message.isStickerEvent && message.stickerAssetUrl ? (
+              <V14AnimatedStickerArtwork
+                stickerId={message.stickerId}
+                src={message.stickerAssetUrl}
+                alt={message.stickerLabel || 'Sticker'}
+                className="party-chat-sticker-art"
+                imgClassName="h-full w-full object-contain"
+                playKey={String(message.id)}
+              />
+            ) : (
+              renderMessageTextWithMentions(message.text ?? '')
+            )}
           </div>
         </div>
       );
@@ -2873,16 +3814,6 @@ export function Room() {
 
     if (isSelf) {
       setUserMicPrefOn(nextSpeaking);
-      showToast(nextSpeaking ? "You unmuted your microphone!" : "You muted your microphone!");
-      if (seatKey === "host") {
-        setIsMuted(!nextSpeaking);
-      }
-    } else {
-      if (nextAdminMuted) {
-        showToast(`Muted and locked microphone of ${seatValue.name}`);
-      } else {
-        showToast(`Unmuted and unlocked microphone of ${seatValue.name}`);
-      }
     }
   };
 
@@ -2906,12 +3837,6 @@ export function Room() {
       });
       return copy;
     });
-
-    if (nextMuteState) {
-      showToast("Muted and locked all guest microphones!");
-    } else {
-      showToast("Unmuted and unlocked all guest microphones!");
-    }
   };
 
   // State governing whether neighboring guest seats are mutual followers (heartbeat lights up pink-neon) or not (heartbeat stays dim gray)
@@ -2959,6 +3884,24 @@ export function Room() {
   const ownerSocial = useRoomOwnerSocial(roomDisplayId, liveSettings, self.id, {
     onToast: showToast,
   });
+
+  const emitLiveFollow = liveRoomBus.emitFollow;
+  const handleToggleFollowOwner = useCallback(() => {
+    const wasFollowing = ownerSocial.isFollowingOwner;
+    ownerSocial.toggleFollowOwner();
+    if (!wasFollowing && !ownerSocial.isSelfOwner) {
+      emitLiveFollow({ followerId: self.id });
+      void ingestLiveHostDashboard(roomDisplayId, {
+        kind: 'follow',
+        roomType: lifecycleRoomType,
+      }).catch(() => undefined);
+    }
+  }, [emitLiveFollow, lifecycleRoomType, ownerSocial, roomDisplayId, self.id]);
+
+  const liveOwnerSocial = useMemo(
+    () => ({ ...ownerSocial, toggleFollowOwner: handleToggleFollowOwner }),
+    [handleToggleFollowOwner, ownerSocial],
+  );
 
   const isStageActive = isSingingMode && currentlySinging !== null;
 
@@ -3266,7 +4209,7 @@ export function Room() {
     setCurrentlySinging(null);
     setCurrentSingerName(null);
     setChorusScore(0);
-    setSingingVoiceEffect('studio');
+    setSingingVoiceEffect('original');
     if (abandonedTitle) {
       showToast(`Cancelled "${abandonedTitle}"`);
     }
@@ -3320,7 +4263,7 @@ export function Room() {
       setCurrentlySinging(null);
       setCurrentSingerName(null);
       setChorusScore(0);
-      setSingingVoiceEffect('studio');
+      setSingingVoiceEffect('original');
       return prev;
     });
   };
@@ -3384,19 +4327,10 @@ export function Room() {
   useEffect(() => {
     if (roomMode !== 'Chorus' || isUserSeated) return;
 
-    let removedCount = 0;
     setSongQueue((prev) => {
-      const filtered = prev.filter((entry) => {
-        const shouldRemove = isRoomSelfName(entry.requestedBy, self);
-        if (shouldRemove) removedCount += 1;
-        return !shouldRemove;
-      });
+      const filtered = prev.filter((entry) => !isRoomSelfName(entry.requestedBy, self));
       return filtered.length === prev.length ? prev : filtered;
     });
-
-    if (removedCount > 0) {
-      showToast(`Left seat: removed ${removedCount} queued song${removedCount > 1 ? 's' : ''}.`);
-    }
   }, [roomMode, isUserSeated, self]);
 
   useEffect(() => {
@@ -3405,7 +4339,6 @@ export function Room() {
 
     // Enforce karaoke rule: leaving seat immediately ends your active turn without advancing the queue.
     cancelCurrentSongRef.current();
-    showToast('You left your seat — your song was stopped.');
   }, [roomMode, isUserSeated, isSingingMode, currentSingerName, self.roomName]);
 
   // Sync mode / settings with seat layout — keeps guest seats, reconciles host to room owner
@@ -3725,7 +4658,6 @@ export function Room() {
               isElite: joinContext.isElite,
             },
           ]);
-          showToast("Join seat request sent! Waiting for Room Owner/Admin approval.");
           return;
         }
       }
@@ -3783,8 +4715,6 @@ export function Room() {
       } else {
         setMessages(prev => [...prev, { isSystem: false, user: self.chatLabel, text: joinText, isBurmese: false, isJoinEvent: false }]);
       }
-      
-      showToast("You are now seated!");
     } else {
       openGiftPickerForGuest(occupant);
     }
@@ -3833,7 +4763,6 @@ export function Room() {
         cancelCurrentSongRef.current();
       }
       setSongQueue((prev) => prev.filter((entry) => !isRoomSelfName(entry.requestedBy, self)));
-      showToast('You left your seat.');
       return;
     }
 
@@ -3855,6 +4784,15 @@ export function Room() {
         showToast('No open guest seats right now.');
         return;
       }
+      openLiveToolPanel('guests', {
+        setGift: (v) => { if (!v) { setIsGiftPickerOpen(false); setGiftPickerReceiver(null); } },
+        setGuests: setIsGuestManagementOpen,
+        setGames: setGamePanelOpen,
+        setVoice: setIsRoomVoiceChangerOpen,
+        setBeauty: setIsLiveBeautyOpen,
+        setEffects: setIsMultiGuestEffectsOpen,
+        setStickers: setIsStickerPickerOpen,
+      });
       setIsGuestManagementOpen(true);
       showToast('No open seats — pick one from the grid or guest list.');
       return;
@@ -3865,13 +4803,22 @@ export function Room() {
 
   const handleFooterMyMicClick = () => {
     if (!userSeatKey) {
-      handleToggleSeatParticipation();
+      showToast('Join a seat to use your microphone');
       return;
     }
     handleToggleSeatMic(userSeatKey);
   };
 
   const handleFooterSeatManagementClick = () => {
+    openLiveToolPanel('guests', {
+      setGift: (v) => { if (!v) { setIsGiftPickerOpen(false); setGiftPickerReceiver(null); } },
+      setGuests: setIsGuestManagementOpen,
+      setGames: setGamePanelOpen,
+      setVoice: setIsRoomVoiceChangerOpen,
+      setBeauty: setIsLiveBeautyOpen,
+      setEffects: setIsMultiGuestEffectsOpen,
+      setStickers: setIsStickerPickerOpen,
+    });
     setIsGuestManagementOpen(true);
   };
 
@@ -3892,38 +4839,114 @@ export function Room() {
     async (options: PKConnectOptions) => {
       setPkConnecting(true);
       try {
-        const hostFighter: PKFighter = {
-          userId: self.id,
-          name: self.roomName ?? self.chatLabel ?? 'Host',
-          score: 0,
-          avatarUrl: activeSeats.host?.avatar,
-        };
-        const opponentFighter: PKFighter = {
-          userId: options.opponentUserId,
-          name: options.opponentName,
-          score: 0,
-          avatarUrl: options.opponentAvatar,
-        };
-        const teams = buildSoloLivePkTeams(activeSeats, hostFighter, opponentFighter, options.mode);
+        if (!isPkEligibleStream) {
+          showToast('PK is only available in Solo Live and Shop Live');
+          return;
+        }
+        if (isCommerceLive && options.mode === 'team') {
+          showToast('Shop Live uses Sell PK only');
+          return;
+        }
+        if (!isCommerceLive && options.liveSell) {
+          showToast('Sell PK is only available in Shop Live');
+          return;
+        }
         setPkConnectedOpponentName(options.opponentName);
-        await liveRoomBus.emitPk(
-          buildPkInvitePayload(options.opponentUserId, options.opponentName, {
+
+        /** Server-authoritative PK: PkLiveOverlay owns UI. Do not activate PKBattleStage. */
+        if (!options.opponentRoomId?.trim() || !options.opponentUserId?.trim()) {
+          showToast('No live opponent room. Both hosts must be independently live.');
+          logProductionPkRoute({
+            event: 'createPkChallenge_skipped',
+            reason: 'missing_opponent_room',
             mode: options.mode,
-            teamA: teams.teamA,
-            teamB: teams.teamB,
-          }),
-        );
-        setIsPkInviteOpen(false);
-        showToast(
-          options.matchType === 'random'
-            ? `Connected to ${options.opponentName}`
-            : `Invite sent to ${options.opponentName}`,
-        );
+            opponentUserId: options.opponentUserId,
+          });
+          return;
+        }
+        try {
+          const hostMedia = parsePkLiveMediaRef(options.opponentRoomId);
+          const selfMedia = parsePkLiveMediaRef(roomDisplayId);
+          await ensureLiveLifecycleRoom({
+            roomId: selfMedia.lifecycleRoomId,
+            roomType: isCommerceLive ? 'commerce' : 'solo_video',
+          });
+          const requestedTeamSize = options.mode === 'team' ? (options.teamSize ?? 2) : 1;
+          const challengerTeamUserIds =
+            options.mode === 'team'
+              ? getTeamPkRoomUserIds(
+                  selfMedia.lifecycleRoomId,
+                  self.id,
+                  requestedTeamSize === 6 || requestedTeamSize === 4 || requestedTeamSize === 3 ? requestedTeamSize : 2,
+                )
+              : [self.id];
+          if (options.mode === 'team' && challengerTeamUserIds.length !== requestedTeamSize) {
+            const soloCaptainLed = !isCommerceLive && challengerTeamUserIds.length >= 1;
+            if (!soloCaptainLed) {
+              throw new Error(
+                requestedTeamSize === 6
+                  ? 'team_pk_requires_six_seated_members'
+                  : requestedTeamSize === 4
+                    ? 'team_pk_requires_four_seated_members'
+                    : requestedTeamSize === 3
+                      ? 'team_pk_requires_three_seated_members'
+                      : 'team_pk_requires_two_seated_members',
+              );
+            }
+          }
+          const created = await createPkChallenge({
+            hostRoomId: hostMedia.lifecycleRoomId,
+            challengerRoomId: selfMedia.lifecycleRoomId,
+            hostUserId: options.opponentUserId,
+            pkType: options.mode === 'team' ? 'pk_team' : 'pk_1v1',
+            challengerTeamUserIds,
+              teamSize: options.mode === 'team' ? (requestedTeamSize === 1 ? 2 : requestedTeamSize) : undefined,
+            liveSell: Boolean(options.liveSell || isCommerceLive),
+            hostMediaId: hostMedia.mediaId,
+            challengerMediaId: selfMedia.mediaId,
+            hostMediaSurface: hostMedia.surface,
+            challengerMediaSurface: selfMedia.surface,
+            durationSec: Math.max(30, Math.min(3600, Math.floor(options.durationSec || (options.mode === 'team' ? 300 : 180)))),
+            ttlSec: 60,
+          });
+          setProductionPkChallengePending(true);
+          setPkBattle({ ...DEFAULT_PK_STATE });
+          setPkBattleStarted(false);
+          setIsPkInviteOpen(false);
+          logProductionPkRoute({
+            event: 'createPkChallenge',
+            mode: options.mode,
+            opponentUserId: options.opponentUserId,
+            challengerRoomId: selfMedia.lifecycleRoomId,
+            hostRoomId: hostMedia.lifecycleRoomId,
+            challengeId: created.challenge?.id ?? null,
+            challengeStatus: created.challenge?.status ?? null,
+            teamSize: requestedTeamSize,
+            liveSell: Boolean(options.liveSell || isCommerceLive),
+            legacyPkRendererActive: false,
+          });
+          showToast(
+            options.matchType === 'random'
+              ? `Challenge sent to ${options.opponentName}`
+              : `Invite sent to ${options.opponentName}`,
+          );
+          return;
+        } catch (err) {
+          const message = err instanceof Error ? err.message : 'PK challenge failed';
+          logProductionPkRoute({
+            event: 'createPkChallenge_failed',
+            mode: options.mode,
+            opponentUserId: options.opponentUserId,
+            error: message,
+          });
+          showToast(message);
+          return;
+        }
       } finally {
         setPkConnecting(false);
       }
     },
-    [activeSeats, liveRoomBus, self.chatLabel, self.id, self.roomName, showToast],
+    [isCommerceLive, isPkEligibleStream, roomDisplayId, self.id, showToast],
   );
 
   const handleStartPkBattle = useCallback(async () => {
@@ -3934,10 +4957,18 @@ export function Room() {
   }, [liveRoomBus, pkBattle, showToast]);
 
   const handleDisconnectPk = useCallback(async () => {
+    beginInstantAction('live.pk.end');
+    try {
+      await endLivePk(roomDisplayId, { commandId: newLifecycleCommandId('pkend') });
+    } catch {
+      /* local PK overlay still closes */
+    }
     await liveRoomBus.emitPk({ action: 'decline' });
+    setProductionPkChallengePending(false);
+    setProductionPkActiveId(null);
     setIsPkInviteOpen(false);
     showToast('PK disconnected');
-  }, [liveRoomBus, showToast]);
+  }, [liveRoomBus, roomDisplayId, showToast]);
 
   const handleEmitPk = useCallback(
     (payload: PKPayload) => {
@@ -3946,7 +4977,8 @@ export function Room() {
     [liveRoomBus],
   );
 
-  // Single source of truth: apply each PK bus event once by id.
+  // Production solo/commerce live uses server-authoritative PK (PkLiveOverlay) only.
+  // Legacy bus PK must never activate PKBattleStage on eligible streams.
   useEffect(() => {
     if (!isPkEligibleStream) return;
     const pk = liveRoomBus.lastPk;
@@ -3957,26 +4989,13 @@ export function Room() {
     if (appliedPkEventIdsRef.current.size > 400) {
       appliedPkEventIdsRef.current = new Set(Array.from(appliedPkEventIdsRef.current).slice(-200));
     }
-
-    setPkBattle((prev) => applyPkPayload(prev, pk));
-
-    // Derive room flags from the same payload (avoid setState-inside-updater).
-    if (pk.action === 'decline') {
-      setPkBattleStarted(false);
-      setPkConnectedOpponentName(null);
-    } else if (pk.action === 'end') {
-      setPkBattleStarted(false);
-    } else if (pk.action === 'accept') {
-      setPkBattleStarted(true);
-    } else if (pk.action === 'invite') {
-      setPkBattleStarted(false);
-      setPkConnectedOpponentName(pk.opponentName ?? pk.teamB?.[0]?.name ?? null);
-    } else if (pk.action === 'sync') {
-      setPkBattleStarted(pk.state.phase === 'active');
-      setPkConnectedOpponentName(pk.state.teamB[0]?.name ?? null);
-    }
-    // score: battle flags unchanged; reducer updates points only while active
+    logProductionPkRoute({
+      event: 'ignore_legacy_bus_pk',
+      action: pk.action,
+      mode: pk.action === 'sync' ? pk.state.mode : pk.action === 'invite' || pk.action === 'accept' ? pk.mode : undefined,
+    });
   }, [isPkEligibleStream, liveRoomBus.lastPk, liveRoomBus.lastPkId]);
+
 
   useEffect(() => {
     if (isPkEligibleStream) return;
@@ -4016,8 +5035,34 @@ export function Room() {
   ]);
 
   const handleGameClick = useCallback(() => {
-    showToast('Games — coming soon!');
-  }, [showToast]);
+    openLiveToolPanel('games', {
+      setGift: (v) => { if (!v) setIsGiftPickerOpen(false); },
+      setGuests: setIsGuestManagementOpen,
+      setGames: setGamePanelOpen,
+      setVoice: setIsRoomVoiceChangerOpen,
+      setBeauty: setIsLiveBeautyOpen,
+      setEffects: setIsMultiGuestEffectsOpen,
+      setStickers: setIsStickerPickerOpen,
+    });
+    setGamePanelOpen(true);
+  }, []);
+
+  const handleOpenStickers = useCallback(() => {
+    if (isStickerPickerOpen) {
+      setIsStickerPickerOpen(false);
+      return;
+    }
+    openLiveToolPanel('stickers', {
+      setGift: (v) => { if (!v) setIsGiftPickerOpen(false); },
+      setGuests: setIsGuestManagementOpen,
+      setGames: setGamePanelOpen,
+      setVoice: setIsRoomVoiceChangerOpen,
+      setBeauty: setIsLiveBeautyOpen,
+      setEffects: setIsMultiGuestEffectsOpen,
+      setStickers: setIsStickerPickerOpen,
+    });
+    setIsStickerPickerOpen(true);
+  }, [isStickerPickerOpen]);
 
   const broadcastGameState = useCallback(
     (next: GameLiveState) => {
@@ -4027,27 +5072,27 @@ export function Room() {
     [liveRoomBus],
   );
 
-  const handleGameStart = useCallback(() => {
-    if (!isSelfGameHost) return;
-    const next = startGameRound(gameLiveState.round);
+  const handleGameStart = useCallback((gameId?: string) => {
+    if (!isSelfGameHost && !isOwnerHost) return;
+    const next = startGameRound(gameLiveState.round, gameId || gameLiveState.gameId);
     broadcastGameState({ ...next, scores: gameLiveState.scores });
-  }, [broadcastGameState, gameLiveState.round, gameLiveState.scores, isSelfGameHost]);
+  }, [broadcastGameState, gameLiveState.gameId, gameLiveState.round, gameLiveState.scores, isOwnerHost, isSelfGameHost]);
 
   const handleGameNextRound = useCallback(() => {
-    if (!isSelfGameHost) return;
-    const next = startGameRound(gameLiveState.round);
+    if (!isSelfGameHost && !isOwnerHost) return;
+    const next = startGameRound(gameLiveState.round, gameLiveState.gameId);
     broadcastGameState({ ...next, scores: gameLiveState.scores });
-  }, [broadcastGameState, gameLiveState.round, gameLiveState.scores, isSelfGameHost]);
+  }, [broadcastGameState, gameLiveState.gameId, gameLiveState.round, gameLiveState.scores, isOwnerHost, isSelfGameHost]);
 
   const handleGameEnd = useCallback(() => {
-    if (!isSelfGameHost) return;
+    if (!isSelfGameHost && !isOwnerHost) return;
     broadcastGameState({ ...gameLiveState, phase: 'results', endsAt: null });
-  }, [broadcastGameState, gameLiveState, isSelfGameHost]);
+  }, [broadcastGameState, gameLiveState, isOwnerHost, isSelfGameHost]);
 
   const handleGameAnswer = useCallback(
     (optionIndex: number) => {
       if (gameLiveState.phase !== 'active') return;
-      if (isSelfGameHost) {
+      if (isSelfGameHost || isOwnerHost) {
         const next = scoreGameAnswer(gameLiveState, optionIndex, self.id, self.roomName);
         broadcastGameState(next);
         return;
@@ -4059,21 +5104,21 @@ export function Room() {
         playerUserId: self.id,
       });
     },
-    [broadcastGameState, gameLiveState, isSelfGameHost, liveRoomBus, self.chatLabel, self.id, self.roomName],
+    [broadcastGameState, gameLiveState, isOwnerHost, isSelfGameHost, liveRoomBus, self.chatLabel, self.id, self.roomName],
   );
 
   const lastProcessedGameAnswerRef = useRef('');
 
   useEffect(() => {
     const evt = liveRoomBus.lastGame;
-    if (!evt || roomMode !== 'GameLive') return;
+    if (!evt) return;
 
     if (evt.action === 'sync' && 'state' in evt) {
       setGameLiveState(evt.state);
       return;
     }
 
-    if (evt.action !== 'answer' || !isSelfGameHost || evt.playerUserId === self.id) return;
+    if (evt.action !== 'answer' || !(isSelfGameHost || isOwnerHost) || evt.playerUserId === self.id) return;
     const signature = `${evt.playerUserId}:${evt.optionIndex}:${gameLiveState.round}`;
     if (lastProcessedGameAnswerRef.current === signature) return;
     lastProcessedGameAnswerRef.current = signature;
@@ -4084,23 +5129,11 @@ export function Room() {
       void liveRoomBus.emitGame({ action: 'sync', state: next });
       return next;
     });
-  }, [gameLiveState.round, isSelfGameHost, liveRoomBus, liveRoomBus.lastGame, roomMode, self.id]);
+  }, [gameLiveState.round, isOwnerHost, isSelfGameHost, liveRoomBus, liveRoomBus.lastGame, self.id]);
 
   const handleLeaveRoom = useCallback(() => {
-    cancelCurrentSong();
-
-    const ownerLeaving =
-      currentUserRole === 'owner' || liveSettings.ownerUserId === self.id;
-    if (ownerLeaving && self.id) {
-      db.setUserLiveStatus(self.id, false);
-    }
-
-    const clearedSeats = clearSelfFromPartySeats(roomDisplayId, activeSeatsRef.current, self);
-    setActiveSeats(clearedSeats);
-
-    clearActiveRoomSession(roomDisplayId);
-    exitRoomFlow();
-  }, [exitRoomFlow, roomDisplayId, self, currentUserRole, liveSettings.ownerUserId]);
+    void requestLeaveRoom();
+  }, [requestLeaveRoom]);
 
   useEffect(() => {
     return () => {
@@ -4148,6 +5181,7 @@ export function Room() {
 
   // Base list of chat messages
   type RoomChatMessage = {
+    id?: string;
     isSystem: boolean;
     text: string;
     iconBadge?: string;
@@ -4156,6 +5190,10 @@ export function Room() {
     isJoinEvent?: boolean;
     isOwner?: boolean;
     isBurmese?: boolean;
+    isStickerEvent?: boolean;
+    stickerId?: string;
+    stickerAssetUrl?: string;
+    stickerLabel?: string;
   };
 
   const [messages, setMessages] = useState<RoomChatMessage[]>([
@@ -4191,10 +5229,50 @@ export function Room() {
         ...prev,
         { isSystem: false, user: self.chatLabel, userId: self.id, text: chatInput, isBurmese: false, isJoinEvent: false }
       ]);
+      if (!liveBroadcastEndedRef.current) {
+        void ingestLiveHostDashboard(roomDisplayId, {
+          kind: 'comment',
+          roomType: lifecycleRoomType,
+        }).catch(() => undefined);
+      }
     }
     setChatInput("");
     scrollChatToBottom({ force: true });
   };
+
+  const handleSendLiveSticker = useCallback((payload: LiveStickerPayload) => {
+    if (isSilentAdminWatch) {
+      showToast('Admin watch is view-only — messages stay invisible to the room.');
+      return;
+    }
+    isAutoScrollEnabled.current = true;
+    const sticker = {
+      ...payload,
+      senderId: payload.senderId || self.id,
+      roomId: payload.roomId || roomDisplayId,
+    };
+    if (usesLivePartyFeed) {
+      partyRoomChat.sendStickerMessage(sticker);
+    } else {
+      setMessages((prev) => [
+        ...prev,
+        {
+          id: sticker.eventId ?? `sticker_${Date.now()}_${sticker.stickerId}`,
+          isSystem: false,
+          user: self.chatLabel,
+          userId: self.id,
+          text: sticker.label,
+          isBurmese: false,
+          isJoinEvent: false,
+          isStickerEvent: true,
+          stickerId: sticker.stickerId,
+          stickerAssetUrl: sticker.assetUrl,
+          stickerLabel: sticker.label,
+        },
+      ]);
+    }
+    scrollChatToBottom({ force: true });
+  }, [isSilentAdminWatch, partyRoomChat, roomDisplayId, self.chatLabel, self.id, showToast, usesLivePartyFeed]);
 
   // Beautiful render helpers for high contrast frames
   const getAvatarFrameStyles = (style: string) => {
@@ -4292,7 +5370,12 @@ export function Room() {
   }
 
   return (
-    <div className="room-shell flex flex-1 flex-col h-full min-h-0 max-h-full bg-[#07010a] text-gray-100 overflow-hidden relative font-sans select-none">
+    <LiveLikeProvider
+      likeCount={liveLikeCount}
+      likeTappers={liveRoomBus.likeTappers}
+      tapLike={tapLiveLike}
+    >
+    <div data-live-overlay-host className="room-shell flex flex-1 flex-col h-full min-h-0 max-h-full bg-[#07010a] text-gray-100 overflow-hidden relative font-sans select-none">
       {isUploadPerformance ? (
         <audio
           ref={uploadPerformancePlayback.audioRef}
@@ -4332,7 +5415,7 @@ export function Room() {
           <motion.div 
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+            className="absolute inset-0 bg-black/60"
             onClick={() => setIsInstructionsOpen(false)}
           />
           <motion.div 
@@ -4391,7 +5474,7 @@ export function Room() {
       <div 
         className="fixed inset-0 z-[150] transition-opacity duration-300 pointer-events-auto opacity-100"
       >
-        <div className="absolute inset-0 bg-black/60 backdrop-blur-sm" onClick={() => setSelectedSeatAction(null)} />
+        <div className="absolute inset-0 bg-black/60" onClick={() => setSelectedSeatAction(null)} />
         <div className="absolute bottom-0 left-0 right-0 max-w-md mx-auto bg-[#1a0f2e] rounded-t-3xl border-t border-purple-500/30 p-6 flex flex-col space-y-4 transition-transform duration-300 translate-y-0">
           <div className="w-12 h-1.5 bg-gray-600 rounded-full mx-auto mb-2 opacity-50" />
           
@@ -4492,19 +5575,6 @@ export function Room() {
           <button 
             onClick={() => {
               setActiveSeats(prev => ({ ...prev, [seatKey]: null }));
-              showToast(
-                isSelfSeat
-                  ? 'You left your seat.'
-                  : `Removed ${occupant.name} from ${
-                      seatKey === "host"
-                        ? "host seat"
-                        : seatKey === "coowner"
-                          ? "co-owner seat"
-                          : seatKey === "admin"
-                            ? "boss seat"
-                          : "seat"
-                    }`,
-              );
               setSelectedSeatAction(null);
             }}
             className="w-full bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 py-3 rounded-xl flex items-center justify-center space-x-2 text-red-400 font-medium transition mt-1 cursor-pointer"
@@ -4573,6 +5643,21 @@ export function Room() {
         seatBannedUserIds={liveSettings.seatBannedUserIds ?? []}
         onBanFromSeats={requestBanFromSeats}
         onUnbanFromSeats={handleUnbanFromSeats}
+        onToggleSelfMic={handleFooterMyMicClick}
+        onToggleSelfCamera={() => setUserCameraOn((prev) => !prev)}
+        onFlipCamera={() => flipCameraRef.current?.()}
+        onBeautify={toggleLiveBeautyPanel}
+        onInvite={() => {
+          try {
+            void navigator.clipboard.writeText(window.location.href);
+          } catch {
+            /* ignore */
+          }
+          showToast('Invite link copied — pick a viewer to bring on stage');
+          setIsGuestManagementOpen(false);
+          setIsRoomViewersOpen(true);
+        }}
+        onLeaveSeat={handleToggleSeatParticipation}
       />
 
       <RoomViewersOverlay
@@ -4712,7 +5797,7 @@ export function Room() {
       />
 
       {isRoomBackgroundMenuOpen && canChangeRoomBackground && (
-        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm">
+        <div className="fixed inset-0 z-[200] flex items-center justify-center p-4 bg-black/60">
           <div className="bg-[#1a0f2e] w-full max-w-md rounded-[28px] border border-purple-500/30 p-6 shadow-2xl relative">
             <button 
                onClick={() => { setPendingBackgroundMode(null); setIsRoomBackgroundMenuOpen(false); }} 
@@ -4804,6 +5889,7 @@ export function Room() {
           roomDisplayId={roomDisplayId}
           roomTitle={roomTitle}
           announcement={roomAnnouncement}
+          hostLiveMetrics={hostLiveMetrics}
           isRoomSaved={isRoomSaved}
           roomIdCopied={roomIdCopied}
           onCopyRoomId={handleCopyRoomId}
@@ -4812,6 +5898,8 @@ export function Room() {
           roomSettings={liveSettings}
           viewerUserId={self.id}
           onLeaveRoom={handleLeaveRoom}
+          onRequestEndLive={isCanonicalLiveHost ? requestEndLive : undefined}
+          onOpenHostDashboard={isCanonicalLiveHost ? openHostDashboard : undefined}
           onShareRoom={() => setIsShareRoomOpen(true)}
           onOpenRoomDetails={openRoomDetails}
           onOpenRoomEdit={openRoomEdit}
@@ -4833,6 +5921,8 @@ export function Room() {
           }}
           setIsRoomViewersOpen={setIsRoomViewersOpen}
           setIsGiftPickerOpen={setGiftPickerOpen}
+          onOpenStickers={handleOpenStickers}
+          stickersOpen={isStickerPickerOpen}
           setIsGuestManagementOpen={setIsGuestManagementOpen}
           liveChatMsgs={liveChatMsgs}
           chatInput={chatInput}
@@ -4887,6 +5977,7 @@ export function Room() {
           roomDisplayId={roomDisplayId}
           roomTitle={roomTitle}
           announcement={roomAnnouncement}
+          hostLiveMetrics={hostLiveMetrics}
           isRoomSaved={isRoomSaved}
           roomIdCopied={roomIdCopied}
           onCopyRoomId={handleCopyRoomId}
@@ -4895,6 +5986,8 @@ export function Room() {
           isSelfHost={isSelfGameHost}
           silentAdminWatch={isSilentAdminWatch}
           onLeaveRoom={handleLeaveRoom}
+          onRequestEndLive={isCanonicalLiveHost ? requestEndLive : undefined}
+          onOpenHostDashboard={isCanonicalLiveHost ? openHostDashboard : undefined}
           onShareRoom={() => setIsShareRoomOpen(true)}
           onOpenRoomDetails={openRoomDetails}
           onOpenRoomEdit={openRoomEdit}
@@ -4922,6 +6015,8 @@ export function Room() {
           setIsRoomViewersOpen={setIsRoomViewersOpen}
           onSelectViewer={handleSelectViewer}
           setIsGiftPickerOpen={setGiftPickerOpen}
+          onOpenStickers={handleOpenStickers}
+          stickersOpen={isStickerPickerOpen}
           setIsGuestManagementOpen={setIsGuestManagementOpen}
           liveChatMsgs={liveChatMsgs}
           chatInput={chatInput}
@@ -4968,24 +6063,13 @@ export function Room() {
           beautyPanelOpen={isLiveBeautyOpen}
           onToggleBeautyPanel={toggleLiveBeautyPanel}
           onSelectBeauty={handleSelectLiveBeauty}
+          onBeautifyParamsChange={handleLiveBeautifyParamsChange}
+          beautifyOverride={liveBeautifyOverride}
           onBeautyEffectsChange={handleLiveBeautyEffectsChange}
           onBeautyBodyShapeChange={setLiveBodyShape}
           processedAudioTrack={voiceMicPublishing ? roomVoiceProcessedTrack : null}
           voiceMicPublishing={voiceMicPublishing}
           {...roomVoiceChangerFooterProps}
-        />
-        <GameLivePanel
-          open={gamePanelOpen}
-          isHost={isSelfGameHost}
-          state={gameLiveState}
-          lastGame={liveRoomBus.lastGame}
-          selfUserId={self.id}
-          selfName={self.roomName || self.chatLabel}
-          onClose={() => setGamePanelOpen(false)}
-          onStart={handleGameStart}
-          onAnswer={handleGameAnswer}
-          onNextRound={handleGameNextRound}
-          onEnd={handleGameEnd}
         />
         </>
       )}
@@ -5006,21 +6090,28 @@ export function Room() {
           beautyEffects={liveBeautyEffects}
           bodyShape={liveBodyShape}
           beautyPanelOpen={isLiveBeautyOpen}
+          beautifyOverride={liveBeautifyOverride}
           effectsPanelOpen={DEEPAR_ENABLED && isMultiGuestEffectsOpen}
           hiddenLiveKit={isSilentAdminWatch}
         >
-          {(media) => (
+          {(media) => {
+          flipCameraRef.current = media.camera.toggleCameraFacing;
+          return (
         <SoloLiveView
           key={`solo-live-view:${roomDisplayId}`}
           {...buildLiveViewMediaProps(media)}
           roomDisplayId={roomDisplayId}
           roomTitle={roomTitle}
           announcement={roomAnnouncement}
+          hostLiveMetrics={hostLiveMetrics}
           isRoomSaved={isRoomSaved}
           roomIdCopied={roomIdCopied}
           onCopyRoomId={handleCopyRoomId}
           onToggleSaveRoom={handleToggleSaveRoom}
           onLeaveRoom={handleLeaveRoom}
+          onShareRoom={() => setIsShareRoomOpen(true)}
+          onRequestEndLive={isCanonicalLiveHost ? requestEndLive : undefined}
+          onOpenHostDashboard={isCanonicalLiveHost ? openHostDashboard : undefined}
           onOpenRoomDetails={openRoomDetails}
           onOpenRoomEdit={openRoomEdit}
           activeSeats={activeSeats}
@@ -5042,7 +6133,10 @@ export function Room() {
           }}
           setIsRoomViewersOpen={setIsRoomViewersOpen}
           setIsGiftPickerOpen={setGiftPickerOpen}
+          onOpenStickers={handleOpenStickers}
+          stickersOpen={isStickerPickerOpen}
           setIsGuestManagementOpen={setIsGuestManagementOpen}
+          onOpenGuestManagement={handleFooterSeatManagementClick}
           liveChatMsgs={liveChatMsgs}
           chatInput={chatInput}
           handleChatInputChange={handleChatInputChange}
@@ -5074,7 +6168,10 @@ export function Room() {
           onEditAnnouncement={handleOpenAnnouncementEditor}
           canChangeRoomMode={canEditRoomAnnouncement}
           onOpenRoomModePicker={handleOpenRoomModePicker}
-          ownerSocial={ownerSocial}
+          ownerSocial={liveOwnerSocial}
+          liveFollowCount={liveFollowCount}
+          followerTotal={hostFollowerTotal}
+          followTappers={hostFollowers}
           {...liveDeepArViewProps}
           beautyEffectId={liveBeautyEffectId}
           beautyEffects={liveBeautyEffects}
@@ -5083,22 +6180,20 @@ export function Room() {
           beautyPanelOpen={isLiveBeautyOpen}
           onToggleBeautyPanel={toggleLiveBeautyPanel}
           onSelectBeauty={handleSelectLiveBeauty}
+          onBeautifyParamsChange={handleLiveBeautifyParamsChange}
+          beautifyOverride={liveBeautifyOverride}
           onBeautyEffectsChange={handleLiveBeautyEffectsChange}
           onOpenSing={handleOpenSing}
           hasActiveSong={Boolean(currentlySinging)}
           songQueueLength={songQueue.length}
           hideSingMenu={isLyricsOverlayOpen}
           onPkClick={
-            isPkEligibleStream && isSelfSoloHost ? handleOpenPkPanel : undefined
+            isPkEligibleStream ? handleOpenPkPanel : undefined
           }
           onGameClick={handleGameClick}
           pkEnabled={isPkEligibleStream}
-          pkBattle={isPkEligibleStream ? pkBattle : null}
-          onEmitPk={isPkEligibleStream ? handleEmitPk : undefined}
-          onStartPk={isPkEligibleStream && isSelfSoloHost ? handleStartPkBattle : undefined}
-          onDisconnectPk={isPkEligibleStream && isSelfSoloHost ? handleDisconnectPk : undefined}
-          pkSelfUserId={self.id}
-          pkIsOwner={isSelfSoloHost}
+          coinBalance={getLiveCoinsBalance(self.id)}
+          onOpenRecharge={() => setIsGiftPickerOpen(true)}
           {...roomVoiceChangerFooterProps}
           isCommerceLive={isCommerceLive}
           commerceShopOpen={isCommerceShopOpen}
@@ -5120,12 +6215,14 @@ export function Room() {
           onCommerceCheckoutComplete={handleCommerceCheckoutComplete}
           onCommerceSelectOrder={handleCommerceSelectOrder}
           onCommerceCloseOrderDetail={handleCommerceCloseOrderDetail}
+          onCommerceMarkShipped={handleCommerceMarkShipped}
           buyerUserId={self.id}
           buyerDisplayName={self.roomName || self.chatLabel}
           commerceHostUserId={commerceHostUserId}
           isSelfHost={isSelfSoloHost}
         />
-          )}
+          );
+          }}
         </RoomLiveMediaSession>
       )}
 
@@ -5145,20 +6242,26 @@ export function Room() {
           beautyEffects={liveBeautyEffects}
           bodyShape={liveBodyShape}
           beautyPanelOpen={isLiveBeautyOpen}
+          beautifyOverride={liveBeautifyOverride}
           effectsPanelOpen={DEEPAR_ENABLED && isMultiGuestEffectsOpen}
           hiddenLiveKit={isSilentAdminWatch}
         >
-          {(media) => (
+          {(media) => {
+          flipCameraRef.current = media.camera.toggleCameraFacing;
+          return (
         <MultiGuestView
           {...buildLiveViewMediaProps(media)}
           roomDisplayId={roomDisplayId}
           roomTitle={roomTitle}
           announcement={roomAnnouncement}
+          hostLiveMetrics={hostLiveMetrics}
           isRoomSaved={isRoomSaved}
           roomIdCopied={roomIdCopied}
           onCopyRoomId={handleCopyRoomId}
           onToggleSaveRoom={handleToggleSaveRoom}
           onLeaveRoom={handleLeaveRoom}
+          onRequestEndLive={isCanonicalLiveHost ? requestEndLive : undefined}
+          onOpenHostDashboard={isCanonicalLiveHost ? openHostDashboard : undefined}
           onShareRoom={() => setIsShareRoomOpen(true)}
           onOpenRoomDetails={openRoomDetails}
           onOpenRoomEdit={openRoomEdit}
@@ -5180,6 +6283,8 @@ export function Room() {
           }}
           setIsRoomViewersOpen={setIsRoomViewersOpen}
           setIsGiftPickerOpen={setGiftPickerOpen}
+          onOpenStickers={handleOpenStickers}
+          stickersOpen={isStickerPickerOpen}
           setIsGuestManagementOpen={setIsGuestManagementOpen}
           liveChatMsgs={liveChatMsgs}
           chatInput={chatInput}
@@ -5215,7 +6320,7 @@ export function Room() {
           onEditAnnouncement={handleOpenAnnouncementEditor}
           canChangeRoomMode={canEditRoomAnnouncement}
           onOpenRoomModePicker={handleOpenRoomModePicker}
-          ownerSocial={ownerSocial}
+          ownerSocial={liveOwnerSocial}
           multiGuestSeatCount={multiGuestSeatCount}
           {...liveDeepArViewProps}
           beautyEffectId={liveBeautyEffectId}
@@ -5225,6 +6330,8 @@ export function Room() {
           beautyPanelOpen={isLiveBeautyOpen}
           onToggleBeautyPanel={toggleLiveBeautyPanel}
           onSelectBeauty={handleSelectLiveBeauty}
+          onBeautifyParamsChange={handleLiveBeautifyParamsChange}
+          beautifyOverride={liveBeautifyOverride}
           onBeautyEffectsChange={handleLiveBeautyEffectsChange}
           onOpenSing={handleOpenSing}
           hasActiveSong={Boolean(currentlySinging)}
@@ -5233,7 +6340,8 @@ export function Room() {
           onGameClick={handleGameClick}
           {...roomVoiceChangerFooterProps}
         />
-          )}
+          );
+          }}
         </RoomLiveMediaSession>
       )}
 
@@ -5254,6 +6362,7 @@ export function Room() {
                   onToggleSaveRoom={handleToggleSaveRoom}
                   canEditAnnouncement={canEditRoomAnnouncement}
                   onEditAnnouncement={handleOpenAnnouncementEditor}
+                  hostLiveMetrics={hostLiveMetrics}
                 />
 
                 <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
@@ -5298,7 +6407,7 @@ export function Room() {
                   starCount={activeSeats.host?.stars ?? ownerSocial.starCount}
                   isSpeaking={Boolean(activeSeats.host?.isSpeaking)}
                   isFollowing={ownerSocial.isFollowingOwner}
-                  onToggleFollow={ownerSocial.toggleFollowOwner}
+                  onToggleFollow={handleToggleFollowOwner}
                   showFollowButton={!ownerSocial.isSelfOwner}
                   onProfileClick={() =>
                     handleSelectViewer(
@@ -5579,6 +6688,7 @@ export function Room() {
                onToggleSaveRoom={handleToggleSaveRoom}
                canEditAnnouncement={canEditRoomAnnouncement}
                onEditAnnouncement={handleOpenAnnouncementEditor}
+               hostLiveMetrics={hostLiveMetrics}
              />
              <div className="flex items-center space-x-1.5 sm:space-x-2.5 shrink-0">
                 <div 
@@ -5622,7 +6732,7 @@ export function Room() {
                 starCount={activeSeats.host?.stars ?? ownerSocial.starCount}
                 isSpeaking={Boolean(activeSeats.host?.isSpeaking)}
                 isFollowing={ownerSocial.isFollowingOwner}
-                onToggleFollow={ownerSocial.toggleFollowOwner}
+                onToggleFollow={handleToggleFollowOwner}
                 showFollowButton={!ownerSocial.isSelfOwner}
                 onProfileClick={() =>
                   handleSelectViewer(
@@ -6227,6 +7337,8 @@ export function Room() {
             onOpenGuestManagement={handleFooterSeatManagementClick}
             guestManagementOpen={isGuestManagementOpen}
             onOpenGiftPicker={() => setGiftPickerOpen(true)}
+            onOpenStickers={handleOpenStickers}
+            stickersOpen={isStickerPickerOpen}
             onGameClick={handleGameClick}
             micAccent="cyan"
             className="party-room-footer-actions shrink-0"
@@ -6250,6 +7362,52 @@ export function Room() {
             /* ignore */
           }
         }}
+        effectStrength={roomVoiceEffectStrength}
+        onEffectStrengthChange={setRoomVoiceEffectStrength}
+        backgroundSoundOn={roomVoiceBackgroundOn}
+        onBackgroundSoundChange={setRoomVoiceBackgroundOn}
+        selfName={self.roomName || self.chatLabel || 'You'}
+        selfAvatarUrl={self.avatarUrl}
+      />
+
+      <GameLivePanel
+        open={gamePanelOpen}
+        isHost={isSelfGameHost || isOwnerHost}
+        state={gameLiveState}
+        lastGame={liveRoomBus.lastGame}
+        selfUserId={self.id}
+        selfName={self.roomName || self.chatLabel}
+        receiverName={(giftPickerReceiver ?? defaultGiftReceiver())?.name || liveOwnerSocial.ownerIdentity.name || roomTitle || 'Room'}
+        receiverAvatarUrl={(giftPickerReceiver ?? defaultGiftReceiver())?.avatar || liveOwnerSocial.ownerIdentity.avatarUrl}
+        diamondBalance={getLiveCoinsBalance(self.id)}
+        onClose={() => setGamePanelOpen(false)}
+        onStart={handleGameStart}
+        onAnswer={handleGameAnswer}
+        onNextRound={handleGameNextRound}
+        onEnd={handleGameEnd}
+        onCycleReceiver={cycleGiftReceiver}
+        onInviteFriends={() => {
+          try {
+            void navigator.clipboard.writeText(window.location.href);
+          } catch {
+            /* ignore */
+          }
+          setGamePanelOpen(false);
+          setIsRoomViewersOpen(true);
+          showToast('Invite link copied');
+        }}
+      />
+
+      <PkStickerSheet
+        open={isStickerPickerOpen}
+        title="Stickers"
+        receiverName={(giftPickerReceiver ?? defaultGiftReceiver())?.name ?? 'Room'}
+        receiverAvatarUrl={(giftPickerReceiver ?? defaultGiftReceiver())?.avatar}
+        senderId={self.id}
+        roomId={roomDisplayId}
+        onClose={() => setIsStickerPickerOpen(false)}
+        onPick={handleSendLiveSticker}
+        onCycleReceiver={cycleGiftReceiver}
       />
 
       {isPkEligibleStream ? (
@@ -6259,8 +7417,13 @@ export function Room() {
           liveHosts={pkLiveHosts.hosts}
           liveHostsLoading={pkLiveHosts.loading}
           liveHostsError={pkLiveHosts.error}
-          onRefreshHosts={() => setPkInviteRefreshKey((key) => key + 1)}
+          onRefreshHosts={refreshPkLiveHosts}
           selfUserId={self.id}
+          selfName={self.roomName || self.chatLabel}
+          selfAvatar={self.avatarUrl}
+          currentTeamMembers={getTeamPkRoomRoster(parsePkLiveMediaRef(roomDisplayId).lifecycleRoomId || roomDisplayId)}
+          isCommerceLive={isCommerceLive}
+          commerceProductTitle={resolveCommerceProduct(commercePinnedId)?.title || null}
           connecting={pkConnecting}
           connectedOpponentName={pkConnectedOpponentName}
           onConnect={handleConnectPk}
@@ -6275,6 +7438,7 @@ export function Room() {
         />
       ) : null}
 
+      <LiveLikeFx bursts={liveRoomBus.likeBursts} onBurstDone={liveRoomBus.dismissLikeBurst} />
       <div className="pointer-events-none absolute inset-0 z-[185] overflow-hidden">
         <GiftPlayOverlay gift={activeGiftPlay} onDone={() => setActiveGiftPlay(null)} />
       </div>
@@ -6284,10 +7448,12 @@ export function Room() {
           open={isGiftPickerOpen}
           onClose={() => setGiftPickerOpen(false)}
           receiverName={(giftPickerReceiver ?? defaultGiftReceiver())?.name ?? 'No seated guest'}
+          receiverAvatarUrl={(giftPickerReceiver ?? defaultGiftReceiver())?.avatar}
           balance={getLiveCoinsBalance(self.id)}
           roomTotalStars={roomGiftSummary.totalStars}
           isPlatformAdmin={db.currentUser?.role === 'admin'}
           onSendGift={handleSendPartyGift}
+          onCycleReceiver={cycleGiftReceiver}
         />
       ) : null}
 
@@ -6363,7 +7529,7 @@ export function Room() {
           enabled
           roomId={roomDisplayId}
           activeSeats={activeSeats}
-          onOpenGuests={() => setIsGuestManagementOpen(true)}
+          onOpenGuests={handleFooterSeatManagementClick}
           onOpenViewers={() => setIsRoomViewersOpen(true)}
           onRequestBanFromSeats={requestBanFromSeats}
         />
@@ -6398,6 +7564,13 @@ export function Room() {
         shareText={partySharePayload.shareText}
         kind={partySharePayload.kind}
         notificationText={partySharePayload.notificationText}
+        onShared={() => {
+          if (liveBroadcastEndedRef.current) return;
+          void ingestLiveHostDashboard(roomDisplayId, {
+            kind: 'share',
+            roomType: lifecycleRoomType,
+          }).catch(() => undefined);
+        }}
       />
 
       {isQueueSheetOpen && (
@@ -6463,6 +7636,48 @@ export function Room() {
         </div>
       )}
 
+      <LiveLifecycleConfirmOverlay
+        open={leaveConfirmOpen}
+        kind="leave"
+        confirmationKey={leaveConfirmKey}
+        pending={lifecyclePending}
+        onCancel={() => setLeaveConfirmOpen(false)}
+        onConfirm={() => void confirmLeaveRoom()}
+      />
+      <LiveLifecycleConfirmOverlay
+        open={endConfirmOpen}
+        kind="end"
+        confirmationKey="live.end.confirm"
+        pending={lifecyclePending}
+        pkActive={Boolean(pkBattle && pkBattle.phase !== 'idle')}
+        onCancel={() => setEndConfirmOpen(false)}
+        onConfirm={() => void confirmEndLive()}
+      />
+      <HostRealtimeDashboard
+        open={hostDashboardOpen}
+        snapshot={hostDashboard}
+        summary={hostSummary}
+        syncing={hostDashboardSyncing}
+        roomId={roomDisplayId}
+        liveStartedAt={hostDashboard?.startedAt || liveStartedAtRef.current}
+        liveViewers={viewers.length}
+        seated={seatedCount}
+        liveCoinsReceived={hostCoinsReceived}
+        liveGiftCount={hostGiftCount}
+        liveLikes={liveLikeCount}
+        liveFollows={liveFollowCount}
+        liveFollowerTotal={hostFollowerTotal}
+        liveComments={liveChatMsgs.filter((m) => !m.isSystem && !m.isJoinEvent && !m.isGiftEvent).length}
+        liveShares={hostDashboard?.engagement.shares ?? 0}
+        hostName={liveOwnerSocial.ownerIdentity.name || self.roomName || self.chatLabel}
+        hostAvatarUrl={liveOwnerSocial.ownerIdentity.avatarUrl || self.avatarUrl}
+        roomTitle={roomTitle}
+        onClose={() => {
+          setHostDashboardOpen(false);
+          if (hostSummary) exitAfterLeave();
+        }}
+      />
+
       {roomSettingsOverlay ? (
         <div className="absolute inset-0 z-[280] flex flex-col overflow-hidden bg-background text-foreground">
           {roomSettingsOverlay.view === 'details' ? (
@@ -6482,5 +7697,6 @@ export function Room() {
       ) : null}
 
     </div>
+    </LiveLikeProvider>
   );
 }
