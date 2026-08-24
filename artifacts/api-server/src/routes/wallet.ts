@@ -20,7 +20,7 @@ router.get("/", auth, requireNotBanned, async (req, res, next) => {
     const { data: wallet, error: walletErr } = await sb
       .from("wallets")
       .select(
-        "balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, updated_at",
+        "balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, commerce_coin_earnings, updated_at",
       )
       .eq("user_id", userId)
       .maybeSingle();
@@ -58,6 +58,7 @@ router.get("/", auth, requireNotBanned, async (req, res, next) => {
       bonusCoins: Number(wallet?.bonus_coins ?? 0),
       promoCredits: Number(wallet?.promo_credits ?? 0),
       vipTokens: Number(wallet?.vip_tokens ?? 0),
+      commerceCoinEarnings: Number((wallet as { commerce_coin_earnings?: number } | null)?.commerce_coin_earnings ?? 0),
       updatedAt: wallet?.updated_at ?? null,
       limits: limits
         ? {
@@ -88,6 +89,37 @@ router.post("/transfer", auth, requireNotBanned, async (req, res, next) => {
       from_user: fromUser,
       to_user: toUser,
       amount: Math.floor(amount),
+    });
+    if (error) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
+/** Commerce coin checkout — debit buyer coins, credit seller commerce_coin_earnings (not gift balance). */
+router.post("/commerce-settle", auth, requireNotBanned, async (req, res, next) => {
+  try {
+    const buyerId = req.authUser!.id;
+    const { sellerId, amount, clientRequestId, metadata } = req.body as {
+      sellerId?: string;
+      amount?: number;
+      clientRequestId?: string;
+      metadata?: Record<string, unknown>;
+    };
+    if (!sellerId || !amount || amount <= 0) {
+      res.status(400).json({ error: "sellerId and positive amount required" });
+      return;
+    }
+    const { data, error } = await getSupabaseService().rpc("settle_commerce_coin_sale", {
+      p_buyer: buyerId,
+      p_seller: sellerId,
+      p_amount: Math.floor(amount),
+      p_client_request_id: clientRequestId ?? null,
+      p_metadata: metadata ?? {},
     });
     if (error) {
       res.status(400).json({ error: error.message });

@@ -12,6 +12,8 @@ import {
   type MediaPipeVisionBundle,
 } from './mediapipeClient';
 import { FaceARRenderer } from './three/FaceARRenderer';
+import { NewestFrameOnlyGate, publishSharedVisionState } from '../media/mediaRenderGraph';
+import { perceptionIntervalMs } from '../performance/thermalGovernor';
 
 const FACE_DETECT_INTERVAL_MS = 1000 / 30;
 const SEGMENT_DETECT_INTERVAL_MS = 1000 / 15;
@@ -34,6 +36,7 @@ export function useFaceAR({
 }: UseFaceAROptions) {
   const faceRendererRef = useRef<FaceARRenderer | null>(null);
   const visionRef = useRef<MediaPipeVisionBundle | null>(null);
+  const visionFrameGateRef = useRef(new NewestFrameOnlyGate());
   const lastLandmarksRef = useRef<NormalizedLandmark[] | null>(null);
   const lastMatrixRef = useRef<Float32Array | number[] | null>(null);
   const lastMaskRef = useRef<{
@@ -160,26 +163,37 @@ export function useFaceAR({
         const profile = getEffectProfile(effectId);
 
         if (effectId !== 'none') {
-          if (now - lastFaceDetectAtRef.current >= FACE_DETECT_INTERVAL_MS) {
+          // Thermal perceptionCadence stretches intervals only — never resets beauty values.
+          // Newest-frame-only: drop stale analysis tickets; camera render never waits on AI.
+          const faceInterval = perceptionIntervalMs(FACE_DETECT_INTERVAL_MS);
+          const segmentInterval = perceptionIntervalMs(SEGMENT_DETECT_INTERVAL_MS);
+          if (now - lastFaceDetectAtRef.current >= faceInterval) {
             lastFaceDetectAtRef.current = now;
+            const ticket = visionFrameGateRef.current.next();
             mediaPipeTimestampRef.current += 33;
             const faceResult = detectFaceLandmarks(
               vision.faceLandmarker,
               video,
               mediaPipeTimestampRef.current,
             );
-            const raw = faceResult.faceLandmarks[0] ?? null;
-            lastLandmarksRef.current = raw
-              ? smoothLandmarks(lastLandmarksRef.current, raw, 0.42)
-              : null;
-            const matrix = faceResult.facialTransformationMatrixes?.[0]?.data ?? null;
-            lastMatrixRef.current = matrix ?? null;
-            void getSmileScore(faceResult);
+            if (visionFrameGateRef.current.isCurrent(ticket)) {
+              const raw = faceResult.faceLandmarks[0] ?? null;
+              lastLandmarksRef.current = raw
+                ? smoothLandmarks(lastLandmarksRef.current, raw, 0.42)
+                : null;
+              const matrix = faceResult.facialTransformationMatrixes?.[0]?.data ?? null;
+              lastMatrixRef.current = matrix ?? null;
+              publishSharedVisionState({
+                face: lastLandmarksRef.current,
+                confidence: raw ? 1 : 0,
+              });
+              void getSmileScore(faceResult);
+            }
           }
 
           if (
             profile.kind === 'segment-bg' &&
-            now - lastSegmentDetectAtRef.current >= SEGMENT_DETECT_INTERVAL_MS
+            now - lastSegmentDetectAtRef.current >= segmentInterval
           ) {
             lastSegmentDetectAtRef.current = now;
             mediaPipeTimestampRef.current += 33;

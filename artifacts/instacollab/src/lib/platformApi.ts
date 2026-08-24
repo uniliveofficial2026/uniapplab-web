@@ -2,6 +2,7 @@ import { uniapplabOrigin, isLocalDevHost, isUniapplabHost } from './domains/unia
 import { getSupabaseClient } from './supabase/client';
 import { getSupabaseAnonKey, getSupabaseUrl, isSupabaseConfigured } from './supabase/config';
 import { fetchWithTimeout, NET_API_MS, NET_AUTH_MS, withTimeout } from './networkPolicy';
+import { dedupeInflight } from './requestDedupe';
 
 function apiBaseUrl(): string {
   if (typeof window !== 'undefined') {
@@ -10,8 +11,7 @@ function apiBaseUrl(): string {
     if (isUniapplabHost(hostname)) {
       return origin.replace(/\/$/, '');
     }
-    // Local dev server and vite preview both use same-origin /api (dev proxy or soft 404).
-    if (isLocalDevHost(hostname)) {
+    if (import.meta.env.DEV && isLocalDevHost(hostname)) {
       return origin.replace(/\/$/, '');
     }
   }
@@ -29,6 +29,27 @@ function apiBaseUrl(): string {
 }
 
 export { apiBaseUrl };
+
+function isLocalLiveLifecyclePath(path: string): boolean {
+  const clean = (path.startsWith('/') ? path : `/${path}`).split('?')[0] ?? '';
+  return clean.startsWith('/api/live/pk') || clean.startsWith('/api/live/rooms');
+}
+
+function requestApiBase(path: string): string {
+  if (
+    import.meta.env.DEV &&
+    typeof window !== 'undefined' &&
+    isLocalDevHost(window.location.hostname) &&
+    isLocalLiveLifecyclePath(path)
+  ) {
+    const local =
+      String(import.meta.env.VITE_LOCAL_LIVE_API || '')
+        .trim()
+        .replace(/\/$/, '') || 'http://127.0.0.1:5001';
+    return local;
+  }
+  return apiBaseUrl();
+}
 
 async function authHeaders(): Promise<HeadersInit> {
   const headers: Record<string, string> = {
@@ -67,6 +88,15 @@ async function authHeaders(): Promise<HeadersInit> {
     }
   } catch {
     /* proceed without bearer — local cache still works */
+  }
+  if (!headers.authorization && import.meta.env.DEV) {
+    try {
+      const { db } = await import('./db/localDb');
+      const uid = String(db.currentUserId || '').trim();
+      if (uid) headers.authorization = `Bearer dev-local.${uid}`;
+    } catch {
+      /* remain unauthenticated */
+    }
   }
   return headers;
 }
@@ -189,7 +219,7 @@ async function tryEdgeFunction(
   }
 }
 
-async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+async function apiFetchOnce<T>(path: string, init?: RequestInit): Promise<T> {
   const edgePath = edgeMigratedPath(path);
   if (edgePath) {
     const edgeRes = await tryEdgeFunction(edgePath, init);
@@ -211,7 +241,7 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
     }
   }
 
-  const base = apiBaseUrl();
+  const base = requestApiBase(path);
   const url = path.startsWith('http') ? path : `${base}${path.startsWith('/') ? path : `/${path}`}`;
   const res = await fetchWithTimeout(
     url,
@@ -239,6 +269,14 @@ async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
   }
   if (res.status === 204) return null as T;
   return (await res.json()) as T;
+}
+
+async function apiFetch<T>(path: string, init?: RequestInit): Promise<T> {
+  const method = String(init?.method || 'GET').toUpperCase();
+  if (method === 'GET' || method === 'HEAD') {
+    return dedupeInflight(`GET:${path}`, () => apiFetchOnce<T>(path, init));
+  }
+  return apiFetchOnce<T>(path, init);
 }
 
 export { apiFetch };
@@ -290,6 +328,40 @@ export async function transferCoins(toUser: string, amount: number): Promise<unk
   return apiFetch('/api/wallet/transfer', {
     method: 'POST',
     body: JSON.stringify({ toUser, amount }),
+  });
+}
+
+/** Debit buyer coins; credit seller commerce_coin_earnings (not gift spendable balance). */
+export async function settleCommerceCoinSaleApi(input: {
+  sellerId: string;
+  amount: number;
+  clientRequestId?: string;
+  metadata?: Record<string, unknown>;
+}): Promise<{ ok?: boolean; duplicate?: boolean; transactionId?: string; error?: string }> {
+  return apiFetch('/api/wallet/commerce-settle', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+/** Register DEVICE↔PERSON push binding (server authority; never send personId from client). */
+export async function registerPushDeviceApi(input: {
+  deviceId: string;
+  pushToken: string;
+  platform: string;
+}): Promise<{ ok?: boolean; deviceId?: string; personId?: string; platform?: string }> {
+  return apiFetch('/api/push/register', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function clearPushDevicePersonApi(input: {
+  deviceId: string;
+}): Promise<{ ok?: boolean; deviceId?: string }> {
+  return apiFetch('/api/push/clear-person', {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }
 
@@ -462,12 +534,51 @@ export async function apiFetchAdmin<T>(path: string, init?: RequestInit): Promis
   return apiFetch<T>(path, init);
 }
 
-export async function createChatThread(memberIds: string[]): Promise<{ id: string }> {
+export type CreateChatThreadOptions = {
+  threadType?: 'dm' | 'group';
+  meta?: Record<string, unknown>;
+};
+
+export async function createChatThread(
+  memberIds: string[],
+  options: CreateChatThreadOptions = {},
+): Promise<{ id: string }> {
   return apiFetch('/api/chat/threads', {
     method: 'POST',
-    body: JSON.stringify({ memberIds }),
+    body: JSON.stringify({
+      memberIds,
+      threadType: options.threadType,
+      meta: options.meta,
+    }),
   });
 }
+
+export async function fetchChatThreads(): Promise<{
+  threads: Array<{
+    id: string;
+    thread_type?: string;
+    dm_key?: string | null;
+    members?: string[];
+    latestMessage?: unknown;
+    created_at?: string;
+    updated_at?: string;
+  }>;
+}> {
+  return apiFetch('/api/chat/threads');
+}
+
+
+export async function fetchChatThreadMessages(
+  threadId: string,
+  options?: { before?: string; limit?: number },
+): Promise<{ messages: unknown[]; threadId: string }> {
+  const params = new URLSearchParams();
+  if (options?.before) params.set('before', options.before);
+  if (options?.limit) params.set('limit', String(options.limit));
+  const qs = params.toString();
+  return apiFetch(`/api/chat/threads/${encodeURIComponent(threadId)}/messages${qs ? `?${qs}` : ''}`);
+}
+
 
 export async function sendChatMessageApi(
   threadId: string,
@@ -482,6 +593,26 @@ export async function sendChatMessageApi(
       body,
       payload: payload ?? undefined,
       clientId: clientId ?? undefined,
+    }),
+  });
+}
+
+export async function deleteChatMessageApi(
+  threadId: string,
+  options: { messageId?: string; clientId?: string },
+): Promise<{
+  id: string;
+  thread_id?: string;
+  sender_id?: string;
+  deleted_at?: string | null;
+  alreadyDeleted?: boolean;
+}> {
+  return apiFetch('/api/chat/messages/delete', {
+    method: 'POST',
+    body: JSON.stringify({
+      threadId,
+      messageId: options.messageId,
+      clientId: options.clientId,
     }),
   });
 }
@@ -577,6 +708,22 @@ export async function fetchChatLiveKitToken(
   });
 }
 
+function getOrCreateDeviceId(): string {
+  try {
+    const key = 'unilive_device_id';
+    const existing = localStorage.getItem(key);
+    if (existing?.trim()) return existing.trim().slice(0, 120);
+    const next =
+      typeof crypto !== 'undefined' && 'randomUUID' in crypto
+        ? crypto.randomUUID()
+        : `dev_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+    localStorage.setItem(key, next);
+    return next;
+  } catch {
+    return 'default';
+  }
+}
+
 export async function postPresenceHeartbeat(friendIds?: string[]): Promise<{
   ok: boolean;
   online?: boolean;
@@ -585,7 +732,18 @@ export async function postPresenceHeartbeat(friendIds?: string[]): Promise<{
 }> {
   return apiFetch('/api/presence/online', {
     method: 'POST',
-    body: JSON.stringify({ friendIds }),
+    body: JSON.stringify({ friendIds, deviceId: getOrCreateDeviceId() }),
+  });
+}
+
+export async function postPresenceOffline(): Promise<{
+  ok: boolean;
+  online?: boolean;
+  configured?: boolean;
+}> {
+  return apiFetch('/api/presence/offline', {
+    method: 'POST',
+    body: JSON.stringify({ deviceId: getOrCreateDeviceId() }),
   });
 }
 
@@ -670,3 +828,441 @@ export async function patchAutomationConfig(
     body: JSON.stringify(update),
   });
 }
+
+export type LiveLifecycleRoomType =
+  | 'solo_audio'
+  | 'solo_video'
+  | 'audio_party'
+  | 'video_multi'
+  | 'pk_1v1'
+  | 'pk_team'
+  | 'game'
+  | 'commerce';
+
+export type LiveParticipantRole = 'host' | 'guest' | 'viewer' | 'moderator';
+
+export type LeaveLiveRoomCommand = {
+  commandId: string;
+  participantSessionId: string;
+  expectedRoomVersion?: number;
+  reason: 'user_selected_leave' | 'navigation' | 'app_background' | 'connection_lost';
+  roomType?: LiveLifecycleRoomType;
+  role?: LiveParticipantRole;
+  seated?: boolean;
+};
+
+export type EndLiveRoomCommand = {
+  commandId: string;
+  expectedRoomVersion?: number;
+  reason: 'host_selected_end' | 'host_grace_expired' | 'authorized_moderation' | 'system_shutdown';
+  roomType?: LiveLifecycleRoomType;
+};
+
+export type LiveHostDashboardSnapshot = {
+  roomId: string;
+  roomVersion: number;
+  sequence: number;
+  generatedAt: string;
+  startedAt: string;
+  roomState: 'preparing' | 'live' | 'host_reconnecting' | 'ending' | 'ended';
+  audience: {
+    currentConnections: number;
+    currentUniqueViewers: number;
+    peakConcurrentViewers: number;
+    uniqueViewers: number;
+    joins: number;
+    leaves: number;
+  };
+  engagement: {
+    comments: number;
+    commentsPerMinute: number;
+    reactions: number;
+    shares: number;
+    followersGained: number;
+  };
+  participants: { connected: number; seated: number; pendingSeatRequests: number };
+  gifts: {
+    confirmedGiftCount: number;
+    confirmedGrossGiftValue: number | null;
+    settlementState: 'not_applicable' | 'provisional' | 'confirmed';
+  };
+  pk: { state: string | null; localScore: number | null; opponentScore: number | null; endsAt: string | null };
+  media: {
+    connectionState: string;
+    connectionQuality: string;
+    uploadBitrate: number | null;
+    framesPerSecond: number | null;
+    packetLoss: number | null;
+    roundTripTime: number | null;
+  };
+};
+
+export type LiveHostDashboardDelta = {
+  eventId: string;
+  roomId: string;
+  sequence: number;
+  previousSequence: number;
+  roomVersion: number;
+  occurredAt: string;
+  patch: Omit<
+    Partial<LiveHostDashboardSnapshot>,
+    'audience' | 'engagement' | 'participants' | 'gifts' | 'pk' | 'media'
+  > & {
+    audience?: Partial<LiveHostDashboardSnapshot['audience']>;
+    engagement?: Partial<LiveHostDashboardSnapshot['engagement']>;
+    participants?: Partial<LiveHostDashboardSnapshot['participants']>;
+    gifts?: Partial<LiveHostDashboardSnapshot['gifts']>;
+    pk?: Partial<LiveHostDashboardSnapshot['pk']>;
+    media?: Partial<LiveHostDashboardSnapshot['media']>;
+  };
+};
+
+export type LiveHostSummary = {
+  roomId: string;
+  roomVersion: number;
+  startedAt: string;
+  endedAt: string;
+  durationMs: number;
+  uniqueViewers: number;
+  peakViewers: number;
+  joins: number;
+  leaves: number;
+  comments: number;
+  reactions: number;
+  shares: number;
+  followersGained: number;
+  guestsSeated: number;
+  confirmedGiftCount: number;
+  giftValue: number | null;
+  giftSettlementState: 'not_applicable' | 'provisional' | 'confirmed';
+  pkResult: string | null;
+  reconnectCount: number;
+  averageConnectionQuality: string | null;
+};
+
+export async function ensureLiveLifecycleRoom(input: {
+  roomId: string;
+  roomType?: LiveLifecycleRoomType;
+  hasCanonicalCohostTransfer?: boolean;
+}): Promise<{ roomId: string; roomType: string; roomState: string; roomVersion: number; startedAt: string }> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(input.roomId)}/ensure`, {
+    method: 'POST',
+    body: JSON.stringify({
+      roomType: input.roomType,
+      hasCanonicalCohostTransfer: Boolean(input.hasCanonicalCohostTransfer),
+    }),
+  });
+}
+
+export async function connectLiveLifecycleSession(input: {
+  roomId: string;
+  participantSessionId: string;
+  role?: LiveParticipantRole;
+  seated?: boolean;
+  roomType?: LiveLifecycleRoomType;
+}): Promise<unknown> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(input.roomId)}/sessions`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function previewLiveLeave(roomId: string, role?: LiveParticipantRole): Promise<{
+  policy: string | null;
+  confirmationKey: string;
+  deadlineAt: string | null;
+  roomVersion: number;
+}> {
+  const q = role ? `?role=${encodeURIComponent(role)}` : '';
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/leave-preview${q}`);
+}
+
+export async function leaveLiveRoom(roomId: string, command: LeaveLiveRoomCommand): Promise<{
+  commandId: string;
+  actionId: 'live.room.leave';
+  roomId: string;
+  roomVersion: number;
+  roomState: string;
+  role: LiveParticipantRole;
+  hostDeparturePolicy: string | null;
+  hostReconnectDeadlineAt: string | null;
+  ended: false;
+  confirmationKey: string;
+}> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/leave`, {
+    method: 'POST',
+    body: JSON.stringify(command),
+  });
+}
+
+export async function endLiveRoom(roomId: string, command: EndLiveRoomCommand): Promise<{
+  commandId: string;
+  actionId: 'live.room.end';
+  roomId: string;
+  roomVersion: number;
+  roomState: string;
+  duplicate: boolean;
+  summary: LiveHostSummary | null;
+  opponentRoomId: string | null;
+  opponentStillLive: boolean;
+}> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/end`, {
+    method: 'POST',
+    body: JSON.stringify(command),
+  });
+}
+
+export type PkMediaSurface = 'stream' | 'party';
+
+export type LivePkSessionSnapshot = {
+  id: string;
+  roomId: string;
+  hostUserId: string;
+  opponentUserId: string | null;
+  opponentRoomId: string | null;
+  hostMediaId?: string | null;
+  opponentMediaId?: string | null;
+  hostMediaSurface?: PkMediaSurface | null;
+  opponentMediaSurface?: PkMediaSurface | null;
+  pkType: 'pk_1v1' | 'pk_team';
+  teamSize?: 1 | 2 | 3 | 4 | 6;
+  hostTeamUserIds?: string[];
+  opponentTeamUserIds?: string[];
+  memberScores?: Record<string, number>;
+  memberGiftCounts?: Record<string, number>;
+  liveSell?: boolean;
+  status: 'invited' | 'accepted' | 'countdown' | 'active' | 'ended' | 'cancelled' | 'expired';
+  localScore: number;
+  opponentScore: number;
+  endsAt: string | null;
+  startedAt: string | null;
+  durationSec: number;
+  multiplier: number;
+  version: number;
+  sequence: number;
+};
+
+export async function fetchLivePkSession(roomId: string): Promise<{
+  roomId: string;
+  roomState: string;
+  hostUserId: string;
+  pk: LivePkSessionSnapshot | null;
+}> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/pk/session`);
+}
+
+export async function startLivePk(
+  roomId: string,
+  input?: {
+    opponentUserId?: string | null;
+    opponentRoomId?: string | null;
+    hostMediaId?: string | null;
+    opponentMediaId?: string | null;
+    hostMediaSurface?: PkMediaSurface | null;
+    opponentMediaSurface?: PkMediaSurface | null;
+    durationSec?: number;
+    multiplier?: number;
+    pkType?: 'pk_1v1' | 'pk_team';
+    hostTeamUserIds?: string[];
+    opponentTeamUserIds?: string[];
+    liveSell?: boolean;
+    roomType?: LiveLifecycleRoomType;
+  },
+): Promise<{
+  roomId: string;
+  hostUserId: string;
+  pk: LivePkSessionSnapshot;
+}> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/pk/start`, {
+    method: 'POST',
+    body: JSON.stringify(input ?? {}),
+  });
+}
+
+export async function endLivePk(roomId: string, command: {
+  commandId: string;
+  expectedPkVersion?: number;
+}): Promise<{
+  commandId: string;
+  actionId: 'live.pk.end';
+  roomId: string;
+  pkId: string | null;
+  pkStatus: string | null;
+  roomState: string;
+  opponentRoomId: string | null;
+  opponentStillLive: boolean;
+  localScore: number | null;
+  opponentScore: number | null;
+}> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/pk/end`, {
+    method: 'POST',
+    body: JSON.stringify(command),
+  });
+}
+
+export type LivePkChallengeStatus =
+  | 'pending'
+  | 'accepted'
+  | 'declined'
+  | 'expired'
+  | 'cancelled';
+
+export type LivePkChallenge = {
+  id: string;
+  hostRoomId: string;
+  challengerRoomId: string;
+  hostUserId: string;
+  challengerUserId: string;
+  pkType?: 'pk_1v1' | 'pk_team';
+  challengerTeamUserIds?: string[];
+  teamSize?: 1 | 2 | 3 | 4 | 6;
+  liveSell?: boolean;
+  hostMediaId?: string | null;
+  challengerMediaId?: string | null;
+  hostMediaSurface?: PkMediaSurface | null;
+  challengerMediaSurface?: PkMediaSurface | null;
+  status: LivePkChallengeStatus;
+  createdAt: string;
+  expiresAt: string;
+  durationSec: number;
+  version: number;
+  pkId: string | null;
+};
+
+export type LivePkChallengeInbox = {
+  incoming: LivePkChallenge | null;
+  outgoing: LivePkChallenge | null;
+  activePk: LivePkSessionSnapshot | null;
+};
+
+export async function createPkChallenge(input: {
+  hostRoomId: string;
+  challengerRoomId: string;
+  hostUserId?: string | null;
+  pkType?: 'pk_1v1' | 'pk_team';
+  challengerTeamUserIds?: string[];
+  teamSize?: 2 | 3 | 4 | 6;
+  liveSell?: boolean;
+  hostMediaId?: string | null;
+  challengerMediaId?: string | null;
+  hostMediaSurface?: PkMediaSurface | null;
+  challengerMediaSurface?: PkMediaSurface | null;
+  durationSec?: number;
+  ttlSec?: number;
+}): Promise<{ challenge: LivePkChallenge }> {
+  return apiFetch('/api/live/pk/challenges', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function fetchPkChallengeInbox(): Promise<LivePkChallengeInbox> {
+  return apiFetch('/api/live/pk/challenges/inbox');
+}
+
+export type LivePkLifecycleHost = {
+  userId: string;
+  roomId: string;
+  roomType: LiveLifecycleRoomType;
+  startedAt: string;
+  isLive?: boolean;
+  isPkEligible?: boolean;
+  lastUpdated?: string;
+  supportedPkModes?: string[];
+};
+
+export async function fetchPkLiveHosts(): Promise<{ hosts: LivePkLifecycleHost[] }> {
+  return apiFetch('/api/live/pk/challenges/hosts');
+}
+
+export async function setLivePkTeamRoster(
+  roomId: string,
+  userIds: string[],
+): Promise<{ roomId: string; pkRosterUserIds: string[] }> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/pk-roster`, {
+    method: 'POST',
+    body: JSON.stringify({ userIds }),
+  });
+}
+
+export async function fetchPkChallenge(challengeId: string): Promise<{ challenge: LivePkChallenge }> {
+  return apiFetch(`/api/live/pk/challenges/${encodeURIComponent(challengeId)}`);
+}
+
+export async function acceptPkChallenge(
+  challengeId: string,
+  input: { teamUserIds?: string[] } = {},
+): Promise<{
+  challenge: LivePkChallenge;
+  pk: LivePkSessionSnapshot;
+}> {
+  return apiFetch(`/api/live/pk/challenges/${encodeURIComponent(challengeId)}/accept`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export async function declinePkChallenge(challengeId: string): Promise<{ challenge: LivePkChallenge }> {
+  return apiFetch(`/api/live/pk/challenges/${encodeURIComponent(challengeId)}/decline`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export async function cancelPkChallenge(challengeId: string): Promise<{ challenge: LivePkChallenge }> {
+  return apiFetch(`/api/live/pk/challenges/${encodeURIComponent(challengeId)}/cancel`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export async function expirePkChallenge(challengeId: string): Promise<{ challenge: LivePkChallenge }> {
+  return apiFetch(`/api/live/pk/challenges/${encodeURIComponent(challengeId)}/expire`, {
+    method: 'POST',
+    body: JSON.stringify({}),
+  });
+}
+
+export async function fetchHostDashboardSnapshot(roomId: string, afterSequence = 0): Promise<{
+  snapshot: LiveHostDashboardSnapshot;
+  deltas: LiveHostDashboardDelta[];
+}> {
+  return apiFetch(
+    `/api/live/rooms/${encodeURIComponent(roomId)}/host-dashboard/snapshot?afterSequence=${Math.max(0, afterSequence)}`,
+  );
+}
+
+export type LiveHostDashboardIngest = {
+  kind: 'comment' | 'reaction' | 'share' | 'follow' | 'audience' | 'media';
+  count?: number;
+  roomType?: LiveLifecycleRoomType;
+  audience?: {
+    currentUniqueViewers?: number;
+    currentConnections?: number;
+    seated?: number;
+    pendingSeatRequests?: number;
+  };
+  media?: {
+    connectionState?: string;
+    connectionQuality?: string;
+    uploadBitrate?: number | null;
+    framesPerSecond?: number | null;
+    packetLoss?: number | null;
+    roundTripTime?: number | null;
+  };
+};
+
+export async function ingestLiveHostDashboard(
+  roomId: string,
+  event: LiveHostDashboardIngest,
+): Promise<LiveHostDashboardSnapshot | { ok: boolean }> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/host-dashboard/ingest`, {
+    method: 'POST',
+    body: JSON.stringify(event),
+  });
+}
+
+export async function fetchHostLiveSummary(roomId: string): Promise<LiveHostSummary> {
+  return apiFetch(`/api/live/rooms/${encodeURIComponent(roomId)}/host-summary`);
+}
+

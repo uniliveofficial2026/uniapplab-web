@@ -1,13 +1,14 @@
 import { isCloudAuthUserId } from './auth/cloudProfile';
 import { db } from './db/localDb';
+import { creditHostCommerceCoinEarnings } from './ledger/ledgerLanes';
 import {
   createCommerceCheckoutSession,
   isPlatformApiAvailable,
-  transferCoins,
+  settleCommerceCoinSaleApi,
   verifyCommerceCheckoutSession,
 } from './platformApi';
 import { syncServerWalletBalance } from './walletServerSync';
-import { creditUserCoins, spendWalletCoins } from './walletKstarSync';
+import { spendWalletCoins } from './walletKstarSync';
 
 export const COMMERCE_PENDING_ORDER_KEY = 'commerce_live_pending_order';
 
@@ -59,21 +60,29 @@ export async function settleCommerceCoinSale(
 
   if (isPlatformApiAvailable() && isCloudAuthUserId(buyerId) && isCloudAuthUserId(hostId)) {
     try {
-      await transferCoins(hostId, cost);
+      const clientRequestId = `commerce_${buyerId}_${hostId}_${cost}_${Date.now()}`;
+      await settleCommerceCoinSaleApi({
+        sellerId: hostId,
+        amount: cost,
+        clientRequestId,
+        metadata: { lane: 'commerce' },
+      });
       await syncServerWalletBalance(buyerId);
+      creditHostCommerceCoinEarnings(hostId, cost);
       if (hostId === db.currentUserId?.trim()) {
         await syncServerWalletBalance(hostId);
       }
       return { ok: true };
     } catch {
-      // Fall through to local ledger when cloud transfer is unavailable.
+      return { ok: false, reason: 'commerce_settle_failed' };
     }
   }
 
   if (!spendWalletCoins(buyerId, cost)) {
     return { ok: false, reason: 'Not enough coins for this item' };
   }
-  creditUserCoins(hostId, cost);
+  // Seller coin earnings stay on commerce lane — never gift-wallet spendable coins.
+  creditHostCommerceCoinEarnings(hostId, cost);
   return { ok: true };
 }
 

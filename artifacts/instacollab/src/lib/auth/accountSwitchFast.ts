@@ -1,6 +1,7 @@
 import type { User } from 'firebase/auth';
 import { withTimeout } from '../networkPolicy';
 import { db } from '../db/localDb';
+import { persistLaunchFunnelAfterAuth } from '../splashSession';
 import { getSupabaseClient } from '../supabase/client';
 import {
   accountFromAppUser,
@@ -13,6 +14,7 @@ import {
 } from './deviceAccounts';
 import { canonicalDeviceAccountUid } from './accountIdentity';
 import { getFirebaseAuth } from '../firebase/app';
+import { rebindPushDeviceToPerson } from '../push/pushDeviceLifecycle';
 import {
   resolveAppUserIdForDeviceAccount,
   saveStoredAccountSessionMirrored,
@@ -74,6 +76,7 @@ export function applyInstantAccountSwitch(deviceUid: string): InstantAccountSwit
     null;
 
   writeActiveDeviceUid(appUserId || deviceUid);
+  rebindPushDeviceToPerson(appUserId || deviceUid);
 
   if (cached) {
     // Prefer canonical app id so local snapshots / cloud sync stay on one key.
@@ -83,6 +86,7 @@ export function applyInstantAccountSwitch(deviceUid: string): InstantAccountSwit
   } else {
     db.login(deviceUid);
   }
+  persistLaunchFunnelAfterAuth();
 
   const accounts = readDeviceAccounts();
   const account =

@@ -7,7 +7,11 @@ import {
   type GiftEffectTier,
 } from '../../lib/live/giftEffectCatalog';
 import { giftTierMeta } from '../../lib/live/giftTiers';
-import { GIFT_QUEUE_PRIORITY } from '../../lib/live/giftEconomy';
+import {
+  GiftPlaybackScheduler,
+  type GiftPlaybackJob,
+} from '../../lib/live/giftPlaybackScheduler';
+import { canAcceptGiftPlayForFx } from '../../lib/live/giftAuthority';
 import type { GiftPlayPayload } from '../utils/liveRoomTypes';
 import { GiftSvgaPlayer } from './GiftSvgaPlayer';
 import { UniLivesGiftThumbnail } from '../../components/gifts/brand';
@@ -19,6 +23,8 @@ import { V14AnimatedGiftArtwork } from './V14AnimatedArtwork';
 type GiftPlayOverlayProps = {
   gift: GiftPlayPayload | null;
   onDone: () => void;
+  /** Admin / catalog preview may omit settlement ids. */
+  allowPreview?: boolean;
 };
 
 type QueuedGift = GiftPlayPayload & { queueKey: string };
@@ -33,21 +39,72 @@ type ComboState = {
   expiresAt: number;
 };
 
-function queueKeyFor(gift: GiftPlayPayload): string {
-  return gift.playId ?? `${gift.senderId ?? gift.senderName}-${gift.giftName}-${Date.now()}`;
+function jobToQueuedGift(job: GiftPlaybackJob): QueuedGift {
+  return {
+    action: 'play',
+    playId: job.playbackJobId,
+    giftId: job.giftId,
+    giftName: job.giftName,
+    giftIcon: job.giftIcon,
+    starValue: job.starValue,
+    senderName: job.senderName,
+    senderId: job.senderUserId,
+    receiverName: job.receiverName,
+    receiverUserId: job.recipientHostId,
+    effectSvgaUrl: job.effectKind === 'svga' ? job.effectUrl ?? undefined : undefined,
+    effectVideoUrl: job.effectKind === 'video' ? job.effectUrl ?? undefined : undefined,
+    quantity: job.comboQuantity,
+    combo: job.comboQuantity,
+    roomId: job.roomId,
+    giftTransactionId: job.giftTransactionIds[0],
+    queueKey: job.playbackJobId,
+  };
 }
 
-function queuePriority(gift: GiftPlayPayload): number {
+function payloadToIncoming(
+  gift: GiftPlayPayload,
+  roomFallback: string,
+): Parameters<GiftPlaybackScheduler['ingest']>[0] {
+  const qty = Math.max(
+    1,
+    Math.floor(
+      typeof gift.quantity === 'number' && Number.isFinite(gift.quantity)
+        ? gift.quantity
+        : typeof gift.combo === 'number' && Number.isFinite(gift.combo)
+          ? gift.combo
+          : 1,
+    ),
+  );
   const tier = resolvePlayTier({
     giftId: gift.giftId,
     giftName: gift.giftName,
     starValue: gift.starValue,
   });
-  return GIFT_QUEUE_PRIORITY[tier] ?? 0;
-}
-
-function sortGiftQueue(queue: QueuedGift[]): QueuedGift[] {
-  return [...queue].sort((a, b) => queuePriority(b) - queuePriority(a));
+  const effectUrl = gift.effectSvgaUrl || gift.effectVideoUrl || null;
+  const effectKind = gift.effectSvgaUrl ? 'svga' : gift.effectVideoUrl ? 'video' : null;
+  return {
+    eventId: gift.eventId ?? gift.giftTransactionId ?? gift.playId ?? null,
+    sequence: gift.sequence ?? null,
+    occurredAt: gift.occurredAt ?? (gift.timestamp ? gift.timestamp * 1000 : Date.now()),
+    expiresAt: gift.expiresAt ?? null,
+    replayPolicy: gift.replayPolicy ?? 'ACTIVE_FX',
+    roomId: gift.roomId?.trim() || roomFallback || 'room',
+    recipientHostId: gift.receiverUserId?.trim() || gift.receiverName || 'host',
+    senderUserId: gift.senderId?.trim() || gift.senderName || 'guest',
+    senderName: gift.senderName,
+    giftId: gift.giftId?.trim() || gift.giftName,
+    giftVariantId: gift.giftVariantId ?? 'default',
+    giftName: gift.giftName,
+    giftIcon: gift.giftIcon,
+    quantity: qty,
+    unitValue: gift.starValue,
+    starValue: gift.starValue,
+    effectUrl,
+    effectKind,
+    receiverName: gift.receiverName,
+    barrageOnly: tier === 'normal',
+    giftTransactionId: gift.giftTransactionId ?? null,
+  };
 }
 
 function GiftVideoEffect({ url, onEnded }: { url: string; onEnded: () => void }) {
@@ -483,83 +540,83 @@ function StaticFinish({ onFinished }: { onFinished: () => void }) {
   return null;
 }
 
-export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
-  const queueRef = useRef<QueuedGift[]>([]);
+export function GiftPlayOverlay({ gift, onDone, allowPreview = false }: GiftPlayOverlayProps) {
+  const schedulerRef = useRef(new GiftPlaybackScheduler());
+  const lastIngestKeyRef = useRef<string | null>(null);
   const [active, setActive] = useState<QueuedGift | null>(null);
-  const [activeTier, setActiveTier] = useState<GiftEffectTier | null>(null);
+  const [activeTiers, setActiveTiers] = useState<GiftEffectTier | null>(null);
   const [combos, setCombos] = useState<ComboState[]>([]);
   const [globalAnnouncement, setGlobalAnnouncement] = useState<QueuedGift | null>(null);
   const processingRef = useRef(false);
 
+  const syncCombos = useCallback(() => {
+    const rows = schedulerRef.current.getComboHud();
+    setCombos(
+      rows.map((row) => ({
+        key: row.key,
+        senderName: row.senderName,
+        giftName: row.giftName,
+        giftIcon: row.giftIcon,
+        giftId: row.giftId,
+        count: row.count,
+        expiresAt: row.expiresAt,
+      })),
+    );
+  }, []);
+
   const pumpQueue = useCallback(() => {
-    while (queueRef.current.length > 0) {
-      const next = queueRef.current[0];
-      const tier = resolvePlayTier({
-        giftId: next.giftId,
-        giftName: next.giftName,
-        starValue: next.starValue,
-      });
-
-      // Normal-tier effects never block — overlap with fullscreen plays.
-      if (tier === 'normal') {
-        queueRef.current.shift();
-        const comboKey = `${next.senderId ?? next.senderName}:${next.giftId ?? next.giftName}`;
-        // Paid units only — never count events. A sends Kiss×1 + Kiss×5 + Kiss×10 => ×16.
-        const unitQty = Math.max(
-          1,
-          Math.floor(
-            typeof next.quantity === 'number' && Number.isFinite(next.quantity)
-              ? next.quantity
-              : typeof next.combo === 'number' && Number.isFinite(next.combo)
-                ? next.combo
-                : 1,
-          ),
-        );
-        setCombos((prev) => {
-          const existing = prev.find((entry) => entry.key === comboKey);
-          if (existing) {
-            return prev.map((entry) =>
-              entry.key === comboKey
-                ? { ...entry, count: entry.count + unitQty, expiresAt: Date.now() + 2600 }
-                : entry,
-            );
-          }
-          return [
-            ...prev.slice(-4),
-            {
-              key: comboKey,
-              senderName: next.senderName,
-              giftName: next.giftName,
-              giftIcon: next.giftIcon,
-              giftId: next.giftId,
-              count: unitQty,
-              expiresAt: Date.now() + 2600,
-            },
-          ];
-        });
-        continue;
-      }
-
-      if (processingRef.current) return;
-      queueRef.current.shift();
-      processingRef.current = true;
-      setActive(next);
-      setActiveTier(tier);
-      if (tier === 'mythic') {
-        setGlobalAnnouncement(next);
-      }
+    const scheduler = schedulerRef.current;
+    if (processingRef.current && scheduler.getActive()) {
+      syncCombos();
       return;
     }
 
-    if (!processingRef.current) onDone();
-  }, [onDone]);
+    const next = scheduler.pump();
+    if (!next) {
+      processingRef.current = false;
+      setActive(null);
+      setActiveTiers(null);
+      syncCombos();
+      onDone();
+      return;
+    }
+
+    const queued = jobToQueuedGift(next);
+    const tier = resolvePlayTier({
+      giftId: queued.giftId,
+      giftName: queued.giftName,
+      starValue: queued.starValue,
+    });
+    processingRef.current = true;
+    setActive(queued);
+    setActiveTiers(tier);
+    if (tier === 'mythic') {
+      setGlobalAnnouncement(queued);
+    }
+    syncCombos();
+  }, [onDone, syncCombos]);
 
   useEffect(() => {
     if (!gift) return;
-    queueRef.current.push({ ...gift, queueKey: queueKeyFor(gift) });
-    queueRef.current = sortGiftQueue(queueRef.current);
+    if (!canAcceptGiftPlayForFx(gift, { allowPreview })) return;
+    const ingestKey =
+      gift.eventId ??
+      gift.giftTransactionId ??
+      gift.playId ??
+      `${gift.senderId}:${gift.giftId}:${gift.timestamp}:${gift.quantity}`;
+    if (lastIngestKeyRef.current === ingestKey) return;
+    lastIngestKeyRef.current = ingestKey;
+
+    const result = schedulerRef.current.ingest(payloadToIncoming(gift, gift.roomId ?? 'room'));
+    if (!result.accepted) return;
+
+    // Combo update while PLAYING: refresh HUD only — do not restart animation.
+    if (result.comboUpdated && processingRef.current) {
+      syncCombos();
+      return;
+    }
     pumpQueue();
-  }, [gift, pumpQueue]);
+  }, [gift, allowPreview, pumpQueue, syncCombos]);
 
   useEffect(() => {
     if (combos.length === 0) return undefined;
@@ -580,13 +637,15 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
   }, [globalAnnouncement]);
 
   const finishActive = useCallback(() => {
+    const activeJob = schedulerRef.current.getActive();
+    schedulerRef.current.finishActive(activeJob?.playbackJobId);
     processingRef.current = false;
     setActive(null);
-    setActiveTier(null);
+    setActiveTiers(null);
     window.setTimeout(pumpQueue, 60);
   }, [pumpQueue]);
 
-  const showStage = Boolean(active && activeTier && activeTier !== 'normal');
+  const showStage = Boolean(active && activeTiers && activeTiers !== 'normal');
 
   return (
     <div className="pointer-events-none absolute inset-0 z-[120] overflow-hidden bg-transparent">
@@ -625,7 +684,7 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
       </div>
 
       <AnimatePresence>
-        {showStage && active && activeTier ? (
+        {showStage && active && activeTiers ? (
           <motion.div
             key={active.queueKey}
             initial={{ opacity: 1 }}
@@ -634,7 +693,7 @@ export function GiftPlayOverlay({ gift, onDone }: GiftPlayOverlayProps) {
             transition={{ duration: 0.15 }}
             className="absolute inset-0 bg-transparent"
           >
-            <ActiveGiftEffect gift={active} tier={activeTier} onFinished={finishActive} />
+            <ActiveGiftEffect gift={active} tier={activeTiers} onFinished={finishActive} />
           </motion.div>
         ) : null}
       </AnimatePresence>

@@ -42,3 +42,22 @@ jobs:
 
       - name: Typecheck instacollab
         run: pnpm --filter @workspace/instacollab run typecheck
+
+      - name: Gift scheduler + wallet authority
+        run: |
+          pnpm --filter @workspace/instacollab run test:gift-scheduler
+          pnpm --filter @workspace/instacollab run test:gift-storm
+          pnpm --filter @workspace/instacollab run test:wallet
+          pnpm --filter @workspace/instacollab run test:identity
+          pnpm --filter @workspace/instacollab run test:social
+          pnpm --filter @workspace/instacollab run test:media-games
+          pnpm --filter @workspace/instacollab run test:visual-lock
+          pnpm --filter @workspace/instacollab run test:rtc-policy
+          pnpm --filter @workspace/instacollab run test:posts-reels
+
+      - name: Gift settle idempotency
+        run: pnpm run test:gifts
+
+      - name: Call + PK readiness
+        run: |
+          pnpm --filter @workspace/instacollab exec ./node_modules/.bin/tsx --test test/call-lifecycle-state.test.mjs test/native-incoming-call-readiness.test.mjs test/pk-team-topology.test.mjs test/pk-seat-stage-a.test.mjs

@@ -1,0 +1,71 @@
+{
+  "currentStage": "A",
+  "currentSlice": "A-security-push-native-stress-20260824",
+  "completed": [
+    "gift-combo-fifo-authority-replay",
+    "likes-loss-tolerant-thermal",
+    "network-qoe-simulcast-room-policy",
+    "commerce-settle-rpc",
+    "posts-reels-identity-thermal",
+    "pk-topology-clamp",
+    "native-call-fail-closed-scaffold",
+    "push-device-person-identity",
+    "pixel-baselines-and-mount-smokes",
+    "final-docs-written",
+    "revoke-authenticated-is-platform-admin",
+    "push-devices-table-and-api",
+    "facear-newest-frame-shared-vision",
+    "android-call-fgs-scaffold",
+    "ios-callkit-manager-fail-closed",
+    "gift-storm-stress",
+    "identity-foundation-tests",
+    "social-graph-contracts",
+    "pk-seat-publish-contracts",
+    "messages-outbox-contracts",
+    "accountSwitchFast-import-fix"
+  ],
+  "failing": [],
+  "blocked": [
+    {
+      "id": "native-callkit-pushkit-device-qa",
+      "detail": "CallKit manager + Android FGS present but FEATURE_ENABLED=false until VoIP certs + physical device QA; PushKit/voip background mode intentionally not declared"
+    },
+    {
+      "id": "push-remote-apns-fcm-send",
+      "detail": "Server push_devices registry exists; remote APNS/FCM send still needs provider credentials"
+    },
+    {
+      "id": "cloudflare-auth",
+      "detail": "Wrangler token expired/missing; Cloudflare MCP needsAuth — EXTERNAL_AUTH_BLOCKED for CF deploy/inspection"
+    },
+    {
+      "id": "deep-e2e-pk-admin-multidevice",
+      "detail": "PK live invite session E2E, workspace admin access-code E2E, multi-device hardware stress"
+    }
+  ],
+  "nextAction": "Continue Stage A deep live-session/browser E2E where secretless; do not start Stage B until acceptance PASS; do not production-deploy until Stage A+B PASS",
+  "uiUxChanged": false,
+  "stageAAcceptance": "NOT_PASSED",
+  "stageBStarted": false,
+  "productionRtcCutover": "NOT_PERFORMED",
+  "providers": {
+    "supabase": "inspected+migrations_applied",
+    "livekit": "api_reachable",
+    "cloudflare": "EXTERNAL_AUTH_BLOCKED",
+    "vercel": "inspected_deployments",
+    "github": "ci_extended"
+  },
+  "evidence": {
+    "typecheck_instacollab": "PASS",
+    "typecheck_api_server": "PASS",
+    "build_instacollab": "PASS",
+    "gift_storm": "2/2",
+    "identity": "13/13",
+    "social": "6/6",
+    "media_games": "4/4",
+    "pk_seat": "6/6",
+    "is_platform_admin_authenticated_exec": false,
+    "push_devices_table": true
+  },
+  "updatedAt": "2026-08-24T00:20:00Z"
+}
