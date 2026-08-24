@@ -133,6 +133,8 @@
     "smoke:multi-device-isolation": "node scripts/smoke-multi-device-isolation.mjs",
     "smoke:stage-a-longrun": "node scripts/smoke-stage-a-longrun.mjs",
     "smoke:calls-dual-party": "node scripts/smoke-calls-dual-party.mjs",
+    "smoke:reels-decoder-budget": "node scripts/smoke-reels-decoder-budget.mjs",
+    "livekit:check-rooms": "node scripts/check-livekit-rooms.mjs",
     "test:call-lifecycle": "./node_modules/.bin/tsx --test test/call-lifecycle-state.test.mjs",
     "test:stage-a-security-push-native": "node --test test/stage-a-security-push-native.test.mjs"
   },

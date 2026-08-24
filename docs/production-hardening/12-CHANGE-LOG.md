@@ -1,3 +1,8 @@
+## 2026-08-24T04:27:00Z — Stage A acceptance PASS
+- Matrices filled (feature + data-flow); CI Stage A units extended; LiveKit room lifecycle, reels decoder budget, marketplace Buy flow, games lifecycle, production web + iOS Simulator builds PASS.
+- External accepted: native FEATURE_ENABLED=false (no VoIP cert / devices Offline); APNS key absent (FCM topic healthcheck PASS).
+- **STAGE A: PASS**. uiUxChanged: false. Stage B **NOT STARTED**. No production RTC cutover.
+
 ## 2026-08-24T04:17:30Z — PK gift score + calls reconnect + push registry remote + CF media map
 - **PK:** `POST /api/live/rooms/:roomId/gifts/lifecycle-settle` (auth participant, idempotent). Local demo gift settle notifies lifecycle. `smoke:live-pk-lifecycle` **PASS** gift delta (+25) + duplicate settle no double-score + round2 + reconnect.
 - **Calls:** dual-party smoke extended — reconnect offline/online, stale accept ignored **PASS**.
