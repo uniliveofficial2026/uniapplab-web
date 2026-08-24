@@ -47,8 +47,8 @@
   "productionRtcCutover": "NOT_PERFORMED",
   "baselineSha": "4786a68",
   "branch": "fix/vercel-api-root-now",
-  "workingTree": "sealing_commit_in_progress",
-  "updatedAt": "2026-08-24T11:44:26Z",
+  "workingTree": "stage_b_committed; unrelated dirty files may remain",
+  "updatedAt": "2026-08-24T11:45:19Z",
   "evidence": {
     "stageBUnitSuite": {
       "script": "scripts/test-stage-b.mjs",
@@ -84,5 +84,7 @@
   "androidBuild": "PASS",
   "iosSimulatorBuild": "PASS",
   "apiBuild": "PASS",
-  "fakeProvider": "PASS"
+  "fakeProvider": "PASS",
+  "finalSha": "a6b2e43faac6c137fd899e4b3f64120e196ef79b",
+  "pushed": false
 }

@@ -47,3 +47,8 @@
 - Production billing warehouse for usage meter
 - Full `unilive start` docker compose stack
 - Visual Builder/Studio WYSIWYG editor
+
+
+## Seal
+- Stage B sealed at  on fix/vercel-api-root-now
+- UI unchanged; LiveKit remains production media provider

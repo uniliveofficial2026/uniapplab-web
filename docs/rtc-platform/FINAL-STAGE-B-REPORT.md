@@ -1,5 +1,9 @@
 # Stage B Final Report
 
+**Final Stage B SHA:** 
+
+# Stage B Final Report
+
 **Date:** 2026-08-24  
 **Baseline SHA:** `4786a68` (Stage A locked)  
 **Branch:** `fix/vercel-api-root-now`  

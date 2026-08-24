@@ -1,6 +1,6 @@
 # Stage B Change Manifest
 
-**Baseline SHA:** `4786a68` · **Branch:** `fix/vercel-api-root-now` · **Committed:** sealing in progress
+**Baseline SHA:** `4786a68` · **Branch:** `fix/vercel-api-root-now` · **Committed:** yes —  / 
 
 ## New packages (`lib/unilives-*`)
 

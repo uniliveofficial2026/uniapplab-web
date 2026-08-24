@@ -12,6 +12,6 @@
     "native-callkit-pushkit-FEATURE_ENABLED-false-until-voip-cert-and-online-device",
     "apns-provider-key-absent-after-credential-exhaust"
   ],
-  "finalSha": "4786a68 baseline; Stage B work uncommitted on fix/vercel-api-root-now",
-  "updatedAt": "2026-08-24T08:24:00Z"
+  "finalSha": "a6b2e43faac6c137fd899e4b3f64120e196ef79b",
+  "updatedAt": "2026-08-24T11:45:19Z"
 }
