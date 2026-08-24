@@ -2,17 +2,18 @@ import type { NextFunction, Request, Response } from "express";
 import { randomUUID } from "node:crypto";
 import { logSlowOperation } from "./slowOperationLog";
 import { formatServerTiming } from "./serverTiming";
-import { readPerfSpans } from "./spans";
+import { readPerfSpans, type PerfRequest } from "./spans";
 
 export function requestTimingMiddleware(req: Request, res: Response, next: NextFunction): void {
+  const r = req as PerfRequest;
   const traceId = String(req.headers["x-trace-id"] || "").trim() || randomUUID();
-  req.traceId = traceId;
-  req.perfStartNs = process.hrtime.bigint();
+  r.traceId = traceId;
+  r.perfStartNs = process.hrtime.bigint();
   if (!res.headersSent) res.setHeader("x-trace-id", traceId);
 
   const originalEnd = res.end.bind(res);
   res.end = ((...args: Parameters<Response["end"]>) => {
-    const start = req.perfStartNs || process.hrtime.bigint();
+    const start = r.perfStartNs || process.hrtime.bigint();
     const durMs = Number(process.hrtime.bigint() - start) / 1e6;
     if (!res.headersSent) {
       const emit =
@@ -20,7 +21,7 @@ export function requestTimingMiddleware(req: Request, res: Response, next: NextF
       if (emit) {
         res.setHeader(
           "Server-Timing",
-          formatServerTiming([{ name: "app", durMs }, ...readPerfSpans(req)]),
+          formatServerTiming([{ name: "app", durMs }, ...readPerfSpans(r)]),
         );
       }
     }

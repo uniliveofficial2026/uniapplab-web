@@ -5,6 +5,9 @@ declare global {
     interface Request {
       authUser?: AuthUser;
       profile?: ProfileRecord | null;
+      traceId?: string;
+      perfStartNs?: bigint;
+      perfSpans?: Record<string, { startNs: bigint; durMs?: number }>;
     }
   }
 }

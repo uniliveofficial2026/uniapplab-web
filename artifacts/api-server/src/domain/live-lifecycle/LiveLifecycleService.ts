@@ -1,4 +1,4 @@
-import { emptyHostDashboard } from "./dashboardReducer.ts";
+import { emptyHostDashboard } from "./dashboardReducer";
 import {
   HOST_RECONNECT_GRACE_MS,
   LIVEKIT_CLEANUP_MAX_ATTEMPTS,
@@ -6,7 +6,7 @@ import {
   canAcceptMutations,
   leaveConfirmationKey,
   resolveHostDeparturePolicy,
-} from "./policy.ts";
+} from "./policy";
 import type {
   CanonicalLiveRoomType,
   EndLiveReason,
@@ -27,9 +27,9 @@ import type {
   LiveRoomRecord,
   ParticipantRole,
   PkMediaSurface,
-} from "./types.ts";
-import { parsePkLiveMediaRef, resolvePkMediaSurface } from "./pkLiveMedia.ts";
-import { LIVE_LIFECYCLE_COMMANDS } from "./types.ts";
+} from "./types";
+import { parsePkLiveMediaRef, resolvePkMediaSurface } from "./pkLiveMedia";
+import { LIVE_LIFECYCLE_COMMANDS } from "./types";
 
 export type LiveLifecycleActor = {
   userId: string;

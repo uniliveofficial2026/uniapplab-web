@@ -1,6 +1,6 @@
-import { deleteLiveKitRoom, getRoomService, isLiveKitConfigured, partyRoomName } from "../../lib/livekit.ts";
-import { LIVEKIT_CLEANUP_MAX_ATTEMPTS } from "./policy.ts";
-import type { LiveLifecycleService } from "./LiveLifecycleService.ts";
+import { deleteLiveKitRoom, getRoomService, isLiveKitConfigured, partyRoomName } from "../../lib/livekit";
+import { LIVEKIT_CLEANUP_MAX_ATTEMPTS } from "./policy";
+import type { LiveLifecycleService } from "./LiveLifecycleService";
 
 export async function removeLiveKitParticipant(roomName: string, identity: string): Promise<boolean> {
   const svc = getRoomService();
