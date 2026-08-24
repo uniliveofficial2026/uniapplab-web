@@ -1,0 +1,25 @@
+{
+  "name": "@unilives/plugin-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UniLive Builder/Studio plugin manifests and validation",
+  "type": "module",
+  "license": "UNLICENSED",
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "@unilives/errors": "workspace:*"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

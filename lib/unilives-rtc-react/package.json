@@ -1,0 +1,30 @@
+{
+  "name": "@unilives/rtc-react",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Provider-neutral React hooks for UniLive RTC",
+  "type": "module",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "README.md"
+  ],
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "peerDependencies": {
+    "react": ">=18.0.0"
+  },
+  "dependencies": {
+    "@unilives/rtc-client": "workspace:*"
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/rtc-react: no unit tests (React peer)')\""
+  }
+}

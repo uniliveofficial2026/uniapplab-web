@@ -2,6 +2,17 @@
   "name": "@unilives/realtime",
   "version": "0.1.0",
   "private": true,
+  "description": "UniLive realtime pub/sub with delivery lanes and loss-tolerant modes",
   "type": "module",
-  "exports": { ".": "./index.mjs" }
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "README.md"],
+  "exports": {
+    ".": {
+      "default": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/realtime: smoke via test:stage-b')\""
+  }
 }

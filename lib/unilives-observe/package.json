@@ -2,8 +2,21 @@
   "name": "@unilives/observe",
   "version": "0.1.0",
   "private": true,
+  "description": "UniLive observability — trace context, sanitized logs, and metrics buffer",
   "type": "module",
-  "exports": { ".": "./index.mjs" },
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "index.d.ts", "README.md"],
+  "types": "./index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/observe: smoke via test:stage-b')\""
+  },
   "dependencies": {
     "@unilives/platform-core": "workspace:*"
   }

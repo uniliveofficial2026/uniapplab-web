@@ -1,0 +1,22 @@
+{
+  "name": "@unilives/provider-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "description": "External UniLive provider adapter contracts",
+  "type": "module",
+  "license": "UNLICENSED",
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "README.md"
+  ],
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  }
+}

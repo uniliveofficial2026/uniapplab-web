@@ -2,13 +2,20 @@
   "name": "@unilives/rtc-livekit",
   "version": "0.1.0",
   "private": true,
+  "description": "LiveKit adapter for UniLive RTC — isolated behind @unilives/rtc-contracts",
   "type": "module",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "index.d.ts", "cloudflareQualification.mjs", "README.md"],
   "types": "./index.d.ts",
   "exports": {
     ".": {
       "types": "./index.d.ts",
       "default": "./index.mjs"
     }
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/rtc-livekit: smoke via test:stage-b')\""
   },
   "dependencies": {
     "@unilives/rtc-contracts": "workspace:*",

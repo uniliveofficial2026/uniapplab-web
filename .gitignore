@@ -95,5 +95,13 @@ artifacts/instacollab/public/trtc-webar/backgrounds/video-bg-2.mp4
 # Local 3D master assets (too large for GitHub — keep on disk / CDN only)
 unilives_master_source/
 
+# Stage C local runtime / CLI
+local/.generated/
+.unilive/
+.unilive.json
+**/.unilive.json
+**/project-graph.json.tmp
+*.unilive.tmp
+
 # Large regenerable / export archives (permanent portable zip is rebuilt via script)
 exports/

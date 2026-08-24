@@ -1,0 +1,25 @@
+{
+  "name": "@unilives/errors",
+  "version": "0.1.0",
+  "private": true,
+  "description": "UniLive public typed error model",
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "typecheck": "node -e \"console.log('ok')\"",
+    "test": "node --test test/*.test.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "README.md",
+    "public"
+  ],
+  "license": "UNLICENSED"
+}

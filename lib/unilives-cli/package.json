@@ -2,17 +2,28 @@
   "name": "@unilives/cli",
   "version": "0.1.0",
   "private": true,
+  "description": "UniLive CLI — doctor, deploy, RTC status, and local project commands",
   "type": "module",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "bin.mjs", "README.md"],
   "bin": {
     "unilive": "./bin.mjs"
   },
   "exports": {
-    ".": "./index.mjs"
+    ".": {
+      "default": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/cli: smoke via test:stage-b')\""
   },
   "dependencies": {
     "@unilives/platform-core": "workspace:*",
     "@unilives/sdk": "workspace:*",
     "@unilives/mcp": "workspace:*",
-    "@unilives/rtc-fake": "workspace:*"
+    "@unilives/rtc-fake": "workspace:*",
+    "@unilives/templates": "workspace:*",
+    "@unilives/studio": "workspace:*"
   }
 }

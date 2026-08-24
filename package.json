@@ -11,6 +11,8 @@
     "typecheck:libs": "tsc --build",
     "typecheck": "pnpm run typecheck:libs && pnpm -r --filter \"./artifacts/**\" --filter \"./scripts\" --if-present run typecheck",
     "test:stage-b": "node scripts/test-stage-b.mjs",
+    "test:stage-c": "node scripts/test-stage-c.mjs",
+    "test:stage-c:pack": "node scripts/stage-c-pack-validate.mjs",
     "dev": "node scripts/live-sync.mjs",
     "dev:app": "pnpm --filter @workspace/instacollab run dev",
     "dev:light": "LIVE_SYNC_DEPLOY=0 UX_AGENT=0 pnpm --filter @workspace/instacollab run dev",

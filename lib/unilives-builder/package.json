@@ -1,0 +1,27 @@
+{
+  "name": "@unilives/builder",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "UniLive Builder MVP — ProjectGraph authoring with persistence",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "@unilives/errors": "workspace:*",
+    "@unilives/project-graph": "workspace:*",
+    "@unilives/ui": "workspace:*"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "public"
+  ],
+  "license": "UNLICENSED"
+}

@@ -2,13 +2,20 @@
   "name": "@unilives/rtc-core",
   "version": "0.1.0",
   "private": true,
+  "description": "UniLive RTC orchestrators — calls, PK battles, seats, rooms, event envelopes",
   "type": "module",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "index.d.ts", "README.md"],
   "types": "./index.d.ts",
   "exports": {
     ".": {
       "types": "./index.d.ts",
       "default": "./index.mjs"
     }
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/rtc-core: smoke via test:stage-b')\""
   },
   "dependencies": {
     "@unilives/rtc-contracts": "workspace:*",

@@ -2,7 +2,11 @@
   "name": "@unilives/sdk",
   "version": "0.1.0",
   "private": true,
+  "description": "Unified UniLive platform SDK — auth, database, storage, realtime, RTC, functions, observe",
   "type": "module",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "index.d.ts", "README.md"],
   "types": "./index.d.ts",
   "exports": {
     ".": {
@@ -10,7 +14,12 @@
       "default": "./index.mjs"
     }
   },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
   "dependencies": {
+    "@unilives/errors": "workspace:*",
+    "@unilives/observe": "workspace:*",
     "@unilives/rtc-client": "workspace:*",
     "@unilives/rtc-contracts": "workspace:*",
     "@unilives/platform-core": "workspace:*"

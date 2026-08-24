@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>UniLive Studio</title>
+  <link rel="stylesheet" href="/styles.css" />
+</head>
+<body>
+  <header data-testid="studio-header">
+    <h1>UniLive Studio</h1>
+    <span data-testid="studio-status">Local</span>
+  </header>
+  <nav data-testid="studio-nav">
+    <button data-panel="projects" class="active" data-testid="nav-projects">Projects</button>
+    <button data-panel="builder" data-testid="nav-builder">Builder</button>
+    <button data-panel="data" data-testid="nav-data">Data</button>
+    <button data-panel="rtc" data-testid="nav-rtc">RTC</button>
+    <button data-panel="storage" data-testid="nav-storage">Storage</button>
+    <button data-panel="deploy" data-testid="nav-deploy">Deploy</button>
+    <button data-panel="logs" data-testid="nav-logs">Logs</button>
+    <button data-panel="settings" data-testid="nav-settings">Settings</button>
+  </nav>
+  <main>
+    <section id="panel-projects" class="panel active" data-testid="panel-projects">
+      <h2>Projects</h2>
+      <form id="create-project-form" data-testid="create-project-form">
+        <input name="name" placeholder="Project name" data-testid="project-name-input" required />
+        <select name="template" data-testid="project-template-select">
+          <option value="">Empty</option>
+        </select>
+        <button type="submit" data-testid="create-project-btn">Create Project</button>
+      </form>
+      <ul id="project-list" data-testid="project-list"></ul>
+    </section>
+    <section id="panel-builder" class="panel" data-testid="panel-builder">
+      <h2>Builder</h2>
+      <div data-testid="builder-controls">
+        <button id="builder-save" data-testid="builder-save">Save</button>
+        <button id="builder-undo" data-testid="builder-undo">Undo</button>
+        <button id="builder-redo" data-testid="builder-redo">Redo</button>
+        <button id="builder-generate" data-testid="builder-generate">Generate Source</button>
+      </div>
+      <pre id="builder-graph" data-testid="builder-graph"></pre>
+      <pre id="builder-source" data-testid="builder-source"></pre>
+    </section>
+    <section id="panel-data" class="panel" data-testid="panel-data"><h2>Data</h2><pre id="data-output"></pre></section>
+    <section id="panel-rtc" class="panel" data-testid="panel-rtc"><h2>RTC</h2><pre id="rtc-output"></pre></section>
+    <section id="panel-storage" class="panel" data-testid="panel-storage"><h2>Storage</h2><pre id="storage-output"></pre></section>
+    <section id="panel-deploy" class="panel" data-testid="panel-deploy"><h2>Deploy</h2><pre id="deploy-output"></pre></section>
+    <section id="panel-logs" class="panel" data-testid="panel-logs"><h2>Logs</h2><pre id="logs-output" data-testid="logs-output"></pre></section>
+    <section id="panel-settings" class="panel" data-testid="panel-settings"><h2>Settings</h2><pre id="settings-output"></pre></section>
+  </main>
+  <script src="/app.js" type="module"></script>
+</body>
+</html>

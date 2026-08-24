@@ -1,0 +1,35 @@
+{
+  "name": "@unilives/studio",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "UniLive Studio — local HTTP control surface for Builder and platform panels",
+  "exports": {
+    ".": {
+      "types": "./index.d.ts",
+      "default": "./index.mjs"
+    }
+  },
+  "dependencies": {
+    "@unilives/builder": "workspace:*",
+    "@unilives/database": "workspace:*",
+    "@unilives/deploy": "workspace:*",
+    "@unilives/mcp": "workspace:*",
+    "@unilives/observe": "workspace:*",
+    "@unilives/platform-core": "workspace:*",
+    "@unilives/project-graph": "workspace:*",
+    "@unilives/sdk": "workspace:*",
+    "@unilives/storage": "workspace:*",
+    "@unilives/templates": "workspace:*",
+    "@unilives/rtc-fake": "workspace:*"
+  },
+  "scripts": {
+    "test": "node --test test/*.test.mjs"
+  },
+  "files": [
+    "index.mjs",
+    "index.d.ts",
+    "public"
+  ],
+  "license": "UNLICENSED"
+}

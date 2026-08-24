@@ -2,12 +2,19 @@
   "name": "@unilives/rtc-contracts",
   "version": "0.1.0",
   "private": true,
+  "description": "Provider-neutral RTC contracts — roles, permissions, room types, provider interfaces",
   "type": "module",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "index.d.ts", "types.ts", "README.md"],
   "types": "./index.d.ts",
   "exports": {
     ".": {
       "types": "./index.d.ts",
       "default": "./index.mjs"
     }
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/rtc-contracts: smoke via test:stage-b')\""
   }
 }

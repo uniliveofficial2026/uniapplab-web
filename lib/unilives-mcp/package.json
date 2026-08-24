@@ -2,12 +2,21 @@
   "name": "@unilives/mcp",
   "version": "0.1.0",
   "private": true,
+  "description": "UniLive MCP server — control plane tools for agents and IDE integrations",
   "type": "module",
+  "license": "UNLICENSED",
+  "sideEffects": false,
+  "files": ["index.mjs", "bin.mjs", "README.md"],
   "bin": {
     "unilive-mcp": "./bin.mjs"
   },
   "exports": {
-    ".": "./index.mjs"
+    ".": {
+      "default": "./index.mjs"
+    }
+  },
+  "scripts": {
+    "test": "node -e \"console.log('@unilives/mcp: smoke via test:stage-b')\""
   },
   "dependencies": {
     "@unilives/platform-core": "workspace:*",
