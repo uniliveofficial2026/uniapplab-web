@@ -3,6 +3,7 @@ import { Users, Plus, ArrowLeft, X, Play, Music, Search, Shield } from 'lucide-r
 import { motion, AnimatePresence } from 'motion/react';
 import type { User, ChatGroup, ChatMessage } from '../../types';
 import { handleAvatarError, handleMediaError } from '../../lib/utils';
+import { ProfileNameLines } from '../common/ProfileNameLines';
 import { AppCameraButton } from '../camera/AppCameraButton';
 import type { AppCameraCapturePayload } from '../../contexts/AppCameraContext';
 import { PLAYBACK_SCOPE } from '../../lib/playbackScope';
@@ -214,9 +215,12 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                  {filteredNewMessageUsers.map(u => (
                    <div key={u.id} onClick={() => { setSelectedChatId(u.id); setShowNewMessageModal(false); setNewMessageSearchQuery(''); }} className="flex items-center gap-3 p-3 hover:bg-secondary/50 rounded-xl cursor-pointer transition-colors">
                      <img src={u.avatarUrl || undefined} alt="avatar" className="w-12 h-12 rounded-full border border-border" onError={handleAvatarError} />
-                     <div className="flex flex-col">
-                       <span className="font-bold text-[14px]">{u.displayName}</span>
-                       <span className="text-xs text-muted-foreground">{u.username} · {u.id}</span>
+                     <div className="flex flex-col min-w-0">
+                       <ProfileNameLines
+                         user={u}
+                         primaryClassName="font-bold text-[14px] truncate"
+                         secondaryClassName="text-xs text-muted-foreground truncate"
+                       />
                      </div>
                    </div>
                  ))}
@@ -304,8 +308,11 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                         <img src={user.avatarUrl || undefined} alt={user.username} className="w-full h-full object-cover" onError={handleAvatarError} />
                       </div>
                       <div className="flex flex-col items-start min-w-0 flex-1">
-                        <span className="font-bold text-[14px] truncate w-full text-left">{user.displayName}</span>
-                        <span className="text-xs text-muted-foreground truncate w-full text-left">{user.username} · {user.id}</span>
+                        <ProfileNameLines
+                          user={user}
+                          primaryClassName="font-bold text-[14px] truncate w-full text-left"
+                          secondaryClassName="text-xs text-muted-foreground truncate w-full text-left"
+                        />
                       </div>
                       <div className={`w-5 h-5 rounded-full border flex items-center justify-center ${isSelected ? 'bg-primary border-primary text-primary-foreground' : 'border-border'}`}>
                         {isSelected ? '✓' : ''}
@@ -638,9 +645,12 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                     {filteredGroupMembers.map((member) => (
                       <div key={`group-member-full-${member.id}`} className="flex items-center gap-2 rounded-lg border border-border p-1.5 bg-background/60">
                         <img src={member.avatarUrl || undefined} alt={member.username} className="w-8 h-8 rounded-full object-cover border border-border" onError={handleAvatarError} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold truncate">{member.displayName}</div>
-                          <div className="text-[11px] text-muted-foreground truncate">{member.username} · {member.id}</div>
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <ProfileNameLines
+                            user={member}
+                            primaryClassName="text-xs font-semibold truncate"
+                            secondaryClassName="text-[11px] text-muted-foreground truncate"
+                          />
                         </div>
                         {((selectedGroup.createdBy || currentUser.id) === member.id || selectedGroupAdminSet.has(member.id)) && (
                           <span className="px-2 py-1 rounded-md text-[10px] font-semibold border border-border bg-secondary/60 shrink-0">
@@ -711,9 +721,12 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                     {filteredAddableGroupUsers.map((user) => (
                       <div key={`group-add-fullscreen-${user.id}`} className="flex items-center gap-2 rounded-lg border border-border p-2 bg-background/60">
                         <img src={user.avatarUrl || undefined} alt={user.username} className="w-9 h-9 rounded-full object-cover border border-border" onError={handleAvatarError} />
-                        <div className="flex-1 min-w-0">
-                          <div className="text-xs font-semibold truncate">{user.displayName}</div>
-                          <div className="text-[11px] text-muted-foreground truncate">{user.username} · {user.id}</div>
+                        <div className="flex-1 min-w-0 flex flex-col">
+                          <ProfileNameLines
+                            user={user}
+                            primaryClassName="text-xs font-semibold truncate"
+                            secondaryClassName="text-[11px] text-muted-foreground truncate"
+                          />
                         </div>
                         <button
                           type="button"
@@ -794,9 +807,12 @@ export function MessagesScreenOverlays(props: MessagesScreenOverlaysProps) {
                       return (
                         <div key={`moderation-member-${member.id}`} className="flex items-center gap-2 rounded-lg border border-border p-2 bg-background/60">
                           <img src={member.avatarUrl || undefined} alt={member.username} className="w-9 h-9 rounded-full object-cover border border-border" onError={handleAvatarError} />
-                          <div className="flex-1 min-w-0">
-                            <div className="text-xs font-semibold truncate">{member.displayName}</div>
-                            <div className="text-[11px] text-muted-foreground truncate">{member.username} · {member.id}</div>
+                          <div className="flex-1 min-w-0 flex flex-col">
+                            <ProfileNameLines
+                              user={member}
+                              primaryClassName="text-xs font-semibold truncate"
+                              secondaryClassName="text-[11px] text-muted-foreground truncate"
+                            />
                           </div>
                           {isOwner ? (
                             <span className="px-2 py-1 rounded-md text-[10px] font-semibold border border-border bg-secondary/60">Owner</span>

@@ -1,8 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Sparkles, SwitchCamera } from 'lucide-react';
+import { Sofa, Sparkles, SwitchCamera, Grid2X2 } from 'lucide-react';
 import { CameraCaptureViewport } from '../../components/camera/CameraCaptureViewport';
+import { CallVideoSurface } from '../../components/messages/CallVideoSurface';
 import {
-  getBeautyVideoFilter,
+  isTencentBeautifyActive,
+  resolveBeautyCssFilter,
   type BeautyPresetId,
 } from '../../lib/ar/beautyFilters';
 import { EMPTY_BODY_SHAPE, isBodyShapeActive, type BodyShapeParams } from '../../lib/ar/bodyShape';
@@ -25,18 +27,28 @@ import {
 } from '../../lib/webar/useTencentWebAR';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
+  type TencentBeautifyParams,
   type TencentEffectSelection,
 } from '../../lib/webar/webarTypes';
 import { PREVIEW_AVATARS } from '../utils/roomModePreviewDemo';
 import type { PendingCreateRoomBeauty } from '../utils/pendingCreateRoomBeauty';
 import { readLastVideoCallBeauty, stashLastVideoCallBeauty } from '../../lib/ar/lastVideoCallBeauty';
 import { LiveBeautySheet } from './LiveBeautySheet';
+import {
+  formatMultiGuestLayoutOptionLabel,
+  formatMultiGuestSeatLabel,
+  getMultiGuestVideoLayout,
+  MULTI_GUEST_SEAT_COUNT_OPTIONS,
+  resolveMultiGuestSeatCount,
+  type MultiGuestSeatCount,
+} from '../utils/roomSeats';
 
 type CreateRoomLivePreviewProps = {
-  mode: 'Solo-Live' | 'Commerce-Live';
+  mode: 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest';
   enabled: boolean;
   /** Fill parent edge-to-edge (Create Room Solo/Shop stage). */
   fill?: boolean;
+  initialSeatCount?: MultiGuestSeatCount;
   onSetupChange?: (setup: PendingCreateRoomBeauty) => void;
 };
 
@@ -48,9 +60,11 @@ export function CreateRoomLivePreview({
   mode,
   enabled,
   fill = false,
+  initialSeatCount,
   onSetupChange,
 }: CreateRoomLivePreviewProps) {
   const isShop = mode === 'Commerce-Live';
+  const isMulti = mode === 'Multi-Guest';
   const webarConfigured = isTencentWebARConfigured();
   const captureIdealRef = useRef(getStableCameraIdeal(webarConfigured));
   const lastCallBeauty = useRef(initialBeautyFromLastCall()).current;
@@ -64,8 +78,14 @@ export function CreateRoomLivePreview({
   const [bodyShape, setBodyShape] = useState<BodyShapeParams>(
     () => lastCallBeauty?.bodyShape ?? EMPTY_BODY_SHAPE,
   );
+  const [beautifyOverride, setBeautifyOverride] = useState<TencentBeautifyParams | null>(
+    () => lastCallBeauty?.beautifyOverride ?? null,
+  );
   const [beautyPanelOpen, setBeautyPanelOpen] = useState(false);
   const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
+  const [seatCount, setSeatCount] = useState<MultiGuestSeatCount>(() =>
+    resolveMultiGuestSeatCount(initialSeatCount),
+  );
 
   const beautyEffectsActive = Boolean(
     beautyEffects.makeupId ||
@@ -75,7 +95,8 @@ export function CreateRoomLivePreview({
       beautyEffects.shapeEffectId,
   );
   const shapeActive = isBodyShapeActive(bodyShape);
-  const beautyActive = beautyId !== 'none' || beautyEffectsActive || shapeActive;
+  const overrideActive = Boolean(beautifyOverride && isTencentBeautifyActive(beautifyOverride));
+  const beautyActive = beautyId !== 'none' || beautyEffectsActive || shapeActive || overrideActive;
   const mirrorPreview = shouldMirrorCameraPreview(facingMode);
 
   const camera = useCameraStream({
@@ -103,12 +124,11 @@ export function CreateRoomLivePreview({
     beautyId,
     effects: beautyEffects,
     bodyShape,
+    beautifyOverride,
     mirror: false,
-    // Warm SDK/catalogs without forcing a continuous GPU passthrough (that adds preview lag).
-    keepWarm: enabled && webarConfigured && (beautyActive || beautyPanelOpen),
+    keepWarm: enabled && webarConfigured && Boolean(inputStream || camera.stream),
     beautyPanelOpen,
-    loadCatalogs: beautyPanelOpen,
-    // Process only while effects are actually on.
+    loadCatalogs: enabled && webarConfigured,
     persistent: enabled && webarConfigured && beautyActive,
   });
 
@@ -137,7 +157,7 @@ export function CreateRoomLivePreview({
   // CSS look only until TRTC frames are on screen.
   const cssFallbackFilter =
     beautyActive && !showProcessedPreview
-      ? getBeautyVideoFilter(beautyId !== 'none' ? beautyId : 'beauty-natural')
+      ? resolveBeautyCssFilter(beautyId, beautifyOverride)
       : null;
 
   useEffect(() => {
@@ -151,10 +171,12 @@ export function CreateRoomLivePreview({
       beautyId,
       beautyEffects,
       bodyShape,
+      beautifyOverride,
       roomMode: mode,
+      ...(mode === 'Multi-Guest' ? { multiGuestSeatCount: seatCount } : {}),
     });
-    stashLastVideoCallBeauty({ beautyId, beautyEffects, bodyShape });
-  }, [beautyId, beautyEffects, bodyShape, mode, onSetupChange]);
+    stashLastVideoCallBeauty({ beautyId, beautyEffects, bodyShape, beautifyOverride });
+  }, [beautyId, beautyEffects, bodyShape, beautifyOverride, mode, onSetupChange, seatCount]);
 
   useEffect(() => {
     if (!enabled) {
@@ -167,6 +189,7 @@ export function CreateRoomLivePreview({
   }, []);
 
   const handleSelectBeauty = useCallback((nextBeautyId: BeautyPresetId) => {
+    setBeautifyOverride(null);
     setBeautyId(nextBeautyId);
   }, []);
 
@@ -174,33 +197,37 @@ export function CreateRoomLivePreview({
     setBeautyEffects(effects);
   }, []);
 
+  const handleBeautifyParamsChange = useCallback((params: TencentBeautifyParams) => {
+    setBeautifyOverride(params);
+  }, []);
+
   const permissionDenied = camera.permissionDenied;
   const cameraError = camera.error;
   const beautyError = streamBeauty.error;
   const previewStream = inputStream ?? camera.stream ?? camera.streamRef.current;
+  const multiLayout = isMulti ? getMultiGuestVideoLayout(seatCount) : [];
 
-  const stage = (
-    <div
-      className={
-        fill
-          ? 'absolute inset-0 overflow-hidden bg-black'
-          : 'relative overflow-hidden rounded-2xl border border-white/10 bg-black aspect-[9/14] max-h-[22rem] sm:max-h-[26rem]'
-      }
-    >
-      {enabled ? (
-        <>
-          <div
-            className="absolute inset-0"
-            style={cssFallbackFilter ? { filter: cssFallbackFilter } : undefined}
-          >
-            <CameraCaptureViewport
-              rawStream={previewStream}
-              beautyStream={beautyStream}
-              showBeautyPreview={showBeautyPreview}
-              mirrorRaw={mirrorPreview}
-              beautySinkVideoRef={streamBeauty.outputVideoRef}
-            />
-          </div>
+  const cameraFeed = (tileLayout: 'fullscreen' | 'fill' = 'fullscreen') =>
+    enabled ? (
+      <>
+        <div
+          className={
+            tileLayout === 'fill'
+              ? 'relative h-full w-full overflow-hidden'
+              : 'absolute inset-0 overflow-hidden'
+          }
+          style={cssFallbackFilter ? { filter: cssFallbackFilter } : undefined}
+        >
+          <CameraCaptureViewport
+            rawStream={previewStream}
+            beautyStream={beautyStream}
+            showBeautyPreview={showBeautyPreview}
+            mirrorRaw={mirrorPreview}
+            beautySinkVideoRef={streamBeauty.outputVideoRef}
+            layout={tileLayout}
+          />
+        </div>
+        {tileLayout === 'fullscreen' ? (
           <video
             ref={camera.videoRef}
             playsInline
@@ -210,78 +237,172 @@ export function CreateRoomLivePreview({
             className="fixed h-px w-px opacity-0 pointer-events-none"
             style={{ left: -9999, top: -9999 }}
           />
-        </>
-      ) : (
-        <div className="absolute inset-0 bg-slate-950" />
-      )}
+        ) : null}
+      </>
+    ) : (
+      <div className="absolute inset-0 bg-slate-950" />
+    );
 
-      <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30" />
+  const captureElement = (
+    <video
+      ref={camera.videoRef}
+      playsInline
+      muted
+      autoPlay
+      aria-hidden
+      className="fixed h-px w-px opacity-0 pointer-events-none"
+      style={{ left: -9999, top: -9999 }}
+    />
+  );
 
-      <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-red-600/90 px-2 py-0.5 text-[9px] font-black uppercase text-white">
-        <span className="h-1.5 w-1.5 rounded-full bg-white" />
-        Preview
-      </div>
+  const beautyControls = !beautyPanelOpen ? (
+    <div className={`z-10 flex items-center justify-between gap-2 ${isMulti ? 'create-room-multi-host-actions' : 'absolute bottom-3 left-3 right-3'}`}>
+      <button
+        type="button"
+        onClick={() => setBeautyPanelOpen(true)}
+        className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur-md transition ${
+          beautyActive
+            ? 'border-fuchsia-400/50 bg-fuchsia-500/25 text-fuchsia-100'
+            : 'border-white/20 bg-black/55 text-white'
+        }`}
+      >
+        <Sparkles size={12} />
+        Beauty
+      </button>
+      <button
+        type="button"
+        onClick={flipCamera}
+        className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md"
+        aria-label="Flip camera"
+      >
+        <SwitchCamera size={15} />
+      </button>
+    </div>
+  ) : null;
 
-      {!beautyPanelOpen ? (
-        <>
-          {isShop ? (
-            <div className="absolute bottom-16 left-3 right-3 z-10 rounded-xl border border-amber-400/30 bg-black/70 p-2 backdrop-blur-md">
-              <div className="flex items-center gap-2">
-                <img
-                  src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=80"
-                  className="h-10 w-10 rounded-lg object-cover"
-                  alt=""
-                />
-                <div className="min-w-0 flex-1">
-                  <p className="truncate text-[10px] font-black text-white">Wireless Earbuds Pro</p>
-                  <p className="text-[9px] font-bold text-amber-300">$49.99 · pin products when live</p>
-                </div>
-                <span className="shrink-0 rounded-full bg-amber-500 px-2 py-1 text-[8px] font-black text-black">
-                  SHOP
-                </span>
-              </div>
-            </div>
-          ) : (
-            <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-3 px-3">
-              {[PREVIEW_AVATARS.guest1, PREVIEW_AVATARS.guest2, null].map((avatar, index) => (
-                <div
-                  key={`solo-guest-${index}`}
-                  className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/50"
+  const stage = (
+    <div
+      className={
+        fill
+          ? 'absolute inset-0 overflow-hidden bg-black'
+          : 'relative overflow-hidden rounded-2xl border border-white/10 bg-black aspect-[9/14] max-h-[22rem] sm:max-h-[26rem]'
+      }
+    >
+      {isMulti ? (
+        <div className="create-room-multi-preview">
+          {captureElement}
+          <div className="create-room-multi-layout-bar">
+            <span className="create-room-multi-layout-title">
+              <Grid2X2 size={13} /> Layout
+            </span>
+            <div className="create-room-multi-layout-btns">
+              {MULTI_GUEST_SEAT_COUNT_OPTIONS.map((count) => (
+                <button
+                  key={count}
+                  type="button"
+                  className={`create-room-multi-layout-btn${seatCount === count ? ' is-active' : ''}`}
+                  onClick={() => setSeatCount(count)}
                 >
-                  {avatar ? (
-                    <img src={avatar} alt="" className="h-full w-full object-cover" />
-                  ) : (
-                    <span className="text-[8px] font-black text-white/40">NO.{index + 1}</span>
-                  )}
-                </div>
+                  {formatMultiGuestLayoutOptionLabel(count)}
+                </button>
               ))}
             </div>
-          )}
-
-          <div className="absolute bottom-3 left-3 right-3 z-10 flex items-center justify-between gap-2">
-            <button
-              type="button"
-              onClick={() => setBeautyPanelOpen(true)}
-              className={`inline-flex items-center gap-1.5 rounded-full border px-3 py-1.5 text-[10px] font-black uppercase tracking-wide backdrop-blur-md transition ${
-                beautyActive
-                  ? 'border-fuchsia-400/50 bg-fuchsia-500/25 text-fuchsia-100'
-                  : 'border-white/20 bg-black/55 text-white'
-              }`}
-            >
-              <Sparkles size={12} />
-              Beauty
-            </button>
-            <button
-              type="button"
-              onClick={flipCamera}
-              className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md"
-              aria-label="Flip camera"
-            >
-              <SwitchCamera size={15} />
-            </button>
           </div>
+          <div className={`create-room-multi-grid create-room-multi-grid--${seatCount}`}>
+            {multiLayout.map((item) => {
+              const label = formatMultiGuestSeatLabel(item.seatKey, seatCount, { uppercase: true });
+              const isHost = item.seatKey === 'host';
+              return (
+                <div
+                  key={item.seatKey}
+                  className={`create-room-multi-tile${isHost ? ' create-room-multi-tile--host' : ''}`}
+                  style={{
+                    ...(item.gridColumn ? { gridColumn: item.gridColumn } : {}),
+                    ...(item.gridRow ? { gridRow: item.gridRow } : {}),
+                  }}
+                >
+                  {isHost ? (
+                    <>
+                      <div className="create-room-multi-host-cam">
+                        {enabled ? (
+                          <CallVideoSurface
+                            stream={
+                              showBeautyPreview && beautyStream
+                                ? beautyStream
+                                : previewStream
+                            }
+                            layout="fill"
+                            framing="cover"
+                            mirrored={mirrorPreview}
+                            label="Camera preview"
+                          />
+                        ) : (
+                          <div className="h-full w-full bg-slate-950" />
+                        )}
+                      </div>
+                      <div className="absolute left-1.5 top-1.5 z-10 flex items-center gap-1 rounded-full bg-red-600/90 px-1.5 py-0.5 text-[8px] font-black uppercase text-white">
+                        <span className="h-1.5 w-1.5 rounded-full bg-white" />
+                        Preview
+                      </div>
+                      <span className="create-room-multi-host-label">{label}</span>
+                      {beautyControls}
+                    </>
+                  ) : (
+                    <div className="create-room-multi-empty">
+                      <Sofa size={20} className="create-room-multi-empty-icon" aria-hidden />
+                      <span className="create-room-multi-empty-label">{label}</span>
+                    </div>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      ) : (
+        <>
+          {cameraFeed('fullscreen')}
+          <div className="pointer-events-none absolute inset-0 bg-gradient-to-t from-black/75 via-transparent to-black/30" />
+          <div className="absolute left-3 top-3 z-10 flex items-center gap-1 rounded-full bg-red-600/90 px-2 py-0.5 text-[9px] font-black uppercase text-white">
+            <span className="h-1.5 w-1.5 rounded-full bg-white" />
+            Preview
+          </div>
+          {!beautyPanelOpen ? (
+            isShop ? (
+              <div className="absolute bottom-16 left-3 z-10 aspect-square w-[7.25rem] overflow-hidden rounded-xl border border-amber-400/30 bg-black/80 shadow-[0_8px_24px_rgba(0,0,0,0.45)]">
+                <img
+                  src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=240"
+                  className="absolute inset-0 h-full w-full object-cover"
+                  alt=""
+                />
+                <span className="absolute right-1.5 top-1.5 rounded bg-amber-500 px-1.5 py-0.5 text-[7px] font-black text-black">
+                  SHOP
+                </span>
+                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-1.5 pb-1.5 pt-6">
+                  <p className="truncate text-[9px] font-black leading-tight text-white">Wireless Earbuds Pro</p>
+                  <p className="text-[8px] font-bold text-amber-300">$49.99</p>
+                </div>
+              </div>
+            ) : (
+              <div className="absolute bottom-16 left-0 right-0 z-10 flex justify-center gap-3 px-3">
+                {[PREVIEW_AVATARS.guest1, PREVIEW_AVATARS.guest2, null].map((avatar, index) => (
+                  <div
+                    key={`solo-guest-${index}`}
+                    className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-full border border-white/20 bg-black/50"
+                  >
+                    {avatar ? (
+                      <img src={avatar} alt="" className="h-full w-full object-cover" />
+                    ) : (
+                      <span className="text-[8px] font-black text-white/40">NO.{index + 1}</span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )
+          ) : null}
         </>
-      ) : null}
+      )}
+
+      {isMulti ? null : beautyControls}
 
       {permissionDenied ? (
         <div className="absolute inset-0 z-20 flex flex-col items-center justify-center gap-3 bg-black/90 px-4 text-center">
@@ -342,15 +463,6 @@ export function CreateRoomLivePreview({
             role="dialog"
             aria-label="Beauty panel"
           >
-            <div className="flex shrink-0 items-center justify-end gap-2 px-3 pt-2">
-              <button
-                type="button"
-                onClick={() => setBeautyPanelOpen(false)}
-                className="rounded-full border border-white/25 bg-black/45 px-3 py-1 text-[10px] font-black uppercase tracking-wide text-white drop-shadow transition hover:bg-black/60"
-              >
-                Done
-              </button>
-            </div>
             <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain bg-transparent px-3 py-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
               <LiveBeautySheet
                 isOpen
@@ -361,11 +473,13 @@ export function CreateRoomLivePreview({
                 onEffectsChange={handleBeautyEffectsChange}
                 bodyShape={bodyShape}
                 onBodyShapeChange={setBodyShape}
+                onBeautifyParamsChange={handleBeautifyParamsChange}
+                beautifyOverride={beautifyOverride}
                 catalogs={streamBeauty.catalogs}
                 readyEffectIds={streamBeauty.readyEffectIds}
                 variant="inline"
                 webarConfigured={webarConfigured}
-                webarLoading={false}
+                webarLoading={streamBeauty.loading}
                 webarError={streamBeauty.error}
               />
             </div>

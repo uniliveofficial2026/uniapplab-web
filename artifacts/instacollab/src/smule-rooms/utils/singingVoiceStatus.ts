@@ -26,8 +26,9 @@ export function formatSingingStatusLine(
   voiceStatus: SingingVoiceStatus,
 ): string {
   const effect = getVoiceChangerEffect(voiceEffect);
+  const icon = effect.emoji ?? '🎙️';
   if (voiceStatus === 'silent') {
-    return `${effect.emoji} ${effect.label}`;
+    return `${icon} ${effect.label}`;
   }
-  return `${effect.emoji} ${effect.label} · ${voiceStatusLabel(voiceStatus)}`;
+  return `${icon} ${effect.label} · ${voiceStatusLabel(voiceStatus)}`;
 }

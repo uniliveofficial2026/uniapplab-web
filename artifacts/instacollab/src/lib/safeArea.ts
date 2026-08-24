@@ -123,6 +123,14 @@ export function updateAppSafeArea(): void {
   root.style.setProperty('--app-safe-right', `${right}px`);
   root.style.setProperty('--app-vv-height', `${height}px`);
   root.style.setProperty('--app-vv-width', `${width}px`);
+  root.style.setProperty(
+    '--app-shell-top-offset',
+    `calc(${top}px + var(--app-mobile-top-nav-h, 60px))`,
+  );
+  root.style.setProperty(
+    '--app-shell-bottom-offset',
+    `calc(${bottom}px + var(--app-mobile-bottom-nav-h, 50px))`,
+  );
   // Keyboard-only inset (visualViewport bottom beyond static safe-area).
   const keyboard = Math.max(0, vv.bottom - env.bottom);
   root.style.setProperty('--app-keyboard-inset', `${keyboard}px`);

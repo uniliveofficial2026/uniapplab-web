@@ -13,6 +13,8 @@ type MultiGuestSelfMediaHostProps = {
   anchorRef: RefObject<HTMLElement | null>;
   seatKey: string | null;
   active: boolean;
+  /** Remeasure when chrome/footer shifts the rail without resizing it. */
+  layoutNonce?: number | string;
   rawVideoRef: RefObject<HTMLVideoElement | null>;
   deeparPreviewRef: RefObject<HTMLDivElement | null>;
   showDeeparPreview: boolean;
@@ -44,6 +46,7 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
   anchorRef,
   seatKey,
   active,
+  layoutNonce = 0,
   rawVideoRef,
   deeparPreviewRef,
   showDeeparPreview,
@@ -115,7 +118,7 @@ export const MultiGuestSelfMediaHost: React.FC<MultiGuestSelfMediaHostProps> = (
       observer?.disconnect();
       window.removeEventListener('resize', measure);
     };
-  }, [active, anchorRef, seatKey, stageRef]);
+  }, [active, anchorRef, layoutNonce, seatKey, stageRef]);
 
   useLayoutEffect(() => {
     if (!active) return undefined;

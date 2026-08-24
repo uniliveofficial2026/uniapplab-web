@@ -7,6 +7,7 @@ import {
   KARAOKE_URL_KEYS,
   parseAppShellLocation,
   pruneAppShellSearchParams,
+  STUDIO_QUERY_KEYS,
   type AppShellState,
 } from './appShellRoutes';
 
@@ -101,6 +102,11 @@ export function syncAppShellUrl(state: PersistedShellState, mode: 'replace' | 'p
   const url = new URL(window.location.href);
   url.pathname = `${base}${pathname}`;
   url.search = search;
+
+  for (const key of STUDIO_QUERY_KEYS) {
+    const value = existingParams.get(key);
+    if (value) url.searchParams.set(key, value);
+  }
 
   if (state.currentTab === 'karaoke') {
     for (const key of KARAOKE_URL_KEYS) {

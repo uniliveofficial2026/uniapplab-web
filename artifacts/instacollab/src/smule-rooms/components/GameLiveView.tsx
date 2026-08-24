@@ -6,12 +6,13 @@ import {
   Gamepad2,
   GripVertical,
   Info,
+  Activity,
   LayoutGrid,
-  LogOut,
   MessageCircle,
   MessageCircleOff,
   Monitor,
   Pencil,
+  Power,
   Send,
   Settings2,
   Shield,
@@ -25,6 +26,7 @@ import type { PartySeatMap, RoomGuest } from '../utils/roomSeats';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
 import { safeAvatarUrl } from '../../lib/safe';
 import { RoomBackgroundLayer } from './RoomBackgroundLayer';
+import { HostLiveMetricsStrip, type HostLiveMetrics } from './HostLiveMetricsStrip';
 import { RoomFooterTrayActions } from './RoomFooterTrayActions';
 import {
   RoomHeaderActionsMenu,
@@ -42,7 +44,7 @@ import { usePercentOverlayDrag } from '../hooks/usePercentOverlayDrag';
 import { LiveBeautySheet } from './LiveBeautySheet';
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
 import type { BodyShapeParams } from '../../lib/ar/bodyShape';
-import type { TencentEffectSelection } from '../../lib/webar/webarTypes';
+import type { TencentBeautifyParams, TencentEffectSelection } from '../../lib/webar/webarTypes';
 import { isTencentWebARConfigured } from '../../lib/webar/webarConfig';
 import {
   clampGameLiveEdgePosition,
@@ -134,6 +136,9 @@ export type GameLiveViewProps = {
   hostUserId: string;
   isSelfHost: boolean;
   onLeaveRoom: () => void;
+  onRequestEndLive?: () => void;
+  onOpenHostDashboard?: () => void;
+  hostLiveMetrics?: HostLiveMetrics | null;
   onShareRoom: () => void;
   onOpenRoomDetails: () => void;
   onOpenRoomEdit?: () => void;
@@ -155,6 +160,8 @@ export type GameLiveViewProps = {
   setIsRoomViewersOpen: (open: boolean) => void;
   onSelectViewer?: (viewer: RoomViewerEntry) => void;
   setIsGiftPickerOpen: (open: boolean) => void;
+  onOpenStickers?: () => void;
+  stickersOpen?: boolean;
   setIsGuestManagementOpen: (open: boolean) => void;
   liveChatMsgs: LiveChatMsg[];
   chatInput: string;
@@ -215,6 +222,8 @@ export type GameLiveViewProps = {
   beautyPanelOpen?: boolean;
   onToggleBeautyPanel?: () => void;
   onSelectBeauty?: (beautyId: BeautyPresetId) => void;
+  onBeautifyParamsChange?: (params: TencentBeautifyParams) => void;
+  beautifyOverride?: TencentBeautifyParams | null;
   onBeautyEffectsChange?: (effects: TencentEffectSelection) => void;
   onBeautyBodyShapeChange?: (shape: BodyShapeParams) => void;
 };
@@ -272,6 +281,9 @@ export function GameLiveView({
   hostUserId,
   isSelfHost,
   onLeaveRoom,
+  onRequestEndLive,
+  onOpenHostDashboard,
+  hostLiveMetrics = null,
   onShareRoom,
   onOpenRoomDetails,
   onOpenRoomEdit,
@@ -293,6 +305,8 @@ export function GameLiveView({
   setIsRoomViewersOpen,
   onSelectViewer,
   setIsGiftPickerOpen,
+  onOpenStickers,
+  stickersOpen = false,
   setIsGuestManagementOpen,
   liveChatMsgs,
   chatInput,
@@ -353,6 +367,8 @@ export function GameLiveView({
   beautyPanelOpen = false,
   onToggleBeautyPanel,
   onSelectBeauty,
+  onBeautifyParamsChange,
+  beautifyOverride = null,
   onBeautyEffectsChange,
   onBeautyBodyShapeChange,
 }: GameLiveViewProps) {
@@ -569,11 +585,11 @@ export function GameLiveView({
       }),
       createYoutubeMiniHeaderMenuItem(),
       {
-        id: 'leave',
-        label: 'Leave room',
-        icon: <LogOut size={15} aria-hidden />,
-        onClick: onLeaveRoom,
-        hidden: !isSelfHost,
+        id: 'host-dashboard',
+        label: 'Live dashboard',
+        icon: <Activity size={15} aria-hidden />,
+        onClick: () => onOpenHostDashboard?.(),
+        hidden: !isSelfHost || !onOpenHostDashboard,
       },
     ],
     [
@@ -590,8 +606,8 @@ export function GameLiveView({
       canChangeRoomBackground,
       setIsRoomBackgroundMenuOpen,
       songQueueLength,
-      onLeaveRoom,
       isSelfHost,
+      onOpenHostDashboard,
     ],
   );
 
@@ -603,6 +619,7 @@ export function GameLiveView({
     }
     return (
       <GameLiveViewerWatchLayout
+        hostLiveMetrics={hostLiveMetrics}
         roomDisplayId={roomDisplayId}
         roomTitle={roomTitle}
         announcement={announcement}
@@ -628,6 +645,8 @@ export function GameLiveView({
         roomGiftSummary={roomGiftSummary}
         setIsRoomViewersOpen={setIsRoomViewersOpen}
         setIsGiftPickerOpen={setIsGiftPickerOpen}
+        onOpenStickers={onOpenStickers}
+        stickersOpen={stickersOpen}
         setIsGuestManagementOpen={setIsGuestManagementOpen}
         liveChatMsgs={liveChatMsgs}
         chatInput={chatInput}
@@ -738,6 +757,8 @@ export function GameLiveView({
           onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
           guestManagementOpen={guestManagementOpen}
           onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
+          onOpenStickers={onOpenStickers}
+          stickersOpen={stickersOpen}
           showCamera
           userCameraOn={cameraOn}
           onToggleUserCamera={() => {
@@ -768,6 +789,11 @@ export function GameLiveView({
       <RoomBackgroundLayer mode={pendingBackgroundMode ?? backgroundMode} />
       <div className="relative z-10 flex h-full min-h-0 flex-1 flex-col overflow-hidden">
         <div ref={stageRef} className="game-live-stage relative min-h-0 flex-1">
+          {hostLiveMetrics ? (
+            <div className="pointer-events-auto absolute left-3 top-3 z-40">
+              <HostLiveMetricsStrip metrics={hostLiveMetrics} />
+            </div>
+          ) : null}
           {showHostScreen ? (
             <video ref={screenVideoRef} autoPlay playsInline muted className="game-live-screen-video" />
           ) : (
@@ -1011,6 +1037,21 @@ export function GameLiveView({
                     <Gamepad2 size={16} />
                   </button>
                 ) : null}
+                {onRequestEndLive ? (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      if (toolsDockDrag.consumeClickIfDragged()) return;
+                      onRequestEndLive();
+                    }}
+                    className="game-live-tools-dock-btn text-red-200"
+                    aria-label="End Live"
+                    title="End Live"
+                    data-node-id="node.live.host.end-live"
+                  >
+                    <Power size={16} />
+                  </button>
+                ) : null}
                 <RoomHeaderActionsMenu items={headerMenuItems} className="game-live-tools-dock-menu" />
               </div>
             </div>
@@ -1024,6 +1065,9 @@ export function GameLiveView({
           onClose={onToggleBeautyPanel}
           activeBeautyId={beautyEffectId}
           onSelectBeauty={onSelectBeauty}
+          onBeautifyParamsChange={onBeautifyParamsChange}
+          beautifyOverride={beautifyOverride}
+          selfName="You"
           effects={beautyEffects}
           onEffectsChange={onBeautyEffectsChange}
           bodyShape={beautyBodyShape}

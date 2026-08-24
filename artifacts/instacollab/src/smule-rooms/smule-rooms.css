@@ -387,9 +387,19 @@
 
 /* Party chat legibility — slightly larger than smule-clone defaults */
 #chat-feed-module .party-chat-avatar,
-.multi-guest-chat .party-chat-avatar {
+.multi-guest-chat .party-chat-avatar,
+.solo-live-layout .party-chat-avatar {
+  box-sizing: border-box;
   width: 1.5rem;
   height: 1.5rem;
+  max-width: 1.5rem;
+  max-height: 1.5rem;
+  aspect-ratio: 1 / 1;
+  border-radius: 999px;
+  object-fit: cover;
+  object-position: center;
+  align-self: start;
+  justify-self: start;
 }
 
 #chat-feed-module .party-chat-username,
@@ -454,6 +464,13 @@
 .watch-together-chat .party-chat-bubble-text {
   font-size: 11.5px;
   line-height: 1.35;
+}
+
+.party-chat-sticker-art {
+  width: 72px;
+  height: 72px;
+  object-fit: contain;
+  display: block;
 }
 
 .watch-together-chat .party-chat-join-line {
@@ -1703,25 +1720,49 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   box-shadow: none;
 }
 
-.multi-guest-video-grid--15 {
+.multi-guest-video-grid--15,
+.multi-guest-video-grid--16 {
   --mg-cols: 5;
-  --mg-rows: 3;
+  --mg-rows: 4;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
 }
 
-.multi-guest-video-grid--12,
-.multi-guest-video-grid--7 {
+.multi-guest-video-grid--12 {
   --mg-cols: 5;
   --mg-rows: 3;
   grid-template-columns: repeat(5, minmax(0, 1fr));
   grid-template-rows: repeat(3, minmax(0, 1fr));
 }
 
-/* Same stage height as 5×3 modes; two equal columns fill width edge to edge */
-.multi-guest-video-grid--2 {
-  --mg-cols: 5;
-  --mg-rows: 3;
+.multi-guest-video-grid--8 {
+  --mg-cols: 4;
+  --mg-rows: 2;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.multi-guest-video-grid--4 {
+  --mg-cols: 2;
+  --mg-rows: 2;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.multi-guest-video-grid--24 {
+  --mg-cols: 6;
+  --mg-rows: 4;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+/* 1v1 — host + one guest, two equal columns filling the stage */
+.multi-guest-video-grid--2 {
+  --mg-cols: 2;
+  --mg-rows: 1;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+  height: 100%;
 }
 
 .multi-guest-video-tile--col-span-2 {
@@ -1730,6 +1771,176 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
 
 .multi-guest-video-tile--row-span-2 {
   grid-row: span 2;
+}
+
+.create-room-multi-preview {
+  position: absolute;
+  inset: 0;
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  min-width: 0;
+}
+
+.create-room-multi-layout-bar {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 6px 8px;
+  background: rgba(0, 0, 0, 0.45);
+}
+
+.create-room-multi-layout-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.create-room-multi-layout-btns {
+  display: flex;
+  gap: 4px;
+}
+
+.create-room-multi-layout-btn {
+  min-width: 36px;
+  height: 28px;
+  padding: 0 8px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.06);
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 11px;
+  font-weight: 800;
+}
+
+.create-room-multi-layout-btn.is-active {
+  border-color: rgba(168, 85, 247, 0.7);
+  background: rgba(139, 92, 246, 0.35);
+  color: #fff;
+}
+
+.create-room-multi-grid {
+  display: grid;
+  flex: 1;
+  min-height: 0;
+  min-width: 0;
+  width: 100%;
+  height: 100%;
+  gap: 3px;
+  background: #000;
+}
+
+.create-room-multi-grid--2 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: minmax(0, 1fr);
+}
+
+.create-room-multi-grid--4 {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.create-room-multi-grid--8 {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+}
+
+.create-room-multi-grid--16 {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.create-room-multi-grid--24 {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-rows: repeat(4, minmax(0, 1fr));
+}
+
+.create-room-multi-tile {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  min-width: 0;
+  min-height: 0;
+  background: #0a0a0c;
+}
+
+.create-room-multi-empty {
+  display: flex;
+  height: 100%;
+  width: 100%;
+  min-height: 0;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0.35rem;
+  background: #121018;
+}
+
+.create-room-multi-empty-icon {
+  width: 22px;
+  height: 22px;
+  color: rgba(255, 255, 255, 0.55);
+  flex-shrink: 0;
+}
+
+.create-room-multi-empty-label {
+  position: static;
+  max-width: 100%;
+  padding: 0 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 0.5625rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: rgba(255, 255, 255, 0.72);
+}
+
+.create-room-multi-host-label {
+  position: absolute;
+  left: 6px;
+  bottom: 42px;
+  z-index: 10;
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  color: #fff;
+  text-shadow: 0 1px 4px rgba(0, 0, 0, 0.8);
+}
+
+.create-room-multi-host-actions {
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: 6px;
+  z-index: 10;
+}
+
+.create-room-multi-host-cam {
+  position: absolute;
+  inset: 0;
+  overflow: hidden;
+  contain: paint;
+  background: #000;
+}
+
+.create-room-multi-host-cam video {
+  position: absolute !important;
+  inset: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+  min-width: 0 !important;
+  min-height: 0 !important;
+  max-width: 100% !important;
+  max-height: 100% !important;
+  object-fit: cover;
 }
 
 .multi-guest-video-tile--host-expanded .multi-guest-video-tile-empty-marker {
@@ -2306,7 +2517,7 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   min-height: 0;
   overflow: hidden;
   /* Stable seat size - never tied to 100dvh / browser chrome. */
-  --solo-live-guest-size: min(1.5in, 9rem);
+  --solo-live-guest-size: clamp(72px, 15cqi, 112px);
   /* Fixed clearance above footer/chat - never recomputed from beauty/arena. */
   --solo-live-guest-rail-bottom: 168px;
 }
@@ -2504,7 +2715,7 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   pointer-events: none;
   display: flex;
   flex-direction: column;
-  background: linear-gradient(to top, rgba(0, 0, 0, 0.82) 0%, rgba(0, 0, 0, 0.45) 55%, transparent 100%);
+  background: transparent;
 }
 
 .solo-live-conversation > * {
@@ -2890,4 +3101,24 @@ video.watch-together-native-media::-webkit-media-controls-fullscreen-button {
   bottom: 0;
   padding: 4rem 1rem max(1rem, env(safe-area-inset-bottom));
   background: linear-gradient(to top, rgb(0 0 0 / 0.9), rgb(0 0 0 / 0.35), transparent);
+}
+
+.live-like-heart {
+  display: block;
+  pointer-events: none;
+  animation: live-like-float 1.5s linear forwards;
+  animation-delay: 0s;
+  will-change: transform, opacity;
+}
+
+@keyframes live-like-float {
+  0% {
+    opacity: 1;
+    transform: translate(-50%, 0) scale(1) rotate(var(--live-like-rotate, 0deg));
+  }
+  100% {
+    opacity: 0;
+    transform: translate(calc(-50% + var(--live-like-drift, 0px)), -52vh) scale(0.92)
+      rotate(var(--live-like-rotate, 0deg));
+  }
 }

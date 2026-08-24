@@ -351,7 +351,7 @@ export function SongSelector({
   if (isWidget) {
     return (
       <div
-        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/45 p-0 backdrop-blur-[2px] sm:items-center sm:p-4"
+        className="fixed inset-0 z-[100] flex items-end justify-center bg-black/45 p-0 sm:items-center sm:p-4"
         onClick={onClose}
         role="presentation"
       >

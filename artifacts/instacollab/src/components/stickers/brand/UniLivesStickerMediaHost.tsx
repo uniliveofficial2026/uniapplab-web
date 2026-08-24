@@ -29,6 +29,7 @@ export function UniLivesStickerMediaHost({
     resolveStickerPlayMedia({ businessStickerId, remoteMediaUrl, legacyMediaUrl, options: resolveOptions });
   return (
     <UniLivesStickerAnimation
+      businessStickerId={businessStickerId}
       svgaUrl={media.svgaUrl}
       videoUrl={media.videoUrl}
       staticUrl={media.staticUrl}

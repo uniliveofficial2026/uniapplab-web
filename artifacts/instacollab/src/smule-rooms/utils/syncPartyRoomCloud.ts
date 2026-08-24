@@ -1,4 +1,8 @@
 import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
+import {
+  isHostLiveEnded,
+  isHostUserLiveEnded,
+} from '../../lib/live/hostLiveEndedRegistry';
 import { isPartyCloudAvailable } from '../../lib/party/partyCloud';
 import { upsertPartyRoom } from '../../lib/party/partyRoomsCloud';
 import type { RoomSettings } from './storage';
@@ -23,6 +27,10 @@ export function syncPartyRoomToCloud(
   if (!roomId || !ownerId || !isPartyCloudAvailable() || !isCloudAuthUserId(ownerId)) {
     return;
   }
+  // Never resurrect discovery after End Live (beats in-flight heartbeats).
+  if (isHostLiveEnded(roomId) || isHostUserLiveEnded(ownerId)) {
+    return;
+  }
 
   const privacy = resolveRoomPrivacy(settings);
   const roomMode = normalizeStorageRoomMode(String(settings.roomMode ?? 'Chat'));
@@ -35,7 +43,9 @@ export function syncPartyRoomToCloud(
   const tags = pkAllowed ? ['pk', modeTag] : [modeTag];
 
   void (async () => {
+    if (isHostLiveEnded(roomId) || isHostUserLiveEnded(ownerId)) return;
     const room_key_hash = await resolveRoomKeyHashForSync(privacy, settings.roomKey);
+    if (isHostLiveEnded(roomId) || isHostUserLiveEnded(ownerId)) return;
     try {
       await upsertPartyRoom(
         {

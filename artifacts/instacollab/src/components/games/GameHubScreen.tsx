@@ -44,10 +44,11 @@ export function GameHubScreen({ onOpenLocalGames, onOpenThirdParty }: GameHubScr
   const [playingFeatured, setPlayingFeatured] = useState<LocalGameRecord | null>(null);
 
   return (
+    <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-6 md:p-10 max-w-7xl mx-auto space-y-10 w-full min-w-0"
+      className="app-screen-scroll p-6 md:p-10 max-w-7xl mx-auto space-y-10 w-full min-w-0 app-content-gutter"
     >
       <div className="space-y-2">
         <div className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-wider text-muted-foreground">
@@ -157,5 +158,6 @@ export function GameHubScreen({ onOpenLocalGames, onOpenThirdParty }: GameHubScr
         />
       )}
     </motion.div>
+    </div>
   );
 }

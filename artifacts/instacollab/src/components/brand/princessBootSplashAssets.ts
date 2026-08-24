@@ -1,6 +1,6 @@
 /**
  * Locked UniLive’s boot splash — first approved 9:16 video.
- * Always plays on app boot / cold start. Do not replace without approval.
+ * Plays once for newcomers only. Returning loads use the second in-app clip.
  */
 
 export const PRINCESS_BOOT_SPLASH_LOCKED_VIDEO_SRC =

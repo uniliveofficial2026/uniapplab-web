@@ -19,7 +19,7 @@ export async function fetchFirebaseUserAppState(
   if (!snap.exists()) return null;
   const data = snap.data() as { payload?: CloudAppStatePayload };
   const payload = data?.payload;
-  if (payload && typeof payload === 'object' && payload.v === 1) {
+  if (payload && typeof payload === 'object' && (payload.v === 1 || payload.v === 2)) {
     return payload;
   }
   return null;
@@ -56,7 +56,7 @@ export function subscribeFirebaseUserAppState(
       if (!snap.exists()) return;
       const data = snap.data() as { payload?: CloudAppStatePayload };
       const next = data?.payload;
-      if (next && typeof next === 'object' && next.v === 1) {
+      if (next && typeof next === 'object' && (next.v === 1 || next.v === 2)) {
         onPayload(next);
       }
     },

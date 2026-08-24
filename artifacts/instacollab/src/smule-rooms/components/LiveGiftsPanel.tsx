@@ -1,78 +1,133 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { Coins, Flame, Package, Send, Shield } from 'lucide-react';
 import {
-  giftTierFromStars,
-  type GiftEffectTier,
-} from '../../lib/live/giftEffectCatalogTypes';
-import type { GiftSeason } from '../../lib/live/giftStudioCatalog';
+  Coins,
+  Crown,
+  Flame,
+  Gift,
+  Heart,
+  PartyPopper,
+  Send,
+  ShoppingBag,
+  Smile,
+  Sparkles,
+  User,
+  X,
+} from 'lucide-react';
 import type { PartyGiftDefinition } from '../utils/roomGifts';
-import {
-  UniLivesGiftPrice,
-  UniLivesGiftThumbnail,
-} from '../../components/gifts/brand';
-import {
-  resolveGiftCanonicalAssetId,
-} from '../../lib/unilives-assets/giftResolve';
+import { resolveGiftCanonicalAssetId } from '../../lib/unilives-assets/giftResolve';
 import { preloadAssets } from '../../lib/unilives-assets/preload';
+import { buildV14GiftCards, type V14GiftCard } from './liveToolsV14Artwork';
+import { safeAvatarUrl } from '../../lib/safe';
+import { V14AnimatedGiftArtwork } from './V14AnimatedArtwork';
+import './live-tools-approved-v15.css';
 
-type TabId = GiftEffectTier | 'all' | 'seasonal' | 'vip';
+type CategoryChip =
+  | 'all'
+  | 'lucky'
+  | 'popular'
+  | 'love'
+  | 'luxury'
+  | 'fun'
+  | 'vip'
+  | 'festival';
+type SortMode = 'default' | 'price-asc' | 'price-desc';
 
 type LiveGiftsPanelProps = {
   gifts: PartyGiftDefinition[];
   userCoins: number;
   receiverName: string;
+  receiverAvatarUrl?: string;
   isVip: boolean;
   onToggleVip: () => void;
   onOpenRecharge: () => void;
   onSendGift: (gift: PartyGiftDefinition, quantity: number, isComboSend: boolean) => void;
+  onClose?: () => void;
+  onCycleReceiver?: () => void;
 };
 
-const TABS: Array<{ id: TabId; label: string }> = [
-  { id: 'all', label: 'All' },
-  { id: 'normal', label: 'Normal' },
-  { id: 'premium', label: 'Premium' },
-  { id: 'epic', label: 'Epic' },
-  { id: 'legendary', label: 'Legendary' },
-  { id: 'mythic', label: 'Mythic' },
-  { id: 'seasonal', label: 'Seasonal' },
-  { id: 'vip', label: 'VIP' },
+const CATEGORY_CHIPS: Array<{ id: CategoryChip; label: string; icon: typeof Gift }> = [
+  { id: 'all', label: 'All Gifts', icon: Gift },
+  { id: 'lucky', label: 'Lucky', icon: Sparkles },
+  { id: 'popular', label: 'Popular', icon: Flame },
+  { id: 'love', label: 'Love', icon: Heart },
+  { id: 'luxury', label: 'Luxury', icon: Crown },
+  { id: 'fun', label: 'Fun', icon: Smile },
+  { id: 'vip', label: 'VIP', icon: Sparkles },
+  { id: 'festival', label: 'Festival', icon: PartyPopper },
 ];
 
-const SEASONS: GiftSeason[] = ['Christmas', 'Lunar New Year', 'Valentine', 'Halloween'];
-
-const TIER_ORDER: Record<GiftEffectTier, number> = {
-  normal: 1,
-  premium: 2,
-  epic: 3,
-  legendary: 4,
-  mythic: 5,
-};
+function cardMatchesCategory(card: V14GiftCard, chip: CategoryChip, isVip: boolean): boolean {
+  const name = card.name.toLowerCase();
+  switch (chip) {
+    case 'all':
+      return true;
+    case 'lucky':
+      return /lucky|fortune|egg|wheel|clover|bill/.test(name);
+    case 'popular':
+      return card.badge === 'HOT' || card.badge === 'NEW' || /box|chest|wheel|whale/.test(name);
+    case 'love':
+      return /love|kiss|heart|airplane/.test(name);
+    case 'luxury':
+      return /castle|carriage|whale|phoenix|diamond/.test(name);
+    case 'fun':
+      return /mystery|surprise|box/.test(name);
+    case 'vip':
+      return isVip && (Boolean(card.gift?.isVipExclusive) || card.price >= 1200);
+    case 'festival':
+      return Boolean(card.gift?.isSeasonal) || /phoenix|surprise|castle/.test(name);
+    default:
+      return true;
+  }
+}
 
 export function LiveGiftsPanel({
   gifts,
   userCoins,
   receiverName,
+  receiverAvatarUrl,
   isVip,
   onToggleVip,
   onOpenRecharge,
   onSendGift,
+  onClose,
+  onCycleReceiver,
 }: LiveGiftsPanelProps) {
-  const [activeTab, setActiveTab] = useState<TabId>('all');
-  const [selectedGift, setSelectedGift] = useState<PartyGiftDefinition | null>(gifts[0] ?? null);
-  const [sendQuantity, setSendQuantity] = useState(1);
-  const [customQuantity, setCustomQuantity] = useState('');
-  const [seasonalFilter, setSeasonalFilter] = useState<GiftSeason>('Christmas');
-  const [comboCount, setComboCount] = useState(0);
+  const [categoryChip, setCategoryChip] = useState<CategoryChip>('all');
+  const [sortMode, setSortMode] = useState<SortMode>('default');
+  const [selectedAssetId, setSelectedAssetId] = useState<string | null>(null);
+  const [quantity, setQuantity] = useState(1);
   const comboTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const receiverAvatar = safeAvatarUrl(receiverAvatarUrl || '');
+
+  const cards = useMemo(() => buildV14GiftCards(gifts), [gifts]);
+
+  const visible = useMemo(() => {
+    const filtered = cards.filter((card) => cardMatchesCategory(card, categoryChip, isVip));
+    if (sortMode === 'default') return filtered;
+    return [...filtered].sort((a, b) => {
+      const priceA = a.gift?.stars ?? a.price;
+      const priceB = b.gift?.stars ?? b.price;
+      return sortMode === 'price-asc' ? priceA - priceB : priceB - priceA;
+    });
+  }, [cards, categoryChip, isVip, sortMode]);
+
+  const selected = visible.find((card) => card.assetId === selectedAssetId) ?? visible[0] ?? null;
 
   useEffect(() => {
-    if (!selectedGift && gifts[0]) setSelectedGift(gifts[0]);
-  }, [gifts, selectedGift]);
+    const ids = visible
+      .slice(0, 24)
+      .map((card) => (card.gift?.id ? resolveGiftCanonicalAssetId(card.gift.id) : null))
+      .filter((id): id is string => Boolean(id));
+    if (ids.length === 0) return undefined;
+    // Bounded thumbnail warmup — never every SVGA in the catalog.
+    void preloadAssets(ids);
+    return undefined;
+  }, [visible]);
 
   useEffect(() => {
     if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-    setComboCount(0);
-  }, [selectedGift?.id]);
+    setQuantity(1);
+  }, [selected?.assetId]);
 
   useEffect(
     () => () => {
@@ -81,280 +136,155 @@ export function LiveGiftsPanel({
     [],
   );
 
-  const sortedGifts = useMemo(() => {
-    const filtered = gifts.filter((gift) => {
-      const tier = gift.tier ?? giftTierFromStars(gift.stars);
-      if (activeTab === 'all') return !gift.isSeasonal && !gift.isVipExclusive;
-      if (activeTab === 'seasonal') return Boolean(gift.isSeasonal) && gift.season === seasonalFilter;
-      if (activeTab === 'vip') return Boolean(gift.isVipExclusive);
-      return tier === activeTab && !gift.isSeasonal && !gift.isVipExclusive;
-    });
-    return [...filtered].sort((a, b) => {
-      const tierA = a.tier ?? giftTierFromStars(a.stars);
-      const tierB = b.tier ?? giftTierFromStars(b.stars);
-      if (tierA !== tierB) return TIER_ORDER[tierA] - TIER_ORDER[tierB];
-      return a.stars - b.stars;
-    });
-  }, [activeTab, gifts, seasonalFilter]);
-
-  /** Preload only visible tray thumbnails (canonical IDs) — never every SVGA. */
-  useEffect(() => {
-    const ids = sortedGifts
-      .slice(0, 24)
-      .map((gift) => resolveGiftCanonicalAssetId(gift.id))
-      .filter((id): id is string => Boolean(id));
-    if (ids.length === 0) return undefined;
-    void preloadAssets(ids);
-    return undefined;
-  }, [sortedGifts]);
-
-  const selectGiftWithReset = (gift: PartyGiftDefinition) => {
-    setSelectedGift(gift);
-    setCustomQuantity('');
-    setSendQuantity(1);
-  };
-
-  const resolveQuantity = () => {
-    if (customQuantity) return Math.max(1, Math.min(999, parseInt(customQuantity, 10) || 1));
-    return Math.max(1, sendQuantity);
-  };
-
-  const handleSendNormal = () => {
-    if (!selectedGift) return;
-    const quantity = resolveQuantity();
-    const total = selectedGift.stars * quantity;
+  const send = () => {
+    if (!selected?.gift) {
+      window.dispatchEvent(
+        new CustomEvent('app-toast', {
+          detail: `${selected?.name || 'Gift'} is not mapped to a real gift ID yet.`,
+        }),
+      );
+      return;
+    }
+    const total = selected.gift.stars * quantity;
     if (userCoins < total) {
       window.dispatchEvent(
-        new CustomEvent('app-toast', { detail: 'Not enough coins — tap Recharge or pick a cheaper gift.' }),
+        new CustomEvent('app-toast', {
+          detail: 'Not enough coins — tap Recharge or pick a cheaper gift.',
+        }),
       );
       return;
     }
-    onSendGift(selectedGift, quantity, false);
-    setComboCount(0);
+    onSendGift(selected.gift, quantity, quantity > 1);
   };
 
-  const handleComboClick = () => {
-    if (!selectedGift) return;
-    if (userCoins < selectedGift.stars) {
-      window.dispatchEvent(
-        new CustomEvent('app-toast', { detail: 'Not enough coins — tap Recharge or pick a cheaper gift.' }),
-      );
-      return;
-    }
-    const nextCombo = comboCount + 1;
-    setComboCount(nextCombo);
-    if (comboTimerRef.current) clearTimeout(comboTimerRef.current);
-    comboTimerRef.current = setTimeout(() => {
-      onSendGift(selectedGift, nextCombo, true);
-      setComboCount(0);
-    }, 1200);
+  const priceLabel = (card: V14GiftCard) => {
+    if (card.displayPrice) return card.displayPrice;
+    return (card.gift?.stars ?? card.price).toLocaleString();
   };
 
   return (
-    <div className="flex h-[40vh] max-h-[40vh] min-h-0 w-full flex-col overflow-hidden rounded-t-[24px] rounded-b-none border border-b-0 border-white/10 bg-[#1A1230]/95 p-3 text-white shadow-xl backdrop-blur-xl">
-      <div className="mb-2 flex shrink-0 items-center justify-between border-b border-white/5 pb-2">
-        <div className="flex min-w-0 items-center gap-2">
-          <div className="rounded-xl border border-yellow-400/20 bg-yellow-400/10 p-1.5 text-yellow-400">
-            <Coins size={16} />
-          </div>
-          <div className="flex min-w-0 flex-col">
-            <span className="truncate text-[10px] font-semibold uppercase tracking-wider text-[#B0A6C8]">
-              My Wallet · To {receiverName}
-            </span>
-            <div className="flex items-baseline gap-1.5">
-              <span className="font-mono text-lg font-extrabold text-white">{userCoins.toLocaleString()}</span>
-              <span className="text-[10px] font-bold text-yellow-400">COINS</span>
-            </div>
-          </div>
+    <section className="lt15-sheet lt15-gifts" aria-label="Gifts" data-ui-id="live.gifts.v14.exact">
+      <div className="lt15-handle" />
+      <div className="lt15-head">
+        <div className="lt15-coins">
+          <Coins size={29} aria-hidden />
+          <span>My Coins</span>
+          <strong>{userCoins.toLocaleString()}</strong>
         </div>
-
-        <div className="flex shrink-0 items-center gap-2">
-          <button
-            type="button"
-            onClick={onToggleVip}
-            className={`flex items-center gap-1.5 rounded-xl border px-2.5 py-1 text-xs font-bold transition ${
-              isVip
-                ? 'border-yellow-300 bg-gradient-to-r from-yellow-400 to-yellow-600 text-black shadow-[0_0_8px_rgba(234,179,8,0.4)]'
-                : 'border-transparent bg-[#251B42] text-[#B0A6C8] hover:bg-[#3D3163]'
-            }`}
-          >
-            <Shield size={13} fill={isVip ? 'black' : 'none'} />
-            <span>{isVip ? 'VIP On' : 'VIP'}</span>
+        <div className="lt15-head-actions">
+          <button type="button" className="lt15-recharge" onClick={onOpenRecharge}>
+            <ShoppingBag size={15} aria-hidden /> Recharge
           </button>
-          <button
-            type="button"
-            onClick={onOpenRecharge}
-            className="rounded-xl bg-gradient-to-r from-[#FF2D55] to-[#FF5E81] px-3 py-1 text-xs font-extrabold uppercase text-white shadow-md shadow-[#FF2D55]/30 transition hover:brightness-110 active:scale-95"
-          >
-            Recharge
-          </button>
+          {onClose ? (
+            <button type="button" className="lt15-icon-btn" onClick={onClose} aria-label="Close">
+              <X size={17} />
+            </button>
+          ) : null}
         </div>
       </div>
-
-      <div className="mb-1.5 flex shrink-0 items-center gap-1.5 overflow-x-auto pb-1 no-scrollbar">
-        {TABS.map((tab) => (
-          <button
-            key={tab.id}
-            type="button"
-            onClick={() => setActiveTab(tab.id)}
-            className={`whitespace-nowrap rounded-full px-3 py-1 text-[11px] font-bold transition ${
-              activeTab === tab.id
-                ? 'bg-[#FF2D55] font-extrabold text-white shadow-md'
-                : 'bg-[#251B42] text-[#B0A6C8] hover:bg-[#3D3163] hover:text-white'
-            }`}
-          >
-            {tab.label}
+      <div className="lt15-chip-row" role="tablist" aria-label="Gift categories">
+        {CATEGORY_CHIPS.map((chip) => {
+          const ChipIcon = chip.icon;
+          return (
+            <button
+              type="button"
+              key={chip.id}
+              className={`lt15-chip ${categoryChip === chip.id ? 'active' : ''}`}
+              onClick={() => {
+                if (chip.id === 'vip' && !isVip) onToggleVip();
+                setCategoryChip(chip.id);
+              }}
+            >
+              <ChipIcon size={14} aria-hidden /> {chip.label}
+            </button>
+          );
+        })}
+      </div>
+      <div className="lt15-gift-filters">
+        <select
+          className="lt15-select"
+          value={sortMode}
+          onChange={(event) => setSortMode(event.target.value as SortMode)}
+          aria-label="Sort gifts"
+        >
+          <option value="default">Default</option>
+          <option value="price-asc">Price: Low to High</option>
+          <option value="price-desc">Price: High to Low</option>
+        </select>
+      </div>
+      <div className="lt15-grid-gifts">
+        {visible.map((card) => {
+          const mapped = Boolean(card.gift);
+          return (
+            <button
+              key={card.assetId}
+              type="button"
+              className={`lt15-gift-card ${selected?.assetId === card.assetId ? 'selected' : ''} ${mapped ? '' : 'is-unmapped'}`}
+              onClick={() => setSelectedAssetId(card.assetId)}
+              aria-pressed={selected?.assetId === card.assetId}
+            >
+              {card.badge ? <span className="lt15-badge">{card.badge}</span> : null}
+              <img src={card.artwork} alt="" />
+              <div className="lt15-gift-name">{card.name}</div>
+              <div className="lt15-price"><Coins size={10} aria-hidden /> {priceLabel(card)}</div>
+            </button>
+          );
+        })}
+      </div>
+      <div className="lt15-footer lt15-gift-footer">
+        <div
+          className="lt15-recipient"
+          role={onCycleReceiver ? 'button' : undefined}
+          tabIndex={onCycleReceiver ? 0 : undefined}
+          onClick={onCycleReceiver}
+          onKeyDown={(event) => {
+            if (!onCycleReceiver || (event.key !== 'Enter' && event.key !== ' ')) return;
+            event.preventDefault();
+            onCycleReceiver();
+          }}
+        >
+          <div className="lt15-recipient-avatar">
+            {receiverAvatar ? <img src={receiverAvatar} alt="" /> : <User size={20} aria-hidden />}
+          </div>
+          <div>
+            <small>Send to</small>
+            <b>
+              {receiverName || 'Host'} {isVip ? <span className="lt15-vip">VIP</span> : null}
+            </b>
+          </div>
+          <span>›</span>
+        </div>
+        <div className="lt15-qty">
+          <button type="button" onClick={() => setQuantity((q) => Math.max(1, q - 1))} aria-label="Decrease quantity">
+            −
           </button>
-        ))}
-      </div>
-
-      {activeTab === 'seasonal' ? (
-        <div className="mb-1.5 flex shrink-0 gap-1 rounded-xl border border-white/5 bg-[#140D26]/70 p-1">
-          {SEASONS.map((season) => (
-            <button
-              key={season}
-              type="button"
-              onClick={() => setSeasonalFilter(season)}
-              className={`flex-1 rounded-lg py-0.5 text-[10px] font-bold transition ${
-                seasonalFilter === season
-                  ? 'bg-[#FF2D55] font-extrabold text-white'
-                  : 'text-[#B0A6C8] hover:text-white'
-              }`}
-            >
-              {season === 'Christmas' && '🎄 Xmas'}
-              {season === 'Lunar New Year' && '🧧 Lunar'}
-              {season === 'Valentine' && '💘 Cupid'}
-              {season === 'Halloween' && '🎃 Spooky'}
-            </button>
-          ))}
+          <span>{quantity}</span>
+          <button type="button" onClick={() => setQuantity((q) => Math.min(999, q + 1))} aria-label="Increase quantity">
+            +
+          </button>
         </div>
-      ) : null}
-
-      <div className="min-h-0 flex-1 overflow-y-auto no-scrollbar">
-        {sortedGifts.length === 0 ? (
-          <div className="flex h-full flex-col items-center justify-center py-4 text-[#B0A6C8]">
-            <Package size={24} className="mb-1 stroke-1" />
-            <p className="text-xs">No exclusive items found here.</p>
-            {activeTab === 'vip' && !isVip ? (
-              <p className="mt-1 text-[10px] font-bold text-yellow-400">Enable VIP to unlock these gifts</p>
-            ) : null}
-          </div>
-        ) : (
-          <div className="grid grid-cols-5 gap-2 sm:grid-cols-6 md:grid-cols-8 lg:grid-cols-10">
-            {sortedGifts.map((gift) => {
-              const isSelected = selectedGift?.id === gift.id;
-              const isLockedVip = Boolean(gift.isVipExclusive && !isVip);
-              return (
-                <button
-                  key={gift.id ?? gift.name}
-                  type="button"
-                  disabled={isLockedVip}
-                  onClick={() => selectGiftWithReset(gift)}
-                  className={`group relative flex cursor-pointer select-none flex-col items-center rounded-2xl border p-1.5 text-center transition ${
-                    isSelected
-                      ? 'border-2 border-[#FF2D55] bg-gradient-to-br from-[#2D214F] to-[#1A1230] shadow-[0_0_15px_rgba(255,45,85,0.4)]'
-                      : 'border-transparent bg-white/5 hover:border-white/15 hover:bg-white/10'
-                  } ${isLockedVip ? 'cursor-not-allowed bg-black/40 opacity-30' : ''}`}
-                >
-                  {isLockedVip ? (
-                    <div className="absolute right-1 top-1 rounded-full border border-yellow-400/30 bg-yellow-400/20 p-0.5 text-yellow-400">
-                      <Shield size={8} fill="currentColor" />
-                    </div>
-                  ) : null}
-                  <span className="mb-1 text-2xl drop-shadow transition duration-200 group-hover:scale-110">
-                    <UniLivesGiftThumbnail
-                      businessGiftId={gift.id}
-                      legacyIcon={gift.icon}
-                      className="leading-none"
-                      imgClassName="h-8 w-8 object-contain"
-                      alt=""
-                    />
-                  </span>
-                  <span
-                    className={`mb-0.5 w-full truncate text-[9px] font-bold ${
-                      isSelected ? 'text-white' : 'text-[#B0A6C8] group-hover:text-white'
-                    }`}
-                  >
-                    {gift.name}
-                  </span>
-                  <UniLivesGiftPrice amount={gift.stars} />
-                </button>
-              );
-            })}
-          </div>
-        )}
-      </div>
-
-      {selectedGift ? (
-        <div className="mt-1.5 flex shrink-0 flex-col gap-2 border-t border-white/5 pt-2">
-          <div className="flex h-9 items-stretch gap-2">
-            <div className="flex flex-1 items-stretch overflow-hidden rounded-xl border border-white/5 bg-[#140D26]/60 px-1">
-              <div className="flex items-center">
-                {[1, 10, 50, 100].map((qty) => (
-                  <button
-                    key={qty}
-                    type="button"
-                    onClick={() => {
-                      setSendQuantity(qty);
-                      setCustomQuantity('');
-                    }}
-                    className={`my-1 flex h-7 items-center justify-center rounded-lg px-2 text-[11px] font-extrabold transition ${
-                      sendQuantity === qty && !customQuantity
-                        ? 'bg-[#FF2D55] text-white shadow-sm'
-                        : 'text-[#B0A6C8] hover:text-white'
-                    }`}
-                  >
-                    x{qty}
-                  </button>
-                ))}
-              </div>
-              <input
-                type="number"
-                min={1}
-                max={999}
-                value={customQuantity}
-                onChange={(event) => {
-                  setCustomQuantity(event.target.value);
-                  setSendQuantity(1);
-                }}
-                placeholder="Custom"
-                className="ml-1 min-w-0 flex-1 border-l border-white/5 bg-transparent px-2 text-center font-mono text-xs font-bold text-white outline-none placeholder:text-neutral-500"
-              />
-            </div>
-
-            <button
-              type="button"
-              onClick={handleComboClick}
-              title={comboCount > 0 ? `Combo: ${comboCount}` : 'Combo tap'}
-              className={`relative flex h-9 w-9 shrink-0 items-center justify-center rounded-xl transition select-none ${
-                comboCount > 0
-                  ? 'animate-bounce bg-gradient-to-tr from-[#FF2D55] via-purple-600 to-indigo-500 text-white shadow-[0_0_15px_rgba(255,45,85,0.5)]'
-                  : 'bg-[#251B42] text-[#B0A6C8] hover:bg-[#3D3163]'
-              }`}
-            >
-              {comboCount > 0 ? (
-                <div className="relative flex h-full w-full items-center justify-center">
-                  <Flame size={16} className="animate-pulse" />
-                  <span className="absolute -right-1.5 -top-1.5 min-w-[14px] rounded-full border border-[#1A1230] bg-[#FF2D55] px-1 text-center text-[8px] font-black text-white">
-                    {comboCount}
-                  </span>
-                </div>
-              ) : (
-                <Flame size={16} />
-              )}
-            </button>
-
-            <button
-              type="button"
-              onClick={handleSendNormal}
-              title={`Send ${customQuantity || sendQuantity}x ${selectedGift.name}`}
-              className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-[#FF2D55] text-white shadow-md shadow-[#FF2D55]/30 transition hover:bg-[#ff4066] active:scale-95"
-            >
-              <Send size={16} />
-            </button>
-          </div>
+        <label className="lt15-anon" title="Anonymous send is not supported by the gift settlement API.">
+          <input type="checkbox" disabled />
+          Anonymous
+        </label>
+        <div className="lt15-selected-gift">
+          {selected ? (
+            <V14AnimatedGiftArtwork
+              giftId={selected.giftId}
+              giftName={selected.name}
+              src={selected.artwork}
+              className="h-8 w-9"
+              imgClassName="h-full w-full object-contain"
+              playKey={selected.assetId}
+            />
+          ) : null}
+          <span><b>{selected?.name ?? 'Gift'}</b><small>{selected ? `${priceLabel(selected)} Coins` : ''}</small></span>
         </div>
-      ) : null}
-    </div>
+        <button type="button" className="lt15-primary" onClick={send} disabled={!selected?.gift}>
+          <Send size={18} aria-hidden /> Send Gift
+        </button>
+      </div>
+      <p className="lt15-tip">Tips: The sender may get 0x, 2x, 5x or 100x rewards. Good luck!</p>
+    </section>
   );
 }

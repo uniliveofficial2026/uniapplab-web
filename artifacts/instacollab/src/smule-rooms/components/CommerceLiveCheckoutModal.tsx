@@ -1,380 +1,454 @@
-import { useCallback, useMemo, useState } from 'react';
-import { CreditCard, Loader2, Lock, ShoppingBag, X } from 'lucide-react';
-import { CoinIcon } from '../../components/common/CoinIcon';
+import React, { useEffect, useMemo, useState } from 'react';
+import { Check, ChevronLeft, Copy, CreditCard, MapPin, PackageCheck, Truck, X } from 'lucide-react';
+import { isPlatformApiAvailable } from '../../lib/platformApi';
 import { isStripeCommerceConfigured, startStripeCommerceCheckout } from '../../lib/commercePayments';
-import { useDB } from '../../lib/useDB';
-import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
-import type {
-  CommercePaymentMethod,
-  CommerceProduct,
-  CommerceShippingInfo,
+import {
+  createCommerceOrderId,
+  formatCommercePrice,
+  type CommercePaymentMethod,
+  type CommerceProduct,
+  type CommerceShippingInfo,
 } from '../utils/liveRoomTypes';
-import { createCommerceOrderId, formatCommercePrice, normalizeCommerceProduct } from '../utils/liveRoomTypes';
-
-const FALLBACK_IMAGE =
-  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=160&h=160&fit=crop';
+import './commerce-live-approved.css';
+import { CommerceProductArt } from './CommerceProductArt';
 
 export type CommerceCheckoutResult = {
-  shipping: CommerceShippingInfo;
-  paymentMethod: CommercePaymentMethod;
   paid: boolean;
+  paymentMethod: CommercePaymentMethod;
+  shipping: CommerceShippingInfo;
+  quantity: number;
 };
 
-type CommerceLiveCheckoutModalProps = {
+export type CommerceLiveCheckoutModalProps = {
   open: boolean;
   product: CommerceProduct;
   roomId: string;
-  hostUserId: string;
+  hostUserId?: string;
   buyerUserId: string;
-  buyerDisplayName: string;
+  buyerDisplayName?: string;
   onClose: () => void;
-  onComplete: (result: CommerceCheckoutResult) => void;
+  onComplete: (result: CommerceCheckoutResult) => void | Promise<void>;
 };
 
-type PaymentStep = 'form' | 'processing';
+const emptyShipping = (name = ''): CommerceShippingInfo => ({
+  fullName: name,
+  email: '',
+  phone: '',
+  addressLine1: '',
+  addressLine2: '',
+  city: '',
+  state: '',
+  postalCode: '',
+  country: 'United States',
+});
+
+type Step = 'checkout' | 'shipping' | 'payment' | 'review' | 'processing' | 'placed' | 'order' | 'tracking';
+
+function defaultPaymentMethod(product: CommerceProduct): CommercePaymentMethod {
+  return product.priceType === 'coins' ? 'coins' : 'card';
+}
 
 export function CommerceLiveCheckoutModal({
   open,
   product,
   roomId,
-  hostUserId,
+  hostUserId = '',
   buyerUserId,
-  buyerDisplayName,
+  buyerDisplayName = '',
   onClose,
   onComplete,
 }: CommerceLiveCheckoutModalProps) {
-  const db = useDB();
-  const coinsBalance = useLiveCoinsBalance(buyerUserId);
-  const cashBalance = db.load('cash_balance', 0);
-  const normalized = useMemo(() => normalizeCommerceProduct(product), [product]);
-  const stripeEnabled = isStripeCommerceConfigured();
+  const [step, setStep] = useState<Step>('checkout');
+  const [qty, setQty] = useState(1);
+  const [shipping, setShipping] = useState(() => emptyShipping(buyerDisplayName));
+  const [method, setMethod] = useState<CommercePaymentMethod>(() => defaultPaymentMethod(product));
+  const [orderId] = useState(() => createCommerceOrderId());
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-  const [fullName, setFullName] = useState(buyerDisplayName);
-  const [email, setEmail] = useState('');
-  const [phone, setPhone] = useState('');
-  const [addressLine1, setAddressLine1] = useState('');
-  const [addressLine2, setAddressLine2] = useState('');
-  const [city, setCity] = useState('');
-  const [state, setState] = useState('');
-  const [postalCode, setPostalCode] = useState('');
-  const [country, setCountry] = useState('');
-  const [useSecureCard, setUseSecureCard] = useState(true);
-  const [paymentStep, setPaymentStep] = useState<PaymentStep>('form');
-  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  useEffect(() => {
+    if (!open) return;
+    setStep('checkout');
+    setQty(1);
+    setShipping(emptyShipping(buyerDisplayName));
+    setMethod(defaultPaymentMethod(product));
+    setError(null);
+    setBusy(false);
+  }, [open, product.id, buyerDisplayName, product.priceType]);
 
-  const resetPaymentState = useCallback(() => {
-    setPaymentStep('form');
-    setErrorMessage(null);
-  }, []);
+  const unitAmount = useMemo(() => {
+    if (product.priceType === 'cash') return `$${(product.priceUsd ?? 0).toFixed(2)}`;
+    return `${product.priceCoins ?? 0} UniCoins`;
+  }, [product]);
+
+  const totalAmount = useMemo(() => {
+    if (product.priceType === 'cash') return `$${((product.priceUsd ?? 0) * qty).toFixed(2)}`;
+    return `${(product.priceCoins ?? 0) * qty} UniCoins`;
+  }, [product, qty]);
+
+  const cardAvailable =
+    product.priceType === 'cash' &&
+    isStripeCommerceConfigured() &&
+    isPlatformApiAvailable() &&
+    Boolean(hostUserId.trim()) &&
+    Boolean(buyerUserId.trim()) &&
+    Boolean(roomId.trim());
 
   if (!open) return null;
 
-  const buildShipping = (): CommerceShippingInfo | null => {
-    const shipping: CommerceShippingInfo = {
-      fullName: fullName.trim(),
-      email: email.trim(),
-      phone: phone.trim(),
-      addressLine1: addressLine1.trim(),
-      addressLine2: addressLine2.trim() || undefined,
-      city: city.trim(),
-      state: state.trim(),
-      postalCode: postalCode.trim(),
-      country: country.trim(),
-    };
-    if (
-      !shipping.fullName ||
-      !shipping.email ||
-      !shipping.phone ||
-      !shipping.addressLine1 ||
-      !shipping.city ||
-      !shipping.state ||
-      !shipping.postalCode ||
-      !shipping.country
-    ) {
-      return null;
-    }
-    return shipping;
-  };
+  const next = () =>
+    setStep((current) =>
+      current === 'checkout' ? 'shipping' : current === 'shipping' ? 'payment' : current === 'payment' ? 'review' : current,
+    );
 
-  const handleSubmit = async (event: React.FormEvent) => {
-    event.preventDefault();
-    resetPaymentState();
-
-    const shipping = buildShipping();
-    if (!shipping) {
-      setErrorMessage('Fill in your contact info and shipping address.');
-      return;
-    }
-
-    if (normalized.priceType === 'coins') {
-      const price = normalized.priceCoins ?? 0;
-      if (coinsBalance < price) {
-        setErrorMessage('Not enough coins for this item.');
-        return;
-      }
-      onComplete({ shipping, paymentMethod: 'coins', paid: true });
-      return;
-    }
-
-    const priceUsd = normalized.priceUsd ?? 0;
-    if (useSecureCard) {
-      if (!stripeEnabled) {
-        setErrorMessage('Global card payments are not configured yet. Use cash balance or ask the host.');
-        return;
-      }
-      setPaymentStep('processing');
-      try {
-        const orderId = createCommerceOrderId();
+  const pay = async () => {
+    setError(null);
+    setBusy(true);
+    setStep('processing');
+    try {
+      if (method === 'card') {
+        if (!cardAvailable) {
+          throw new Error('Secure card checkout is unavailable. Check Stripe configuration and try again.');
+        }
+        const amountUsd = (product.priceUsd ?? 0) * qty;
+        if (amountUsd < 0.5) {
+          throw new Error('Card checkout requires at least $0.50');
+        }
         const session = await startStripeCommerceCheckout({
-          amountUsd: priceUsd,
-          productId: normalized.id,
-          productTitle: normalized.title,
+          amountUsd,
+          productId: product.id,
+          productTitle: product.title,
           roomId,
           hostUserId,
           orderId,
           buyerUserId,
           pendingOrder: {
-            product: normalized,
+            product,
             shipping,
             hostUserId,
             orderId,
             buyerUserId,
             buyerDisplayName,
             paymentMethod: 'card' as const,
+            quantity: qty,
           },
         });
         window.location.assign(session.url);
-      } catch (error) {
-        setPaymentStep('form');
-        setErrorMessage(
-          error instanceof Error ? error.message : 'Could not start secure payment checkout.',
-        );
+        return;
       }
-      return;
-    }
 
-    if (cashBalance < priceUsd) {
-      setErrorMessage('Insufficient cash balance. Use secure card payment or add funds.');
-      return;
+      await Promise.resolve(
+        onComplete({
+          paid: true,
+          paymentMethod: method,
+          shipping,
+          quantity: qty,
+        }),
+      );
+      setStep('placed');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Payment failed');
+      setStep('review');
+    } finally {
+      setBusy(false);
     }
-    onComplete({ shipping, paymentMethod: 'cash_balance', paid: true });
   };
 
   return (
-    <div className="fixed inset-0 z-[200] flex items-end justify-center sm:items-center sm:p-4">
-      <button
-        type="button"
-        className="absolute inset-0 bg-black/70 backdrop-blur-sm"
-        aria-label="Close checkout"
-        onClick={onClose}
-      />
-
-      <div className="relative z-10 flex max-h-[min(92vh,720px)] w-full max-w-md flex-col overflow-hidden rounded-t-[28px] border border-amber-400/25 bg-[#121212] shadow-2xl sm:rounded-[28px]">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
-          <div className="flex items-center gap-2">
-            <ShoppingBag className="h-4 w-4 text-amber-300" />
-            <h3 className="text-sm font-black text-white">Checkout</h3>
-          </div>
+    <div className="ul-commerce-overlay" role="dialog" aria-modal="true" data-ui-id={`commerce.checkout.${step}`}>
+      <div className="ul-commerce-sheet ul-commerce-checkout-sheet">
+        <header>
           <button
             type="button"
-            onClick={onClose}
-            className="rounded-full p-1.5 text-white/60 hover:bg-white/10"
-            aria-label="Close"
+            onClick={() => (step === 'checkout' ? onClose() : setStep('checkout'))}
+            aria-label="Back"
+            disabled={busy}
           >
-            <X className="h-4 w-4" />
+            <ChevronLeft />
           </button>
-        </div>
+          <strong>
+            {step === 'placed'
+              ? 'Order Placed'
+              : step === 'order'
+                ? 'My Order'
+                : step === 'tracking'
+                  ? 'Track Shipment'
+                  : step === 'processing'
+                    ? 'Processing Payment'
+                    : step[0].toUpperCase() + step.slice(1)}
+          </strong>
+          <button type="button" onClick={onClose} aria-label="Close" disabled={busy}>
+            <X />
+          </button>
+        </header>
 
-        <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col">
-          <div className="min-h-0 flex-1 space-y-4 overflow-y-auto px-4 py-4">
-            <div className="flex gap-3 rounded-2xl border border-white/10 bg-white/5 p-3">
-              <img
-                src={normalized.imageUrl || FALLBACK_IMAGE}
-                alt=""
-                className="h-16 w-16 shrink-0 rounded-xl object-cover"
-              />
-              <div className="min-w-0 flex-1">
-                <p className="truncate text-sm font-black text-white">{normalized.title}</p>
-                {normalized.description ? (
-                  <p className="mt-0.5 line-clamp-2 text-[11px] text-white/60">{normalized.description}</p>
-                ) : null}
-                <p className="mt-1 inline-flex items-center gap-1 text-sm font-bold text-amber-200">
-                  {normalized.priceType === 'coins' ? (
-                    <>
-                      <CoinIcon className="h-4 w-4" />
-                      {normalized.priceCoins}
-                    </>
-                  ) : (
-                    formatCommercePrice(normalized)
-                  )}
-                </p>
+        {step === 'checkout' ? (
+          <>
+            <Product product={product} />
+            <div className="ul-commerce-qty">
+              <span>Quantity</span>
+              <div>
+                <button type="button" onClick={() => setQty(Math.max(1, qty - 1))} disabled={busy}>
+                  −
+                </button>
+                <b>{qty}</b>
+                <button type="button" onClick={() => setQty(qty + 1)} disabled={busy}>
+                  +
+                </button>
               </div>
             </div>
+            <Summary unit={unitAmount} total={totalAmount} />
+            <Primary onClick={next} disabled={busy}>
+              Next: Shipping Info
+            </Primary>
+          </>
+        ) : null}
 
-            {paymentStep === 'processing' ? (
-              <div className="flex flex-col items-center gap-3 py-10 text-center">
-                <Loader2 className="h-8 w-8 animate-spin text-amber-400" />
-                <p className="text-sm font-semibold text-white">Opening secure global checkout…</p>
-              </div>
-            ) : (
-              <>
-                <section className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-amber-300">
-                    Personal information
-                  </p>
+        {step === 'shipping' ? (
+          <>
+            <h3>Shipping Information</h3>
+            <div className="ul-commerce-form">
+              {(
+                [
+                  ['fullName', 'Full Name'],
+                  ['phone', 'Phone Number'],
+                  ['addressLine1', 'Address'],
+                  ['addressLine2', 'Apt, Suite, etc. (Optional)'],
+                  ['city', 'City'],
+                  ['state', 'State'],
+                  ['postalCode', 'ZIP Code'],
+                  ['country', 'Country'],
+                ] as const
+              ).map(([key, label]) => (
+                <label key={key}>
+                  <span>{label}</span>
                   <input
-                    value={fullName}
-                    onChange={(event) => setFullName(event.target.value)}
-                    placeholder="Full name"
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                    required
+                    value={shipping[key] ?? ''}
+                    onChange={(event) => setShipping({ ...shipping, [key]: event.target.value })}
+                    disabled={busy}
                   />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={email}
-                      onChange={(event) => setEmail(event.target.value)}
-                      placeholder="Email"
-                      type="email"
-                      className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                      required
-                    />
-                    <input
-                      value={phone}
-                      onChange={(event) => setPhone(event.target.value)}
-                      placeholder="Phone"
-                      className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                      required
-                    />
-                  </div>
-                </section>
+                </label>
+              ))}
+            </div>
+            <Primary onClick={next} disabled={busy || !shipping.fullName.trim() || !shipping.addressLine1.trim()}>
+              Next: Payment Method
+            </Primary>
+          </>
+        ) : null}
 
-                <section className="space-y-2">
-                  <p className="text-[10px] font-bold uppercase tracking-wide text-amber-300">
-                    Shipping address
-                  </p>
-                  <input
-                    value={addressLine1}
-                    onChange={(event) => setAddressLine1(event.target.value)}
-                    placeholder="Street address"
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                    required
-                  />
-                  <input
-                    value={addressLine2}
-                    onChange={(event) => setAddressLine2(event.target.value)}
-                    placeholder="Apt, suite (optional)"
-                    className="w-full rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                  />
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={city}
-                      onChange={(event) => setCity(event.target.value)}
-                      placeholder="City"
-                      className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                      required
-                    />
-                    <input
-                      value={state}
-                      onChange={(event) => setState(event.target.value)}
-                      placeholder="State / region"
-                      className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                      required
-                    />
-                  </div>
-                  <div className="grid grid-cols-2 gap-2">
-                    <input
-                      value={postalCode}
-                      onChange={(event) => setPostalCode(event.target.value)}
-                      placeholder="Postal code"
-                      className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                      required
-                    />
-                    <input
-                      value={country}
-                      onChange={(event) => setCountry(event.target.value)}
-                      placeholder="Country"
-                      className="rounded-xl border border-white/10 bg-black/40 px-3 py-2.5 text-xs text-white placeholder:text-white/35"
-                      required
-                    />
-                  </div>
-                </section>
+        {step === 'payment' ? (
+          <>
+            <h3>Payment Method</h3>
+            <div className="ul-commerce-payment-list">
+              {product.priceType === 'coins' ? (
+                <Choice active={method === 'coins'} onClick={() => setMethod('coins')}>
+                  UniCoins Balance
+                </Choice>
+              ) : null}
+              {product.priceType === 'cash' ? (
+                <>
+                  <Choice active={method === 'card'} onClick={() => setMethod('card')}>
+                    <CreditCard aria-hidden="true" /> Credit / Debit Card (USD)
+                  </Choice>
+                  <Choice active={method === 'cash_balance'} onClick={() => setMethod('cash_balance')}>
+                    Cash Balance (USD)
+                  </Choice>
+                </>
+              ) : null}
+            </div>
+            {method === 'card' && !cardAvailable ? (
+              <p className="ul-commerce-checkout-hint">
+                Secure Stripe card checkout needs API + Stripe publishable key. Cash balance still works for USD.
+              </p>
+            ) : null}
+            <Primary onClick={next} disabled={busy || (method === 'card' && !cardAvailable)}>
+              Next: Review Order
+            </Primary>
+          </>
+        ) : null}
 
-                {normalized.priceType === 'coins' ? (
-                  <p className="rounded-xl border border-white/10 bg-white/5 px-3 py-2 text-[11px] text-white/70">
-                    Pay with coins · Balance:{' '}
-                    <span className="inline-flex items-center gap-1 font-bold text-amber-200">
-                      <CoinIcon className="h-3.5 w-3.5" />
-                      {coinsBalance}
-                    </span>
-                  </p>
-                ) : (
-                  <section className="space-y-2 rounded-2xl border border-indigo-500/20 bg-indigo-500/5 p-3">
-                    <div className="flex items-center justify-between gap-2">
-                      <p className="text-[10px] font-bold uppercase tracking-wide text-indigo-300">
-                        Payment
-                      </p>
-                      <p className="text-[11px] text-white/60">
-                        Cash balance: ${cashBalance.toFixed(2)}
-                      </p>
-                    </div>
+        {step === 'review' ? (
+          <>
+            <h3>Review Order</h3>
+            <Product product={product} />
+            <div className="ul-commerce-review">
+              <p>
+                <span>Shipping To</span>
+                <b>{shipping.fullName || buyerDisplayName}</b>
+                <small>
+                  {shipping.addressLine1} {shipping.city} {shipping.state} {shipping.postalCode}
+                </small>
+              </p>
+              <p>
+                <span>Payment Method</span>
+                <b>
+                  {method === 'coins'
+                    ? 'UniCoins Balance'
+                    : method === 'card'
+                      ? 'Credit / Debit Card (Stripe)'
+                      : 'Cash Balance'}
+                </b>
+              </p>
+            </div>
+            <Summary unit={unitAmount} total={totalAmount} />
+            {error ? <p className="ul-commerce-checkout-error">{error}</p> : null}
+            <Primary onClick={() => void pay()} disabled={busy}>
+              {method === 'card' ? `Pay ${totalAmount} with Card` : `Pay ${totalAmount}`}
+            </Primary>
+          </>
+        ) : null}
 
-                    <label className="flex cursor-pointer items-center gap-2 rounded-xl border border-white/10 bg-black/30 px-3 py-2">
-                      <input
-                        type="checkbox"
-                        checked={useSecureCard}
-                        onChange={(event) => setUseSecureCard(event.target.checked)}
-                        className="rounded border-white/20"
-                      />
-                      <span className="inline-flex items-center gap-1.5 text-xs font-semibold text-white">
-                        <Lock className="h-3.5 w-3.5 text-indigo-300" />
-                        Pay securely with card (global)
-                      </span>
-                    </label>
-
-                    {useSecureCard ? (
-                      <div className="rounded-xl border border-white/10 bg-black/30 px-3 py-2 text-[11px] text-white/65">
-                        <div className="mb-1 inline-flex items-center gap-1.5 font-bold text-indigo-300">
-                          <CreditCard className="h-3.5 w-3.5" />
-                          Stripe secure checkout
-                        </div>
-                        <p>
-                          You will continue to Stripe for global card payments. Your shipping details
-                          are saved and the order is created after payment succeeds.
-                        </p>
-                      </div>
-                    ) : (
-                      <p className="text-[11px] text-white/55">
-                        Or pay from your cash wallet balance (${(normalized.priceUsd ?? 0).toFixed(2)}).
-                      </p>
-                    )}
-                  </section>
-                )}
-
-                {errorMessage ? (
-                  <p className="rounded-xl border border-red-500/30 bg-red-500/10 px-3 py-2 text-[11px] font-semibold text-red-200">
-                    {errorMessage}
-                  </p>
-                ) : null}
-              </>
-            )}
+        {step === 'processing' ? (
+          <div className="ul-commerce-state">
+            <div className="ul-commerce-gift-orb">🎁</div>
+            <h2>{method === 'card' ? 'Redirecting to secure checkout…' : 'Processing Payment'}</h2>
+            <p>
+              {method === 'card'
+                ? 'You will complete payment with real card details on Stripe.'
+                : 'Please wait while we process your payment…'}
+            </p>
+            <div className="ul-commerce-spinner" />
+            <small>Do not close this panel</small>
           </div>
+        ) : null}
 
-          {paymentStep !== 'processing' ? (
-            <div className="border-t border-white/10 px-4 py-3 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-              <button
-                type="submit"
-                className="w-full rounded-full bg-amber-500 py-3 text-xs font-black uppercase tracking-wide text-black shadow-lg active:scale-[0.98]"
-              >
-                {normalized.priceType === 'coins'
-                  ? `Buy for ${normalized.priceCoins} coins`
-                  : useSecureCard
-                    ? `Pay ${formatCommercePrice(normalized)} securely`
-                    : `Buy for ${formatCommercePrice(normalized)}`}
-              </button>
+        {step === 'placed' ? (
+          <div className="ul-commerce-state">
+            <div className="ul-commerce-success">
+              <Check />
             </div>
-          ) : null}
-        </form>
+            <h2>Order Placed Successfully!</h2>
+            <p className="ul-commerce-order-id">
+              Order ID <b>#{orderId}</b>
+              <Copy size={14} aria-hidden="true" />
+            </p>
+            <Primary onClick={() => setStep('order')}>View My Order</Primary>
+          </div>
+        ) : null}
+
+        {step === 'order' ? (
+          <>
+            <div className="ul-commerce-order-head">
+              <span>#{orderId}</span>
+              <b>Confirmed</b>
+            </div>
+            <Product product={product} />
+            <dl className="ul-commerce-detail-grid">
+              <dt>Status</dt>
+              <dd>Confirmed</dd>
+              <dt>Shipping To</dt>
+              <dd>
+                {shipping.fullName}
+                <br />
+                {shipping.addressLine1}
+                <br />
+                {shipping.city}, {shipping.state} {shipping.postalCode}
+              </dd>
+              <dt>Total</dt>
+              <dd>{totalAmount}</dd>
+            </dl>
+            <Primary onClick={() => setStep('tracking')}>Track Shipment</Primary>
+          </>
+        ) : null}
+
+        {step === 'tracking' ? (
+          <>
+            <div className="ul-commerce-tracking">
+              <div className="done">
+                <Check />
+                Confirmed
+              </div>
+              <div className="done">
+                <PackageCheck />
+                Packed
+              </div>
+              <div className="active">
+                <Truck />
+                Shipped
+              </div>
+              <div>
+                <MapPin />
+                Delivered
+              </div>
+            </div>
+            <div className="ul-commerce-state">
+              <Truck size={74} />
+              <h2>Your order is on the way!</h2>
+              <dl className="ul-commerce-detail-grid">
+                <dt>Tracking Number</dt>
+                <dd>Pending carrier assignment</dd>
+                <dt>Estimated Delivery</dt>
+                <dd>Updates after shipment</dd>
+              </dl>
+            </div>
+          </>
+        ) : null}
       </div>
     </div>
+  );
+}
+
+function Product({ product }: { product: CommerceProduct }) {
+  return (
+    <div className="ul-commerce-product-row">
+      <div><CommerceProductArt product={product} fallback={<PackageCheck aria-hidden="true" />} /></div>
+      <p>
+        <strong>{product.title}</strong>
+        <small>{product.description || 'Premium live product'}</small>
+      </p>
+      <b>{formatCommercePrice(product)}</b>
+    </div>
+  );
+}
+
+function Summary({ unit, total }: { unit: string; total: string }) {
+  return (
+    <div className="ul-commerce-summary">
+      <p>
+        <span>Unit price</span>
+        <b>{unit}</b>
+      </p>
+      <p>
+        <span>Shipping Fee</span>
+        <b>Calculated at checkout</b>
+      </p>
+      <p className="total">
+        <span>Total</span>
+        <b>{total}</b>
+      </p>
+    </div>
+  );
+}
+
+function Primary({
+  children,
+  onClick,
+  disabled = false,
+}: {
+  children: React.ReactNode;
+  onClick: () => void;
+  disabled?: boolean;
+}) {
+  return (
+    <button className="ul-commerce-primary" type="button" onClick={onClick} disabled={disabled}>
+      {children}
+    </button>
+  );
+}
+
+function Choice({
+  children,
+  active,
+  onClick,
+}: {
+  children: React.ReactNode;
+  active: boolean;
+  onClick: () => void;
+}) {
+  return (
+    <button type="button" className={`ul-commerce-choice ${active ? 'active' : ''}`} onClick={onClick}>
+      {children}
+      <span>{active ? '✓' : '○'}</span>
+    </button>
   );
 }

@@ -69,24 +69,18 @@ function mapWallet(data: Record<string, unknown> | undefined): FirebaseWalletBal
 
 export async function ensureFirebaseWallet(
   userId: string,
-  seedCoins?: number,
+  _seedCoins?: number,
 ): Promise<FirebaseWalletBalances> {
   const db = firestore();
   if (!db || !userId) return emptyWallet();
   const ref = doc(db, WALLETS, userId);
   const snap = await getDoc(ref);
   if (snap.exists()) {
-    const current = mapWallet(snap.data() as Record<string, unknown>);
-    const seed = Math.max(0, Math.floor(seedCoins ?? 0));
-    // First-time dual-lane: lift empty cloud wallet up to local spendable balance.
-    if (seed > 0 && current.balance + current.bonusCoins === 0) {
-      await setDoc(ref, { balance: seed, updated_at: new Date().toISOString() }, { merge: true });
-      return { ...current, balance: seed };
-    }
-    return current;
+    // Never lift cloud balance from client-supplied local coins — server/Firebase is authoritative.
+    return mapWallet(snap.data() as Record<string, unknown>);
   }
   const seed = {
-    balance: Math.max(0, Math.floor(seedCoins ?? 0)),
+    balance: 0,
     diamonds: 0,
     reward_points: 0,
     bonus_coins: 0,

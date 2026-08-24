@@ -17,6 +17,8 @@ import {
   Pencil,
   Link2,
   Youtube,
+  Power,
+  Activity,
 } from 'lucide-react';
 import { CoinIcon } from '../../components/common/CoinIcon';
 import { WatchTogetherMediaSourceSheet, type WatchTogetherMediaPanel } from './WatchTogetherMediaSourceSheet';
@@ -41,6 +43,7 @@ import { RoomArenaColumn } from './RoomArenaLeaderboard';
 import type { ArenaLeaderboardParticipant } from './RoomArenaLeaderboard';
 import { RoomBackgroundLayer } from './RoomBackgroundLayer';
 import { RoomLiveHeaderInfo } from './RoomLiveHeaderInfo';
+import type { HostLiveMetrics } from './HostLiveMetricsStrip';
 import { RoomFooterTrayActions } from './RoomFooterTrayActions';
 import { RoomHeaderActionsMenu, createRoomBackgroundHeaderMenuItem, createSingHeaderMenuItem, createYoutubeMiniHeaderMenuItem, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
 import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
@@ -94,6 +97,7 @@ interface WatchTogetherViewProps {
   roomDisplayId: string;
   roomTitle: string;
   announcement: string;
+  hostLiveMetrics?: HostLiveMetrics | null;
   isRoomSaved: boolean;
   roomIdCopied: boolean;
   onCopyRoomId: (event: React.MouseEvent) => void;
@@ -102,6 +106,8 @@ interface WatchTogetherViewProps {
   roomSettings: Pick<RoomSettings, 'roomId' | 'owner' | 'ownerUserId' | 'roomName'>;
   viewerUserId: string;
   onLeaveRoom: () => void;
+  onRequestEndLive?: () => void;
+  onOpenHostDashboard?: () => void;
   onShareRoom: () => void;
   onOpenRoomDetails: () => void;
   onOpenRoomEdit?: () => void;
@@ -117,6 +123,8 @@ interface WatchTogetherViewProps {
   setIsRoomBackgroundMenuOpen: (open: boolean) => void;
   setIsRoomViewersOpen: (open: boolean) => void;
   setIsGiftPickerOpen: (open: boolean) => void;
+  onOpenStickers?: () => void;
+  stickersOpen?: boolean;
   setIsGuestManagementOpen: (open: boolean) => void;
   liveChatMsgs: LiveChatMsg[];
   chatInput: string;
@@ -216,6 +224,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   roomDisplayId,
   roomTitle,
   announcement,
+  hostLiveMetrics = null,
   isRoomSaved,
   roomIdCopied,
   onCopyRoomId,
@@ -223,6 +232,8 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   watchTogetherMedia: media,
   viewerUserId,
   onLeaveRoom,
+  onRequestEndLive,
+  onOpenHostDashboard,
   onShareRoom,
   onOpenRoomDetails,
   onOpenRoomEdit,
@@ -238,6 +249,8 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
   setIsRoomBackgroundMenuOpen,
   setIsRoomViewersOpen,
   setIsGiftPickerOpen,
+  onOpenStickers,
+  stickersOpen = false,
   setIsGuestManagementOpen,
   liveChatMsgs,
   chatInput,
@@ -381,6 +394,20 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
         hidden: !canChangeRoomBackground,
       }),
       createYoutubeMiniHeaderMenuItem(),
+      {
+        id: 'host-dashboard',
+        label: 'Live dashboard',
+        icon: <Activity size={15} aria-hidden />,
+        onClick: () => onOpenHostDashboard?.(),
+        hidden: !onOpenHostDashboard,
+      },
+      {
+        id: 'end-live',
+        label: 'End Live',
+        icon: <Power size={15} aria-hidden />,
+        onClick: () => onRequestEndLive?.(),
+        hidden: !onRequestEndLive,
+      },
     ],
     [
       onOpenRoomDetails,
@@ -397,6 +424,8 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
       canChangeRoomBackground,
       setIsRoomBackgroundMenuOpen,
       songQueueLength,
+      onOpenHostDashboard,
+      onRequestEndLive,
     ],
   );
 
@@ -651,6 +680,7 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
             onToggleSaveRoom={onToggleSaveRoom}
             canEditAnnouncement={canEditAnnouncement}
             onEditAnnouncement={onEditAnnouncement}
+            hostLiveMetrics={hostLiveMetrics}
             className="max-w-[62%] sm:max-w-none"
           />
 
@@ -988,6 +1018,8 @@ export const WatchTogetherView: React.FC<WatchTogetherViewProps> = ({
             onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
             guestManagementOpen={guestManagementOpen}
             onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
+            onOpenStickers={onOpenStickers}
+            stickersOpen={stickersOpen}
             onGameClick={onGameClick}
             micAccent="cyan"
             showVoiceChanger={showVoiceChanger}

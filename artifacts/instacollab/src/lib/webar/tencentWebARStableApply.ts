@@ -14,7 +14,8 @@ export type TencentWebARApplyState = {
 function buildEffectStack(effects: TencentEffectSelection) {
   const stack: Array<string | { id: string; intensity?: number; filterIntensity?: number }> = [];
   if (effects.makeupId) {
-    stack.push({ id: effects.makeupId, intensity: 1, filterIntensity: 0 });
+    const intensity = Math.max(0, Math.min(1, effects.makeupIntensity ?? 1));
+    stack.push({ id: effects.makeupId, intensity, filterIntensity: 0 });
   }
   if (effects.stickerId) {
     stack.push(effects.stickerId);
@@ -37,6 +38,7 @@ function buildAssetsKey(effects: TencentEffectSelection, beautyOn: boolean): str
   return JSON.stringify({
     beautyOn,
     makeupId: effects.makeupId ?? null,
+    makeupIntensity: effects.makeupIntensity ?? null,
     stickerId: effects.stickerId ?? null,
     shapeEffectId: effects.shapeEffectId ?? null,
     filterId: effects.filterId ?? null,

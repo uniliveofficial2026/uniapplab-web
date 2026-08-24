@@ -6,7 +6,6 @@ import { StoryStrip } from './StoryStrip';
 import { lazyWithRetry as lazy } from '../../lib/lazyWithRetry';
 import { instantSuspenseFallback } from '../../lib/instantCachePolicy';
 import { ArrowLeft } from 'lucide-react';
-import { useToast } from '../../lib/ToastContext';
 import { AnimatePresence } from 'motion/react';
 import { openProfilePreview } from '../../lib/utils';
 import { Avatar } from '../common/Avatar';
@@ -25,8 +24,6 @@ export function Feed() {
   const currentUser = useCurrentUser();
   const USERS = db.users ?? [];
 
-  const { showToast } = useToast();
-  
   const [showAllSuggestions, setShowAllSuggestions] = useState(false);
   const [selectedPostId, setSelectedPostId] = useState<string | null>(null);
 
@@ -60,20 +57,17 @@ export function Feed() {
 
   const toggleFollow = (user: { id?: string; username?: string; isFollowing?: boolean }) => {
     if (!user?.id) return;
-    const next = db.toggleFollow(user.id);
-    if (next === null) return;
-    const label = user.username ?? 'user';
-    showToast(next ? `Following ${label}` : `Unfollowed ${label}`);
+    db.toggleFollow(user.id);
   };
 
   return (
-    <div className="w-full flex flex-col items-center pt-6 pb-6 min-h-0 overflow-visible">
+    <div className="w-full min-h-0 flex-1 flex flex-col items-center pt-6 pb-6 bg-background overflow-visible">
       {/* Stories should span the full feed lane (edge-to-edge), not the post card max width */}
-      <div className="w-full overflow-visible">
+      <div className="w-full overflow-visible app-content-gutter md:px-0 max-w-[470px]">
         <StoryStrip />
       </div>
 
-      <div className="w-full max-w-[470px] overflow-visible">
+      <div className="w-full max-w-[470px] overflow-visible app-content-gutter md:px-0">
         {/* Posts */}
         <div className="flex flex-col items-center w-full overflow-visible">
           {db

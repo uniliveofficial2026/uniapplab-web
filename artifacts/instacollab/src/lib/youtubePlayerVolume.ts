@@ -17,7 +17,50 @@ export type YoutubeIframePlayer = {
   unMute?: () => void;
   isMuted?: () => boolean;
   getPlayerState?: () => number;
+  playVideo?: () => void;
+  pauseVideo?: () => void;
+  seekTo?: (seconds: number, allowSeekAhead?: boolean) => void;
+  getAvailableQualityLevels?: () => string[];
+  getPlaybackQuality?: () => string;
+  setPlaybackQuality?: (quality: string) => void;
+  getPlaylist?: () => string[];
+  getPlaylistIndex?: () => number;
+  nextVideo?: () => void;
+  playVideoAt?: (index: number) => void;
 };
+
+export function youtubeIframeOrigin(): string {
+  if (typeof window === 'undefined') return '';
+  return window.location.origin;
+}
+
+export function youtubeIframePlayerVars(
+  overrides: Record<string, string | number | undefined> = {},
+): Record<string, string | number | undefined> {
+  const origin = youtubeIframeOrigin();
+  return {
+    ...YOUTUBE_PLAYER_VARS,
+    origin: origin || undefined,
+    widget_referrer: origin || undefined,
+    fs: 1,
+    controls: 1,
+    iv_load_policy: 3,
+    ...overrides,
+  };
+}
+
+/** After muted autoplay is PLAYING, restore the user's saved mute preference. */
+export function resumeYoutubePlaybackAfterAutoplay(player: YoutubeIframePlayer): void {
+  const prefs = readYoutubePlayerVolume();
+  try {
+    player.setVolume?.(prefs.volume);
+    if (prefs.muted) player.mute?.();
+    else player.unMute?.();
+    player.playVideo?.();
+  } catch {
+    /* autoplay / not ready */
+  }
+}
 
 function clampVolume(value: number): number {
   if (!Number.isFinite(value)) return DEFAULT_PREFS.volume;
@@ -52,16 +95,12 @@ export function writeYoutubePlayerVolume(prefs: YoutubePlayerVolumePrefs): void 
   }
 }
 
-/** Apply saved volume/mute to a YouTube iframe player instance. */
+/** Apply saved volume. Autoplay starts muted — browsers block unmuted autoplay. */
 export function applyYoutubePlayerVolume(player: YoutubeIframePlayer): void {
   const prefs = readYoutubePlayerVolume();
   try {
-    if (prefs.muted) {
-      player.mute?.();
-      return;
-    }
-    player.unMute?.();
     player.setVolume?.(prefs.volume);
+    player.mute?.();
   } catch {
     /* player not ready */
   }
@@ -101,15 +140,16 @@ export function stabilizeYoutubePlayerVolume(player: YoutubeIframePlayer): void 
         captureYoutubePlayerVolume(player);
       }
     }
+    const prefs = readYoutubePlayerVolume();
+    player.setVolume?.(prefs.volume);
   } catch {
     /* ignore read errors */
   }
-
-  applyYoutubePlayerVolume(player);
 }
 
 export const YOUTUBE_PLAYER_VARS = {
   autoplay: 1,
+  mute: 1,
   modestbranding: 1,
   rel: 0,
   playsinline: 1,

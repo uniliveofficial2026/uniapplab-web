@@ -336,8 +336,15 @@ export function NotificationsScreen({ embedded = false }: { embedded?: boolean }
       data-embedded={embedded ? 'true' : 'false'}
       className={
         embedded
-          ? 'w-full h-full flex flex-col overflow-y-auto overflow-x-hidden min-h-0 px-4 py-4'
-          : 'w-full flex flex-col pt-6 md:pt-10 px-4 md:px-0 max-w-[600px] mx-auto pb-6 min-h-0'
+          ? 'w-full h-full flex flex-col overflow-y-auto overflow-x-hidden min-h-0 app-content-gutter py-4'
+          : 'w-full min-h-0 flex-1 flex flex-col bg-background'
+      }
+    >
+    <div
+      className={
+        embedded
+          ? 'w-full flex flex-col min-h-0'
+          : 'app-screen-scroll w-full flex flex-col pt-6 md:pt-10 app-content-gutter md:px-0 max-w-[600px] mx-auto pb-6 min-h-0'
       }
     >
       <div className="flex items-center justify-between gap-3 mb-4 px-2">
@@ -726,6 +733,7 @@ export function NotificationsScreen({ embedded = false }: { embedded?: boolean }
           onClose={() => setSelectedPostId(null)}
         />
       )}
+    </div>
     </div>
   );
 }

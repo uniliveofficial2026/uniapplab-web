@@ -85,7 +85,7 @@ export function PlatformAdminModerationListener({
     <div className="fixed inset-0 z-[190] flex items-end justify-center pointer-events-auto">
       <button
         type="button"
-        className="absolute inset-0 bg-black/65 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/65"
         aria-label="Close seat ban picker"
         onClick={() => setSeatBanPickerOpen(false)}
       />

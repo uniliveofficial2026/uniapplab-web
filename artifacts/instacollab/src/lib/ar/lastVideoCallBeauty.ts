@@ -3,6 +3,7 @@ import type { BodyShapeParams } from '../../lib/ar/bodyShape';
 import { EMPTY_BODY_SHAPE } from '../../lib/ar/bodyShape';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
+  type TencentBeautifyParams,
   type TencentEffectSelection,
 } from '../../lib/webar/webarTypes';
 
@@ -10,6 +11,7 @@ export type LastVideoCallBeauty = {
   beautyId: BeautyPresetId;
   beautyEffects: TencentEffectSelection;
   bodyShape: BodyShapeParams;
+  beautifyOverride?: TencentBeautifyParams | null;
 };
 
 const STORAGE_KEY = 'lastVideoCallBeauty';
@@ -46,6 +48,10 @@ export function readLastVideoCallBeauty(): LastVideoCallBeauty | null {
         ...EMPTY_BODY_SHAPE,
         ...(parsed.bodyShape ?? {}),
       },
+      beautifyOverride:
+        parsed.beautifyOverride && typeof parsed.beautifyOverride === 'object'
+          ? parsed.beautifyOverride
+          : null,
     };
   } catch {
     return null;

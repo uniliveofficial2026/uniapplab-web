@@ -10,8 +10,10 @@ import {
 } from '../utils/roomModePreviewDemo';
 import {
   formatGuestSeatNumber,
+  formatMultiGuestSeatLabel,
   formatStaffSeatLabel,
   getMultiGuestVideoGridClass,
+  getMultiGuestVideoLayout,
   splitChorusGuestSeatRows,
   splitPartyGuestSeatRows,
 } from '../utils/roomSeats';
@@ -410,24 +412,8 @@ function WatchTogetherLayoutPreview() {
 }
 
 function MultiGuestLayoutPreview() {
-  const gridClass = getMultiGuestVideoGridClass(15);
-  const tileAvatars = [
-    PREVIEW_AVATARS.host,
-    PREVIEW_AVATARS.guest1,
-    PREVIEW_AVATARS.guest2,
-    PREVIEW_AVATARS.guest3,
-    PREVIEW_AVATARS.coowner,
-    PREVIEW_AVATARS.admin,
-    PREVIEW_AVATARS.viewer1,
-    PREVIEW_AVATARS.viewer2,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-    null,
-  ];
+  const gridClass = getMultiGuestVideoGridClass(16);
+  const layout = getMultiGuestVideoLayout(16);
 
   return (
     <div className="multi-guest-layout relative flex h-full min-h-0 flex-col overflow-hidden bg-[#07010a] font-sans text-white">
@@ -440,27 +426,26 @@ function MultiGuestLayoutPreview() {
 
         <div className="multi-guest-stage min-h-0 flex-1">
           <div className={`multi-guest-video-grid ${gridClass} h-full`}>
-            {tileAvatars.map((avatar, index) => (
-              <div
-                key={`mg-tile-${index}`}
-                className={`multi-guest-video-tile relative overflow-hidden bg-zinc-900/80 ${
-                  index === 0 ? 'multi-guest-video-tile--col-span-2 multi-guest-video-tile--row-span-2' : ''
-                }`}
-              >
-                {avatar ? (
-                  <img src={avatar} className="h-full w-full object-cover" alt="" />
-                ) : (
-                  <div className="multi-guest-video-tile-empty flex h-full items-center justify-center">
-                    <div className="multi-guest-video-tile-empty-marker flex flex-col items-center gap-1">
-                      <Sofa size={16} className="multi-guest-video-tile-empty-icon text-white/50" />
-                      <span className="multi-guest-video-tile-label text-[8px] font-bold text-white/40">
-                        NO.{index}
-                      </span>
+            {layout.map((item) => {
+              const label = formatMultiGuestSeatLabel(item.seatKey, 16, { uppercase: true });
+              return (
+                <div
+                  key={item.seatKey}
+                  className="multi-guest-video-tile relative overflow-hidden"
+                  style={{
+                    ...(item.gridColumn ? { gridColumn: item.gridColumn } : {}),
+                    ...(item.gridRow ? { gridRow: item.gridRow } : {}),
+                  }}
+                >
+                  <div className="multi-guest-video-tile-empty">
+                    <div className="multi-guest-video-tile-empty-marker">
+                      <Sofa size={16} className="multi-guest-video-tile-empty-icon" />
+                      <span className="multi-guest-video-tile-label">{label}</span>
                     </div>
                   </div>
-                )}
-              </div>
-            ))}
+                </div>
+              );
+            })}
           </div>
         </div>
 

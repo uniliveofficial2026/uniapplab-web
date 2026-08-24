@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { VoiceChangerEngine } from '../../lib/live/voiceChangerPipeline';
+import { VoiceChangerEngine, type VoiceBackgroundSoundId } from '../../lib/live/voiceChangerPipeline';
 import type { VoiceChangerEffectId } from '../utils/voiceEffects';
 import { resolveDisplayVoiceStatus } from '../utils/singingVoiceStatus';
 import type { SingingVoiceStatus } from './useSingingSession';
@@ -9,16 +9,25 @@ type UseRoomVoiceChangerOptions = {
   effectId: VoiceChangerEffectId;
   /** Play processed voice to local speakers (optional sidetone). */
   monitorEnabled?: boolean;
+  /** 0–100 effect wet strength before LiveKit publish. */
+  effectStrength?: number;
+  backgroundSound?: VoiceBackgroundSoundId;
 };
 
 export function useRoomVoiceChanger({
   enabled,
   effectId,
   monitorEnabled = false,
+  effectStrength = 70,
+  backgroundSound = null,
 }: UseRoomVoiceChangerOptions) {
   const engineRef = useRef<VoiceChangerEngine | null>(null);
   const monitorEnabledRef = useRef(monitorEnabled);
   monitorEnabledRef.current = monitorEnabled;
+  const effectStrengthRef = useRef(effectStrength);
+  effectStrengthRef.current = effectStrength;
+  const backgroundSoundRef = useRef(backgroundSound);
+  backgroundSoundRef.current = backgroundSound;
   const effectIdRef = useRef(effectId);
   effectIdRef.current = effectId;
   const [processedTrack, setProcessedTrack] = useState<MediaStreamTrack | null>(null);
@@ -64,7 +73,9 @@ export function useRoomVoiceChanger({
         return;
       }
       engine.setMonitorEnabled(monitorEnabledRef.current);
-      setProcessedTrack(track);
+      engine.setEffectStrength(effectStrengthRef.current);
+      engine.setBackgroundSound(backgroundSoundRef.current);
+      setProcessedTrack(engine.getOutputTrack());
     }).catch(() => {
       if (!cancelled) {
         setProcessedTrack(null);
@@ -87,12 +98,26 @@ export function useRoomVoiceChanger({
   }, [enabled, stopEngine]);
 
   useEffect(() => {
-    engineRef.current?.setEffect(effectId);
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.setEffect(effectId);
+    setProcessedTrack(engine.getOutputTrack());
   }, [effectId, enabled]);
 
   useEffect(() => {
     engineRef.current?.setMonitorEnabled(monitorEnabled);
   }, [enabled, monitorEnabled]);
+
+  useEffect(() => {
+    engineRef.current?.setEffectStrength(effectStrength);
+  }, [enabled, effectStrength]);
+
+  useEffect(() => {
+    const engine = engineRef.current;
+    if (!engine) return;
+    engine.setBackgroundSound(backgroundSound);
+    setProcessedTrack(engine.getOutputTrack());
+  }, [enabled, backgroundSound]);
 
   const voiceStatus: SingingVoiceStatus = resolveDisplayVoiceStatus(
     enabled,

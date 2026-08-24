@@ -8,6 +8,7 @@ import {
   isFixedPlayDone,
   resetFixedPlay,
 } from '../../lib/fixedPlay';
+import { markIntroLoadingSeenOnDevice } from '../../lib/splashSession';
 
 type Props = {
   /** Play the second video when true (main app entry). */
@@ -15,7 +16,8 @@ type Props = {
 };
 
 const PLAY_MS = PRINCESS_LOADING_REFRESH_DURATION_MS;
-const PLAY_KEY = 'inapp-loading:main-entry';
+/** Unique per document load — refresh remounts JS and gets a fresh key. */
+const PLAY_KEY = `inapp-loading:main-entry:${typeof performance !== 'undefined' ? Math.floor(performance.timeOrigin) : Date.now()}`;
 
 /** Survives React Strict Mode remounts — prevents cancel/restart skip. */
 let mainEntryArmed = false;
@@ -28,8 +30,9 @@ function setMainEntryVisible(show: boolean) {
 }
 
 /**
- * Second video — full ~5s when entering main.
+ * In-app loading — full ~5s on every normal main load / refresh.
  * Module-level arm so Strict Mode / auth flicker cannot kill the play.
+ * Does not use a device-once flag (that blocked refresh playback).
  */
 export function UniLivesPrincessLoadingRefreshGate({ enabled = false }: Props) {
   const [showVideo, setShowVideo] = useState(mainEntryVisible && enabled);
@@ -52,18 +55,25 @@ export function UniLivesPrincessLoadingRefreshGate({ enabled = false }: Props) {
       return;
     }
 
-    // Play already finished for this main entry — stay dismissed.
+    // Already finished for this document load — stay dismissed (SPA remounts).
     if (isFixedPlayDone(PLAY_KEY) && !isFixedPlayActive(PLAY_KEY)) {
+      markIntroLoadingSeenOnDevice();
       setMainEntryVisible(false);
       return;
     }
+
+    const onComplete = () => {
+      mainEntryArmed = false;
+      markIntroLoadingSeenOnDevice();
+      setMainEntryVisible(false);
+    };
 
     if (mainEntryArmed || isFixedPlayActive(PLAY_KEY)) {
       setMainEntryVisible(true);
       armFixedPlay({
         key: PLAY_KEY,
         playMs: PLAY_MS,
-        onComplete: () => setMainEntryVisible(false),
+        onComplete,
       });
       return;
     }
@@ -73,10 +83,7 @@ export function UniLivesPrincessLoadingRefreshGate({ enabled = false }: Props) {
     armFixedPlay({
       key: PLAY_KEY,
       playMs: PLAY_MS,
-      onComplete: () => {
-        mainEntryArmed = false;
-        setMainEntryVisible(false);
-      },
+      onComplete,
     });
 
     return () => undefined;

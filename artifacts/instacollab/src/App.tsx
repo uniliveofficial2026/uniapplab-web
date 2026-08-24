@@ -3,6 +3,7 @@
  * SPDX-License-Identifier: Apache-2.0
  */
 
+import './lib/adminMirrorRole';
 import React, { useState, useEffect, useRef, useMemo, Suspense } from 'react';
 import { lazyWithRetry as lazy } from './lib/lazyWithRetry';
 import { consumePendingAppProfileUserId } from './lib/profileIdentity';
@@ -18,6 +19,8 @@ import { Feed } from './components/feed/Feed';
 // Greedy — eager so the tab opens with no lazy-chunk wait.
 import { GreedyTapScreen, prefetchGreedyTap } from './components/games/GreedyTapScreen';
 import { GreedySessionProvider } from './contexts/GreedySessionContext';
+import { beginInstantAction } from './lib/performance';
+import { cancelRoutePrefetch, scheduleLikelyNextPrefetch } from './lib/navPrefetch';
 
 const MessagesScreen = lazy(() =>
   import('./components/messages/MessagesScreen').then((m) => ({ default: m.MessagesScreen }))
@@ -97,7 +100,7 @@ import { Tab } from './types';
 import { ChatCallProvider } from './contexts/ChatCallContext';
 import { registerAppTabGetter } from './lib/karaokeReturnContext';
 import { useDB } from './lib/useDB';
-import { findUserById } from './lib/safe';
+import { findUserById, resolveUser } from './lib/safe';
 import { useCurrentUser } from './lib/useCurrentUser';
 import { useToast } from './lib/ToastContext';
 import { AppCameraShell } from './components/camera/AppCameraShell';
@@ -118,6 +121,10 @@ import { useAuth } from './lib/AuthContext';
 import { isFirebaseConfigured } from './lib/firebase/config';
 import { isPrimarySupabaseCloud } from './lib/auth/config';
 import { InstantRoomEntryHost } from './components/live/InstantRoomEntryHost';
+
+const PkLiveOverlay = lazy(() =>
+  import('./components/live/PkLiveOverlay').then((m) => ({ default: m.PkLiveOverlay })),
+);
 const YoutubeMiniPlayerHost = lazy(() =>
   import('./components/youtube/YoutubeMiniPlayerHost').then((m) => ({
     default: m.YoutubeMiniPlayerHost,
@@ -150,12 +157,17 @@ import {
   writeSessionCache,
 } from './lib/sessionCache';
 import { hasInstantSessionCache, instantSuspenseFallback } from './lib/instantCachePolicy';
-import { isSilentSyncToast } from './lib/silentRemoteRefresh';
+import { shouldSuppressToast } from './lib/toastPolicy';
 import type { LaunchRoute } from './lib/launchRoute';
-import { isLaunchFunnelPendingThisSession, hasPassedAuthGateThisSession } from './lib/splashSession';
+import { isAdminStudioEmbed } from './lib/adminStudioEmbed';
+import {
+  isLaunchFunnelPendingThisSession,
+  hasPassedAuthGateThisSession,
+} from './lib/splashSession';
 import { forceRemoveBootShell } from './lib/bootSplashVideo';
 import { openKaraokeRoomFlow } from './lib/live/openLiveRoom';
 import { stripAppBasePath } from './lib/appShellRoutes';
+import { AdminEmbedAppShell } from './components/admin/AdminEmbedAppHost';
 
 const AdminEmbedRoomHost = lazy(() =>
   import('./components/admin/AdminEmbedRoomHost').then((m) => ({ default: m.AdminEmbedRoomHost })),
@@ -165,23 +177,74 @@ const AdminEmbedGiftPreviewHost = lazy(() =>
     default: m.AdminEmbedGiftPreviewHost,
   })),
 );
+const AppLiveStudioShell = lazy(() =>
+  import('./components/studio/AppLiveStudioShell').then((m) => ({
+    default: m.AppLiveStudioShell,
+  })),
+);
+const AdminHandoffHost = lazy(() =>
+  import('./components/dev/AdminHandoffHost').then((m) => ({
+    default: m.AdminHandoffHost,
+  })),
+);
+const AdminDevBridgeHost = lazy(() =>
+  import('./components/dev/AdminDevBridgeHost').then((m) => ({
+    default: m.AdminDevBridgeHost,
+  })),
+);
 const UniLivesCharacterPreviewHost = lazy(() =>
   import('./components/character/UniLivesCharacterPreviewHost').then((m) => ({
     default: m.UniLivesCharacterPreviewHost,
   })),
 );
 
+function embedPath(): string {
+  const path = stripAppBasePath(window.location.pathname);
+  return path.replace(/^\/app-live(?=\/)/, '') || '/';
+}
+
+function isAdminHandoff(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = embedPath();
+  return path === '/admin-handoff' || path === '/admin-handoff/';
+}
+
+function isAdminDevBridge(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = embedPath();
+  return path === '/admin-dev-bridge' || path === '/admin-dev-bridge/';
+}
+
 function parseAdminEmbedRoomId(): string | null {
   if (typeof window === 'undefined') return null;
-  const path = stripAppBasePath(window.location.pathname);
+  const path = embedPath();
   const match = path.match(/^\/admin-embed\/room\/([^/]+)$/);
   return match?.[1] ? decodeURIComponent(match[1]) : null;
 }
 
 function isAdminGiftPreviewEmbed(): boolean {
   if (typeof window === 'undefined') return false;
-  const path = stripAppBasePath(window.location.pathname);
+  const path = embedPath();
   return path === '/admin-embed/gift-preview' || path === '/admin-embed/gift-preview/';
+}
+
+function isAdminAppEmbed(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = embedPath();
+  return path === '/admin-embed/app' || path === '/admin-embed/app/';
+}
+
+function isAppLiveStudio(): boolean {
+  if (typeof window === 'undefined') return false;
+  const path = stripAppBasePath(window.location.pathname);
+  return path === '/studio' || path === '/studio/';
+}
+
+function isAdminUiPickMode(): boolean {
+  if (typeof window === 'undefined') return false;
+  if (window.parent !== window) return true;
+  const params = new URLSearchParams(window.location.search);
+  return params.get('pick') === '1' || params.get('adminPick') === '1' || Boolean(params.get('adminOrigin'));
 }
 
 function isUniLivesCharacterPreview(): boolean {
@@ -198,7 +261,7 @@ function ToastListener() {
     const handleAppToast = (e: Event) => {
       const detail = (e as CustomEvent<string>).detail;
       if (!detail) return;
-      if (!isSilentSyncToast(detail)) showToast(detail);
+      if (!shouldSuppressToast(detail)) showToast(detail);
     };
     window.addEventListener('app-toast', handleAppToast);
     return () => window.removeEventListener('app-toast', handleAppToast);
@@ -210,11 +273,27 @@ function ToastListener() {
 export default function App() {
   const adminEmbedRoomId = useMemo(() => parseAdminEmbedRoomId(), []);
   const adminGiftPreview = useMemo(() => isAdminGiftPreviewEmbed(), []);
+  const adminAppEmbed = useMemo(() => isAdminAppEmbed(), []);
+  const appLiveStudio = useMemo(() => isAppLiveStudio(), []);
+  const adminUiPickMode = useMemo(
+    () => isAdminUiPickMode() || appLiveStudio,
+    [appLiveStudio],
+  );
   const characterPreview = useMemo(() => isUniLivesCharacterPreview(), []);
+  const adminDevBridge = useMemo(() => isAdminDevBridge(), []);
+  const adminHandoff = useMemo(() => isAdminHandoff(), []);
   return (
     <AppCameraShell>
       <ToastListener />
-      {characterPreview ? (
+      {adminHandoff ? (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <AdminHandoffHost />
+        </Suspense>
+      ) : adminDevBridge ? (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <AdminDevBridgeHost />
+        </Suspense>
+      ) : characterPreview ? (
         <Suspense fallback={instantSuspenseFallback()}>
           <UniLivesCharacterPreviewHost />
         </Suspense>
@@ -222,6 +301,16 @@ export default function App() {
         <Suspense fallback={instantSuspenseFallback()}>
           <AdminEmbedGiftPreviewHost />
         </Suspense>
+      ) : appLiveStudio ? (
+        <Suspense fallback={instantSuspenseFallback()}>
+          <AppLiveStudioShell>
+            <MainApp adminUiPickMode />
+          </AppLiveStudioShell>
+        </Suspense>
+      ) : adminUiPickMode || adminAppEmbed ? (
+        <AdminEmbedAppShell pickMode={false}>
+          <MainApp adminUiPickMode={adminUiPickMode} adminEmbedMode />
+        </AdminEmbedAppShell>
       ) : adminEmbedRoomId ? (
         <Suspense fallback={instantSuspenseFallback()}>
           <AdminEmbedRoomHost roomId={adminEmbedRoomId} />
@@ -233,7 +322,12 @@ export default function App() {
   );
 }
 
-function MainApp() {
+type MainAppProps = {
+  adminUiPickMode?: boolean;
+  adminEmbedMode?: boolean;
+};
+
+function MainApp({ adminUiPickMode = false, adminEmbedMode = false }: MainAppProps) {
   const initialShell = readInitialShellState();
   const [currentTab, setCurrentTab] = useState<Tab>(initialShell.currentTab);
   const currentTabRef = useRef(currentTab);
@@ -255,8 +349,11 @@ function MainApp() {
   }>>([]);
   const [roomsInitialPath, setRoomsInitialPath] = useState(initialShell.roomsInitialPath);
   const [visitedTabs, setVisitedTabs] = useState<Tab[]>(() => [initialShell.currentTab]);
+  const studioEmbed = adminEmbedMode || adminUiPickMode || isAdminStudioEmbed();
   const [mainShellPinned, setMainShellPinned] = useState(
     () =>
+      studioEmbed ||
+      adminEmbedMode ||
       Boolean(readSessionCache()) ||
       hasInstantSessionCache() ||
       hasDemoBootstrapIntent() ||
@@ -277,7 +374,7 @@ function MainApp() {
   };
   const db = useDB();
   const dbUser = useCurrentUser();
-  const { configured: supabaseAuth, authReady } = useSupabaseAuth();
+  useSupabaseAuth();
   const launchRoute = useLaunchRoute();
   const isOnline = useIsOnline();
   const { user: firebaseUser, profile: firebaseProfile, loading: firebaseLoading } = useAuth();
@@ -298,6 +395,11 @@ function MainApp() {
       return;
     }
 
+    if (studioEmbed || hasDemoBootstrapIntent()) {
+      setMainShellPinned(true);
+      return;
+    }
+
     // Complete logout: drop cache-first shell pin and return to auth.
     clearSessionCache();
     setSessionHint(null);
@@ -308,7 +410,7 @@ function MainApp() {
     if (!onDevDeepLink) {
       setMainShellPinned(false);
     }
-  }, [db.isLoggedIn, db.currentUserId]);
+  }, [adminEmbedMode, adminUiPickMode, db.isLoggedIn, db.currentUserId, studioEmbed]);
 
   useEffect(() => {
     void db.whenStorageReady().then(() => {
@@ -320,6 +422,10 @@ function MainApp() {
         setSessionHint(readSessionCache());
         setMainShellPinned(true);
       } else if (!db.isLoggedIn && !hasInstantSessionCache()) {
+        if (studioEmbed || hasDemoBootstrapIntent()) {
+          setMainShellPinned(true);
+          return;
+        }
         clearSessionCache();
         setSessionHint(null);
         // Keep /greedy-tap and /workspace deep links in the main shell on localhost even without auth.
@@ -337,24 +443,26 @@ function MainApp() {
   // Removed the old "pin-only" effect that never unpinned after logout.
 
   // Prefer IDB user; fall back to session cache so Shell never waits on network.
-  const currentUser =
+  // Always a concrete User — never null/undefined for shell chrome.
+  const currentUser = resolveUser(
+    db.users,
     db.isLoggedIn && dbUser.id !== 'unknown'
       ? dbUser
       : sessionHint
         ? sessionCacheToUser(sessionHint)
-        : dbUser;
+        : dbUser,
+  );
 
   // DEV deep links always enter the shell (Greedy Tap / Workspace access gate).
   const greedyTapDevDeepLink = import.meta.env.DEV && currentTab === 'greedy-tap';
   const workspaceDevDeepLink = import.meta.env.DEV && currentTab === 'workspace';
-  // Cold start: splash → onboarding → auth (session). Then progress drives
-  // newcomer profile_setup → trending → main. Do NOT let session cache skip
-  // newcomer steps (that would break first-video funnel mapping).
-  const launchFunnelPending = isLaunchFunnelPendingThisSession();
+  // Cold start: newcomers play first splash video once. Returning users skip
+  // it and enter main — second in-app loading video plays on that main load/refresh.
+  const launchFunnelPending = studioEmbed ? false : isLaunchFunnelPendingThisSession();
   const effectiveLaunchRoute: LaunchRoute =
     launchRoute === 'banned'
       ? 'banned'
-      : greedyTapDevDeepLink || workspaceDevDeepLink
+      : studioEmbed || greedyTapDevDeepLink || workspaceDevDeepLink
         ? 'main'
         : launchRoute;
 
@@ -398,6 +506,22 @@ function MainApp() {
   useEffect(() => {
     trackScreen(currentTab);
   }, [currentTab]);
+
+  useEffect(() => {
+    if (!studioEmbed) return;
+    document.documentElement.setAttribute('data-admin-mirror-tab', currentTab);
+    window.dispatchEvent(
+      new CustomEvent('admin-ui-mirror-state', {
+        detail: {
+          tab: currentTab,
+          profileUserId,
+          chatId: initialChatId,
+          roomsPath: roomsInitialPath,
+          path: typeof window !== 'undefined' ? window.location.pathname : '',
+        },
+      }),
+    );
+  }, [studioEmbed, currentTab, profileUserId, initialChatId, roomsInitialPath]);
 
   useEffect(() => {
     if (applyingHistoryRef.current) return;
@@ -444,10 +568,9 @@ function MainApp() {
   }, []);
 
   useEffect(() => {
-    if (!shouldRunDemoSessionBootstrap()) return;
-    if (supabaseAuth && !authReady) return;
+    if (!shouldRunDemoSessionBootstrap() && !studioEmbed) return;
     void applyDevSessionOverrideFromUrl();
-  }, [authReady, supabaseAuth]);
+  }, [studioEmbed]);
 
   /** Cold-start: ?tab=profile&profileTab=manage and other share URLs → K-Star / party / track. */
   useEffect(() => {
@@ -472,11 +595,11 @@ function MainApp() {
     });
   }, [currentTab]);
 
-  // Prefetch Greedy assets; the live iframe mounts only when the session opens.
+  // Prefetch Greedy only when the user opens that tab — not on every main launch.
   useEffect(() => {
-    if (effectiveLaunchRoute !== 'main') return;
+    if (effectiveLaunchRoute !== 'main' || currentTab !== 'greedy-tap') return;
     prefetchGreedyTap();
-  }, [effectiveLaunchRoute]);
+  }, [effectiveLaunchRoute, currentTab]);
 
   useEffect(() => {
     applyDocumentTheme(db.settings.theme === 'dark' ? 'dark' : 'light');
@@ -486,6 +609,7 @@ function MainApp() {
     const onVisibility = () => {
       if (document.visibilityState === 'hidden') {
         pauseAllPlayback();
+        cancelRoutePrefetch();
       }
     };
     document.addEventListener('visibilitychange', onVisibility);
@@ -559,6 +683,8 @@ function MainApp() {
     setInitialChatId(nextChatId);
     setInitialReelId(null);
     setInitialSearchContext(nextSearchContext);
+    beginInstantAction('nav.tab-switch');
+    scheduleLikelyNextPrefetch(nextTab);
   };
 
   const goBack = () => {
@@ -657,6 +783,35 @@ function MainApp() {
     pushState(tab, null, null, null);
   };
 
+  useEffect(() => {
+    if (!adminUiPickMode && !adminEmbedMode && !studioEmbed) return undefined;
+
+    const onSetTab = (event: Event) => {
+      const detail = (event as CustomEvent<{
+        tab: Tab;
+        profileUserId?: string | null;
+        chatId?: string | null;
+        roomsPath?: string;
+      }>).detail;
+      if (!detail?.tab) return;
+      if (detail.tab === 'rooms') {
+        setRoomsInitialPath(detail.roomsPath || '/party');
+        openRoomsInKaraoke(detail.roomsPath || '/party');
+        pushState('karaoke', detail.profileUserId ?? null, detail.chatId ?? null, null);
+        return;
+      }
+      pushState(
+        detail.tab,
+        detail.profileUserId ?? null,
+        detail.chatId ?? null,
+        null,
+      );
+    };
+
+    window.addEventListener('admin-ui-set-tab', onSetTab);
+    return () => window.removeEventListener('admin-ui-set-tab', onSetTab);
+  }, [adminEmbedMode, adminUiPickMode, studioEmbed]);
+
   const profileBackLabel = useMemo(() => {
     if (!profileUserId) return undefined;
     const previous = history.length > 0 ? history[history.length - 1] : null;
@@ -665,9 +820,7 @@ function MainApp() {
   }, [profileUserId, history]);
 
   const screen = (name: string, node: React.ReactNode) => (
-    <ScreenGuard screen={name}>
-      <Suspense fallback={instantSuspenseFallback()}>{node}</Suspense>
-    </ScreenGuard>
+    <ScreenGuard screen={name}>{node}</ScreenGuard>
   );
 
   const renderTabPanel = (tab: Tab) => {
@@ -764,19 +917,24 @@ function MainApp() {
       (db.isLoggedIn && currentUser?.id && currentUser.id !== 'unknown'));
 
   const holdLoadingForFirebase =
-    !supabasePrimary && firebaseLoading && isOnline && !canPaintMainFromCache;
+    !studioEmbed &&
+    !supabasePrimary &&
+    firebaseLoading &&
+    isOnline &&
+    !canPaintMainFromCache;
 
   const authPassed =
     hasPassedAuthGateThisSession() ||
     Boolean(db.isLoggedIn && currentUser?.id && currentUser.id !== 'unknown');
 
   /**
-   * Second video: whenever the main shell is entered (funnel done).
-   * Do not require a separate authPassed check — route === main already implies it,
-   * and authPassed flicker was cancelling the play.
+   * In-app loading (second locked clip): play on every main entry for this page load
+   * (cold start, refresh, return to main). Boot splash remains newcomers-only.
    */
   const showInAppLoadVideo =
-    !launchFunnelPending && effectiveLaunchRoute === 'main';
+    !studioEmbed &&
+    !launchFunnelPending &&
+    effectiveLaunchRoute === 'main';
 
   // Funnel screens always via LaunchFlowHost (never skip newcomer steps via cache).
   let mainTree: React.ReactNode;
@@ -787,7 +945,7 @@ function MainApp() {
         <Suspense fallback={instantSuspenseFallback()}>
           <LaunchFlowHost route={effectiveLaunchRoute} />
         </Suspense>
-        {import.meta.env.DEV ? (
+        {import.meta.env.DEV && !studioEmbed ? (
           <Suspense fallback={null}>
             <DevLivePanelHost currentTab="home" profileUserId={null} />
           </Suspense>
@@ -807,9 +965,9 @@ function MainApp() {
       !canPaintMainFromCache
     ) {
       mainTree = (
-        <Suspense fallback={instantSuspenseFallback()}>
+        <ScreenGuard screen="auth">
           <AuthScreen />
-        </Suspense>
+        </ScreenGuard>
       );
     } else {
       const profileReady =
@@ -824,9 +982,9 @@ function MainApp() {
         !canPaintMainFromCache
       ) {
         mainTree = (
-          <Suspense fallback={instantSuspenseFallback()}>
+          <ScreenGuard screen="profile_setup">
             <ProfileSetup />
-          </Suspense>
+          </ScreenGuard>
         );
       } else {
         mainTree = (
@@ -837,8 +995,8 @@ function MainApp() {
             </Suspense>
             <InstantRoomEntryHost />
             <ChatCallProvider
-              currentUserId={currentUser?.id}
-              currentUserAvatarUrl={currentUser?.avatarUrl}
+              currentUserId={currentUser.id !== 'unknown' ? currentUser.id : undefined}
+              currentUserAvatarUrl={currentUser.avatarUrl || undefined}
             >
               <Shell
                 currentTab={currentTab}
@@ -848,6 +1006,9 @@ function MainApp() {
                 {renderContent()}
               </Shell>
             </ChatCallProvider>
+            <Suspense fallback={null}>
+              <PkLiveOverlay />
+            </Suspense>
             <AnimatePresence>
               {globalPreviewUserId && (
                 <ErrorBoundary>
@@ -860,7 +1021,7 @@ function MainApp() {
                 </ErrorBoundary>
               )}
             </AnimatePresence>
-            {import.meta.env.DEV ? (
+            {import.meta.env.DEV && !studioEmbed ? (
               <Suspense fallback={null}>
                 <DevLivePanelHost currentTab={currentTab} profileUserId={profileUserId} />
               </Suspense>

@@ -56,10 +56,8 @@ export function FollowListModal({
   const countLabel = displayCount.toLocaleString();
   const title = mode === 'followers' ? 'Followers' : 'Following';
 
-  const handleFollowToggle = (userId: string, username: string) => {
-    const next = db.toggleFollow(userId);
-    if (next === null) return;
-    showToast(next ? `Following ${username}` : `Unfollowed ${username}`);
+  const handleFollowToggle = (_userId: string, _username: string) => {
+    db.toggleFollow(_userId);
     setHoverFollowId(null);
   };
 

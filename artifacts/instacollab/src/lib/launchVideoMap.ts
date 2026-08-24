@@ -1,13 +1,13 @@
 /**
  * UniLive’s launch video mapping
  *
- * Newcomer path (first video = boot splash at start):
+ * Newcomer path (first video = boot splash once at first visit):
  *   splash → onboarding → auth → profile_setup → trending → main
  *
- * Returning users (after session splash → onboarding → auth):
- *   → main
+ * Returning users / subsequent loads:
+ *   → main (boot splash does not replay; in-app loading video plays)
  *
- * Second video = in-app loading only inside `main` (never during funnel).
+ * Second video = in-app loading inside `main` on normal loads and refresh.
  */
 
 import type { LaunchRoute } from './launchRoute';
@@ -63,7 +63,7 @@ export function isInsideMainApp(route: LaunchRoute): boolean {
   return route === 'main';
 }
 
-/** Second video may play only here (slow in-app loads; skipped if instant). */
+/** Second video may play on main loads / refresh (not during funnel). */
 export function shouldUseInAppLoadVideo(route: LaunchRoute): boolean {
   return launchVideoKindForRoute(route) === 'inapp-loading';
 }

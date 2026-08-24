@@ -7,6 +7,7 @@ import { CreateRoomLivePreview } from './CreateRoomLivePreview';
 type CreateRoomSeatMockupProps = {
   mode: string;
   livePreviewEnabled?: boolean;
+  initialSeatCount?: 2 | 4 | 8 | 16 | 24;
   onLiveSetupChange?: (setup: PendingCreateRoomBeauty) => void;
 };
 
@@ -15,7 +16,6 @@ const INLINE_SEAT_MODES = new Set([
   'Radio',
   'Game-Live',
   'Karaoke',
-  'Multi-Guest',
   'Party',
 ]);
 
@@ -247,53 +247,10 @@ function GameMockup() {
   );
 }
 
-function MultiMockup() {
-  const seats = buildPreviewPartySeats(true);
-  const tiles = [
-    { key: 'host', label: 'Host', avatar: seats.host?.avatar, span: true },
-    { key: 'co', label: 'Co', avatar: seats.coowner?.avatar },
-    { key: 'boss', label: 'Boss', avatar: seats.admin?.avatar },
-    { key: '1', label: 'No.1', avatar: seats.no1?.avatar },
-    { key: '2', label: 'No.2', avatar: seats.no2?.avatar },
-    { key: '3', label: 'No.3', avatar: null },
-    { key: '4', label: 'No.4', avatar: null },
-    { key: '5', label: 'No.5', avatar: seats.no5?.avatar },
-    { key: '6', label: 'No.6', avatar: null },
-  ];
-  return (
-    <div className="space-y-3">
-      <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.18em] text-slate-400">
-        <Users2 size={12} className="text-sky-300" />
-        Multi · video seats
-      </div>
-      <div className="grid grid-cols-4 gap-1.5">
-        {tiles.map((tile) => (
-          <div
-            key={tile.key}
-            className={`relative overflow-hidden rounded-lg border border-white/10 bg-slate-900 ${
-              tile.span ? 'col-span-2 row-span-2 min-h-[5.5rem]' : 'aspect-square'
-            }`}
-          >
-            {tile.avatar ? (
-              <img src={tile.avatar} alt="" className="absolute inset-0 h-full w-full object-cover" />
-            ) : (
-              <div className="absolute inset-0 flex items-center justify-center">
-                <Sofa size={14} className="text-slate-600" />
-              </div>
-            )}
-            <span className="absolute bottom-1 left-1 rounded bg-black/55 px-1 py-0.5 text-[7px] font-black uppercase text-white">
-              {tile.label}
-            </span>
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export function CreateRoomSeatMockup({
   mode,
   livePreviewEnabled = true,
+  initialSeatCount,
   onLiveSetupChange,
 }: CreateRoomSeatMockupProps) {
   let body: ReactNode;
@@ -310,19 +267,18 @@ export function CreateRoomSeatMockup({
     case 'Karaoke':
       body = <KaraokeMockup />;
       break;
-    case 'Multi-Guest':
-      body = <MultiMockup />;
-      break;
     case 'Party':
       body = <ChatLikeMockup title="Party" icon={Users2} />;
       break;
+    case 'Multi-Guest':
     case 'Solo-Live':
     case 'Commerce-Live':
       return (
         <CreateRoomLivePreview
-          mode={mode}
+          mode={mode as 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest'}
           enabled={livePreviewEnabled}
           fill
+          initialSeatCount={initialSeatCount}
           onSetupChange={onLiveSetupChange}
         />
       );

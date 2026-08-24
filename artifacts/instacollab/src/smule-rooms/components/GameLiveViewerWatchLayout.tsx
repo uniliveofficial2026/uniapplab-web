@@ -10,6 +10,7 @@ import { createEmptyPartySeats } from '../utils/roomSeats';
 import type { RoomBackgroundMode } from '../utils/roomBackground';
 import { RoomBackgroundLayer } from './RoomBackgroundLayer';
 import { RoomLiveHeaderInfo } from './RoomLiveHeaderInfo';
+import type { HostLiveMetrics } from './HostLiveMetricsStrip';
 import { RoomFooterTrayActions } from './RoomFooterTrayActions';
 import { RoomHeaderActionsMenu, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
 import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
@@ -43,6 +44,7 @@ export type GameLiveViewerWatchLayoutProps = {
   roomDisplayId: string;
   roomTitle: string;
   announcement: string;
+  hostLiveMetrics?: HostLiveMetrics | null;
   isRoomSaved: boolean;
   roomIdCopied: boolean;
   onCopyRoomId: (event: React.MouseEvent) => void;
@@ -65,6 +67,8 @@ export type GameLiveViewerWatchLayoutProps = {
   roomGiftSummary: RoomGiftSummary;
   setIsRoomViewersOpen: (open: boolean) => void;
   setIsGiftPickerOpen: (open: boolean) => void;
+  onOpenStickers?: () => void;
+  stickersOpen?: boolean;
   setIsGuestManagementOpen: (open: boolean) => void;
   liveChatMsgs: LiveChatMsg[];
   chatInput: string;
@@ -118,6 +122,7 @@ export function GameLiveViewerWatchLayout({
   roomDisplayId,
   roomTitle,
   announcement,
+  hostLiveMetrics = null,
   isRoomSaved,
   roomIdCopied,
   onCopyRoomId,
@@ -140,6 +145,8 @@ export function GameLiveViewerWatchLayout({
   roomGiftSummary,
   setIsRoomViewersOpen,
   setIsGiftPickerOpen,
+  onOpenStickers,
+  stickersOpen = false,
   setIsGuestManagementOpen,
   liveChatMsgs,
   chatInput,
@@ -205,6 +212,7 @@ export function GameLiveViewerWatchLayout({
                 onToggleSaveRoom={onToggleSaveRoom}
                 canEditAnnouncement={canEditAnnouncement}
                 onEditAnnouncement={onEditAnnouncement}
+                hostLiveMetrics={hostLiveMetrics}
                 className="max-w-[62%] sm:max-w-none"
               />
 
@@ -486,6 +494,8 @@ export function GameLiveViewerWatchLayout({
                 onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
                 guestManagementOpen={guestManagementOpen}
                 onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
+                onOpenStickers={onOpenStickers}
+                stickersOpen={stickersOpen}
                 onGameClick={onGameClick}
                 micAccent="cyan"
                 showVoiceChanger={showVoiceChanger}

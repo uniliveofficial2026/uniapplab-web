@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
-import { addWalletCoins, saveWalletCoinsBalance, spendWalletCoins } from '../../lib/walletKstarSync';
+import { addWalletCoins, isLocalWalletLedgerAllowed, saveWalletCoinsBalance, spendWalletCoins } from '../../lib/walletKstarSync';
 import { syncServerWalletBalance } from '../../lib/walletServerSync';
 import {
   createRechargeCheckoutSession,
@@ -204,6 +204,10 @@ export function BuyExchangeTab() {
     if (amtNum <= 0) return;
 
     if (exchangeType === 'cash_to_coins') {
+      if (!isLocalWalletLedgerAllowed(appUser.id)) {
+        alert('Cash-to-coin exchange requires server checkout for this account.');
+        return;
+      }
       if (cashBalance < amtNum) {
         alert('Insufficient Cash USD Balance to purchase coins!');
         return;

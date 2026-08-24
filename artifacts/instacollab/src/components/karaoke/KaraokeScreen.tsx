@@ -53,9 +53,7 @@ import {
 } from '../../smule-rooms/components/LiveGiftRechargeModal';
 import { settlePartyGiftSend } from '../../lib/partyGiftPayments';
 import {
-  creditUserCoins,
   getLiveCoinsBalance,
-  spendWalletCoins,
 } from '../../lib/walletKstarSync';
 import type { PartyGiftDefinition } from '../../smule-rooms/utils/roomGifts';
 import { useCloudPartyRooms } from '../../hooks/useCloudPartyRooms';
@@ -110,6 +108,7 @@ import {
 } from '../../lib/karaokeSearch';
 import { AppNativeVideo } from '../common/AppNativeVideo';
 import { dispatchTapRefresh, TAP_REFRESH_EVENT } from '../../lib/appRefresh';
+import { isDemoContentEnabled } from '../../lib/demoContentPolicy';
 import { navTapButtonClass, navTapIconButtonClass, navTapRowButtonClass } from '../../lib/navTap';
 import {
   activeLyricIndexForTime,
@@ -242,14 +241,14 @@ function coverRecordingToFeedPost(meta: KaraokeCoverRecordingMeta): KaraokeDuetP
 }
 
 const CATEGORIES = ['Pop', 'R&B', 'Rock', 'K-Pop', 'Hip Hop', 'Country', 'Anime', 'Musicals'];
-const TRENDING_SONGS = [
+const DEMO_TRENDING_SONGS = [
   { id: '1', title: 'Blinding Lights', artist: 'The Weeknd', plays: '4.2M', type: 'solo' },
   { id: '2', title: 'Someone Like You', artist: 'Adele', plays: '3.1M', type: 'duet' },
   { id: '3', title: 'Watermelon Sugar', artist: 'Harry Styles', plays: '2.8M', type: 'solo' },
   { id: '4', title: 'Uptown Funk', artist: 'Bruno Mars', plays: '2.5M', type: 'group' },
   { id: '5', title: 'Bohemian Rhapsody', artist: 'Queen', plays: '2.1M', type: 'solo' },
 ];
-const LIBRARY_SONGS = [
+const DEMO_LIBRARY_SONGS = [
   { id: 'l1', title: 'Shape of You', artist: 'Ed Sheeran', plays: '1.9M', category: 'Pop', type: 'solo' },
   { id: 'l2', title: 'Stay', artist: 'The Kid LAROI & Justin Bieber', plays: '1.8M', category: 'Pop', type: 'duet' },
   { id: 'l3', title: 'My Heart Will Go On', artist: 'Celine Dion', plays: '1.7M', category: 'Pop', type: 'solo' },
@@ -298,6 +297,12 @@ const LIBRARY_SONGS = [
   { id: 'l39', title: 'Do You Hear the People Sing?', artist: 'Les Misérables Cast', plays: '1.5M', category: 'Musicals' },
   { id: 'epic_underworld', title: 'The Underworld - Epic The Musical', artist: 'Jorge Rivera-herrans', plays: '5.2M', category: 'Musicals', img: 'https://images.unsplash.com/photo-1518709268805-4e9042af9f23?w=600&auto=format&fit=crop&q=60' }
 ];
+
+/** Production ships empty catalog until cloud/uploads fill it. Demo songs only when policy allows. */
+const TRENDING_SONGS = isDemoContentEnabled() ? DEMO_TRENDING_SONGS : [];
+const LIBRARY_SONGS = isDemoContentEnabled() ? DEMO_LIBRARY_SONGS : [];
+const DEMO_LYRICS_ENABLED = isDemoContentEnabled();
+const DEMO_RECORDINGS_ENABLED = isDemoContentEnabled();
 
 const LYRICS_DATABASE: Record<string, string[]> = {
   'epic_underworld': [
@@ -369,7 +374,7 @@ const getLyricsForSong = (song: any) => {
     const uploaded = lyricsLinesFromUpload(song);
     if (uploaded.length > 0) return uploaded;
   }
-  if (LYRICS_DATABASE[song.id]) return LYRICS_DATABASE[song.id];
+  if (DEMO_LYRICS_ENABLED && LYRICS_DATABASE[song.id]) return LYRICS_DATABASE[song.id];
   
   // Dynamic high-fidelity procedural generation based on song metatags
   return [
@@ -498,7 +503,7 @@ function resolveTrackDetailsCreator(options: {
 }
 
 const getDemoRecordingsForSong = (song: any) => {
-  if (!song) return [];
+  if (!DEMO_RECORDINGS_ENABLED || !song) return [];
   if (RECORDINGS_DATABASE[song.id]) return RECORDINGS_DATABASE[song.id];
   return [
     { id: `rec_${song.id}_1`, title: song.title, users: ['duet_master', 'karaoke_pro'], plays: '1.2K', likes: 215, gifts: 18, duration: '3h' },
@@ -507,12 +512,23 @@ const getDemoRecordingsForSong = (song: any) => {
     { id: `rec_${song.id}_4`, title: song.title, users: ['singer_dreamer', 'guitar_hero'], plays: '250', likes: 34, gifts: 1, duration: '1d' }
   ];
 };
-const COMMUNITY_DUETS = [
-  { id: '1', users: ['@sarah_sings', '@johnny_b'], song: 'Shallow (A Star Is Born)', likes: '12K', comments: 452, videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
-  { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likes: '8.5K', comments: 120, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
+const DEMO_COMMUNITY_DUETS: KaraokeDuetPost[] = [
+  { id: '1', users: ['@sarah_sings', '@johnny_b'], song: 'Shallow (A Star Is Born)', likesCount: 12000, commentCount: 452, isLiked: false, videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
+  { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likesCount: 8500, commentCount: 120, isLiked: false, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
 ];
+const COMMUNITY_DUETS = isDemoContentEnabled() ? DEMO_COMMUNITY_DUETS : [];
 type ReplyObj = { id: string, user: string, avatar: string, text: string, time: string, likes: number, isLiked: boolean, replies?: ReplyObj[] };
 type CommentObj = { id: string, user: string, avatar: string, text: string, time: string, likes: number, isLiked: boolean, replies: ReplyObj[] };
+
+const DEMO_COMMENTS_BY_POST: Record<string, CommentObj[]> = {
+  '1': [
+    { id: '1', user: 'VocalSensation', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=vocal', text: 'Oh my god, @sarah_sings your high notes are incredible! 🎤✨', time: '1h ago', likes: 23, isLiked: false, replies: [] },
+    { id: '2', user: 'GuitarHero', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guitar', text: '@johnny_b with the perfect rhythm backing. Amazing job guys!', time: '20m ago', likes: 12, isLiked: false, replies: [] },
+  ],
+  '2': [
+    { id: '1', user: 'MusicLover', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=music', text: 'This cover of Perfect is absolutely perfect! Love this collaboration! ❤️', time: '2h ago', likes: 5, isLiked: false, replies: [] }
+  ]
+};
 
 function ReplyItem({ reply, postId, onReply, onLike, replyingToCommentId, setReplyingToCommentId, replyText, setReplyText, handleReplyToComment }: { reply: ReplyObj, postId: string, onReply: (id: string) => void, onLike: (postId: string, replyId: string) => void, replyingToCommentId: string | null, setReplyingToCommentId: React.Dispatch<React.SetStateAction<string | null>>, replyText: string, setReplyText: React.Dispatch<React.SetStateAction<string>>, handleReplyToComment: (postId: string, commentId: string, replyText: string) => void }) {
   return (
@@ -571,7 +587,9 @@ export function KaraokeScreen() {
   useGiftRechargeReturnSync(appUser.id);
   useLiveCloudSurface('karaoke', {
     onSync: () => {
-      void syncLiveSessionData(appUser.id);
+      if (appUser.id && appUser.id !== 'unknown') {
+        void syncLiveSessionData(appUser.id);
+      }
     },
     poll: false,
   });
@@ -582,7 +600,7 @@ export function KaraokeScreen() {
   
   // Real-time reactive states for tracking user coins and membership tiers
   const liveCoinsBalance = useLiveCoinsBalance(appUser.id);
-  const [userCoins, setUserCoins] = useState(1250);
+  const [userCoins, setUserCoins] = useState(0);
   const [userVip, setUserVip] = useState(false);
 
   useEffect(() => {
@@ -590,10 +608,7 @@ export function KaraokeScreen() {
   }, [liveCoinsBalance]);
 
   // Dynamic state for duets that makes interactions (likes, comments, gifts) reactive and persistent
-  const [duets, setDuets] = useState<KaraokeDuetPost[]>(() => [
-    { id: '1', users: ['@sarah_sings', '@johnny_b'], song: 'Shallow (A Star Is Born)', likesCount: 12000, commentCount: 452, isLiked: false, videoUrl: 'https://www.w3schools.com/html/mov_bbb.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
-    { id: '2', users: ['@vocal_king', '@melody_queen'], song: 'Perfect', likesCount: 8500, commentCount: 120, isLiked: false, videoUrl: 'https://www.w3schools.com/html/movie.mp4', img: 'https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4?w=800&auto=format&fit=crop&q=60' },
-  ]);
+  const [duets, setDuets] = useState<KaraokeDuetPost[]>(() => [...COMMUNITY_DUETS]);
 
   const [librarySongs, setLibrarySongs] = useState<KaraokeLibrarySong[]>(LIBRARY_SONGS);
   const [trendingSongs, setTrendingSongs] = useState(TRENDING_SONGS);
@@ -717,15 +732,9 @@ export function KaraokeScreen() {
   const [isPlaylistModalOpen, setIsPlaylistModalOpen] = useState(false);
   const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
   const [newPlaylistName, setNewPlaylistName] = useState('');
-  const [commentsByPost, setCommentsByPost] = useState<Record<string, CommentObj[]>>({
-    '1': [
-      { id: '1', user: 'VocalSensation', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=vocal', text: 'Oh my god, @sarah_sings your high notes are incredible! 🎤✨', time: '1h ago', likes: 23, isLiked: false, replies: [] },
-      { id: '2', user: 'GuitarHero', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=guitar', text: '@johnny_b with the perfect rhythm backing. Amazing job guys!', time: '20m ago', likes: 12, isLiked: false, replies: [] },
-    ],
-    '2': [
-      { id: '1', user: 'MusicLover', avatar: 'https://api.dicebear.com/7.x/avataaars/svg?seed=music', text: 'This cover of Perfect is absolutely perfect! Love this collaboration! ❤️', time: '2h ago', likes: 5, isLiked: false, replies: [] }
-    ]
-  });
+  const [commentsByPost, setCommentsByPost] = useState<Record<string, CommentObj[]>>(() =>
+    isDemoContentEnabled() ? { ...DEMO_COMMENTS_BY_POST } : {},
+  );
 
   // Gift tracking
   const [giftingDuetId, setGiftingDuetId] = useState<string | null>(null);
@@ -1615,52 +1624,40 @@ export function KaraokeScreen() {
         );
         return;
       }
-      if (!spendWalletCoins(appUser.id, total)) {
-        window.dispatchEvent(
-          new CustomEvent('app-toast', {
-            detail: 'Insufficient Coins! Please recharge. 🪙',
-          }),
-        );
-        return;
-      }
-      setUserCoins(getLiveCoinsBalance(appUser.id));
-      setShowGiftModal(false);
-      if (giftingDuetId) {
-        setDuetGifts((prev) => ({
-          ...prev,
-          [giftingDuetId]: (prev[giftingDuetId] || 0) + qty,
-        }));
-        window.dispatchEvent(
-          new CustomEvent('app-toast', {
-            detail: `Sent ${gift.icon} ${gift.name}${qty > 1 ? ` x${qty}` : ''} to performing duet! ✨`,
-          }),
-        );
-      } else {
-        window.dispatchEvent(
-          new CustomEvent('app-toast', {
-            detail: `Sent ${gift.icon} ${gift.name}${qty > 1 ? ` x${qty}` : ''}! ✨`,
-          }),
-        );
-      }
       void settlePartyGiftSend(appUser.id, null, total, {
         giftId: gift.id ?? gift.name,
         giftName: gift.name,
         roomId: 'karaoke',
         quantity: qty,
         combo: 1,
-        alreadyDebitedLocally: true,
       }).then((settled) => {
-        if (settled.ok) {
-          setUserCoins(getLiveCoinsBalance(appUser.id));
+        if (!settled.ok) {
+          window.dispatchEvent(
+            new CustomEvent('app-toast', {
+              detail: settled.reason ?? 'Gift failed',
+            }),
+          );
           return;
         }
-        creditUserCoins(appUser.id, total);
         setUserCoins(getLiveCoinsBalance(appUser.id));
-        window.dispatchEvent(
-          new CustomEvent('app-toast', {
-            detail: settled.reason ?? 'Gift failed — coins restored',
-          }),
-        );
+        setShowGiftModal(false);
+        if (giftingDuetId) {
+          setDuetGifts((prev) => ({
+            ...prev,
+            [giftingDuetId]: (prev[giftingDuetId] || 0) + qty,
+          }));
+          window.dispatchEvent(
+            new CustomEvent('app-toast', {
+              detail: `Sent ${gift.icon} ${gift.name}${qty > 1 ? ` x${qty}` : ''} to performing duet! ✨`,
+            }),
+          );
+        } else {
+          window.dispatchEvent(
+            new CustomEvent('app-toast', {
+              detail: `Sent ${gift.icon} ${gift.name}${qty > 1 ? ` x${qty}` : ''}! ✨`,
+            }),
+          );
+        }
       });
     },
     [appUser.id, giftingDuetId],
@@ -1745,16 +1742,9 @@ export function KaraokeScreen() {
   };
 
   const toggleFollowUser = (handle: string) => {
-    const cleanWithAt = handle.startsWith('@') ? handle : '@' + handle;
     const userId = resolveUserIdFromKaraokeHandle(handle, db.users);
     if (userId) {
       db.toggleFollow(userId);
-      const nowFollowing = db.isFollowingUser(userId);
-      window.dispatchEvent(
-        new CustomEvent('app-toast', {
-          detail: nowFollowing ? `Following ${cleanWithAt}! 💖` : `Unfollowed ${cleanWithAt} 💔`,
-        }),
-      );
       return;
     }
 
@@ -1763,10 +1753,8 @@ export function KaraokeScreen() {
 
     if (isFollowing) {
       setFollowedCreators((prev) => prev.filter((c) => c !== cleanNoAt && c !== handle));
-      window.dispatchEvent(new CustomEvent('app-toast', { detail: `Unfollowed ${cleanWithAt} 💔` }));
     } else {
       setFollowedCreators((prev) => [...prev, cleanNoAt]);
-      window.dispatchEvent(new CustomEvent('app-toast', { detail: `Following ${cleanWithAt}! 💖` }));
     }
   };
 
@@ -2767,6 +2755,7 @@ export function KaraokeScreen() {
   const [viewingPlaylist, setViewingPlaylist] = useState<any | null>(null);
 
   const getDesktopSidebarLeaders = () => {
+    if (!isDemoContentEnabled()) return [];
     return [...Array(10)].map((_, idx) => ({
       rank: idx + 1,
       seed: desktopLeaderboardTab === 'weekly' ? `week${idx}` : `alltime${idx}`,
@@ -3142,6 +3131,13 @@ export function KaraokeScreen() {
                   <button onClick={() => { setPreviousTab(activeTab); setActiveTab('top100'); }} className="text-sm font-medium text-primary hover:underline">Top 100</button>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                  {trendingSongs.length === 0 ? (
+                    <div className="md:col-span-2 rounded-2xl border border-dashed border-border bg-card/40 px-4 py-10 text-center">
+                      <Music className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm font-bold">No trending tracks yet</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Upload a song or sing a cover to grow the catalog.</p>
+                    </div>
+                  ) : null}
                   {trendingSongs.map((song, i) => (
                     <div key={song.id} className="flex items-start gap-3 p-3 bg-card border border-border/50 hover:border-primary/50 hover:shadow-md rounded-2xl transition-all group">
                       <div className="relative w-14 h-14 rounded-xl overflow-hidden shrink-0 group-hover:scale-105 transition-transform">
@@ -3209,6 +3205,13 @@ export function KaraokeScreen() {
 
           {activeTab === 'feed' && (
             <div className="space-y-4 bg-secondary/10 p-4 animate-in fade-in slide-in-from-bottom-4 duration-500">
+              {duets.length === 0 ? (
+                <div className="rounded-3xl border border-dashed border-border bg-card px-6 py-14 text-center">
+                  <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+                  <p className="font-bold">No community covers yet</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Duet and group performances will show up here.</p>
+                </div>
+              ) : null}
               {duets.map(post => {
                  const feedUserA = post.users?.[0] ?? '@you';
                  const feedUserB = post.users?.[1] ?? feedUserA;
@@ -3628,6 +3631,13 @@ export function KaraokeScreen() {
                 </div>
                 
                 <div className="space-y-3">
+                  {[...TRENDING_SONGS, ...LIBRARY_SONGS].length === 0 ? (
+                    <div className="rounded-2xl border border-dashed border-border bg-card/40 px-4 py-12 text-center">
+                      <TrendingUp className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                      <p className="text-sm font-bold">Catalog is empty</p>
+                      <p className="mt-1 text-xs text-muted-foreground">Upload tracks to build the Top 100 list.</p>
+                    </div>
+                  ) : null}
                   {[...TRENDING_SONGS, ...LIBRARY_SONGS].sort((a,b) => parseInt(b.plays || "0") - parseInt(a.plays || "0")).map((song, i) => (
                     <div key={song.id + "_" + i} className="flex items-center p-3 bg-card border border-border/50 hover:border-primary/50 hover:shadow-md rounded-2xl transition-all group">
                       <div className="w-8 font-black text-center text-muted-foreground group-hover:text-foreground">{i + 1}</div>
@@ -3932,14 +3942,6 @@ export function KaraokeScreen() {
              const handleFollowToggle = () => {
                if (!karaokeViewedProfileUserId || karaokeViewedProfileUserId === appUser.id) return;
                db.toggleFollow(karaokeViewedProfileUserId);
-               const nowFollowing = db.isFollowingUser(karaokeViewedProfileUserId);
-               window.dispatchEvent(
-                 new CustomEvent('app-toast', {
-                   detail: nowFollowing
-                     ? `Following ${selectedUserProfile?.name ?? 'user'}!`
-                     : `Unfollowed ${selectedUserProfile?.name ?? 'user'}`,
-                 }),
-               );
              };
 
              const openKaraokeFollowList = (mode: 'followers' | 'following') => {
@@ -4633,6 +4635,13 @@ export function KaraokeScreen() {
          </div>
 
          <div className="flex-1 overflow-y-auto p-4 space-y-2">
+            {desktopSidebarLeaders.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-secondary/30 px-4 py-10 text-center">
+                <Trophy className="mx-auto mb-2 h-8 w-8 text-muted-foreground" />
+                <p className="text-sm font-bold">No rankings yet</p>
+                <p className="mt-1 text-xs text-muted-foreground">Sing and gift to climb the leaderboard.</p>
+              </div>
+            ) : null}
             {desktopSidebarLeaders.map((leader) => (
               <div 
                 key={leader.seed} 

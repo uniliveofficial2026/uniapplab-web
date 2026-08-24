@@ -108,7 +108,8 @@ export function DatingScreen() {
   };
 
   return (
-    <div className="w-full max-w-5xl px-4 md:px-6 py-4 md:py-6">
+    <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
+    <div className="app-screen-scroll w-full max-w-5xl app-content-gutter md:px-6 py-4 md:py-6">
       <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
         <h1 className="text-2xl font-black tracking-tight">Insta Dating</h1>
         <div className="flex items-center gap-2">
@@ -483,6 +484,7 @@ export function DatingScreen() {
           </div>
         </div>
       </div>
+    </div>
     </div>
   );
 }

@@ -2,17 +2,35 @@
   "name": "@unilives/ui",
   "version": "0.1.0",
   "private": true,
-  "description": "Shared UniLive UI primitives for builder and studio surfaces",
+  "description": "UniLive UI Kit — reusable provider-neutral components and reference theme",
   "type": "module",
   "license": "UNLICENSED",
   "sideEffects": false,
-  "files": ["index.mjs", "README.md"],
+  "files": [
+    "index.mjs",
+    "theme.mjs",
+    "components.mjs",
+    "componentTypes.mjs",
+    "registry.mjs",
+    "index.d.ts",
+    "README.md"
+  ],
   "exports": {
     ".": {
+      "types": "./index.d.ts",
       "default": "./index.mjs"
+    },
+    "./theme": {
+      "default": "./theme.mjs"
     }
   },
+  "peerDependencies": {
+    "react": ">=18"
+  },
+  "dependencies": {
+    "react": "catalog:"
+  },
   "scripts": {
-    "test": "node -e \"console.log('@unilives/ui: placeholder')\""
+    "test": "node --test test/*.test.mjs"
   }
 }

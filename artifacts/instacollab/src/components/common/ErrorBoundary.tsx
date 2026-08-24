@@ -89,18 +89,18 @@ export class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoun
       // Still recovering — keep a painted shell, not a white void.
       if (this.state.recovering) {
         return (
-          <div className="flex min-h-[40vh] w-full flex-1 items-center justify-center bg-background">
+          <div className="app-screen app-screen--immersive flex min-h-[40vh] w-full flex-1 items-center justify-center bg-background pt-safe pb-safe">
             <div className="h-9 w-9 animate-pulse rounded-full bg-muted/80" />
           </div>
         );
       }
       return (
-        <div className="flex min-h-[40vh] flex-col items-center justify-center gap-3 bg-background p-6 text-center text-foreground">
+        <div className="app-screen app-screen--immersive flex min-h-[40vh] flex-col items-center justify-center gap-3 bg-background p-6 pt-safe pb-safe text-center text-foreground">
           <p className="text-lg font-bold">Something went wrong</p>
           {this.props.screen ? (
             <p className="text-xs text-muted-foreground">Screen: {this.props.screen}</p>
           ) : null}
-          <p className="max-w-md text-sm text-muted-foreground">{this.state.message}</p>
+          <p className="max-w-md text-sm text-muted-foreground">{this.state.message || 'Unknown error'}</p>
           <button
             type="button"
             className="rounded-xl bg-primary px-4 py-2 text-sm font-bold text-primary-foreground"

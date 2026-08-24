@@ -30,7 +30,7 @@ import { useAppPortalRoot } from '../../lib/appPortalRoot';
 import {
   applyYoutubePlayerVolume,
   stabilizeYoutubePlayerVolume,
-  YOUTUBE_PLAYER_VARS,
+  youtubeIframePlayerVars,
 } from '../../lib/youtubePlayerVolume';
 import {
   buildYoutubeWatchUrl,
@@ -1148,6 +1148,7 @@ function VerticalLiveSlide({
     getPlaybackQuality?: () => string;
     setPlaybackQuality?: (quality: string) => void;
     playVideo?: () => void;
+    mute?: () => void;
     unMute?: () => void;
   } | null>(null);
   const pageTokenRef = useRef<string | null>(null);
@@ -1284,7 +1285,7 @@ function VerticalLiveSlide({
     >
       <div className="pointer-events-none absolute inset-0 overflow-hidden bg-black">
         {active ? (
-          <div className="absolute left-1/2 top-1/2 h-[100dvh] w-[177.78dvh] max-w-none -translate-x-1/2 -translate-y-1/2 md:h-[56.25dvw] md:w-[100dvw]">
+          <div className="pointer-events-auto absolute left-1/2 top-1/2 h-[100dvh] w-[177.78dvh] max-w-none -translate-x-1/2 -translate-y-1/2 md:h-[56.25dvw] md:w-[100dvw]">
             <YouTube
               key={`yt-vertical-live-${video.videoId}`}
               videoId={video.videoId}
@@ -1293,9 +1294,9 @@ function VerticalLiveSlide({
                 width: '100%',
                 height: '100%',
                 host: 'https://www.youtube.com',
-                playerVars: {
-                  ...YOUTUBE_PLAYER_VARS,
+                playerVars: youtubeIframePlayerVars({
                   autoplay: 1,
+                  mute: 1,
                   controls: 0,
                   fs: 0,
                   modestbranding: 1,
@@ -1303,18 +1304,17 @@ function VerticalLiveSlide({
                   playsinline: 1,
                   iv_load_policy: 3,
                   disablekb: 1,
-                  origin: typeof window !== 'undefined' ? window.location.origin : undefined,
-                },
+                }),
               }}
               onReady={(event: YouTubeEvent) => {
                 const target = event.target as typeof playerRef.current;
                 playerRef.current = target;
                 applyYoutubePlayerVolume(event.target);
                 try {
-                  event.target.unMute?.();
+                  event.target.mute?.();
                   event.target.playVideo?.();
                 } catch {
-                  /* autoplay */
+                  /* muted autoplay */
                 }
                 try {
                   const levels = target?.getAvailableQualityLevels?.() ?? [];
@@ -1335,6 +1335,14 @@ function VerticalLiveSlide({
                   if (q) setCurrentQuality(q);
                 } catch {
                   /* ignore */
+                }
+              }}
+              onError={() => {
+                try {
+                  playerRef.current?.mute?.();
+                  playerRef.current?.playVideo?.();
+                } catch {
+                  /* keep overlay */
                 }
               }}
               title={details?.title || video.title}

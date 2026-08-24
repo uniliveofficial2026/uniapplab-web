@@ -13,12 +13,13 @@ import { WithdrawTab } from './WithdrawTab';
 import { CryptoTab } from './CryptoTab';
 import { GameCoinTab } from './GameCoinTab';
 import { ShopTab } from './ShopTab';
+import { CommerceOrdersPage } from '../../smule-rooms/components/CommerceOrdersPage';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { syncLiveSessionData } from '../../lib/liveSessionSync';
 import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
 
-type WalletTab = 'overview' | 'buy_exchange' | 'withdraw' | 'crypto' | 'game' | 'shop';
+type WalletTab = 'overview' | 'buy_exchange' | 'withdraw' | 'crypto' | 'game' | 'shop' | 'orders' | 'my-orders';
 
 export function WalletScreen() {
   const db = useDB();
@@ -26,7 +27,9 @@ export function WalletScreen() {
   const [activeTab, setActiveTab] = useState<WalletTab>('overview');
 
   useLiveCloudSurface('wallet', () => {
-    void syncLiveSessionData(appUser.id);
+    if (appUser?.id && appUser.id !== 'unknown') {
+      void syncLiveSessionData(appUser.id);
+    }
   });
 
   // Unified global simulated crypto price state passed down to ensure coordination
@@ -48,7 +51,8 @@ export function WalletScreen() {
     }`;
 
   return (
-    <div className="p-4 sm:p-8 max-w-7xl mx-auto space-y-6 flex flex-col overflow-x-hidden w-full min-w-0">
+    <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
+    <div className="app-screen-scroll p-4 sm:p-8 max-w-7xl mx-auto space-y-6 flex flex-col overflow-x-hidden w-full min-w-0 app-content-gutter">
       
       {/* 1. Universal Top Header bar */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
@@ -106,8 +110,15 @@ export function WalletScreen() {
         {activeTab === 'shop' && (
           <ShopTab />
         )}
+        {activeTab === 'orders' && (
+          <CommerceOrdersPage role="host" />
+        )}
+        {activeTab === 'my-orders' && (
+          <CommerceOrdersPage role="buyer" />
+        )}
       </div>
 
+    </div>
     </div>
   );
 }

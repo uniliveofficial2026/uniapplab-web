@@ -2,7 +2,7 @@
  * Full chat-call provider — LiveKit-capable hook + call overlays.
  * Loaded async via ChatCallProviderHost so App/Feed boot never parses this chunk.
  */
-import React, { useEffect, useMemo, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { AnimatePresence } from 'motion/react';
 import { useChatCall } from '../lib/chat/useChatCall';
 import type { UseChatCallValue } from '../lib/chat/chatCallTypes';
@@ -10,12 +10,32 @@ import { callKindLabel, resolveCallPeer } from '../lib/chat/chatCallKit';
 import { db } from '../lib/db/localDb';
 import { findUserById, resolveUser } from '../lib/safe';
 import { MessagesActiveCallOverlay } from '../components/messages/MessagesActiveCallOverlay';
+import { openCallMessagesSurface } from '../lib/chat/callUiNavigation';
 import { IncomingCallDynamicBanner } from '../components/messages/IncomingCallDynamicBanner';
+import { CallDynamicIsland, resolveCreatorMetric } from '../components/messages/CallApprovedChrome';
 import { ChatCallPipWindow } from '../components/messages/ChatCallPipWindow';
 import { ChatCallMediaHost } from '../components/messages/ChatCallMediaHost';
 import { ChatCallVideoEffectsHost } from './ChatCallVideoEffectsHost';
 import { ChatCallContext } from './ChatCallProviderHost';
 import type { ChatGroup, User } from '../types';
+import { handleCallAddFriendEvent } from '../lib/chat/callAddFriend';
+import '../components/messages/call-approved-ui.css';
+
+function useDeviceUnlocked(): boolean {
+  const [unlocked, setUnlocked] = useState(
+    () => typeof document !== 'undefined' && document.visibilityState === 'visible' && !document.hidden,
+  );
+
+  useEffect(() => {
+    const sync = () => {
+      setUnlocked(document.visibilityState === 'visible' && !document.hidden);
+    };
+    document.addEventListener('visibilitychange', sync);
+    return () => document.removeEventListener('visibilitychange', sync);
+  }, []);
+
+  return unlocked;
+}
 
 type CallPresentationProps = {
   chatCall: UseChatCallValue;
@@ -63,6 +83,10 @@ function ChatCallPresentation({
     remoteVideos: chatCall.remoteVideos,
     remoteParticipants: chatCall.remoteParticipants,
     currentUserId,
+    activeChatId: chatCall.activeChatId,
+    connectedAt: chatCall.connectedAt,
+    isSpeakerOn: chatCall.isSpeakerOn,
+    onToggleSpeaker: () => void chatCall.toggleSpeaker(),
     onRetryConnect: retryConnect,
     onEndCall: () => void chatCall.endCall(),
     ...callControlProps,
@@ -100,6 +124,7 @@ function ChatCallPresentation({
       <ChatCallVideoEffectsHost
         active
         presentation={chatCall.presentation}
+        showCameraBackdrop={chatCall.phase !== 'outgoing'}
         cameraFacingMode={chatCall.cameraFacingMode}
         mirrorLocalPreview={chatCall.mirrorLocalPreview}
         localVideoStream={chatCall.localVideoStream}
@@ -142,6 +167,14 @@ export function ChatCallProviderImpl({
 }) {
   const chatCall = useChatCall(currentUserId);
   const flushedPending = useRef(false);
+  const deviceUnlocked = useDeviceUnlocked();
+  const [ringExpanded, setRingExpanded] = useState(false);
+
+  useEffect(() => {
+    if (chatCall.phase === 'idle' || chatCall.phase === 'ended' || chatCall.phase === 'connected') {
+      setRingExpanded(false);
+    }
+  }, [chatCall.phase]);
 
   useEffect(() => {
     if (flushedPending.current || !pendingCallRef?.current) return;
@@ -178,6 +211,7 @@ export function ChatCallProviderImpl({
         dmPeer?.displayName ||
         'Unknown caller',
       avatarUrl: caller?.avatarUrl || dmPeer?.avatarUrl,
+      metric: resolveCreatorMetric(caller || dmPeer),
     };
   }, [incoming, callPeer]);
 
@@ -192,13 +226,44 @@ export function ChatCallProviderImpl({
 
   const activeCallSession =
     chatCall.phase === 'outgoing' || chatCall.phase === 'connected';
+  const isRinging = chatCall.phase === 'incoming' || chatCall.phase === 'outgoing';
+  const showRingFullscreen = isRinging && (!deviceUnlocked || ringExpanded);
+  const showRingIsland = isRinging && deviceUnlocked && !ringExpanded;
+
+  const outgoingDisplay = useMemo(() => {
+    if (chatCall.phase !== 'outgoing' || !callPeer) return null;
+    const name =
+      callPeer.displayName ||
+      ('isGroup' in callPeer && callPeer.isGroup ? 'Group call' : 'Contact');
+    return {
+      name,
+      avatarUrl: callPeer.avatarUrl,
+      subtitle:
+        chatCall.connectPhase === 'connecting' || chatCall.connectPhase === 'slow'
+          ? 'Connecting…'
+          : 'Calling…',
+    };
+  }, [callPeer, chatCall.connectPhase, chatCall.phase]);
+
   const showFullOverlay =
-    activeCallSession && chatCall.presentation === 'fullscreen' && Boolean(callPeer);
+    activeCallSession &&
+    chatCall.presentation === 'fullscreen' &&
+    Boolean(callPeer) &&
+    (chatCall.phase === 'connected' || showRingFullscreen);
   const showPip =
     activeCallSession && chatCall.presentation === 'pip' && Boolean(callPeer);
-  const showIncomingBanner = chatCall.phase === 'incoming' && incoming && incomingDisplay;
+  const showIncomingBanner =
+    chatCall.phase === 'incoming' && incoming && incomingDisplay && showRingFullscreen;
   const showCallPresentation =
     activeCallSession && Boolean(callPeer) && (showFullOverlay || showPip);
+
+  useEffect(() => {
+    const onAddFriend = (event: Event) => {
+      handleCallAddFriendEvent((event as CustomEvent<{ userId?: string }>).detail);
+    };
+    window.addEventListener('unilive-call-add-friend', onAddFriend);
+    return () => window.removeEventListener('unilive-call-add-friend', onAddFriend);
+  }, []);
 
   useEffect(() => {
     const defer = () => {
@@ -228,15 +293,67 @@ export function ChatCallProviderImpl({
         />
       ) : null}
       <AnimatePresence>
+        {showRingIsland && chatCall.phase === 'incoming' && incoming && incomingDisplay ? (
+          <div key={`ring-island-in-${incoming.chatId}`} className="call-approved-island-host">
+            <CallDynamicIsland
+              callerName={incomingDisplay.name}
+              callerAvatarUrl={incomingDisplay.avatarUrl}
+              subtitle={incomingSubtitle}
+              incoming
+              onAccept={() => void chatCall.acceptCall()}
+              onDecline={() => void chatCall.declineCall()}
+              onExpand={() => setRingExpanded(true)}
+            />
+          </div>
+        ) : null}
+        {showRingIsland && chatCall.phase === 'outgoing' && outgoingDisplay ? (
+          <div key={`ring-island-out-${callChatId}`} className="call-approved-island-host">
+            <CallDynamicIsland
+              callerName={outgoingDisplay.name}
+              callerAvatarUrl={outgoingDisplay.avatarUrl}
+              subtitle={outgoingDisplay.subtitle}
+              onDecline={() => void chatCall.endCall()}
+              onExpand={() => setRingExpanded(true)}
+            />
+          </div>
+        ) : null}
+      </AnimatePresence>
+      <AnimatePresence>
         {showIncomingBanner ? (
           <IncomingCallDynamicBanner
             key={`incoming-${incoming.chatId}`}
             callKind={chatCall.callKind}
             callerName={incomingDisplay.name}
             callerAvatarUrl={incomingDisplay.avatarUrl}
+            callerMetric={incomingDisplay.metric}
             subtitle={incomingSubtitle}
             onAccept={() => void chatCall.acceptCall()}
             onDecline={() => void chatCall.declineCall()}
+            onMessage={() => {
+              // Message from the incoming-call screen opens the canonical chat even
+              // if MessagesScreen is currently unmounted. The pending bridge is
+              // consumed when Messages mounts.
+              openCallMessagesSurface({
+                action: 'chat',
+                chatId: incoming.chatId,
+                peerId: incoming.fromUserId,
+                callKind: incoming.callKind,
+              });
+              void chatCall.declineCall();
+            }}
+            onRemind={() => {
+              window.dispatchEvent(
+                new CustomEvent('unilive-call-reminder-request', {
+                  detail: {
+                    chatId: incoming.chatId,
+                    fromUserId: incoming.fromUserId,
+                    callKind: incoming.callKind,
+                    remindAt: Date.now() + 15 * 60 * 1000,
+                  },
+                }),
+              );
+              void chatCall.declineCall();
+            }}
           />
         ) : null}
       </AnimatePresence>

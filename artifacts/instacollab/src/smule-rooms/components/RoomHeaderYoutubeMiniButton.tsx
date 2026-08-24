@@ -1,4 +1,5 @@
 import { Youtube } from 'lucide-react';
+import { useEffect } from 'react';
 import {
   getYoutubeMiniPlayerState,
   openYoutubeMiniPlayerPicker,
@@ -6,21 +7,51 @@ import {
 } from '../../lib/youtubeMiniPlayer';
 import { useYoutubeMiniPlayer } from '../../hooks/useYoutubeMiniPlayer';
 
-export function RoomHeaderYoutubeMiniButton({ className = '' }: { className?: string }) {
+export function RoomHeaderYoutubeMiniButton({
+  className = '',
+  label,
+}: {
+  className?: string;
+  label?: string;
+}) {
   const state = useYoutubeMiniPlayer();
   const active = state.open && Boolean(state.videoId);
+
+  useEffect(() => {
+    void import('../../components/youtube/YoutubeMiniPlayerHost');
+  }, []);
+
+  const handleClick = () => {
+    const current = getYoutubeMiniPlayerState();
+    if (!current.videoId) {
+      openYoutubeMiniPlayerPicker();
+      return;
+    }
+    toggleYoutubeMiniPlayerMinimized();
+  };
+
+  if (label) {
+    return (
+      <button
+        type="button"
+        onClick={handleClick}
+        aria-label={active ? 'YouTube mini player' : 'Open YouTube mini player'}
+        title={label}
+        className={className}
+        data-active={active ? 'true' : undefined}
+      >
+        <span>
+          <Youtube size={16} aria-hidden />
+        </span>
+        <b>{label}</b>
+      </button>
+    );
+  }
 
   return (
     <button
       type="button"
-      onClick={() => {
-        const current = getYoutubeMiniPlayerState();
-        if (!current.videoId) {
-          openYoutubeMiniPlayerPicker();
-          return;
-        }
-        toggleYoutubeMiniPlayerMinimized();
-      }}
+      onClick={handleClick}
       aria-label={active ? 'YouTube mini player' : 'Open YouTube mini player'}
       title={active ? 'YouTube mini player' : 'YouTube mini player'}
       className={`flex h-8 w-8 sm:h-9 sm:w-9 items-center justify-center rounded-full border transition active:scale-90 ${

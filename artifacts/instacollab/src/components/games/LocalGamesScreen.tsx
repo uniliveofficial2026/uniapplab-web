@@ -14,6 +14,7 @@ import {
 } from '../../lib/localGames/vault';
 import { formatBytes, formatPlaytime } from '../../lib/localGames/format';
 import { ensureLocalGameServiceWorker } from '../../lib/localGames/player';
+import { isDemoContentEnabled } from '../../lib/demoContentPolicy';
 import { LocalGamePlayer } from './LocalGamePlayer';
 
 const STORAGE_QUOTA_BYTES = 500 * 1024 * 1024 * 1024;
@@ -74,9 +75,11 @@ export function LocalGamesScreen() {
     void refreshStorage();
   }, [refreshStorage]);
 
-  // Seed bundled catalog games (exact ZIP → same import path as manual upload).
+  // Seed bundled catalog games only when demo content is enabled.
+  // Production keeps an empty library until the user imports / plays via Greedy tab.
   const catalogSeedDone = useRef(false);
   useEffect(() => {
+    if (!isDemoContentEnabled()) return;
     if (catalogSeedDone.current) return;
     catalogSeedDone.current = true;
 
@@ -281,10 +284,11 @@ export function LocalGamesScreen() {
   const catalogGreedy = LOCAL_GAME_CATALOG[0]!;
 
   return (
+    <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
     <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-6 md:p-10 max-w-7xl mx-auto space-y-12"
+      className="app-screen-scroll p-6 md:p-10 max-w-7xl mx-auto space-y-12 app-content-gutter"
     >
       <input
         type="file"
@@ -337,51 +341,47 @@ export function LocalGamesScreen() {
           If Play Now fails after an older import, remove the game and re-import the ZIP once.
         </p>
 
-        {/* Featured: Greedy Casino Slot catalog card */}
+        {/* Featured: Greedy Casino Slot — only when present in library (no fake promo card) */}
+        {featuredGame ? (
         <motion.div whileHover={{ scale: 1.01 }}>
           <GameArtwork
             game={{
-              name: featuredGame?.name ?? catalogGreedy.cardName,
-              coverUrl: featuredGame?.coverUrl,
-              image: featuredGame?.image ?? catalogGreedy.image,
+              name: featuredGame.name,
+              coverUrl: featuredGame.coverUrl,
+              image: featuredGame.image,
             }}
             className="h-64 rounded-3xl text-white"
           >
             <div className="absolute inset-0 bg-gradient-to-t from-black/70 via-black/20 to-transparent" />
             <div className="relative h-full p-8 flex flex-col justify-end">
               <div className="absolute top-6 left-8 bg-black/30 backdrop-blur-md px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider">
-                {seedingCatalog
-                  ? 'Adding…'
-                  : featuredGame?.lastPlayedAt
-                    ? 'Recently Played'
-                    : featuredGame
-                      ? 'Ready to Play'
-                      : 'Featured'}
+                {featuredGame.lastPlayedAt ? 'Recently Played' : 'Ready to Play'}
               </div>
-              <h2 className="text-3xl font-black">
-                {featuredGame?.name ?? catalogGreedy.cardName}
-              </h2>
+              <h2 className="text-3xl font-black">{featuredGame.name}</h2>
               <p className="text-white/80 font-semibold text-xs mt-1 max-w-xl">
-                {featuredGame?.fileName === catalogGreedy.zipFileName || !featuredGame
+                {featuredGame.fileName === catalogGreedy.zipFileName
                   ? catalogGreedy.description
                   : `${featuredGame.playKind === 'web' ? 'Web game' : 'Desktop executable'} · ${featuredGame.playtime}`}
               </p>
               <button
                 type="button"
-                disabled={!featuredGame || seedingCatalog}
-                onClick={() => featuredGame && launchGame(featuredGame)}
-                className="mt-4 w-36 bg-white text-black font-black text-xs py-3 rounded-xl hover:bg-white/90 transition-all flex items-center justify-center gap-2 disabled:opacity-60"
+                onClick={() => launchGame(featuredGame)}
+                className="mt-4 w-36 bg-white text-black font-black text-xs py-3 rounded-xl hover:bg-white/90 transition-all flex items-center justify-center gap-2"
               >
-                {seedingCatalog ? (
-                  <Loader2 className="w-3 h-3 animate-spin" />
-                ) : (
-                  <Play className="w-3 h-3 fill-black" />
-                )}
-                {seedingCatalog ? 'Adding…' : featuredGame?.playKind === 'web' || !featuredGame ? 'Play Now' : 'Open'}
+                <Play className="w-3 h-3 fill-black" />
+                {featuredGame.playKind === 'web' ? 'Play Now' : 'Open'}
               </button>
             </div>
           </GameArtwork>
         </motion.div>
+        ) : (
+          <div className="rounded-3xl border border-dashed border-border bg-card/40 px-6 py-12 text-center">
+            <p className="text-sm font-black">No featured game yet</p>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Open Greedy from the tab, or import a game ZIP into your library.
+            </p>
+          </div>
+        )}
       </div>
 
       <div className="space-y-6">
@@ -499,5 +499,6 @@ export function LocalGamesScreen() {
         />
       )}
     </motion.div>
+    </div>
   );
 }

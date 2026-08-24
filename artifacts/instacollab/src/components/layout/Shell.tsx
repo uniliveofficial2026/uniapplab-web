@@ -85,6 +85,7 @@ interface ShellProps {
 
 export function Shell({ currentTab, setCurrentTab, currentUser, children }: ShellProps) {
   const db = useDB();
+  const safeCurrentUser = resolveUser(db.users, currentUser);
   const {
     logout: firebaseLogout,
     switchAccount,
@@ -116,13 +117,15 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   const { showToast } = useToast();
   const { openFullscreen } = useGreedySession();
 
+  useEffect(() => {
+    setLocalUser(resolveUser(db.users, currentUser));
+  }, [currentUser, db.users]);
+
+  const profileAvatarUrl = safeAvatarUrl(localUser.avatarUrl || safeCurrentUser.avatarUrl);
+
   useLayoutEffect(() => {
     signalAppShellReady();
   }, []);
-
-  useEffect(() => {
-    setLocalUser(resolveUser(db.users, currentUser));
-  }, [db.users, currentUser]);
 
   // Real-time: warm the visible tab once on enter — no background poll loop.
   // Polling every screen (plus KeepAlive mounts) was freezing taps app-wide.
@@ -325,13 +328,13 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   const isReelsTab = currentTab === 'reels';
 
   return (
-    <div className="flex h-vv max-h-vv w-full max-w-[100%] bg-background text-foreground overflow-hidden font-sans min-h-0">
+    <div className="flex h-vv max-h-vv w-full max-w-full bg-background text-foreground overflow-hidden font-sans min-h-0">
       <PostAudioPlaybackRoot />
 
       <ShellCreateModal
         open={showCreateMenu}
         onOpenChange={setShowCreateMenu}
-        currentUser={currentUser}
+        currentUser={safeCurrentUser}
         launch={createLaunch}
       />
 
@@ -570,7 +573,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
             className={`${navTapRowButtonClass} p-2 hover:text-foreground transition-colors group ${currentTab === 'profile' ? 'text-foreground font-bold' : 'text-muted-foreground font-medium'}`}
           >
             <div className={`w-9 h-9 rounded-xl overflow-hidden border-2 transition-colors ${currentTab === 'profile' ? 'border-primary' : 'border-transparent'}`}>
-              <img src={currentUser.avatarUrl || undefined} alt="profile" className="w-full h-full object-cover" onError={handleAvatarError} />
+              <img src={profileAvatarUrl || undefined} alt="profile" className="w-full h-full object-cover" onError={handleAvatarError} />
             </div>
             <span className="hidden lg:block text-[15px]">Profile</span>
           </button>
@@ -647,7 +650,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
         
         {/* Mobile Top Header */}
         {!hideShellMobileTopNav && (
-        <div className={`mobile-top-nav md:hidden fixed top-0 left-0 w-full pt-safe z-[100] border-b flex flex-col shrink-0 ${currentTab === 'reels' ? 'bg-black text-white border-zinc-800' : 'bg-background text-foreground border-border shadow-sm'}`}>
+        <div className={`mobile-top-nav md:hidden fixed top-0 left-0 w-full pt-safe pl-safe pr-safe z-[100] border-b flex flex-col shrink-0 ${currentTab === 'reels' ? 'bg-black text-white border-zinc-800' : 'bg-background text-foreground border-border shadow-sm'}`}>
              <div className="h-[60px] flex items-center justify-between px-4 w-full">
                <button
                  type="button"
@@ -690,9 +693,9 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
           </div>
         )}
 
-        <main className={`flex-1 flex flex-col relative w-full min-h-0 ${!isFullHeightTab && hideShellMobileTopNav ? 'pt-[var(--app-safe-top)]' : ''} bg-transparent ${isFullHeightTab ? 'overflow-hidden h-full pb-0' : isReelsTab ? 'overflow-y-auto overflow-x-hidden no-scrollbar pb-0 bg-black' : 'overflow-y-auto overflow-x-hidden no-scrollbar pb-shell-nav md:pb-[max(1.5rem,var(--app-safe-bottom))]'}`}>
+        <main className={`flex-1 flex flex-col relative w-full min-h-0 min-w-0 ${!isFullHeightTab && hideShellMobileTopNav ? 'pt-[var(--app-safe-top)]' : ''} bg-transparent ${isFullHeightTab ? 'overflow-hidden h-full pb-0' : isReelsTab ? 'overflow-y-auto overflow-x-hidden no-scrollbar pb-0 bg-black' : 'overflow-y-auto overflow-x-hidden no-scrollbar pb-shell-nav md:pb-[max(1.5rem,var(--app-safe-bottom))]'}`}>
           <div
-            className={`w-full flex flex-col bg-transparent ${
+            className={`app-screen app-screen--immersive w-full max-w-full min-w-0 flex flex-col bg-transparent ${
               isFullHeightTab
                 ? 'flex-1 min-h-0 h-full justify-stretch items-stretch overflow-hidden'
                 : 'w-full'
@@ -773,7 +776,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
                  
                  <button type="button" onClick={() => { setShowMobileMenu(false); navigateToTab('profile'); }} className={`${navTapRowButtonClass} p-4 rounded-xl hover:bg-secondary font-bold transition-colors text-foreground`}>
                    <div className={`w-6 h-6 rounded-full overflow-hidden border ${currentTab === 'profile' ? 'border-primary' : 'border-transparent'}`}>
-                     <img src={currentUser.avatarUrl || undefined} alt="profile" className="w-full h-full object-cover" onError={handleAvatarError} />
+                     <img src={profileAvatarUrl || undefined} alt="profile" className="w-full h-full object-cover" onError={handleAvatarError} />
                    </div> Profile
                  </button>
 
@@ -845,7 +848,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
 
       {/* Mobile Bottom Navigation */}
       {showShellMobileBottomNav && (
-        <div className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 w-full pt-1 bg-background border-border border-t flex items-center justify-around z-[100] px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
+        <div className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 w-full pt-1 pl-safe pr-safe bg-background border-border border-t flex items-center justify-around z-[100] px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
           <button type="button" onClick={() => handleBottomNavTap('home')} className={navTapIconButtonClass} aria-label="Home">
             <Home className={`w-6 h-6 ${currentTab === 'home' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
           </button>
@@ -860,7 +863,7 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
           </button>
           <button type="button" onClick={() => navigateToTab('profile')} className={navTapIconButtonClass} aria-label="Profile">
             <div className={`w-7 h-7 rounded-full overflow-hidden ${currentTab === 'profile' ? 'border-foreground border-2' : 'border border-border'}`}>
-              <img src={currentUser.avatarUrl || undefined} alt="profile" className="w-full h-full object-cover" onError={handleAvatarError} />
+              <img src={profileAvatarUrl || undefined} alt="profile" className="w-full h-full object-cover" onError={handleAvatarError} />
             </div>
           </button>
         </div>

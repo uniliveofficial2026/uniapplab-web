@@ -4,12 +4,13 @@ import type { ActiveSong } from '../utils/songPerformance';
 import { getActiveLyricIndex } from '../utils/songPerformance';
 import { useLyricAutoScroll } from '../hooks/useLyricAutoScroll';
 import {
-  VOICE_CHANGER_EFFECTS,
   getVoiceChangerEffect,
+  isOriginalVoiceEffect,
   type VoiceChangerEffectId,
 } from '../utils/voiceEffects';
 import type { SingingVoiceStatus } from '../hooks/useSingingSession';
 import { formatSingingStatusLine } from '../utils/singingVoiceStatus';
+import { VoiceChangerCompactPicker } from './VoiceChangerCompactPicker';
 
 type ChorusPerformanceStageProps = {
   song: ActiveSong;
@@ -56,7 +57,7 @@ export function ChorusPerformanceStage({
     song.lyrics.length,
     song.lyricStartTimes,
   );
-  const activeEffect = getVoiceChangerEffect(voiceEffect);
+  const activeEffect = getVoiceChangerEffect(voiceEffect ?? 'original');
   const levelSource = isSelfPerforming ? micLevel : audioPulse;
   const eqHeights = [
     Math.min(100, 35 + levelSource * 0.65),
@@ -169,42 +170,22 @@ export function ChorusPerformanceStage({
           {isSelfPerforming && (
             <div className="relative">
               {voiceChangerOpen && (
-                <div className="absolute bottom-full right-0 mb-2 w-[min(240px,70vw)] rounded-2xl border border-pink-500/30 bg-[#1a0f2e]/95 backdrop-blur-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.55)] z-20">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-[9px] font-black text-pink-300 uppercase tracking-wider">
-                      Voice Changer
-                    </span>
-                    <span className="text-[9px] text-gray-400">
-                      {activeEffect.emoji} {activeEffect.label}
-                    </span>
-                  </div>
-                  <div className="grid grid-cols-3 gap-1.5">
-                    {VOICE_CHANGER_EFFECTS.map((effect) => (
-                      <button
-                        key={effect.id}
-                        type="button"
-                        onClick={() => {
-                          onVoiceEffectChange?.(effect.id);
-                          setVoiceChangerOpen(false);
-                        }}
-                        className={`rounded-xl px-1.5 py-2 text-[8px] font-bold transition active:scale-95 ${
-                          voiceEffect === effect.id
-                            ? 'bg-pink-500/25 border border-pink-400/50 text-pink-100'
-                            : 'bg-black/30 border border-white/10 text-gray-300 hover:bg-white/5'
-                        }`}
-                      >
-                        <span className="block text-sm mb-0.5">{effect.emoji}</span>
-                        {effect.label}
-                      </button>
-                    ))}
-                  </div>
+                <div className="absolute bottom-full right-0 mb-2 w-[min(280px,78vw)] rounded-2xl border border-pink-500/30 bg-[#1a0f2e]/95 backdrop-blur-xl p-3 shadow-[0_8px_32px_rgba(0,0,0,0.55)] z-20">
+                  <VoiceChangerCompactPicker
+                    effectId={voiceEffect ?? 'original'}
+                    embedded
+                    onEffectChange={(id) => {
+                      onVoiceEffectChange?.(id);
+                      setVoiceChangerOpen(false);
+                    }}
+                  />
                 </div>
               )}
               <button
                 type="button"
                 onClick={() => setVoiceChangerOpen((open) => !open)}
                 className={`flex items-center gap-1.5 rounded-full px-2.5 py-1.5 border transition active:scale-95 ${
-                  voiceChangerOpen || voiceEffect !== 'studio'
+                  voiceChangerOpen || (voiceEffect && !isOriginalVoiceEffect(voiceEffect))
                     ? 'border-pink-400/50 bg-pink-500/15 text-pink-200'
                     : 'border-white/15 bg-white/5 text-gray-300 hover:text-white hover:bg-white/10'
                 }`}
@@ -213,7 +194,7 @@ export function ChorusPerformanceStage({
               >
                 <AudioLines size={16} className="shrink-0" />
                 <span className="text-[9px] font-black uppercase tracking-wide">
-                  {voiceEffect !== 'studio' ? activeEffect.emoji : 'FX'}
+                  {voiceEffect && !isOriginalVoiceEffect(voiceEffect) ? activeEffect.emoji : 'FX'}
                 </span>
               </button>
             </div>

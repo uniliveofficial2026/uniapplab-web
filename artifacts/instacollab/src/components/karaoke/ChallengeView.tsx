@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Trophy, Users, Play, Star, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
 import { SingingPlayerModal } from './SingingPlayerModal';
+import { isDemoContentEnabled } from '../../lib/demoContentPolicy';
 
 const MOCK_TOP_SUBMISSIONS = [
   { id: '1', title: 'Bohemian Rhapsody Cover', user: '@vocal_star_1', votes: 125000, rank: 1, avatar: 11, voted: false },
@@ -15,22 +16,26 @@ const MY_ENTRIES = [
 ];
 
 export function ChallengeView({ onSing, onSelectProfile }: { onSing: () => void, onSelectProfile?: (user: any) => void }) {
+  const demoOn = isDemoContentEnabled();
   const [activeTab, setActiveTab] = useState<'top' | 'mine' | 'rules'>('top');
-  const [submissions, setSubmissions] = useState(MOCK_TOP_SUBMISSIONS);
-  const [timeLeft, setTimeLeft] = useState(12 * 3600 + 45 * 60); // 12:45:00 in seconds
+  const [submissions, setSubmissions] = useState(() => (demoOn ? MOCK_TOP_SUBMISSIONS : []));
+  const [myEntries] = useState(() => (demoOn ? MY_ENTRIES : []));
+  const [timeLeft, setTimeLeft] = useState(demoOn ? 12 * 3600 + 45 * 60 : 0);
   const [activePlayerPost, setActivePlayerPost] = useState<any | null>(null);
 
   useEffect(() => {
+    if (!demoOn) return;
     const timer = setInterval(() => {
       setTimeLeft(prev => prev > 0 ? prev - 1 : 0);
     }, 1000);
     return () => clearInterval(timer);
-  }, []);
+  }, [demoOn]);
 
   useEffect(() => {
-    // Real-time vote increment simulation
+    if (!demoOn) return;
     const voteTimer = setInterval(() => {
        setSubmissions(prev => {
+          if (prev.length === 0) return prev;
           const newSubs = [...prev];
           const randomIndex = Math.floor(Math.random() * newSubs.length);
           newSubs[randomIndex] = {
@@ -41,7 +46,7 @@ export function ChallengeView({ onSing, onSelectProfile }: { onSing: () => void,
        });
     }, 3000);
     return () => clearInterval(voteTimer);
-  }, []);
+  }, [demoOn]);
 
   const formatTime = (seconds: number) => {
     const h = Math.floor(seconds / 3600);
@@ -82,7 +87,7 @@ export function ChallengeView({ onSing, onSelectProfile }: { onSing: () => void,
              <div className="px-6 py-3 bg-black/40 backdrop-blur border border-white/20 rounded-xl">
                 <div className="text-sm text-white/70 font-semibold uppercase tracking-wider mb-1">Participants</div>
                 <div className="text-3xl font-mono font-bold flex items-center justify-center gap-2">
-                  <Users className="w-6 h-6 text-primary" /> 124K
+                  <Users className="w-6 h-6 text-primary" /> {demoOn ? '124K' : '0'}
                 </div>
              </div>
           </div>
@@ -123,6 +128,13 @@ export function ChallengeView({ onSing, onSelectProfile }: { onSing: () => void,
 
       {/* Tabs Content */}
       <div className="space-y-4">
+        {activeTab === 'top' && submissions.length === 0 ? (
+          <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-14 text-center">
+            <Trophy className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+            <p className="font-bold">No contest submissions yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">Be the first to submit a cover.</p>
+          </div>
+        ) : null}
         {activeTab === 'top' && submissions.map(sub => (
           <div key={sub.id} className="bg-card rounded-2xl p-4 border border-border flex items-center gap-3 sm:gap-4 hover:shadow-md transition">
              <div className={`font-black text-2xl w-6 sm:w-8 text-center ${sub.rank === 1 ? 'text-amber-500' : sub.rank === 2 ? 'text-zinc-400' : sub.rank === 3 ? 'text-orange-400' : 'text-muted-foreground'}`}>{sub.rank}</div>
@@ -178,7 +190,15 @@ export function ChallengeView({ onSing, onSelectProfile }: { onSing: () => void,
 
         {activeTab === 'mine' && (
           <>
-            {MY_ENTRIES.map(entry => (
+            {myEntries.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border bg-card/50 px-6 py-10 text-center">
+                <p className="font-bold text-muted-foreground">You have not submitted an entry yet.</p>
+                <button type="button" onClick={onSing} className="mt-2 text-primary font-bold hover:underline">
+                  Submit a cover
+                </button>
+              </div>
+            ) : null}
+            {myEntries.map(entry => (
               <div key={entry.id} className="bg-card rounded-2xl p-4 sm:p-5 border border-border flex flex-col gap-3">
                 <div className="flex justify-between items-start gap-4">
                   <div>

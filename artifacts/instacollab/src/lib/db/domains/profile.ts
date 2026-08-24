@@ -1,4 +1,5 @@
 import { PROFILE_VISITS_CAP, PROFILE_VISITS_KEY } from '../constants';
+import { isDemoContentEnabled } from '../../demoContentPolicy';
 import {
   buildCreatorProgress,
   type CreatorActivityStats,
@@ -355,6 +356,7 @@ export function WithProfile<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
     }
 
     private ensureDemoProfileVisitors() {
+      if (!isDemoContentEnabled()) return;
       const ownerId = this.asLocalDB().currentUserId;
       if (!ownerId || !this.profileVisitorTrackingEnabled(ownerId)) return;
       if (this.getProfileVisitList(ownerId).length > 0) return;

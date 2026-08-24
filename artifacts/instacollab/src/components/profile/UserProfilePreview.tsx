@@ -19,7 +19,7 @@ import { CreatorProgressModal } from './CreatorProgressModal';
 import { StoryStrip } from '../feed/StoryStrip';
 import { ProfilePrivateContentGate } from './ProfilePrivateContentGate';
 import { useFollowActionState } from '../../lib/useFollowActionState';
-import { followToggleToastMessage, getFollowButtonHoverLabel } from '../../lib/followPrivacy';
+import { getFollowButtonHoverLabel } from '../../lib/followPrivacy';
 import { useProfileStats } from '../../lib/useProfileStats';
 import { getProfileMentionLabel, getProfileDisplayName, formatProfileHandle, shouldShowProfileHandle } from '../../lib/profileDisplay';
 import { ProfileNamePrimary } from '../common/ProfileNameLines';
@@ -78,9 +78,6 @@ export function UserProfilePreview({
 
   const handleFollowToggle = () => {
     db.toggleFollow(profileUser.id);
-    const after = db.getFollowActionState(profileUser.id);
-    const label = getProfileMentionLabel(profileUser);
-    showToast(followToggleToastMessage(after, label));
     setFollowHover(false);
   };
 

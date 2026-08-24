@@ -4,7 +4,6 @@ import { getRoomGiftSummary } from '../utils/roomGifts';
 import { resolveOwnerMemberIdentity } from '../utils/roomMemberProfile';
 import { viewerFollowsRoomOwner } from '../utils/roomFollowContext';
 import {
-  resolveOwnerDisplayName,
   resolveOwnerUserId,
 } from '../utils/roomRoleUsers';
 import type { RoomSettings } from '../utils/storage';
@@ -53,13 +52,8 @@ export function useRoomOwnerSocial(
     }
     const following = db.toggleFollow(ownerUserId);
     if (following === null) return;
-    options?.onToast?.(
-      following
-        ? `Followed ${resolveOwnerDisplayName(settings as RoomSettings, 'Host')}`
-        : `Unfollowed ${resolveOwnerDisplayName(settings as RoomSettings, 'Host')}`,
-    );
     setFollowRevision((value) => value + 1);
-  }, [ownerUserId, viewerUserId, settings, options]);
+  }, [ownerUserId, viewerUserId, options]);
 
   const ownerViewerPayload = useMemo((): RoomOwnerViewerPayload => {
     return {

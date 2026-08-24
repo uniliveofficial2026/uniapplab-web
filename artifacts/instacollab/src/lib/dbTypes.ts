@@ -98,6 +98,11 @@ export type AppSettings = {
   onboardingBackgroundMediaType?: 'image' | 'video';
   theme?: string;
   language?: string;
+  /** Canonical locale preference. Catalogs are never stored here. */
+  i18n?: {
+    locale?: string;
+    autoTranslateUgc?: boolean;
+  };
   offlineSync?: boolean;
   cloudAutoSync?: boolean;
   cloudSyncEnabled?: boolean;

@@ -3,6 +3,7 @@ import {
   NOTIFICATION_INBOX_KEY,
   NOTIFICATIONS_CAP,
 } from '../constants';
+import { isDemoContentEnabled } from '../../demoContentPolicy';
 import { LIVE_KIND_LABELS } from '../../liveRing';
 import { notificationDedupeKey } from '../../notifications';
 import { postUserId, resolveUser, safeUserId, userAtModuloIndex } from '../../safe';
@@ -365,6 +366,7 @@ export function WithNotifications<T extends Constructor<DbCoreBacked>>(Base: T):
     }
 
     private ensureDemoNotifications() {
+      if (!isDemoContentEnabled()) return;
       const meId = this.asLocalDB().currentUserId;
       if (!meId) return;
       const existing = this.asLocalDB().getNotificationsForUser(meId);

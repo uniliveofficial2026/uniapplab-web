@@ -117,7 +117,7 @@ export function YoutubeMiniPlayerPicker({ open, onClose }: YoutubeMiniPlayerPick
 
   return createPortal(
     <div
-      className="fixed inset-0 z-[420] flex items-end justify-center sm:items-center sm:p-4"
+      className="fixed inset-0 z-[3200] flex items-end justify-center sm:items-center sm:p-4"
       data-app-overlay-root
       role="dialog"
       aria-modal="true"

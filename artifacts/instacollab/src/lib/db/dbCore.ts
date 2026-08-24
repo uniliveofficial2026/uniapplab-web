@@ -24,8 +24,8 @@ import type { StoriesByUserStore } from '../../types';
 import type { LocalDB } from './localDbType';
 import type { DbCoreStartupHost } from './startupHost';
 import type { Listener } from './types';
-import { isCloudSyncCollectionKey } from '../cloudSync/collectionKeys';
-import type { CloudSyncCollectionKey } from '../cloudSync/collectionKeys';
+import { isUserAppStateKey } from '../cloudSync/collectionKeys';
+import { extractAllowedSettings } from '../cloudSync/userAppStateMigrate';
 import { scheduleCloudAppStateSync } from '../auth/cloudAppState';
 import { writeSessionCache, syncSessionCacheFromLoginMirror } from '../sessionCache';
 import { healLaunchProgressForReturningUser } from '../launchRoute';
@@ -144,6 +144,7 @@ export class DbCore {
           // Background enrichment — never blocks first visible frame.
           void (async () => {
             try {
+              host.purgeDemoSeedContent();
               await host.seedDemoStoriesIfNeeded();
               host.ensureFollowGraph();
               host.ensureDemoProfileVisitors();
@@ -314,7 +315,19 @@ export class DbCore {
 
     protected async initIDB(): Promise<IDBDatabase> {
       return new Promise((resolve, reject) => {
-        const request = indexedDB.open('AppDB', 1);
+        const dbName = (() => {
+          try {
+            // Inspect mirror twin must not share the left-canvas AppDB (races wipe feed UI).
+            if (new URLSearchParams(window.location.search).get('mirror') === '1') return 'AppDB_mirror';
+            if ((window as Window & { __UNILIVES_MIRROR_FOLLOWER__?: boolean }).__UNILIVES_MIRROR_FOLLOWER__) {
+              return 'AppDB_mirror';
+            }
+          } catch {
+            /* ignore */
+          }
+          return 'AppDB';
+        })();
+        const request = indexedDB.open(dbName, 1);
         request.onerror = () => reject(request.error);
         request.onsuccess = () => {
           this.db = request.result;
@@ -525,19 +538,17 @@ export class DbCore {
 
     /** Merge collections from cloud realtime / bootstrap without re-pushing. */
     public applyRemoteCollections(
-      collections: Partial<Record<CloudSyncCollectionKey, unknown>>
+      collections: Partial<Record<string, unknown>>
     ) {
       this.cloudSyncSuppressPush = true;
       const idbWrites: Promise<void>[] = [];
       let changed = false;
       try {
         for (const [key, value] of Object.entries(collections)) {
-          if (!isCloudSyncCollectionKey(key) || value === undefined) continue;
+          // user_app_state v2: only AS keys may be applied from remote settings blob.
+          if (!isUserAppStateKey(key) || value === undefined) continue;
           // Merge social collections so reconnect never wipes/flashes local cache.
           let nextValue = this.mergeRemoteCollectionsValue(key, value);
-          if (key === 'users' && Array.isArray(nextValue)) {
-            nextValue = normalizeUsersThoughtEpochs(nextValue as import('../../types').User[]);
-          }
           // Skip no-op writes to avoid useless re-renders.
           if (this.cache[key] === nextValue) continue;
           this.cache[key] = nextValue;
@@ -623,9 +634,18 @@ export class DbCore {
         wallet_transactions: [],
         unreadMessagesCount: 0,
         hasUnreadNotifications: false,
-      } as Partial<Record<CloudSyncCollectionKey, unknown>>;
-      if (me) cleared.users = [me];
-      this.applyRemoteCollections(cleared);
+      } as Record<string, unknown>;
+      this.applyRemoteCollections(extractAllowedSettings(cleared));
+      this.cloudSyncSuppressPush = true;
+      try {
+        for (const [key, value] of Object.entries(cleared)) {
+          if (isUserAppStateKey(key)) continue;
+          this.save(key, value);
+        }
+        if (me) this.save('users', [me]);
+      } finally {
+        this.cloudSyncSuppressPush = false;
+      }
       this.save('profile_stories_migrated', true);
       this.save('user_app_state_local_rev', { userId, updatedAt: 0 });
     }
@@ -1060,7 +1080,8 @@ export class DbCore {
       if (
         !this.cloudSyncSuppressPush &&
         this.isInitialized &&
-        !DbCore.LOCAL_ONLY_DB_KEYS.has(key)
+        !DbCore.LOCAL_ONLY_DB_KEYS.has(key) &&
+        isUserAppStateKey(key)
       ) {
         scheduleCloudAppStateSync(this.asLocalDB(), key);
       }

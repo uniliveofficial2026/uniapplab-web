@@ -69,18 +69,19 @@ export async function upsertCloudPost(post: Post, authorId?: string): Promise<bo
 }
 
 export async function deleteCloudPost(postId: string, userId?: string): Promise<boolean> {
+  if (!postId || !userId) return false;
   if (shouldUseFirebaseForSocialCloud(userId) && isFirebaseConfigured()) {
     const fb = await firebaseCloudPosts();
     if (fb.isFirebaseCloudPostsAvailable()) {
-      return fb.deleteFirebaseCloudPost(postId);
+      return fb.deleteFirebaseCloudPost(postId, userId);
     }
   }
   try {
-    return await deleteSupabaseCloudPost(postId);
+    return await deleteSupabaseCloudPost(postId, userId);
   } catch {
     if (isFirebaseConfigured()) {
       const fb = await firebaseCloudPosts();
-      if (fb.isFirebaseCloudPostsAvailable()) return fb.deleteFirebaseCloudPost(postId);
+      if (fb.isFirebaseCloudPostsAvailable()) return fb.deleteFirebaseCloudPost(postId, userId);
     }
     return false;
   }

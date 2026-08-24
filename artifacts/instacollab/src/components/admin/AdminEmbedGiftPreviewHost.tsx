@@ -59,7 +59,7 @@ export function AdminEmbedGiftPreviewHost() {
         </span>
       </div>
 
-      <GiftPlayOverlay gift={gift} onDone={() => setGift(null)} />
+      <GiftPlayOverlay gift={gift} onDone={() => setGift(null)} allowPreview />
 
       {!gift ? (
         <div className="absolute inset-0 z-[10] flex items-center justify-center px-6 text-center text-[11px] font-semibold text-white/45">

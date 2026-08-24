@@ -38,3 +38,16 @@ export function shouldShowReelPlayOverlay(_input: {
 }): boolean {
   return false;
 }
+
+/**
+ * Active = auto; offscreen metadata only when thermal allows prefetch + has FX budget.
+ * No visual change — only network/decode work.
+ */
+export function computeReelVideoPreload(
+  isActive: boolean,
+  policy: { allowPrefetch: boolean; fxBudget: number },
+): 'auto' | 'metadata' | 'none' {
+  if (isActive) return 'auto';
+  if (!policy.allowPrefetch || policy.fxBudget < 0.55) return 'none';
+  return 'metadata';
+}

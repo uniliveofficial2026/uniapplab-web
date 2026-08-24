@@ -4,6 +4,8 @@
  * @see https://www.tencentcloud.com/document/product/1143/50102 (Custom Stream)
  * @see https://www.tencentcloud.com/document/product/1143/50101 (Built-in Camera)
  */
+import { perceptionOutputFps } from '../performance/thermalGovernor';
+
 export const WEBAR_CAMERA_WIDTH = 1280;
 export const WEBAR_CAMERA_HEIGHT = 720;
 export const WEBAR_CAMERA_FPS = 30;
@@ -29,3 +31,8 @@ export const WEBAR_BUILTIN_CAMERA = {
 
 /** Beauty output FPS — matches getOutput(fps) in Tencent docs. */
 export const WEBAR_OUTPUT_FPS = 30;
+
+/** Thermal-aware output FPS for getOutput — read at attach only (no mid-stream beauty reset). */
+export function resolveWebArOutputFps(baseFps: number = WEBAR_OUTPUT_FPS): number {
+  return perceptionOutputFps(baseFps, 8);
+}

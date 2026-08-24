@@ -215,18 +215,22 @@ export function AuthScreen() {
           return;
         }
 
-        // Dev: local demo first — cloud sync can race and log the user out if Supabase is slow/down.
+        // Dev: cloud identity first so PK discovery/challenges use a real user_id,
+        // not IndexedDB u1/u2 which never sync to party_rooms and have no API token.
         if (import.meta.env.DEV) {
-          const demoLocal = loginDemoAccountLocal(normalizedEmail, loginPassword);
-          if (demoLocal.ok) {
-            showToast('Welcome back! (demo account)');
+          const demoCloud = await signInDemoWithCloudSync(normalizedEmail, loginPassword);
+          if (demoCloud.ok) {
+            showToast('Welcome back! (demo — synced to cloud)');
             passAuthGate();
-            void signInDemoWithCloudSync(normalizedEmail, loginPassword).then((cloud) => {
-              if (cloud.ok) showToast('Demo synced to cloud');
-            });
             return;
           }
-          showToast(demoLocal.reason);
+          const demoLocal = loginDemoAccountLocal(normalizedEmail, loginPassword);
+          if (demoLocal.ok) {
+            showToast('Welcome back! (demo account — local only)');
+            passAuthGate();
+            return;
+          }
+          showToast(demoCloud.reason || demoLocal.reason);
           return;
         }
 

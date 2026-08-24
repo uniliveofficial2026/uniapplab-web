@@ -1,4 +1,5 @@
 import { db } from '../../lib/db/localDb';
+import { isDemoContentEnabled } from '../../lib/demoContentPolicy';
 import { DEMO_ROOM_IDS, DEMO_ROOM_OWNER_USER_IDS } from './roomDemoConstants';
 import { getRoomSettings } from './storage';
 
@@ -14,6 +15,7 @@ function normalizeJoinPolicy(policy: string | undefined): string {
  * Only adds missing edges — never removes user-initiated unfollows.
  */
 export function seedDemoRoomFollowGraph(roomId: string): void {
+  if (!isDemoContentEnabled()) return;
   const ownerId = DEMO_ROOM_OWNER_USER_IDS[roomId];
   if (!ownerId) return;
 

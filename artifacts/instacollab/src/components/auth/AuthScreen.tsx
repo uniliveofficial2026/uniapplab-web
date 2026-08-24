@@ -30,9 +30,13 @@ import {
   UniLivesPrincessForgotForm,
   UniLivesPrincessForgotLayout,
 } from './brand';
+import {
+  hasCompletedOnboardingOnDevice,
+  persistLaunchFunnelAfterAuth,
+} from '../../lib/splashSession';
 
 function finishAuthLaunch() {
-  localStorage.setItem('instacollab_has_onboarded', 'true');
+  persistLaunchFunnelAfterAuth();
   db.markSplashSeen();
   db.completeOnboarding();
   db.advanceLaunchProgressAfterLogin(false);
@@ -42,13 +46,17 @@ export function AuthScreen() {
   const { loginWithGoogle, resetPassword, loginWithEmail, signupWithEmail, userAccounts, selectAccount, removeAccount } = useAuth();
   
   const [mode, setMode] = useState<'login' | 'signup' | 'reset' | 'onboarding' | 'trending'>(() => {
-    const hasOnboarded = localStorage.getItem('instacollab_has_onboarded');
-    const hasAccounts = localStorage.getItem('user_accounts');
     try {
-      if (hasOnboarded === 'true' || (hasAccounts && JSON.parse(hasAccounts).length > 0)) {
+      if (hasCompletedOnboardingOnDevice()) {
         return 'login';
       }
-    } catch (e) {}
+      const hasAccounts = localStorage.getItem('user_accounts');
+      if (hasAccounts && JSON.parse(hasAccounts).length > 0) {
+        return 'login';
+      }
+    } catch {
+      /* ignore */
+    }
     return 'onboarding';
   });
   const [gate, setGate] = useState<'welcome' | 'email'>('welcome');

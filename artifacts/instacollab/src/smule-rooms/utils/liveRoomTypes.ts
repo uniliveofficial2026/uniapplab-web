@@ -19,6 +19,13 @@ export type GiftPlayPayload = {
   roomId?: string;
   timestamp?: number;
   giftTransactionId?: string;
+  /** Authoritative event identity / replay */
+  eventId?: string;
+  sequence?: number;
+  occurredAt?: number;
+  expiresAt?: number;
+  replayPolicy?: 'STATE' | 'ACTIVE_FX' | 'EPHEMERAL' | 'NONE';
+  giftVariantId?: string;
 };
 
 export type PKPhase = 'idle' | 'inviting' | 'active' | 'ended';
@@ -97,14 +104,53 @@ export type CommerceProduct = {
   /** USD price when priceType is cash (e.g. 29.99). */
   priceUsd?: number;
   imageUrl?: string;
+  /** Optional product promo/demo video shown in shop cards and create preview. */
+  videoUrl?: string;
   description?: string;
+  /** Optional live-selling inventory metadata supplied by the existing commerce service. */
+  inventory?: number;
+  sku?: string;
+  /** Epoch milliseconds for an active flash-sale countdown. */
+  flashSaleEndsAt?: number;
 };
 
 export const DEFAULT_COMMERCE_CATALOG: CommerceProduct[] = [
-  { id: 'c1', title: 'Glow Serum', priceType: 'coins', priceCoins: 120, description: 'Hydrating daily serum' },
-  { id: 'c2', title: 'Live Bundle', priceType: 'coins', priceCoins: 299, description: 'Creator starter kit' },
-  { id: 'c3', title: 'VIP Pass', priceType: 'coins', priceCoins: 49, description: 'Room perks for 7 days' },
-  { id: 'c4', title: 'Merch Tee', priceType: 'coins', priceCoins: 450, description: 'Limited live drop' },
+  {
+    id: 'c1',
+    title: 'Glow Serum',
+    priceType: 'cash',
+    priceUsd: 29.99,
+    description: 'Hydrating daily serum — limited live drop',
+    imageUrl: 'https://images.unsplash.com/photo-1620916568238-5f8fcf5c3c88?auto=format&fit=crop&w=480&h=480&q=80',
+    inventory: 48,
+  },
+  {
+    id: 'c2',
+    title: 'Live Bundle',
+    priceType: 'cash',
+    priceUsd: 49.99,
+    description: 'Creator starter kit with serum + mask',
+    imageUrl: 'https://images.unsplash.com/photo-1596462502278-27bfdc403348?auto=format&fit=crop&w=480&h=480&q=80',
+    inventory: 24,
+  },
+  {
+    id: 'c3',
+    title: 'VIP Pass',
+    priceType: 'cash',
+    priceUsd: 9.99,
+    description: 'Room perks for 7 days',
+    imageUrl: 'https://images.unsplash.com/photo-1512496015851-a90fb38ba796?auto=format&fit=crop&w=480&h=480&q=80',
+    inventory: 200,
+  },
+  {
+    id: 'c4',
+    title: 'Merch Tee',
+    priceType: 'cash',
+    priceUsd: 34.99,
+    description: 'Limited live merch drop',
+    imageUrl: 'https://images.unsplash.com/photo-1521572163474-6864f9cf17ab?auto=format&fit=crop&w=480&h=480&q=80',
+    inventory: 60,
+  },
 ];
 
 export type CommerceShippingInfo = {
@@ -132,10 +178,19 @@ export type CommerceOrder = {
   priceUsd?: number;
   buyerUserId: string;
   buyerName: string;
+  hostUserId?: string;
   paid: boolean;
   paymentMethod: CommercePaymentMethod;
   shipping: CommerceShippingInfo;
   createdAt: number;
+  /** Approved live-selling order lifecycle; optional for backward compatibility. */
+  status?: 'pending' | 'confirmed' | 'processing' | 'shipped' | 'delivered' | 'cancelled' | 'failed';
+  quantity?: number;
+  trackingNumber?: string;
+  carrier?: string;
+  estimatedDelivery?: string;
+  shippedAt?: number;
+  deliveredAt?: number;
 };
 
 export function normalizeCommerceProduct(product: CommerceProduct): CommerceProduct {
@@ -329,11 +384,18 @@ export function giftFromDefinition(
     combo?: number;
     roomId?: string;
     giftTransactionId?: string;
+    eventId?: string;
+    sequence?: number;
+    occurredAt?: number;
+    expiresAt?: number;
+    replayPolicy?: 'STATE' | 'ACTIVE_FX' | 'EPHEMERAL' | 'NONE';
+    giftVariantId?: string;
   },
 ): GiftPlayPayload {
+  const occurredAt = extras?.occurredAt ?? Date.now();
   return {
     action: 'play',
-    playId: `gift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
+    playId: extras?.eventId ?? `gift_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`,
     giftId: gift.id ?? gift.name,
     giftName: gift.name,
     giftIcon: gift.icon,
@@ -347,7 +409,13 @@ export function giftFromDefinition(
     quantity: extras?.quantity ?? 1,
     combo: extras?.combo ?? 1,
     roomId: extras?.roomId,
-    timestamp: Math.floor(Date.now() / 1000),
+    timestamp: Math.floor(occurredAt / 1000),
     giftTransactionId: extras?.giftTransactionId,
+    eventId: extras?.eventId,
+    sequence: extras?.sequence,
+    occurredAt,
+    expiresAt: extras?.expiresAt ?? occurredAt + 12_000,
+    replayPolicy: extras?.replayPolicy ?? 'ACTIVE_FX',
+    giftVariantId: extras?.giftVariantId,
   };
 }

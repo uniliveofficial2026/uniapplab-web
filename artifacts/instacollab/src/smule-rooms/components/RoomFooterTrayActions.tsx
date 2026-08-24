@@ -2,10 +2,12 @@ import React from 'react';
 import {
   Gamepad2,
   Gift,
+  Heart,
   Mic,
   MicOff,
   ScanFace,
   ShoppingBag,
+  Smile,
   Sofa,
   Sparkles,
   UserMinus,
@@ -13,6 +15,7 @@ import {
   Video,
   VideoOff,
 } from 'lucide-react';
+import { useOptionalLiveLike } from '../liveLike/LiveLikeContext';
 
 export type RoomFooterTrayActionsProps = {
   userSeatKey: string | null;
@@ -24,6 +27,8 @@ export type RoomFooterTrayActionsProps = {
   onOpenGuestManagement: () => void;
   guestManagementOpen?: boolean;
   onOpenGiftPicker: () => void;
+  onOpenStickers?: () => void;
+  stickersOpen?: boolean;
   showCamera?: boolean;
   userCameraOn?: boolean;
   onToggleUserCamera?: () => void;
@@ -80,6 +85,8 @@ export function RoomFooterTrayActions({
   onOpenGuestManagement,
   guestManagementOpen = false,
   onOpenGiftPicker,
+  onOpenStickers,
+  stickersOpen = false,
   showCamera = false,
   userCameraOn = false,
   onToggleUserCamera,
@@ -110,6 +117,7 @@ export function RoomFooterTrayActions({
   micAccent = 'cyan',
   className = '',
 }: RoomFooterTrayActionsProps) {
+  const liveLike = useOptionalLiveLike();
   const micTitle = userSeatKey
     ? userMicOn
       ? 'Mute your microphone'
@@ -346,6 +354,58 @@ export function RoomFooterTrayActions({
           }`}
         >
           <Users size={16} />
+        </button>
+      ) : null}
+
+      {liveLike ? (
+        <button
+          type="button"
+          onPointerDown={(event) => {
+            if (event.button !== 0) return;
+            event.preventDefault();
+            const stage =
+              (event.currentTarget.closest('.room-shell') as HTMLElement | null) ??
+              (document.querySelector('.room-shell') as HTMLElement | null);
+            const rect = stage?.getBoundingClientRect();
+            if (!rect) {
+              liveLike.tapLike({
+                xPct: (event.clientX / Math.max(1, window.innerWidth)) * 100,
+                yPct: (event.clientY / Math.max(1, window.innerHeight)) * 100,
+              });
+              return;
+            }
+            liveLike.tapLike({
+              xPct: ((event.clientX - rect.left) / Math.max(1, rect.width)) * 100,
+              yPct: ((event.clientY - rect.top) / Math.max(1, rect.height)) * 100,
+            });
+          }}
+          className={`${btnBase} relative border-rose-400/40 bg-rose-500/20 text-rose-100 hover:bg-rose-500/30`}
+          aria-label="Like"
+          title="Like"
+          data-node-id="node.live.shared.reaction-trigger"
+        >
+          <Heart size={16} className="fill-current" />
+          {liveLike.likeCount > 0 ? (
+            <span className="absolute -right-1 -top-1 min-w-[14px] rounded-full bg-rose-500 px-1 text-[8px] font-black leading-4 text-white">
+              {liveLike.likeCount > 999 ? '999+' : liveLike.likeCount}
+            </span>
+          ) : null}
+        </button>
+      ) : null}
+
+      {onOpenStickers ? (
+        <button
+          type="button"
+          onClick={onOpenStickers}
+          className={`${btnBase} ${
+            stickersOpen
+              ? 'border-pink-400/55 bg-pink-500/20 text-pink-100'
+              : 'border-white/10 bg-white/10 text-white/80 hover:bg-white/15'
+          }`}
+          aria-label="Stickers"
+          title="Stickers"
+        >
+          <Smile size={16} />
         </button>
       ) : null}
 

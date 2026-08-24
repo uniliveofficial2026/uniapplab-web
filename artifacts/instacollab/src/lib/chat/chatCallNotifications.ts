@@ -1,5 +1,6 @@
 /**
- * Browser pop-out + in-app alerts for incoming chat calls (CallKit-style).
+ * Browser pop-out + in-app alerts for incoming chat calls (CallKit-style naming only).
+ * Native CallKit/Telecom is scaffolded behind feature flags and never fakes success.
  */
 import { db } from '../db/localDb';
 import { resolveUser, findUserById } from '../safe';
@@ -16,6 +17,7 @@ import {
   requestChatPopoutPermission,
 } from './chatPopoutNotifications';
 import { resolveAppNotificationIcon } from '../appBrand';
+import { tryPresentNativeIncomingCall } from './nativeIncomingCallBridge';
 
 export { requestChatPopoutPermission };
 
@@ -36,6 +38,15 @@ export function notifyIncomingChatCall(detail: IncomingChatCall): void {
 
   const callKind = normalizeCallKind(detail.callKind);
   const actor = resolveUser(db.users, findUserById(db.users, detail.fromUserId));
+  // Native bridge stays off until CallKit/PushKit + Android FGS/Telecom are real.
+  // Ignore accepted:false — in-app / browser path below remains authoritative.
+  tryPresentNativeIncomingCall({
+    callId: detail.callRoomName || `${detail.chatId}:${detail.fromUserId}:${callKind}`,
+    chatId: detail.chatId,
+    fromUserId: detail.fromUserId,
+    callKind,
+    callerDisplayName: actor?.displayName || undefined,
+  });
   const peer = resolveCallPeer(detail.chatId, detail.fromUserId);
   const isGroup = !!detail.isGroup || !!(peer && 'isGroup' in peer);
   const title = isGroup

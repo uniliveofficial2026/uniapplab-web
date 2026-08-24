@@ -7,6 +7,9 @@ import { clearActiveDeviceUid, clearGoogleAccessToken } from './deviceAccounts';
 import { clearStoredAccountSession } from './storedAccountSessions';
 import { teardownCloudSession } from './sessionManager';
 import { clearSessionCache } from '../sessionCache';
+import { clearApiAuthHeaderCache } from '../apiAuthHeaderCache';
+import { IDENTITY_SCOPED_STORAGE_PREFIXES } from '../identity/canonicalIdentity';
+import { clearPushPersonBindingOnLogout } from '../push/pushDeviceLifecycle';
 
 /** Max wait for cloud flush before switch/logout — UX must not hang on slow networks. */
 const AUTH_HANDOFF_FLUSH_MS = 800;
@@ -55,7 +58,29 @@ export function signOutFast(options: FastSignOutOptions = {}): void {
     clearGoogleAccessToken(uid);
   }
   clearSessionCache();
+  clearApiAuthHeaderCache();
+  // Ensure no PERSON-scoped leftovers survive logout / account switch.
+  try {
+    if (typeof localStorage !== 'undefined') {
+      const keys: string[] = [];
+      for (let i = 0; i < localStorage.length; i += 1) {
+        const k = localStorage.key(i);
+        if (k) keys.push(k);
+      }
+      for (const key of keys) {
+        if (IDENTITY_SCOPED_STORAGE_PREFIXES.some((p) => key.startsWith(p))) {
+          localStorage.removeItem(key);
+        }
+      }
+    }
+  } catch {
+    /* ignore */
+  }
+  clearPushPersonBindingOnLogout();
+  // Best-effort presence offline while auth header may still be valid.
+  void import('../platformApi').then((m) => m.postPresenceOffline?.()).catch(() => undefined);
   finalizeLocalAuthSession();
+  void import('../camera/hostMediaSession').then((m) => m.endHostMediaSession('logout'));
   flushAuthHandoffInBackground();
   runProviderSignOutInBackground();
 }

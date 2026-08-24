@@ -221,10 +221,8 @@ export function ProfileVisitorsModal({
     );
   };
 
-  const handleFollowToggle = (userId: string, username: string) => {
-    const next = db.toggleFollow(userId);
-    if (next === null) return;
-    showToast(next ? `Following ${username}` : `Unfollowed ${username}`);
+  const handleFollowToggle = (userId: string, _username: string) => {
+    db.toggleFollow(userId);
     setHoverFollowId(null);
   };
 

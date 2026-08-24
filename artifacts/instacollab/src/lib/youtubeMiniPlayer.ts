@@ -171,7 +171,6 @@ export function playYoutubeMiniVideo(
     minimized: false,
     pickerOpen: false,
     videoId: current.videoId,
-    // Native playlist embed only when we don't have a multi-item app queue to drive.
     playlistId:
       options?.queue && options.queue.length > 1
         ? null
@@ -185,6 +184,19 @@ export function playYoutubeMiniVideo(
     x: pos.x,
     y: pos.y,
   });
+  if (!current.title || current.title === 'YouTube' || current.title === 'YouTube video') {
+    void import('../services/youtube').then(({ fetchYoutubeVideoDetails }) =>
+      fetchYoutubeVideoDetails(current.videoId)
+        .then((details) => {
+          if (getYoutubeMiniPlayerState().videoId !== details.videoId) return;
+          patchYoutubeMiniPlayerState({
+            title: details.title || current.title,
+            channelTitle: details.channelTitle || current.channelTitle || '',
+          });
+        })
+        .catch(() => undefined),
+    );
+  }
 }
 
 /** Advance to the next queued video (loops the playlist/feed). Returns false only when empty. */

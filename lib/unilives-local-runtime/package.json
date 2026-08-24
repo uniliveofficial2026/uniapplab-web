@@ -1,0 +1,17 @@
+{
+  "name": "@unilives/local-runtime",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "UniLive local/self-host in-process platform runtime",
+  "license": "UNLICENSED",
+  "files": ["index.mjs", "README.md"],
+  "exports": { ".": "./index.mjs" },
+  "dependencies": {
+    "@unilives/platform-core": "workspace:*",
+    "@unilives/mcp": "workspace:*",
+    "@unilives/observe": "workspace:*",
+    "@unilives/rtc-fake": "workspace:*",
+    "@unilives/studio": "workspace:*"
+  }
+}

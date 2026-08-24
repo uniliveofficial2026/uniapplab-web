@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
-import { saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
+import { isLocalWalletLedgerAllowed, saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
 import { 
   Gamepad2, 
   Check, 
@@ -96,6 +96,10 @@ export function GameCoinTab() {
   const handleRunValidation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!playerId.trim()) return;
+    if (!isLocalWalletLedgerAllowed(appUser.id)) {
+      alert('Game coin redemption requires server checkout for this account.');
+      return;
+    }
 
     setStep('validating');
     

@@ -71,6 +71,7 @@ export interface AuthPostsLayer {
   login(userId: string): void;
   deleteAccountSnapshot(userId: string): void;
   restoreLegacyDemoContentIfEmpty(userId: string): void;
+  purgeDemoSeedContent(): void;
   logout(): void;
   syncAuthUser(user: User): void;
   registerUser(user: User): void;
@@ -309,7 +310,7 @@ export interface MessagesLayer {
     status: 'sending' | 'sent' | 'failed',
   ): void;
   patchMessageMedia(chatId: string, localId: string, media: unknown[]): void;
-  markCloudMessageDeleted(chatId: string, cloudId: string): void;
+  markCloudMessageDeleted(chatId: string, cloudId: string, localId?: string): void;
   applyInboundMessageReaction(
     chatId: string,
     localOrCloudId: string,

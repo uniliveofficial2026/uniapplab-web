@@ -2,19 +2,23 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
 import { Globe, Zap, Target, Rocket, Gamepad2, Search, Star, Loader2, Check } from 'lucide-react';
 import { useDB } from '../../lib/useDB';
+import { isDemoContentEnabled } from '../../lib/demoContentPolicy';
 
-const FEATURED_GAMES = [
+const DEMO_FEATURED_GAMES = [
   { id: 'f1', name: 'Cyberpunk Arena 2077', category: 'Action', players: '12.5k', image: 'bg-gradient-to-br from-purple-600 to-indigo-600' },
   { id: 'f2', name: 'Neon Flight', category: 'Arcade', players: '8.2k', image: 'bg-gradient-to-br from-emerald-500 to-teal-700' },
 ];
 
-const GAMES = [
+const DEMO_GAMES = [
   { id: 'g1', name: 'Space Shooter', category: 'Action', players: '5k', icon: Rocket },
   { id: 'g2', name: 'Arena Battle', category: 'RPG', players: '3k', icon: Target },
   { id: 'g3', name: 'Speed Racer', category: 'Racing', players: '7k', icon: Zap },
   { id: 'g4', name: 'Card Duel', category: 'Strategy', players: '2k', icon: Star },
   { id: 'g5', name: 'Puzzle Quest', category: 'Puzzle', players: '9k', icon: Gamepad2 },
 ];
+
+const FEATURED_GAMES = isDemoContentEnabled() ? DEMO_FEATURED_GAMES : [];
+const GAMES = isDemoContentEnabled() ? DEMO_GAMES : [];
 
 const CATEGORIES = ['All', 'Action', 'RPG', 'Racing', 'Strategy', 'Puzzle'];
 
@@ -39,12 +43,12 @@ export function ThirdPartyGamesScreen() {
     : GAMES.filter(g => g.category === activeCat);
 
   return (
+    <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
     <motion.div 
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
-      className="p-6 md:p-10 max-w-7xl w-full mx-auto space-y-12 overflow-x-hidden min-w-0"
+      className="app-screen-scroll p-6 md:p-10 max-w-7xl w-full mx-auto space-y-12 overflow-x-hidden min-w-0 app-content-gutter"
     >
-      {/* Integrations Section */}
       <div className="bg-card border border-border p-6 rounded-3xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-sm min-w-0">
           <h3 className="font-black text-sm shrink-0">Account Integrations</h3>
           <div className="flex flex-wrap gap-4 w-full min-w-0">
@@ -66,10 +70,18 @@ export function ThirdPartyGamesScreen() {
           </div>
       </div>
 
-      {/* Hero Section */}
       <div className="space-y-6">
         <h1 className="text-4xl font-black text-foreground tracking-tighter">Third Party Games Hub</h1>
         
+        {FEATURED_GAMES.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-border bg-card/50 px-6 py-16 text-center">
+            <Gamepad2 className="mx-auto mb-3 h-10 w-10 text-muted-foreground" />
+            <p className="text-lg font-black">No featured games yet</p>
+            <p className="mt-1 text-sm text-muted-foreground">
+              Linked Steam / Epic titles and partner games will appear here.
+            </p>
+          </div>
+        ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
           {FEATURED_GAMES.map(game => (
             <motion.div 
@@ -84,9 +96,9 @@ export function ThirdPartyGamesScreen() {
             </motion.div>
           ))}
         </div>
+        )}
       </div>
 
-      {/* Filter Section */}
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
           <h3 className="text-xl font-black text-foreground">All Games</h3>
@@ -108,6 +120,11 @@ export function ThirdPartyGamesScreen() {
           ))}
         </div>
 
+        {filteredGames.length === 0 ? (
+          <div className="rounded-3xl border border-dashed border-border bg-card/40 px-6 py-12 text-center text-sm text-muted-foreground">
+            No third-party games available yet.
+          </div>
+        ) : (
         <motion.div 
           layout
           className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6"
@@ -133,7 +150,9 @@ export function ThirdPartyGamesScreen() {
             ))}
           </AnimatePresence>
         </motion.div>
+        )}
       </div>
     </motion.div>
+    </div>
   );
 }

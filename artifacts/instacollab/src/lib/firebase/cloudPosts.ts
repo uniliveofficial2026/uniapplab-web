@@ -86,10 +86,21 @@ export async function upsertFirebaseCloudPost(post: Post): Promise<boolean> {
   return true;
 }
 
-export async function deleteFirebaseCloudPost(postId: string): Promise<boolean> {
+export async function deleteFirebaseCloudPost(
+  postId: string,
+  userId?: string,
+): Promise<boolean> {
   const db = firestore();
   if (!db || !postId) return false;
-  await deleteDoc(doc(db, COLLECTION, postId));
+  if (!userId || !isCloudAuthUserId(userId)) return false;
+
+  const ref = doc(db, COLLECTION, postId);
+  const snap = await getDoc(ref);
+  if (!snap.exists()) return true;
+  const authorId = String(snap.data()?.author_id ?? '');
+  if (authorId !== userId) return false;
+
+  await deleteDoc(ref);
   return true;
 }
 

@@ -26,6 +26,7 @@ export function deliveryStatusLabel(status: ChatMessage['deliveryStatus']): stri
 export function deliveryStatusLabelForMessage(message: ChatMessage, now = Date.now()): string | null {
   if (message.deliveryStatus === 'failed') return 'Failed';
   if (message.deliveryStatus === 'sending') {
+    if (message.cloudId) return null;
     const ts = getMessageTimestampMs(message.timestamp);
     if (ts > 0 && now - ts > STALE_SEND_MS) return null;
     if (ts > 0 && now - ts >= SLOW_SEND_MS) return 'Sending…';
@@ -46,6 +47,7 @@ export function countThreadDeliveryStates(thread: ChatMessage[]): {
   for (const message of thread) {
     if (message.deliveryStatus === 'failed') failed += 1;
     if (message.deliveryStatus === 'sending') {
+      if (message.cloudId) continue;
       const ts = getMessageTimestampMs(message.timestamp);
       if (ts > 0 && now - ts > STALE_SEND_MS) continue;
       sending += 1;

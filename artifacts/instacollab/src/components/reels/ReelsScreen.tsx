@@ -28,6 +28,7 @@ import {
   toggleNativeVideoMuted,
   tryEnterVideoFullscreen,
 } from '../../lib/nativeVideoPlatform';
+import { getThermalPolicy } from '../../lib/performance/thermalGovernor';
 import { FullscreenPostMediaContent } from '../common/FullscreenPostMediaContent';
 import { resolveEditorSoundtrackUrl } from '../../lib/audioMedia';
 import { resolveReelDiscCoverUrl } from '../../lib/mediaCoverArt';
@@ -48,6 +49,7 @@ import { reelPlaybackId } from '../../lib/reelPlayback';
 import { useReelsActiveIndex } from '../../lib/reels/reelsActiveIndex';
 import {
   computeReelInlineWantsPlay,
+  computeReelVideoPreload,
 } from '../../lib/reels/reelPlayRules';
 import { useReelDirectVideoPlayback } from '../../lib/reels/useReelDirectVideoPlayback';
 import { buildMediaFilterStyle } from '../../lib/mediaFilters';
@@ -130,21 +132,21 @@ export function ReelsScreen({ initialReelId }: { initialReelId?: string | null }
   }, []);
 
   return (
-    <div className="w-full h-full flex flex-col items-center bg-background overflow-hidden relative">
+    <div className="w-full h-full flex flex-col items-center bg-black overflow-hidden relative">
       <div 
         ref={scrollRef}
-        className={`w-full max-w-[470px] h-full overflow-y-auto no-scrollbar snap-y snap-mandatory border-x border-zinc-800 ${isCommentsOpen ? '!overflow-hidden !snap-none' : ''}`}
+        className={`w-full md:max-w-[470px] h-full overflow-y-auto no-scrollbar snap-y snap-mandatory md:border-x md:border-zinc-800 ${isCommentsOpen ? '!overflow-hidden !snap-none' : ''}`}
       >
-          {REELS.map((reel, index) => (
+          {(REELS ?? []).filter(Boolean).map((reel, index) => (
             <ReelItem 
-              key={reel.id} 
+              key={reel?.id ?? `reel-${index}`} 
               reel={reel}
               reelIndex={index}
               isActive={index === activeReelIndex} 
-              isLastReel={index === REELS.length - 1}
+              isLastReel={index === (REELS?.length ?? 0) - 1}
               scrollToNextReel={scrollToNextReel}
               db={db} 
-              USERS={USERS} 
+              USERS={USERS ?? []} 
               isCommentsOpen={index === activeReelIndex && isCommentsOpen}
               setIsCommentsOpen={setIsCommentsOpen}
               showToast={showToast}
@@ -302,10 +304,7 @@ function ReelItem({ reel, reelIndex, isActive, isLastReel, scrollToNextReel, db,
     e.stopPropagation();
     const authorId = liveReel?.user?.id;
     if (!authorId) return;
-    const next = db.toggleFollow(authorId);
-    if (next === null) return;
-    const label = reelAuthor.username || reelAuthor.displayName || 'user';
-    showToast(next ? `Following ${label}` : `Unfollowed ${label}`);
+    db.toggleFollow(authorId);
   };
   
   const [showShareModal, setShowShareModal] = useState(false);
@@ -606,7 +605,7 @@ function ReelItem({ reel, reelIndex, isActive, isLastReel, scrollToNextReel, db,
           ref={videoRef}
           src={videoSrc}
           poster={(resolvedPosterUrl || displayMedia.posterUrl || '').trim() || undefined}
-          preload={isActive ? 'auto' : 'metadata'}
+          preload={computeReelVideoPreload(isActive, getThermalPolicy())}
           loop={false}
           muted={soundtrackUrl ? true : db.globalMuted}
           onPlay={() => setIsPlaying(true)}

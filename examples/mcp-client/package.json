@@ -1,0 +1,7 @@
+{
+  "name": "@unilives/example-mcp-client",
+  "private": true,
+  "type": "module",
+  "version": "0.1.0",
+  "scripts": { "typecheck": "node --check index.mjs", "build": "node --check index.mjs", "test": "node --check index.mjs" }
+}

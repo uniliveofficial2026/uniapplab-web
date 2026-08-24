@@ -1,5 +1,4 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import YouTube, { type YouTubeEvent } from 'react-youtube';
 import {
   ArrowLeft,
   Clock3,
@@ -18,15 +17,15 @@ import {
 } from 'lucide-react';
 import { AddToPlaylistSheet } from '../components/youtube/AddToPlaylistSheet';
 import { YoutubeLiveFullscreenFeed } from '../components/youtube/YoutubeLiveFullscreenFeed';
-import {
-  applyYoutubePlayerVolume,
-  stabilizeYoutubePlayerVolume,
-  YOUTUBE_PLAYER_VARS,
-} from '../lib/youtubePlayerVolume';
+import { YoutubeSearchFilterBar } from '../components/youtube/YoutubeSearchFilterBar';
+import { YoutubeWatchDeepPanel } from '../components/youtube/YoutubeWatchDeepPanel';
+import { WatchTogetherYoutubePlayer } from '../smule-rooms/components/WatchTogetherYoutubePlayer';
 import {
   clearYoutubeHistory,
   fetchAllYoutubePlaylistItems,
   fetchYoutubePopular,
+  fetchYoutubeRelated,
+  fetchYoutubeVideoDetails,
   hydrateYoutubeEngagementFromCloud,
   isYoutubeFavorite,
   isYoutubeLiked,
@@ -45,8 +44,14 @@ import {
   toggleYoutubeLike,
   toggleYoutubeWatchLater,
   youtubeThumbnailUrl,
+  isPlayableYoutubeVideo,
+  youtubeResultKey,
   type YoutubeVideoSummary,
 } from '../services/youtube';
+import {
+  countYoutubeSearchFilters,
+  type YoutubeSearchFilters,
+} from '../lib/youtubeSearchFilters';
 import {
   addVideoToYoutubePlaylist,
   createYoutubePlaylist,
@@ -92,6 +97,8 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
   const [tab, setTab] = useState<LibraryTab>('search');
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
+  const [searchActive, setSearchActive] = useState(false);
+  const [searchFilters, setSearchFilters] = useState<YoutubeSearchFilters>({});
   const [results, setResults] = useState<YoutubeVideoSummary[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [activeVideo, setActiveVideo] = useState<YoutubeVideoSummary | null>(null);
@@ -125,6 +132,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
   const [homeShorts, setHomeShorts] = useState<YoutubeVideoSummary[]>([]);
   const [homeLives, setHomeLives] = useState<YoutubeVideoSummary[]>([]);
   const [loadingFeed, setLoadingFeed] = useState(false);
+  const [seekToSeconds, setSeekToSeconds] = useState<number | null>(null);
 
   const favorites = useMemo(() => readYoutubeEngagement('favorite'), [engagementTick]);
   const history = useMemo(() => readYoutubeEngagement('history'), [engagementTick]);
@@ -157,25 +165,16 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
       else setLoadingFeed(true);
       setError(null);
       try {
-        const videosPromise = pageToken
-          ? fetchYoutubePopular(pageToken)
-          : fetchYoutubePopular();
-        const shortsPromise = pageToken
-          ? Promise.resolve(null)
-          : searchYoutubeShorts().catch(() => null);
-        const livesPromise = pageToken
-          ? Promise.resolve(null)
-          : searchYoutubeLive(undefined, undefined, 'live').catch(() => null);
-
-        const [videos, shortsRes, livesRes] = await Promise.all([
-          videosPromise,
-          shortsPromise,
-          livesPromise,
-        ]);
-
+        const videos = pageToken ? await fetchYoutubePopular(pageToken) : await fetchYoutubePopular();
         setHomeFeed((prev) => (pageToken ? [...prev, ...videos.items] : videos.items));
         setHomeFeedNext(videos.nextPageToken);
+        setLoadingFeed(false);
+
         if (!pageToken) {
+          const [shortsRes, livesRes] = await Promise.all([
+            searchYoutubeShorts().catch(() => null),
+            searchYoutubeLive(undefined, undefined, 'live').catch(() => null),
+          ]);
           if (shortsRes?.items?.length) {
             setHomeShorts(shortsRes.items.map((item) => ({ ...item, isShort: true })).slice(0, 12));
           }
@@ -292,9 +291,13 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
     void loadLives();
   }, [tab, lives.length, loadLives]);
 
-  const runSearch = async (searchQuery: string, pageToken?: string) => {
+  const runSearch = async (
+    searchQuery: string,
+    pageToken?: string,
+    filters: YoutubeSearchFilters = searchFilters,
+  ) => {
     const q = searchQuery.trim();
-    if (!q) return;
+    if (!q && countYoutubeSearchFilters(filters) === 0) return;
 
     const playlistId = parseYoutubePlaylistId(q);
     if (playlistId && !pageToken) {
@@ -305,6 +308,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
         setResults(items);
         setNextPageToken(null);
         setSubmittedQuery(q);
+        setSearchActive(true);
         setTab('search');
         if (items[0]) {
           setActiveVideo(items[0]);
@@ -324,17 +328,24 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
 
     const videoId = parseYoutubeVideoId(q);
     if (videoId && !pageToken && !q.includes(' ')) {
-      const video: YoutubeVideoSummary = {
-        videoId,
-        title: isYoutubeShortsUrl(q) ? 'YouTube Short' : 'YouTube video',
-        channelTitle: '',
-        thumbnailUrl: youtubeThumbnailUrl(videoId),
-        isShort: isYoutubeShortsUrl(q),
-      };
-      setResults([video]);
-      setSubmittedQuery(q);
-      setNextPageToken(null);
-      await playVideo(video);
+      setLoading(true);
+      try {
+        const details = await fetchYoutubeVideoDetails(videoId).catch(() => null);
+        const video: YoutubeVideoSummary = details ?? {
+          videoId,
+          title: isYoutubeShortsUrl(q) ? 'YouTube Short' : 'YouTube video',
+          channelTitle: '',
+          thumbnailUrl: youtubeThumbnailUrl(videoId),
+          isShort: isYoutubeShortsUrl(q),
+        };
+        setResults([video]);
+        setSubmittedQuery(q);
+        setSearchActive(true);
+        setNextPageToken(null);
+        await playVideo(video);
+      } finally {
+        setLoading(false);
+      }
       return;
     }
 
@@ -345,10 +356,13 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
     }
 
     try {
-      const response = await searchYoutubeVideos(q, pageToken);
+      const response = await searchYoutubeVideos(q, pageToken, filters);
       setResults((prev) => (pageToken ? [...prev, ...response.items] : response.items));
       setNextPageToken(response.nextPageToken);
-      if (!pageToken) setSubmittedQuery(q);
+      if (!pageToken) {
+        setSubmittedQuery(q);
+        setSearchActive(true);
+      }
       setTab('search');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Search failed');
@@ -357,6 +371,14 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
       setLoadingMore(false);
     }
   };
+
+  useEffect(() => {
+    if (tab !== 'search') return;
+    if (!searchActive) return;
+    void runSearch(submittedQuery, undefined, searchFilters);
+    // Filters are applied to the last submitted query.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchFilters]);
 
   const playVideo = async (
     video: YoutubeVideoSummary,
@@ -367,6 +389,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
     const list = queue && queue.length > 0 ? queue : [video];
     const index = Math.max(0, Math.min(queueIndex, list.length - 1));
     const current = list[index] ?? video;
+    if (!isPlayableYoutubeVideo(current)) return;
     const asShort = Boolean(current.isShort);
     const asLive = Boolean(current.isLive);
     setShortsMode(asShort);
@@ -383,12 +406,36 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
     }
     await recordYoutubeHistory(current);
     refreshEngagement();
+    if (!current.channelTitle || current.title === 'YouTube video' || current.title === 'YouTube Short') {
+      void fetchYoutubeVideoDetails(current.videoId)
+        .then((details) => {
+          setActiveVideo((prev) =>
+            prev?.videoId === details.videoId ? { ...prev, ...details, kind: 'video' } : prev,
+          );
+        })
+        .catch(() => undefined);
+    }
   };
 
   const playQueueOffset = (delta: number) => {
     if (activeQueue.length === 0) return;
     const nextIndex = activeQueueIndex + delta;
-    if (nextIndex < 0 || nextIndex >= activeQueue.length) return;
+    if (nextIndex < 0) return;
+    if (nextIndex >= activeQueue.length) {
+      void (async () => {
+        const current = activeQueue[activeQueueIndex] ?? activeVideo;
+        if (!current?.videoId) return;
+        const related = await fetchYoutubeRelated(current.videoId).catch(() => null);
+        const extra = (related?.items ?? []).filter(
+          (item) => !activeQueue.some((entry) => entry.videoId === item.videoId),
+        );
+        if (extra.length === 0) return;
+        const queue = [...activeQueue, ...extra];
+        setActiveQueue(queue);
+        void playVideo(extra[0], queue, activeQueue.length);
+      })();
+      return;
+    }
     const next = activeQueue[nextIndex];
     if (!next) return;
     setActiveVideo(next);
@@ -409,13 +456,25 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
       void playVideo(shorts[next], shorts, next);
       return;
     }
-    if (!shortsNextToken) return;
     void (async () => {
-      const appended = await loadShorts(shortsQuery.trim() || undefined, shortsNextToken);
-      if (appended[0]) {
-        const queue = [...shorts, ...appended];
-        void playVideo(appended[0], queue, shorts.length);
+      if (shortsNextToken) {
+        const appended = await loadShorts(shortsQuery.trim() || undefined, shortsNextToken);
+        if (appended[0]) {
+          const queue = [...shorts, ...appended];
+          void playVideo(appended[0], queue, shorts.length);
+          return;
+        }
       }
+      const current = shorts[shortsIndex] ?? activeVideo;
+      if (!current?.videoId) return;
+      const related = await fetchYoutubeRelated(current.videoId).catch(() => null);
+      const extra = (related?.items ?? [])
+        .filter((item) => !shorts.some((entry) => entry.videoId === item.videoId))
+        .map((item) => ({ ...item, isShort: true }));
+      if (extra.length === 0) return;
+      const queue = [...shorts, ...extra];
+      setShorts(queue);
+      void playVideo(extra[0], queue, shorts.length);
     })();
   };
 
@@ -474,15 +533,45 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
     return `${m}:${String(s).padStart(2, '0')}`;
   };
 
+  const openSearchResult = (video: YoutubeVideoSummary, queue?: YoutubeVideoSummary[], index = 0) => {
+    const kind = video.kind ?? 'video';
+    if (kind === 'channel' && video.channelId) {
+      const next = { ...searchFilters, type: 'video' as const, channelId: video.channelId };
+      setSearchFilters(next);
+      const q = query.trim() || submittedQuery || video.title;
+      setQuery(q);
+      void runSearch(q, undefined, next);
+      return;
+    }
+    if (kind === 'playlist' && video.playlistId) {
+      void (async () => {
+        setLoading(true);
+        try {
+          const items = await fetchAllYoutubePlaylistItems(video.playlistId!);
+          setResults(items);
+          setNextPageToken(null);
+          if (items[0]) await playVideo(items[0], items, 0);
+        } catch (err) {
+          setError(err instanceof Error ? err.message : 'Playlist load failed');
+        } finally {
+          setLoading(false);
+        }
+      })();
+      return;
+    }
+    void playVideo(video, queue, index);
+  };
+
   /** YouTube-home style grid card (16:9 thumb + title/channel under). */
   const renderFeedCard = (video: YoutubeVideoSummary, queue?: YoutubeVideoSummary[], index = 0) => {
     const duration = formatDuration(video.durationSeconds);
     const list = queue && queue.length > 0 ? queue : [video];
+    const kind = video.kind ?? 'video';
     return (
-      <div key={`${video.videoId}-${index}`} className="group flex w-full flex-col text-left">
+      <div key={`${youtubeResultKey(video)}-${index}`} className="group flex w-full flex-col text-left">
         <button
           type="button"
-          onClick={() => void playVideo(video, list, index)}
+          onClick={() => openSearchResult(video, list, index)}
           className="relative aspect-video w-full overflow-hidden rounded-xl bg-black/50"
         >
           {video.thumbnailUrl ? (
@@ -498,6 +587,16 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
               <Play size={22} className="fill-white" />
             </span>
           </div>
+          {kind === 'channel' ? (
+            <span className="absolute left-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">
+              Channel
+            </span>
+          ) : null}
+          {kind === 'playlist' ? (
+            <span className="absolute left-2 top-2 rounded bg-black/70 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">
+              Playlist
+            </span>
+          ) : null}
           {video.isLive ? (
             <span className="absolute left-2 top-2 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[10px] font-black uppercase tracking-wide text-white">
               <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-white" />
@@ -518,7 +617,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
         <div className="mt-2.5 flex gap-3 px-0.5">
           <button
             type="button"
-            onClick={() => void playVideo(video, list, index)}
+            onClick={() => openSearchResult(video, list, index)}
             className="mt-0.5 flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-gradient-to-br from-red-500 to-rose-700 text-[11px] font-black uppercase text-white"
             aria-label={`Play ${video.title}`}
           >
@@ -527,7 +626,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
           <div className="min-w-0 flex-1">
             <button
               type="button"
-              onClick={() => void playVideo(video, list, index)}
+              onClick={() => openSearchResult(video, list, index)}
               className="w-full text-left"
             >
               <p className="line-clamp-2 text-[13px] font-bold leading-snug text-foreground sm:text-sm">
@@ -571,12 +670,40 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
     const favorited = isYoutubeFavorite(video.videoId);
     const likedVideo = isYoutubeLiked(video.videoId);
     const later = isYoutubeWatchLater(video.videoId);
+    const kind = video.kind ?? 'video';
+
+    const onOpen = () => {
+      if (kind === 'channel' && video.channelId) {
+        const next = { ...searchFilters, type: 'video' as const, channelId: video.channelId };
+        setSearchFilters(next);
+        setQuery(query || video.title);
+        void runSearch(query || video.title, undefined, next);
+        return;
+      }
+      if (kind === 'playlist' && video.playlistId) {
+        void (async () => {
+          setLoading(true);
+          try {
+            const items = await fetchAllYoutubePlaylistItems(video.playlistId!);
+            setResults(items);
+            setNextPageToken(null);
+            if (items[0]) await playVideo(items[0], items, 0);
+          } catch (err) {
+            setError(err instanceof Error ? err.message : 'Playlist load failed');
+          } finally {
+            setLoading(false);
+          }
+        })();
+        return;
+      }
+      void playVideo(video);
+    };
 
     return (
-      <div key={video.videoId} className="flex gap-3 rounded-2xl border border-border bg-card/60 p-3">
+      <div key={youtubeResultKey(video)} className="flex gap-3 rounded-2xl border border-border bg-card/60 p-3">
         <button
           type="button"
-          onClick={() => void playVideo(video)}
+          onClick={onOpen}
           className="flex min-w-0 flex-1 items-center gap-3 text-left"
         >
           <div className="h-20 w-32 shrink-0 overflow-hidden rounded-xl bg-black/40">
@@ -586,6 +713,16 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
           </div>
           <div className="min-w-0">
             <div className="flex items-center gap-1.5">
+              {kind === 'channel' ? (
+                <span className="shrink-0 rounded bg-zinc-700 px-1 py-0.5 text-[9px] font-black uppercase text-white">
+                  Channel
+                </span>
+              ) : null}
+              {kind === 'playlist' ? (
+                <span className="shrink-0 rounded bg-zinc-700 px-1 py-0.5 text-[9px] font-black uppercase text-white">
+                  Playlist
+                </span>
+              ) : null}
               {video.isLive ? (
                 <span className="inline-flex shrink-0 items-center gap-1 rounded bg-red-600 px-1 py-0.5 text-[9px] font-black uppercase text-white">
                   Live
@@ -657,8 +794,8 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
   };
 
   return (
-    <div className="flex h-full min-h-0 flex-col bg-background text-foreground">
-      <header className="sticky top-0 z-20 border-b border-border bg-background/95 px-4 py-3 backdrop-blur">
+    <div className="flex h-full min-h-0 flex-col bg-background text-foreground w-full">
+      <header className="sticky top-0 z-20 border-b border-border bg-background/95 app-content-gutter py-3 backdrop-blur app-chrome-safe-top md:pt-3">
         <div className="mx-auto flex max-w-5xl items-center gap-3">
           {onBack ? (
             <button
@@ -710,7 +847,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
               className="flex gap-2"
               onSubmit={(event) => {
                 event.preventDefault();
-                void runSearch(query);
+                void runSearch(query, undefined, searchFilters);
               }}
             >
               <div className="relative flex-1">
@@ -722,8 +859,9 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
                   value={query}
                   onChange={(event) => {
                     setQuery(event.target.value);
-                    if (!event.target.value.trim() && submittedQuery) {
+                    if (!event.target.value.trim() && searchActive && countYoutubeSearchFilters(searchFilters) === 0) {
                       setSubmittedQuery('');
+                      setSearchActive(false);
                       setResults([]);
                       setNextPageToken(null);
                     }
@@ -734,12 +872,13 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
               </div>
               <button
                 type="submit"
-                disabled={loading || !query.trim()}
+                disabled={loading || (!query.trim() && countYoutubeSearchFilters(searchFilters) === 0)}
                 className="rounded-2xl bg-red-600 px-5 text-sm font-black text-white disabled:opacity-50"
               >
                 Search
               </button>
             </form>
+            <YoutubeSearchFilterBar value={searchFilters} onChange={setSearchFilters} />
           </>
         ) : null}
 
@@ -770,22 +909,13 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
         {activeVideo && !activeVideo.isLive && (tab !== 'shorts' || !shortsMode) ? (
           <section className="overflow-hidden rounded-2xl border border-border bg-black shadow-lg">
             <div className={shortsMode ? 'mx-auto aspect-[9/16] max-h-[70vh] w-full max-w-sm' : 'aspect-video w-full'}>
-              <YouTube
+              <WatchTogetherYoutubePlayer
                 videoId={activeVideo.videoId}
-                className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full"
-                opts={{
-                  width: '100%',
-                  height: '100%',
-                  playerVars: { ...YOUTUBE_PLAYER_VARS, loop: 0 },
-                }}
-                onReady={(event: YouTubeEvent) => applyYoutubePlayerVolume(event.target)}
-                onStateChange={(event: YouTubeEvent) => stabilizeYoutubePlayerVolume(event.target)}
-                onEnd={() => {
-                  if (activeQueueIndex + 1 < activeQueue.length) {
-                    playQueueOffset(1);
-                  }
-                }}
                 title={activeVideo.title}
+                className="h-full w-full"
+                seekToSeconds={seekToSeconds}
+                playerVars={{ loop: 0 }}
+                onEnded={() => playQueueOffset(1)}
               />
             </div>
             <div className="space-y-2 bg-card px-4 py-3">
@@ -815,8 +945,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
                 <button
                   type="button"
                   onClick={() => playQueueOffset(1)}
-                  disabled={activeQueueIndex >= activeQueue.length - 1}
-                  className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-bold disabled:opacity-40"
+                  className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-bold"
                 >
                   Next <SkipForward size={14} />
                 </button>
@@ -842,6 +971,21 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
               </div>
             </div>
           </section>
+        ) : null}
+
+        {activeVideo && !activeVideo.isLive && !shortsMode ? (
+          <YoutubeWatchDeepPanel
+            video={activeVideo}
+            onPlay={(item, queue, index) => void playVideo(item, queue, index)}
+            onSeek={(seconds) => setSeekToSeconds(seconds)}
+            onOpenChannel={(_channelId, uploads) => {
+              if (uploads.length > 0) {
+                setResults(uploads);
+                setSearchActive(true);
+                setTab('search');
+              }
+            }}
+          />
         ) : null}
 
         {tab === 'shorts' ? (
@@ -879,20 +1023,12 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
               <div className="mx-auto flex w-full max-w-sm flex-col gap-3">
                 <div className="relative overflow-hidden rounded-3xl border border-border bg-black shadow-xl">
                   <div className="aspect-[9/16] w-full">
-                    <YouTube
+                    <WatchTogetherYoutubePlayer
                       videoId={activeVideo.videoId}
-                      className="h-full w-full [&>iframe]:h-full [&>iframe]:w-full"
-                      opts={{
-                        width: '100%',
-                        height: '100%',
-                        playerVars: { ...YOUTUBE_PLAYER_VARS, controls: 1 },
-                      }}
-                      onReady={(event: YouTubeEvent) => applyYoutubePlayerVolume(event.target)}
-                      onStateChange={(event: YouTubeEvent) => stabilizeYoutubePlayerVolume(event.target)}
-                      onEnd={() => {
-                        playNextShort();
-                      }}
                       title={activeVideo.title}
+                      className="h-full w-full"
+                      playerVars={{ controls: 1 }}
+                      onEnded={() => playNextShort()}
                     />
                   </div>
                   <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/80 to-transparent p-4 pt-16">
@@ -1145,6 +1281,12 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
           </div>
         ) : null}
 
+        {tab === 'search' && !loading && searchActive && results.length === 0 ? (
+          <p className="py-8 text-center text-sm text-muted-foreground">
+            No YouTube results{submittedQuery ? ` for “${submittedQuery}”` : ''}.
+          </p>
+        ) : null}
+
         {tab === 'search' && !loading && results.length > 0 ? (
           <section className="space-y-4">
             <h2 className="text-xs font-black uppercase tracking-wider text-muted-foreground">
@@ -1166,7 +1308,7 @@ export function YouTubePage({ onBack }: YouTubePageProps) {
           </section>
         ) : null}
 
-        {tab === 'search' && !loading && !submittedQuery ? (
+        {tab === 'search' && !loading && !searchActive ? (
           <section className="space-y-6">
             {loadingFeed && homeFeed.length === 0 ? (
               <div className="flex items-center justify-center gap-2 py-10 text-muted-foreground">

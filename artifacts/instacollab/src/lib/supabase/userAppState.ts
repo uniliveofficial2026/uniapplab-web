@@ -71,7 +71,8 @@ export async function fetchSupabaseUserAppState(
 
   if (error) throw error;
   const payload = data?.payload as CloudAppStatePayload | undefined;
-  if (!payload || typeof payload !== 'object' || payload.v !== 1) return null;
+  if (!payload || typeof payload !== 'object') return null;
+  if (payload.v !== 1 && payload.v !== 2) return null;
   return payload;
 }
 
@@ -122,7 +123,7 @@ export async function subscribeSupabaseUserAppState(
         (payload) => {
           const row = payload.new as { payload?: CloudAppStatePayload } | null;
           const next = row?.payload;
-          if (next && typeof next === 'object' && next.v === 1) {
+          if (next && typeof next === 'object' && (next.v === 1 || next.v === 2)) {
             onPayload(next);
           }
         }

@@ -27,6 +27,11 @@ import { subscribeLiveCloudSurfaceRefresh } from '../lib/liveCloudSurfaces';
 import { scheduleInstant } from '../lib/instantTask';
 import { isNetworkOnline } from '../lib/networkStatus';
 import { useKeepAliveTabActive } from '../lib/keepAliveTabContext';
+import {
+  isHostLiveEnded,
+  isHostUserLiveEnded,
+} from '../lib/live/hostLiveEndedRegistry';
+import { LIVE_ROOM_ENDED_EVENT } from '../lib/live/liveControlEvents';
 
 export type LiveDiscoveryItem = {
   id: string;
@@ -48,6 +53,49 @@ const FALLBACK_IMG =
   'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=500&auto=format&fit=crop&q=60';
 
 const POLL_MS = 20_000;
+
+function withoutEndedDiscoveryItems(items: LiveDiscoveryItem[]): LiveDiscoveryItem[] {
+  return items.filter((item) => {
+    if (isHostUserLiveEnded(item.userId)) return false;
+    if (item.partyRoomId && isHostLiveEnded(item.partyRoomId)) return false;
+    if (item.streamId && isHostLiveEnded(item.streamId)) return false;
+    if (item.id && isHostLiveEnded(item.id)) return false;
+    return true;
+  });
+}
+
+/** Drop rows the cloud already marked inactive/ended (authoritative over stale caches). */
+function isCloudRowDiscoverable(row: Record<string, unknown>): boolean {
+  const status = String(row.status ?? row.streamStatus ?? row.live_status ?? 'live')
+    .trim()
+    .toLowerCase();
+  if (!status || status === 'live' || status === 'active' || status === 'connected') return true;
+  if (
+    status === 'ended' ||
+    status === 'inactive' ||
+    status === 'stopped' ||
+    status === 'offline' ||
+    status === 'closed'
+  ) {
+    return false;
+  }
+  return true;
+}
+
+function withoutEndedPartyRooms(
+  items: LiveDiscoveryItem[],
+  partyRows: Awaited<ReturnType<typeof fetchActivePartyRooms>>,
+): LiveDiscoveryItem[] {
+  if (!partyRows.length) return items;
+  const endedIds = new Set(
+    partyRows
+      .filter((room) => String(room.status || '').toLowerCase() === 'ended')
+      .map((room) => room.id)
+      .filter(Boolean),
+  );
+  if (endedIds.size === 0) return items;
+  return items.filter((item) => !item.partyRoomId || !endedIds.has(item.partyRoomId));
+}
 
 function withViewerCount(
   item: Omit<LiveDiscoveryItem, 'viewers' | 'viewerCount'> & {
@@ -193,6 +241,7 @@ async function buildDiscoveryItems(viewerUserId?: string | null): Promise<LiveDi
         const id = String(row.id ?? row.streamId ?? '');
         const userId = String(row.userId ?? row.user_id ?? '');
         if (!id || !userId) continue;
+        if (!isCloudRowDiscoverable(row)) continue;
         items.push(
           withViewerCount({
             id,
@@ -271,6 +320,7 @@ async function buildDiscoveryItems(viewerUserId?: string | null): Promise<LiveDi
 
     const liveRooms = partyRows.filter(
       (room) =>
+        String(room.status || '').toLowerCase() !== 'ended' &&
         isDiscoverableLiveRoomMode(room.room_mode) &&
         !seenPartyIds.has(room.id),
     );
@@ -322,7 +372,9 @@ async function buildDiscoveryItems(viewerUserId?: string | null): Promise<LiveDi
       );
       const liveRooms = partyRows.filter(
         (room) =>
-          isDiscoverableLiveRoomMode(room.room_mode) && !seenPartyIds.has(room.id),
+          String(room.status || '').toLowerCase() !== 'ended' &&
+          isDiscoverableLiveRoomMode(room.room_mode) &&
+          !seenPartyIds.has(room.id),
       );
       for (const room of liveRooms) {
         const liveKind = discoveryLiveKindFromTags(room.tags, room.room_mode);
@@ -350,6 +402,7 @@ async function buildDiscoveryItems(viewerUserId?: string | null): Promise<LiveDi
     );
     const liveRooms = partyRows.filter(
       (room) =>
+        String(room.status || '').toLowerCase() !== 'ended' &&
         isDiscoverableLiveRoomMode(room.room_mode) &&
         !seenPartyIds.has(room.id),
     );
@@ -393,7 +446,12 @@ async function buildDiscoveryItems(viewerUserId?: string | null): Promise<LiveDi
     }
   }
 
-  return attachPartyRoomIds(await attachStreamViewerCounts(items), viewerUserId, partyRows);
+  const withParty = await attachPartyRoomIds(
+    await attachStreamViewerCounts(items),
+    viewerUserId,
+    partyRows,
+  );
+  return withoutEndedDiscoveryItems(withoutEndedPartyRooms(withParty, partyRows));
 }
 
 export function useCloudLiveDiscovery(enabled = true, viewerUserId?: string | null) {
@@ -422,7 +480,7 @@ export function useCloudLiveDiscovery(enabled = true, viewerUserId?: string | nu
     setLoading(false);
     setError(null);
     try {
-      const items = await buildDiscoveryItems(viewerUserId);
+      const items = withoutEndedDiscoveryItems(await buildDiscoveryItems(viewerUserId));
       setStreams(items);
     } catch {
       // Keep previous streams on failure — silent degrade to last good list.
@@ -457,10 +515,16 @@ export function useCloudLiveDiscovery(enabled = true, viewerUserId?: string | nu
       if (document.visibilityState !== 'visible') return;
       void refreshRef.current({ silent: true });
     });
+    const onLiveEnded = () => {
+      setStreams((prev) => withoutEndedDiscoveryItems(prev));
+      void refreshRef.current({ silent: true });
+    };
+    window.addEventListener(LIVE_ROOM_ENDED_EVENT, onLiveEnded);
     return () => {
       if (timer != null) window.clearInterval(timer);
       document.removeEventListener('visibilitychange', onVisibility);
       unsubSurface();
+      window.removeEventListener(LIVE_ROOM_ENDED_EVENT, onLiveEnded);
     };
   }, [active, viewerUserId]);
 

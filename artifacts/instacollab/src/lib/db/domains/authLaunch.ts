@@ -2,7 +2,12 @@ import type { LaunchProgress, AuthAccountRecord } from '../../dbTypes';
 import type { User } from '../../../types';
 import type { AuthLaunchLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
-import { markSplashSeenThisSession, markOnboardingCompleteThisSession } from '../../splashSession';
+import { isDemoContentEnabled } from '../../demoContentPolicy';
+import {
+  markSplashSeenThisSession,
+  markOnboardingCompleteThisSession,
+  persistLaunchFunnelAfterAuth,
+} from '../../splashSession';
 
 const LAUNCH_KEY = 'launch_progress';
 const LAUNCH_USER_GATES_KEY = 'launch_user_gates';
@@ -190,6 +195,7 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
           priorGates.profileSetupComplete ||
           priorGates.hasSeenTrending);
 
+      persistLaunchFunnelAfterAuth();
       this.saveLaunchProgress({
         hasSeenSplash: true,
         hasCompletedOnboarding: true,
@@ -226,6 +232,7 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
     }
 
     ensureDemoAuthAccounts() {
+      if (!isDemoContentEnabled()) return;
       const accounts = this.getAuthAccounts();
       const demos: AuthAccountRecord[] = [
         { userId: 'u1', email: 'demo@unilive.app', password: 'demo123' },

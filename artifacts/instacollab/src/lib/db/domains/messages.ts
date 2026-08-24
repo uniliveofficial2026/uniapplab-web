@@ -5,6 +5,7 @@ import type {
   MessagesByChatStore,
 } from '../../dbTypes';
 import { safeUserId } from '../../safe';
+import { isDemoContentEnabled } from '../../demoContentPolicy';
 import {
   ensureCloudThreadForGroup,
   syncCloudGroupMembers,
@@ -60,7 +61,12 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
               ? {
                   ...existing,
                   ...group,
-                  memberIds: [...new Set([...(group.memberIds || []), ...(existing.memberIds || [])])],
+                  // Cloud membership is authoritative. Unioning old local members here
+                  // resurrects users that were removed from a group on another device.
+                  memberIds:
+                    Array.isArray(group.memberIds) && group.memberIds.length > 0
+                      ? [...new Set(group.memberIds)]
+                      : [...new Set(existing.memberIds || [])],
                 }
               : g,
           ),
@@ -271,7 +277,12 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
           (m.cloudId && nextMessage.cloudId && m.cloudId === nextMessage.cloudId),
       );
       if (idx >= 0) {
-        existing[idx] = { ...existing[idx], ...nextMessage };
+        const previous = existing[idx];
+        const merged = { ...previous, ...nextMessage };
+        if (previous.deliveryStatus === 'sent' && merged.deliveryStatus === 'sending') {
+          merged.deliveryStatus = 'sent';
+        }
+        existing[idx] = merged;
         this.save('messages', {
           ...msgs,
           [chatId]: this.cappedList(existing, 'messages'),
@@ -344,14 +355,16 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       this.save('messages', { ...msgs, [chatId]: next });
     }
 
-    markCloudMessageDeleted(chatId: string, cloudId: string) {
+    markCloudMessageDeleted(chatId: string, cloudId: string, localId?: string) {
       if (!chatId || !cloudId) return;
       const msgs = this.asLocalDB().messages;
       const existing = Array.isArray(msgs[chatId]) ? [...msgs[chatId]] : [];
+      const normalizedLocalId = localId ? String(localId) : '';
       const next = existing.map((m) =>
-        m.cloudId === cloudId || m.id === cloudId
+        m.cloudId === cloudId || m.id === cloudId || (normalizedLocalId && String(m.id) === normalizedLocalId)
           ? {
               ...m,
+              cloudId: m.cloudId || cloudId,
               text: 'Message deleted',
               media: undefined,
               location: undefined,
@@ -361,6 +374,11 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
           : m,
       );
       this.save('messages', { ...msgs, [chatId]: next });
+      queueMicrotask(() => {
+        if (typeof window !== 'undefined') {
+          window.dispatchEvent(new CustomEvent('chat-inbox-activity', { detail: { chatId } }));
+        }
+      });
     }
 
     hideMessageForMe(chatId: string, messageIndex: number) {
@@ -612,6 +630,7 @@ export function WithMessages<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
 
     /** Restore DM threads after cloud first-session wipe or empty IDB `messages: {}`. */
     ensureDemoMessagesIfEmpty() {
+      if (!isDemoContentEnabled()) return;
       const msgs = this.asLocalDB().messages;
       const hasThreads = Object.values(msgs).some(
         (thread) => Array.isArray(thread) && thread.length > 0

@@ -7,6 +7,7 @@ import { PublicUserIdField } from '../launch/PublicUserIdField';
 import { useAuth } from '../../lib/AuthContext';
 import { useAppCamera } from '../../contexts/AppCameraContext';
 import { db } from '../../lib/db/localDb';
+import { markOnboardingSeenOnDevice } from '../../lib/splashSession';
 import { isCloudAuthConfigured } from '../../lib/auth/config';
 import { isCloudUsernameAvailable } from '../../lib/auth/cloudProfile';
 import { commitUserProfile } from '../../lib/auth/userDataFlow';
@@ -15,17 +16,20 @@ import {
   usePublicUserIdAvailability,
 } from '../../hooks/usePublicUserIdAvailability';
 import type { User } from '../../types';
+import { localeEnglishName } from '../../lib/i18n/locales';
+import { useI18n } from '../../lib/i18n/I18nContext';
 
 /**
  * Firebase-primary profile setup — same commit path as Launch ProfileSetupScreen.
  */
 export function ProfileSetup() {
   const { user, setProfile } = useAuth();
+  const i18n = useI18n();
   const [username, setUsername] = useState('');
   const [publicUserId, setPublicUserId] = useState('');
   const [displayName, setDisplayName] = useState(user?.displayName || '');
   const [bio, setBio] = useState('');
-  const [language, setLanguage] = useState('English');
+  const [language, setLanguage] = useState(localeEnglishName(i18n.locale));
   const [loading, setLoading] = useState(false);
   const [legalAccepted, setLegalAccepted] = useState(false);
   const [avatarUrl, setAvatarUrl] = useState<string>(user?.photoURL || '');
@@ -123,7 +127,7 @@ export function ProfileSetup() {
       setProfile(result.user);
       try {
         localStorage.setItem('local_profile_' + user.uid, JSON.stringify(result.user));
-        localStorage.setItem('instacollab_has_onboarded', 'true');
+        markOnboardingSeenOnDevice();
       } catch {
         /* quota */
       }

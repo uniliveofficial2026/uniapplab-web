@@ -1,5 +1,6 @@
 import React, { useLayoutEffect, useMemo, useRef, useState } from 'react';
 import {
+  Activity,
   ChevronRight,
   Gift,
   Info,
@@ -8,6 +9,7 @@ import {
   LogOut,
   Mic,
   MicOff,
+  Power,
   Send,
   Settings2,
   Sofa,
@@ -23,6 +25,7 @@ import type { CameraFacingMode } from '../../lib/camera/useCameraStream';
 import { RoomHeaderActionsMenu, createRoomBackgroundHeaderMenuItem, createSingHeaderMenuItem, createYoutubeMiniHeaderMenuItem, type RoomHeaderMenuItem } from './RoomHeaderActionsMenu';
 import { RoomHeaderYoutubeMiniButton } from './RoomHeaderYoutubeMiniButton';
 import { RoomLiveHeaderInfo } from './RoomLiveHeaderInfo';
+import type { HostLiveMetrics } from './HostLiveMetricsStrip';
 import { RoomOwnerSocialControls } from './RoomOwnerSocialControls';
 import { CoinIcon } from '../../components/common/CoinIcon';
 import { DEEPAR_ENABLED } from '../../lib/deepar/deeparEnabled';
@@ -37,6 +40,7 @@ import { buildLiveSeatFullscreenTarget } from '../utils/liveSeatFullscreenTarget
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
 import { deeparSelectionActive, type DeepAREffectSelection } from '../../lib/deepar/deeparEffectSelection';
 import type {
+  TencentBeautifyParams,
   TencentBodyShapeParams,
   TencentEffectItem,
   TencentEffectSelection,
@@ -108,6 +112,9 @@ type MultiGuestViewProps = {
   onCopyRoomId: (event: React.MouseEvent) => void;
   onToggleSaveRoom: (event: React.MouseEvent) => void;
   onLeaveRoom: () => void;
+  onRequestEndLive?: () => void;
+  onOpenHostDashboard?: () => void;
+  hostLiveMetrics?: HostLiveMetrics | null;
   onShareRoom: () => void;
   onOpenRoomDetails: () => void;
   onOpenRoomEdit?: () => void;
@@ -123,6 +130,8 @@ type MultiGuestViewProps = {
   setIsRoomBackgroundMenuOpen: (open: boolean) => void;
   setIsRoomViewersOpen: (open: boolean) => void;
   setIsGiftPickerOpen: (open: boolean) => void;
+  onOpenStickers?: () => void;
+  stickersOpen?: boolean;
   setIsGuestManagementOpen: (open: boolean) => void;
   liveChatMsgs: LiveChatMsg[];
   chatInput: string;
@@ -205,6 +214,8 @@ type MultiGuestViewProps = {
   beautyPanelOpen?: boolean;
   onToggleBeautyPanel?: () => void;
   onSelectBeauty?: (beautyId: BeautyPresetId) => void;
+  onBeautifyParamsChange?: (params: TencentBeautifyParams) => void;
+  beautifyOverride?: TencentBeautifyParams | null;
   onBeautyEffectsChange?: (effects: TencentEffectSelection) => void;
   beautyBodyShape?: TencentBodyShapeParams;
   onBeautyBodyShapeChange?: (shape: TencentBodyShapeParams) => void;
@@ -237,6 +248,9 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   onCopyRoomId,
   onToggleSaveRoom,
   onLeaveRoom,
+  onRequestEndLive,
+  onOpenHostDashboard,
+  hostLiveMetrics = null,
   onOpenRoomDetails,
   onOpenRoomEdit,
   activeSeats,
@@ -251,6 +265,8 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   setIsRoomBackgroundMenuOpen,
   setIsRoomViewersOpen,
   setIsGiftPickerOpen,
+  onOpenStickers,
+  stickersOpen = false,
   setIsGuestManagementOpen,
   liveChatMsgs,
   chatInput,
@@ -297,7 +313,7 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   beautyConfigured = false,
   beautyLoading = false,
   beautyError = null,
-  multiGuestSeatCount = 15,
+  multiGuestSeatCount = 16,
   effectsConfigured = false,
   effectsPanelOpen = false,
   onToggleEffectsPanel,
@@ -318,6 +334,8 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
   beautyPanelOpen = false,
   onToggleBeautyPanel,
   onSelectBeauty,
+  onBeautifyParamsChange,
+  beautifyOverride = null,
   onBeautyEffectsChange,
   beautyBodyShape = EMPTY_BODY_SHAPE,
   onBeautyBodyShapeChange,
@@ -433,16 +451,32 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
         hidden: !canChangeRoomBackground,
       }),
       createYoutubeMiniHeaderMenuItem(),
+      {
+        id: 'host-dashboard',
+        label: 'Live dashboard',
+        icon: <Activity size={15} aria-hidden />,
+        onClick: () => onOpenHostDashboard?.(),
+        hidden: !onOpenHostDashboard,
+      },
+      {
+        id: 'end-live',
+        label: 'End Live',
+        icon: <Power size={15} aria-hidden />,
+        onClick: () => onRequestEndLive?.(),
+        hidden: !onRequestEndLive,
+      },
     ],
     [
       canChangeRoomBackground,
       canChangeRoomMode,
       hasActiveSong,
       hideSingMenu,
+      onOpenHostDashboard,
       onOpenRoomDetails,
       onOpenRoomEdit,
       onOpenRoomModePicker,
       onOpenSing,
+      onRequestEndLive,
       setIsRoomBackgroundMenuOpen,
       songQueueLength,
     ],
@@ -715,6 +749,7 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
               onToggleSaveRoom={onToggleSaveRoom}
               canEditAnnouncement={canEditAnnouncement}
               onEditAnnouncement={onEditAnnouncement}
+              hostLiveMetrics={hostLiveMetrics}
               className="max-w-[62%] sm:max-w-none"
             />
 
@@ -931,6 +966,8 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
                 onOpenGuestManagement={() => setIsGuestManagementOpen(true)}
                 guestManagementOpen={guestManagementOpen}
                 onOpenGiftPicker={() => setIsGiftPickerOpen(true)}
+                onOpenStickers={onOpenStickers}
+                stickersOpen={stickersOpen}
                 showCamera
                 userCameraOn={userCameraOn}
                 onToggleUserCamera={onToggleUserCamera}
@@ -962,6 +999,9 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
           onClose={onToggleBeautyPanel}
           activeBeautyId={beautyEffectId}
           onSelectBeauty={onSelectBeauty}
+          onBeautifyParamsChange={onBeautifyParamsChange}
+          beautifyOverride={beautifyOverride}
+          selfName="You"
           effects={beautyEffects}
           onEffectsChange={onBeautyEffectsChange}
           bodyShape={beautyBodyShape}

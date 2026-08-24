@@ -259,18 +259,31 @@ export function setAppCameraFacing(facingMode: CameraFacingMode): Promise<MediaS
     const previous = sharedStream;
     const previousFacing = sharedFacing;
     for (const lease of leases.values()) lease.facingMode = facingMode;
-    sharedFacing = facingMode;
-    sharedStream = null;
+    // Keep the last valid preview until the new device stream is live.
+    // Nulling `sharedStream` first blanks the host preview during flip.
+    const primary = Array.from(leases.values())[0]!;
     try {
-      const next = await ensureStreamForLeases();
-      if (previous && previous !== next) stopStream(previous);
-      if (next) notify(next);
-      return next;
+      const opened = await openCameraMediaStream({
+        facingMode,
+        audio: Array.from(leases.values()).some((lease) => lease.audio),
+        videoIdeal: primary.videoIdeal,
+        frameRate: primary.frameRate,
+        exactFacing: Array.from(leases.values()).some((lease) => lease.exactFacing),
+      });
+      sharedStream = opened.stream;
+      applyActualFacing(opened.facingMode);
+      if (previous && previous !== opened.stream) stopStream(previous);
+      notify(opened.stream);
+      void import('../webar/tencentWebARWarm')
+        .then((m) => m.onSharedInputReplaced(opened.stream))
+        .catch(() => undefined);
+      return opened.stream;
     } catch {
       // Flip failed (e.g. no back camera) — restore the prior stream + facing if still live.
       if (isStreamLive(previous)) {
         sharedStream = previous;
         applyActualFacing(previousFacing);
+        for (const lease of leases.values()) lease.facingMode = previousFacing;
         notify(previous);
         return previous;
       }

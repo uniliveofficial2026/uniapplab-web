@@ -145,3 +145,15 @@ if (appOrigin && /localhost|127\.0\.0\.1|\[::1\]/i.test(appOrigin)) {
 } else if (appOrigin) {
   console.log(`[build] App origin for OAuth redirects: ${appOrigin}`);
 }
+
+const demoFlag = String(env.VITE_ENABLE_DEMO_CONTENT ?? '').trim().toLowerCase();
+if (
+  (onVercel || process.env.NODE_ENV === 'production') &&
+  (demoFlag === '1' || demoFlag === 'true')
+) {
+  console.error('');
+  console.error('[build] VITE_ENABLE_DEMO_CONTENT must not be enabled in production builds.');
+  console.error('  Unset it or set VITE_ENABLE_DEMO_CONTENT=0 before shipping.');
+  console.error('');
+  process.exit(1);
+}

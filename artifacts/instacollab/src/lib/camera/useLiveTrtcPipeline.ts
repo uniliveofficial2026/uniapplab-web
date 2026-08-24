@@ -4,10 +4,7 @@
  * UI shells (SoloLiveView, MultiGuestView, etc.) stay design-only.
  */
 import { useCallback, useEffect, useMemo, useRef, useState, type RefObject } from 'react';
-import {
-  getBeautyVideoFilter,
-  type BeautyPresetId,
-} from '../ar/beautyFilters';
+import { resolveBeautyCssFilter, type BeautyPresetId } from '../ar/beautyFilters';
 import { isBodyShapeActive, BODY_SHAPE_COMING_SOON, type BodyShapeParams } from '../ar/bodyShape';
 import { useStreamBeauty } from '../ar/useStreamBeauty';
 import {
@@ -26,9 +23,20 @@ import { useDeepAR } from '../deepar/useDeepAR';
 import { useCameraStream, type CameraFacingMode } from './useCameraStream';
 import { resolveCameraReady, useTrtcCameraInput } from './trtcCameraPipeline';
 import { useVideoFrameReady } from './useVideoFrameReady';
+import {
+  noteHostBeautyReady,
+  noteHostCameraAcquiring,
+  noteHostCameraPermission,
+  noteHostCameraSwitchFrame,
+  noteHostCameraSwitchStarted,
+  noteHostRawPreviewReady,
+  setHostMediaPresetId,
+} from './hostMediaSession';
 import { isTencentWebARConfigured, warmTencentWebARPipelineNow } from '../webar/useTencentWebAR';
 import type { TencentEffectItem, TencentEffectSelection } from '../webar/webarTypes';
 import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../webar/webarTypes';
+import type { TencentBeautifyParams } from '../webar/webarTypes';
+import { isTencentBeautifyActive } from '../ar/beautyFilters';
 
 /** LiveKit publish rate — 30fps keeps CPU lower than capture-every-paint (0). */
 const LIVE_CANVAS_FPS = 30;
@@ -42,6 +50,7 @@ export type UseLiveTrtcPipelineOptions = {
   bodyShape?: BodyShapeParams;
   beautyPanelOpen?: boolean;
   effectsPanelOpen?: boolean;
+  beautifyOverride?: TencentBeautifyParams | null;
 };
 
 export type LiveTrtcPipelineState = {
@@ -91,6 +100,7 @@ export function useLiveTrtcPipeline({
   bodyShape = EMPTY_BODY_SHAPE,
   beautyPanelOpen = false,
   effectsPanelOpen = false,
+  beautifyOverride = null,
 }: UseLiveTrtcPipelineOptions): LiveTrtcPipelineState {
   const configured = isDeepARConfigured();
   const beautyConfigured = isTencentWebARConfigured();
@@ -104,7 +114,11 @@ export function useLiveTrtcPipeline({
       beautyEffects.shapeEffectId,
   );
   const shapeActive = !BODY_SHAPE_COMING_SOON && isBodyShapeActive(bodyShape);
-  const beautySelected = beautyId !== 'none' || beautyEffectsActive || shapeActive;
+  const beautySelected =
+    beautyId !== 'none' ||
+    beautyEffectsActive ||
+    shapeActive ||
+    Boolean(beautifyOverride && isTencentBeautifyActive(beautifyOverride));
   const deeparWarm =
     configured && !beautyConfigured && (effectSelected || effectsPanelOpen);
   /** Publish processed frames only while an effect is actually selected. */
@@ -117,6 +131,9 @@ export function useLiveTrtcPipeline({
   const inputTrackIdRef = useRef('');
   const [videoTrack, setVideoTrack] = useState<MediaStreamTrack | null>(null);
   const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
+  const switchingRef = useRef(false);
+  const tracedRawRef = useRef(false);
+  const tracedBeautyRef = useRef(false);
   const mirrorSelf = facingMode === 'user';
 
   useEffect(() => {
@@ -124,6 +141,8 @@ export function useLiveTrtcPipeline({
   }, [enabled]);
 
   const toggleCameraFacing = useCallback(() => {
+    switchingRef.current = true;
+    noteHostCameraSwitchStarted();
     setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
   }, []);
 
@@ -139,6 +158,35 @@ export function useLiveTrtcPipeline({
   const cameraReady = resolveCameraReady(camera);
   const inputStream = useTrtcCameraInput(enabled, camera, facingMode);
   const inputTrackId = inputStream?.getVideoTracks()[0]?.id ?? '';
+
+  useEffect(() => {
+    if (!enabled) {
+      tracedRawRef.current = false;
+      tracedBeautyRef.current = false;
+      return;
+    }
+    noteHostCameraAcquiring();
+  }, [enabled]);
+
+  useEffect(() => {
+    if (camera.permissionDenied) noteHostCameraPermission(true);
+  }, [camera.permissionDenied]);
+
+  useEffect(() => {
+    if (!enabled || !cameraReady) return;
+    if (switchingRef.current) {
+      switchingRef.current = false;
+      noteHostCameraSwitchFrame();
+    }
+    if (!tracedRawRef.current) {
+      tracedRawRef.current = true;
+      noteHostRawPreviewReady();
+    }
+  }, [enabled, cameraReady, inputTrackId]);
+
+  useEffect(() => {
+    setHostMediaPresetId(beautyId === 'none' ? null : beautyId);
+  }, [beautyId]);
 
   /**
    * Warm the shared WebAR GPU as soon as the live camera is ready.
@@ -160,6 +208,7 @@ export function useLiveTrtcPipeline({
     bodyShape: BODY_SHAPE_COMING_SOON ? undefined : bodyShape,
     mirror: false,
     beautyPanelOpen: enabled && beautyPanelOpen,
+    beautifyOverride,
     loadCatalogs:
       enabled && beautyConfigured && (beautyPanelOpen || beautySelected || cameraReady),
     persistent: trtcProcessing,
@@ -180,6 +229,12 @@ export function useLiveTrtcPipeline({
     beauty.outputVideoRef,
     enabled && beautyConfigured && beautySelected && beauty.ready,
   );
+
+  useEffect(() => {
+    if (!enabled || !beautyVideoReady || tracedBeautyRef.current) return;
+    tracedBeautyRef.current = true;
+    noteHostBeautyReady();
+  }, [enabled, beautyVideoReady]);
 
   const beautyOutputStream =
     beauty.outputStream ?? beauty.outputStreamRef.current ?? null;
@@ -208,8 +263,8 @@ export function useLiveTrtcPipeline({
   // Effects-only (beautyId none) still gets a natural look so go-live never flashes raw face.
   const beautyCssFilter = useMemo(() => {
     if (!beautySelected || showDeeparPreview || trtcOutputReady) return null;
-    return getBeautyVideoFilter(beautyId !== 'none' ? beautyId : 'beauty-natural');
-  }, [beautyId, beautySelected, showDeeparPreview, trtcOutputReady]);
+    return resolveBeautyCssFilter(beautyId, beautifyOverride);
+  }, [beautyId, beautifyOverride, beautySelected, showDeeparPreview, trtcOutputReady]);
 
   useEffect(() => {
     if (cameraReady && deepar.ready) {

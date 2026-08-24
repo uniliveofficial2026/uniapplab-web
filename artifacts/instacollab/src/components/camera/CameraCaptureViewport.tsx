@@ -1,7 +1,6 @@
 import type { RefObject } from 'react';
 import {
   CallVideoSurface,
-  CALL_VIDEO_FULLSCREEN_CLASS,
 } from '../messages/CallVideoSurface';
 
 export type CameraCaptureViewportProps = {
@@ -13,6 +12,8 @@ export type CameraCaptureViewportProps = {
   showFacePreview?: boolean;
   /** TRTC output sink — shown full-bleed when beauty preview is active (same element the SDK paints). */
   beautySinkVideoRef?: RefObject<HTMLVideoElement | null>;
+  /** `fill` clips to a relative tile; `fullscreen` is edge-to-edge stage. */
+  layout?: 'fullscreen' | 'fill';
 };
 
 /**
@@ -28,6 +29,7 @@ export function CameraCaptureViewport({
   facePreviewRef,
   showFacePreview = false,
   beautySinkVideoRef,
+  layout = 'fullscreen',
 }: CameraCaptureViewportProps) {
   const showTrtcSink = Boolean(showBeautyPreview && beautySinkVideoRef);
   const showTrtcStreamSurface = Boolean(showBeautyPreview && beautyStream && !beautySinkVideoRef);
@@ -35,10 +37,16 @@ export function CameraCaptureViewport({
   const mirrorClass = mirrorRaw ? ' origin-center [transform:scaleX(-1)_translateZ(0)]' : '';
 
   return (
-    <div className="absolute inset-0 overflow-hidden bg-black">
+    <div
+      className={
+        layout === 'fill'
+          ? 'relative h-full w-full overflow-hidden bg-black'
+          : 'absolute inset-0 overflow-hidden bg-black'
+      }
+    >
       <CallVideoSurface
         stream={rawStream}
-        layout="fullscreen"
+        layout={layout}
         framing="cover"
         mirrored={mirrorRaw}
         label="Camera preview"
@@ -53,7 +61,7 @@ export function CameraCaptureViewport({
           aria-hidden={!showTrtcSink}
           className={
             showTrtcSink
-              ? `absolute inset-0 z-[1] h-full w-full object-cover object-center${mirrorClass}`
+              ? `absolute inset-0 z-[1] h-full w-full max-h-full max-w-full object-cover object-center${mirrorClass}`
               : 'fixed h-px w-px opacity-0 pointer-events-none'
           }
           style={showTrtcSink ? undefined : { left: -9999, top: -9999 }}
@@ -62,11 +70,11 @@ export function CameraCaptureViewport({
       {showTrtcStreamSurface ? (
         <CallVideoSurface
           stream={beautyStream}
-          layout="fullscreen"
+          layout={layout}
           framing="cover"
           mirrored={mirrorRaw}
           label="Beauty preview"
-          className={`${CALL_VIDEO_FULLSCREEN_CLASS} z-[1]`}
+          className="z-[1]"
         />
       ) : null}
       {facePreviewRef ? (

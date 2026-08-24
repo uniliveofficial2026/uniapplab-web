@@ -1,10 +1,12 @@
 import { createRoot } from 'react-dom/client';
 import { SpeedInsights } from '@vercel/speed-insights/react';
+import './lib/adminMirrorRole';
 import App from './App.tsx';
 import './index.css';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AppQueryProvider } from './providers/AppQueryProvider';
 import { AuthProvidersHost } from './providers/AuthProvidersHost';
+import { PublicRuntimeConfigProvider } from './runtime-config/PublicRuntimeConfigProvider';
 import { registerAppServiceWorker } from './lib/pwaRegister';
 import { bootNativeShell } from './lib/bootNativeShell';
 import { initSupabaseClient } from './lib/supabase/client';
@@ -16,6 +18,7 @@ import { installPersistenceGuards } from './lib/persistSession';
 import { bootstrapDocumentTheme } from './lib/theme';
 import { clearChunkReloadGuard, installChunkLoadRecovery } from './lib/lazyWithRetry';
 import { installRuntimeGuards } from './lib/runtimeGuards';
+import { startThermalGovernor } from './lib/performance/thermalGovernor';
 import { installRuntimeSelfHeal } from './lib/selfHeal';
 import { initRuntimeAutoHeal } from './lib/runtimeAutoHeal';
 import { initSupabaseResilience } from './lib/auth/supabaseResilience';
@@ -29,7 +32,16 @@ import { blockLivePresenceCloudQueries } from './lib/supabase/livePresenceGuard'
 import { onAppShellReady } from './lib/appShellReady';
 import { initAppBrandRuntime } from './lib/appBrandRuntime';
 import { initAppAutopilot } from './lib/initAppAutopilot';
-import { clearSplashSeenThisSession } from './lib/splashSession';
+import { isAdminStudioEmbed } from './lib/adminStudioEmbed';
+import { readSessionCache } from './lib/sessionCache';
+import {
+  clearSplashSeenThisSession,
+  hasCompletedOnboardingOnDevice,
+  hasSeenBootSplashOnDevice,
+  markAuthGateThisSession,
+  markOnboardingCompleteThisSession,
+  markSplashSeenThisSession,
+} from './lib/splashSession';
 import {
   ensureBootSplashPlaying,
   isBrowserOnline,
@@ -38,19 +50,36 @@ import {
 } from './lib/bootSplashVideo';
 
 /**
- * `#boot-shell` in HTML = this document must play the first video ~5s.
- * Clear session splash flag so React stays on the splash route until it finishes.
- * (Do not strip the shell early — that was why the video kept skipping.)
+ * First video (`#boot-shell`) is for newcomers only.
+ * Returning devices skip it; the second in-app loading video covers refresh / normal loads.
  */
-if (typeof document !== 'undefined' && document.getElementById('boot-shell')) {
-  clearSplashSeenThisSession();
-  resetBootSplashWaitState();
-  const online = isBrowserOnline();
-  ensureBootSplashPlaying({ loop: !online });
-  startBootSplashPlay({
-    isOnline: isBrowserOnline,
-    isReady: () => true,
-  });
+if (typeof document !== 'undefined') {
+  if (isAdminStudioEmbed()) {
+    document.getElementById('boot-shell')?.remove();
+    document.documentElement.classList.add('admin-live-embed');
+    markSplashSeenThisSession();
+    markOnboardingCompleteThisSession();
+    markAuthGateThisSession();
+  } else if (hasSeenBootSplashOnDevice()) {
+    document.getElementById('boot-shell')?.remove();
+    markSplashSeenThisSession();
+    if (hasCompletedOnboardingOnDevice()) {
+      markOnboardingCompleteThisSession();
+    }
+    if (readSessionCache()) {
+      markOnboardingCompleteThisSession();
+      markAuthGateThisSession();
+    }
+  } else if (document.getElementById('boot-shell')) {
+    clearSplashSeenThisSession();
+    resetBootSplashWaitState();
+    const online = isBrowserOnline();
+    ensureBootSplashPlaying({ loop: !online });
+    startBootSplashPlay({
+      isOnline: isBrowserOnline,
+      isReady: () => true,
+    });
+  }
 }
 
 // Sync-only setup (no network / IDB waits).
@@ -64,6 +93,7 @@ installAppSafeArea();
 installChunkLoadRecovery();
 installPersistenceGuards();
 installRuntimeGuards();
+startThermalGovernor();
 // Clear stale Firestore multi-tab localStorage before any Firebase SDK touch —
 // QuotaExceeded there previously crashed Karaoke via INTERNAL ASSERTION.
 void import('./lib/firebase/app')
@@ -95,6 +125,12 @@ installRuntimeSelfHeal();
 initRuntimeAutoHeal();
 initSupabaseResilience();
 installUxTelemetry();
+if (import.meta.env.DEV || import.meta.env.VITE_PERF_TRACE === '1') {
+  void import('./lib/performance').then((m) => {
+    m.installWebVitalsObserver();
+    m.installLongTaskObserver();
+  });
+}
 installNativeKeyboardPolicy();
 
 // Instant media: hydrate app-media blobs from localStorage mirrors (feed/chat/k-star).
@@ -107,17 +143,28 @@ if (!rootEl) {
   throw new Error('Missing #root');
 }
 
+const liveToolsProbe = typeof window !== 'undefined'
+  ? new URLSearchParams(window.location.search).get('live_tools_v13_probe')
+  : null;
+
+if (liveToolsProbe) {
+  document.getElementById('boot-shell')?.remove();
+  void import('./dev/LiveToolsV13VisualProbe').then((m) => m.mountLiveToolsV13Probe());
+} else {
 // CRITICAL: paint React immediately. Never await network/IDB before first UI.
 createRoot(rootEl).render(
   <ErrorBoundary>
     <AppQueryProvider>
-      <AuthProvidersHost>
-        <App />
-        <SpeedInsights />
-      </AuthProvidersHost>
+      <PublicRuntimeConfigProvider>
+        <AuthProvidersHost>
+          <App />
+          <SpeedInsights />
+        </AuthProvidersHost>
+      </PublicRuntimeConfigProvider>
     </AppQueryProvider>
   </ErrorBoundary>,
 );
+}
 
 // Remove HTML boot shell once React has painted — never while ~5s play is active.
 onAppShellReady(() => {
@@ -183,7 +230,15 @@ void import('./lib/cloudSocial/platformAppBrandCloud').then((m) => {
 void import('./lib/cacheFirstSync').then((m) => m.startCacheFirstCloudSync());
 
 void initSupabaseClient().then(() => {
-  void import('./lib/preloadAppSurfaces').then((m) => m.preloadCoreAppSurfaces());
+  const warm = () => {
+    void import('./lib/preloadAppSurfaces').then((m) => m.preloadCoreAppSurfaces());
+  };
+  const idle = typeof window !== 'undefined' ? window.requestIdleCallback : undefined;
+  if (typeof idle === 'function') {
+    idle.call(window, warm, { timeout: 2500 });
+  } else {
+    globalThis.setTimeout(warm, 800);
+  }
 });
 
 // Media cache warm is best-effort and never blocks UI.

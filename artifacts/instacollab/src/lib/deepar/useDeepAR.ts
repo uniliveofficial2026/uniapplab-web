@@ -7,6 +7,7 @@ import {
   isDeepARConfigured,
 } from './deeparConfig';
 import { initializeDeepAR, isCameraPermissionError } from './deeparClient';
+import { perceptionOutputFps } from '../performance/thermalGovernor';
 
 export type UseDeepAROptions = {
   previewRef: React.RefObject<HTMLElement | null>;
@@ -195,7 +196,8 @@ export function useDeepAR({
   const getCanvasStream = useCallback((fps = 30): MediaStream | null => {
     const canvas = previewRef.current?.querySelector('canvas');
     if (!canvas) return null;
-    return canvas.captureStream(fps);
+    // Thermal cadence at capture only — does not reload effects or restart gift FX.
+    return canvas.captureStream(perceptionOutputFps(fps, 8));
   }, [previewRef]);
 
   const getProcessedStream = useCallback(async (fps = 30): Promise<MediaStream | null> => {

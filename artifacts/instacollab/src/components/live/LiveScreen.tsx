@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react';
+import React, { lazy, Suspense, useEffect, useMemo, useState } from 'react';
 import { Video } from 'lucide-react';
 import { useDB, useDbRevision } from '../../lib/useDB';
 import {
@@ -18,8 +18,17 @@ import {
   openLiveUserRoom,
   preloadLiveRoomEntry,
 } from '../../lib/live/openLiveRoom';
+import {
+  isHostLiveEnded,
+  isHostUserLiveEnded,
+} from '../../lib/live/hostLiveEndedRegistry';
 import { isPartyCloudAvailable } from '../../lib/party/partyCloud';
-import { isPlatformApiAvailable } from '../../lib/platformApi';
+import { fetchLivePkSession, isPlatformApiAvailable, startStream } from '../../lib/platformApi';
+import {
+  parsePkLiveMediaRef,
+  resolvePkMediaId,
+  resolvePkMediaSurface,
+} from '../../lib/live/pkLiveMediaRef';
 import { getStoredOwnerPartyRoomId } from '../../smule-rooms/utils/ownerPartyRoomId';
 import { LiveDiscoveryVideoPreview } from './LiveDiscoveryVideoPreview';
 import { LiveDiscoveryCardChrome } from './LiveDiscoveryCardChrome';
@@ -41,6 +50,15 @@ import {
   UniLivesDiscoveryEmptyState,
   UniLivesLiveRoomCard,
 } from '../discovery/brand';
+import type { OneVsOnePkSessionOpen } from './OneVsOnePkSessionContainer';
+import { teamPkSessionFromSnapshot, type TeamPkSessionOpen } from '../../lib/live/teamPkSession';
+
+const OneVsOnePkSessionContainer = lazy(() =>
+  import('./OneVsOnePkSessionContainer').then((m) => ({ default: m.OneVsOnePkSessionContainer })),
+);
+const TeamPkSessionContainer = lazy(() =>
+  import('./TeamPkSessionContainer').then((m) => ({ default: m.TeamPkSessionContainer })),
+);
 
 const LIVE_PREVIEW_FALLBACK = FALLBACK_MEDIA;
 
@@ -87,30 +105,54 @@ function resolveCardLiveKind(
 export function LiveScreen() {
   const db = useDB();
   const me = resolveUser(db.users, db.currentUser);
-  const cloudLive = useCloudLiveDiscovery(
-    isPartyCloudAvailable() || isPlatformApiAvailable(),
-    me.id,
-  );
+  const meId = me.id && me.id !== 'unknown' ? me.id : '';
+  const cloudDiscoveryEnabled = isPartyCloudAvailable() || isPlatformApiAvailable();
+  const cloudLive = useCloudLiveDiscovery(cloudDiscoveryEnabled, meId || null);
   const localLiveUsers = db.users.filter(
-    (u: User) => u.status === 'live' && u.id !== me.id
+    (u: User) =>
+      u?.status === 'live' &&
+      Boolean(u.id) &&
+      u.id !== meId &&
+      !isHostUserLiveEnded(u.id),
   );
   const [filtersOpen, setFiltersOpen] = useState(false);
   const [typeFilter, setTypeFilter] = useState<LiveTypeFilter>('all');
   const [countryFilter, setCountryFilter] = useState('all');
   const [followFilter, setFollowFilter] = useState<LiveFollowFilter>('all');
   const [searchQuery, setSearchQuery] = useState('');
+  const [pkSession, setPkSession] = useState<OneVsOnePkSessionOpen | null>(null);
+  const [teamPkSession, setTeamPkSession] = useState<TeamPkSessionOpen | null>(null);
   const dbRevision = useDbRevision();
 
   useEffect(() => {
     // Warm karaoke + rooms + LiveKit while browsing discovery so enter is instant.
     void preloadLiveRoomEntry();
+    void import('../../lib/preloadAppSurfaces').then((m) => m.preloadHostMediaPath());
   }, []);
 
   const liveUsers = useMemo(() => {
     const byId = new Map<string, User>();
-    for (const u of localLiveUsers) byId.set(u.id, u);
+    const cloudUserIds = new Set(
+      cloudLive.streams
+        .filter((row) => row.userId && !isHostUserLiveEnded(row.userId))
+        .filter((row) => !row.partyRoomId || !isHostLiveEnded(row.partyRoomId))
+        .map((row) => row.userId),
+    );
+
+    // When cloud discovery is on, only show hosts with an active cloud row —
+    // never keep sticky local/demo "live" status in LIVE NOW.
+    if (!cloudDiscoveryEnabled) {
+      for (const u of localLiveUsers) byId.set(u.id, u);
+    } else {
+      for (const u of localLiveUsers) {
+        if (cloudUserIds.has(u.id)) byId.set(u.id, u);
+      }
+    }
+
     for (const row of cloudLive.streams) {
-      if (!row.userId || row.userId === me.id || byId.has(row.userId)) continue;
+      if (!row.userId || row.userId === meId || byId.has(row.userId)) continue;
+      if (isHostUserLiveEnded(row.userId)) continue;
+      if (row.partyRoomId && isHostLiveEnded(row.partyRoomId)) continue;
       const roomModeHint = row.tags.find(
         (t) => !isLiveKind(t) && t !== 'Live' && String(t).toLowerCase() !== 'pk',
       );
@@ -128,15 +170,15 @@ export function LiveScreen() {
       });
     }
     return [...byId.values()];
-  }, [localLiveUsers, cloudLive.streams, me.id]);
+  }, [localLiveUsers, cloudLive.streams, meId, cloudDiscoveryEnabled]);
 
   const followingIds = useMemo(
-    () => new Set(db.getFollowingIds(me.id)),
-    [db, me.id, dbRevision],
+    () => new Set(meId ? db.getFollowingIds(meId) : []),
+    [db, meId, dbRevision],
   );
   const followerIds = useMemo(
-    () => new Set(db.getFollowerIds(me.id)),
-    [db, me.id, dbRevision],
+    () => new Set(meId ? db.getFollowerIds(meId) : []),
+    [db, meId, dbRevision],
   );
 
   const livePreviewCards = useMemo(() => {
@@ -238,7 +280,7 @@ export function LiveScreen() {
 
   useEffect(() => {
     const discovered = cloudLive.streams
-      .filter((s) => s.userId && s.userId !== me.id)
+      .filter((s) => s.userId && s.userId !== meId)
       .map((s) => {
         const kindTag = s.tags[0];
         const liveKind = isLiveKind(kindTag)
@@ -257,7 +299,7 @@ export function LiveScreen() {
         };
       });
     if (discovered.length) db.cacheDiscoveredUsers(discovered);
-  }, [cloudLive.streams, db, me.id]);
+  }, [cloudLive.streams, db, meId]);
 
   const filterSummary = [
     searchQuery.trim() ? `“${searchQuery.trim()}”` : null,
@@ -273,7 +315,8 @@ export function LiveScreen() {
     .join(' · ');
 
   return (
-    <div className="flex flex-col h-full w-full max-w-[600px] mx-auto px-4 py-6 md:py-10 gap-6 bg-[color:var(--color-unilives-discovery-background)]">
+    <div className="flex flex-col w-full min-h-0 flex-1 bg-[color:var(--color-unilives-discovery-background)]">
+    <div className="app-screen-scroll flex flex-col w-full max-w-[600px] mx-auto px-4 py-6 md:py-10 gap-6">
       <div className="bg-gradient-to-br from-[color:var(--color-unilives-discovery-live)] to-rose-700 rounded-3xl p-8 text-white shadow-xl shadow-red-900/20 flex flex-col sm:flex-row items-center sm:justify-between text-center sm:text-left gap-6 relative overflow-hidden ring-1 ring-white/10">
         <div
           className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20 mix-blend-overlay"
@@ -287,15 +330,45 @@ export function LiveScreen() {
             Go live or watch creators streaming now. Followers get notified when you start.
           </p>
         </div>
-        <button
-          type="button"
-          onClick={() => {
-            openGoLiveCreateRoom();
-          }}
-          className="relative z-10 px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 motion-reduce:hover:scale-100 shadow-2xl whitespace-nowrap text-lg"
-        >
-          Go Live
-        </button>
+        <div className="relative z-10 flex flex-col sm:flex-row gap-3">
+          <button
+            type="button"
+            onClick={() => {
+              openGoLiveCreateRoom();
+            }}
+            className="px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 motion-reduce:hover:scale-100 shadow-2xl whitespace-nowrap text-lg"
+          >
+            Go Live
+          </button>
+          <button
+            type="button"
+            data-ui-id="live.pk.1v1.discovery.start"
+            onClick={() => {
+              void startStream('1v1 PK')
+                .then((stream) => {
+                  setPkSession({
+                    roomId: stream.id,
+                    streamId: stream.id,
+                    mediaSurface: 'stream',
+                    isHost: true,
+                    hostUserId: meId,
+                    hostName: me.displayName || me.username || 'Host',
+                    hostAvatarUrl: me.avatarUrl,
+                  });
+                })
+                .catch(() => {
+                  window.dispatchEvent(
+                    new CustomEvent('app-toast', {
+                      detail: 'Could not start 1v1 PK.',
+                    }),
+                  );
+                });
+            }}
+            className="px-8 py-4 bg-white/15 text-white font-bold rounded-full transition-all hover:scale-105 motion-reduce:hover:scale-100 shadow-2xl whitespace-nowrap text-lg ring-1 ring-white/30"
+          >
+            1v1 PK
+          </button>
+        </div>
       </div>
 
       <div className="space-y-3">
@@ -379,6 +452,56 @@ export function LiveScreen() {
                   void preloadLiveRoomEntry();
                 }}
                 onClick={() => {
+                  if (liveKind === 'pk') {
+                    const discovery = parsePkLiveMediaRef(streamId || partyRoomId || user.id);
+                    const lifecycleRoomId = partyRoomId || streamId || user.id;
+                    void fetchLivePkSession(lifecycleRoomId)
+                      .then((snap) => {
+                        const pk = snap.pk;
+                        if (pk?.pkType === 'pk_team') {
+                          setPkSession(null);
+                          setTeamPkSession(teamPkSessionFromSnapshot(pk));
+                          return;
+                        }
+                        const hostMediaId = resolvePkMediaId(pk?.hostMediaId, pk?.roomId || streamId || partyRoomId);
+                        const opponentMediaId = resolvePkMediaId(
+                          pk?.opponentMediaId,
+                          pk?.opponentRoomId || null,
+                        );
+                        setTeamPkSession(null);
+                        setPkSession({
+                          roomId: pk?.roomId || lifecycleRoomId,
+                          streamId: hostMediaId || discovery.mediaId,
+                          mediaSurface: resolvePkMediaSurface(
+                            pk?.hostMediaSurface,
+                            pk?.roomId || streamId || partyRoomId,
+                          ),
+                          opponentStreamId: opponentMediaId || null,
+                          opponentMediaSurface: pk?.opponentRoomId
+                            ? resolvePkMediaSurface(pk?.opponentMediaSurface, pk.opponentRoomId)
+                            : null,
+                          opponentRoomId: pk?.opponentRoomId || null,
+                          isHost: false,
+                          hostUserId: pk?.hostUserId || snap.hostUserId || user.id,
+                          opponentUserId: pk?.opponentUserId,
+                          hostName: user.displayName || user.username,
+                          hostAvatarUrl: user.avatarUrl || img,
+                        });
+                      })
+                      .catch(() => {
+                        setTeamPkSession(null);
+                        setPkSession({
+                          roomId: lifecycleRoomId,
+                          streamId: discovery.mediaId || streamId || partyRoomId || user.id,
+                          mediaSurface: discovery.surface,
+                          isHost: false,
+                          hostUserId: user.id,
+                          hostName: user.displayName || user.username,
+                          hostAvatarUrl: user.avatarUrl || img,
+                        });
+                      });
+                    return;
+                  }
                   void openLiveUserRoom(user.id, {
                     partyRoomId,
                     streamId,
@@ -421,6 +544,25 @@ export function LiveScreen() {
           </div>
         )}
       </div>
+
+      {teamPkSession ? (
+        <Suspense fallback={null}>
+          <TeamPkSessionContainer
+            session={teamPkSession}
+            onClose={() => setTeamPkSession(null)}
+          />
+        </Suspense>
+      ) : null}
+
+      {pkSession ? (
+        <Suspense fallback={null}>
+          <OneVsOnePkSessionContainer
+            session={pkSession}
+            onClose={() => setPkSession(null)}
+          />
+        </Suspense>
+      ) : null}
+    </div>
     </div>
   );
 }

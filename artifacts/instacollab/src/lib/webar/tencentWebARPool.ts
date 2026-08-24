@@ -12,7 +12,7 @@ import {
   explainTencentWebARAuthError,
   ensureTencentWebARAllowedHostname,
 } from './webarConfig';
-import { WEBAR_CAMERA_FPS } from './webarCameraConfig';
+import { WEBAR_CAMERA_FPS, resolveWebArOutputFps } from './webarCameraConfig';
 import type { TencentWebARInstance } from './webarTypes';
 import { BEAUTY_OFF_PARAMS } from '../ar/beautyFilters';
 
@@ -267,7 +267,7 @@ export async function syncSharedTencentWebARInput(
 
   try {
     sharedOutputStream = (await (sharedInstance.getOutput as (fps?: number) => Promise<MediaStream>)(
-      outputFps,
+      resolveWebArOutputFps(outputFps),
     )) as MediaStream;
   } catch {
     /* keep previous output */
@@ -441,7 +441,7 @@ export async function ensureSharedTencentWebAR(
         kickCatalogs();
 
         sharedOutputStream = (await (instance.getOutput as (fps?: number) => Promise<MediaStream>)(
-          options.outputFps,
+          resolveWebArOutputFps(options.outputFps),
         )) as MediaStream;
         sharedInstance = instance;
         sharedReady = true;

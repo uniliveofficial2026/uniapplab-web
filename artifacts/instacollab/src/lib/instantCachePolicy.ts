@@ -28,7 +28,7 @@ export function instantSuspenseFallback(_blocking?: ReactNode): ReactNode {
     'div',
     {
       className:
-        'flex h-full min-h-[50dvh] w-full flex-1 items-center justify-center bg-background text-foreground',
+        'app-screen app-screen--immersive flex h-full min-h-[50dvh] w-full flex-1 items-center justify-center bg-background text-foreground pt-safe pb-safe',
       'aria-busy': true,
       'aria-label': 'Loading',
     },

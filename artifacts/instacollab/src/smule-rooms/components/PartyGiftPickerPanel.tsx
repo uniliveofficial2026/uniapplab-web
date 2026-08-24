@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { createPortal } from 'react-dom';
-import { useAppPortalRoot } from '../../lib/appPortalRoot';
+import { resolveAppPortalRoot } from '../../lib/appPortalRoot';
 import { Pencil, Trash2, Wrench, X } from 'lucide-react';
 import {
   createEmptyGiftDraft,
@@ -24,6 +24,7 @@ import { LiveGiftsPanel } from './LiveGiftsPanel';
 import { GiftIcon } from '../../components/common/GiftIcon';
 import { GiftIconMediaPicker } from '../../components/admin/GiftIconMediaPicker';
 import { isGiftIconImageFile, uploadGiftEffectAsset } from '../../lib/giftAssetUpload';
+import './live-tools-approved-v15.css';
 
 const VIP_SESSION_KEY = 'live_gift_vip_unlocked';
 
@@ -31,10 +32,12 @@ type PartyGiftPickerPanelProps = {
   open: boolean;
   onClose: () => void;
   receiverName: string;
+  receiverAvatarUrl?: string;
   balance: number;
   roomTotalStars: number;
   isPlatformAdmin: boolean;
   onSendGift: (gift: PartyGiftDefinition, quantity?: number, isComboSend?: boolean) => void;
+  onCycleReceiver?: () => void;
 };
 
 function findPublishedGift(gift: PartyGiftDefinition): PublishedGiftItem | null {
@@ -80,16 +83,30 @@ function readVipUnlocked(): boolean {
   }
 }
 
+function resolveLiveSheetPortalRoot(): HTMLElement | null {
+  if (typeof document === 'undefined') return null;
+  const visible = (node: HTMLElement | null) => Boolean(node && node.getClientRects().length > 0);
+  const embed = document.querySelector<HTMLElement>('.karaoke-smule-room-embed');
+  if (visible(embed) && embed) {
+    return embed.querySelector<HTMLElement>('[data-live-overlay-host], .room-shell') ?? embed;
+  }
+  const host = document.querySelector<HTMLElement>('[data-live-overlay-host]');
+  if (visible(host) && host) return host;
+  return resolveAppPortalRoot();
+}
+
 export function PartyGiftPickerPanel({
   open,
   onClose,
   receiverName,
+  receiverAvatarUrl,
   balance,
   roomTotalStars: _roomTotalStars,
   isPlatformAdmin,
   onSendGift,
+  onCycleReceiver,
 }: PartyGiftPickerPanelProps) {
-  const portalRoot = useAppPortalRoot();
+  const [portalRoot, setPortalRoot] = useState<HTMLElement | null>(null);
   const catalog = usePartyGiftCatalog();
   const [manageMode, setManageMode] = useState(false);
   const [editing, setEditing] = useState<PublishedGiftItem | null>(null);
@@ -105,6 +122,12 @@ export function PartyGiftPickerPanel({
       })),
     [catalog],
   );
+
+  useEffect(() => {
+    if (!open) return undefined;
+    setPortalRoot(resolveLiveSheetPortalRoot());
+    return undefined;
+  }, [open]);
 
   useEffect(() => {
     if (!open) return;
@@ -180,42 +203,32 @@ export function PartyGiftPickerPanel({
 
   return createPortal(
     <>
-      <div className="pointer-events-none fixed inset-x-0 bottom-0 z-[260] flex items-end justify-center pb-[max(0px,env(safe-area-inset-bottom))]">
-        <div className="pointer-events-auto w-full max-w-none">
-          <div className="mb-1.5 flex items-center justify-between gap-2 px-3">
-            <p className="text-[10px] font-bold uppercase tracking-widest text-white/50">Live gifts</p>
-            <div className="flex items-center gap-1">
-              {isPlatformAdmin ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setManageMode((value) => !value);
-                    closeEditor();
-                  }}
-                  className={`flex h-8 items-center gap-1 rounded-full px-2.5 text-[10px] font-bold uppercase tracking-wide transition ${
-                    manageMode
-                      ? 'bg-pink-500/25 text-pink-200'
-                      : 'bg-white/5 text-gray-400 hover:text-white'
-                  }`}
-                  aria-pressed={manageMode}
-                >
-                  <Wrench size={12} />
-                  Manage
-                </button>
-              ) : null}
+      <div className="lt15-overlay" data-ui-id="live.gifts.v14.exact" style={{ zIndex: 260 }}>
+        <button type="button" className="lt15-scrim" aria-label="Close gift panel" onClick={onClose} />
+        <div className="lt15-sheet-host">
+          {isPlatformAdmin && !manageMode ? (
+            <div style={{ display: 'flex', justifyContent: 'flex-end', padding: '0 10px 6px' }}>
               <button
                 type="button"
-                onClick={onClose}
-                className="rounded-full bg-black/40 p-1.5 text-gray-400 hover:text-white"
-                aria-label="Close gift panel"
+                onClick={() => {
+                  setManageMode(true);
+                  closeEditor();
+                }}
+                className="lt15-soft-btn"
+                style={{ height: 28, fontSize: 10 }}
               >
-                <X size={18} />
+                <Wrench size={12} /> Manage
               </button>
             </div>
-          </div>
-
+          ) : null}
           {manageMode && isPlatformAdmin ? (
-            <div className="rounded-t-[24px] border border-b-0 border-pink-500/30 bg-[#1c1130] p-4 shadow-2xl">
+            <div className="lt15-sheet" style={{ borderRadius: '18px 18px 0 0', marginBottom: 0 }}>
+              <div className="lt15-head">
+                <p className="lt15-title">Manage gifts</p>
+                <button type="button" className="lt15-icon-btn" onClick={() => setManageMode(false)} aria-label="Close manage">
+                  <X size={16} />
+                </button>
+              </div>
               {editing ? (
                 <div className="space-y-2 rounded-2xl border border-white/10 bg-black/25 p-3">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-pink-300">Edit gift</p>
@@ -334,10 +347,13 @@ export function PartyGiftPickerPanel({
               gifts={gifts}
               userCoins={balance}
               receiverName={receiverName}
+              receiverAvatarUrl={receiverAvatarUrl}
               isVip={isVip}
               onToggleVip={toggleVip}
               onOpenRecharge={() => setRechargeOpen(true)}
               onSendGift={(gift, quantity, isComboSend) => onSendGift(gift, quantity, isComboSend)}
+              onClose={onClose}
+              onCycleReceiver={onCycleReceiver}
             />
           )}
         </div>

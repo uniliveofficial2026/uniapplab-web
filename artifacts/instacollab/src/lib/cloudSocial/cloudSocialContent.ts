@@ -115,8 +115,8 @@ export function scheduleCloudReelPublish(reel: Reel): void {
   void import('../cloudPostSync').then((m) => m.scheduleCloudPostPublish(asPost));
 }
 
-export function scheduleCloudReelDelete(reelId: string): void {
-  scheduleCloudPostDelete(reelId);
+export function scheduleCloudReelDelete(reelId: string, authorId?: string | null): void {
+  scheduleCloudPostDelete(reelId, authorId);
 }
 
 // ─── comments ────────────────────────────────────────────────────────────────
@@ -389,31 +389,16 @@ async function applyEngagementRows(rows: EngagementRow[]): Promise<void> {
     }
   }
 
-  for (const post of db.posts) {
-    const key = `post:${post.id}`;
-    if (!likeCounts.has(key) && !myLikes.has(key) && !mySaves.has(key)) continue;
-    const likes = likeCounts.get(key);
-    db.updatePost(post.id, (p) => ({
-      ...p,
-      likes: likes ?? p.likes,
-      isLiked: myLikes.has(key),
-      isSaved: mySaves.has(key) ? true : p.isSaved && mySaves.has(key) ? true : mySaves.has(key),
-    }));
-    // Fix isSaved logic - should be: isSaved: mySaves.has(key) when we have engagement data for this post
-  }
-
-  // Re-apply cleanly for posts we have engagement for
   const postIds = new Set(
     rows.filter((r) => r.target_kind === 'post').map((r) => r.target_id),
   );
   for (const postId of postIds) {
     const key = `post:${postId}`;
-    db.updatePost(postId, (p) => ({
-      ...p,
-      likes: likeCounts.get(key) ?? p.likes,
+    db.applyInboundPostEngagement(postId, {
+      likes: likeCounts.get(key) ?? db.posts.find((p) => p.id === postId)?.likes ?? 0,
       isLiked: myLikes.has(key),
       isSaved: mySaves.has(key),
-    }));
+    });
   }
 
   const reelIds = new Set(
@@ -422,12 +407,12 @@ async function applyEngagementRows(rows: EngagementRow[]): Promise<void> {
   for (const reelId of reelIds) {
     const key = `reel:${reelId}`;
     if (!db.reels.some((r) => r.id === reelId)) continue;
-    db.updateReel(reelId, (r) => ({
-      ...r,
-      likes: likeCounts.get(key) ?? r.likes,
+    const existing = db.reels.find((r) => r.id === reelId);
+    db.applyInboundReelEngagement(reelId, {
+      likes: likeCounts.get(key) ?? existing?.likes ?? 0,
       isLiked: myLikes.has(key),
       isSaved: mySaves.has(key),
-    }));
+    });
   }
 }
 

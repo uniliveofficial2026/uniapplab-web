@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
-import { spendWalletCoins } from '../../lib/walletKstarSync';
+import { isLocalWalletLedgerAllowed, spendWalletCoins } from '../../lib/walletKstarSync';
 import { CoinIcon } from '../common/CoinIcon';
 import { 
   ShoppingBag, 
@@ -101,6 +101,11 @@ export function ShopTab() {
   const handleBuyProduct = (product: typeof products[0]) => {
     if (product.stock <= 0) {
       alert('This product is currently out of stock!');
+      return;
+    }
+
+    if (!isLocalWalletLedgerAllowed(appUser.id)) {
+      alert('Shop purchases require server checkout for this account.');
       return;
     }
 

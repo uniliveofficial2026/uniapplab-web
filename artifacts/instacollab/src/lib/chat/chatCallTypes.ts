@@ -8,10 +8,13 @@ import type {
   RemoteCallParticipant,
   RemoteCallVideo,
 } from './chatCallKit';
+import type { CallLifecycleState } from './callLifecycleState';
 
 export type UseChatCallValue = {
   phase: ChatCallPhase;
   connectPhase: ChatConnectPhase;
+  /** Production lifecycle mapping (provider-neutral). */
+  lifecycleState: CallLifecycleState;
   presentation: CallPresentation;
   callKind: ChatCallKind;
   activeChatId: string | null;
@@ -24,6 +27,8 @@ export type UseChatCallValue = {
   remoteParticipants: RemoteCallParticipant[];
   isMicMuted: boolean;
   isCameraEnabled: boolean;
+  isSpeakerOn: boolean;
+  connectedAt: number;
   cameraFacingMode: CameraFacingMode;
   mirrorLocalPreview: boolean;
   localVideoRef: React.RefObject<HTMLVideoElement | null>;
@@ -44,5 +49,6 @@ export type UseChatCallValue = {
   toggleMic: () => Promise<void>;
   toggleCamera: () => Promise<void>;
   flipCamera: () => Promise<void>;
+  toggleSpeaker: () => Promise<void>;
   isLiveKitConfigured: boolean;
 };

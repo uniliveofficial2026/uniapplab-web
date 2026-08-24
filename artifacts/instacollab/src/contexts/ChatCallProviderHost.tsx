@@ -13,6 +13,7 @@ const noop = () => undefined;
 export const IDLE_CHAT_CALL_VALUE: UseChatCallValue = {
   phase: 'idle',
   connectPhase: 'idle',
+  lifecycleState: 'CREATED',
   presentation: 'fullscreen',
   callKind: 'audio',
   activeChatId: null,
@@ -25,6 +26,8 @@ export const IDLE_CHAT_CALL_VALUE: UseChatCallValue = {
   remoteParticipants: [],
   isMicMuted: false,
   isCameraEnabled: true,
+  isSpeakerOn: false,
+  connectedAt: 0,
   cameraFacingMode: 'user',
   mirrorLocalPreview: true,
   localVideoRef: { current: null },
@@ -45,6 +48,7 @@ export const IDLE_CHAT_CALL_VALUE: UseChatCallValue = {
   toggleMic: noopAsync,
   toggleCamera: noopAsync,
   flipCamera: noopAsync,
+  toggleSpeaker: noopAsync,
   isLiveKitConfigured: isLiveKitConfigured(),
 };
 

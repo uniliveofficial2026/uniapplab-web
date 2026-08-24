@@ -108,11 +108,23 @@ export async function fetchOwnerActivePartyRoom(ownerId: string): Promise<PartyR
 }
 
 export async function endPartyRoom(roomId: string, ownerId: string): Promise<void> {
-  if (shouldUseFirebaseForPartyCloud(ownerId) && isFirebasePartyRoomsAvailable()) {
-    await upsertFirebasePartyRoom({ id: roomId, owner_id: ownerId, room_name: '', status: 'ended' });
-    return;
+  if (isFirebasePartyRoomsAvailable()) {
+    await upsertFirebasePartyRoom({ id: roomId, owner_id: ownerId, room_name: '', status: 'ended' }).catch(
+      () => undefined,
+    );
+    if (ownerId) {
+      const leftover = await fetchFirebaseOwnerActivePartyRoom(ownerId).catch(() => null);
+      if (leftover?.id) {
+        await upsertFirebasePartyRoom({ ...leftover, status: 'ended' }).catch(() => undefined);
+      }
+    }
   }
-  await endSupabasePartyRoom(roomId, ownerId);
+  try {
+    await endSupabasePartyRoom(roomId, ownerId);
+  } catch (err) {
+    if (shouldUseFirebaseForPartyCloud(ownerId) && isFirebasePartyRoomsAvailable()) return;
+    throw err;
+  }
 }
 
 export async function updatePartyRoomParticipantCount(

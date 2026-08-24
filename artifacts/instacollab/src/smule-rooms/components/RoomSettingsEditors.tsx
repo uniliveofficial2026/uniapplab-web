@@ -24,7 +24,7 @@ export function RoomSettingsSheet({
     <div className="fixed inset-0 z-50 flex items-end justify-center sm:items-center">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40 backdrop-blur-sm"
+        className="absolute inset-0 bg-black/40"
         aria-label={`Close ${title}`}
         onClick={onClose}
       />

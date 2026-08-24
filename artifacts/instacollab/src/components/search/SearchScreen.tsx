@@ -35,8 +35,16 @@ import {
   searchYoutubeLive,
   searchYoutubeShorts,
   searchYoutubeVideos,
+  fetchAllYoutubePlaylistItems,
+  isPlayableYoutubeVideo,
+  youtubeResultKey,
   type YoutubeVideoSummary,
 } from '../../services/youtube';
+import { YoutubeSearchFilterBar } from '../youtube/YoutubeSearchFilterBar';
+import {
+  countYoutubeSearchFilters,
+  type YoutubeSearchFilters,
+} from '../../lib/youtubeSearchFilters';
 import { playYoutubeMiniVideo } from '../../lib/youtubeMiniPlayer';
 import {
   UniLivesDiscoverySearch,
@@ -93,9 +101,7 @@ export function SearchScreen({
 
   const toggleFollow = (user: User, e: React.MouseEvent) => {
     e.stopPropagation();
-    const next = db.toggleFollow(user.id);
-    if (next === null) return;
-    showToast(next ? `Following ${user.username}` : `Unfollowed ${user.username}`);
+    db.toggleFollow(user.id);
   };
 
   const playYoutube = useCallback(
@@ -103,6 +109,7 @@ export function SearchScreen({
       const list = queue && queue.length > 0 ? queue : [video];
       const safeIndex = Math.max(0, Math.min(index, list.length - 1));
       const current = list[safeIndex] ?? video;
+      if (!isPlayableYoutubeVideo(current)) return;
       playYoutubeMiniVideo(current, { queue: list, queueIndex: safeIndex });
       await recordYoutubeHistory(current);
       showToast(`Playing ${current.title}`);
@@ -122,7 +129,8 @@ export function SearchScreen({
   const showExploreGrid = !query && activeTab !== 'youtube';
 
   return (
-    <div className="w-full flex flex-col pt-6 px-4 md:px-0 max-w-[600px] mx-auto min-h-0 bg-[color:var(--color-unilives-discovery-background)]">
+    <div className="w-full min-h-0 flex-1 flex flex-col bg-[color:var(--color-unilives-discovery-background)]">
+    <div className="app-screen-scroll w-full flex flex-col pt-6 app-content-gutter md:px-0 max-w-[600px] mx-auto min-h-0">
       <UniLivesDiscoverySearch
         value={query}
         onChange={setQuery}
@@ -407,6 +415,7 @@ export function SearchScreen({
         <PostModal postId={selectedPostId} onClose={() => setSelectedPostId(null)} />
       )}
     </div>
+    </div>
   );
 }
 
@@ -485,6 +494,7 @@ function SearchYoutubeFeed({
   onPlay: (video: YoutubeVideoSummary, queue?: YoutubeVideoSummary[], index?: number) => void;
 }) {
   const [mode, setMode] = useState<YoutubeFeedMode>('videos');
+  const [filters, setFilters] = useState<YoutubeSearchFilters>({});
   const [items, setItems] = useState<YoutubeVideoSummary[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -510,8 +520,8 @@ function SearchYoutubeFeed({
             ? await searchYoutubeShorts(q || undefined, pageToken)
             : mode === 'live'
               ? await searchYoutubeLive(q || undefined, pageToken, 'live')
-              : q
-                ? await searchYoutubeVideos(q, pageToken)
+              : q || countYoutubeSearchFilters(filters) > 0
+                ? await searchYoutubeVideos(q, pageToken, filters)
                 : await fetchYoutubePopular(pageToken);
         const nextItems =
           mode === 'shorts'
@@ -529,7 +539,7 @@ function SearchYoutubeFeed({
         setLoadingMore(false);
       }
     },
-    [mode, query],
+    [mode, query, filters],
   );
 
   useEffect(() => {
@@ -569,6 +579,10 @@ function SearchYoutubeFeed({
           </button>
         ))}
       </div>
+
+      {mode === 'videos' ? (
+        <YoutubeSearchFilterBar value={filters} onChange={setFilters} />
+      ) : null}
 
       {error ? <p className="text-sm font-bold text-red-500">{error}</p> : null}
 
@@ -613,9 +627,21 @@ function SearchYoutubeFeed({
           <div className="space-y-2">
             {items.map((video, index) => (
               <YoutubeResultRow
-                key={`${video.videoId}-${index}`}
+                key={`${youtubeResultKey(video)}-${index}`}
                 video={video}
-                onPlay={() => onPlay(video, items, index)}
+                onPlay={() => {
+                  if (video.kind === 'channel' && video.channelId) {
+                    setFilters((prev) => ({ ...prev, type: 'video', channelId: video.channelId }));
+                    return;
+                  }
+                  if (video.kind === 'playlist' && video.playlistId) {
+                    void fetchAllYoutubePlaylistItems(video.playlistId).then((playlistItems) => {
+                      if (playlistItems[0]) onPlay(playlistItems[0], playlistItems, 0);
+                    });
+                    return;
+                  }
+                  onPlay(video, items, index);
+                }}
               />
             ))}
           </div>
@@ -656,6 +682,16 @@ function YoutubeResultRow({
         <div className="absolute inset-0 flex items-center justify-center bg-black/20">
           <Play className="h-6 w-6 fill-white text-white drop-shadow" />
         </div>
+        {video.kind === 'channel' ? (
+          <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">
+            Channel
+          </span>
+        ) : null}
+        {video.kind === 'playlist' ? (
+          <span className="absolute left-1.5 top-1.5 rounded bg-black/70 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">
+            Playlist
+          </span>
+        ) : null}
         {video.isLive ? (
           <span className="absolute left-1.5 top-1.5 inline-flex items-center gap-1 rounded bg-red-600 px-1.5 py-0.5 text-[9px] font-black uppercase text-white">
             <Radio className="h-2.5 w-2.5" /> Live

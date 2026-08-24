@@ -57,7 +57,7 @@ export function ArenaRankingsOverlay({ isOpen, onClose, participants, onSendSupp
   };
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/70 backdrop-blur-sm flex flex-col justify-end pointer-events-auto">
+    <div className="fixed inset-0 z-[120] bg-black/70 flex flex-col justify-end pointer-events-auto">
       <div className="bg-[#1c0f32] w-full max-h-[85vh] rounded-t-3xl border-t border-fuchsia-500/30 flex flex-col overflow-hidden shadow-[0_-15px_50px_rgba(236,72,153,0.25)] animate-fade-in-up">
         {/* Header */}
         <div className="flex justify-between items-center px-6 py-4 bg-gradient-to-r from-[#2a134a] to-[#120724] border-b border-white/5">

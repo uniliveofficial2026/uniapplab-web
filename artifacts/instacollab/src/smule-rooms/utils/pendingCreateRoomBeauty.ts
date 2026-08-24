@@ -1,16 +1,34 @@
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
+import { LIVE_BEAUTY_PRESETS } from '../../lib/ar/beautyFilters';
 import type { BodyShapeParams } from '../../lib/ar/bodyShape';
 import { EMPTY_BODY_SHAPE } from '../../lib/ar/bodyShape';
 import {
   EMPTY_TENCENT_EFFECT_SELECTION,
+  type TencentBeautifyParams,
   type TencentEffectSelection,
 } from '../../lib/webar/webarTypes';
+import {
+  resolveMultiGuestSeatCount,
+  type MultiGuestSeatCount,
+} from './roomSeats';
+
+const BEAUTY_PRESET_IDS = new Set<BeautyPresetId>(LIVE_BEAUTY_PRESETS.map((row) => row.id));
+
+function asBeautyPresetId(value: unknown): BeautyPresetId {
+  if (typeof value === 'string' && BEAUTY_PRESET_IDS.has(value as BeautyPresetId)) {
+    return value as BeautyPresetId;
+  }
+  return 'none';
+}
 
 export type PendingCreateRoomBeauty = {
   beautyId: BeautyPresetId;
   beautyEffects: TencentEffectSelection;
   bodyShape: BodyShapeParams;
-  roomMode: 'Solo-Live' | 'Commerce-Live';
+  /** Custom slider values from Create Room; applied on the live stream. */
+  beautifyOverride?: TencentBeautifyParams | null;
+  roomMode: 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest';
+  multiGuestSeatCount?: MultiGuestSeatCount;
 };
 
 const STORAGE_KEY = 'pendingCreateRoomBeauty';
@@ -24,11 +42,15 @@ let memoryHandoff: PendingCreateRoomBeauty | null = null;
 function normalizePending(
   parsed: Partial<PendingCreateRoomBeauty>,
 ): PendingCreateRoomBeauty | null {
-  if (parsed.roomMode !== 'Solo-Live' && parsed.roomMode !== 'Commerce-Live') {
+  if (
+    parsed.roomMode !== 'Solo-Live' &&
+    parsed.roomMode !== 'Commerce-Live' &&
+    parsed.roomMode !== 'Multi-Guest'
+  ) {
     return null;
   }
   return {
-    beautyId: (parsed.beautyId as BeautyPresetId) || 'none',
+    beautyId: asBeautyPresetId(parsed.beautyId),
     beautyEffects: {
       ...EMPTY_TENCENT_EFFECT_SELECTION,
       ...(parsed.beautyEffects ?? {}),
@@ -37,8 +59,19 @@ function normalizePending(
       ...EMPTY_BODY_SHAPE,
       ...(parsed.bodyShape ?? {}),
     },
+    beautifyOverride: isBeautifyParams(parsed.beautifyOverride)
+      ? parsed.beautifyOverride
+      : null,
     roomMode: parsed.roomMode,
+    multiGuestSeatCount:
+      parsed.multiGuestSeatCount == null
+        ? undefined
+        : resolveMultiGuestSeatCount(parsed.multiGuestSeatCount),
   };
+}
+
+function isBeautifyParams(value: unknown): value is TencentBeautifyParams {
+  return Boolean(value) && typeof value === 'object' && !Array.isArray(value);
 }
 
 export function stashPendingCreateRoomBeauty(detail: PendingCreateRoomBeauty): void {

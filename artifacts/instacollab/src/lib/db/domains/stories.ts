@@ -4,6 +4,7 @@ import {
   DEMO_USER_STATUS_PATCHES,
   USERS,
 } from '../../data';
+import { isDemoContentEnabled } from '../../demoContentPolicy';
 import { recordCollectionSave } from '../../devActivity';
 import type { StoryDraftMedia } from '../../../components/stories/storyDraft';
 import type { StoriesByUserStore, User } from '../../../types';
@@ -112,6 +113,14 @@ export function WithStories<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
      * In DEV, re-applies on each load; use applyDemoStoryStrip() from the dev panel anytime.
      */
     async applyDemoStoryStrip(options?: { resetViews?: boolean }) {
+      if (!isDemoContentEnabled()) {
+        return {
+          storyUsers: 0,
+          storyOnlyUsers: [],
+          liveUsers: [],
+          liveKinds: [],
+        };
+      }
       await this.whenReady();
 
       const nextStories: StoriesByUserStore = { ...this.stories };
@@ -209,6 +218,8 @@ export function WithStories<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
     }
 
     private async seedDemoStoriesIfNeeded() {
+      if (!isDemoContentEnabled()) return;
+
       if (import.meta.env.DEV) {
         const demoSeeded = this.load('dev_stories_seeded_once', false);
         const hasFeedStories = Object.values(this.stories).some(
@@ -221,18 +232,7 @@ export function WithStories<T extends Constructor<DbCoreBacked>>(Base: T): Mixin
         return;
       }
 
-      if (this.load('demo_stories_seeded', false)) return;
-
-      const existing = this.stories;
-      const hasAny = Object.values(existing).some(
-        (list) => Array.isArray(list) && list.length > 0
-      );
-      if (hasAny) {
-        this.save('demo_stories_seeded', true);
-        return;
-      }
-
-      await this.applyDemoStoryStrip({ resetViews: false });
+      // Production / non-demo: never inject bundled story strips.
     }
 
     addStorySegment(userId: string, segment: StoryDraftMedia) {

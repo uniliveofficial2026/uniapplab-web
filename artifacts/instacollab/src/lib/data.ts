@@ -22,8 +22,7 @@ export const USERS: User[] = [
     displayName: 'Tom Hanks',
     avatarUrl:
       'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop',
-    status: 'live',
-    liveKind: 'solo',
+    status: 'none',
   },
   {
     id: 'u4',
@@ -47,8 +46,7 @@ export const USERS: User[] = [
     displayName: 'Frank Eats',
     avatarUrl:
       'https://images.unsplash.com/photo-1524504388940-b1c1722653e1?w=150&h=150&fit=crop',
-    status: 'live',
-    liveKind: 'audio-room',
+    status: 'none',
   },
   {
     id: 'u7',
@@ -57,8 +55,7 @@ export const USERS: User[] = [
     avatarUrl:
       'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop',
     isVerified: true,
-    status: 'live',
-    liveKind: 'video-multi',
+    status: 'none',
   },
   {
     id: 'u8',
@@ -66,8 +63,7 @@ export const USERS: User[] = [
     displayName: 'Ace Live',
     avatarUrl:
       'https://images.unsplash.com/photo-1599566150163-29194dcaad36?w=150&h=150&fit=crop',
-    status: 'live',
-    liveKind: 'solo',
+    status: 'none',
   },
   {
     id: 'u9',
@@ -75,8 +71,7 @@ export const USERS: User[] = [
     displayName: 'Stella Shop',
     avatarUrl:
       'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop',
-    status: 'live',
-    liveKind: 'commerce',
+    status: 'none',
   },
   {
     id: 'u10',
@@ -84,8 +79,7 @@ export const USERS: User[] = [
     displayName: 'Gus Plays',
     avatarUrl:
       'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&h=150&fit=crop',
-    status: 'live',
-    liveKind: 'game',
+    status: 'none',
   },
 ];
 
@@ -130,25 +124,18 @@ export const DEMO_STORY_SEGMENTS: Record<string, DemoStorySegment[]> = {
 /** Ensures feed strip shows LIVE vs story ring styles for demo users. */
 export const DEMO_USER_STATUS_PATCHES: Record<string, User['status']> = {
   u2: 'story',
-  u3: 'live',
+  u3: 'none',
   u4: 'story',
   u5: 'story',
-  u6: 'live',
-  u7: 'live',
-  u8: 'live',
-  u9: 'live',
-  u10: 'live',
+  u6: 'none',
+  u7: 'none',
+  u8: 'none',
+  u9: 'none',
+  u10: 'none',
 };
 
-/** Live ring colors per user (see `LiveKind` in types). */
-export const DEMO_LIVE_KIND_PATCHES: Record<string, LiveKind> = {
-  u3: 'solo',
-  u6: 'audio-room',
-  u7: 'video-multi',
-  u8: 'solo',
-  u9: 'commerce',
-  u10: 'game',
-};
+/** Live ring colors per user (see `LiveKind` in types). Only applied while status is live. */
+export const DEMO_LIVE_KIND_PATCHES: Record<string, LiveKind> = {};
 
 export const POSTS: Post[] = [
   {

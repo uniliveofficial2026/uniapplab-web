@@ -1,7 +1,6 @@
 /**
  * Locked UniLive’s in-app loading video — second approved 9:16 clip.
- * Online: always plays ~5s once on main entry, then passes.
- * Offline: loops until ready. Do not replace without an approved reference update.
+ * Plays on normal main-app loads and refresh. Do not replace without an approved reference update.
  */
 
 export const PRINCESS_INAPP_LOADING_LOCKED_VIDEO_SRC =

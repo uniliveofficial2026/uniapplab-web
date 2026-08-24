@@ -139,6 +139,31 @@ export function getBeautyVideoFilter(effectId: string): string | null {
   return BEAUTY_VIDEO_FILTERS[effectId] ?? null;
 }
 
+/** Instant CSS look from slider values when WebAR GPU frames are not on screen yet. */
+export function beautifyParamsToCssFilter(params: TencentBeautifyParams | null | undefined): string | null {
+  if (!params || !isTencentBeautifyActive(params)) return null;
+  const smooth = Math.max(0, params.dermabrasion ?? 0);
+  const white = Math.max(0, params.whiten ?? 0);
+  const sharp = Math.max(0, params.usm ?? 0);
+  const glow = Math.max(0, params.eyeBrightness ?? 0);
+  const blurPx = (smooth * 0.55).toFixed(2);
+  const brightness = (1 + white * 0.18 + glow * 0.08).toFixed(3);
+  const contrast = (1 + sharp * 0.12 - smooth * 0.04).toFixed(3);
+  const saturate = (1 + white * 0.06).toFixed(3);
+  return `blur(${blurPx}px) brightness(${brightness}) contrast(${contrast}) saturate(${saturate})`;
+}
+
+export function resolveBeautyCssFilter(
+  beautyId: string,
+  override?: TencentBeautifyParams | null,
+): string | null {
+  if (override && isTencentBeautifyActive(override)) {
+    return beautifyParamsToCssFilter(override);
+  }
+  if (beautyId && beautyId !== 'none') return getBeautyVideoFilter(beautyId);
+  return getBeautyVideoFilter('beauty-natural');
+}
+
 /** Pre-body-shape preset path — pass directly to TRTC setBeautify. */
 export function getTencentBeautifyParams(effectId: string): TencentBeautifyParams {
   if (effectId === 'none' || !effectId) return { ...BEAUTY_OFF_PARAMS };

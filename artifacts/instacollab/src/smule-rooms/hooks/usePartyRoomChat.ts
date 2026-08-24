@@ -244,10 +244,35 @@ export function usePartyRoomChat({
     [appendMessage, authUserId, senderId, senderName],
   );
 
+  const sendStickerMessage = useCallback(
+    (payload: {
+      stickerId: string;
+      assetUrl: string;
+      label: string;
+      senderId?: string;
+      roomId?: string;
+    }) => {
+      if (!payload.stickerId || !payload.assetUrl) return;
+      appendMessage({
+        id: `sticker_${Date.now()}`,
+        user: senderName,
+        userId: payload.senderId || authUserId || senderId,
+        text: payload.label,
+        isBurmese: false,
+        isStickerEvent: true,
+        stickerId: payload.stickerId,
+        stickerAssetUrl: payload.assetUrl,
+        stickerLabel: payload.label,
+      });
+    },
+    [appendMessage, authUserId, senderId, senderName],
+  );
+
   return {
     messages,
     appendMessage,
     sendTextMessage,
+    sendStickerMessage,
     cloudActive,
     unifiedChatActive: unifiedActive,
   };

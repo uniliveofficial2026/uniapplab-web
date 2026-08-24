@@ -354,10 +354,7 @@ export function Post({
     if (e) e.stopPropagation();
     const authorId = postUserId(livePost);
     if (!authorId) return;
-    const next = db.toggleFollow(authorId);
-    if (next === null) return;
-    const label = postAuthor.username || postAuthor.displayName || 'user';
-    showToast(next ? `Following ${label}` : `Unfollowed ${label}`);
+    db.toggleFollow(authorId);
   };
 
   const handleCommentSubmit = (e: React.FormEvent) => {

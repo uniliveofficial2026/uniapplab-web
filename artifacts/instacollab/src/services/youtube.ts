@@ -1,8 +1,17 @@
 import { getSupabaseClient } from '../lib/supabase/client';
 import { isSupabaseConfigured } from '../lib/supabase/config';
+import {
+  youtubeSearchFiltersToQuery,
+  type YoutubeSearchFilters,
+} from '../lib/youtubeSearchFilters';
+
+export type YoutubeSearchItemKind = 'video' | 'channel' | 'playlist';
 
 export type YoutubeVideoSummary = {
+  kind?: YoutubeSearchItemKind;
   videoId: string;
+  channelId?: string;
+  playlistId?: string;
   title: string;
   channelTitle: string;
   thumbnailUrl: string;
@@ -18,6 +27,16 @@ export type YoutubeVideoSummary = {
   /** Official YouTube live chat id when the stream is live. */
   activeLiveChatId?: string;
 };
+
+export function youtubeResultKey(item: YoutubeVideoSummary): string {
+  if (item.kind === 'channel' && item.channelId) return `channel:${item.channelId}`;
+  if (item.kind === 'playlist' && item.playlistId) return `playlist:${item.playlistId}`;
+  return item.videoId || item.channelId || item.playlistId || item.title;
+}
+
+export function isPlayableYoutubeVideo(item: YoutubeVideoSummary): boolean {
+  return item.kind !== 'channel' && item.kind !== 'playlist' && /^[a-zA-Z0-9_-]{11}$/.test(item.videoId);
+}
 
 export type YoutubeLiveChatKind = 'chat' | 'superChat' | 'superSticker' | 'membership';
 
@@ -76,6 +95,46 @@ export type YoutubeLiveChatResponse = {
 };
 
 export type YoutubeSearchResponse = {
+  items: YoutubeVideoSummary[];
+  nextPageToken: string | null;
+};
+
+export type YoutubeChapter = { startSeconds: number; label: string };
+
+export type YoutubeVideoDetails = YoutubeVideoSummary & {
+  description?: string;
+  tags?: string[];
+  embeddable?: boolean;
+  viewCount?: number;
+  likeCount?: number;
+  commentCount?: number;
+  chapters?: YoutubeChapter[];
+};
+
+export type YoutubeComment = {
+  id: string;
+  author: string;
+  authorAvatar: string | null;
+  authorChannelId: string | null;
+  text: string;
+  likeCount: number;
+  publishedAt: string | null;
+  replyCount?: number;
+  replies?: YoutubeComment[];
+};
+
+export type YoutubeChannelPage = {
+  channel: {
+    channelId: string;
+    title: string;
+    description: string;
+    customUrl: string | null;
+    thumbnailUrl: string;
+    subscriberCount: number;
+    videoCount: number;
+    viewCount: number;
+    uploadsPlaylistId: string | null;
+  };
   items: YoutubeVideoSummary[];
   nextPageToken: string | null;
 };
@@ -204,10 +263,10 @@ export async function fetchYoutubePlaylistItems(
   return apiFetch<YoutubeSearchResponse>(`/api/youtube/playlist?${params.toString()}`);
 }
 
-/** Fetch every page of a public YouTube playlist (caps at 500 items). */
+/** Fetch every page of a public YouTube playlist (caps at 1000 items). */
 export async function fetchAllYoutubePlaylistItems(
   playlistId: string,
-  maxPages = 10,
+  maxPages = 20,
 ): Promise<YoutubeVideoSummary[]> {
   const items: YoutubeVideoSummary[] = [];
   let pageToken: string | undefined;
@@ -256,11 +315,24 @@ async function apiFetch<T>(
   const headers: Record<string, string> = { accept: 'application/json' };
   if (init?.body !== undefined) headers['content-type'] = 'application/json';
   if (init?.accessToken) headers.authorization = `Bearer ${init.accessToken}`;
-  const res = await fetch(`${origin}${path}`, {
-    method: init?.method ?? 'GET',
-    headers,
-    body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
-  });
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), 20_000);
+  let res: Response;
+  try {
+    res = await fetch(`${origin}${path}`, {
+      method: init?.method ?? 'GET',
+      headers,
+      body: init?.body !== undefined ? JSON.stringify(init.body) : undefined,
+      signal: controller.signal,
+    });
+  } catch (error) {
+    const aborted =
+      (error instanceof DOMException && error.name === 'AbortError') ||
+      (error instanceof Error && error.name === 'AbortError');
+    throw aborted ? new Error('YouTube request timed out') : error;
+  } finally {
+    clearTimeout(timer);
+  }
   if (!res.ok) {
     const body = await res.text().catch(() => '');
     let message = body || `YouTube API ${res.status}`;
@@ -281,10 +353,57 @@ async function apiFetch<T>(
 export async function searchYoutubeVideos(
   query: string,
   pageToken?: string,
+  filters?: YoutubeSearchFilters,
 ): Promise<YoutubeSearchResponse> {
-  const params = new URLSearchParams({ q: query.trim() });
+  const params = youtubeSearchFiltersToQuery({
+    ...filters,
+    q: query.trim(),
+    pageToken,
+  });
+  const qs = params.toString();
+  return apiFetch<YoutubeSearchResponse>(`/api/youtube/search${qs ? `?${qs}` : ''}`);
+}
+
+export async function fetchYoutubeVideoDetails(videoId: string): Promise<YoutubeVideoDetails> {
+  const params = new URLSearchParams({ videoId: videoId.trim() });
+  return apiFetch<YoutubeVideoDetails>(`/api/youtube/video?${params.toString()}`);
+}
+
+export async function fetchYoutubeRelated(
+  videoId: string,
+  pageToken?: string,
+): Promise<YoutubeSearchResponse> {
+  const params = new URLSearchParams({ videoId: videoId.trim() });
   if (pageToken) params.set('pageToken', pageToken);
-  return apiFetch<YoutubeSearchResponse>(`/api/youtube/search?${params.toString()}`);
+  return apiFetch<YoutubeSearchResponse>(`/api/youtube/related?${params.toString()}`);
+}
+
+export async function fetchYoutubeComments(
+  videoId: string,
+  pageToken?: string,
+  order: 'relevance' | 'time' = 'relevance',
+): Promise<{ items: YoutubeComment[]; nextPageToken: string | null }> {
+  const params = new URLSearchParams({ videoId: videoId.trim(), order });
+  if (pageToken) params.set('pageToken', pageToken);
+  return apiFetch(`/api/youtube/comments?${params.toString()}`);
+}
+
+export async function fetchYoutubeCommentReplies(
+  parentId: string,
+  pageToken?: string,
+): Promise<{ items: YoutubeComment[]; nextPageToken: string | null }> {
+  const params = new URLSearchParams({ parentId: parentId.trim() });
+  if (pageToken) params.set('pageToken', pageToken);
+  return apiFetch(`/api/youtube/comments/replies?${params.toString()}`);
+}
+
+export async function fetchYoutubeChannelPage(
+  channelId: string,
+  pageToken?: string,
+): Promise<YoutubeChannelPage> {
+  const params = new URLSearchParams({ channelId: channelId.trim() });
+  if (pageToken) params.set('pageToken', pageToken);
+  return apiFetch(`/api/youtube/channel?${params.toString()}`);
 }
 
 /** Home feed — videos.list mostPopular (cheap; avoids Search Queries quota). */

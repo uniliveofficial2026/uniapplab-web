@@ -1,7 +1,7 @@
 /**
  * Throttled online presence heartbeat — Redis TTL via /api/presence/online.
  */
-import { isPlatformApiAvailable, postPresenceHeartbeat } from './platformApi';
+import { isPlatformApiAvailable, postPresenceHeartbeat, postPresenceOffline } from './platformApi';
 import { isSupabaseConfigured } from './supabase/config';
 import { getSupabaseClient } from './supabase/client';
 import { realtimeLifecycleDebug } from './realtime/realtimeLifecycleDebug';
@@ -48,6 +48,7 @@ export function installPresenceHeartbeat(): void {
     const { data } = supabase.auth.onAuthStateChange((event, session) => {
       if (event === 'SIGNED_OUT' || !session) {
         clearTimer();
+        void postPresenceOffline().catch(() => undefined);
         realtimeLifecycleDebug('presence-heartbeat-paused', { reason: event || 'no-session' });
         return;
       }

@@ -1,6 +1,9 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
+import { fetchWallet, isPlatformApiAvailable } from '../../lib/platformApi';
+import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
+import { isLocalWalletLedgerAllowed } from '../../lib/walletKstarSync';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -11,7 +14,8 @@ import {
   Globe, 
   ChevronRight,
   TrendingDown,
-  Filter
+  Filter,
+  Package,
 } from 'lucide-react';
 import { CoinIcon } from '../common/CoinIcon';
 import { 
@@ -39,12 +43,48 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   const coinsBalance = useLiveCoinsBalance(appUser.id);
   const cashBalance = db.load('cash_balance', 0);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
-  const transactions = db.load('wallet_transactions', [
-    { id: 't1', type: 'Coins Bought', amount: '+100 Coins', status: 'Completed', date: '2026-06-02 14:22', cost: '$10.00 USD' },
-    { id: 't2', type: 'MLBB Redeemed', amount: '-180 MLBB Diamonds', status: 'Completed', date: '2026-06-01 19:45', cost: '270 Coins' },
-    { id: 't3', type: 'Crypto Profit', amount: '+0.2 SOL', status: 'Completed', date: '2026-05-30 08:12', cost: '$31.40 USD' },
-    { id: 't4', type: 'Payout Transferred', amount: '-$50.00 USD', status: 'Completed', date: '2026-05-28 11:30', cost: 'Bank Endorsement' },
-  ]);
+  const [transactions, setTransactions] = useState<Array<{
+    id: string;
+    type: string;
+    amount: string;
+    status: string;
+    date: string;
+    cost?: string;
+  }>>([]);
+
+  useEffect(() => {
+    if (!isPlatformApiAvailable() || !isCloudAuthUserId(appUser.id)) {
+      setTransactions(isLocalWalletLedgerAllowed(appUser.id) ? db.load('wallet_transactions', []) : []);
+      return;
+    }
+    let cancelled = false;
+    void fetchWallet()
+      .then((wallet) => {
+        if (cancelled) return;
+        const rows = Array.isArray(wallet.transactions) ? wallet.transactions : [];
+        setTransactions(
+          rows.map((raw) => {
+            const t = (raw ?? {}) as Record<string, unknown>;
+            const amountNum = Number(t.amount ?? 0);
+            const signed = t.to_user === appUser.id || t.toUser === appUser.id ? Math.abs(amountNum) : -Math.abs(amountNum);
+            return {
+              id: String(t.id ?? ''),
+              type: String(t.tx_type ?? t.type ?? 'Transaction'),
+              amount: `${signed >= 0 ? '+' : ''}${signed} Coins`,
+              status: 'Completed',
+              date: String(t.created_at ?? '').replace('T', ' ').slice(0, 16),
+              cost: t.currency ? String(t.currency) : undefined,
+            };
+          }).filter((row) => row.id),
+        );
+      })
+      .catch(() => {
+        if (!cancelled) setTransactions([]);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [appUser.id, coinsBalance]);
 
   const [activeRange, setActiveRange] = useState<'7D' | '1M' | '1Y'>('1M');
   const [logFilter, setLogFilter] = useState<'All' | 'Productive' | 'Redeem/Exchange' | 'Cashflows'>('All');
@@ -202,6 +242,26 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
               <DollarSign className="w-6 h-6" />
             </div>
             <span className="text-xs font-black text-foreground">Cash Withdraw</span>
+          </button>
+
+          <button 
+            onClick={() => onNavigate && onNavigate('orders')}
+            className="flex flex-col items-center justify-center p-4 bg-secondary/15 hover:bg-secondary/40 border border-border/50 rounded-2xl transition-all group"
+          >
+            <div className="w-12 h-12 rounded-full bg-fuchsia-500/10 text-fuchsia-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Package className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-black text-foreground">Manage Orders</span>
+          </button>
+
+          <button 
+            onClick={() => onNavigate && onNavigate('my-orders')}
+            className="flex flex-col items-center justify-center p-4 bg-secondary/15 hover:bg-secondary/40 border border-border/50 rounded-2xl transition-all group"
+          >
+            <div className="w-12 h-12 rounded-full bg-sky-500/10 text-sky-500 flex items-center justify-center mb-3 group-hover:scale-110 transition-transform">
+              <Package className="w-6 h-6" />
+            </div>
+            <span className="text-xs font-black text-foreground">My Orders</span>
           </button>
         </div>
       </div>

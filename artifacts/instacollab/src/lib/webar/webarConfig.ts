@@ -80,6 +80,32 @@ export function isTencentWebARRunnable(): boolean {
   return isTencentWebARConfigured() && isBeautyRuntimeSupported();
 }
 
+/** Host-facing copy when WebAR license/domain is not usable. */
+export const TENCENT_WEBAR_COMING_SOON = 'Coming soon...';
+
+/**
+ * True when the beauty engine cannot run because credentials are missing
+ * or Tencent rejected the Web license / domain / signature.
+ */
+export function isTencentWebARLicenseUnavailable(error?: string | null): boolean {
+  if (!isTencentWebARConfigured()) return true;
+  if (!error) return false;
+  const lower = error.toLowerCase();
+  return (
+    lower.includes('domain mismatch') ||
+    lower.includes('web license') ||
+    lower.includes('license key') ||
+    lower.includes('license project') ||
+    lower.includes('project does not exist') ||
+    lower.includes('referer') ||
+    lower.includes('signature') ||
+    /\b2007\b/.test(lower) ||
+    /\b104\b/.test(lower) ||
+    lower.includes('failed to initialize') ||
+    (lower.includes('license') && (lower.includes('not found') || lower.includes('does not exist') || lower.includes('expired')))
+  );
+}
+
 /**
  * Map Tencent Beauty AR auth / business errors to actionable text.
  * Code 2007 ("The project does not exist.") means the license record is missing,

@@ -1,5 +1,6 @@
 import { DEFAULT_FOLLOW_GRAPH, POSTS, USERS } from '../../data';
-import { CLOUD_SYNC_COLLECTION_KEYS } from '../../cloudSync/collectionKeys';
+import { isDemoContentEnabled, isLegacySeedUserId } from '../../demoContentPolicy';
+import { LEGACY_CLOUD_SYNC_KEYS, USER_APP_STATE_KEYS } from '../../cloudSync/collectionKeys';
 import {
   type CommentLike,
   countCommentThread,
@@ -21,6 +22,7 @@ import { scheduleLiveSessionSync } from '../../liveSessionSync';
 import { isCloudAuthUserId } from '../../auth/cloudProfile';
 import { identityAliasUids } from '../../auth/accountIdentity';
 import { readDeviceAccounts } from '../../auth/deviceAccounts';
+import { isHostUserLiveEnded } from '../../live/hostLiveEndedRegistry';
 import { setProfileLivePresence } from '../../supabase/liveDiscovery';
 import { isSupabaseConfigured } from '../../supabase/config';
 import { clearSessionCache } from '../../sessionCache';
@@ -36,7 +38,8 @@ const ACCOUNT_RESTORE_SKIP_KEYS = new Set([
 ]);
 
 const ACCOUNT_SNAPSHOT_KEYS = [
-  ...CLOUD_SYNC_COLLECTION_KEYS,
+  ...USER_APP_STATE_KEYS,
+  ...LEGACY_CLOUD_SYNC_KEYS,
   'profile_stories_migrated',
   'dev_stories_seeded_once',
 ] as const;
@@ -77,38 +80,76 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       super(...args);
     }
     get posts(): Post[] {
-      const raw = this.load<Post[]>('posts', POSTS) || POSTS;
-      return this.asLocalDB().filterItemsByBlockedAuthors(raw);
+      const fallback = isDemoContentEnabled() ? POSTS : [];
+      const raw = this.load<Post[]>('posts', fallback) || fallback;
+      const filtered = isDemoContentEnabled()
+        ? raw
+        : raw.filter((p) => !isLegacySeedUserId(postUserId(p)));
+      return this.asLocalDB().filterItemsByBlockedAuthors(filtered);
     }
     get users(): User[] {
-      return this.load<User[]>('users', USERS) || USERS;
+      const fallback = isDemoContentEnabled() ? USERS : [];
+      const raw = this.load<User[]>('users', fallback) || fallback;
+      if (isDemoContentEnabled()) return raw;
+      return raw.filter((u) => u?.id && !isLegacySeedUserId(u.id));
     }
     get isLoggedIn() { return this.load('isLoggedIn', false); }
     get currentUserId() {
       if (!this.isLoggedIn) return '';
-      return this.load('currentUserId', 'u1');
+      return this.load('currentUserId', '');
     }
     get currentUser() {
       try {
-        if (!this.isLoggedIn) return USERS[0];
+        if (!this.isLoggedIn) {
+          return (
+            (isDemoContentEnabled() ? USERS[0] : null) || {
+              id: '',
+              username: '',
+              displayName: '',
+              avatarUrl: '',
+              bio: '',
+              followers: 0,
+              following: 0,
+            }
+          );
+        }
         const users = this.users || [];
         const id = this.currentUserId;
-        if (!Array.isArray(users) || users.length === 0) return USERS[0];
-        return users.find((u) => u && u.id === id) || users[0] || USERS[0];
+        if (!Array.isArray(users) || users.length === 0) {
+          return {
+            id: id || '',
+            username: '',
+            displayName: '',
+            avatarUrl: '',
+            bio: '',
+            followers: 0,
+            following: 0,
+          };
+        }
+        return users.find((u) => u && u.id === id) || users[0];
       } catch {
-        return USERS[0];
+        return {
+          id: '',
+          username: '',
+          displayName: '',
+          avatarUrl: '',
+          bio: '',
+          followers: 0,
+          following: 0,
+        };
       }
     }
 
     private isLegacySeedUserId(userId: string): boolean {
-      return /^u\d+$/.test(userId);
+      return isLegacySeedUserId(userId);
     }
 
     /**
      * After cloud first-session wipe or empty IDB, restore bundled demo feed for u1/u2…
-     * so dev `?as=u1` and local demo accounts stay usable.
+     * so dev `?as=u1` and local demo accounts stay usable. No-op in real builds.
      */
     restoreLegacyDemoContentIfEmpty(userId: string) {
+      if (!isDemoContentEnabled()) return;
       if (!this.isLegacySeedUserId(userId)) return;
 
       const postsRaw = this.load<Post[] | null>('posts', null as unknown as Post[]);
@@ -186,6 +227,86 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       }
     }
 
+    /**
+     * Strip bundled seed users/posts/stories/messages left from older builds.
+     * Safe to call on every production startup.
+     */
+    purgeDemoSeedContent() {
+      if (isDemoContentEnabled()) return;
+
+      const meId = String(this.currentUserId || '').trim();
+      const usersRaw = this.load<User[]>('users', []) || [];
+      const users = usersRaw.filter(
+        (u) => u?.id && (!isLegacySeedUserId(u.id) || u.id === meId),
+      );
+      if (users.length !== usersRaw.length) {
+        this.save('users', users);
+      }
+
+      const postsRaw = this.load<Post[]>('posts', []) || [];
+      const posts = postsRaw.filter((p) => !isLegacySeedUserId(postUserId(p)));
+      if (posts.length !== postsRaw.length) {
+        this.save('posts', posts);
+      }
+
+      const reelsRaw = this.load<Reel[]>('reels', []) || [];
+      const reels = reelsRaw.filter(
+        (r) =>
+          !isLegacySeedUserId(reelUserId(r)) &&
+          !String(r.id || '').startsWith('demo-') &&
+          !['1', '2', 'r_u1_1', 'r_u1_2', 'demo-carousel'].includes(String(r.id || '')),
+      );
+      if (reels.length !== reelsRaw.length) {
+        this.save('reels', reels);
+      }
+
+      const storiesRaw = this.load<StoriesByUserStore>('stories', {}) || {};
+      let storiesChanged = false;
+      const stories: StoriesByUserStore = { ...storiesRaw };
+      for (const key of Object.keys(stories)) {
+        if (isLegacySeedUserId(key) && key !== meId) {
+          delete stories[key];
+          storiesChanged = true;
+        }
+      }
+      if (storiesChanged) this.save('stories', stories);
+
+      const profileStoriesRaw = this.load<StoriesByUserStore>('profile_stories', {}) || {};
+      let profileStoriesChanged = false;
+      const profileStories: StoriesByUserStore = { ...profileStoriesRaw };
+      for (const key of Object.keys(profileStories)) {
+        if (isLegacySeedUserId(key) && key !== meId) {
+          delete profileStories[key];
+          profileStoriesChanged = true;
+        }
+      }
+      if (profileStoriesChanged) this.save('profile_stories', profileStories);
+
+      const followRaw = this.load<{ following?: Record<string, string[]> } | null>(
+        'follow_graph',
+        null as unknown as { following?: Record<string, string[]> },
+      );
+      if (followRaw?.following) {
+        const nextFollowing: Record<string, string[]> = {};
+        let followChanged = false;
+        for (const [uid, ids] of Object.entries(followRaw.following)) {
+          if (isLegacySeedUserId(uid) && uid !== meId) {
+            followChanged = true;
+            continue;
+          }
+          const cleaned = (ids || []).filter((id) => !isLegacySeedUserId(id) || id === meId);
+          if (cleaned.length !== (ids || []).length) followChanged = true;
+          nextFollowing[uid] = cleaned;
+        }
+        if (followChanged) {
+          this.save('follow_graph', { following: nextFollowing });
+        }
+      }
+
+      this.save('demo_stories_seeded', true);
+      this.save('demo_reels_seeded', true);
+    }
+
     login(userId: string) {
       const prevId = this.isLoggedIn ? this.currentUserId : '';
       if (prevId && prevId !== userId) {
@@ -203,6 +324,7 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
       }
       this.save('currentUserId', userId);
       this.save('isLoggedIn', true);
+      this.purgeDemoSeedContent();
       scheduleLiveSessionSync(userId);
     }
 
@@ -364,7 +486,12 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
     }
 
     addPost(post: Partial<Post> & { user?: User }) {
-      const author = resolveUser(this.users, post.user, this.currentUser);
+      // Logged-in creates always bind to currentUser — never accept a spoofed author.
+      const me = this.currentUser;
+      const author =
+        this.isLoggedIn && me?.id
+          ? resolveUser(this.users, me)
+          : resolveUser(this.users, post.user, this.currentUser);
       const newPost = {
         likes: 0,
         comments: 0,
@@ -544,6 +671,8 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
     ): boolean {
       const prior = this.users.find((u: User) => u?.id === userId);
       if (!prior) return false;
+      // After End Live, ignore sticky heartbeats until Go Live clears the registry.
+      if (isLive && isHostUserLiveEnded(userId)) return false;
       const hasStory = (this.asLocalDB().stories[userId] ?? []).length > 0;
       this.updateUser(userId, (u) => ({
         ...u,
@@ -699,6 +828,16 @@ export function WithAuthPosts<T extends Constructor<DbCoreBacked>>(Base: T): Mix
 
     enrichCommentPayload(comment: Partial<CommentLike>): CommentLike {
       const me = this.currentUser;
+      const meId = this.currentUserId;
+      // When logged in, comment identity is always the session user (no client spoof).
+      if (meId && me) {
+        return {
+          ...comment,
+          userId: meId,
+          username: me.username ?? 'you',
+          avatarUrl: me.avatarUrl,
+        };
+      }
       return {
         ...comment,
         userId: comment.userId ?? me?.id,

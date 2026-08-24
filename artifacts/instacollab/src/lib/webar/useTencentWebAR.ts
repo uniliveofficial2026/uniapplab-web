@@ -12,6 +12,7 @@ import {
   WEBAR_BUILTIN_CAMERA,
   WEBAR_CAMERA_FPS,
   WEBAR_OUTPUT_FPS,
+  resolveWebArOutputFps,
 } from './webarCameraConfig';
 import type {
   TencentBeautifyParams,
@@ -23,7 +24,7 @@ import {
   EMPTY_TENCENT_EFFECT_SELECTION,
   TRTC_DEFAULT_BACKGROUNDS,
 } from './webarTypes';
-import { BEAUTY_OFF_PARAMS } from '../ar/beautyFilters';
+import { BEAUTY_OFF_PARAMS, isTencentBeautifyActive } from '../ar/beautyFilters';
 import {
   applyTencentWebARState,
   buildTencentWebARApplyKey,
@@ -82,7 +83,7 @@ function hasEffectSelection(effects?: TencentEffectSelection): boolean {
 }
 
 function isBeautifyActive(params: TencentBeautifyParams): boolean {
-  return Object.values(params).some((value) => typeof value === 'number' && value > 0);
+  return isTencentBeautifyActive(params);
 }
 
 /**
@@ -210,8 +211,10 @@ export function useTencentWebAR({
   };
 
   const attachOutput = async (instance: TencentWebARInstance) => {
+    // Perception cadence applied at attach only — never restart gifts or reset beauty mid-stream.
+    const fps = resolveWebArOutputFps(outputFps);
     const output = (await (instance.getOutput as (fps?: number) => Promise<MediaStream>)(
-      outputFps,
+      fps,
     )) as MediaStream;
     outputStreamRef.current = output;
     const outputVideo = outputVideoRef.current;

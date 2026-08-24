@@ -6,6 +6,7 @@ import React, { useCallback, useEffect, useRef, useState } from 'react';
 import type { User } from 'firebase/auth';
 import { AuthContext, type AuthContextValue } from './authContextStore';
 import { db } from '../db/localDb';
+import { persistLaunchFunnelAfterAuth } from '../splashSession';
 import { safeLocalStorage } from '../utils';
 import { isSupabaseConfigured, isPrimarySupabaseCloud } from './config';
 import { hasInstantSessionCache } from '../instantCachePolicy';
@@ -227,6 +228,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     writeActiveDeviceUid(uid);
     setProfile(null);
     db.login(uid);
+    persistLaunchFunnelAfterAuth();
+    db.advanceLaunchProgressAfterLogin(false);
     setGoogleAccessToken(loadGoogleAccessToken(uid));
 
     let loadedProfile: any = null;
@@ -781,6 +784,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           writeActiveDeviceUid(firebaseUser.uid);
           setUser(firebaseUser);
           db.login(firebaseUser.uid);
+          persistLaunchFunnelAfterAuth();
+          db.advanceLaunchProgressAfterLogin(false);
           scheduleLiveSessionSync(firebaseUser.uid);
 
           setUserAccounts((prev) => {

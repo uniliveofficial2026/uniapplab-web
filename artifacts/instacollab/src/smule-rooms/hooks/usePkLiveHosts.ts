@@ -1,18 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { db } from '../../lib/db/localDb';
-import { fetchActivePartyRooms } from '../../lib/party/partyRoomsCloud';
-import { isPartyCloudAvailable } from '../../lib/party/partyCloud';
-import { fetchLiveStreams, isPlatformApiAvailable } from '../../lib/platformApi';
+import { fetchPkLiveHosts } from '../../lib/platformApi';
 import { fetchProfile } from '../../lib/supabase/profile';
-import { fetchCloudLiveStreams } from '../../lib/supabase/liveDiscovery';
 import {
   fetchFollowerIds,
   fetchFollowingIds,
   isFollowsCloudAvailable,
 } from '../../lib/supabase/follows';
-import { roomModeFromLiveKind } from '../../lib/liveRing';
 import { safeAvatarUrl } from '../../lib/safe';
-import { isPkEligibleRoomMode } from '../utils/pkBattleLayout';
+import { isPkEligibleRoomMode, canPkMatchRoomModes } from '../utils/pkBattleLayout';
+import { logProductionPkRoute } from '../../lib/live/productionOneVsOnePkGate';
 
 const FALLBACK_AVATAR =
   'https://images.unsplash.com/photo-1524368535928-5b5e00ddc76b?w=120&h=120&fit=crop&crop=faces';
@@ -28,12 +25,18 @@ export type PkLiveHost = {
   roomMode: string;
   isFollowing: boolean;
   isFollower: boolean;
+  isLive: boolean;
+  isPkEligible: boolean;
+  source: 'live-lifecycle';
+  lastUpdated: string;
+  supportedPkModes: string[];
 };
 
 type UsePkLiveHostsOptions = {
   enabled?: boolean;
   selfUserId: string;
   selfRoomId: string;
+  selfRoomMode?: string;
   pollMs?: number;
   /** Force a refresh when the invite sheet opens. */
   refreshKey?: number;
@@ -70,6 +73,12 @@ async function resolveFollowSets(selfUserId: string): Promise<{
   return { following, followers };
 }
 
+function roomModeFromLifecycleType(roomType: string): string {
+  if (roomType === 'commerce') return 'Commerce-Live';
+  if (roomType === 'solo_video' || roomType === 'solo_audio') return 'Solo-Live';
+  return '';
+}
+
 function hostFromProfile(input: {
   userId: string;
   name: string;
@@ -81,6 +90,10 @@ function hostFromProfile(input: {
   roomMode: string;
   isFollowing: boolean;
   isFollower: boolean;
+  isLive?: boolean;
+  isPkEligible?: boolean;
+  lastUpdated?: string;
+  supportedPkModes?: string[];
 }): PkLiveHost {
   const username = String(input.username || input.name || 'host').trim();
   return {
@@ -94,135 +107,70 @@ function hostFromProfile(input: {
     roomMode: input.roomMode,
     isFollowing: input.isFollowing,
     isFollower: input.isFollower,
+    isLive: input.isLive !== false,
+    isPkEligible: input.isPkEligible !== false,
+    source: 'live-lifecycle',
+    lastUpdated: input.lastUpdated || '',
+    supportedPkModes: input.supportedPkModes?.length
+      ? input.supportedPkModes
+      : input.roomMode === 'Commerce-Live'
+        ? ['pk_1v1', 'live_sell']
+        : ['pk_1v1', 'pk_team'],
   };
 }
 
+/**
+ * PK invite hosts come only from the live-lifecycle service.
+ * Discovery streams / production /api/stream/live rows are not challenge targets.
+ */
 async function buildPkLiveHosts(
   selfUserId: string,
   selfRoomId: string,
+  selfRoomMode?: string,
 ): Promise<PkLiveHost[]> {
   const byUserId = new Map<string, PkLiveHost>();
-  const profileCache = new Map<string, Awaited<ReturnType<typeof fetchProfile>> | null>();
   const { following, followers } = await resolveFollowSets(selfUserId);
-
   const followFlags = (userId: string) => ({
     isFollowing: following.has(userId) || db.isFollowingUser(userId),
     isFollower: followers.has(userId),
   });
 
-  const readProfile = async (userId: string) => {
-    if (profileCache.has(userId)) return profileCache.get(userId) ?? null;
+  const res = await fetchPkLiveHosts();
+  const rows = Array.isArray(res?.hosts) ? res.hosts : [];
+  for (const row of rows) {
+    const userId = String(row.userId || '').trim();
+    const roomId = String(row.roomId || '').trim();
+    const roomMode = roomModeFromLifecycleType(String(row.roomType || ''));
+    if (!userId || !roomId || !roomMode) continue;
+    if (userId === selfUserId || roomId === selfRoomId) continue;
+    if (row.isLive === false || row.isPkEligible === false) continue;
+    if (!isPkEligibleRoomMode(roomMode)) continue;
+    if (selfRoomMode && !canPkMatchRoomModes(selfRoomMode, roomMode)) continue;
+    let profile: Awaited<ReturnType<typeof fetchProfile>> | null = null;
     try {
-      const profile = await fetchProfile(userId);
-      profileCache.set(userId, profile);
-      return profile;
+      profile = await fetchProfile(userId);
     } catch {
-      profileCache.set(userId, null);
-      return null;
+      profile = null;
     }
-  };
-
-  const addHost = (candidate: PkLiveHost) => {
-    if (!candidate.userId || candidate.userId === selfUserId) return;
-    if (candidate.roomId === selfRoomId) return;
-    if (!isPkEligibleRoomMode(candidate.roomMode)) return;
-    const flags = followFlags(candidate.userId);
-    const next = hostFromProfile({ ...candidate, ...flags });
-    const existing = byUserId.get(next.userId);
-    if (!existing || existing.roomId.startsWith('stream-')) {
-      byUserId.set(next.userId, next);
-    }
-  };
-
-  if (isPartyCloudAvailable()) {
-    try {
-      const rows = await fetchActivePartyRooms(50);
-      for (const room of rows) {
-        if (!room.owner_id || room.id === selfRoomId || room.owner_id === selfUserId) continue;
-        const roomMode = String(room.room_mode || '').trim();
-        if (!isPkEligibleRoomMode(roomMode)) continue;
-        const profile = await readProfile(room.owner_id);
-        addHost(
-          hostFromProfile({
-            userId: room.owner_id,
-            name:
-              profile?.display_name ||
-              profile?.username ||
-              room.room_name ||
-              'Live host',
-            username: profile?.username,
-            publicUserId: profile?.public_user_id || profile?.username,
-            avatar: room.cover_url || profile?.avatar_url,
-            roomId: room.id,
-            roomTitle: room.room_name || 'Live',
-            roomMode,
-            ...followFlags(room.owner_id),
-          }),
-        );
-      }
-    } catch {
-      /* party list optional */
-    }
-  }
-
-  try {
-    const streams = await fetchCloudLiveStreams(40);
-    for (const stream of streams) {
-      if (!stream.userId || stream.userId === selfUserId) continue;
-      const roomMode = roomModeFromLiveKind(stream.liveKind ?? 'solo');
-      if (!isPkEligibleRoomMode(roomMode)) continue;
-      addHost(
-        hostFromProfile({
-          userId: stream.userId,
-          name: stream.displayName || stream.username || 'Live host',
-          username: stream.username,
-          publicUserId: stream.username,
-          avatar: stream.avatarUrl,
-          roomId: `stream-${stream.id}`,
-          roomTitle: stream.title || 'Live',
-          roomMode,
-          ...followFlags(stream.userId),
-        }),
-      );
-    }
-  } catch {
-    /* cloud streams optional */
-  }
-
-  if (isPlatformApiAvailable()) {
-    try {
-      const res = await fetchLiveStreams();
-      const apiRows = Array.isArray(res?.streams) ? res.streams : [];
-      for (const raw of apiRows) {
-        const row = raw as Record<string, unknown>;
-        const userId = String(row.userId ?? row.user_id ?? '');
-        const streamId = String(row.id ?? row.streamId ?? '');
-        if (!userId || userId === selfUserId) continue;
-        const liveKind = String(row.liveKind ?? row.live_kind ?? 'solo');
-        const roomMode = roomModeFromLiveKind(
-          liveKind as 'solo' | 'commerce' | 'game' | 'audio-room' | 'video-multi' | 'pk' | 'party',
-        );
-        if (!isPkEligibleRoomMode(roomMode)) continue;
-        const profile = await readProfile(userId);
-        addHost(
-          hostFromProfile({
-            userId,
-            name: String(
-              row.displayName ?? row.title ?? profile?.display_name ?? profile?.username ?? 'Live host',
-            ),
-            username: profile?.username ?? String(row.username ?? ''),
-            publicUserId: profile?.public_user_id || profile?.username,
-            avatar: String(row.thumbnail ?? row.avatarUrl ?? profile?.avatar_url ?? ''),
-            roomId: streamId ? `api-stream-${streamId}` : `api-user-${userId}`,
-            roomTitle: String(row.title ?? 'Live'),
-            roomMode,
-            ...followFlags(userId),
-          }),
-        );
-      }
-    } catch {
-      /* api streams optional */
-    }
+    const localUser = db.users.find((u) => u.id === userId);
+    byUserId.set(
+      userId,
+      hostFromProfile({
+        userId,
+        name: profile?.display_name || profile?.username || localUser?.displayName || 'Live host',
+        username: profile?.username || localUser?.username,
+        publicUserId: profile?.public_user_id || profile?.username || localUser?.username,
+        avatar: profile?.avatar_url || localUser?.avatarUrl,
+        roomId,
+        roomTitle: profile?.display_name || localUser?.displayName || 'Live',
+        roomMode,
+        ...followFlags(userId),
+        isLive: true,
+        isPkEligible: true,
+        lastUpdated: row.lastUpdated || row.startedAt,
+        supportedPkModes: row.supportedPkModes,
+      }),
+    );
   }
 
   return [...byUserId.values()].sort((a, b) => a.name.localeCompare(b.name));
@@ -232,6 +180,7 @@ export function usePkLiveHosts({
   enabled = true,
   selfUserId,
   selfRoomId,
+  selfRoomMode,
   pollMs = 30_000,
   refreshKey = 0,
 }: UsePkLiveHostsOptions) {
@@ -247,9 +196,24 @@ export function usePkLiveHosts({
     setLoading(!hasLoadedRef.current);
     setError(null);
     try {
-      const next = await buildPkLiveHosts(selfUserId, selfRoomId);
+      const next = await buildPkLiveHosts(selfUserId, selfRoomId, selfRoomMode);
       setHosts(next);
       hasLoadedRef.current = true;
+      logProductionPkRoute({
+        event: 'pkLiveHosts',
+        selfUserId,
+        selfRoomId,
+        count: next.length,
+        hosts: next.map((host) => ({
+          userId: host.userId,
+          roomId: host.roomId,
+          name: host.name,
+          source: host.source,
+          isLive: host.isLive,
+          isPkEligible: host.isPkEligible,
+          lastUpdated: host.lastUpdated,
+        })),
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Could not load live hosts');
       setHosts([]);
@@ -257,7 +221,7 @@ export function usePkLiveHosts({
       inFlightRef.current = false;
       setLoading(false);
     }
-  }, [enabled, selfRoomId, selfUserId]);
+  }, [enabled, selfRoomId, selfRoomMode, selfUserId]);
 
   useEffect(() => {
     if (!enabled) {

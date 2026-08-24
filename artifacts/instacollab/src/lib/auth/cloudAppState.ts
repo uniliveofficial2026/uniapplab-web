@@ -1,8 +1,17 @@
-import { CLOUD_SYNC_COLLECTION_KEYS, isCloudSyncCollectionKey } from '../cloudSync/collectionKeys';
+import {
+  USER_APP_STATE_KEYS,
+  isUserAppStateKey,
+} from '../cloudSync/collectionKeys';
 import {
   CLOUD_APP_STATE_VERSION,
   type CloudAppStatePayload,
+  type UserAppStateV2Payload,
 } from '../cloudSync/types';
+import {
+  buildUserAppStateV2FromLocal,
+  extractAllowedSettings,
+  normalizeToUserAppStateV2,
+} from '../cloudSync/userAppStateMigrate';
 import { db } from '../db/localDb';
 import type { LocalDB } from '../db/localDbType';
 import {
@@ -68,7 +77,7 @@ function bumpLocalRevision(userId: string): number {
 function seedLocalRevisionIfNeeded(userId: string): void {
   if (readPersistedLocalRevision(userId) > 0) return;
   const cache = (db as unknown as { cache: Record<string, unknown> }).cache;
-  const hasLocal = CLOUD_SYNC_COLLECTION_KEYS.some(
+  const hasLocal = USER_APP_STATE_KEYS.some(
     (key) => cache[key] !== undefined && cache[key] !== null,
   );
   if (hasLocal) bumpLocalRevision(userId);
@@ -81,34 +90,32 @@ function resetCloudSyncSessionState(): void {
   cloudSyncHydratedUserId = null;
 }
 
-function collectPayload(store: LocalDB): CloudAppStatePayload {
-  const collections: CloudAppStatePayload['collections'] = {};
+function collectPayload(store: LocalDB, revision: number): UserAppStateV2Payload {
   const cache = (store as unknown as { cache: Record<string, unknown> }).cache;
+  const settings: Partial<Record<(typeof USER_APP_STATE_KEYS)[number], unknown>> = {};
 
-  for (const key of CLOUD_SYNC_COLLECTION_KEYS) {
-    if (!isCloudSyncCollectionKey(key)) continue;
+  for (const key of USER_APP_STATE_KEYS) {
+    if (!isUserAppStateKey(key)) continue;
     const value = cache[key];
     if (value !== undefined) {
-      collections[key] = value;
+      settings[key] = value;
     }
   }
 
-  return {
-    v: CLOUD_APP_STATE_VERSION,
-    updatedAt: Date.now(),
-    collections,
-  };
+  return buildUserAppStateV2FromLocal(settings, revision);
 }
 
 function applyPayloadIfNewer(payload: CloudAppStatePayload, source: 'remote' | 'bootstrap') {
   if (isDevLocalAuthBypass()) return;
-  if (!payload?.updatedAt || payload.v !== CLOUD_APP_STATE_VERSION) return;
-  if (source === 'remote' && payload.updatedAt <= lastAppliedRemoteAt) return;
-  if (source === 'bootstrap' && payload.updatedAt <= lastPushedAt) return;
+  const normalized = normalizeToUserAppStateV2(payload);
+  if (!normalized?.updatedAt) return;
+  if (source === 'remote' && normalized.updatedAt <= lastAppliedRemoteAt) return;
+  if (source === 'bootstrap' && normalized.updatedAt <= lastPushedAt) return;
 
   withCloudAppStateRemoteApply(() => {
-    db.applyRemoteCollections(payload.collections);
-    lastAppliedRemoteAt = payload.updatedAt;
+    // v2 applies AS-only settings — never overwrite CU/EP/financial collections from cloud blob.
+    db.applyRemoteCollections(normalized.settings as Partial<Record<string, unknown>>);
+    lastAppliedRemoteAt = normalized.updatedAt;
   });
 }
 
@@ -121,7 +128,8 @@ async function pushNow(userId: string): Promise<void> {
   }
   pushInFlight = true;
   try {
-    const payload = collectPayload(db);
+    const revision = readPersistedLocalRevision(userId);
+    const payload = collectPayload(db, revision);
     if (payload.updatedAt <= lastAppliedRemoteAt) return;
 
     const backend = await resolveCloudDataBackend(userId);
@@ -140,7 +148,7 @@ async function pushNow(userId: string): Promise<void> {
       console.info('[sync] pushed user_app_state', {
         userId: userId.slice(0, 8),
         updatedAt: payload.updatedAt,
-        keys: Object.keys(payload.collections),
+        keys: Object.keys(payload.settings),
       });
     }
   } catch (err) {
@@ -149,7 +157,7 @@ async function pushNow(userId: string): Promise<void> {
     console.warn('[sync] cloud app state push failed:', message, err);
     if (isFirebaseConfigured()) {
       try {
-        const payload = collectPayload(db);
+        const payload = collectPayload(db, readPersistedLocalRevision(userId));
         const { upsertFirebaseUserAppState } = await firebaseUserAppState();
         await upsertFirebaseUserAppState(userId, payload);
         lastPushedAt = payload.updatedAt;
@@ -168,31 +176,8 @@ async function pushNow(userId: string): Promise<void> {
   }
 }
 
-/** Keys that always push on the next microtask (wallet / prefs). Chat signals use dedicated Supabase/API lanes. */
-const INSTANT_CLOUD_SYNC_KEYS = new Set([
-  'coins_balance',
-  'karaoke_user_state',
-  'admin_published_gifts',
-  'admin_published_beauty',
-  'game_coins',
-  'cash_balance',
-  'wallet_transactions',
-  'hasUnreadNotifications',
-  'posts',
-  'reels',
-  'stories',
-  'profile_stories',
-  'notification_inbox',
-  'notifications',
-  'follow_graph',
-  'blocked_users',
-  'dating_state',
-  'karaoke_uploads',
-  'karaoke_recordings',
-  'workspace_tasks',
-  'workspace_files',
-  'app_settings',
-]);
+/** AS-only keys that push immediately on change. CU/EP/financial keys use dedicated server lanes. */
+const INSTANT_CLOUD_SYNC_KEYS = new Set<string>(USER_APP_STATE_KEYS);
 
 function queueCloudPush(userId: string, urgent = false): void {
   const run = () => void pushNow(userId);
@@ -212,23 +197,16 @@ function queueCloudPush(userId: string, urgent = false): void {
 /** Push after local db.save — microtask batching (no debounce delay). */
 export function scheduleCloudAppStateSync(store: LocalDB = db, changedKey?: string): void {
   if (isDevLocalAuthBypass() || !isCloudAuthConfigured() || isCloudAppStateRemoteApply()) return;
-  if (!isNetworkOnline()) return;
-  // Chat uses dedicated Supabase/API lanes (TRTC-style), not user_app_state blobs.
-  if (
-    changedKey === 'messages' ||
-    changedKey === 'chat_presence' ||
-    changedKey === 'chat_read_state' ||
-    changedKey === 'chat_peer_read_state' ||
-    changedKey === 'chat_groups' ||
-    changedKey === 'unreadMessagesCount'
-  ) {
-    return;
-  }
+  // Only AS keys may enter user_app_state v2 sync.
+  if (changedKey && !isUserAppStateKey(changedKey)) return;
+
   const userId = store.currentUserId;
   if (!isCloudAuthUserId(userId)) return;
 
   const bumped = bumpLocalRevision(userId);
   lastPushedAt = Math.max(lastPushedAt, bumped);
+
+  if (!isNetworkOnline()) return;
 
   queueCloudPush(
     userId,
@@ -294,7 +272,7 @@ async function hydrateCloudAppStateForUser(
         const sessionEmail = await resolveDemoSessionEmail(userId);
         const pending = sessionEmail ? consumePendingDemoMigration(sessionEmail) : null;
         if (pending?.collections && Object.keys(pending.collections).length > 0) {
-          db.applyRemoteCollections(pending.collections);
+          db.applyRemoteCollections(extractAllowedSettings(pending.collections));
           persistLocalRevision(userId, pending.updatedAt);
           lastPushedAt = Math.max(lastPushedAt, pending.updatedAt);
           lastAppliedRemoteAt = 0;
@@ -433,9 +411,8 @@ async function startCloudAppStateRealtimeInner(userId: string): Promise<void> {
           queueMicrotask(() => {
             scheduleLiveSessionSync(userId);
           });
-        } else if (subscribedUserId === userId) {
-          cloudSyncReady = true;
         }
+        // Failed hydration must not enable push — stale local must not overwrite unknown cloud AS.
       })();
     });
   }

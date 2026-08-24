@@ -72,6 +72,8 @@ export type TencentBackgroundMediaType = 'image' | 'video';
 
 export type TencentEffectSelection = {
   makeupId: string | null;
+  /** 0–1 strength for the active makeup look. */
+  makeupIntensity?: number | null;
   stickerId: string | null;
   filterId: string | null;
   /** Background image/video URL or null. */
@@ -154,6 +156,7 @@ export const TRTC_DEFAULT_BACKGROUNDS = [
 
 export const EMPTY_TENCENT_EFFECT_SELECTION: TencentEffectSelection = {
   makeupId: null,
+  makeupIntensity: null,
   stickerId: null,
   filterId: null,
   backgroundUrl: null,

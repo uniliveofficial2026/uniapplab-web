@@ -56,8 +56,15 @@ export async function preloadAsset(assetId: string): Promise<void> {
   preloaded.add(assetId);
 }
 
-export async function preloadAssets(assetIds: string[]): Promise<void> {
-  await Promise.all(assetIds.map((id) => preloadAsset(id)));
+export async function preloadAssets(assetIds: string[], concurrency = 4): Promise<void> {
+  const queue = [...assetIds];
+  const workers = Array.from({ length: Math.min(concurrency, queue.length) || 0 }, async () => {
+    while (queue.length) {
+      const id = queue.shift();
+      if (id) await preloadAsset(id);
+    }
+  });
+  await Promise.all(workers);
 }
 
 export function clearPreloadCache(): void {

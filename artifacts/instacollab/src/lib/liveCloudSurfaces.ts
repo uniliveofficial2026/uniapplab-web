@@ -13,6 +13,7 @@ import {
   stopCloudChatRealtime,
   syncCloudChatInbox,
 } from './chat/cloudChatSync';
+import { chatService } from '../services/ChatService';
 import {
   startCloudNotificationRealtime,
   stopCloudNotificationRealtime,
@@ -171,6 +172,11 @@ export function startLiveCloudSurfaces(userId: string): void {
   activeUserId = userId;
 
   void startCloudChatRealtime(userId);
+  chatService.startRealtime(userId);
+  // Reconstruct inbox from server threads API + history (not local-only map).
+  void chatService.loadThreads().then((result) => {
+    if (result.ok) void syncCloudChatInbox();
+  });
   startCloudNotificationRealtime(userId);
   stopPostsRealtime = startCloudPostRealtimeSync();
   stopBlocksRealtime = startCloudBlocksRealtime(userId);
@@ -198,6 +204,7 @@ export function startLiveCloudSurfaces(userId: string): void {
 }
 
 export function stopLiveCloudSurfaces(): void {
+  void import('./platformApi').then((mod) => mod.postPresenceOffline?.()).catch(() => undefined);
   activeUserId = null;
   if (presenceTimer != null) {
     window.clearInterval(presenceTimer);

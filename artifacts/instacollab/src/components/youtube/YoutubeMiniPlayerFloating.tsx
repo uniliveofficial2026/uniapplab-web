@@ -92,7 +92,7 @@ export function YoutubeMiniPlayerFloating() {
 
   const panel = (
     <div
-      className={`youtube-mini-player fixed z-[380] overflow-hidden border border-white/15 bg-[#0b0612]/95 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-xl ${
+      className={`youtube-mini-player fixed z-[3150] overflow-hidden border border-white/15 bg-[#0b0612]/95 shadow-[0_18px_50px_rgba(0,0,0,0.55)] backdrop-blur-xl ${
         state.minimized ? 'rounded-full' : 'rounded-2xl'
       } ${dragging ? 'cursor-grabbing select-none' : ''}`}
       style={{

@@ -10,7 +10,9 @@ import {
 } from '../supabase/safeRealtimeChannel';
 import { isFirebaseConfigured } from '../firebase/config';
 import { fetchProfile, profileRowToUser } from '../supabase/profile';
-import { createChatThread, sendChatMessageApi, isPlatformApiAvailable } from '../platformApi';
+import { createChatThread, sendChatMessageApi, deleteChatMessageApi, isPlatformApiAvailable, fetchChatThreads, fetchChatThreadMessages } from '../platformApi';
+import { enqueueChatMessageSend, processChatOutbox } from '../outbox/chatOutboxProcessor';
+import { getOutboxItemByMutation, removeOutboxItemsByMutation } from '../outbox/outboxStore';
 import type { ChatMessage } from '../dbTypes';
 import type { ChatGroup } from '../../types';
 import { cloudifyChatMessageMedia } from './chatMediaUpload';
@@ -22,6 +24,75 @@ async function firebaseChat() {
 }
 
 type ThreadMap = Record<string, string>;
+
+
+type GroupThreadMeta = {
+  kind?: string;
+  localId?: string;
+  title?: string;
+  avatarUrl?: string;
+  createdBy?: string;
+  adminIds?: string[];
+  mutedMemberIds?: string[];
+  adminOnlyPosting?: boolean;
+  requireApprovalToJoin?: boolean;
+};
+
+export function buildCanonicalDmKey(a: string, b: string): string {
+  return [String(a || '').trim(), String(b || '').trim()].sort().join(':');
+}
+
+function groupThreadMeta(group: ChatGroup): GroupThreadMeta {
+  const memberIds = new Set((group.memberIds || []).map(String).filter(Boolean));
+  const createdBy = memberIds.has(String(group.createdBy || '')) ? String(group.createdBy) : undefined;
+  const adminIds = [...new Set((group.adminIds || []).map(String).filter((id) => memberIds.has(id)))];
+  if (createdBy && !adminIds.includes(createdBy)) adminIds.unshift(createdBy);
+  return {
+    kind: 'group',
+    localId: group.id,
+    title: group.displayName,
+    avatarUrl: group.avatarUrl,
+    createdBy,
+    adminIds,
+    mutedMemberIds: [...new Set((group.mutedMemberIds || []).map(String).filter((id) => memberIds.has(id)))],
+    adminOnlyPosting: !!group.adminOnlyPosting,
+    requireApprovalToJoin: !!group.requireApprovalToJoin,
+  };
+}
+
+function groupFromThreadMeta(
+  localId: string,
+  meta: GroupThreadMeta,
+  memberIds: string[],
+): ChatGroup {
+  const members = [...new Set(memberIds.filter(Boolean))];
+  const createdBy =
+    typeof meta.createdBy === 'string' && members.includes(meta.createdBy)
+      ? meta.createdBy
+      : '';
+  const adminIds = Array.isArray(meta.adminIds)
+    ? [...new Set(meta.adminIds.filter((id) => members.includes(id)))]
+    : [];
+  if (createdBy && !adminIds.includes(createdBy)) adminIds.unshift(createdBy);
+  return {
+    id: localId,
+    displayName: typeof meta.title === 'string' && meta.title.trim() ? meta.title.trim() : 'Group chat',
+    username: `${members.length} members`,
+    avatarUrl:
+      typeof meta.avatarUrl === 'string' && meta.avatarUrl.trim()
+        ? meta.avatarUrl
+        : 'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
+    isGroup: true,
+    memberIds: members,
+    createdBy,
+    adminIds,
+    mutedMemberIds: Array.isArray(meta.mutedMemberIds)
+      ? [...new Set(meta.mutedMemberIds.filter((id) => members.includes(id)))]
+      : [],
+    adminOnlyPosting: !!meta.adminOnlyPosting,
+    requireApprovalToJoin: !!meta.requireApprovalToJoin,
+  };
+}
 
 const DEFAULT_AVATAR =
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=150&h=150&fit=crop';
@@ -85,11 +156,47 @@ function saveThreadMap(map: ThreadMap): void {
 }
 
 function rememberThreadPeer(peerId: string, threadId: string): void {
+  if (!peerId || !threadId) return;
   const map = loadThreadMap();
-  if (map[peerId] === threadId) return;
-  map[peerId] = threadId;
-  saveThreadMap(map);
+  let changed = false;
+  // One canonical local chat id owns one cloud thread. Remove stale aliases left by
+  // older sender-based realtime mapping so group traffic cannot leak into a DM.
+  for (const [localId, mappedThreadId] of Object.entries(map)) {
+    if (mappedThreadId === threadId && localId !== peerId) {
+      delete map[localId];
+      changed = true;
+    }
+  }
+  if (map[peerId] !== threadId) {
+    map[peerId] = threadId;
+    changed = true;
+  }
+  if (changed) saveThreadMap(map);
 }
+
+function dropLocalThreadMappingByThreadId(threadId: string): void {
+  if (!threadId) return;
+  const map = loadThreadMap();
+  const removedLocalIds = Object.entries(map)
+    .filter(([, mappedThreadId]) => mappedThreadId === threadId)
+    .map(([localId]) => localId);
+  if (!removedLocalIds.length) return;
+  for (const localId of removedLocalIds) delete map[localId];
+  saveThreadMap(map);
+  const groupsToRemove = new Set(removedLocalIds.filter((id) => Boolean(db.getChatGroup(id))));
+  if (groupsToRemove.size) {
+    db.saveChatGroups(db.chatGroups.filter((group) => !groupsToRemove.has(group.id)));
+  }
+  for (const localId of removedLocalIds) dispatchChatInboxActivity(localId);
+}
+
+function pruneThreadMapToAuthoritativeMembership(activeThreadIds: Iterable<string>): void {
+  const active = new Set([...activeThreadIds].map(String).filter(Boolean));
+  const map = loadThreadMap();
+  const staleThreadIds = [...new Set(Object.values(map).filter((threadId) => !active.has(threadId)))];
+  for (const threadId of staleThreadIds) dropLocalThreadMappingByThreadId(threadId);
+}
+
 
 async function ensurePeerProfileCached(peerId: string): Promise<void> {
   if (!isCloudAuthUserId(peerId)) return;
@@ -119,14 +226,60 @@ async function verifySupabaseDmThread(
 ): Promise<boolean> {
   const supabase = getSupabaseClient();
   if (!supabase || !threadId) return false;
-  const { data, error } = await supabase
+  const expectedKey = buildCanonicalDmKey(meId, peerId);
+  const [{ data: thread, error: threadErr }, { data: membershipRows, error: memberErr }] = await Promise.all([
+    supabase
+      .from('chat_threads')
+      .select('id, thread_type, dm_key, meta')
+      .eq('id', threadId)
+      .maybeSingle(),
+    supabase.from('chat_thread_members').select('user_id').eq('thread_id', threadId),
+  ]);
+  if (threadErr || memberErr || !thread) return false;
+  const meta = (thread.meta ?? {}) as GroupThreadMeta;
+  if (thread.thread_type === 'group' || meta.kind === 'group') return false;
+  if (thread.dm_key && thread.dm_key !== expectedKey) return false;
+  const members = new Set((membershipRows ?? []).map((row) => String(row.user_id || '')).filter(Boolean));
+  return members.size === 2 && members.has(meId) && members.has(peerId);
+}
+
+async function findAndRepairLegacySupabaseDmThread(peerId: string, meId: string): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data: mine, error: mineErr } = await supabase
     .from('chat_thread_members')
-    .select('user_id')
-    .eq('thread_id', threadId)
-    .in('user_id', [meId, peerId]);
-  if (error || !data?.length) return false;
-  const members = new Set(data.map((row) => row.user_id).filter(Boolean));
-  return members.has(meId) && members.has(peerId);
+    .select('thread_id')
+    .eq('user_id', meId);
+  if (mineErr || !mine?.length) return null;
+  const dmKey = buildCanonicalDmKey(meId, peerId);
+  for (const membership of mine) {
+    const threadId = String(membership.thread_id || '');
+    if (!threadId) continue;
+    const [{ data: thread }, { data: rows }] = await Promise.all([
+      supabase.from('chat_threads').select('id, thread_type, dm_key, meta').eq('id', threadId).maybeSingle(),
+      supabase.from('chat_thread_members').select('user_id').eq('thread_id', threadId),
+    ]);
+    if (!thread) continue;
+    const meta = (thread.meta ?? {}) as GroupThreadMeta;
+    if (thread.thread_type === 'group' || meta.kind === 'group') continue;
+    const members = [...new Set((rows ?? []).map((row) => String(row.user_id || '')).filter(Boolean))];
+    if (members.length !== 2 || !members.includes(meId) || !members.includes(peerId)) continue;
+    const { error: repairErr } = await supabase
+      .from('chat_threads')
+      .update({ thread_type: 'dm', dm_key: dmKey })
+      .eq('id', threadId);
+    if (!repairErr) return threadId;
+    if (repairErr.code === '23505') {
+      const { data: canonical } = await supabase
+        .from('chat_threads')
+        .select('id')
+        .eq('thread_type', 'dm')
+        .eq('dm_key', dmKey)
+        .maybeSingle();
+      if (canonical?.id && await verifySupabaseDmThread(canonical.id, meId, peerId)) return canonical.id;
+    }
+  }
+  return null;
 }
 
 async function findExistingCloudThread(peerId: string, meId: string): Promise<string | null> {
@@ -141,23 +294,18 @@ async function findExistingCloudThread(peerId: string, meId: string): Promise<st
     const supabase = getSupabaseClient();
     if (!supabase) return null;
 
-    const { data: myMemberships, error } = await supabase
-      .from('chat_thread_members')
-      .select('thread_id')
-      .eq('user_id', meId);
-    if (error || !myMemberships?.length) return null;
-
-    const myThreadIds = myMemberships.map((row) => row.thread_id).filter(Boolean);
-    if (myThreadIds.length === 0) return null;
-
-    const { data: sharedMemberships, error: sharedErr } = await supabase
-      .from('chat_thread_members')
-      .select('thread_id')
-      .eq('user_id', peerId)
-      .in('thread_id', myThreadIds);
-    if (sharedErr || !sharedMemberships?.length) return null;
-
-    return sharedMemberships[0]?.thread_id ?? null;
+    // Never resolve a DM by "first shared thread". Two users may also share one or
+    // more group threads; the canonical dm_key is the only unambiguous mapping.
+    const dmKey = buildCanonicalDmKey(meId, peerId);
+    const { data: thread, error } = await supabase
+      .from('chat_threads')
+      .select('id')
+      .eq('thread_type', 'dm')
+      .eq('dm_key', dmKey)
+      .maybeSingle();
+    if (!error && thread?.id && await verifySupabaseDmThread(thread.id, meId, peerId)) return thread.id;
+    // Upgrade old exact-two-member threads that predate thread_type/dm_key.
+    return findAndRepairLegacySupabaseDmThread(peerId, meId);
   };
 
   // Shared DM threads must align across users — Supabase is canonical when configured
@@ -175,24 +323,41 @@ async function createCloudThreadDirect(peerId: string, meId: string): Promise<st
   const trySupabase = async (): Promise<string | null> => {
     const supabase = getSupabaseClient();
     if (!supabase) return null;
+    const dmKey = buildCanonicalDmKey(meId, peerId);
 
     const { data: thread, error: threadErr } = await supabase
       .from('chat_threads')
-      .insert({})
+      .insert({ thread_type: 'dm', dm_key: dmKey })
       .select('id')
       .single();
     if (threadErr || !thread?.id) {
+      // Concurrent creators converge on the unique dm_key instead of minting
+      // duplicate 1:1 threads.
+      if (threadErr?.code === '23505') {
+        const existing = await findExistingCloudThread(peerId, meId);
+        if (existing) return existing;
+      }
       console.warn('[cloud-chat] direct thread create failed:', threadErr?.message);
       return null;
     }
 
-    const { error: memberErr } = await supabase.from('chat_thread_members').insert([
-      { thread_id: thread.id, user_id: meId },
-      { thread_id: thread.id, user_id: peerId },
-    ]);
-    if (memberErr) {
-      console.warn('[cloud-chat] direct thread members failed:', memberErr.message);
-      return null;
+    // Legacy RLS allows a user to add another member only after the current
+    // user is already a member. Insert self first, then peer.
+    const { error: selfErr } = await supabase.from('chat_thread_members').insert({
+      thread_id: thread.id,
+      user_id: meId,
+    });
+    if (selfErr && selfErr.code !== '23505') {
+      console.warn('[cloud-chat] direct self membership failed:', selfErr.message);
+      return findExistingCloudThread(peerId, meId);
+    }
+    const { error: peerErr } = await supabase.from('chat_thread_members').insert({
+      thread_id: thread.id,
+      user_id: peerId,
+    });
+    if (peerErr && peerErr.code !== '23505') {
+      console.warn('[cloud-chat] direct peer membership failed:', peerErr.message);
+      return findExistingCloudThread(peerId, meId);
     }
 
     return thread.id;
@@ -234,7 +399,11 @@ function messageToPayload(message: ChatMessage): Record<string, unknown> {
 }
 
 export function isGroupChatId(chatId: string): boolean {
-  return chatId.startsWith('group') || chatId.startsWith('group_');
+  const id = String(chatId || '').trim();
+  if (!id) return false;
+  // Group ids are not guaranteed to use a `group_` prefix. The persisted group
+  // domain object is authoritative; the prefix remains only as a cold-cache fallback.
+  return Boolean(db.getChatGroup(id)) || id.startsWith('group') || id.startsWith('group_');
 }
 
 function bodyFromMessage(message: ChatMessage): string {
@@ -242,6 +411,7 @@ function bodyFromMessage(message: ChatMessage): string {
     const kind = message.callKind === 'video' ? 'Video' : 'Audio';
     if (message.callAction === 'end') return `${kind} call ended`;
     if (message.callAction === 'decline') return `${kind} call declined`;
+    if (message.callAction === 'accept') return `${kind} call accepted`;
     return `${kind} call`;
   }
   const text = String(message.text ?? '').trim();
@@ -320,6 +490,7 @@ async function sendChatMessageDirect(
         .from('chat_messages')
         .select('id')
         .eq('thread_id', threadId)
+        .eq('sender_id', meId)
         .eq('client_id', message.id)
         .maybeSingle();
       if (existing?.id) {
@@ -346,198 +517,168 @@ async function sendChatMessageDirect(
 }
 
 async function hydrateThreadMapFromCloud(userId: string): Promise<void> {
-  if (isFirebaseConfigured()) {
+  const activeThreadIds = new Set<string>();
+  const applyDescriptor = (
+    threadId: string,
+    memberIds: string[],
+    rawMeta: GroupThreadMeta | null | undefined,
+    threadType?: string,
+  ) => {
+    if (!threadId) return;
+    const members = [...new Set(memberIds.map(String).filter(Boolean))];
+    if (!members.includes(userId)) return;
+    activeThreadIds.add(threadId);
+    const peers = members.filter((id) => id !== userId);
+    const meta = (rawMeta ?? {}) as GroupThreadMeta;
+    const isGroup = threadType === 'group' || meta.kind === 'group' || peers.length >= 2;
+
+    if (!isGroup && peers.length === 1) {
+      rememberThreadPeer(peers[0], threadId);
+      void ensurePeerProfileCached(peers[0]);
+      return;
+    }
+    if (isGroup) {
+      const localId =
+        typeof meta.localId === 'string' && meta.localId.trim()
+          ? meta.localId.trim()
+          : `group_cloud_${threadId.slice(0, 8)}`;
+      rememberThreadPeer(localId, threadId);
+      db.mergeInboundChatGroup(groupFromThreadMeta(localId, meta, members));
+    }
+  };
+
+  // Server API is the canonical membership list when available. An empty successful
+  // response is authoritative and must prune stale local mappings/groups.
+  if (isPlatformApiAvailable()) {
+    try {
+      const { threads } = await fetchChatThreads();
+      if (Array.isArray(threads)) {
+        for (const thread of threads) {
+          const record = thread as {
+            id?: unknown;
+            members?: unknown;
+            meta?: GroupThreadMeta;
+            thread_type?: unknown;
+          };
+          applyDescriptor(
+            String(record.id || ''),
+            Array.isArray(record.members) ? record.members.map(String) : [],
+            record.meta,
+            String(record.thread_type || ''),
+          );
+        }
+        pruneThreadMapToAuthoritativeMembership(activeThreadIds);
+        return;
+      }
+    } catch (err) {
+      if (import.meta.env.DEV) console.warn('[data:chat] fetchChatThreads hydrate failed, falling back', err);
+    }
+  }
+
+  if ((shouldUseFirebaseForChat(userId) || !isSupabaseConfigured()) && isFirebaseConfigured()) {
     const fb = await firebaseChat();
     if (fb.isFirebaseChatAvailable()) {
-      const map = loadThreadMap();
-      let changed = false;
       const threads = await fb.listFirebaseThreadsForUser(userId);
       for (const thread of threads) {
-        if (Object.values(map).includes(thread.id)) continue;
-        const meta = (thread.meta ?? {}) as {
-          kind?: string;
-          localId?: string;
-          title?: string;
-          avatarUrl?: string;
-        };
-        const peers = (thread.member_ids ?? []).filter((id) => id && id !== userId);
-        if (peers.length === 1 && meta.kind !== 'group') {
-          map[peers[0]] = thread.id;
-          changed = true;
-          continue;
-        }
-        if (peers.length >= 1 && (meta.kind === 'group' || peers.length >= 2)) {
-          const localId = meta.localId || `group_cloud_${thread.id.slice(0, 8)}`;
-          map[localId] = thread.id;
-          changed = true;
-          db.mergeInboundChatGroup({
-            id: localId,
-            displayName: meta.title || 'Group chat',
-            username: `${peers.length + 1} members`,
-            avatarUrl:
-              meta.avatarUrl ||
-              'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
-            isGroup: true,
-            memberIds: [userId, ...peers],
-            createdBy: userId,
-            adminIds: [userId],
-            mutedMemberIds: [],
-            adminOnlyPosting: false,
-            requireApprovalToJoin: false,
-          });
-        }
+        applyDescriptor(
+          thread.id,
+          (thread.member_ids ?? []).map(String),
+          (thread.meta ?? {}) as GroupThreadMeta,
+          (thread.meta as GroupThreadMeta | undefined)?.kind === 'group' ? 'group' : undefined,
+        );
       }
-      if (changed) saveThreadMap(map);
+      pruneThreadMapToAuthoritativeMembership(activeThreadIds);
+      return;
     }
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
-
   const { data: myMemberships, error } = await supabase
     .from('chat_thread_members')
     .select('thread_id')
     .eq('user_id', userId);
-  if (error || !myMemberships?.length) return;
+  if (error) return;
 
-  const map = loadThreadMap();
-  let changed = false;
-
-  for (const { thread_id: threadId } of myMemberships) {
+  for (const { thread_id: threadId } of myMemberships ?? []) {
     if (!threadId) continue;
-    if (Object.values(map).includes(threadId)) continue;
-
-    const { data: threadRow } = await supabase
-      .from('chat_threads')
-      .select('id, meta')
-      .eq('id', threadId)
-      .maybeSingle();
-
-    const { data: members, error: membersErr } = await supabase
-      .from('chat_thread_members')
-      .select('user_id')
-      .eq('thread_id', threadId);
+    const [{ data: threadRow }, { data: members, error: membersErr }] = await Promise.all([
+      supabase.from('chat_threads').select('id, thread_type, meta').eq('id', threadId).maybeSingle(),
+      supabase.from('chat_thread_members').select('user_id').eq('thread_id', threadId),
+    ]);
     if (membersErr || !members?.length) continue;
-
-    const peers = members.map((row) => row.user_id).filter((id) => id && id !== userId);
-    const meta = (threadRow?.meta ?? {}) as {
-      kind?: string;
-      localId?: string;
-      title?: string;
-      avatarUrl?: string;
-    };
-
-    if (peers.length === 1 && meta.kind !== 'group') {
-      map[peers[0]] = threadId;
-      changed = true;
-      continue;
-    }
-
-    if (peers.length >= 1 && (meta.kind === 'group' || peers.length >= 2)) {
-      const localId = meta.localId || `group_cloud_${threadId.slice(0, 8)}`;
-      map[localId] = threadId;
-      changed = true;
-      db.mergeInboundChatGroup({
-        id: localId,
-        displayName: meta.title || 'Group chat',
-        username: `${peers.length + 1} members`,
-        avatarUrl:
-          meta.avatarUrl ||
-          'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
-        isGroup: true,
-        memberIds: [userId, ...peers],
-        createdBy: userId,
-        adminIds: [userId],
-        mutedMemberIds: [],
-        adminOnlyPosting: false,
-        requireApprovalToJoin: false,
-      });
-    }
+    applyDescriptor(
+      threadId,
+      members.map((row) => row.user_id).filter(Boolean),
+      (threadRow?.meta ?? {}) as GroupThreadMeta,
+      String(threadRow?.thread_type || ''),
+    );
   }
-
-  if (changed) saveThreadMap(map);
+  pruneThreadMapToAuthoritativeMembership(activeThreadIds);
 }
 
-function resolvePeerIdForThread(threadId: string, senderId: string): string | null {
-  const meId = db.currentUserId;
-  if (!meId) return null;
-
+function resolvePeerIdForThread(threadId: string, _senderId: string): string | null {
+  if (!db.currentUserId || !threadId) return null;
   const map = loadThreadMap();
-  let peerId = Object.entries(map).find(([, tid]) => tid === threadId)?.[0] ?? null;
-
-  if (!peerId && senderId && senderId !== meId && isCloudAuthUserId(senderId)) {
-    peerId = senderId;
-    rememberThreadPeer(peerId, threadId);
-  }
-
-  return peerId;
+  return Object.entries(map).find(([, tid]) => tid === threadId)?.[0] ?? null;
 }
 
 /** Resolve local chat id from cloud thread — used when thread map is cold on a new device. */
 async function resolvePeerIdFromCloudThread(
   threadId: string,
-  senderId: string,
+  _senderId: string,
 ): Promise<string | null> {
-  const cached = resolvePeerIdForThread(threadId, senderId);
+  const cached = resolvePeerIdForThread(threadId, '');
   if (cached) return cached;
 
-  const inflight = threadResolveInflight.get(threadId);
+  const inflight = threadResolveInflight.get(`thread:${threadId}`);
   if (inflight) return inflight;
 
   const task = (async () => {
     const meId = db.currentUserId;
     if (!meId) return null;
 
-    const resolveFromSupabase = async (): Promise<string | null> => {
-      const supabase = getSupabaseClient();
-      if (!supabase) return null;
-
-      const [{ data: threadRow }, { data: members, error: membersErr }] = await Promise.all([
-        supabase.from('chat_threads').select('id, meta').eq('id', threadId).maybeSingle(),
-        supabase.from('chat_thread_members').select('user_id').eq('thread_id', threadId),
-      ]);
-      if (membersErr || !members?.length) return null;
-
-      const meta = (threadRow?.meta ?? {}) as {
-        kind?: string;
-        localId?: string;
-        title?: string;
-        avatarUrl?: string;
-      };
-      const peers = members.map((row) => row.user_id).filter((id) => id && id !== meId);
-
-      if (peers.length === 1 && meta.kind !== 'group') {
+    const applyResolvedThread = (
+      members: string[],
+      meta: GroupThreadMeta,
+      threadType?: string,
+    ): string | null => {
+      const cleanMembers = [...new Set(members.filter(Boolean))];
+      const peers = cleanMembers.filter((id) => id !== meId);
+      const isGroup = threadType === 'group' || meta.kind === 'group' || peers.length >= 2;
+      if (!isGroup && peers.length === 1) {
         rememberThreadPeer(peers[0], threadId);
         return peers[0];
       }
-
-      if (peers.length >= 1 && (meta.kind === 'group' || peers.length >= 2)) {
-        const localId = meta.localId || `group_cloud_${threadId.slice(0, 8)}`;
+      if (isGroup && peers.length >= 1) {
+        const localId =
+          typeof meta.localId === 'string' && meta.localId.trim()
+            ? meta.localId.trim()
+            : `group_cloud_${threadId.slice(0, 8)}`;
         rememberThreadPeer(localId, threadId);
-        db.mergeInboundChatGroup({
-          id: localId,
-          displayName: meta.title || 'Group chat',
-          username: `${peers.length + 1} members`,
-          avatarUrl:
-            meta.avatarUrl ||
-            'https://images.unsplash.com/photo-1522071820081-009f0129c71c?w=100',
-          isGroup: true,
-          memberIds: [meId, ...peers],
-          createdBy: meId,
-          adminIds: [meId],
-          mutedMemberIds: [],
-          adminOnlyPosting: false,
-          requireApprovalToJoin: false,
-        });
+        db.mergeInboundChatGroup(groupFromThreadMeta(localId, meta, [meId, ...peers]));
         return localId;
       }
-
-      if (senderId && senderId !== meId && isCloudAuthUserId(senderId)) {
-        rememberThreadPeer(senderId, threadId);
-        return senderId;
-      }
-
       return null;
+    };
+
+    const resolveFromSupabase = async (): Promise<string | null> => {
+      const supabase = getSupabaseClient();
+      if (!supabase) return null;
+      const [{ data: threadRow, error: threadErr }, { data: members, error: membersErr }] = await Promise.all([
+        supabase
+          .from('chat_threads')
+          .select('id, thread_type, meta')
+          .eq('id', threadId)
+          .maybeSingle(),
+        supabase.from('chat_thread_members').select('user_id').eq('thread_id', threadId),
+      ]);
+      if (threadErr || membersErr || !members?.length) return null;
+      return applyResolvedThread(
+        members.map((row) => row.user_id).filter(Boolean),
+        (threadRow?.meta ?? {}) as GroupThreadMeta,
+        String(threadRow?.thread_type || ''),
+      );
     };
 
     const resolveFromFirebase = async (): Promise<string | null> => {
@@ -546,24 +687,17 @@ async function resolvePeerIdFromCloudThread(
       if (!fb.isFirebaseChatAvailable()) return null;
       const thread = await fb.fetchFirebaseThread(threadId);
       if (!thread) return null;
-      const meta = (thread.meta ?? {}) as { kind?: string; localId?: string };
-      const peers = (thread.member_ids ?? []).filter((id) => id && id !== meId);
-      if (peers.length === 1 && meta.kind !== 'group') {
-        rememberThreadPeer(peers[0], threadId);
-        return peers[0];
-      }
-      if (peers.length >= 1 && (meta.kind === 'group' || peers.length >= 2)) {
-        const localId = meta.localId || `group_cloud_${threadId.slice(0, 8)}`;
-        rememberThreadPeer(localId, threadId);
-        return localId;
-      }
-      if (senderId && senderId !== meId && isCloudAuthUserId(senderId)) {
-        rememberThreadPeer(senderId, threadId);
-        return senderId;
-      }
-      return null;
+      const meta = (thread.meta ?? {}) as GroupThreadMeta;
+      return applyResolvedThread(
+        (thread.member_ids ?? []).map(String),
+        meta,
+        meta.kind === 'group' ? 'group' : undefined,
+      );
     };
 
+    // Correctness beats guessing: never poison the thread map from sender_id alone.
+    // If membership metadata is temporarily unavailable, the next inbox/history sync
+    // will resolve the thread rather than leaking a group message into a DM.
     if (isSupabaseConfigured()) {
       return (await resolveFromSupabase()) ?? resolveFromFirebase();
     }
@@ -572,10 +706,10 @@ async function resolvePeerIdFromCloudThread(
     }
     return resolveFromSupabase();
   })().finally(() => {
-    threadResolveInflight.delete(threadId);
+    threadResolveInflight.delete(`thread:${threadId}`);
   });
 
-  threadResolveInflight.set(threadId, task);
+  threadResolveInflight.set(`thread:${threadId}`, task);
   return task;
 }
 
@@ -625,81 +759,65 @@ async function syncReactionsForCloudMessage(cloudMessageId: string): Promise<voi
 }
 
 export async function ensureCloudThreadForGroup(group: ChatGroup): Promise<string | null> {
-  if (!isChatCloudAvailable()) return null;
+  if (!isChatCloudAvailable() || !group?.id) return null;
   const meId = db.currentUserId;
   if (!meId || !isCloudAuthUserId(meId)) return null;
 
   const map = loadThreadMap();
   if (map[group.id]) return map[group.id];
 
-  const memberIds = [
-    ...new Set(
-      (group.memberIds || [])
-        .map((id) => String(id || '').trim())
-        .filter((id) => isCloudAuthUserId(id)),
-    ),
-  ];
+  const memberIds = [...new Set((group.memberIds || []).map(String).filter((id) => isCloudAuthUserId(id)))];
   if (!memberIds.includes(meId)) memberIds.push(meId);
   if (memberIds.length < 2) return null;
+  const meta = groupThreadMeta({ ...group, memberIds });
 
   if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
     const fb = await firebaseChat();
     if (fb.isFirebaseChatAvailable()) {
-      const threadId = await fb.createFirebaseChatThread(memberIds, {
-        kind: 'group',
-        localId: group.id,
-        title: group.displayName,
-        avatarUrl: group.avatarUrl,
-      });
+      const threadId = await fb.createFirebaseChatThread(memberIds, meta);
       if (threadId) rememberThreadPeer(group.id, threadId);
       return threadId;
     }
   }
 
-  try {
-    const thread = await createChatThread(memberIds.filter((id) => id !== meId));
-    rememberThreadPeer(group.id, thread.id);
-    const supabase = getSupabaseClient();
-    if (supabase) {
-      await supabase
-        .from('chat_threads')
-        .update({
-          meta: {
-            kind: 'group',
-            localId: group.id,
-            title: group.displayName,
-            avatarUrl: group.avatarUrl,
-          },
-        })
-        .eq('id', thread.id);
+  if (isPlatformApiAvailable()) {
+    try {
+      const thread = await createChatThread(memberIds.filter((id) => id !== meId), {
+        threadType: 'group',
+        meta,
+      });
+      if (thread?.id) {
+        rememberThreadPeer(group.id, thread.id);
+        return thread.id;
+      }
+    } catch (apiErr) {
+      console.warn('[cloud-chat] group thread create failed:', apiErr);
     }
-    return thread.id;
-  } catch (apiErr) {
-    console.warn('[cloud-chat] group thread create failed:', apiErr);
   }
 
+  // Direct fallback for local/dev. Insert self membership first to satisfy legacy RLS.
   const supabase = getSupabaseClient();
   if (!supabase) return null;
   const { data: thread, error: threadErr } = await supabase
     .from('chat_threads')
-    .insert({
-      meta: {
-        kind: 'group',
-        localId: group.id,
-        title: group.displayName,
-        avatarUrl: group.avatarUrl,
-      },
-    })
+    .insert({ thread_type: 'group', dm_key: null, meta })
     .select('id')
     .single();
   if (threadErr || !thread?.id) return null;
 
-  const { error: memberErr } = await supabase.from('chat_thread_members').insert(
-    memberIds.map((user_id) => ({ thread_id: thread.id, user_id })),
-  );
-  if (memberErr) {
-    console.warn('[cloud-chat] group members failed:', memberErr.message);
-    return null;
+  const { error: selfErr } = await supabase.from('chat_thread_members').insert({
+    thread_id: thread.id,
+    user_id: meId,
+  });
+  if (selfErr && selfErr.code !== '23505') return null;
+  for (const userId of memberIds.filter((id) => id !== meId)) {
+    const { error } = await supabase.from('chat_thread_members').insert({
+      thread_id: thread.id,
+      user_id: userId,
+    });
+    if (error && error.code !== '23505') {
+      console.warn('[cloud-chat] group member add failed:', error.message);
+    }
   }
   rememberThreadPeer(group.id, thread.id);
   return thread.id;
@@ -709,48 +827,34 @@ export async function syncCloudGroupMembers(group: ChatGroup): Promise<void> {
   if (!isChatCloudAvailable() || !group?.id) return;
   const meId = db.currentUserId;
   if (!meId || !isCloudAuthUserId(meId)) return;
-
   const threadId = await ensureCloudThreadForGroup(group);
   if (!threadId) return;
 
-  const memberIds = [
-    ...new Set(
-      (group.memberIds || [])
-        .map((id) => String(id || '').trim())
-        .filter((id) => isCloudAuthUserId(id)),
-    ),
-  ];
+  const memberIds = [...new Set((group.memberIds || []).map(String).filter((id) => isCloudAuthUserId(id)))];
   if (!memberIds.includes(meId)) memberIds.push(meId);
+  const meta = groupThreadMeta({ ...group, memberIds });
 
   if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
     const fb = await firebaseChat();
     if (fb.isFirebaseChatAvailable()) {
-      await fb.updateFirebaseThreadMembers(threadId, memberIds, {
-        kind: 'group',
-        localId: group.id,
-        title: group.displayName,
-        avatarUrl: group.avatarUrl,
-      });
+      await fb.updateFirebaseThreadMembers(threadId, memberIds, meta);
       return;
     }
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return;
-
   const { data: existing } = await supabase
     .from('chat_thread_members')
     .select('user_id')
     .eq('thread_id', threadId);
-  const existingIds = new Set((existing || []).map((row) => row.user_id).filter(Boolean));
+  const existingIds = new Set((existing || []).map((row) => String(row.user_id || '')).filter(Boolean));
   const toAdd = memberIds.filter((id) => !existingIds.has(id));
   const toRemove = [...existingIds].filter((id) => !memberIds.includes(id));
 
-  if (toAdd.length) {
-    const { error } = await supabase.from('chat_thread_members').insert(
-      toAdd.map((user_id) => ({ thread_id: threadId, user_id })),
-    );
-    if (error) console.warn('[cloud-chat] group member add failed:', error.message);
+  for (const userId of toAdd) {
+    const { error } = await supabase.from('chat_thread_members').insert({ thread_id: threadId, user_id: userId });
+    if (error && error.code !== '23505') console.warn('[cloud-chat] group member add failed:', error.message);
   }
   if (toRemove.length) {
     const { error } = await supabase
@@ -760,18 +864,64 @@ export async function syncCloudGroupMembers(group: ChatGroup): Promise<void> {
       .in('user_id', toRemove);
     if (error) console.warn('[cloud-chat] group member remove failed:', error.message);
   }
+  const { error: metaErr } = await supabase.from('chat_threads').update({ meta }).eq('id', threadId);
+  if (metaErr && import.meta.env.DEV) console.warn('[cloud-chat] group metadata update failed:', metaErr.message);
+}
 
-  await supabase
-    .from('chat_threads')
-    .update({
-      meta: {
-        kind: 'group',
-        localId: group.id,
-        title: group.displayName,
-        avatarUrl: group.avatarUrl,
-      },
-    })
-    .eq('id', threadId);
+export async function leaveCloudGroupThread(groupId: string): Promise<boolean> {
+  const group = db.getChatGroup(groupId);
+  const meId = db.currentUserId;
+  if (!group || !meId) return false;
+  if (String(group.createdBy || '') === meId) return false;
+  const threadId = loadThreadMap()[groupId] || await ensureCloudThreadForGroup(group);
+  if (!threadId) return false;
+
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      const thread = await fb.fetchFirebaseThread(threadId);
+      if (!thread) return false;
+      const nextMembers = (thread.member_ids || []).map(String).filter((id) => id !== meId);
+      await fb.updateFirebaseThreadMembers(threadId, nextMembers, thread.meta || {});
+      dropLocalThreadMappingByThreadId(threadId);
+      return true;
+    }
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+  const { error } = await supabase
+    .from('chat_thread_members')
+    .delete()
+    .eq('thread_id', threadId)
+    .eq('user_id', meId);
+  if (error) return false;
+  dropLocalThreadMappingByThreadId(threadId);
+  return true;
+}
+
+export async function deleteCloudGroupThread(groupId: string): Promise<boolean> {
+  const group = db.getChatGroup(groupId);
+  const meId = db.currentUserId;
+  if (!group || !meId || String(group.createdBy || '') !== meId) return false;
+  const threadId = loadThreadMap()[groupId] || await ensureCloudThreadForGroup(group);
+  if (!threadId) return false;
+
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      await fb.deleteFirebaseChatThread(threadId);
+      dropLocalThreadMappingByThreadId(threadId);
+      return true;
+    }
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+  const { error } = await supabase.from('chat_threads').delete().eq('id', threadId);
+  if (error) return false;
+  dropLocalThreadMappingByThreadId(threadId);
+  return true;
 }
 
 export async function ensureCloudThreadForChat(chatId: string): Promise<string | null> {
@@ -845,10 +995,15 @@ function resolveOutboundDelivery(
 
 /** Fix messages stuck in `sending` from prior sync failures or silent queue exits. */
 export function healOutboundDeliveryForChat(chatId: string): void {
+  void healOutboundDeliveryForChatAsync(chatId);
+}
+
+async function healOutboundDeliveryForChatAsync(chatId: string): Promise<void> {
   if (!chatId) return;
   const thread = db.messages[chatId];
   if (!Array.isArray(thread) || thread.length === 0) return;
 
+  const meId = db.currentUserId;
   const now = Date.now();
   for (const message of thread) {
     if (!message.isAuthor || message.deliveryStatus !== 'sending' || !message.id) continue;
@@ -867,9 +1022,54 @@ export function healOutboundDeliveryForChat(chatId: string): void {
       continue;
     }
 
-    if (age >= SLOW_SEND_MS) {
-      queueCloudMessageSend(chatId, message);
+    if (age >= SLOW_SEND_MS && meId) {
+      const mutationId = String(message.id);
+      const outboxItem = await getOutboxItemByMutation(meId, 'chat', mutationId).catch(() => null);
+      if (!outboxItem) {
+        // Outbox already cleared — server accepted the send but local status lagged.
+        db.markMessageDeliveryStatus(chatId, mutationId, 'sent');
+        continue;
+      }
+      if (outboxItem.state !== 'failed') {
+        queueCloudMessageSend(chatId, message);
+      }
     }
+  }
+
+  if (meId) {
+    await processChatOutbox(meId).catch(() => undefined);
+  }
+}
+
+type RemoteChatRow = {
+  id?: string;
+  sender_id?: string;
+  body?: string;
+  payload?: Record<string, unknown> | null;
+  client_id?: string | null;
+  deleted_at?: string | null;
+  created_at?: string;
+};
+
+function reconcileOutboundDeliveryFromRemoteRows(chatId: string, rows: RemoteChatRow[]): void {
+  const meId = db.currentUserId;
+  if (!meId || !rows.length) return;
+  const thread = db.messages[chatId];
+  if (!Array.isArray(thread) || thread.length === 0) return;
+
+  const ackedByClientId = new Map<string, string>();
+  for (const row of rows) {
+    if (row.sender_id !== meId || !row.id) continue;
+    const clientId = row.client_id || (row.payload as { id?: string } | null)?.id;
+    if (clientId) ackedByClientId.set(String(clientId), row.id);
+  }
+  if (!ackedByClientId.size) return;
+
+  for (const message of thread) {
+    if (!message.isAuthor || message.deliveryStatus !== 'sending' || !message.id) continue;
+    const cloudId = ackedByClientId.get(String(message.id));
+    if (!cloudId) continue;
+    db.attachCloudMessageId(chatId, String(message.id), cloudId);
   }
 }
 
@@ -893,49 +1093,32 @@ export function queueCloudMessageSend(chatId: string, message: ChatMessage): voi
   }
 
   void (async () => {
-    const meId = db.currentUserId;
-    if (!meId || !isCloudAuthUserId(meId)) {
-      resolveOutboundDelivery(chatId, message, 'sent');
-      return;
-    }
-    if (!isGroupChatId(chatId) && !isCloudAuthUserId(chatId)) {
-      resolveOutboundDelivery(chatId, message, 'sent');
-      return;
-    }
-
-    const threadId = await ensureCloudThreadForChat(chatId);
-    if (!threadId) {
-      resolveOutboundDelivery(chatId, message, 'failed');
-      return;
-    }
-
-    const withMedia = await cloudifyChatMessageMedia(meId, {
-      ...message,
-      from: message.from || meId,
-    });
-    const cloudId = await sendChatMessageDirect(threadId, withMedia, meId);
-    if (cloudId && withMedia.id) {
-      db.attachCloudMessageId(chatId, String(withMedia.id), cloudId);
-      db.mergeInboundMessage(chatId, { ...withMedia, cloudId, isAuthor: true }, { bumpUnread: false });
-      resolveOutboundDelivery(chatId, message, 'sent');
-      return;
-    }
-
     try {
-      const apiRow = await sendChatMessageApi(
-        threadId,
-        bodyFromMessage(withMedia),
-        messageToPayload(withMedia),
-        withMedia.id ? String(withMedia.id) : undefined,
-      );
-      const apiCloudId = apiRow?.id ? String(apiRow.id) : null;
-      if (apiCloudId && withMedia.id) {
-        db.attachCloudMessageId(chatId, String(withMedia.id), apiCloudId);
-        db.mergeInboundMessage(chatId, { ...withMedia, cloudId: apiCloudId, isAuthor: true }, { bumpUnread: false });
+      const meId = db.currentUserId;
+      if (!meId || !isCloudAuthUserId(meId)) {
+        resolveOutboundDelivery(chatId, message, 'sent');
+        return;
       }
-      resolveOutboundDelivery(chatId, message, 'sent');
-    } catch (apiErr) {
-      console.warn('[cloud-chat] API send failed:', apiErr);
+      if (!isGroupChatId(chatId) && !isCloudAuthUserId(chatId)) {
+        resolveOutboundDelivery(chatId, message, 'sent');
+        return;
+      }
+
+      const threadId = await ensureCloudThreadForChat(chatId);
+      if (!threadId) {
+        resolveOutboundDelivery(chatId, message, 'failed');
+        return;
+      }
+
+      const withMedia = await cloudifyChatMessageMedia(meId, {
+        ...message,
+        from: message.from || meId,
+      });
+      const body = bodyFromMessage(withMedia);
+      const payload = messageToPayload(withMedia);
+      await enqueueChatMessageSend(meId, chatId, threadId, withMedia, body, payload);
+    } catch (err) {
+      console.warn('[cloud-chat] queue send failed:', err);
       resolveOutboundDelivery(chatId, message, 'failed');
     }
   })();
@@ -964,10 +1147,48 @@ function mergeRemoteMessage(
   if (!meId) return;
   const senderId = row.sender_id ?? '';
   const isAuthor = senderId === meId;
-  // Own sends are already in IDB; Realtime echo would re-trigger cloud send + render storms.
   if (isAuthor) {
-    if (row.id && (row.client_id || row.payload?.id)) {
-      db.attachCloudMessageId(chatId, String(row.client_id || row.payload?.id), row.id);
+    if (row.deleted_at) {
+      applyRemoteMessageDeleted(chatId, row);
+      return;
+    }
+    const localClientId = row.client_id || row.payload?.id;
+    if (row.id && localClientId) {
+      db.attachCloudMessageId(chatId, String(localClientId), row.id);
+    } else if (row.id) {
+      const thread = db.messages[chatId];
+      if (Array.isArray(thread)) {
+        for (const message of thread) {
+          if (!message.isAuthor || message.deliveryStatus !== 'sending' || !message.id) continue;
+          if (message.cloudId === row.id) {
+            db.markMessageDeliveryStatus(chatId, String(message.id), 'sent');
+          }
+        }
+      }
+    }
+    // Same-account multi-device: merge if this device did not originate the pending send.
+    const thread = db.messages[chatId];
+    const localId = localClientId ? String(localClientId) : '';
+    const alreadyLocal =
+      localId &&
+      Array.isArray(thread) &&
+      thread.some(
+        (m) =>
+          String(m.id) === localId ||
+          (row.id && m.cloudId === row.id) ||
+          m.cloudId === row.id,
+      );
+    if (!alreadyLocal && row.id) {
+      const msg = payloadToMessage(
+        row.payload,
+        row.body ?? '',
+        true,
+        row.created_at ?? new Date().toISOString(),
+        row.id,
+        senderId,
+      );
+      if (localClientId) msg.id = String(localClientId);
+      db.mergeInboundMessage(chatId, msg, { bumpUnread: false });
     }
     return;
   }
@@ -976,7 +1197,8 @@ function mergeRemoteMessage(
   if (!isGroupChatId(chatId) && senderId !== chatId) return;
 
   if (row.deleted_at) {
-    if (row.id) db.markCloudMessageDeleted(chatId, row.id);
+    applyRemoteMessageDeleted(chatId, row);
+    dispatchChatInboxActivity(chatId);
     return;
   }
 
@@ -1024,7 +1246,7 @@ function mergeRemoteMessage(
   if (
     (fromRealtime || inviteFresh) &&
     msg.isCallEvent &&
-    (msg.callAction === 'end' || msg.callAction === 'decline')
+    (msg.callAction === 'accept' || msg.callAction === 'end' || msg.callAction === 'decline')
   ) {
     window.dispatchEvent(
       new CustomEvent('chat-call-signal', {
@@ -1039,7 +1261,10 @@ function mergeRemoteMessage(
   }
 }
 
-export async function syncCloudChatHistory(chatId: string): Promise<void> {
+export async function syncCloudChatHistory(
+  chatId: string,
+  options?: { before?: string; limit?: number },
+): Promise<void> {
   if (!isChatCloudAvailable()) return;
   if (!isGroupChatId(chatId) && !isCloudAuthUserId(chatId)) return;
   const meId = db.currentUserId;
@@ -1048,21 +1273,14 @@ export async function syncCloudChatHistory(chatId: string): Promise<void> {
   const threadId = await ensureCloudThreadForChat(chatId);
   if (!threadId) return;
 
+  const remoteRows: RemoteChatRow[] = [];
+
   const pullRows = async (
-    fetcher: () => Promise<
-      Array<{
-        id?: string;
-        sender_id?: string;
-        body?: string;
-        payload?: Record<string, unknown> | null;
-        client_id?: string | null;
-        deleted_at?: string | null;
-        created_at?: string;
-      }>
-    >,
+    fetcher: () => Promise<RemoteChatRow[]>,
   ) => {
     const rows = await fetcher().catch(() => []);
     if (!rows.length) return;
+    remoteRows.push(...rows);
     if (!isGroupChatId(chatId)) await ensurePeerProfileCached(chatId);
     for (const row of rows) {
       if (!row.sender_id) continue;
@@ -1071,7 +1289,15 @@ export async function syncCloudChatHistory(chatId: string): Promise<void> {
     }
   };
 
-  if (isSupabaseConfigured()) {
+  if (isPlatformApiAvailable()) {
+    await pullRows(async () => {
+      const page = await fetchChatThreadMessages(threadId, {
+        before: options?.before,
+        limit: options?.limit ?? 50,
+      });
+      return (page.messages ?? []) as RemoteChatRow[];
+    });
+  } else if (isSupabaseConfigured()) {
     const supabase = getSupabaseClient();
     if (supabase) {
       const { data, error } = await supabase
@@ -1094,6 +1320,8 @@ export async function syncCloudChatHistory(chatId: string): Promise<void> {
 
   await syncCloudReactionsForThread(threadId, chatId);
   await syncCloudReadReceipt(chatId, threadId, meId);
+  reconcileOutboundDeliveryFromRemoteRows(chatId, remoteRows);
+  healOutboundDeliveryForChat(chatId);
 }
 
 async function syncCloudReactionsForThread(threadId: string, peerId: string): Promise<void> {
@@ -1316,7 +1544,7 @@ export function queueCloudMessageUpdate(peerId: string, message: ChatMessage): v
 export function queueCloudCallInvite(
   chatId: string,
   callKind: 'audio' | 'video',
-  action: 'invite' | 'end' | 'decline' = 'invite',
+  action: 'invite' | 'accept' | 'end' | 'decline' = 'invite',
 ): void {
   const meId = db.currentUserId;
   if (!meId || !isCloudAuthUserId(meId) || !isChatCloudAvailable()) return;
@@ -1333,7 +1561,9 @@ export function queueCloudCallInvite(
           ? kind === 'video'
             ? 'Video call'
             : 'Audio call'
-          : `${kind} call ${action}`,
+          : action === 'accept'
+            ? `${kind} call accepted`
+            : `${kind} call ${action}`,
       isAuthor: true,
       from: meId,
       timestamp: Date.now(),
@@ -1352,31 +1582,143 @@ export async function resolveChatThreadId(chatId: string): Promise<string | null
   return ensureCloudThreadForChat(chatId);
 }
 
+async function resolveCloudMessageIdForDelete(
+  threadId: string,
+  meId: string,
+  message: ChatMessage,
+): Promise<string | null> {
+  const fromLocal = String(message.cloudId || '').trim();
+  if (fromLocal) return fromLocal;
+
+  const clientId = String(message.id || '').trim();
+  if (!clientId) return null;
+
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      const rows = await fb.fetchFirebaseChatMessages(threadId, 200);
+      const match = rows.find(
+        (row) =>
+          row.sender_id === meId &&
+          (row.client_id === clientId || (row.payload as { id?: string } | null)?.id === clientId),
+      );
+      if (match?.id) return match.id;
+    }
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+  const { data } = await supabase
+    .from('chat_messages')
+    .select('id')
+    .eq('thread_id', threadId)
+    .eq('sender_id', meId)
+    .eq('client_id', clientId)
+    .maybeSingle();
+  return data?.id ?? null;
+}
+
+function remoteDeleteLocalId(row: {
+  client_id?: string | null;
+  payload?: Record<string, unknown> | null;
+}): string | undefined {
+  const fromClient = row.client_id ? String(row.client_id) : '';
+  const fromPayload = (row.payload as { id?: string } | null)?.id;
+  const localId = fromClient || (fromPayload ? String(fromPayload) : '');
+  return localId || undefined;
+}
+
+function applyRemoteMessageDeleted(
+  chatId: string,
+  row: { id?: string; client_id?: string | null; payload?: Record<string, unknown> | null },
+): void {
+  if (!row.id) return;
+  db.markCloudMessageDeleted(chatId, row.id, remoteDeleteLocalId(row));
+}
+
+async function softDeleteCloudMessageByRef(
+  threadId: string,
+  meId: string,
+  message: ChatMessage,
+): Promise<{ ok: boolean; cloudId?: string }> {
+  const cloudId = String(message.cloudId || '').trim();
+  const clientId = String(message.id || '').trim();
+
+  if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
+    const fb = await firebaseChat();
+    if (fb.isFirebaseChatAvailable()) {
+      let targetId = cloudId;
+      if (!targetId && clientId) {
+        targetId = (await resolveCloudMessageIdForDelete(threadId, meId, message)) ?? '';
+      }
+      if (targetId) {
+        await fb.softDeleteFirebaseChatMessage(threadId, targetId);
+        return { ok: true, cloudId: targetId };
+      }
+    }
+  }
+
+  if (isPlatformApiAvailable()) {
+    for (let attempt = 0; attempt < 6; attempt += 1) {
+      try {
+        const row = await deleteChatMessageApi(threadId, {
+          messageId: cloudId || undefined,
+          clientId: clientId || undefined,
+        });
+        if (row?.id) return { ok: true, cloudId: row.id };
+      } catch (err) {
+        const messageText = err instanceof Error ? err.message : String(err);
+        const missing = /\b404\b/.test(messageText) || /not found/i.test(messageText);
+        if (missing && attempt < 5) {
+          await new Promise((resolve) => window.setTimeout(resolve, 200));
+          continue;
+        }
+        console.warn('[cloud-chat] api delete failed:', messageText);
+        break;
+      }
+    }
+  }
+
+  let targetId = cloudId;
+  if (!targetId && clientId) {
+    targetId = (await resolveCloudMessageIdForDelete(threadId, meId, message)) ?? '';
+  }
+  if (!targetId) return { ok: false };
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false };
+  const { error } = await supabase
+    .from('chat_messages')
+    .update({ deleted_at: new Date().toISOString(), body: 'Message deleted', payload: {} })
+    .eq('id', targetId)
+    .eq('sender_id', meId);
+  if (error) {
+    console.warn('[cloud-chat] delete failed:', error.message);
+    return { ok: false };
+  }
+  return { ok: true, cloudId: targetId };
+}
+
 export function queueCloudMessageDelete(peerId: string, message: ChatMessage): void {
   if (!message.isAuthor) return;
   if (!isGroupChatId(peerId) && !isCloudAuthUserId(peerId)) return;
-  const cloudId = String(message.cloudId || '').trim();
-  if (!cloudId || !isChatCloudAvailable()) return;
+  if (!isChatCloudAvailable()) return;
   const meId = db.currentUserId;
   if (!meId) return;
+  const clientId = String(message.id || '').trim();
 
   void (async () => {
     const threadId = await ensureCloudThreadForChat(peerId);
     if (!threadId) return;
-    if (shouldUseFirebaseForChat(meId) && isFirebaseConfigured()) {
-      const fb = await firebaseChat();
-      if (fb.isFirebaseChatAvailable()) {
-        await fb.softDeleteFirebaseChatMessage(threadId, cloudId);
-        return;
-      }
+
+    if (clientId) {
+      await removeOutboxItemsByMutation(meId, 'chat', clientId).catch(() => undefined);
     }
-    const supabase = getSupabaseClient();
-    if (!supabase) return;
-    const { error } = await supabase
-      .from('chat_messages')
-      .update({ deleted_at: new Date().toISOString(), body: 'Message deleted', payload: {} })
-      .eq('id', cloudId);
-    if (error) console.warn('[cloud-chat] delete failed:', error.message);
+
+    const result = await softDeleteCloudMessageByRef(threadId, meId, message);
+    if (result.ok && result.cloudId) {
+      db.markCloudMessageDeleted(peerId, result.cloudId, clientId || undefined);
+    }
   })();
 }
 
@@ -1526,8 +1868,12 @@ export async function startCloudChatRealtime(userId: string): Promise<void> {
           )
           .on(
             'postgres_changes',
-            { event: 'INSERT', schema: 'public', table: 'chat_thread_members' },
-            () => {
+            { event: '*', schema: 'public', table: 'chat_thread_members' },
+            (payload) => {
+              const row = (payload.new || payload.old) as { thread_id?: string; user_id?: string } | null;
+              if (payload.eventType === 'DELETE' && row?.user_id === authUserId && row.thread_id) {
+                dropLocalThreadMappingByThreadId(row.thread_id);
+              }
               void hydrateThreadMapFromCloud(authUserId);
             },
           )

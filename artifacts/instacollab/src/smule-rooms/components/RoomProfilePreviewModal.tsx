@@ -198,7 +198,7 @@ export function RoomProfilePreviewModal({
     >
       <button
         type="button"
-        className="absolute inset-0 cursor-default bg-black/70 backdrop-blur-sm"
+        className="absolute inset-0 cursor-default bg-black/70"
         aria-label="Close profile preview"
         onPointerDown={handleBackdropPointerDown}
       />
@@ -224,7 +224,7 @@ export function RoomProfilePreviewModal({
                   event.stopPropagation();
                   openProfileShareModal();
                 }}
-                className="group cursor-pointer rounded-full border border-white/20 bg-black/55 p-2 text-white shadow-lg backdrop-blur-sm transition hover:bg-black/70 active:scale-90"
+                className="group cursor-pointer rounded-full border border-white/20 bg-black/55 p-2 text-white shadow-lg transition hover:bg-black/70 active:scale-90"
                 title="Share profile"
                 aria-label="Share profile"
               >

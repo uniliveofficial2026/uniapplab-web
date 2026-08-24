@@ -99,6 +99,8 @@ function rowToInbound(row: CloudNotificationRow): Parameters<
 async function applyCloudNotificationRow(row: CloudNotificationRow): Promise<void> {
   const meId = db.currentUserId;
   if (!meId || row.user_id !== meId) return;
+  // Reject late events if realtime is still on a prior person after switch/logout.
+  if (subscribedUserId && subscribedUserId !== meId) return;
   await ensureActorCached(row.actor_id);
   db.mergeInboundCloudNotification(meId, rowToInbound(row));
 }

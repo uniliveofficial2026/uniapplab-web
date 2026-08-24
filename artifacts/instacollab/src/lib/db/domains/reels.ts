@@ -1,4 +1,5 @@
 import { resolveUser } from '../../safe';
+import { isDemoContentEnabled } from '../../demoContentPolicy';
 import type { Reel, User } from '../../../types';
 import type { ReelsLayer } from '../layers';
 import type { Constructor, DbCoreBacked, MixinCtor } from '../mixin';
@@ -13,7 +14,7 @@ function resolveReelsList(
     };
   },
 ): Reel[] {
-  const defaultReels = buildDefaultReels();
+  const defaultReels = isDemoContentEnabled() ? buildDefaultReels() : [];
   const cached = db.load<Reel[]>('reels', defaultReels);
   const raw =
     Array.isArray(cached) && cached.length > 0
@@ -27,8 +28,10 @@ function resolveReelsList(
     user: resolveUser(db.asLocalDB().users, reel.user),
   }));
 
-  // Discovery/demo reels always show — block lists must not blank the Reels tab.
-  const discovery = resolved.filter((reel) => isDiscoveryReelId(reel.id));
+  // Discovery/demo reels only in demo builds — block lists must not blank the Reels tab.
+  const discovery = isDemoContentEnabled()
+    ? resolved.filter((reel) => isDiscoveryReelId(reel.id))
+    : [];
   const social = db.asLocalDB().filterItemsByBlockedAuthors(
     resolved.filter((reel) => !isDiscoveryReelId(reel.id)),
   );
@@ -63,6 +66,10 @@ export function WithReels<T extends Constructor<DbCoreBacked>>(Base: T): MixinCt
     }
 
     seedDemoReelsIfNeeded(opts?: { force?: boolean }) {
+      if (!isDemoContentEnabled()) {
+        this.save('demo_reels_seeded', true);
+        return;
+      }
       const cached = this.load<Reel[]>('reels', []);
       if (!opts?.force && Array.isArray(cached) && cached.length > 0) {
         this.save('demo_reels_seeded', true);
@@ -80,7 +87,13 @@ export function WithReels<T extends Constructor<DbCoreBacked>>(Base: T): MixinCt
     }
 
     addReel(reel: Partial<Reel> & { user?: User }) {
-      const author = resolveUser(this.asLocalDB().users, reel.user, this.asLocalDB().currentUser);
+      const local = this.asLocalDB();
+      // Logged-in creates always bind to currentUser — never accept a spoofed author.
+      const me = local.currentUser;
+      const author =
+        local.isLoggedIn && me?.id
+          ? resolveUser(local.users, me)
+          : resolveUser(local.users, reel.user, local.currentUser);
       const newReel = {
         ...reel,
         user: author,
@@ -184,12 +197,13 @@ export function WithReels<T extends Constructor<DbCoreBacked>>(Base: T): MixinCt
     }
 
     deleteReel(id: string) {
+      const meId = this.asLocalDB().currentUserId;
       const existing = this.reels.find((r) => r.id === id);
       const updated = this.reels.filter((r) => r.id !== id);
       this.save('reels', updated);
-      if (existing?.user?.id === this.asLocalDB().currentUserId) {
+      if (existing?.user?.id === meId && meId) {
         void import('../../cloudSocial/cloudSocialContent').then((m) =>
-          m.scheduleCloudReelDelete(id),
+          m.scheduleCloudReelDelete(id, meId),
         );
       }
     }

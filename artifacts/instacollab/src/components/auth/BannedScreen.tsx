@@ -14,7 +14,7 @@ export function BannedScreen() {
   };
 
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 text-center bg-background text-foreground">
+    <div className="h-vv max-h-vv w-full flex flex-col items-center justify-center app-content-gutter text-center bg-background text-foreground app-chrome-safe-top app-chrome-safe-bottom">
       <h1 className="text-2xl font-semibold mb-3">Account suspended</h1>
       <p className="text-muted-foreground max-w-md mb-2">
         Your account has been banned and cannot access UniLive’s.

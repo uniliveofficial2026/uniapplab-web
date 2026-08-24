@@ -5,6 +5,7 @@
  * Nothing may remove the shell while that play is active (prevents skip).
  */
 
+import { isAdminStudioEmbed } from './adminStudioEmbed';
 import {
   resetFixedPlay,
   isFixedPlayActive,
@@ -71,8 +72,12 @@ export function removeBootShell(): void {
   stripBootShellDom();
 }
 
-/** Same as removeBootShell — mid-play is protected. */
+/** Same as removeBootShell — mid-play is protected, except studio embeds must never stay black. */
 export function forceRemoveBootShell(): void {
+  if (isAdminStudioEmbed()) {
+    stripBootShellDom();
+    return;
+  }
   removeBootShell();
 }
 

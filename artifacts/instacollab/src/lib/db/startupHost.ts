@@ -6,6 +6,7 @@ export interface DbCoreStartupHost {
   migrateGlobalMuteDefault(): void;
   trimHighChurnCollections(): void;
   seedDemoStoriesIfNeeded(): Promise<void>;
+  purgeDemoSeedContent(): void;
   ensureFollowGraph(): void;
   ensureDemoProfileVisitors(): void;
   backfillProfileVisitorSurfaces(): void;

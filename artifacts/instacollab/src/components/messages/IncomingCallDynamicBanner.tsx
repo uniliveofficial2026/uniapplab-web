@@ -1,15 +1,27 @@
-import { Phone, PhoneOff, Video } from 'lucide-react';
+import { Phone, PhoneOff } from 'lucide-react';
 import { motion } from 'motion/react';
 import type { ChatCallKind } from '../../lib/chat/chatCallKit';
-import { handleAvatarError } from '../../lib/utils';
+import {
+  CallBrand,
+  CallInfoCard,
+  CallRingingAvatar,
+  CallRingingWave,
+  CreatorIdentity,
+  EncryptionPill,
+  SecondaryCallActions,
+} from './CallApprovedChrome';
+import './call-approved-ui.css';
 
 type IncomingCallDynamicBannerProps = {
   callKind: ChatCallKind;
   callerName: string;
   callerAvatarUrl?: string;
   subtitle: string;
+  callerMetric?: string | null;
   onAccept: () => void;
   onDecline: () => void;
+  onMessage?: () => void;
+  onRemind?: () => void;
 };
 
 export function IncomingCallDynamicBanner({
@@ -17,79 +29,63 @@ export function IncomingCallDynamicBanner({
   callerName,
   callerAvatarUrl,
   subtitle,
+  callerMetric,
   onAccept,
   onDecline,
+  onMessage,
+  onRemind,
 }: IncomingCallDynamicBannerProps) {
-  const isVideo = callKind === 'video';
+  const label = callKind === 'video' ? 'Incoming Video Call' : 'Incoming Audio Call';
 
   return (
-    <>
-      <motion.div
-        className="fixed inset-0 z-[198] bg-black/15 backdrop-blur-[2px] pointer-events-none"
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        exit={{ opacity: 0 }}
-        transition={{ duration: 0.2 }}
-      />
+    <motion.div
+      className="call-approved-screen"
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.18 }}
+      role="alertdialog"
+      aria-live="assertive"
+      aria-label={`${label} from ${callerName}`}
+      data-ui-id="call.incoming.v1"
+    >
+      <div className="call-approved-mobile-shell call-approved-incoming-body">
+        <CallBrand callLabel={label} />
 
-      <motion.div
-        className="fixed left-1/2 z-[210] w-[min(calc(100vw-1.25rem),400px)] -translate-x-1/2"
-        style={{ top: 'calc(var(--app-safe-top) + 0.375rem)' }}
-        initial={{ y: -88, opacity: 0, scale: 0.9 }}
-        animate={{ y: 0, opacity: 1, scale: 1 }}
-        exit={{ y: -72, opacity: 0, scale: 0.94 }}
-        transition={{ type: 'spring', stiffness: 420, damping: 32 }}
-        role="alertdialog"
-        aria-live="assertive"
-        aria-label={`Incoming ${callKind} call from ${callerName}`}
-      >
-        <div className="overflow-hidden rounded-[26px] border border-white/15 bg-[#1c1c1e]/92 shadow-[0_12px_40px_rgba(0,0,0,0.45)] backdrop-blur-2xl">
-          <div className="flex items-center gap-3 px-3.5 py-3">
-            <div className="relative shrink-0">
-              <div className="absolute -inset-1 rounded-full bg-emerald-400/25 animate-ping" />
-              <div className="relative h-11 w-11 overflow-hidden rounded-full border border-white/20 bg-zinc-800">
-                <img
-                  src={callerAvatarUrl || undefined}
-                  alt=""
-                  className="h-full w-full object-cover"
-                  onError={handleAvatarError}
-                />
-              </div>
-              <span className="absolute -bottom-0.5 -right-0.5 flex h-5 w-5 items-center justify-center rounded-full bg-emerald-500 text-white shadow-md">
-                {isVideo ? <Video className="h-3 w-3" /> : <Phone className="h-3 w-3" />}
-              </span>
-            </div>
+        <CallRingingAvatar avatarUrl={callerAvatarUrl} alt={callerName} ringing />
+        <CreatorIdentity name={callerName} verified metric={callerMetric} large />
+        <CallRingingWave />
+        <span className="rounded-full border border-violet-400/45 px-4 py-1.5 text-sm text-violet-200">
+          ☆ Popular Creator
+        </span>
 
-            <div className="min-w-0 flex-1">
-              <p className="truncate text-[15px] font-semibold leading-tight text-white">
-                {callerName}
-              </p>
-              <p className="truncate text-[12px] font-medium text-white/55">{subtitle}</p>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2">
-              <button
-                type="button"
-                onClick={onDecline}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-red-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
-                aria-label="Decline call"
-              >
-                <PhoneOff className="h-4 w-4" />
-              </button>
-              <button
-                type="button"
-                onClick={onAccept}
-                className="flex h-10 w-10 items-center justify-center rounded-full bg-emerald-500 text-white shadow-lg transition-transform hover:scale-105 active:scale-95"
-                aria-label="Accept call"
-              >
-                {isVideo ? <Video className="h-4 w-4" /> : <Phone className="h-4 w-4" />}
-              </button>
-            </div>
+        <CallInfoCard icon={<span aria-hidden>🎧</span>}>
+          <div>
+            <strong>{callerName} is calling you.</strong>
+            <div className="mt-1 text-sm text-white/65">{subtitle || 'Join the conversation.'}</div>
           </div>
+        </CallInfoCard>
 
-          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-emerald-400/70 to-transparent animate-pulse" />
+        <SecondaryCallActions
+          onMessage={onMessage || (() => window.dispatchEvent(new CustomEvent('unilive-call-message-request')))}
+          onRemind={onRemind || (() => window.dispatchEvent(new CustomEvent('unilive-call-reminder-request')))}
+        />
+
+        <div className="call-approved-primary-pair">
+          <button type="button" className="call-approved-primary-action" onClick={onDecline} data-ui-id="call.incoming.decline">
+            <span className="circle red"><PhoneOff className="h-8 w-8" /></span>
+            <strong>Decline</strong>
+            <span className="text-white/45">Swipe down</span>
+          </button>
+          <button type="button" className="call-approved-primary-action" onClick={onAccept} data-ui-id="call.incoming.accept">
+            <span className="circle green"><Phone className="h-8 w-8" /></span>
+            <strong>Accept</strong>
+            <span className="text-white/45">Swipe up</span>
+          </button>
         </div>
-      </motion.div>
-    </>
+
+        <EncryptionPill />
+      </div>
+    </motion.div>
   );
 }

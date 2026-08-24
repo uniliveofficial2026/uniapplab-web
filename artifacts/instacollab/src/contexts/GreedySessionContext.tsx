@@ -16,6 +16,7 @@ import { getProfileDisplayName, getProfileHandle } from '../lib/profileDisplay';
 import {
   creditUserCoins,
   getLiveCoinsBalance,
+  isLocalWalletLedgerAllowed,
   spendWalletCoins,
 } from '../lib/walletKstarSync';
 
@@ -494,6 +495,16 @@ export function GreedySessionProvider({
             ok: false,
             coins: userId ? getLiveCoinsBalance(userId) : 0,
             reason: 'Invalid wallet request',
+          });
+          return;
+        }
+        if (!isLocalWalletLedgerAllowed(userId)) {
+          postToGame({
+            type: 'wallet-result',
+            requestId,
+            ok: false,
+            coins: getLiveCoinsBalance(userId),
+            reason: 'Server wallet required',
           });
           return;
         }

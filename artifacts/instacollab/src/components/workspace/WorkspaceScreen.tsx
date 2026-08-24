@@ -479,7 +479,8 @@ export function WorkspaceScreen() {
 
 
     return (
-        <div className="w-full flex flex-col pt-6 md:pt-10 px-4 md:px-8 max-w-[1200px] mx-auto min-h-0 pb-6 overflow-x-hidden">
+        <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
+        <div className="app-screen-scroll w-full flex flex-col pt-6 md:pt-10 app-content-gutter md:px-8 max-w-[1200px] mx-auto min-h-0 pb-6 overflow-x-hidden">
             
             {/* Header */}
             <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-8 gap-4">
@@ -1306,6 +1307,7 @@ export function WorkspaceScreen() {
                     </div>
                 </div>
             )}
+        </div>
         </div>
     );
 }

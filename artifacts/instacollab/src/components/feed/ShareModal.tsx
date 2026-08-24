@@ -18,6 +18,7 @@ export type ShareModalProps = {
   shareText: string;
   kind?: SharePayload['kind'];
   notificationText?: string;
+  onShared?: () => void;
 };
 
 export function ShareModal({
@@ -28,6 +29,7 @@ export function ShareModal({
   shareText,
   kind = 'post',
   notificationText,
+  onShared,
 }: ShareModalProps) {
   const db = useDB();
   const { showToast } = useToast();
@@ -39,6 +41,7 @@ export function ShareModal({
     navigator.clipboard.writeText(shareUrl);
     setCopied(true);
     setTimeout(() => setCopied(false), 2000);
+    onShared?.();
   };
 
   const handleSend = () => {
@@ -50,6 +53,7 @@ export function ShareModal({
       notificationText: notificationText ?? shareText,
     });
     showToast(`Sent to ${selectedUserIds.length} user${selectedUserIds.length > 1 ? 's' : ''}`);
+    onShared?.();
     onClose();
     setSelectedUserIds([]);
     setSearchQuery('');

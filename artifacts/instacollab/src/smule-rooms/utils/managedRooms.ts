@@ -1,4 +1,5 @@
 import { getAppUserId } from '../../lib/appUserId';
+import { isDemoContentEnabled, isDemoManagedRoomId } from '../../lib/demoContentPolicy';
 import { formatRoomRoleLabel, normalizeRoomRole, type RoomMemberRole } from './roles';
 import { getRoomSettings, saveRoomSettings, ensureRoomSettingsSeeded, type RoomMode } from './storage';
 import { ensureRoomRoleUserIds, resolveEffectiveMemberRole, ensureDemoRoomFollowAccess } from './roomRoleUsers';
@@ -73,6 +74,9 @@ function writeManagedRooms(rooms: ManagedRoom[]) {
 }
 
 function mergeDemoGrantsInMemory(existing: ManagedRoom[]): ManagedRoom[] {
+  if (!isDemoContentEnabled()) {
+    return existing.filter((room) => !isDemoManagedRoomId(room.id));
+  }
   const now = Date.now();
   const merged = [...existing];
   for (const grant of DEMO_GRANTS) {
@@ -87,6 +91,9 @@ function mergeDemoGrantsInMemory(existing: ManagedRoom[]): ManagedRoom[] {
 }
 
 function seedDemoGrants(existing: ManagedRoom[]): ManagedRoom[] {
+  if (!isDemoContentEnabled()) {
+    return existing.filter((room) => !isDemoManagedRoomId(room.id));
+  }
   const now = Date.now();
   const merged = [...existing];
   for (const grant of DEMO_GRANTS) {
@@ -118,10 +125,15 @@ function seedDemoGrants(existing: ManagedRoom[]): ManagedRoom[] {
 
 /** Persist demo grants + room settings — call from effects, not during render. */
 export function ensureManagedRoomsHydrated(): void {
-  ensureDemoRoomMediaRegistry();
+  if (isDemoContentEnabled()) {
+    ensureDemoRoomMediaRegistry();
+  }
   const rooms = readManagedRooms();
   const seeded = seedDemoGrants(rooms);
-  if (seeded.length !== rooms.length) {
+  if (
+    seeded.length !== rooms.length ||
+    seeded.some((room, index) => room.id !== rooms[index]?.id)
+  ) {
     writeManagedRooms(seeded);
   }
 }
@@ -136,12 +148,16 @@ export function hydrateManagedRoomsForUser(userId: string): void {
   ensureManagedRoomsHydrated();
   for (const room of getManagedRooms()) {
     ensureRoomRoleUserIds(room.id);
-    ensureDemoRoomFollowAccess(room.id);
+    if (isDemoContentEnabled()) {
+      ensureDemoRoomFollowAccess(room.id);
+    }
   }
 }
 
 export function getManagedRooms(): ManagedRoom[] {
-  const rooms = mergeDemoGrantsInMemory(readManagedRooms());
+  const rooms = mergeDemoGrantsInMemory(readManagedRooms()).filter(
+    (room) => isDemoContentEnabled() || !isDemoManagedRoomId(room.id),
+  );
   return rooms.sort((a, b) => {
     const roleOrder = roleSortWeight(a.role) - roleSortWeight(b.role);
     if (roleOrder !== 0) return roleOrder;

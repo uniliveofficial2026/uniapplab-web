@@ -1,0 +1,58 @@
+/**
+ * V15 measured PK layout tokens — sourced from docs/v15-visual-spec/*.json
+ * Reference masters: UniLives-Final-Approved-UIUX-Production-Cursor-v15/reference-approved/MASTER
+ */
+
+:root {
+  /* Shared running-PK bands (864×1536 baseline, scaled to 100dvh) */
+  --v15-pk-chrome-h: 0.1198;
+  --v15-pk-stage-h: 0.6602;
+  --v15-pk-chat-h: 0.2201;
+  --v15-pk-score-h: 0.0599;
+  --v15-pk-score-x: 0.0394;
+  --v15-pk-score-w: 0.919;
+  --v15-pk-center-x: 0.5012;
+
+  /* 1v1 — 03-1v1.json */
+  --v15-1v1-score-y: 0.0879;
+  --v15-1v1-center-x: 0.5012;
+
+  /* 2v2 — 04-2v2.json */
+  --v15-2v2-score-y: 0.099;
+  --v15-2v2-captain-ratio: 0.431;
+  --v15-2v2-mates-ratio: 0.569;
+  --v15-2v2-center-x: 0.5;
+
+  /* 3v3 — 05-3v3.json */
+  --v15-3v3-score-y: 0.099;
+  --v15-3v3-captain-ratio: 0.4951;
+  --v15-3v3-mates-ratio: 0.5049;
+  --v15-3v3-center-x: 0.4954;
+
+  /* 4v4 — 06-4v4.json */
+  --v15-4v4-score-y: 0.0794;
+  --v15-4v4-center-x: 0.4954;
+
+  /* 6v6 — 07-6v6.json (1024×1536 master) */
+  --v15-6v6-score-y: 0.0794;
+  --v15-6v6-center-x: 0.4961;
+
+  /* Live Sell PK — 08-live-sell-pk.json (711×1536 master) */
+  --v15-lspk-score-y: 0.0794;
+  --v15-lspk-stage-camera-ratio: 0.713;
+  --v15-lspk-center-x: 0.4754;
+
+  /* PK Setup — 02-pk-setup.json portrait overlay @ 390×844 */
+  --pkx-board-x: 3.59%;
+  --pkx-board-y: 7.58%;
+  --pkx-board-w: 92.82%;
+  --pkx-board-h: 73.46%;
+  --pkx-tabs-y: 9.24%;
+  --pkx-tabs-h: 5.21%;
+  --pkx-duration-y: 15.64%;
+  --pkx-duration-h: 5.21%;
+  --pkx-hostgrid-y: 22.04%;
+  --pkx-hostgrid-h: 40.28%;
+  --pkx-actions-y: 63.51%;
+  --pkx-actions-h: 6.16%;
+}

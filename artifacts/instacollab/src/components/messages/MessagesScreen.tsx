@@ -64,6 +64,8 @@ import {
   ensureCloudThreadForPeer,
   healOutboundDeliveryForChat,
   isGroupChatId,
+  leaveCloudGroupThread,
+  deleteCloudGroupThread,
   refreshCloudChatInboxList,
   retryCloudMessageSend,
   syncCloudChatHistory,
@@ -88,6 +90,7 @@ import {
   postChatTyping,
   postPresenceHeartbeat,
 } from '../../lib/platformApi';
+import { chatService } from '../../services/ChatService';
 import {
   isChatTypingPresenceAvailable,
   setChatTypingPresence,
@@ -97,6 +100,8 @@ import {
 import { useDiscoverableUserSearch } from '../../hooks/useDiscoverableUserSearch';
 import { useChatCallContext } from '../../contexts/ChatCallContext';
 import { resolveActiveGroupCall } from '../../lib/chat/chatCallKit';
+import { isChatCloudAvailable } from '../../lib/chat/chatCloud';
+import { consumePendingCallMessagesSurface, type CallMessagesSurfaceRequest } from '../../lib/chat/callUiNavigation';
 import { GroupActiveCallBanner } from './GroupActiveCallBanner';
 import { useKeepAliveTabActive } from '../../lib/keepAliveTabContext';
 
@@ -425,9 +430,8 @@ export function MessagesScreen({
 
   const directMessageUsers = React.useMemo(() => {
     const byId = new Map<string, User>();
-    for (const user of USERS) {
-      if (user.id !== currentUser.id) byId.set(user.id, resolveUser(USERS, user));
-    }
+    // Inbox = real chat activity / canonical thread mappings only. Do not seed every
+    // discoverable user into Messages; New Message/search owns user discovery.
     for (const chatId of Object.keys(messages)) {
       if (groupIds.has(chatId) || chatId === currentUser.id) continue;
       if (byId.has(chatId)) continue;
@@ -443,15 +447,25 @@ export function MessagesScreen({
     return sortChatsByLastActivity(Array.from(byId.values()), messages);
   }, [USERS, currentUser.id, groupIds, messages, cloudThreadMap]);
 
-  const cloudPeerIds = React.useMemo(
-    () => directMessageUsers.map((user) => user.id).filter((id) => isCloudAuthUserId(id)),
-    [directMessageUsers],
-  );
+  const cloudPeerIds = React.useMemo(() => {
+    const ids = new Set(
+      directMessageUsers.map((user) => user.id).filter((id) => isCloudAuthUserId(id)),
+    );
+    if (
+      selectedChatId &&
+      !groupIds.has(selectedChatId) &&
+      selectedChatId !== currentUser.id &&
+      isCloudAuthUserId(selectedChatId)
+    ) {
+      ids.add(selectedChatId);
+    }
+    return Array.from(ids);
+  }, [directMessageUsers, selectedChatId, currentUser.id, groupIds]);
 
   const isLiveCloudDm = React.useCallback(
     (peerId: string | null | undefined) =>
       !!peerId &&
-      isPlatformApiAvailable() &&
+      isChatCloudAvailable() &&
       isCloudAuthUserId(currentUser.id) &&
       isCloudAuthUserId(peerId),
     [currentUser.id],
@@ -472,6 +486,63 @@ export function MessagesScreen({
             findUserById(USERS, selectedChatId),
         )
       : null);
+
+  // Bridge the approved in-call chrome to the real Messages/group management surfaces.
+  // Requests are also persisted in a tiny module-level pending slot so this works
+  // when the call overlay is mounted while MessagesScreen is not.
+  useEffect(() => {
+    const minimizeForSurface = () => {
+      if (chatCall.phase === 'outgoing' || chatCall.phase === 'connected') {
+        if (chatCall.presentation === 'fullscreen') chatCall.minimizeCall();
+      }
+    };
+
+    const applyRequest = (detail: CallMessagesSurfaceRequest | null | undefined) => {
+      if (!detail?.action) return;
+      const targetChatId = detail.groupId || detail.chatId;
+      if (targetChatId && targetChatId !== selectedChatId) setSelectedChatId(targetChatId);
+      minimizeForSurface();
+
+      if (detail.action === 'chat') {
+        setShowInfoPanel(false);
+        setShowGroupSettingsScreen(false);
+        setShowGroupAddUsersScreen(false);
+        setShowGroupModerationScreen(false);
+        window.requestAnimationFrame(() => messageInputRef.current?.focus());
+      } else if (detail.action === 'members') {
+        setShowInfoPanel(true);
+      } else if (detail.action === 'invite') {
+        setShowGroupSettingsScreen(false);
+        setShowGroupAddUsersScreen(true);
+      } else if (detail.action === 'requests') {
+        setShowGroupSettingsScreen(false);
+        setShowGroupModerationScreen(true);
+      } else if (detail.action === 'settings') {
+        setShowGroupSettingsScreen(true);
+      } else if (detail.action === 'report') {
+        setShowInfoPanel(true);
+      }
+    };
+
+    applyRequest(consumePendingCallMessagesSurface());
+
+    const onCallUiAction = (event: Event) => {
+      applyRequest((event as CustomEvent<CallMessagesSurfaceRequest>).detail);
+    };
+    const onCallMessageRequest = (event: Event) => {
+      const detail = (event as CustomEvent<{ chatId?: string }>).detail;
+      if (!detail?.chatId) return;
+      applyRequest({ action: 'chat', chatId: detail.chatId });
+    };
+
+    window.addEventListener('unilive-call-ui-action', onCallUiAction);
+    window.addEventListener('unilive-call-message-request', onCallMessageRequest);
+    return () => {
+      window.removeEventListener('unilive-call-ui-action', onCallUiAction);
+      window.removeEventListener('unilive-call-message-request', onCallMessageRequest);
+    };
+  }, [chatCall, selectedChatId]);
+
   const persistedPresence = db.chatPresence;
   const persistedReadState = db.chatReadState;
   const persistedPeerReadState = db.chatPeerReadState;
@@ -487,6 +558,8 @@ export function MessagesScreen({
     () =>
       Object.fromEntries(
         USERS.map((user) => {
+          // Cloud peers: only the server heartbeat may mark online — never hydrate stale local flags.
+          if (isCloudAuthUserId(user.id)) return [user.id, false];
           const persisted = db.getUserPresence(user.id);
           return [user.id, !!persisted.online];
         }),
@@ -566,8 +639,17 @@ export function MessagesScreen({
   const markUserActive = React.useCallback((userId: string, at = Date.now()) => {
     if (!userId) return;
     setLastActiveByUserId((prev) => ({ ...prev, [userId]: at }));
+    // Real cloud DMs: peer online status comes from Redis/API only.
+    if (
+      isPlatformApiAvailable() &&
+      isCloudAuthUserId(currentUser.id) &&
+      isCloudAuthUserId(userId) &&
+      userId !== currentUser.id
+    ) {
+      return;
+    }
     setOnlineStatusByUserId((prev) => ({ ...prev, [userId]: true }));
-  }, []);
+  }, [currentUser.id]);
 
   useEffect(() => {
     const now = Date.now();
@@ -641,6 +723,8 @@ export function MessagesScreen({
 
   useEffect(() => {
     if (!persistedPresence || typeof persistedPresence !== 'object') return;
+    const cloudPresence =
+      isPlatformApiAvailable() && isCloudAuthUserId(currentUser.id);
     setTypingByUserId((prev) => {
       let changed = false;
       const next = { ...prev };
@@ -659,6 +743,7 @@ export function MessagesScreen({
       let changed = false;
       const next = { ...prev };
       USERS.forEach((user) => {
+        if (cloudPresence && isCloudAuthUserId(user.id)) return;
         const entry = persistedPresence[user.id];
         if (!entry || typeof entry !== 'object') return;
         const nextValue = !!entry.online;
@@ -697,7 +782,7 @@ export function MessagesScreen({
       });
       return changed ? next : prev;
     });
-  }, [USERS, persistedPresence]);
+  }, [USERS, persistedPresence, currentUser.id]);
 
   useEffect(() => {
     if (!persistedReadState || typeof persistedReadState !== 'object') return;
@@ -756,7 +841,7 @@ export function MessagesScreen({
   }, [db, currentUser.id, selectedChatId]);
 
   const liveCloudChat =
-    isPlatformApiAvailable() && isCloudAuthUserId(currentUser.id);
+    isChatCloudAvailable() && isCloudAuthUserId(currentUser.id);
 
   const selectedPeerId =
     selectedUser && !('isGroup' in selectedUser) ? selectedUser.id : null;
@@ -892,10 +977,12 @@ export function MessagesScreen({
 
   useEffect(() => {
     if (!selectedUser || 'isGroup' in selectedUser) return;
-    const now = Date.now();
-    markUserActive(selectedUser.id, now);
     setUserTypingState(selectedUser.id, false);
-  }, [selectedUser, markUserActive, setUserTypingState]);
+    // Local/demo only — cloud peer presence is owned by the server heartbeat.
+    if (!isLiveCloudDm(selectedUser.id)) {
+      markUserActive(selectedUser.id, Date.now());
+    }
+  }, [selectedUser, markUserActive, setUserTypingState, isLiveCloudDm]);
 
   useEffect(() => {
     if (!selectedUser || 'isGroup' in selectedUser) return;
@@ -922,7 +1009,12 @@ export function MessagesScreen({
   // Cloud chat: instant inbox list + debounced history sync.
   const inboxSyncDebounceRef = React.useRef<number | null>(null);
   useEffect(() => {
-    if (!isPlatformApiAvailable() || !isCloudAuthUserId(currentUser.id)) return;
+    if (!liveCloudChat) return;
+    if (isPlatformApiAvailable()) {
+      void chatService.loadThreads().then((result) => {
+        if (result.ok) void refreshCloudChatInboxList();
+      });
+    }
     void refreshCloudChatInboxList();
     refreshLiveCloudSurface('messages', { force: true });
     const scheduleInboxSync = () => {
@@ -965,6 +1057,14 @@ export function MessagesScreen({
             ? heartbeat
             : await fetchOnlinePresence(cloudPeerIds.length ? cloudPeerIds : undefined);
         if (cancelled) return;
+        if (data.configured === false) {
+          setOnlineStatusByUserId((prev) => {
+            const next = { ...prev, [currentUser.id]: true };
+            for (const id of cloudPeerIds) next[id] = false;
+            return next;
+          });
+          return;
+        }
         const onlineIds = new Set(data.userIds ?? []);
         const now = Date.now();
         setOnlineStatusByUserId((prev) => {
@@ -984,12 +1084,17 @@ export function MessagesScreen({
         setLastSeenByUserId((prev) => {
           const next = { ...prev };
           for (const id of cloudPeerIds) {
-            if (!onlineIds.has(id)) {
+            if (onlineIds.has(id)) {
+              next[id] = now;
+            } else {
               next[id] = prev[id] || now;
             }
           }
           return next;
         });
+        for (const id of cloudPeerIds) {
+          db.setUserOnline(id, onlineIds.has(id), now);
+        }
       } catch {
         /* presence is best-effort */
       }
@@ -1024,8 +1129,7 @@ export function MessagesScreen({
   }, [selectedChatId]);
 
   useEffect(() => {
-    if (!selectedChatId || !isPlatformApiAvailable()) return;
-    if (!isCloudAuthUserId(currentUser.id)) return;
+    if (!selectedChatId || !liveCloudChat) return;
     if (!isGroupChatId(selectedChatId) && !isCloudAuthUserId(selectedChatId)) return;
     const timer = window.setTimeout(() => {
       void syncCloudChatHistory(selectedChatId);
@@ -1149,7 +1253,7 @@ export function MessagesScreen({
   
   const handleSendMessage = (e: React.FormEvent) => {
     e.preventDefault();
-    if ((!messageText.trim() && chatMedia.length === 0 && !recordedVoice) || !selectedUser) return;
+    if ((!messageText.trim() && chatMedia.length === 0 && !recordedVoice) || !selectedUser || !selectedChatId) return;
     const wasEditing = editingMessageIndex !== null;
 
     if (editingMessageIndex !== null && selectedChatId) {
@@ -1163,7 +1267,7 @@ export function MessagesScreen({
     } else {
       const sentTimestamp = Date.now();
       markUserActive(currentUser.id);
-      db.addMessage(selectedUser.id, { 
+      db.addMessage(selectedChatId, { 
         text: messageText, 
         isAuthor: true,
         from: currentUser.id,
@@ -1197,7 +1301,7 @@ export function MessagesScreen({
     if (!wasEditing && !('isGroup' in selectedUser)) {
       const peerId = selectedUser.id;
       const cloudDm =
-        isPlatformApiAvailable() &&
+        liveCloudChat &&
         isCloudAuthUserId(currentUser.id) &&
         isCloudAuthUserId(peerId);
       if (!cloudDm) {
@@ -1350,10 +1454,10 @@ export function MessagesScreen({
   };
 
   const handleSendLocation = (location: ChatMessageLocation) => {
-    if (!selectedUser?.id) return;
+    if (!selectedUser?.id || !selectedChatId) return;
     const sentTimestamp = Date.now();
     markUserActive(currentUser.id);
-    db.addMessage(selectedUser.id, {
+    db.addMessage(selectedChatId, {
       text: '',
       location,
       isAuthor: true,
@@ -1389,6 +1493,11 @@ export function MessagesScreen({
 
   const handleSaveGroupName = () => {
     if (!selectedGroup) return;
+    const ownerId = String(selectedGroup.createdBy || '');
+    if (ownerId !== currentUser.id) {
+      showToast('Only the group owner can rename the group.');
+      return;
+    }
     const nextName = groupNameDraft.trim();
     if (!nextName) {
       showToast('Group name is required.');
@@ -1404,7 +1513,7 @@ export function MessagesScreen({
   const handleGroupSettingsAvatarUpload = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !selectedGroup) return;
-    const ownerId = selectedGroup.createdBy || currentUser.id;
+    const ownerId = String(selectedGroup.createdBy || '');
     if (ownerId !== currentUser.id) {
       showToast('Only the group owner can change group profile.');
       event.target.value = '';
@@ -1431,7 +1540,7 @@ export function MessagesScreen({
 
   const handleGroupSettingsAvatarCamera = async (payload: AppCameraCapturePayload) => {
     if (!selectedGroup) return;
-    const ownerId = selectedGroup.createdBy || currentUser.id;
+    const ownerId = String(selectedGroup.createdBy || '');
     if (ownerId !== currentUser.id) {
       showToast('Only the group owner can change group profile.');
       return;
@@ -1449,6 +1558,11 @@ export function MessagesScreen({
 
   const handleAddGroupMember = (userId: string) => {
     if (!selectedGroup) return;
+    const ownerId = String(selectedGroup.createdBy || '');
+    if (ownerId !== currentUser.id) {
+      showToast('Only the group owner can add members.');
+      return;
+    }
     if (selectedGroupMemberSet.has(userId)) return;
     updateGroupById(selectedGroup.id, (group: ChatGroup) => {
       const memberIds = Array.isArray(group?.memberIds) ? group.memberIds : [currentUser.id];
@@ -1464,6 +1578,11 @@ export function MessagesScreen({
 
   const handleRemoveGroupMember = (userId: string) => {
     if (!selectedGroup) return;
+    const ownerId = String(selectedGroup.createdBy || '');
+    if (ownerId !== currentUser.id) {
+      showToast('Only the group owner can remove members.');
+      return;
+    }
     if (userId === currentUser.id) {
       showToast('Use leave group action to remove yourself.');
       return;
@@ -1481,30 +1600,43 @@ export function MessagesScreen({
     showToast('Member removed');
   };
 
-  const handleLeaveGroup = () => {
+  const handleLeaveGroup = async () => {
     if (!selectedGroup) return;
-    updateGroupById(selectedGroup.id, (group: ChatGroup) => {
-      const memberIds = Array.isArray(group?.memberIds) ? group.memberIds : [];
-      const nextMemberIds = memberIds.filter((id: string) => id !== currentUser.id);
-      return {
-        ...group,
-        memberIds: nextMemberIds,
-        username: `${nextMemberIds.length} member${nextMemberIds.length > 1 ? 's' : ''}`,
-      };
-    });
+    const ownerId = String(selectedGroup.createdBy || '');
+    if (ownerId === currentUser.id) {
+      showToast('Transfer ownership or delete the group before leaving.');
+      return;
+    }
+    const groupId = selectedGroup.id;
+    if (liveCloudChat) {
+      const leftCloud = await leaveCloudGroupThread(groupId).catch(() => false);
+      if (!leftCloud) {
+        showToast('Unable to leave the group. Please try again.');
+        return;
+      }
+    }
+    db.saveChatGroups(db.chatGroups.filter((group) => group.id !== groupId));
     setShowInfoPanel(false);
     setSelectedChatId(null);
     showToast('You left the group');
   };
 
-  const handleDeleteGroup = () => {
+  const handleDeleteGroup = async () => {
     if (!selectedGroup) return;
-    const ownerId = selectedGroup.createdBy || currentUser.id;
+    const ownerId = String(selectedGroup.createdBy || '');
     if (ownerId !== currentUser.id) {
       showToast('Only the group owner can delete this group.');
       return;
     }
-    db.saveChatGroups(db.chatGroups.filter((group) => group.id !== selectedGroup.id));
+    const groupId = selectedGroup.id;
+    if (liveCloudChat) {
+      const deletedCloud = await deleteCloudGroupThread(groupId).catch(() => false);
+      if (!deletedCloud) {
+        showToast('Unable to delete the group. Please try again.');
+        return;
+      }
+    }
+    db.saveChatGroups(db.chatGroups.filter((group) => group.id !== groupId));
     setShowInfoPanel(false);
     setSelectedChatId(null);
     showToast('Group deleted');
@@ -1512,7 +1644,7 @@ export function MessagesScreen({
 
   const toggleMuteGroupMember = (userId: string) => {
     if (!selectedGroup) return;
-    const ownerId = selectedGroup.createdBy || currentUser.id;
+    const ownerId = String(selectedGroup.createdBy || '');
     if (ownerId !== currentUser.id) {
       showToast('Only the group owner can moderate members.');
       return;
@@ -1538,7 +1670,7 @@ export function MessagesScreen({
 
   const toggleGroupAdminMember = (userId: string) => {
     if (!selectedGroup) return;
-    const ownerId = selectedGroup.createdBy || currentUser.id;
+    const ownerId = String(selectedGroup.createdBy || '');
     if (ownerId !== currentUser.id) {
       showToast('Only the group owner can manage admins.');
       return;
@@ -1565,7 +1697,7 @@ export function MessagesScreen({
 
   const toggleGroupModerationSetting = (key: 'adminOnlyPosting' | 'requireApprovalToJoin') => {
     if (!selectedGroup) return;
-    const ownerId = selectedGroup.createdBy || currentUser.id;
+    const ownerId = String(selectedGroup.createdBy || '');
     if (ownerId !== currentUser.id) {
       showToast('Only the group owner can change moderation settings.');
       return;
@@ -1596,6 +1728,23 @@ export function MessagesScreen({
     const id = window.setInterval(() => setDeliveryTick((t) => t + 1), 500);
     return () => window.clearInterval(id);
   }, [outboundDelivery.sending, selectedChatId]);
+
+  useEffect(() => {
+    if (!selectedChatId || outboundDelivery.sending === 0 || !liveCloudChat) return;
+    let cancelled = false;
+    const reconcile = () => {
+      if (cancelled) return;
+      healOutboundDeliveryForChat(selectedChatId);
+      void chatService.flushOutbox(currentUser.id);
+      void syncCloudChatHistory(selectedChatId).catch(() => undefined);
+    };
+    reconcile();
+    const id = window.setInterval(reconcile, 3_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [outboundDelivery.sending, selectedChatId, liveCloudChat, currentUser.id]);
 
   const handleRetryFailedMessages = React.useCallback(() => {
     if (!selectedChatId) return;
@@ -2461,7 +2610,7 @@ export function MessagesScreen({
 
   const selectedGroupAdminSet = React.useMemo(() => {
     if (!selectedGroup) return new Set<string>();
-    const ownerId = selectedGroup.createdBy || currentUser.id;
+    const ownerId = String(selectedGroup.createdBy || '');
     const adminIds = safeIdArray(selectedGroup?.adminIds);
     return new Set<string>([ownerId, ...adminIds]);
   }, [selectedGroup, currentUser.id]);
@@ -3026,9 +3175,9 @@ export function MessagesScreen({
           ? 'relative flex h-full w-full min-h-0 overflow-hidden bg-background'
           : `flex w-full min-h-0 flex-1 flex-row overflow-hidden bg-background max-w-[935px] mx-auto fixed inset-x-0 z-[60] ${
               selectedUser
-                ? 'inset-y-0 pt-[var(--app-safe-top)]'
-                : 'top-shell-nav bottom-0'
-            } md:static md:z-auto md:h-full md:max-h-full md:border md:border-border md:rounded-[32px] md:shadow-sm md:pt-0`
+                ? 'inset-y-0 pt-[var(--app-safe-top)] pl-[var(--app-safe-left)] pr-[var(--app-safe-right)]'
+                : 'top-shell-nav bottom-0 pl-[var(--app-safe-left)] pr-[var(--app-safe-right)]'
+            } md:static md:z-auto md:h-full md:max-h-full md:border md:border-border md:rounded-[32px] md:shadow-sm md:pt-0 md:pl-0 md:pr-0`
       }
     >
       

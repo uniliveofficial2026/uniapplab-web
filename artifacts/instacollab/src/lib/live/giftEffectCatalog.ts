@@ -20,10 +20,25 @@ export {
 
 export const GIFT_EFFECT_CATALOG = GIFT_EFFECT_CATALOG_BASE;
 
-export function resolveGiftEffect(giftId?: string, giftName?: string): GiftEffectDefinition {
+let giftLookupCache: {
+  catalog: GiftEffectDefinition[];
+  byId: Map<string, GiftEffectDefinition>;
+  byName: Map<string, GiftEffectDefinition>;
+} | null = null;
+
+function giftLookupMaps() {
   const catalog = getMergedGiftEffectCatalog();
-  const byId = new Map(catalog.map((gift) => [gift.id.toLowerCase(), gift]));
-  const byName = new Map(catalog.map((gift) => [gift.name.toLowerCase(), gift]));
+  if (giftLookupCache?.catalog === catalog) return giftLookupCache;
+  giftLookupCache = {
+    catalog,
+    byId: new Map(catalog.map((gift) => [gift.id.toLowerCase(), gift])),
+    byName: new Map(catalog.map((gift) => [gift.name.toLowerCase(), gift])),
+  };
+  return giftLookupCache;
+}
+
+export function resolveGiftEffect(giftId?: string, giftName?: string): GiftEffectDefinition {
+  const { catalog, byId, byName } = giftLookupMaps();
   const id = giftId?.trim().toLowerCase();
   if (id && byId.has(id)) return withCoinTier(byId.get(id)!);
   const name = giftName?.trim().toLowerCase();

@@ -129,20 +129,52 @@ export const MULTI_GUEST_GRID_SLOTS: RoomSeatKey[] = [
   ...GUEST_SEAT_KEYS.slice(0, 12),
 ];
 
-/** Multi-Guest seat capacity options — staff seats always kept; only guest seats are cut. */
-export const MULTI_GUEST_SEAT_COUNT_OPTIONS = [2, 7, 12, 15] as const;
+/**
+ * Product seat count = TOTAL visible on-stage tiles (host included).
+ * Backend guest-slot count = non-host tiles in that layout.
+ *
+ * Conversion (explicit, not silent):
+ *   2  product tiles → host + 1 guest (1v1)
+ *   4  product tiles → 3 guest slots + host
+ *   8  product tiles → 7 other tiles + host (host may be a mega-tile)
+ *   16 product tiles → 15 other tiles + host
+ *   24 product tiles → 23 other tiles + host
+ *
+ * Persisted 12 is NOT an approved product layout and migrates to 16.
+ * Persisted 7/15 were historical guest-slot counts for 8/16 product layouts.
+ */
+export const MULTI_GUEST_SEAT_COUNT_OPTIONS = [2, 4, 8, 16, 24] as const;
 export type MultiGuestSeatCount = (typeof MULTI_GUEST_SEAT_COUNT_OPTIONS)[number];
 
-export function resolveMultiGuestSeatCount(value: unknown): MultiGuestSeatCount {
-  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10);
-  if (parsed === 2) return 2;
-  if (parsed === 7 || parsed === 8) return 7;
-  if (parsed === 11 || parsed === 12) return 12;
-  return 15;
+export function formatMultiGuestLayoutOptionLabel(count: MultiGuestSeatCount): string {
+  return String(count);
 }
 
-/** Guest seats removed in 7-seat mode (host mega-tile covers their grid cells). */
-export const MULTI_GUEST_7_REMOVED_SEAT_KEYS: RoomSeatKey[] = ['no2', 'no5', 'no6', 'no7', 'no8'];
+export function productSeatCountToGuestSlots(productCount: MultiGuestSeatCount): number {
+  return Math.max(0, getMultiGuestTotalCapacity(productCount) - 1);
+}
+
+/** Legacy persisted values migrate forward without silent UI mismatch. */
+export function resolveMultiGuestSeatCount(value: unknown): MultiGuestSeatCount {
+  const parsed = typeof value === 'number' ? value : Number.parseInt(String(value ?? ''), 10);
+  if (parsed === 2 || parsed === 1) return 2;
+  if (parsed === 4) return 4;
+  if (parsed === 8 || parsed === 7) return 8;
+  if (parsed === 16 || parsed === 15 || parsed === 12 || parsed === 11) return 16;
+  if (parsed === 24 || parsed === 23) return 24;
+  return 16;
+}
+
+/** Total tiles rendered for a capacity preset (matches UI seat count). */
+export function getMultiGuestTotalCapacity(count: MultiGuestSeatCount = 16): number {
+  return getMultiGuestActiveSeatKeys(count).length;
+}
+
+/** Guest seats removed in 8-seat mode (host mega-tile covers folded cells). */
+export const MULTI_GUEST_8_REMOVED_SEAT_KEYS: RoomSeatKey[] = ['no6', 'no7', 'no8', 'no9', 'no10'];
+
+/** @deprecated use MULTI_GUEST_8_REMOVED_SEAT_KEYS */
+export const MULTI_GUEST_7_REMOVED_SEAT_KEYS = MULTI_GUEST_8_REMOVED_SEAT_KEYS;
 
 export type MultiGuestVideoLayoutItem = {
   seatKey: RoomSeatKey;
@@ -159,13 +191,30 @@ const MULTI_GUEST_12_HOST_PLACEMENT = {
   gridRow: '1 / 3',
 } as const;
 
-/** 7-seat host — spans cols 1–3, rows 1–3 (co-owner + NO.2 + NO.5–NO.7 cells). */
-const MULTI_GUEST_7_HOST_PLACEMENT = {
-  gridColumn: '1 / 4',
-  gridRow: '1 / 4',
-} as const;
+/** 4-seat — host + 3 guests (2×2). */
+const MULTI_GUEST_4_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
+  { seatKey: 'host', gridColumn: '1', gridRow: '1' },
+  { seatKey: 'no1', gridColumn: '2', gridRow: '1' },
+  { seatKey: 'no2', gridColumn: '1', gridRow: '2' },
+  { seatKey: 'no3', gridColumn: '2', gridRow: '2' },
+];
 
-/** Fixed 5×3 positions — host 2×2 top-left; used for 12-seat mode. */
+/** 8-seat — 4×2 equal tiles (8 visible positions: host + 7 others). */
+const MULTI_GUEST_8_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
+  { seatKey: 'host', gridColumn: '1', gridRow: '1' },
+  { seatKey: 'coowner', gridColumn: '2', gridRow: '1' },
+  { seatKey: 'admin', gridColumn: '3', gridRow: '1' },
+  { seatKey: 'no1', gridColumn: '4', gridRow: '1' },
+  { seatKey: 'no2', gridColumn: '1', gridRow: '2' },
+  { seatKey: 'no3', gridColumn: '2', gridRow: '2' },
+  { seatKey: 'no4', gridColumn: '3', gridRow: '2' },
+  { seatKey: 'no5', gridColumn: '4', gridRow: '2' },
+];
+
+/** @deprecated alias of the 8-tile layout */
+const MULTI_GUEST_7_VIDEO_LAYOUT = MULTI_GUEST_8_VIDEO_LAYOUT;
+
+/** Legacy 12-tile layout — persisted 12 migrates to 16; kept for reference only. */
 const MULTI_GUEST_12_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
   { seatKey: 'host', colSpan: 2, rowSpan: 2, ...MULTI_GUEST_12_HOST_PLACEMENT },
   { seatKey: 'coowner', gridColumn: '3', gridRow: '1' },
@@ -180,22 +229,60 @@ const MULTI_GUEST_12_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
   { seatKey: 'no8', gridColumn: '4', gridRow: '3' },
   { seatKey: 'no9', gridColumn: '5', gridRow: '3' },
 ];
+export const MULTI_GUEST_LEGACY_12_VIDEO_LAYOUT = MULTI_GUEST_12_VIDEO_LAYOUT;
 
-/** 7-seat — host mega-tile; right column shifts up: co-owner→boss cell, boss→no1 cell, guests follow. */
-const MULTI_GUEST_7_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
-  { seatKey: 'host', colSpan: 3, rowSpan: 3, ...MULTI_GUEST_7_HOST_PLACEMENT },
-  { seatKey: 'coowner', gridColumn: '4', gridRow: '1' },
-  { seatKey: 'admin', gridColumn: '5', gridRow: '1' },
-  { seatKey: 'no1', gridColumn: '4', gridRow: '2' },
-  { seatKey: 'no3', gridColumn: '5', gridRow: '2' },
-  { seatKey: 'no4', gridColumn: '4', gridRow: '3' },
-  { seatKey: 'no9', gridColumn: '5', gridRow: '3' },
+/** 2-seat — 1v1: host + one guest, equal columns. */
+const MULTI_GUEST_2_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
+  { seatKey: 'host', gridColumn: '1', gridRow: '1' },
+  { seatKey: 'no1', gridColumn: '2', gridRow: '1' },
 ];
 
-/** 2-seat — host and co-owner fill the stage edge to edge (50/50, full height). */
-const MULTI_GUEST_2_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
-  { seatKey: 'host', gridColumn: '1', gridRow: '1 / 4' },
-  { seatKey: 'coowner', gridColumn: '2', gridRow: '1 / 4' },
+/** 16-seat — 16 visible tiles (host 2×2 + 15 others). */
+const MULTI_GUEST_16_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
+  { seatKey: 'host', colSpan: 2, rowSpan: 2, ...MULTI_GUEST_12_HOST_PLACEMENT },
+  { seatKey: 'coowner', gridColumn: '3', gridRow: '1' },
+  { seatKey: 'admin', gridColumn: '4', gridRow: '1' },
+  { seatKey: 'no1', gridColumn: '5', gridRow: '1' },
+  { seatKey: 'no2', gridColumn: '3', gridRow: '2' },
+  { seatKey: 'no3', gridColumn: '4', gridRow: '2' },
+  { seatKey: 'no4', gridColumn: '5', gridRow: '2' },
+  { seatKey: 'no5', gridColumn: '1', gridRow: '3' },
+  { seatKey: 'no6', gridColumn: '2', gridRow: '3' },
+  { seatKey: 'no7', gridColumn: '3', gridRow: '3' },
+  { seatKey: 'no8', gridColumn: '4', gridRow: '3' },
+  { seatKey: 'no9', gridColumn: '5', gridRow: '3' },
+  { seatKey: 'no10', gridColumn: '1', gridRow: '4' },
+  { seatKey: 'no11', gridColumn: '2', gridRow: '4' },
+  { seatKey: 'no12', gridColumn: '3', gridRow: '4' },
+  { seatKey: 'no13', gridColumn: '4', gridRow: '4' },
+];
+
+/** 24-seat — 6×4 equal tiles (host + co-owner + boss + 21 guests). */
+const MULTI_GUEST_24_VIDEO_LAYOUT: MultiGuestVideoLayoutItem[] = [
+  { seatKey: 'host', gridColumn: '1', gridRow: '1' },
+  { seatKey: 'coowner', gridColumn: '2', gridRow: '1' },
+  { seatKey: 'admin', gridColumn: '3', gridRow: '1' },
+  { seatKey: 'no1', gridColumn: '4', gridRow: '1' },
+  { seatKey: 'no2', gridColumn: '5', gridRow: '1' },
+  { seatKey: 'no3', gridColumn: '6', gridRow: '1' },
+  { seatKey: 'no4', gridColumn: '1', gridRow: '2' },
+  { seatKey: 'no5', gridColumn: '2', gridRow: '2' },
+  { seatKey: 'no6', gridColumn: '3', gridRow: '2' },
+  { seatKey: 'no7', gridColumn: '4', gridRow: '2' },
+  { seatKey: 'no8', gridColumn: '5', gridRow: '2' },
+  { seatKey: 'no9', gridColumn: '6', gridRow: '2' },
+  { seatKey: 'no10', gridColumn: '1', gridRow: '3' },
+  { seatKey: 'no11', gridColumn: '2', gridRow: '3' },
+  { seatKey: 'no12', gridColumn: '3', gridRow: '3' },
+  { seatKey: 'no13', gridColumn: '4', gridRow: '3' },
+  { seatKey: 'no14', gridColumn: '5', gridRow: '3' },
+  { seatKey: 'no15', gridColumn: '6', gridRow: '3' },
+  { seatKey: 'no16', gridColumn: '1', gridRow: '4' },
+  { seatKey: 'no17', gridColumn: '2', gridRow: '4' },
+  { seatKey: 'no18', gridColumn: '3', gridRow: '4' },
+  { seatKey: 'no19', gridColumn: '4', gridRow: '4' },
+  { seatKey: 'no20', gridColumn: '5', gridRow: '4' },
+  { seatKey: 'no21', gridColumn: '6', gridRow: '4' },
 ];
 
 function collectMultiGuestLayoutSeatKeys(layout: MultiGuestVideoLayoutItem[]): RoomSeatKey[] {
@@ -211,20 +298,21 @@ function collectMultiGuestLayoutSeatKeys(layout: MultiGuestVideoLayoutItem[]): R
   return keys;
 }
 
-/** Join / lock seats — host + co-owner + boss + 4 guests at 7 seats. */
-export function getMultiGuestActiveSeatKeys(count: MultiGuestSeatCount = 15): RoomSeatKey[] {
+/** Join / lock seats for the active multi-guest capacity preset. */
+export function getMultiGuestActiveSeatKeys(count: MultiGuestSeatCount = 16): RoomSeatKey[] {
   switch (count) {
     case 2:
-    case 7:
-    case 12:
+    case 4:
+    case 8:
+    case 16:
+    case 24:
       return collectMultiGuestLayoutSeatKeys(getMultiGuestVideoLayout(count));
-    case 15:
     default:
-      return [...MULTI_GUEST_GRID_SLOTS];
+      return collectMultiGuestLayoutSeatKeys(getMultiGuestVideoLayout(16));
   }
 }
 
-export function getMultiGuestGuestSeatKeys(count: MultiGuestSeatCount = 15): RoomSeatKey[] {
+export function getMultiGuestGuestSeatKeys(count: MultiGuestSeatCount = 16): RoomSeatKey[] {
   return getMultiGuestActiveSeatKeys(count).filter(
     (seatKey) => seatKey !== 'host' && seatKey !== 'coowner' && seatKey !== 'admin',
   );
@@ -232,7 +320,7 @@ export function getMultiGuestGuestSeatKeys(count: MultiGuestSeatCount = 15): Roo
 
 export function isMultiGuestSeatActive(
   seatKey: string,
-  count: MultiGuestSeatCount = 15,
+  count: MultiGuestSeatCount = 16,
 ): boolean {
   return getMultiGuestActiveSeatKeys(count).includes(seatKey as RoomSeatKey);
 }
@@ -309,7 +397,7 @@ export function findPreferredOpenSeat(options: {
   const {
     seats,
     roomMode,
-    multiGuestSeatCount = 15,
+    multiGuestSeatCount = 16,
     lockedSeats = {},
     canTakeHost = false,
     canTakeCoOwner = false,
@@ -339,19 +427,23 @@ export function findPreferredOpenSeat(options: {
   );
 }
 
-/** Video grid layout — 2/12/7 use fixed positions; 15 is full 5×3. */
-export function getMultiGuestVideoLayout(count: MultiGuestSeatCount = 15): MultiGuestVideoLayoutItem[] {
+/** Video grid layout — product 2/4/8/16/24 as total visible tiles. */
+export function getMultiGuestVideoLayout(count: MultiGuestSeatCount = 16): MultiGuestVideoLayoutItem[] {
   if (count === 2) return MULTI_GUEST_2_VIDEO_LAYOUT;
-  if (count === 7) return MULTI_GUEST_7_VIDEO_LAYOUT;
-  if (count === 12) return MULTI_GUEST_12_VIDEO_LAYOUT;
-  return MULTI_GUEST_GRID_SLOTS.map((seatKey) => ({ seatKey }));
+  if (count === 4) return MULTI_GUEST_4_VIDEO_LAYOUT;
+  if (count === 8) return MULTI_GUEST_8_VIDEO_LAYOUT;
+  if (count === 16) return MULTI_GUEST_16_VIDEO_LAYOUT;
+  if (count === 24) return MULTI_GUEST_24_VIDEO_LAYOUT;
+  return MULTI_GUEST_16_VIDEO_LAYOUT;
 }
 
-export function getMultiGuestVideoGridClass(count: MultiGuestSeatCount = 15): string {
+export function getMultiGuestVideoGridClass(count: MultiGuestSeatCount = 16): string {
   if (count === 2) return 'multi-guest-video-grid--2';
-  if (count === 7) return 'multi-guest-video-grid--7';
-  if (count === 12) return 'multi-guest-video-grid--12';
-  return 'multi-guest-video-grid--15';
+  if (count === 4) return 'multi-guest-video-grid--4';
+  if (count === 8) return 'multi-guest-video-grid--8';
+  if (count === 16) return 'multi-guest-video-grid--16 multi-guest-video-grid--15';
+  if (count === 24) return 'multi-guest-video-grid--24';
+  return 'multi-guest-video-grid--16';
 }
 
 export function resolveMergedHostTileSeats(
@@ -462,7 +554,7 @@ export function formatSeatDisplayLabel(seatKey: string): string {
 export function getMultiGuestSeatLabelMap(
   count: MultiGuestSeatCount,
 ): Partial<Record<RoomSeatKey, string>> {
-  if (count === 15) return {};
+  if (count === 16 || count === 24) return {};
 
   const labels: Partial<Record<RoomSeatKey, string>> = {};
   let guestNumber = 1;
@@ -490,11 +582,11 @@ export function getMultiGuestSeatLabelMap(
 
 export function formatMultiGuestSeatLabel(
   seatKey: string,
-  count: MultiGuestSeatCount = 15,
+  count: MultiGuestSeatCount = 16,
   options?: { uppercase?: boolean },
 ): string {
   const label =
-    count === 15
+    count === 16 || count === 24
       ? formatSeatDisplayLabel(seatKey)
       : getMultiGuestSeatLabelMap(count)[seatKey as RoomSeatKey] ?? formatSeatDisplayLabel(seatKey);
   if (!options?.uppercase) return label;
@@ -505,7 +597,7 @@ export function formatMultiGuestSeatLabel(
 /** Action / toast subtitle — Host, Co-owner, Boss, or Seat N using renumbered guests. */
 export function formatMultiGuestSeatActionSubtitle(
   seatKey: string,
-  count: MultiGuestSeatCount = 15,
+  count: MultiGuestSeatCount = 16,
 ): string {
   const staffLabel = formatStaffSeatLabel(seatKey);
   if (staffLabel) return staffLabel;

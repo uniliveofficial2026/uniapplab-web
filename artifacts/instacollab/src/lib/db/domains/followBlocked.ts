@@ -1,4 +1,5 @@
 import { DEFAULT_FOLLOW_GRAPH } from '../../data';
+import { isDemoContentEnabled } from '../../demoContentPolicy';
 import { resolveUser } from '../../safe';
 import type { User } from '../../../types';
 import type { FollowBlockedLayer } from '../layers';
@@ -79,7 +80,10 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
       this.followGraphEnsured = true;
       const existing = this.load('follow_graph', null as { following?: Record<string, string[]> } | null);
       if (!existing?.following || typeof existing.following !== 'object') {
-        this.save('follow_graph', DEFAULT_FOLLOW_GRAPH);
+        this.save(
+          'follow_graph',
+          isDemoContentEnabled() ? DEFAULT_FOLLOW_GRAPH : { following: {} },
+        );
       }
       this.reconcileSocialGraph();
       this.syncIsFollowingFromGraph();
@@ -88,7 +92,9 @@ export function WithFollowBlocked<T extends Constructor<DbCoreBacked>>(Base: T):
     getFollowGraph(): { following: Record<string, string[]> } {
       this.ensureFollowGraph();
       this.reconcileSocialGraph();
-      return this.load('follow_graph', DEFAULT_FOLLOW_GRAPH) || DEFAULT_FOLLOW_GRAPH;
+      const empty = { following: {} as Record<string, string[]> };
+      const fallback = isDemoContentEnabled() ? DEFAULT_FOLLOW_GRAPH : empty;
+      return this.load('follow_graph', fallback) || fallback;
     }
 
     getFollowingIds(userId: string): string[] {

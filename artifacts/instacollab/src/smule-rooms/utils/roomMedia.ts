@@ -1,5 +1,6 @@
 /** Shared member / cover avatar resolution for smule room pages. */
 
+import { isDemoContentEnabled } from '../../lib/demoContentPolicy';
 import { formatRoomBackgroundLabel } from './roomBackground';
 
 const UNSPLASH_PORTRAITS = [
@@ -213,6 +214,7 @@ export function parseMemberList(value: string | undefined | null): string[] {
 
 /** Seed demo room covers + member avatars once per room. */
 export function seedDemoRoomMedia(roomId: string, members: Array<{ name: string; avatar: string }>): void {
+  if (!isDemoContentEnabled()) return;
   if (!readStoredRoomCover(roomId) && DEMO_ROOM_COVERS[roomId]) {
     localStorage.setItem(`${ROOM_COVER_PREFIX}${roomId}`, DEMO_ROOM_COVERS[roomId]);
   }
@@ -221,6 +223,7 @@ export function seedDemoRoomMedia(roomId: string, members: Array<{ name: string;
 
 /** Idempotent demo media for rooms shown in managed list before first party visit. */
 export function ensureDemoRoomMediaRegistry(): void {
+  if (!isDemoContentEnabled()) return;
   seedDemoRoomMedia('1167298', [
     { name: 'SoulSister', avatar: portraitUrl(0) },
     { name: 'Admin 1', avatar: portraitUrl(2) },

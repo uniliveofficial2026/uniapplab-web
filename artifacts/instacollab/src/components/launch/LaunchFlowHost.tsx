@@ -9,11 +9,14 @@ import { AuthScreen } from './AuthScreen';
 import { ProfileSetupScreen } from './ProfileSetupScreen';
 import { TrendingScreen } from './TrendingScreen';
 import { BannedScreen } from '../auth/BannedScreen';
+import { AppScreen } from '../layout/AppScreen';
+import { ErrorBoundary } from '../common/ErrorBoundary';
 
 /**
  * Launch funnel host.
  * Newcomer path: splash → onboarding → auth → profile_setup → trending → (main in App).
  * First video plays on splash only; second video is reserved for main-app loads.
+ * Always edge-to-edge fullscreen with per-route error isolation.
  */
 export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
   const db = useDB();
@@ -31,20 +34,38 @@ export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
     void db.whenReady().then(() => db.ensureDemoAuthAccounts());
   }, [db]);
 
+  let content: React.ReactNode = null;
   switch (route) {
     case 'splash':
-      return <SplashScreen />;
+      content = <SplashScreen />;
+      break;
     case 'onboarding':
-      return <OnboardingScreen />;
+      content = <OnboardingScreen />;
+      break;
     case 'auth':
-      return <AuthScreen />;
+      content = <AuthScreen />;
+      break;
     case 'profile_setup':
-      return <ProfileSetupScreen />;
+      content = <ProfileSetupScreen />;
+      break;
     case 'trending':
-      return <TrendingScreen />;
+      content = <TrendingScreen />;
+      break;
     case 'banned':
-      return <BannedScreen />;
+      content = <BannedScreen />;
+      break;
+    case 'main':
+      content = null;
+      break;
     default:
-      return null;
+      content = null;
   }
+
+  if (!content) return null;
+
+  return (
+    <AppScreen immersive className="h-vv max-h-vv w-full bg-background">
+      <ErrorBoundary screen={`launch:${route}`}>{content}</ErrorBoundary>
+    </AppScreen>
+  );
 }

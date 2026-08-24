@@ -21,6 +21,19 @@ const LEGACY_QUERY_KEYS = [
   'roomsPath',
 ] as const;
 
+/** Keep live-editor / demo bootstrap params across shell URL sync. */
+export const STUDIO_QUERY_KEYS = [
+  'pick',
+  'mirror',
+  'adminOrigin',
+  'adminPick',
+  'force_demo',
+  'launch',
+  'as',
+  'user',
+  'login',
+] as const;
+
 export { KARAOKE_URL_KEYS };
 
 /** Default pathname for each main tab (rooms uses `roomsInitialPath`). */

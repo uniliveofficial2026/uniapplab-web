@@ -14,6 +14,7 @@ export type CallPresentation = 'fullscreen' | 'pip';
 
 export const SLOW_CONNECT_MS = 2_000;
 export const INCOMING_RING_TIMEOUT_MS = 45_000;
+export const OUTGOING_RING_TIMEOUT_MS = 45_000;
 
 export type IncomingChatCall = {
   chatId: string;
@@ -27,7 +28,7 @@ export type IncomingChatCall = {
 export type ChatCallSignal = {
   chatId: string;
   fromUserId: string;
-  action: 'end' | 'decline';
+  action: 'accept' | 'end' | 'decline';
   callKind?: ChatCallKind;
 };
 

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Check, Copy, Pencil, Plus } from 'lucide-react';
+import { HostLiveMetricsStrip, type HostLiveMetrics } from './HostLiveMetricsStrip';
 
 export function RoomLiveHeaderInfo({
   roomLevel,
@@ -13,6 +14,7 @@ export function RoomLiveHeaderInfo({
   onToggleSaveRoom,
   canEditAnnouncement = false,
   onEditAnnouncement,
+  hostLiveMetrics = null,
   className = '',
 }: {
   roomLevel: number;
@@ -26,13 +28,15 @@ export function RoomLiveHeaderInfo({
   onToggleSaveRoom: (event: React.MouseEvent) => void;
   canEditAnnouncement?: boolean;
   onEditAnnouncement?: () => void;
+  hostLiveMetrics?: HostLiveMetrics | null;
   className?: string;
 }) {
   const headline = announcement.trim() || roomTitle.trim() || 'Welcome to the room';
 
   return (
+    <div className={`flex min-w-0 max-w-[55%] flex-col sm:max-w-none ${className}`}>
     <div
-      className={`flex min-w-0 max-w-[55%] items-center gap-1 rounded-full py-1 pl-1.5 pr-1.5 backdrop-blur-md sm:max-w-none ${className}`}
+      className="flex min-w-0 items-center gap-1 rounded-full py-1 pl-1.5 pr-1.5 backdrop-blur-md"
     >
       <div className="flex min-w-0 flex-1 items-center space-x-2 py-0.5 pr-1">
         <div className="flex h-[18px] w-[18px] shrink-0 items-center justify-center rounded-md bg-blue-500 text-[10px] font-black italic text-white shadow-[0_0_8px_rgba(59,130,246,0.5)]">
@@ -101,6 +105,8 @@ export function RoomLiveHeaderInfo({
       >
         {isRoomSaved ? <Check size={13} strokeWidth={3} /> : <Plus size={13} strokeWidth={3} />}
       </button>
+    </div>
+      {hostLiveMetrics ? <HostLiveMetricsStrip metrics={hostLiveMetrics} /> : null}
     </div>
   );
 }

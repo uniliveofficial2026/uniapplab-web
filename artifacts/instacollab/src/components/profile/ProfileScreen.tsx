@@ -40,7 +40,7 @@ import { ProfileEditSettingsModal } from './ProfileEditSettingsModal';
 import { BlockedUsersModal } from './BlockedUsersModal';
 import { StoryRing } from '../feed/StoryRing';
 import { useFollowActionState } from '../../lib/useFollowActionState';
-import { followToggleToastMessage, getFollowButtonHoverLabel } from '../../lib/followPrivacy';
+import { getFollowButtonHoverLabel } from '../../lib/followPrivacy';
 import {
   getOptionsMenuItemClass,
   optionsMenuItemPointerHandlers,
@@ -219,8 +219,6 @@ export function ProfileScreen({
 
   const handleFollowToggle = () => {
     db.toggleFollow(profileUserId);
-    const after = db.getFollowActionState(profileUserId);
-    showToast(followToggleToastMessage(after, profileLabel));
     setFollowHover(false);
   };
 
@@ -409,7 +407,8 @@ export function ProfileScreen({
   };
 
   return (
-    <div className="w-full max-w-[935px] mx-auto pt-8 px-4 flex flex-col pb-6">
+    <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
+    <div className="app-screen-scroll w-full max-w-[935px] mx-auto pt-8 app-content-gutter flex flex-col pb-6">
       
       {/* Post Modal View */}
       {showNewCollectionModal && (
@@ -1039,6 +1038,7 @@ export function ProfileScreen({
         />
       )}
 
+    </div>
     </div>
   );
 }

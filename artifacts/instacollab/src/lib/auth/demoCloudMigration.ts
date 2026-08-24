@@ -1,4 +1,4 @@
-import { CLOUD_SYNC_COLLECTION_KEYS, type CloudSyncCollectionKey } from '../cloudSync/collectionKeys';
+import { LEGACY_CLOUD_SYNC_KEYS, USER_APP_STATE_KEYS, type CloudSyncCollectionKey } from '../cloudSync/collectionKeys';
 import { db } from '../db/localDb';
 import { getSupabaseClient } from '../supabase/client';
 import { isSupabaseConfigured } from '../supabase/config';
@@ -35,8 +35,9 @@ function collectLegacyDemoCollections(legacyUserId: string): Partial<Record<Clou
     return fromSnapshot as Partial<Record<CloudSyncCollectionKey, unknown>>;
   }
 
-  const collections: Partial<Record<CloudSyncCollectionKey, unknown>> = {};
-  for (const key of CLOUD_SYNC_COLLECTION_KEYS) {
+  const collections: Partial<Record<string, unknown>> = {};
+  const allKeys = [...LEGACY_CLOUD_SYNC_KEYS, ...USER_APP_STATE_KEYS];
+  for (const key of allKeys) {
     const value = (db as unknown as { cache: Record<string, unknown> }).cache[key];
     if (value !== undefined) {
       collections[key] = value;

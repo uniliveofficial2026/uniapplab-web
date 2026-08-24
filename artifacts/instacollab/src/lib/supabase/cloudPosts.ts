@@ -107,12 +107,18 @@ export async function upsertCloudPost(post: Post): Promise<boolean> {
   return true;
 }
 
-export async function deleteCloudPost(postId: string): Promise<boolean> {
+export async function deleteCloudPost(postId: string, userId?: string): Promise<boolean> {
   if (!isSupabaseConfigured() || !postId) return false;
+  // Defense-in-depth: require a live session for the claimed author (RLS also enforces).
+  if (!userId || !(await canUseCloudPosts(userId))) return false;
   const supabase = getSupabaseClient();
   if (!supabase) return false;
 
-  const { error } = await supabase.from(TABLE).delete().eq('id', postId);
+  const { error } = await supabase
+    .from(TABLE)
+    .delete()
+    .eq('id', postId)
+    .eq('author_id', userId);
   if (error) {
     console.warn('[posts] cloud delete failed:', error.message);
     return false;

@@ -1,8 +1,23 @@
 /**
- * LocalDB collection keys mirrored to cloud for signed-in accounts.
- * Session / device-only keys are excluded.
+ * user_app_state v2 — AS-only allowlist (private same-user application state).
+ * CU/EP collections must never be written through user_app_state.
  */
-export const CLOUD_SYNC_COLLECTION_KEYS = [
+export const USER_APP_STATE_KEYS = [
+  'app_settings',
+  'chat_wallpapers',
+  'globalMuted',
+  'globalMutedDefaultV2',
+  'dating_state',
+  'karaoke_user_state',
+] as const;
+
+export type UserAppStateKey = (typeof USER_APP_STATE_KEYS)[number];
+
+/**
+ * Legacy v1 keys mirrored wholesale to user_app_state — read for migration only;
+ * never written in v2 sync paths.
+ */
+export const LEGACY_CLOUD_SYNC_KEYS = [
   'posts',
   'reels',
   'messages',
@@ -23,25 +38,37 @@ export const CLOUD_SYNC_COLLECTION_KEYS = [
   'chat_presence',
   'chat_read_state',
   'chat_peer_read_state',
-  'chat_wallpapers',
-  'app_settings',
-  'globalMuted',
-  'globalMutedDefaultV2',
   'unreadMessagesCount',
   'hasUnreadNotifications',
-  'dating_state',
   'karaoke_uploads',
   'karaoke_profile_backgrounds',
   'karaoke_recordings',
-  'karaoke_user_state',
   'admin_published_gifts',
   'admin_published_beauty',
+  'coins_balance',
+  'game_coins',
+  'cash_balance',
+  'wallet_transactions',
 ] as const;
 
-export type CloudSyncCollectionKey = (typeof CLOUD_SYNC_COLLECTION_KEYS)[number];
+export type LegacyCloudSyncKey = (typeof LEGACY_CLOUD_SYNC_KEYS)[number];
 
-const KEY_SET = new Set<string>(CLOUD_SYNC_COLLECTION_KEYS);
+/** @deprecated Prefer USER_APP_STATE_KEYS — kept for gradual migration. */
+export const CLOUD_SYNC_COLLECTION_KEYS = USER_APP_STATE_KEYS;
+
+export type CloudSyncCollectionKey = UserAppStateKey;
+
+const USER_APP_STATE_KEY_SET = new Set<string>(USER_APP_STATE_KEYS);
+const LEGACY_KEY_SET = new Set<string>(LEGACY_CLOUD_SYNC_KEYS);
+
+export function isUserAppStateKey(key: string): key is UserAppStateKey {
+  return USER_APP_STATE_KEY_SET.has(key);
+}
+
+export function isLegacyCloudSyncKey(key: string): key is LegacyCloudSyncKey {
+  return LEGACY_KEY_SET.has(key);
+}
 
 export function isCloudSyncCollectionKey(key: string): key is CloudSyncCollectionKey {
-  return KEY_SET.has(key);
+  return isUserAppStateKey(key);
 }

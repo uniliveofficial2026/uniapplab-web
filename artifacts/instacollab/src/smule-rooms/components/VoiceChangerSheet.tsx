@@ -1,10 +1,13 @@
-import React from 'react';
-import { X } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Activity, Check, Mic2, Music2, User, Volume2, X } from 'lucide-react';
 import {
-  VOICE_CHANGER_EFFECTS,
-  getVoiceChangerEffect,
+  isOriginalVoiceEffect,
+  isVoiceEffectSupported,
   type VoiceChangerEffectId,
 } from '../utils/voiceEffects';
+import { safeAvatarUrl } from '../../lib/safe';
+import { V14_VOICES, V14_VOICE_TABS } from './liveToolsV14Artwork';
+import './live-tools-approved-v15.css';
 
 type VoiceChangerSheetProps = {
   open: boolean;
@@ -13,11 +16,14 @@ type VoiceChangerSheetProps = {
   onClose: () => void;
   monitorEnabled?: boolean;
   onMonitorEnabledChange?: (enabled: boolean) => void;
+  effectStrength?: number;
+  onEffectStrengthChange?: (strength: number) => void;
+  selfName?: string;
+  selfAvatarUrl?: string;
+  backgroundSoundOn?: boolean;
+  onBackgroundSoundChange?: (enabled: boolean) => void;
 };
 
-/**
- * Live room voice changer — effects are applied via Web Audio before LiveKit publish.
- */
 export function VoiceChangerSheet({
   open,
   effectId,
@@ -25,87 +31,174 @@ export function VoiceChangerSheet({
   onClose,
   monitorEnabled = false,
   onMonitorEnabledChange,
+  effectStrength = 70,
+  onEffectStrengthChange,
+  selfName = 'You',
+  selfAvatarUrl,
+  backgroundSoundOn = true,
+  onBackgroundSoundChange,
 }: VoiceChangerSheetProps) {
+  const [tab, setTab] = useState('All');
+  const [pendingId, setPendingId] = useState<VoiceChangerEffectId>(
+    isOriginalVoiceEffect(effectId) ? 'original' : effectId,
+  );
+  const [previewActive, setPreviewActive] = useState(false);
+
+  useEffect(() => {
+    if (open) setPendingId(isOriginalVoiceEffect(effectId) ? 'original' : effectId);
+  }, [open, effectId]);
+
   if (!open) return null;
 
-  const active = getVoiceChangerEffect(effectId);
+  const visible = V14_VOICES.filter((row) => (V14_VOICE_TABS[tab] ?? V14_VOICE_TABS.All).includes(row.id));
+  const selected = V14_VOICES.find((row) => row.id === pendingId) ?? V14_VOICES[0];
+  const canApply = isVoiceEffectSupported(selected.id);
+  const selfAvatar = safeAvatarUrl(selfAvatarUrl || '');
+
+  const closeSheet = () => {
+    setPreviewActive(false);
+    if (monitorEnabled || previewActive) onMonitorEnabledChange?.(false);
+    onClose();
+  };
+
+  const apply = () => {
+    if (!canApply) return;
+    onEffectChange(selected.id);
+    setPreviewActive(false);
+    onMonitorEnabledChange?.(false);
+    onClose();
+  };
+
+  const toggleMonitor = () => {
+    if (!onMonitorEnabledChange || !canApply) return;
+    const next = !(monitorEnabled || previewActive);
+    if (next) onEffectChange(selected.id);
+    setPreviewActive(next);
+    onMonitorEnabledChange(next);
+  };
+
+  const handlePreview = () => {
+    if (!onMonitorEnabledChange || !canApply) return;
+    const next = !(previewActive || monitorEnabled);
+    setPreviewActive(next);
+    onMonitorEnabledChange(next);
+    if (next) onEffectChange(selected.id);
+  };
 
   return (
-    <div className="fixed inset-0 z-[240] flex items-end justify-center bg-black/55 p-3 sm:items-center">
-      <button
-        type="button"
-        className="absolute inset-0"
-        aria-label="Close voice changer"
-        onClick={onClose}
-      />
-      <div className="relative z-10 w-full max-w-md overflow-hidden rounded-2xl border border-white/10 bg-gray-950/95 shadow-2xl backdrop-blur-md">
-        <div className="flex items-center justify-between border-b border-white/10 px-4 py-3">
+    <div className="lt15-overlay" data-ui-id="live.voice.v14.exact">
+      <button type="button" className="lt15-scrim" aria-label="Close voice changer" onClick={closeSheet} />
+      <section className="lt15-sheet lt15-voice" aria-label="Voice Changer">
+        <div className="lt15-handle" />
+        <div className="lt15-head">
           <div>
-            <p className="text-sm font-bold text-white">Voice changer</p>
-            <p className="text-[11px] text-white/50">Remote listeners hear {active.label}</p>
+            <div className="lt15-title">
+              <Mic2 size={18} color="#ff72d8" /> Voice Changer ✨
+            </div>
+            <div className="lt15-sub">Change your voice and have more fun!</div>
           </div>
-          <button
-            type="button"
-            onClick={onClose}
-            className="flex h-8 w-8 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/80"
-            aria-label="Close"
-          >
-            <X size={16} />
-          </button>
-        </div>
-        {onMonitorEnabledChange ? (
-          <div className="border-t border-white/10 px-4 py-3">
-            <label className="flex cursor-pointer items-center justify-between gap-3">
-              <div className="min-w-0 text-left">
-                <p className="text-xs font-bold text-white">Hear yourself</p>
-                <p className="text-[10px] text-white/45">Optional sidetone with your voice effect</p>
-              </div>
+          <div className="lt15-head-actions">
+            {onMonitorEnabledChange ? (
               <button
                 type="button"
-                role="switch"
-                aria-checked={monitorEnabled}
-                onClick={() => onMonitorEnabledChange(!monitorEnabled)}
-                className={`relative h-6 w-11 shrink-0 rounded-full border transition ${
-                  monitorEnabled
-                    ? 'border-purple-400/60 bg-purple-500/35'
-                    : 'border-white/15 bg-white/10'
-                }`}
+                className={`lt15-soft-btn ${monitorEnabled ? 'is-on' : ''}`}
+                onClick={toggleMonitor}
               >
-                <span
-                  className={`absolute top-0.5 h-5 w-5 rounded-full bg-white shadow transition ${
-                    monitorEnabled ? 'left-[1.35rem]' : 'left-0.5'
-                  }`}
-                />
+                My Voice
               </button>
-            </label>
-            {monitorEnabled ? (
-              <p className="mt-2 text-[10px] text-amber-200/75">Headphones recommended to reduce echo.</p>
-            ) : null}
+            ) : (
+              <span className="lt15-soft-btn">My Voice</span>
+            )}
+            <button type="button" className="lt15-icon-btn" onClick={closeSheet} aria-label="Close">
+              <X size={17} />
+            </button>
           </div>
-        ) : null}
-        <div className="grid grid-cols-3 gap-2 p-4">
-          {VOICE_CHANGER_EFFECTS.map((effect) => {
-            const selected = effect.id === effectId;
+        </div>
+        <div className="lt15-tabs">
+          {Object.keys(V14_VOICE_TABS).map((label) => (
+            <button
+              type="button"
+              className={`lt15-tab ${tab === label ? 'is-active' : ''}`}
+              onClick={() => setTab(label)}
+              key={label}
+            >
+              {label}
+            </button>
+          ))}
+        </div>
+        <div className="lt15-voice-grid">
+          {visible.map((row) => {
+            const selectedRow = pendingId === row.id;
             return (
               <button
-                key={effect.id}
                 type="button"
-                onClick={() => onEffectChange(effect.id)}
-                className={`flex flex-col items-center gap-1 rounded-xl border px-2 py-3 text-center transition active:scale-95 ${
-                  selected
-                    ? 'border-purple-400/60 bg-purple-500/20 text-purple-100'
-                    : 'border-white/10 bg-white/5 text-white/80 hover:bg-white/10'
-                }`}
+                key={row.id}
+                className={`lt15-voice-option ${selectedRow ? 'selected' : ''}`}
+                onClick={() => {
+                  setPendingId(row.id);
+                  if (isVoiceEffectSupported(row.id)) onEffectChange(row.id);
+                }}
+                aria-pressed={selectedRow}
               >
-                <span className="text-xl" aria-hidden>
-                  {effect.emoji}
+                <span className="lt15-voice-art">
+                  <img src={row.artwork} alt="" />
+                  {selectedRow ? <Check className="lt15-selection-check" size={14} strokeWidth={3} aria-hidden /> : null}
                 </span>
-                <span className="text-[10px] font-semibold leading-tight">{effect.label}</span>
+                <span className="lt15-voice-label">{row.label}</span>
               </button>
             );
           })}
         </div>
-      </div>
+        <div className="lt15-voice-controls">
+          <div className="lt15-control-card">
+            <h4><Activity size={14} aria-hidden /> Voice Effect <span aria-label="Information">ⓘ</span></h4>
+            <div className="lt15-range-line">
+              <Activity size={15} aria-hidden />
+              <input
+                className="lt15-range"
+                type="range"
+                min="0"
+                max="100"
+                value={effectStrength}
+                onChange={(event) => onEffectStrengthChange?.(Number(event.target.value))}
+                disabled={!onEffectStrengthChange || isOriginalVoiceEffect(selected.id)}
+              />
+              <span>{effectStrength}%</span>
+            </div>
+          </div>
+          <button
+            type="button"
+            className={`lt15-control-card lt15-bg-sound ${backgroundSoundOn ? 'is-on' : ''}`}
+            onClick={() => onBackgroundSoundChange?.(!backgroundSoundOn)}
+          >
+            <h4><Music2 size={14} aria-hidden /> Background Sound</h4>
+            <div className="lt15-bg-sound-name"><Music2 size={13} aria-hidden /> Magic Forest <span>›</span></div>
+          </button>
+        </div>
+        <div className="lt15-footer">
+          <div className="lt15-recipient">
+            <div className="lt15-recipient-avatar">
+              {selfAvatar ? <img src={selfAvatar} alt="" /> : <User size={20} aria-hidden />}
+            </div>
+            <div>
+              <small>Send to</small>
+              <b>{selfName}</b>
+            </div>
+            <span>›</span>
+          </div>
+          <button type="button" className="lt15-preview" onClick={handlePreview} disabled={!canApply}>
+            <Volume2 size={15} aria-hidden /> Preview
+          </button>
+          <button
+            type="button"
+            className="lt15-primary"
+            onClick={apply}
+            disabled={!canApply}
+          >
+            <Mic2 size={17} aria-hidden /> Apply Voice
+          </button>
+        </div>
+      </section>
     </div>
   );
 }

@@ -18,6 +18,8 @@ const TEST_PACKAGES = [
   'unilives-builder',
   'unilives-templates',
   'unilives-studio',
+  'unilives-ui',
+  'unilives-observe',
 ];
 
 function run(label, cmd, args, cwd = ROOT) {
@@ -57,6 +59,47 @@ for (const pkg of TEST_PACKAGES) {
 
 const packOk = run('stage-c pack validation', 'node', ['scripts/stage-c-pack-validate.mjs']);
 if (!packOk) failed += 1;
+
+const extra = [
+  ['docs portal build', ['scripts/build-docs-portal.mjs']],
+  ['secret scan', ['scripts/stage-c-secret-scan.mjs']],
+  [
+    'local e2e',
+    ['--import', join(ROOT, 'scripts/register-unilives.mjs'), 'scripts/stage-c-local-e2e.mjs'],
+  ],
+  [
+    'studio e2e',
+    ['--import', join(ROOT, 'scripts/register-unilives.mjs'), 'scripts/stage-c-studio-e2e.mjs'],
+  ],
+];
+for (const [label, args] of extra) {
+  if (!run(label, 'node', args)) failed += 1;
+}
+
+// examples smoke
+for (const ex of [
+  'basic-sdk',
+  'auth',
+  'database',
+  'storage',
+  'realtime',
+  'rtc-call',
+  'rtc-live',
+  'mcp-client',
+  'provider-adapter',
+  'plugin',
+  'builder-generated',
+]) {
+  if (
+    !run(`example ${ex}`, 'node', [
+      '--import',
+      join(ROOT, 'scripts/register-unilives.mjs'),
+      join(ROOT, 'examples', ex, 'index.mjs'),
+    ])
+  ) {
+    failed += 1;
+  }
+}
 
 if (failed) {
   console.error(`\nStage C tests failed: ${failed} suite(s)`);

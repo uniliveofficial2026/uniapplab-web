@@ -1,29 +1,21 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { X, AudioLines, Maximize2, Minimize2, Mic2, Mic, Disc, RotateCcw } from 'lucide-react';
 import { formatTrackTime, getActiveLyricIndex, resolveActiveSong } from '../utils/songPerformance';
 import { getUploadMetaById } from '../utils/karaokeUploadBridge';
 import { loadKaraokeUploadMedia } from '../../lib/karaokeUploads';
 import { useLyricAutoScroll } from '../hooks/useLyricAutoScroll';
-import {
-  VOICE_CHANGER_EFFECTS,
-  getVoiceChangerEffect,
-  type VoiceChangerEffectId,
-} from '../utils/voiceEffects';
+import type { VoiceChangerEffectId } from '../utils/voiceEffects';
 import type { SingingVoiceStatus } from '../hooks/useSingingSession';
 import { formatSingingStatusLine, voiceStatusLabel } from '../utils/singingVoiceStatus';
+import { VoiceChangerCompactPicker } from './VoiceChangerCompactPicker';
+import { ensureLocaleFonts } from '../../lib/i18n/fonts';
 
-interface LyricsOverlayProps {
-  isOpen: boolean;
-  song: { id?: string; title: string; artist: string } | null;
-  onClose: () => void;
-  onSing?: () => void;
-  isPerforming?: boolean;
-  elapsedSec?: number;
-  progressPercent?: number;
-  micLevel?: number;
-  voiceStatus?: SingingVoiceStatus;
-  voiceEffect?: VoiceChangerEffectId;
-  onVoiceEffectChange?: (effect: VoiceChangerEffectId) => void;
+const MYANMAR_SCRIPT_RE = /[\u1000-\u109F\uAA60-\uAA7F\uA9E0-\uA9FF]/;
+const COMPLEX_SCRIPT_FONT =
+  '"Noto Sans Myanmar", "Myanmar Text", "Pyidaungsu", "Noto Sans", Inter, ui-sans-serif, system-ui, sans-serif';
+
+function hasMyanmarScript(...parts: Array<string | null | undefined>) {
+  return parts.some((part) => Boolean(part && MYANMAR_SCRIPT_RE.test(part)));
 }
 
 function LyricsLines({
@@ -31,21 +23,35 @@ function LyricsLines({
   activeIndex,
   large,
   lineRefs,
+  complexScript,
 }: {
   lines: string[];
   activeIndex: number;
   large?: boolean;
   lineRefs?: React.MutableRefObject<(HTMLParagraphElement | null)[]>;
+  complexScript?: boolean;
 }) {
   const muted = large
-    ? 'text-[15px] text-white/45 leading-relaxed'
-    : 'text-[10px] text-gray-500 leading-tight';
+    ? complexScript
+      ? 'text-[16px] text-white/45 leading-[1.55]'
+      : 'text-[15px] text-white/45 leading-relaxed'
+    : complexScript
+      ? 'text-[12px] text-gray-500 leading-[1.55]'
+      : 'text-[10px] text-gray-500 leading-tight';
   const upcoming = large
-    ? 'text-[15px] text-white/75 leading-relaxed'
-    : 'text-[10px] text-gray-400 leading-tight';
+    ? complexScript
+      ? 'text-[16px] text-white/80 leading-[1.55]'
+      : 'text-[15px] text-white/75 leading-relaxed'
+    : complexScript
+      ? 'text-[12px] text-gray-300 leading-[1.55]'
+      : 'text-[10px] text-gray-400 leading-tight';
   const active = large
-    ? 'text-[20px] text-[#ffd147] font-black leading-relaxed drop-shadow-[0_0_10px_rgba(255,209,71,0.4)]'
-    : 'text-[10px] text-[#ffd147] font-black leading-tight';
+    ? complexScript
+      ? 'text-[22px] text-[#ffd147] font-bold leading-[1.55] drop-shadow-[0_0_10px_rgba(255,209,71,0.4)]'
+      : 'text-[20px] text-[#ffd147] font-bold leading-relaxed drop-shadow-[0_0_10px_rgba(255,209,71,0.4)]'
+    : complexScript
+      ? 'text-[13px] text-[#ffd147] font-bold leading-[1.6] drop-shadow-[0_0_8px_rgba(255,209,71,0.35)]'
+      : 'text-[11px] text-[#ffd147] font-bold leading-snug drop-shadow-[0_0_8px_rgba(255,209,71,0.35)]';
 
   return (
     <>
@@ -55,6 +61,7 @@ function LyricsLines({
           ref={(node) => {
             if (lineRefs) lineRefs.current[index] = node;
           }}
+          lang={complexScript ? 'my' : undefined}
           className={
             index === activeIndex
               ? active
@@ -62,6 +69,7 @@ function LyricsLines({
                 ? muted
                 : upcoming
           }
+          style={complexScript ? { fontFamily: COMPLEX_SCRIPT_FONT, wordBreak: 'break-word' } : undefined}
         >
           {line}
         </p>
@@ -116,6 +124,20 @@ function SingingMicRail({
   );
 }
 
+interface LyricsOverlayProps {
+  isOpen: boolean;
+  song: { id?: string; title: string; artist: string } | null;
+  onClose: () => void;
+  onSing?: () => void;
+  isPerforming?: boolean;
+  elapsedSec?: number;
+  progressPercent?: number;
+  micLevel?: number;
+  voiceStatus?: SingingVoiceStatus;
+  voiceEffect?: VoiceChangerEffectId;
+  onVoiceEffectChange?: (effect: VoiceChangerEffectId) => void;
+}
+
 export function LyricsOverlay({
   isOpen,
   song,
@@ -126,7 +148,7 @@ export function LyricsOverlay({
   progressPercent = 0,
   micLevel = 0,
   voiceStatus = 'silent',
-  voiceEffect = 'studio',
+  voiceEffect = 'original',
   onVoiceEffectChange,
 }: LyricsOverlayProps) {
   const [isFullScreen, setIsFullScreen] = useState(false);
@@ -210,6 +232,15 @@ export function LyricsOverlay({
   }, [isPerforming]);
 
   const resolvedSong = song ? resolveActiveSong(song) : null;
+  const usesMyanmar = useMemo(
+    () => hasMyanmarScript(song?.title, song?.artist, ...(resolvedSong?.lyrics ?? [])),
+    [song?.title, song?.artist, resolvedSong?.lyrics],
+  );
+
+  useEffect(() => {
+    if (isOpen && usesMyanmar) void ensureLocaleFonts('my');
+  }, [isOpen, usesMyanmar]);
+
   const displayElapsedSec = isPerforming ? elapsedSec : previewElapsedSec;
   const displayDurationSec = resolvedSong?.durationSec ?? 0;
   const displayProgressPercent = displayDurationSec > 0
@@ -322,7 +353,6 @@ export function LyricsOverlay({
   if (!isOpen || !song || !resolvedSong) return null;
 
   const activeSong = resolvedSong;
-  const activeEffect = getVoiceChangerEffect(voiceEffect);
   const previewAudio = previewAudioUrl ? (
     <audio ref={previewAudioRef} src={previewAudioUrl} preload="metadata" className="hidden" />
   ) : null;
@@ -383,29 +413,10 @@ export function LyricsOverlay({
   );
 
   const voiceChangerPanel = (
-    <div className="w-full pt-3 border-t border-white/10 shrink-0">
-      <div className="flex items-center justify-between mb-2 px-1">
-        <span className="text-[9px] font-black text-pink-300 uppercase tracking-wider">Voice Changer</span>
-        <span className="text-[9px] text-gray-400">{activeEffect.emoji} {activeEffect.label}</span>
-      </div>
-      <div className="grid grid-cols-3 gap-1.5">
-        {VOICE_CHANGER_EFFECTS.map((effect) => (
-          <button
-            key={effect.id}
-            type="button"
-            onClick={() => onVoiceEffectChange?.(effect.id)}
-            className={`rounded-xl px-1.5 py-2 text-[8px] font-bold transition active:scale-95 ${
-              voiceEffect === effect.id
-                ? 'bg-pink-500/25 border border-pink-400/50 text-pink-100'
-                : 'bg-black/30 border border-white/10 text-gray-300 hover:bg-white/5'
-            }`}
-          >
-            <span className="block text-sm mb-0.5">{effect.emoji}</span>
-            {effect.label}
-          </button>
-        ))}
-      </div>
-    </div>
+    <VoiceChangerCompactPicker
+      effectId={voiceEffect}
+      onEffectChange={onVoiceEffectChange}
+    />
   );
 
   if (isFullScreen) {
@@ -453,8 +464,20 @@ export function LyricsOverlay({
         </div>
 
         <div className="relative px-5 pb-2 text-center shrink-0 z-20 min-h-[52px]">
-          <h2 className="text-lg font-black text-white truncate">{activeSong.title}</h2>
-          <p className="text-xs text-gray-400 truncate">{activeSong.artist}</p>
+          <h2
+            className={`text-lg text-white w-full ${usesMyanmar ? 'font-bold leading-snug break-words' : 'font-black truncate'}`}
+            lang={usesMyanmar ? 'my' : undefined}
+            style={usesMyanmar ? { fontFamily: COMPLEX_SCRIPT_FONT } : undefined}
+          >
+            {activeSong.title}
+          </h2>
+          <p
+            className={`text-xs text-gray-300 w-full ${usesMyanmar ? 'leading-snug break-words' : 'truncate'}`}
+            lang={usesMyanmar ? 'my' : undefined}
+            style={usesMyanmar ? { fontFamily: COMPLEX_SCRIPT_FONT } : undefined}
+          >
+            {activeSong.artist}
+          </p>
           <p
             className={`text-[10px] font-bold text-pink-400 mt-1 uppercase tracking-wider min-h-[14px] ${
               isPerforming ? 'opacity-100' : 'opacity-0'
@@ -469,11 +492,17 @@ export function LyricsOverlay({
           ref={scrollRef}
           className="relative flex-1 overflow-y-auto px-6 py-4 flex flex-col items-center justify-start space-y-3 text-center scrollbar-hide min-h-0 z-10"
         >
-          <LyricsLines large lines={activeSong.lyrics} activeIndex={activeLyricIndex} lineRefs={lineRefs} />
+          <LyricsLines
+            large
+            lines={activeSong.lyrics}
+            activeIndex={activeLyricIndex}
+            lineRefs={lineRefs}
+            complexScript={usesMyanmar}
+          />
         </div>
 
         <div className="relative px-4 pb-6 pt-2 shrink-0 border-t border-white/5 bg-black/30 z-20">
-          <div className={`w-full overflow-hidden transition-[max-height] duration-200 ${isVoiceChangerOpen ? 'max-h-48' : 'max-h-0'}`}>
+          <div className={`w-full overflow-hidden transition-[max-height] duration-200 ${isVoiceChangerOpen ? 'max-h-72' : 'max-h-0'}`}>
             {voiceChangerPanel}
           </div>
           {toolbar}
@@ -521,8 +550,20 @@ export function LyricsOverlay({
           <X size={16} />
         </button>
 
-        <h2 className="text-sm font-bold text-pink-300 truncate w-full px-2">{activeSong.title}</h2>
-        <p className="text-[10px] text-gray-400 truncate w-full px-2">{activeSong.artist}</p>
+        <h2
+          className={`text-sm text-pink-300 w-full px-2 ${usesMyanmar ? 'font-bold leading-snug break-words' : 'font-bold truncate'}`}
+          lang={usesMyanmar ? 'my' : undefined}
+          style={usesMyanmar ? { fontFamily: COMPLEX_SCRIPT_FONT } : undefined}
+        >
+          {activeSong.title}
+        </h2>
+        <p
+          className={`text-[12px] text-gray-300 w-full px-2 ${usesMyanmar ? 'leading-snug break-words' : 'text-[10px] text-gray-400 truncate'}`}
+          lang={usesMyanmar ? 'my' : undefined}
+          style={usesMyanmar ? { fontFamily: COMPLEX_SCRIPT_FONT } : undefined}
+        >
+          {activeSong.artist}
+        </p>
         <p
           className={`text-[8px] font-bold text-pink-400/90 mt-1 mb-1 uppercase tracking-wide min-h-[12px] ${
             isPerforming ? 'opacity-100' : 'opacity-0'
@@ -534,9 +575,16 @@ export function LyricsOverlay({
 
         <div
           ref={scrollRef}
-          className="overflow-y-auto mb-2 text-gray-300 font-medium space-y-1 text-center px-1 h-[160px] scrollbar-hide w-full"
+          className={`overflow-y-auto mb-2 text-gray-300 font-medium text-center px-1 scrollbar-hide w-full ${
+            usesMyanmar ? 'h-[180px] space-y-2' : 'h-[160px] space-y-1'
+          }`}
         >
-          <LyricsLines lines={activeSong.lyrics} activeIndex={activeLyricIndex} lineRefs={lineRefs} />
+          <LyricsLines
+            lines={activeSong.lyrics}
+            activeIndex={activeLyricIndex}
+            lineRefs={lineRefs}
+            complexScript={usesMyanmar}
+          />
         </div>
 
         <div className="w-full h-1.5 bg-white/10 rounded-full mb-2 overflow-hidden shrink-0">
@@ -548,7 +596,7 @@ export function LyricsOverlay({
           />
         </div>
 
-        <div className={`w-full shrink-0 overflow-hidden transition-[max-height] duration-200 ${isVoiceChangerOpen ? 'max-h-40' : 'max-h-0'}`}>
+        <div className={`w-full shrink-0 overflow-hidden transition-[max-height] duration-200 ${isVoiceChangerOpen ? 'max-h-72' : 'max-h-0'}`}>
           {voiceChangerPanel}
         </div>
         {toolbar}

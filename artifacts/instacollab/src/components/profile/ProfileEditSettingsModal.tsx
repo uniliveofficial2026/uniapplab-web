@@ -60,6 +60,9 @@ import {
 } from '../../lib/legalDocs';
 import { UniLivesLegalMedia } from '../legal/brand/UniLivesLegalMedia';
 import { UniLivesLegalHeader } from '../legal/brand/UniLivesLegalHeader';
+import { LanguageSelector } from '../common/LanguageSelector';
+import { localeEnglishName } from '../../lib/i18n/locales';
+import { useI18n } from '../../lib/i18n/I18nContext';
 
 export type ProfileEditSettingsModalProps = {
   onClose: () => void;
@@ -95,6 +98,7 @@ export function ProfileEditSettingsModal({
 }: ProfileEditSettingsModalProps) {
   const db = useDB();
   const { showToast } = useToast();
+  const i18n = useI18n();
   const { isAvailable: cameraAvailable, openCamera } = useAppCamera();
   const hasProfilePremium = db.hasProfilePremium();
   const profilePremiumStatus = getProfilePremiumAccessStatus(db.currentUser);
@@ -570,19 +574,12 @@ export function ProfileEditSettingsModal({
             ) : null}
           </p>
         )}
-        <div className="flex items-center justify-between">
-          <span className="text-sm font-semibold">Language & Region</span>
-          <select 
-            value={settings.language} 
-            onChange={(e) => updateSetting('language', e.target.value)}
-            className="bg-secondary text-sm font-semibold rounded-lg px-2 py-1 outline-none border border-border"
-          >
-            <option>English</option>
-            <option>Spanish</option>
-            <option>French</option>
-            <option>German</option>
-            <option>Japanese</option>
-          </select>
+        <div className="flex flex-col gap-2">
+          <span className="text-sm font-semibold">{i18n.t('common.languageRegion')}</span>
+          <LanguageSelector
+            value={settings.language || localeEnglishName(i18n.locale)}
+            onChange={(englishName) => updateSetting('language', englishName)}
+          />
         </div>
 
         <button

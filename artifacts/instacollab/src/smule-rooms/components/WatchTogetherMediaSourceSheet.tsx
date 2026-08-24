@@ -185,7 +185,7 @@ export function WatchTogetherMediaSourceSheet({
 
   return (
     <div
-      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 backdrop-blur-sm p-3 sm:items-center"
+      className="fixed inset-0 z-[120] flex items-end justify-center bg-black/70 p-3 sm:items-center"
       onClick={onClose}
       role="presentation"
     >

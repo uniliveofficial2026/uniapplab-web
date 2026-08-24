@@ -7,9 +7,11 @@
  */
 import { useEffect, useMemo, useState } from 'react';
 import {
+  isTencentBeautifyActive,
   resolveTencentBeautifyParams,
   type BeautyPresetId,
 } from './beautyFilters';
+import type { TencentBeautifyParams } from '../webar/webarTypes';
 import { isBodyShapeActive, BODY_SHAPE_COMING_SOON } from './bodyShape';
 import {
   shouldRunTrtcEngine,
@@ -31,6 +33,7 @@ export type UseStreamBeautyOptions = {
   loadCatalogs?: boolean;
   persistent?: boolean;
   beautyPanelOpen?: boolean;
+  beautifyOverride?: TencentBeautifyParams | null;
 };
 
 /** Map legacy karaoke CSS filter names → TRTC beauty presets. */
@@ -100,14 +103,16 @@ export function useStreamBeauty({
   loadCatalogs: loadCatalogsOption,
   persistent,
   beautyPanelOpen = false,
+  beautifyOverride = null,
 }: UseStreamBeautyOptions) {
   const configured = isTencentWebARConfigured();
   const activeId = beautyId === 'none' ? 'none' : beautyId;
   const bodyShapeKey = bodyShape ? JSON.stringify(bodyShape) : '';
+  const overrideKey = beautifyOverride ? JSON.stringify(beautifyOverride) : '';
   const beautify = useMemo(
-    () => resolveTencentBeautifyParams(activeId, bodyShape),
-    // eslint-disable-next-line react-hooks/exhaustive-deps -- bodyShapeKey captures content
-    [activeId, bodyShapeKey],
+    () => (beautifyOverride ? beautifyOverride : resolveTencentBeautifyParams(activeId, bodyShape)),
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- keys capture content
+    [activeId, bodyShapeKey, overrideKey],
   );
   const effectsActive = Boolean(
     effects.makeupId ||
@@ -117,7 +122,11 @@ export function useStreamBeauty({
       effects.shapeEffectId,
   );
   const shapeActive = !BODY_SHAPE_COMING_SOON && bodyShape ? isBodyShapeActive(bodyShape) : false;
-  const beautySelected = activeId !== 'none' || effectsActive || shapeActive;
+  const beautySelected =
+    activeId !== 'none' ||
+    effectsActive ||
+    shapeActive ||
+    Boolean(beautifyOverride && isTencentBeautifyActive(beautifyOverride));
   const warm = keepWarm ?? enabled;
   const trtcEngine = warm
     ? configured && Boolean(inputStream)

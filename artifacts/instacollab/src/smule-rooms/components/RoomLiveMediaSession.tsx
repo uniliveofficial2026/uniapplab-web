@@ -1,8 +1,12 @@
-import type { ReactNode } from 'react';
+import { useEffect, type ReactNode } from 'react';
 import type { BeautyPresetId } from '../../lib/ar/beautyFilters';
 import type { BodyShapeParams } from '../../lib/ar/bodyShape';
 import type { DeepAREffectSelection } from '../../lib/deepar/deeparEffectSelection';
 import type { TencentEffectSelection } from '../../lib/webar/webarTypes';
+import {
+  startHostMediaPrejoin,
+  stopHostMediaPrejoin,
+} from '../../lib/camera/hostMediaSession';
 import { useMultiGuestCameraEffects, type MultiGuestCameraEffectsState } from '../hooks/useMultiGuestCameraEffects';
 import {
   useMultiGuestLiveKit,
@@ -31,6 +35,7 @@ type RoomLiveMediaSessionProps = {
   bodyShape?: BodyShapeParams;
   beautyPanelOpen?: boolean;
   effectsPanelOpen?: boolean;
+  beautifyOverride?: import('../../lib/webar/webarTypes').TencentBeautifyParams | null;
   /** Platform-admin silent watch — LiveKit hidden grant. */
   hiddenLiveKit?: boolean;
   children: (media: RoomLiveMediaBundle) => ReactNode;
@@ -57,10 +62,22 @@ export function RoomLiveMediaSession({
   bodyShape,
   beautyPanelOpen,
   effectsPanelOpen,
+  beautifyOverride = null,
   hiddenLiveKit = false,
   children,
 }: RoomLiveMediaSessionProps) {
   const liveCameraEnabled = Boolean(userSeatKey) && userCameraOn;
+
+  useEffect(() => {
+    void startHostMediaPrejoin({
+      roomId,
+      canPublish: hiddenLiveKit ? false : Boolean(userSeatKey),
+      hidden: hiddenLiveKit,
+    });
+    return () => {
+      stopHostMediaPrejoin(roomId);
+    };
+  }, [roomId, userSeatKey, hiddenLiveKit]);
 
   const camera = useMultiGuestCameraEffects({
     enabled: liveCameraEnabled,
@@ -71,6 +88,7 @@ export function RoomLiveMediaSession({
     bodyShape,
     beautyPanelOpen,
     effectsPanelOpen,
+    beautifyOverride,
   });
 
   const liveKit = useMultiGuestLiveKit({

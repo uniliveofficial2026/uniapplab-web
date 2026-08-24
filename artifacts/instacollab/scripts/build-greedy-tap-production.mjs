@@ -79,7 +79,29 @@ if (fs.existsSync(serverCjs)) {
   fs.writeFileSync(serverCjs, code);
 }
 if (fs.existsSync(path.join(outDir, 'data.json'))) {
-  fs.copyFileSync(path.join(outDir, 'data.json'), path.join(vendorDir, 'data.json'));
+  const raw = JSON.parse(fs.readFileSync(path.join(outDir, 'data.json'), 'utf8'));
+  const items = Array.isArray(raw.items) ? raw.items : [];
+  const clean = {
+    items,
+    users: {},
+    sellerApplications: [],
+    transactions: [],
+    autoAiEnabled: false,
+    shopBonuses:
+      raw.shopBonuses && typeof raw.shopBonuses === 'object'
+        ? Object.fromEntries(Object.keys(raw.shopBonuses).map((k) => [k, 0]))
+        : { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0 },
+    allHistoricalBets: [],
+    dailyWins: Object.fromEntries(items.map((item) => [item.id, 0])),
+    lastResetDate: new Date().toISOString().slice(0, 10),
+    jackpotPool: 0,
+    jackpotTimer: typeof raw.jackpotTimer === 'number' ? raw.jackpotTimer : 1800,
+    jackpotWinners: [],
+  };
+  const cleanJson = `${JSON.stringify(clean, null, 2)}\n`;
+  fs.writeFileSync(path.join(outDir, 'data.json'), cleanJson);
+  fs.writeFileSync(path.join(vendorDir, 'data.json'), cleanJson);
+  console.log('[build-greedy-tap] Stripped demo users/bets from data.json');
 }
 fs.writeFileSync(
   path.join(vendorDir, 'package.json'),

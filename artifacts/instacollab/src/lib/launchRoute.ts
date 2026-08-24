@@ -1,10 +1,14 @@
 import type { LaunchProgress } from './dbTypes';
 import type { LocalDB } from './db/localDbType';
+import { isAdminStudioEmbed } from './adminStudioEmbed';
 import { shouldSkipLaunchFunnelForDemoBootstrap } from './devSessionUser';
 import {
   hasCompletedOnboardingThisSession,
   hasPassedAuthGateThisSession,
   hasSeenSplashThisSession,
+  markOnboardingCompleteThisSession,
+  markSplashSeenThisSession,
+  persistLaunchFunnelAfterAuth,
 } from './splashSession';
 
 export type LaunchRoute =
@@ -37,20 +41,19 @@ export function resolveLaunchRoute(
 ): LaunchRoute {
   if (db && isLoggedIn && isUserBanned(db)) return 'banned';
 
-  if (shouldSkipLaunchFunnelForDemoBootstrap()) return 'main';
+  if (isAdminStudioEmbed() || shouldSkipLaunchFunnelForDemoBootstrap()) return 'main';
 
-  // Cold-start session gates (every open): splash → onboarding → auth.
-  // First video (boot splash) plays on `splash`.
-  if (!hasSeenSplashThisSession()) return 'splash';
-  if (!hasCompletedOnboardingThisSession()) return 'onboarding';
-  if (!hasPassedAuthGateThisSession()) return 'auth';
-
-  // Returning users → main (second video only for in-app loads there).
+  // Completed accounts skip marketing funnel even if this session's flags were cleared (logout / new tab).
   if (isReturningLaunchUser(progress, isLoggedIn)) return 'main';
 
-  // Newcomer after auth: profile creation → trending → main.
-  if (!progress.hasCompletedOnboarding) return 'onboarding';
+  // First locked video: newcomers only (never replayed after device splash).
+  if (!hasSeenSplashThisSession() && !progress.hasSeenSplash) return 'splash';
+  if (!hasCompletedOnboardingThisSession() && !progress.hasCompletedOnboarding) return 'onboarding';
   if (!isLoggedIn) return 'auth';
+  if (!hasPassedAuthGateThisSession()) return 'auth';
+
+  // Newcomer after auth: profile creation → trending → main.
+  if (!progress.hasCompletedOnboarding && !hasCompletedOnboardingThisSession()) return 'onboarding';
   if (!progress.legalAgreementAccepted || !progress.profileSetupComplete) return 'profile_setup';
   if (!progress.hasSeenTrending) return 'trending';
   return 'main';
@@ -58,10 +61,14 @@ export function resolveLaunchRoute(
 
 /** After IDB restore — persist device onboarding flags for returning sessions. */
 export function healLaunchProgressForReturningUser(db: LocalDB): void {
-  if (!db.isLoggedIn || !db.currentUserId) return;
   const progress = db.getLaunchProgress();
+  // Migrate IndexedDB completion onto device localStorage so later cold starts skip the funnel.
+  if (progress.hasSeenSplash) markSplashSeenThisSession();
+  if (progress.hasCompletedOnboarding) markOnboardingCompleteThisSession();
+
+  if (!db.isLoggedIn || !db.currentUserId) return;
   if (!isReturningLaunchUser(progress, true)) return;
-  // Do not clear the session funnel — splash/onboarding/auth still play once per open.
+  persistLaunchFunnelAfterAuth();
   if (!progress.hasCompletedOnboarding) db.completeOnboarding();
 }
 

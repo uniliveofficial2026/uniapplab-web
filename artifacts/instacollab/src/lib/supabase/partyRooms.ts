@@ -123,12 +123,21 @@ export async function fetchOwnerActivePartyRoom(ownerId: string): Promise<PartyR
 export async function endPartyRoom(roomId: string, ownerId: string): Promise<void> {
   const supabase = getSupabaseClient();
   if (!supabase) return;
-  const { error } = await supabase
+  const endedAt = new Date().toISOString();
+  const { error: byIdError } = await supabase
     .from('party_rooms')
-    .update({ status: 'ended', updated_at: new Date().toISOString() })
-    .eq('id', roomId)
-    .eq('owner_id', ownerId);
-  if (error) throw error;
+    .update({ status: 'ended', updated_at: endedAt })
+    .eq('id', roomId);
+  let byOwnerError = null;
+  if (ownerId) {
+    const owned = await supabase
+      .from('party_rooms')
+      .update({ status: 'ended', updated_at: endedAt })
+      .eq('owner_id', ownerId)
+      .eq('status', 'active');
+    byOwnerError = owned.error;
+  }
+  if (byIdError && byOwnerError) throw byIdError;
 }
 
 export async function updatePartyRoomParticipantCount(

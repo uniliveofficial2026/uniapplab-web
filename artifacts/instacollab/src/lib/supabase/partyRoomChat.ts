@@ -41,6 +41,10 @@ export type PartyRoomLiveChatMessage = {
   targetViewerName?: string;
   targetViewerAvatar?: string;
   createdAt?: string;
+  isStickerEvent?: boolean;
+  stickerId?: string;
+  stickerAssetUrl?: string;
+  stickerLabel?: string;
 };
 
 export function kindFromMessage(message: PartyRoomLiveChatMessage): PartyRoomChatKind {
@@ -90,6 +94,10 @@ export function rowToLiveChatMessage(row: PartyRoomChatRow): PartyRoomLiveChatMe
     singerName: typeof meta.singerName === 'string' ? meta.singerName : undefined,
     songTitle: typeof meta.songTitle === 'string' ? meta.songTitle : undefined,
     iconBadge: typeof meta.iconBadge === 'string' ? meta.iconBadge : undefined,
+    isStickerEvent: Boolean(meta.isStickerEvent) || meta.type === 'sticker',
+    stickerId: typeof meta.stickerId === 'string' ? meta.stickerId : undefined,
+    stickerAssetUrl: typeof meta.stickerAssetUrl === 'string' ? meta.stickerAssetUrl : undefined,
+    stickerLabel: typeof meta.stickerLabel === 'string' ? meta.stickerLabel : undefined,
   };
 }
 

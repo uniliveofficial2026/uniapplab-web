@@ -1,6 +1,7 @@
 import {
   addDoc,
   collection,
+  deleteDoc,
   doc,
   getDoc,
   getDocs,
@@ -171,6 +172,16 @@ export async function updateFirebaseThreadMembers(
   };
   if (meta) patch.meta = meta;
   await updateDoc(doc(db, 'chat_threads', threadId), patch);
+}
+
+export async function deleteFirebaseChatThread(threadId: string): Promise<void> {
+  const db = firestore();
+  if (!db || !threadId) return;
+  for (const child of ['messages', 'reactions', 'read_state']) {
+    const snap = await getDocs(collection(db, 'chat_threads', threadId, child));
+    await Promise.all(snap.docs.map((entry) => deleteDoc(entry.ref)));
+  }
+  await deleteDoc(doc(db, 'chat_threads', threadId));
 }
 
 export async function listFirebaseThreadsForUser(meId: string): Promise<FirebaseChatThreadRow[]> {
@@ -362,18 +373,21 @@ function bindMessageListener(threadId: string, handlers: ChatRealtimeHandlers, p
       return;
     }
     snap.docChanges().forEach((change) => {
-      if (change.type !== 'added' && change.type !== 'modified') return;
       const data = change.doc.data();
       handlers.onMessage({
         id: change.doc.id,
         thread_id: threadId,
         sender_id: String(data.sender_id ?? ''),
-        body: String(data.body ?? ''),
-        payload: (data.payload ?? {}) as Record<string, unknown>,
+        body: change.type === 'removed' ? 'Message deleted' : String(data.body ?? ''),
+        payload: change.type === 'removed' ? {} : (data.payload ?? {}) as Record<string, unknown>,
         client_id: typeof data.client_id === 'string' ? data.client_id : null,
-        deleted_at: typeof data.deleted_at === 'string' ? data.deleted_at : null,
-        created_at:
-          typeof data.created_at === 'string' ? data.created_at : new Date().toISOString(),
+        deleted_at:
+          change.type === 'removed'
+            ? new Date().toISOString()
+            : typeof data.deleted_at === 'string'
+              ? data.deleted_at
+              : null,
+        created_at: typeof data.created_at === 'string' ? data.created_at : new Date().toISOString(),
       });
     });
   });
@@ -471,7 +485,7 @@ export function startFirebaseChatRealtime(
       return;
     }
     snap.docChanges().forEach((change) => {
-      if (change.type === 'added' || change.type === 'modified') {
+      if (change.type === 'added' || change.type === 'modified' || change.type === 'removed') {
         syncThreadListeners(snap.docs.map((entry) => entry.id), handlers, primed);
         handlers.onMembership?.();
       }

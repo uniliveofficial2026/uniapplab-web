@@ -87,15 +87,15 @@ export const LIVE_DATA_FLOW_MAP = {
   },
   live: {
     write:
-      'setUserLiveStatus → profiles live_*; Solo/Shop active PK only overlays live_kind=pk via liveKindForPkPresence (invite/ended/Party never publish pk)',
-    read: 'useCloudLiveDiscovery; discoveryLiveKindFromTags — party mode stays party; pk only when battle is active on Solo/Shop',
+      'setUserLiveStatus → profiles live_*; End Live: liveBroadcastEndedRef + endPartyRoom + persistCanonicalLiveEnd + emitLifecycle(ended); Solo/Shop active PK only overlays live_kind=pk via liveKindForPkPresence (invite/ended/Party never publish pk); 1v1 video PK: startLivePk/endLivePk/leaveLiveRoom + LiveLifecycleService scores from gift settlement (never React gift increment)',
+    read: 'useCloudLiveDiscovery; discoveryLiveKindFromTags — party mode stays party; pk only when battle is active on Solo/Shop; 1v1 video PK discovery opens OneVsOnePkSessionContainer (LiveKit identity=user_id + fetchLivePkSession snapshot)',
     users: 'resolveUser on host',
     transport: 'CU',
   },
   party: {
     write:
-      'partyRoomsCloud: upsertPartyRoom (pk tags only for Solo-Live/Commerce-Live) / presence / party_room_sync_events — Party rooms have no PK battles',
-    read: 'useLiveRoomBus + Room applyPkPayload once by lastPkId → pkBattle → SoloLiveView (isPkEligibleRoomMode)',
+      'partyRoomsCloud: upsertPartyRoom (pk tags only for Solo-Live/Commerce-Live) / presence / party_room_sync_events (+ lifecycle ended) — Party rooms have no PK battles; host dashboard ingest comment/audience/share/follow',
+    read: 'useLiveRoomBus + Room applyPkPayload once by lastPkId → pkBattle → SoloLiveView (isPkEligibleRoomMode); lastLifecycle ended exits viewers',
     users: 'room host profile fetch',
     transport: 'CU',
   },

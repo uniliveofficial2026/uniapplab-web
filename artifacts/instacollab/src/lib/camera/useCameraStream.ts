@@ -125,11 +125,15 @@ export function useCameraStream({
       cancelled = true;
       unsub?.();
       releaseAppCamera(leaseId);
-      streamRef.current = null;
-      setStream(null);
-      setReady(false);
-      if (videoRef.current) {
-        videoRef.current.srcObject = null;
+      // Facing / retry remounts must keep the last valid preview until the next
+      // stream is attached. Only clear the element when the camera is disabled.
+      if (!enabled) {
+        streamRef.current = null;
+        setStream(null);
+        setReady(false);
+        if (videoRef.current) {
+          videoRef.current.srcObject = null;
+        }
       }
     };
   }, [

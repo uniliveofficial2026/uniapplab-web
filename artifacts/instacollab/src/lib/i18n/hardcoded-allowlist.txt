@@ -1,0 +1,19 @@
+# Explicit i18n exceptions — one per line. Classification required in comments above new entries.
+# brand
+UniLive’s
+UniLive's
+UniLive
+K-Star
+YouTube
+VIP
+SVIP
+# identifier
+OK
+PK
+OTP
+USD
+ID
+# test
+Hello from test fixture
+# log
+# ugc-canonical

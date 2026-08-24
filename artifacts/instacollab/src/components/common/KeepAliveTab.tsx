@@ -11,6 +11,7 @@ type KeepAliveTabProps = {
  * Keep screen trees mounted — parent only renders tabs in visitedTabs,
  * so children mount immediately (no lazy-wait on tab switch).
  * Inactive tabs stay mounted but pause media and signal hooks to stop polling.
+ * Frame is always edge-to-edge within the shell.
  */
 export function KeepAliveTab({ active, children, className = '' }: KeepAliveTabProps) {
   const rootRef = useRef<HTMLDivElement>(null);
@@ -39,11 +40,12 @@ export function KeepAliveTab({ active, children, className = '' }: KeepAliveTabP
     <KeepAliveTabActiveContext.Provider value={active}>
       <div
         ref={rootRef}
-        className={`h-full min-h-0 flex flex-col ${active ? '' : 'hidden'} ${className}`.trim()}
+        className={`app-screen app-screen--immersive h-full min-h-0 flex flex-col w-full max-w-full ${active ? '' : 'hidden'} ${className}`.trim()}
         aria-hidden={!active}
+        data-keep-alive-tab={active ? 'active' : 'idle'}
         {...(!active ? { inert: true as const } : {})}
       >
-        {children}
+        {children ?? null}
       </div>
     </KeepAliveTabActiveContext.Provider>
   );

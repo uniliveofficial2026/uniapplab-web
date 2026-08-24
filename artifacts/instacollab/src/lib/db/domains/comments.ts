@@ -260,6 +260,9 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
 
     /** Toggle like on a reel comment (and nested replies). */
     likeReelComment(reelId: string, commentId: string, userId: string) {
+      const meId = this.asLocalDB().currentUserId;
+      const actorId = meId || userId;
+      if (!actorId) return;
       const rComments = this.asLocalDB().reelComments;
       const existing = rComments[reelId] || [];
       let liked = false;
@@ -269,13 +272,13 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         for (const comment of comments) {
           if (comment.id === commentId) {
             comment.likedBy = comment.likedBy || [];
-            const wasLiked = comment.likedBy.includes(userId);
+            const wasLiked = comment.likedBy.includes(actorId);
             if (wasLiked) {
-              comment.likedBy = comment.likedBy.filter((u: string) => u !== userId);
+              comment.likedBy = comment.likedBy.filter((u: string) => u !== actorId);
               comment.likes = Math.max(0, (comment.likes || 0) - 1);
               liked = false;
             } else {
-              comment.likedBy.push(userId);
+              comment.likedBy.push(actorId);
               comment.likes = (comment.likes || 0) + 1;
               liked = true;
             }
@@ -292,11 +295,11 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       toggleLike(existing);
       this.save('reel_comments', { ...rComments, [reelId]: existing });
 
-      if (liked && authorId && userId && authorId !== userId) {
+      if (liked && authorId && actorId && authorId !== actorId) {
         const reel = this.asLocalDB().reels.find((r: Reel) => r?.id === reelId);
         this.asLocalDB().pushNotificationForUser(authorId, {
           type: 'like',
-          actorUserId: userId,
+          actorUserId: actorId,
           reelId,
           postImage: reel?.videoUrl,
           text: 'liked your comment',
@@ -345,6 +348,13 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
 
     /** Toggle like on a post comment (and nested replies). */
     likePostComment(postId: string, commentId: string, userId: string) {
+      const meId = this.asLocalDB().currentUserId;
+      // Prefer session identity — reject spoofed actor ids when logged in.
+      const actorId = meId || userId;
+      if (!actorId) return;
+      if (meId && userId && userId !== meId) {
+        // Ignore spoofed userId; continue with session actor.
+      }
       const pComments = this.asLocalDB().postComments;
       const existing = pComments[postId] || [];
       let liked = false;
@@ -354,13 +364,13 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
         for (const comment of comments) {
           if (comment.id === commentId) {
             comment.likedBy = comment.likedBy || [];
-            const wasLiked = comment.likedBy.includes(userId);
+            const wasLiked = comment.likedBy.includes(actorId);
             if (wasLiked) {
-              comment.likedBy = comment.likedBy.filter((u: string) => u !== userId);
+              comment.likedBy = comment.likedBy.filter((u: string) => u !== actorId);
               comment.likes = Math.max(0, (comment.likes || 0) - 1);
               liked = false;
             } else {
-              comment.likedBy.push(userId);
+              comment.likedBy.push(actorId);
               comment.likes = (comment.likes || 0) + 1;
               liked = true;
             }
@@ -377,11 +387,11 @@ export function WithComments<T extends Constructor<DbCoreBacked>>(Base: T): Mixi
       toggleLike(existing);
       this.save('post_comments', { ...pComments, [postId]: existing });
 
-      if (liked && authorId && userId && authorId !== userId) {
+      if (liked && authorId && actorId && authorId !== actorId) {
         const post = this.asLocalDB().posts.find((p: Post) => p?.id === postId);
         this.asLocalDB().pushNotificationForUser(authorId, {
           type: 'like',
-          actorUserId: userId,
+          actorUserId: actorId,
           postId,
           postImage: post?.imageUrl || post?.videoUrl,
           text: 'liked your comment',

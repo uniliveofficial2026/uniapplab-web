@@ -1,10 +1,33 @@
 import { PARTY_GUEST_SEAT_KEYS, type PartySeatMap, type RoomGuest, type RoomSeatKey } from './roomSeats';
 import type { PKFighter, PKMode } from './liveRoomTypes';
 
-/** PK battles are only enabled on Solo Live and Shop (Commerce) Live — never Party rooms. */
+function normalizeRoomMode(roomMode: string | undefined): string {
+  return String(roomMode || '')
+    .trim()
+    .toLowerCase()
+    .replace(/_/g, '-')
+    .replace(/\s+/g, '-');
+}
+
+export function isCommercePkRoomMode(roomMode: string | undefined): boolean {
+  const mode = normalizeRoomMode(roomMode);
+  return mode === 'commerce-live' || mode === 'commercelive' || mode === 'commerce' || mode === 'shop-live' || mode === 'shoplive' || mode === 'shop';
+}
+
+export function isSoloPkRoomMode(roomMode: string | undefined): boolean {
+  const mode = normalizeRoomMode(roomMode);
+  return mode === 'solo-live' || mode === 'sololive' || mode === 'solo-video' || mode === 'solo-audio' || mode === 'solo';
+}
+
+/** PK battles are only enabled on Solo Live and Shop (Commerce) Live — never Party, Multi-Guest, or karaoke rooms. */
 export function isPkEligibleRoomMode(roomMode: string | undefined): boolean {
-  const mode = String(roomMode || '').trim();
-  return mode === 'Solo-Live' || mode === 'Commerce-Live';
+  return isSoloPkRoomMode(roomMode) || isCommercePkRoomMode(roomMode);
+}
+
+/** Solo matches Solo. Shop matches Shop. Other modes never match. */
+export function canPkMatchRoomModes(selfRoomMode: string | undefined, opponentRoomMode: string | undefined): boolean {
+  if (!isPkEligibleRoomMode(selfRoomMode) || !isPkEligibleRoomMode(opponentRoomMode)) return false;
+  return isCommercePkRoomMode(selfRoomMode) === isCommercePkRoomMode(opponentRoomMode);
 }
 
 const PK_SEAT_ORDER: RoomSeatKey[] = ['host', 'coowner', 'admin', ...PARTY_GUEST_SEAT_KEYS];
@@ -38,12 +61,14 @@ export function buildPkTeamsFromSeats(
   seats: PartySeatMap,
   opponentUserId: string,
   mode: PKMode,
+  teamSize: 2 | 3 | 4 | 6 = 4,
 ): { teamA: PKFighter[]; teamB: PKFighter[] } {
   const seated = collectSeatedFighters(seats);
   const opponent = seated.find((fighter) => fighter.userId === opponentUserId);
+  const perSide = mode === 'single' ? 1 : teamSize;
 
   if (!opponent) {
-    return { teamA: seated.slice(0, 1), teamB: [] };
+    return { teamA: seated.slice(0, perSide), teamB: [] };
   }
 
   if (mode === 'single') {
@@ -56,14 +81,14 @@ export function buildPkTeamsFromSeats(
 
   const teamB: PKFighter[] = [opponent];
   for (const fighter of seated) {
-    if (teamB.length >= 4) break;
+    if (teamB.length >= perSide) break;
     if (fighter.userId === opponentUserId) continue;
     if (teamB.some((member) => member.userId === fighter.userId)) continue;
     teamB.push(fighter);
   }
 
   const teamBIds = new Set(teamB.map((fighter) => fighter.userId));
-  const teamA = seated.filter((fighter) => !teamBIds.has(fighter.userId)).slice(0, 4);
+  const teamA = seated.filter((fighter) => !teamBIds.has(fighter.userId)).slice(0, perSide);
 
   return { teamA, teamB };
 }
@@ -72,9 +97,9 @@ export function sumPkTeamScore(fighters: PKFighter[]): number {
   return fighters.reduce((total, fighter) => total + fighter.score, 0);
 }
 
-/** Auto grid class for 1–4 fighters on one PK side. */
+/** Auto grid class for 1–6 fighters on one PK side. */
 export function getPkTeamGridClass(count: number): string {
-  const clamped = Math.max(1, Math.min(4, count));
+  const clamped = Math.max(1, Math.min(6, count));
   return `pk-team-grid--${clamped}`;
 }
 
@@ -112,16 +137,20 @@ export const EMPTY_PK_AUDIO_SEATS: PKAudioSeats = {
   sideB: { boss: null, guests: [null, null] },
 };
 
-export function padPkTeamFighters(fighters: PKFighter[], label: string): PKFighter[] {
+export function padPkTeamFighters(
+  fighters: PKFighter[],
+  label: string,
+  teamSize: 2 | 3 | 4 | 6 = 4,
+): PKFighter[] {
   const next = [...fighters];
-  while (next.length < 4) {
+  while (next.length < teamSize) {
     next.push({
       userId: `empty-${label}-${next.length}`,
       name: label,
       score: 0,
     });
   }
-  return next.slice(0, 4);
+  return next.slice(0, teamSize);
 }
 
 export function isPkAudioBossSlot(slotId: PKAudioSlotId): boolean {
@@ -139,12 +168,13 @@ export function buildSoloLivePkTeams(
   host: PKFighter,
   opponent: PKFighter,
   mode: PKMode,
+  teamSize: 2 | 3 | 4 | 6 = 4,
 ): { teamA: PKFighter[]; teamB: PKFighter[] } {
   if (mode === 'single') {
     return { teamA: [host], teamB: [opponent] };
   }
 
-  const fromSeats = buildPkTeamsFromSeats(seats, opponent.userId, 'team');
+  const fromSeats = buildPkTeamsFromSeats(seats, opponent.userId, 'team', teamSize);
   const teamA = fromSeats.teamA.some((fighter) => fighter.userId === host.userId)
     ? fromSeats.teamA
     : [host, ...fromSeats.teamA.filter((fighter) => fighter.userId !== host.userId)];
@@ -153,7 +183,7 @@ export function buildSoloLivePkTeams(
     : [opponent, ...fromSeats.teamB.filter((fighter) => fighter.userId !== opponent.userId)];
 
   return {
-    teamA: padPkTeamFighters(teamA, 'Host').slice(0, 4),
-    teamB: padPkTeamFighters(teamB, 'Rival').slice(0, 4),
+    teamA: padPkTeamFighters(teamA, 'Host', teamSize),
+    teamB: padPkTeamFighters(teamB, 'Rival', teamSize),
   };
 }

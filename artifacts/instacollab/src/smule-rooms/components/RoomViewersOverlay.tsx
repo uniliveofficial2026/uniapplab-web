@@ -49,8 +49,8 @@ export function RoomViewersOverlay({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-[120] bg-black/60 backdrop-blur-sm flex flex-col justify-end pointer-events-auto">
-      <div className="bg-[#1a0f2e] w-full max-h-[75vh] rounded-t-3xl border-t border-purple-500/30 flex flex-col overflow-hidden shadow-[0_-10px_40px_rgba(168,85,247,0.15)] animate-fade-in-up">
+    <div className="fixed inset-0 z-[120] bg-black/60 flex flex-col justify-end pointer-events-auto">
+      <div className="w-full max-h-[75vh] rounded-t-3xl border-t border-purple-500/30 flex flex-col overflow-hidden animate-fade-in-up">
         {/* Header */}
         <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-white/5">
           <div className="flex items-center space-x-2.5">

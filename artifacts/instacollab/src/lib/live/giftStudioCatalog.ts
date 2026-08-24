@@ -66,6 +66,20 @@ const STUDIO_EXTRA_GIFTS: Array<GiftEffectDefinition & StudioGiftMeta> = [
   { id: 'solar_dragon', name: 'Solar Dragon', icon: '🐉☀️', stars: 350000, tier: giftTierFromStars(350000), effectSvgaUrl: '/live-gifts/rocket.svga', particleColor: '#fbbf24', description: 'Ruler of the burning stellar core' },
   { id: 'supernova_prime', name: 'Supernova Prime', icon: '💥🌟', stars: 500000, tier: giftTierFromStars(500000), effectSvgaUrl: '/live-gifts/star.svga', particleColor: '#f0abfc', description: 'The final cosmic core collapse event' },
 
+  // Approved V12 artwork gifts — exact transparent source PNGs shipped in public/live-gifts/approved-v12/.
+  { id: 'approved_enchanted_rose', name: 'Enchanted Rose', icon: '/live-gifts/approved-v12/UG-001_enchanted-rose.png', stars: 999, tier: giftTierFromStars(999), particleColor: '#fb4bb6', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_royal_crown', name: 'Royal Crown', icon: '/live-gifts/approved-v12/UG-002_royal-crown.png', stars: 1999, tier: giftTierFromStars(1999), particleColor: '#ffd166', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_crystal_heart', name: 'Crystal Heart', icon: '/live-gifts/approved-v12/UG-003_crystal-heart.png', stars: 2999, tier: giftTierFromStars(2999), particleColor: '#ff4fd8', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_treasure_chest', name: 'Treasure Chest', icon: '/live-gifts/approved-v12/UG-004_treasure-chest.png', stars: 3999, tier: giftTierFromStars(3999), particleColor: '#fbbf24', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_moon_carriage', name: 'Moon Carriage', icon: '/live-gifts/approved-v12/UG-005_moon-carriage.png', stars: 6666, tier: giftTierFromStars(6666), particleColor: '#d946ef', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_crystal_castle', name: 'Crystal Castle', icon: '/live-gifts/approved-v12/UG-006_crystal-castle.png', stars: 9999, tier: giftTierFromStars(9999), particleColor: '#a78bfa', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_purple_supercar', name: 'Purple Supercar', icon: '/live-gifts/approved-v12/UG-007_purple-supercar.png', stars: 12999, tier: giftTierFromStars(12999), particleColor: '#8b5cf6', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_violet_phoenix', name: 'Violet Phoenix', icon: '/live-gifts/approved-v12/UG-008_violet-phoenix.png', stars: 19999, tier: giftTierFromStars(19999), particleColor: '#c026d3', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_royal_swans', name: 'Royal Swans', icon: '/live-gifts/approved-v12/UG-009_royal-swans.png', stars: 29999, tier: giftTierFromStars(29999), particleColor: '#f9a8d4', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_flying_kiss', name: 'Flying Kiss', icon: '/live-gifts/approved-v12/UG-010_flying-kiss.png', stars: 39999, tier: giftTierFromStars(39999), particleColor: '#fb7185', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_galaxy_microphone', name: 'Galaxy Microphone', icon: '/live-gifts/approved-v12/UG-011_galaxy-microphone.png', stars: 49999, tier: giftTierFromStars(49999), particleColor: '#7c3aed', description: 'Approved UniLive’s transparent gift artwork' },
+  { id: 'approved_victory_dragon', name: 'Victory Dragon', icon: '/live-gifts/approved-v12/UG-012_victory-dragon.png', stars: 99999, tier: giftTierFromStars(99999), particleColor: '#f59e0b', description: 'Approved UniLive’s transparent gift artwork' },
+
   // Seasonal
   { id: 'xmas_tree', name: 'Xmas Tree', icon: '🎄', stars: 88, tier: giftTierFromStars(88), particleColor: '#22c55e', isSeasonal: true, season: 'Christmas', description: 'Merry Christmas joy!' },
   { id: 'santa_sleigh', name: 'Santa Sleigh', icon: '🎅', stars: 288, tier: giftTierFromStars(288), particleColor: '#ef4444', isSeasonal: true, season: 'Christmas', description: 'Santa is bearing gifts!' },
@@ -75,6 +89,24 @@ const STUDIO_EXTRA_GIFTS: Array<GiftEffectDefinition & StudioGiftMeta> = [
   { id: 'true_love', name: 'True Love', icon: '💏', stars: 520, tier: giftTierFromStars(520), particleColor: '#f472b6', isSeasonal: true, season: 'Valentine', description: 'I love you forever (520)' },
   { id: 'pumpkin_lantern', name: 'Pumpkin Lantern', icon: '🎃', stars: 45, tier: giftTierFromStars(45), particleColor: '#fb923c', isSeasonal: true, season: 'Halloween', description: 'Spooky halloween night' },
   { id: 'dracula_castle', name: 'Dracula Castle', icon: '🧛🏰', stars: 888, tier: giftTierFromStars(888), particleColor: '#7c3aed', isSeasonal: true, season: 'Halloween', description: 'A gothic spooky estate!' },
+
+  // Approved V14 live-tool gifts — dedicated IDs (never reuse lucky_clover / star_whale / studio_phoenix).
+  // Authoritative prices match the locked V14 specification.
+  { id: 'v14_lucky_bill', name: 'Lucky Bill', icon: '/live-tools-v14/gifts/gift-01.png', stars: 5, tier: giftTierFromStars(5), particleColor: '#4ade80', description: 'Lucky bill' },
+  { id: 'v14_mystery_box', name: 'Mystery Box', icon: '/live-tools-v14/gifts/gift-02.png', stars: 10, tier: giftTierFromStars(10), particleColor: '#c084fc', description: 'Mystery box' },
+  { id: 'v14_lucky_box', name: 'Lucky Box', icon: '/live-tools-v14/gifts/gift-03.png', stars: 20, tier: giftTierFromStars(20), particleColor: '#fbbf24', description: 'Lucky box' },
+  { id: 'v14_mega_lucky_box', name: 'Mega Lucky Box', icon: '/live-tools-v14/gifts/gift-04.png', stars: 100, tier: giftTierFromStars(100), effectSvgaUrl: '/live-gifts/crown.svga', particleColor: '#f59e0b', description: 'Mega lucky box' },
+  { id: 'v14_diamond_bag', name: 'Diamond Bag', icon: '/live-tools-v14/gifts/gift-05.png', stars: 200, tier: giftTierFromStars(200), effectSvgaUrl: '/live-gifts/crown.svga', particleColor: '#67e8f9', description: 'Diamond bag' },
+  { id: 'v14_mystery_chest', name: 'Mystery Chest', icon: '/live-tools-v14/gifts/gift-06.png', stars: 300, tier: giftTierFromStars(300), effectSvgaUrl: '/live-gifts/crown.svga', particleColor: '#fbbf24', description: 'Mystery chest' },
+  { id: 'v14_lucky_wheel', name: 'Lucky Wheel', icon: '/live-tools-v14/gifts/gift-07.png', stars: 50, tier: giftTierFromStars(50), particleColor: '#fb7185', description: 'Lucky wheel' },
+  { id: 'v14_fortune_egg', name: 'Fortune Egg', icon: '/live-tools-v14/gifts/gift-08.png', stars: 100, tier: giftTierFromStars(100), effectSvgaUrl: '/live-gifts/star.svga', particleColor: '#fde68a', description: 'Fortune egg' },
+  { id: 'v14_golden_egg', name: 'Golden Egg', icon: '/live-tools-v14/gifts/gift-09.png', stars: 200, tier: giftTierFromStars(200), effectSvgaUrl: '/live-gifts/star.svga', particleColor: '#facc15', description: 'Golden egg' },
+  { id: 'v14_surprise_gift', name: 'Surprise Gift', icon: '/live-tools-v14/gifts/gift-10.png', stars: 300, tier: giftTierFromStars(300), effectSvgaUrl: '/live-gifts/crown.svga', particleColor: '#f472b6', description: 'Surprise gift' },
+  { id: 'v14_love_airplane', name: 'Love Airplane', icon: '/live-tools-v14/gifts/gift-11.png', stars: 500, tier: giftTierFromStars(500), effectSvgaUrl: '/live-gifts/rocket.svga', particleColor: '#fb7185', description: 'Love airplane' },
+  { id: 'v14_dream_castle', name: 'Dream Castle', icon: '/live-tools-v14/gifts/gift-12.png', stars: 1000, tier: giftTierFromStars(1000), effectSvgaUrl: '/live-gifts/rocket.svga', particleColor: '#c4b5fd', description: 'Dream castle' },
+  { id: 'v14_crystal_carriage', name: 'Crystal Carriage', icon: '/live-tools-v14/gifts/gift-13.png', stars: 1200, tier: giftTierFromStars(1200), effectSvgaUrl: '/live-gifts/rocket.svga', particleColor: '#a78bfa', description: 'Crystal carriage' },
+  { id: 'v14_galaxy_whale', name: 'Galaxy Whale', icon: '/live-tools-v14/gifts/gift-14.png', stars: 1500, tier: giftTierFromStars(1500), effectSvgaUrl: '/live-gifts/rocket.svga', particleColor: '#22d3ee', description: 'Galaxy whale' },
+  { id: 'v14_phoenix', name: 'Phoenix', icon: '/live-tools-v14/gifts/gift-15.png', stars: 2000, tier: giftTierFromStars(2000), effectSvgaUrl: '/live-gifts/rocket.svga', particleColor: '#fb923c', description: 'Phoenix' },
 
   // VIP
   { id: 'vip_crown', name: 'VIP Crown', icon: '👑✨', stars: 500, tier: giftTierFromStars(500), effectSvgaUrl: '/live-gifts/crown.svga', particleColor: '#fcd34d', isVipExclusive: true, description: 'The signature badge of royalty' },

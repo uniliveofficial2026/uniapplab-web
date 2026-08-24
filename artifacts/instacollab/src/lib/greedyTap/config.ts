@@ -1,4 +1,5 @@
 import { appBasePath } from '../appShellRoutes';
+import { isDemoContentEnabled } from '../demoContentPolicy';
 
 /** Same-origin path for the Greedy Tap SPA shell on UniLive.
  * Use explicit index.html — Vite's SPA fallback steals `/games/greedy-slot/`.
@@ -71,6 +72,9 @@ export function resolveGreedyTapAppUrl(): string {
     if (rt) url.searchParams.set('rt', rt);
     // Mark live session for the game shell.
     url.searchParams.set('live', '1');
+    if (!isDemoContentEnabled()) {
+      url.searchParams.set('demo', '0');
+    }
     return url.toString();
   } catch {
     return base;

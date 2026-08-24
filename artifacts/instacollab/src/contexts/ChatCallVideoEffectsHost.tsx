@@ -16,6 +16,7 @@ const ChatCallVideoEffectsContext = createContext<ChatCallVideoEffectsValue | nu
 export function ChatCallVideoEffectsHost({
   active,
   presentation = 'fullscreen',
+  showCameraBackdrop = true,
   mirrorLocalPreview = true,
   localVideoStream,
   localStreamRef,
@@ -25,6 +26,8 @@ export function ChatCallVideoEffectsHost({
 }: {
   active: boolean;
   presentation?: CallPresentation;
+  /** Full-bleed local camera layer behind call chrome (disabled during outgoing — stage owns preview). */
+  showCameraBackdrop?: boolean;
   cameraFacingMode?: CameraFacingMode;
   mirrorLocalPreview?: boolean;
   localVideoStream: MediaStream | null;
@@ -42,7 +45,7 @@ export function ChatCallVideoEffectsHost({
     onReplaceVideoTrack,
   });
 
-  const showFullscreenCamera = active && presentation === 'fullscreen';
+  const showFullscreenCamera = active && presentation === 'fullscreen' && showCameraBackdrop;
   const cameraStream = localStreamRef.current ?? localVideoStream ?? null;
 
   const value: ChatCallVideoEffectsValue | null = active ? pipeline : null;

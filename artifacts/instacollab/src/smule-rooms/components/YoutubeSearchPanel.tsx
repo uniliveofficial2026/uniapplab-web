@@ -18,8 +18,15 @@ import {
   searchYoutubeVideos,
   toggleYoutubeFavorite,
   toggleYoutubeLike,
+  isPlayableYoutubeVideo,
+  youtubeResultKey,
   type YoutubeVideoSummary,
 } from '../../services/youtube';
+import { YoutubeSearchFilterBar } from '../../components/youtube/YoutubeSearchFilterBar';
+import {
+  countYoutubeSearchFilters,
+  type YoutubeSearchFilters,
+} from '../../lib/youtubeSearchFilters';
 
 type YoutubeSearchPanelProps = {
   onSelectVideo: (
@@ -41,6 +48,7 @@ export function YoutubeSearchPanel({
 }: YoutubeSearchPanelProps) {
   const [query, setQuery] = useState('');
   const [submittedQuery, setSubmittedQuery] = useState('');
+  const [filters, setFilters] = useState<YoutubeSearchFilters>({});
   const [results, setResults] = useState<YoutubeVideoSummary[]>([]);
   const [nextPageToken, setNextPageToken] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -66,7 +74,7 @@ export function YoutubeSearchPanel({
 
   const runSearch = async (searchQuery: string, pageToken?: string) => {
     const q = searchQuery.trim();
-    if (!q) return;
+    if (!q && countYoutubeSearchFilters(filters) === 0) return;
 
     const playlistId = parseYoutubePlaylistId(q);
     if (playlistId && !pageToken) {
@@ -113,7 +121,7 @@ export function YoutubeSearchPanel({
     }
 
     try {
-      const response = await searchYoutubeVideos(q, pageToken);
+      const response = await searchYoutubeVideos(q, pageToken, filters);
       setResults((prev) => (pageToken ? [...prev, ...response.items] : response.items));
       setNextPageToken(response.nextPageToken);
       if (!pageToken) setSubmittedQuery(q);
@@ -130,6 +138,12 @@ export function YoutubeSearchPanel({
     event.preventDefault();
     void runSearch(query);
   };
+
+  useEffect(() => {
+    if (!submittedQuery && countYoutubeSearchFilters(filters) === 0) return;
+    void runSearch(submittedQuery || query);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filters]);
 
   const handleQueryPaste = (event: React.ClipboardEvent<HTMLInputElement>) => {
     const pasted = event.clipboardData.getData('text').trim();
@@ -152,6 +166,17 @@ export function YoutubeSearchPanel({
   };
 
   const selectFromList = (video: YoutubeVideoSummary, list: YoutubeVideoSummary[]) => {
+    if (video.kind === 'channel' && video.channelId) {
+      setFilters((prev) => ({ ...prev, type: 'video', channelId: video.channelId }));
+      return;
+    }
+    if (video.kind === 'playlist' && video.playlistId) {
+      void fetchAllYoutubePlaylistItems(video.playlistId).then((items) => {
+        if (items[0]) selectFromList(items[0], items);
+      });
+      return;
+    }
+    if (!isPlayableYoutubeVideo(video)) return;
     const queueIndex = Math.max(0, list.findIndex((item) => item.videoId === video.videoId));
     onSelectVideo(video, {
       queue: list.length > 0 ? list : [video],
@@ -165,7 +190,7 @@ export function YoutubeSearchPanel({
 
     return (
       <div
-        key={video.videoId}
+        key={youtubeResultKey(video)}
         className="flex gap-2 rounded-xl border border-white/10 bg-black/30 p-2 sm:gap-3"
       >
         <button
@@ -304,12 +329,14 @@ export function YoutubeSearchPanel({
           </div>
           <button
             type="submit"
-            disabled={loading || !query.trim()}
+            disabled={loading || (!query.trim() && countYoutubeSearchFilters(filters) === 0)}
             className="shrink-0 rounded-xl bg-red-600 px-3 py-2.5 text-xs font-black text-white hover:bg-red-500 disabled:opacity-50 sm:px-4"
           >
             {loading ? '…' : 'Search'}
           </button>
         </form>
+
+        <YoutubeSearchFilterBar value={filters} onChange={setFilters} variant="dark" />
 
         {error ? (
           <p className="text-[11px] font-bold text-red-400" role="alert">

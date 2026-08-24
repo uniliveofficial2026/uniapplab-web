@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useDB } from '../../lib/useDB';
+import { useCurrentUser } from '../../lib/useCurrentUser';
+import { isLocalWalletLedgerAllowed } from '../../lib/walletKstarSync';
 import { 
   DollarSign, 
   TrendingUp, 
@@ -29,6 +31,7 @@ interface CryptoTabProps {
 
 export function CryptoTab({ cryptoPrices, onPricesChange }: CryptoTabProps) {
   const db = useDB();
+  const appUser = useCurrentUser();
   const chartTheme = useRechartsTheme();
 
   // Load balances
@@ -57,6 +60,10 @@ export function CryptoTab({ cryptoPrices, onPricesChange }: CryptoTabProps) {
 
   const handleExecuteTrade = (e: React.FormEvent) => {
     e.preventDefault();
+    if (!isLocalWalletLedgerAllowed(appUser.id)) {
+      alert('Crypto trades require server checkout for this account.');
+      return;
+    }
     const usdAmount = parseFloat(tradeAmount);
     if (!usdAmount || usdAmount <= 0) return;
 

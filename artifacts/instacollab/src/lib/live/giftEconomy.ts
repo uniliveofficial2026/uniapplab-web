@@ -94,7 +94,10 @@ export function comboLabelFromCount(count: number): ComboLabel {
   return 'none';
 }
 
-/** Phase 2 animation queue priority (higher = sooner). */
+/**
+ * @deprecated Full-FX playback is strict FIFO (first qualifying arrival).
+ * Tier labels remain for HUD / catalog only — do not jump the queue.
+ */
 export const GIFT_QUEUE_PRIORITY: Record<string, number> = {
   mythic: 100,
   legendary: 80,
@@ -103,4 +106,6 @@ export const GIFT_QUEUE_PRIORITY: Record<string, number> = {
   normal: 20,
 };
 
-export const MAX_SIMULTANEOUS_GIFT_ANIMATIONS = 3;
+/** Fullscreen gift FX: exactly one active at a time (FIFO scheduler). */
+export const MAX_SIMULTANEOUS_GIFT_ANIMATIONS = 1;
+export const MAX_ACTIVE_FULL_GIFT_EFFECTS = 1;
