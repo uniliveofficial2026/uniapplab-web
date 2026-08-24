@@ -80,7 +80,7 @@
   "stageAAcceptance": "NOT_PASSED",
   "stageBStarted": false,
   "productionRtcCutover": "NOT_PERFORMED",
-  "lastValidatedCommit": "pending",
+  "lastValidatedCommit": "c072624",
   "evidence": {
     "typecheck_instacollab": "PASS",
     "smoke_live_pk_lifecycle": "PASS_round1_round2_reconnect_gift_score_idempotent",
