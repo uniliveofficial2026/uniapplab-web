@@ -1,8 +1,11 @@
 {
-  "gitSha": "9fea359dfcef0d2022a3339857812decbafcb36f",
-  "buildTime": "2026-08-25T21:21:19.960Z",
-  "entryJs": "assets/index-D9YZUFCc.js",
+  "version": 1787693566831,
+  "reason": "deploy",
+  "id": "06c9295f6af4",
+  "gitSha": "d20e26f2d697e4bcf709c72ddf18d8006a15ef1d",
+  "buildTime": "2026-08-25T21:32:46.831Z",
+  "entryJs": "assets/index-D5djAASz.js",
   "entryCss": "assets/index-CfgA_FXS.css",
-  "htmlSha256": "6dfc8c68a4137ee0b58cf676e187a2e0e287904258df28fc51d2fb6ac4fd4100",
-  "jsSha256": "83fd983f3254863eb3f9f5ace254a5da32748a7b20e94260a922873c5e610c28"
+  "htmlSha256": "5818fcab8a0afc4d294185a949b3b5d1a76dd5cdcf7156908f66b4d1a42bbe87",
+  "jsSha256": "e95f5b1dca50cba3dc15f4b6f19262ca1c6678eabbdeb5a62b73a1270087e10e"
 }

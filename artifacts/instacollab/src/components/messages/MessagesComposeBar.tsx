@@ -438,7 +438,7 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                   autoComplete="off"
                   autoCorrect="on"
                   data-testid="chat-input"
-                  aria-label="Message composer"
+                  aria-label="chat-input"
                   value={messageText}
                   onChange={(e) => {
                     const nextValue = e.target.value;

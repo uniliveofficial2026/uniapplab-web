@@ -1,9 +1,9 @@
 {
-  "version": 1787692879968,
+  "version": 1787693566831,
   "reason": "deploy",
-  "id": "bc3d2f9c6896",
-  "gitSha": "9fea359dfcef0d2022a3339857812decbafcb36f",
-  "buildTime": "2026-08-25T21:21:19.960Z",
-  "entryJs": "assets/index-D9YZUFCc.js",
+  "id": "06c9295f6af4",
+  "gitSha": "d20e26f2d697e4bcf709c72ddf18d8006a15ef1d",
+  "buildTime": "2026-08-25T21:32:46.831Z",
+  "entryJs": "assets/index-D5djAASz.js",
   "entryCss": "assets/index-CfgA_FXS.css"
 }
