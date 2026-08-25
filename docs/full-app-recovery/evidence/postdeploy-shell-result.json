@@ -1,0 +1,106 @@
+{
+  "presencePost": {
+    "status": 200,
+    "body": {
+      "ok": false,
+      "configured": false,
+      "degraded": true
+    }
+  },
+  "presenceGet": {
+    "status": 200,
+    "body": {
+      "online": false,
+      "userIds": [],
+      "configured": false,
+      "degraded": true
+    }
+  },
+  "edgeHits": [],
+  "apiHits": [
+    {
+      "u": "https://app.uniapplab.com/api/presence/online",
+      "s": 200
+    },
+    {
+      "u": "https://app.uniapplab.com/api/presence/online",
+      "s": 200
+    },
+    {
+      "u": "https://app.uniapplab.com/api/presence/offline",
+      "s": 200
+    },
+    {
+      "u": "https://app.uniapplab.com/api/chat/threads",
+      "s": 200
+    },
+    {
+      "u": "https://app.uniapplab.com/api/chat/threads",
+      "s": 200
+    }
+  ],
+  "stages": [
+    {
+      "name": "02-after-boot",
+      "url": "https://app.uniapplab.com/home",
+      "profile": true,
+      "trending": false,
+      "brand": false,
+      "shellHints": false,
+      "textHead": "UniLive’s\nSet up your profile\n\nTell people who you are before you join the feed. Synced to your cloud account.\n\nUpload profile photo\nDISPLAY NAME\nUSERNAME\nUSER ID\n\nUser ID is available.\n\nBIO\nAVATAR URL (OPTIONAL)\n\nYou mu"
+    },
+    {
+      "name": "03-after-continue",
+      "url": "https://app.uniapplab.com/home",
+      "profile": false,
+      "trending": false,
+      "brand": false,
+      "shellHints": false,
+      "textHead": "UniLive’s\nAdd story\n@qa_device\nHi\nSam Sam\nFollow\n0\n0\n0\n\nsmsamsam800\n\nJul 21, 2026 · 5:46 AM\n\nInstall on Mac\n\nInstall UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS.\n"
+    },
+    {
+      "name": "tab-home",
+      "url": "https://app.uniapplab.com/home",
+      "profile": false,
+      "trending": false,
+      "brand": false,
+      "shellHints": false,
+      "textHead": "UniLive’s\nAdd story\n@qa_device\nSam Sam\nFollow\n0\n0\n0\n\nsmsamsam800\n\nJul 21, 2026 · 5:46 AM\n\nInstall on Mac\n\nInstall UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS.\n\nIn"
+    },
+    {
+      "name": "tab-reels",
+      "url": "https://app.uniapplab.com/reels",
+      "profile": false,
+      "trending": false,
+      "brand": false,
+      "shellHints": false,
+      "textHead": "UniLive’s\n\nInstall on Mac\n\nInstall UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS.\n\nInstall app\n+"
+    },
+    {
+      "name": "tab-messages",
+      "url": "https://app.uniapplab.com/messages",
+      "profile": false,
+      "trending": false,
+      "brand": false,
+      "shellHints": true,
+      "textHead": "UniLive’s\nMessages\nGROUPS\nDIRECT MESSAGES\n\nInstall on Mac\n\nInstall UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS.\n\nInstall app\n+"
+    }
+  ],
+  "me": {
+    "profileSetupComplete": true,
+    "username": "qa_device",
+    "publicUserId": "qa_device"
+  },
+  "final": {
+    "name": "tab-messages",
+    "url": "https://app.uniapplab.com/messages",
+    "profile": false,
+    "trending": false,
+    "brand": false,
+    "shellHints": true,
+    "textHead": "UniLive’s\nMessages\nGROUPS\nDIRECT MESSAGES\n\nInstall on Mac\n\nInstall UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS.\n\nInstall app\n+"
+  },
+  "status": "PASS",
+  "noEdgePresence": true,
+  "presenceHealthy": false
+}

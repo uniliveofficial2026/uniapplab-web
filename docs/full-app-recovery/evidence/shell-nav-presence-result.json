@@ -1,0 +1,84 @@
+{
+  "presencePost": {
+    "status": 200,
+    "body": {
+      "ok": true,
+      "online": true,
+      "userId": "2a7e55d4-755f-47b6-b133-538744bdec27",
+      "deviceId": "qa-browser-2",
+      "configured": true,
+      "backend": "memory",
+      "failover": true
+    }
+  },
+  "presenceGet": {
+    "status": 200,
+    "body": {
+      "online": false,
+      "userId": "2a7e55d4-755f-47b6-b133-538744bdec27",
+      "devices": [],
+      "configured": true,
+      "backend": "postgres",
+      "failover": true
+    }
+  },
+  "presencePass": true,
+  "nav": {
+    "home": {
+      "url": "https://app.uniapplab.com/home",
+      "profileSetup": false,
+      "brand": false,
+      "head": "UniLive’s loading UniLive’s Add story @qa_device Hi Sam Sam Follow 0 0 0 smsamsam800 Jul 21, 2026 · 5:46 AM Install on Mac Install UniLive’s from Chrome or Edge for a desktop a"
+    },
+    "reels": {
+      "url": "https://app.uniapplab.com/reels",
+      "profileSetup": false,
+      "brand": false,
+      "head": "UniLive’s loading UniLive’s Install on Mac Install UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS. Install app"
+    },
+    "messages": {
+      "url": "https://app.uniapplab.com/messages",
+      "profileSetup": false,
+      "brand": false,
+      "head": "UniLive’s loading UniLive’s Messages GROUPS DIRECT MESSAGES Install on Mac Install UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer"
+    },
+    "live": {
+      "url": "https://app.uniapplab.com/live",
+      "profileSetup": false,
+      "brand": false,
+      "head": "UniLive’s loading UniLive’s Host a Live Concert Go live or watch creators streaming now. Followers get notified when you start. Go Live 1v1 PK All Following Followers LIVE NOW ("
+    },
+    "marketplace": {
+      "url": "https://app.uniapplab.com/live",
+      "profileSetup": false,
+      "brand": false,
+      "head": "UniLive’s loading UniLive’s Host a Live Concert Go live or watch creators streaming now. Followers get notified when you start. Go Live 1v1 PK All Following Followers LIVE NOW ("
+    },
+    "profile": {
+      "url": "https://app.uniapplab.com/profile",
+      "profileSetup": false,
+      "brand": false,
+      "head": "UniLive’s loading UniLive’s UPDATE QA Device 0 posts 0 followers 0 following Lvl 2 Rookie 120 XP @qa_device QA device account Create Story POSTS No posts yet Install on Mac Insta"
+    }
+  },
+  "failed": [
+    {
+      "s": 400,
+      "u": "https://app.uniapplab.com/api/wallet"
+    },
+    {
+      "s": 400,
+      "u": "https://app.uniapplab.com/api/wallet"
+    },
+    {
+      "s": 400,
+      "u": "https://app.uniapplab.com/api/stream/live"
+    },
+    {
+      "s": 400,
+      "u": "https://app.uniapplab.com/api/stream/live"
+    }
+  ],
+  "homeOk": true,
+  "status": "PASS"
+}

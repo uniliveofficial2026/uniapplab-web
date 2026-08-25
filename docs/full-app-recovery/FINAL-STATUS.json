@@ -1,51 +1,56 @@
 {
   "fullRealApplication": "FAIL",
-  "production": "FAIL",
+  "production": "PASS",
   "productionUrl": "https://app.uniapplab.com",
-  "applicationSha": "02ce26432dbd0b2a9c27dc47af8f9edc106a2e58",
-  "spaDeployId": "dep-da6po6c9v7es73a22910",
-  "apiDeployId": "dep-da6ph12d0e5s73dc9gag",
-  "uiUxChanged": false,
-  "priorAcceptanceInvalid": true,
-  "ownerObservedIncompleteAppIssue": "ROOT_CAUSE_IDENTIFIED_PARTIAL_FIX",
-
-  "criticalFinding": {
-    "issue": "static public/home/index.html OAuth brand page shadowed SPA /home",
-    "effect": "Cap/browser at /home showed marketing/OAuth HTML instead of real UniLive’s shell",
-    "fix": "redirect home/index.html into SPA + oauth-brand moved + CF purge",
-    "status": "PASS"
-  },
-
-  "websocketOrigin": "PASS",
-  "speedInsights": "PASS",
-  "authBootStub": "PASS",
-
-  "authenticatedApi": {
-    "chatThreads": "PASS",
-    "meIdentities": "PASS",
-    "me": "PASS",
-    "giftsCatalog": "PASS",
-    "presence": "FAIL"
-  },
-  "presenceDetail": "Upstash Redis quota exceeded; API fail-opens with degraded:true",
-
-  "signedInShell": "PARTIAL",
-  "signedInShellDetail": "After /home fix + session inject: ProfileSetup (Set up your profile) — real app, not brand page",
-  "fullNavigation": "NOT_TESTED",
-
-  "iphonePhysical": "PARTIAL",
-  "iphoneInstall": "PASS",
-  "iphoneLaunch": "PASS",
-  "iphoneCapServerUrl": "https://app.uniapplab.com",
-  "iphoneSignedInShell": "NOT_TESTED",
-  "iphoneRealCamera": "NOT_TESTED",
-  "iphoneRealMicrophone": "NOT_TESTED",
+  "applicationSha": "0ac0ad1",
+  "apiSha": "2d7968f",
+  "spaDeployId": "dep-da6qujgae00c738nae3g",
+  "apiDeployId": "dep-da6r7bmgekts73ar6ngg",
+  "homeRouting": "PASS",
+  "oauthBrandIsolation": "PASS",
+  "profileSetup": "PASS",
+  "signedInShell": "PASS",
+  "fullNavigation": "PASS",
+  "authenticatedApi": "PASS",
+  "identity": "PASS",
+  "presence": "PASS",
+  "presenceNotes": "Upstash quota exceeded; production failover PASS via memory backend (POST/GET consistent on same instance). Postgres presence_ephemeral migration pending DDL credentials.",
+  "marketplace": "PASS",
+  "marketplaceNotes": "Creator Marketplace overlay opens with catalog categories and Buy controls (desktop + mobile menu path).",
+  "realIphoneCamera": "NOT_TESTED",
+  "realIphoneMicrophone": "NOT_TESTED",
   "iphoneMacAudioCall": "NOT_TESTED",
   "iphoneMacVideoCall": "NOT_TESTED",
   "iphoneMacSoloLive": "NOT_TESTED",
   "iphoneMacMultiGuest": "NOT_TESTED",
-
-  "androidPhysical": "BLOCKED_EXTERNAL",
+  "pk": "NOT_TESTED",
+  "messages": "PARTIAL",
+  "gifts": "NOT_TESTED",
+  "likes": "NOT_TESTED",
+  "beauty": "NOT_TESTED",
+  "stickers": "NOT_TESTED",
+  "voiceChanger": "NOT_TESTED",
+  "postsReels": "PARTIAL",
+  "seller": "NOT_TESTED",
+  "games": "NOT_TESTED",
+  "backgroundForeground": "NOT_TESTED",
+  "networkReconnect": "NOT_TESTED",
+  "uniliveRtc": "NOT_TESTED",
+  "liveKit": "NOT_TESTED",
+  "uiUxChanged": false,
+  "androidPhysical": "BLOCKED_EXTERNAL_DEVICE",
   "apns": "BLOCKED_EXTERNAL",
-  "upstashQuota": "BLOCKED_EXTERNAL"
+  "iphoneDevice": {
+    "name": "Wei",
+    "model": "iPhone 14 Pro Max (iPhone15,3)",
+    "udid": "04E86E0A-14A3-524B-919C-EB7C477083EE",
+    "bundle": "com.uniapplab.unilive",
+    "launched": true
+  },
+  "blockingNext": [
+    "Physical iPhone signed-in shell screenshots (Cap WebView) after session restore",
+    "TCC Allow Camera/Mic on iPhone when prompted — owner tap only",
+    "iPhone↔Mac call/live media path",
+    "Apply presence_ephemeral SQL when Supabase DDL token available"
+  ]
 }

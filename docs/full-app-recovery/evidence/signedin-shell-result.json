@@ -1,0 +1,78 @@
+{
+  "steps": [],
+  "shell": {
+    "Home": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Reels": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Messages": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Live": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Profile": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Marketplace": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    }
+  },
+  "api": {
+    "/api/chat/threads": {
+      "status": 401
+    },
+    "/api/me": {
+      "status": 401
+    },
+    "/api/me/identities": {
+      "status": 401
+    },
+    "/api/gifts/catalog": {
+      "status": 200
+    },
+    "hasToken": true,
+    "bearer:/api/chat/threads": {
+      "status": 200,
+      "keys": [
+        "threads"
+      ]
+    },
+    "bearer:/api/me": {
+      "status": 200,
+      "keys": [
+        "id",
+        "email",
+        "role",
+        "bannedAt",
+        "banReason",
+        "mutedUntil",
+        "username",
+        "displayName"
+      ]
+    },
+    "bearer:/api/me/identities": {
+      "status": 200,
+      "keys": [
+        "identities"
+      ]
+    }
+  },
+  "status": "PARTIAL_AUTH_OK",
+  "buttons": [
+    "app.uniapplab.com",
+    "Privacy Policy",
+    "Terms of Service",
+    "Open UniLive’s app",
+    "uniapplab.com"
+  ],
+  "bodyText": "UniLive’s\n\nUniLive’s is a live social application for going live, chatting with friends, sharing posts and stories, discovering creators, and collaborating in real time.\n\nWho we are: UniLive’s is the live social app on the verified domain uniapplab.com (app: app.uniapplab.com).\n\nWhat UniLive’s does\nGo live and join live rooms with chat, gifts, and multi-guest sessions\nShare photos, reels, and stor"
+}

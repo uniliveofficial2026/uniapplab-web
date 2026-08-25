@@ -1,0 +1,152 @@
+{
+  "stillProfile": true,
+  "trending": false,
+  "mainHints": false,
+  "textHead": "UniLive’s\nSet up your profile\n\nTell people who you are before you join the feed. Synced to your cloud account.\n\nUpload profile photo\nDISPLAY NAME\nUSERNAME\nUSER ID\n\nUser ID is available.\n\nBIO\nAVATAR URL (OPTIONAL)\n\nYou must be at least 18 years old to create an account or use UniLive’s. If you are under 18, you are not permitted to use this service. The developer, UniLive’s, and related operators a",
+  "failed": [
+    {
+      "url": "https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496",
+      "err": "net::ERR_CONNECTION_REFUSED"
+    },
+    {
+      "url": "https://app.uniapplab.com/unilives-assets/brand/loading/princess-boot-splash-locked.mp4",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=308760200345-5d44e0tgt2ocs4crh0cn4ef6fis9finu.apps.googleusercontent.com&redirect_to=https%3A%2F%2Fapp.uniapplab.com&redirect_uri=https%3A%2F%2Fldxrdbyznheayhbkvxlq.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=c57da976-e55d-4742-9ae2-f6ec7630b2bc",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://app.uniapplab.com/api/ux/signals",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/profiles?select=id&limit=0",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/follows?select=following_id&follower_id=eq.2a7e55d4-755f-47b6-b133-538744bdec27",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=7886&CVER=22&X-HTTP-Session-Id=gsessionid&zx=unrumjtd1rk&t=1",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/profiles?select=*&id=eq.2a7e55d4-755f-47b6-b133-538744bdec27",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/follows?select=follower_id&following_id=eq.2a7e55d4-755f-47b6-b133-538744bdec27",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/follow_requests?select=requester_id&profile_owner_id=eq.2a7e55d4-755f-47b6-b133-538744bdec27",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://app.uniapplab.com/api/platform/brand",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/profiles?select=*&id=eq.2a7e55d4-755f-47b6-b133-538744bdec27",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496",
+      "err": "net::ERR_CONNECTION_REFUSED"
+    },
+    {
+      "url": "https://static.cloudflareinsights.com/beacon.min.js/v4513226cdae34746b4dedf0b4dfa099e1781791509496",
+      "err": "net::ERR_CONNECTION_REFUSED"
+    },
+    {
+      "url": "https://app.uniapplab.com/unilives-assets/brand/loading/princess-boot-splash-locked.mp4",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=308760200345-5d44e0tgt2ocs4crh0cn4ef6fis9finu.apps.googleusercontent.com&redirect_to=https%3A%2F%2Fapp.uniapplab.com&redirect_uri=https%3A%2F%2Fldxrdbyznheayhbkvxlq.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=ba20c6d5-311d-4bf1-a32e-fb663514258f",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?gsessionid=D1mCHLT8HeFhDxt8J63EbecNTPsANu8SoFU7yeKn5laoAHTzDzGP_A&VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=rpc&SID=02ApBVNk0QUlvqr49dgokA&AID=0&CI=0&TYPE=xmlhttp&zx=65i4onhdm4nx&t=1",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://app.uniapplab.com/api/ux/signals",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://accounts.google.com/o/oauth2/v2/auth?client_id=308760200345-5d44e0tgt2ocs4crh0cn4ef6fis9finu.apps.googleusercontent.com&redirect_to=https%3A%2F%2Fapp.uniapplab.com&redirect_uri=https%3A%2F%2Fldxrdbyznheayhbkvxlq.supabase.co%2Fauth%2Fv1%2Fcallback&response_type=code&scope=email+profile&state=eb8dafeb-e9c0-4b23-82e1-e3a136778744",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://app.uniapplab.com/api/ux/signals",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?gsessionid=y13f4g0BJlxrENbuOLyzcUAUNkxovZ4zKYKXLRwp3SrxLNFIMpVK2A&VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=rpc&SID=-QTIuM0lYgbu2VUlisjEmg&AID=0&CI=0&TYPE=xmlhttp&zx=kfudgrl4jutn&t=1",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/presence/offline",
+      "s": 404
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/presence/online",
+      "err": "net::ERR_FAILED"
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/chat/threads",
+      "s": 404
+    },
+    {
+      "url": "https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/presence/online",
+      "err": "net::ERR_FAILED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?gsessionid=7s5j9s4u_1ibDQMLhQjw2axVxnbFtcTr5iauQbPfkVxnlxrHCt6waQ&VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=rpc&SID=fBsHXxN3BvxjMvcjLkG_Yw&AID=0&CI=0&TYPE=xmlhttp&zx=n9jlck1megn0&t=1",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?gsessionid=s9_oRGf1OHHj2pM_75_gcfZ_z5jkbb8suYp1ccGAFeMS__YnvbmOCA&VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=rpc&SID=U2dqGgOZTPaVtimsLlLv1w&AID=0&CI=0&TYPE=xmlhttp&zx=wffa0djt278w&t=1",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?gsessionid=MMSBS0s9f1cWy6tXT_eoA7Bh5UrOT6jlk3FN0cXeIux4dGebhAuNxg&VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=rpc&SID=3HYI48iF5QlRsuyPiRZIcw&AID=0&CI=0&TYPE=xmlhttp&zx=e3kou7r7wrtw&t=1",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?gsessionid=7-VIkuFKATY_UkHpl8EdHsL6wVNgLo65nsBqmP4kcxfdZv7kaTQHhQ&VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=rpc&SID=bD7lbUFaFwvEZ0XAldzPGQ&AID=0&CI=0&TYPE=xmlhttp&zx=ftqqyyir16p4&t=1",
+      "err": "net::ERR_ABORTED"
+    },
+    {
+      "url": "https://firestore.googleapis.com/google.firestore.v1.Firestore/Listen/channel?gsessionid=0KmVYYkzd7he54PkG92cHlxtpwk3LXTPTVfE1hwHw_OxJmUmX3THPw&VER=8&database=projects%2Fuchat-app-c1b8e%2Fdatabases%2Fdefault&RID=rpc&SID=PDIvrzYtoOsxdWtD6NSOkA&AID=0&CI=0&TYPE=xmlhttp&zx=17xrassw9q4r&t=1",
+      "err": "net::ERR_ABORTED"
+    }
+  ]
+}

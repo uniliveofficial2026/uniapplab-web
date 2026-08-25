@@ -1,0 +1,93 @@
+{
+  "url": "https://app.uniapplab.com/home",
+  "profileSetup": true,
+  "brand": false,
+  "hasNavHints": {
+    "home": false,
+    "messages": false,
+    "live": false,
+    "reels": false,
+    "marketplace": false
+  },
+  "textHead": "UniLive’s\nSet up your profile\n\nTell people who you are before you join the feed. Synced to your cloud account.\n\nUpload profile photo\nDISPLAY NAME\nUSERNAME\nUSER ID\n\nUser ID is available.\n\nBIO\nAVATAR URL (OPTIONAL)\n\nYou must be at least 18 years old to create an account or use UniLive’s. If you are under 18, you are not permitted to use this service. The developer, UniLive’s, and related operators accept no responsibility or liability for any use of the app, website, or services by anyone under 18",
+  "buttons": [
+    "Upload profile photo",
+    "Copy user ID",
+    "Privacy Policy",
+    "Terms of Service & User Agreement",
+    "Continue"
+  ],
+  "net": [
+    {
+      "console": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    },
+    {
+      "console": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    },
+    {
+      "console": "Failed to load resource: net::ERR_CONNECTION_REFUSED"
+    },
+    {
+      "s": 401,
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health"
+    },
+    {
+      "console": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "s": 401,
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health"
+    },
+    {
+      "console": "Failed to load resource: the server responded with a status of 401 ()"
+    },
+    {
+      "s": 404,
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/presence/offline"
+    },
+    {
+      "console": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "s": 404,
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/chat/threads"
+    },
+    {
+      "console": "Failed to load resource: the server responded with a status of 404 ()"
+    },
+    {
+      "console": "Access to fetch at 'https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/presence/online' from origin 'https://app.uniapplab.com' has been blocked by CORS poli"
+    },
+    {
+      "console": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "s": 500,
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/chat_thread_members?select=thread_id&user_id=eq.2a7e55d4-755f-47b6-b133-538744bdec27"
+    },
+    {
+      "console": "Failed to load resource: the server responded with a status of 500 ()"
+    },
+    {
+      "s": 500,
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/rest/v1/chat_thread_members?select=thread_id&user_id=eq.2a7e55d4-755f-47b6-b133-538744bdec27"
+    },
+    {
+      "console": "Failed to load resource: the server responded with a status of 500 ()"
+    },
+    {
+      "console": "Access to fetch at 'https://ldxrdbyznheayhbkvxlq.supabase.co/functions/v1/presence/online' from origin 'https://app.uniapplab.com' has been blocked by CORS poli"
+    },
+    {
+      "console": "Failed to load resource: net::ERR_FAILED"
+    },
+    {
+      "s": 200,
+      "u": "https://app.uniapplab.com/api/presence/online"
+    },
+    {
+      "s": 200,
+      "u": "https://app.uniapplab.com/api/presence/online"
+    }
+  ]
+}
