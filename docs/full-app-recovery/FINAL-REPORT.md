@@ -54,3 +54,33 @@ Under `docs/full-app-recovery/`:
 2. Re-open Cap on iPhone; confirm full consumer shell (not Studio).
 3. Only then run iPhone↔Mac call/live functional tests.
 4. Keep `fullRealApplication=FAIL` until owner’s full app is visibly present and functions work.
+
+
+## Deploy tip `5e81b3d` (live)
+
+SPA + API Render services are live on `5e81b3d714209ea6f6b7216b4c322664fe2202fb`.
+
+Production probes (browser UA):
+
+| Route | Status |
+|---|---|
+| `/api/v1/health` | 200 |
+| `/api/chat/threads` | 401 |
+| `/api/me/identities` | 401 |
+| `/api/presence/offline` | 401 |
+| `/api/youtube/video` | 503 youtube_not_configured |
+| `/api/gifts/catalog` | 200 |
+
+## Browser structural crawl (not device PASS)
+
+Headless iPhone UA against production:
+
+- Princess onboarding advances via invisible `Next` / `Get started`
+- Auth screen exposes Google + Sign Up with Email
+- Email create-account form is the approved branded UI
+- Root is **not** Studio shell (`title=UniLive’s`)
+- iPhone 14 Pro Max currently **offline** in Xcode device list — physical Cap recheck **BLOCKED_EXTERNAL** until reattached
+
+Evidence: `docs/full-app-recovery/evidence/crawl-*.png` + `crawl-result.json`
+
+**Still FAIL for fullRealApplication** — no owner device confirmation; no signed-in shell nav; no call/live functional PASS.

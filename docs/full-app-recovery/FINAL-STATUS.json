@@ -7,17 +7,24 @@
   "invalidatedSha": "d715b726277211a8c9ed465474d5b3e9e3c6a722",
   "recoveryBranch": "fix/restore-full-production-app",
   "recoveryWorktree": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery",
-  "deployedRecoveryShaLive": "5a259bf97a48f73209213302dcd4838269635633",
-  "pendingRedeployNote": "Additional API recoveries (me/presence/stream/gifts/livekit/youtube/upstash) built locally; not yet the next live tip until commit+deploy.",
+  "deployedRecoveryShaLive": "5e81b3d714209ea6f6b7216b4c322664fe2202fb",
   "uiUxChanged": false,
 
   "findings": {
     "frontendSrcVsOwnerDirty": "IDENTICAL",
-    "backendChatVsOwnerDirty": "RESTORED_AND_LIVE_401",
-    "authProvidersBootGap": "FIXED_DEPLOYED_ON_5a259bf",
-    "vercelSpeedInsightsLeftover": "REMOVED_DEPLOYED_ON_5a259bf",
-    "onboardingInvisibleHitsTooSmall": "ENLARGED_DEPLOYED_ON_5a259bf",
-    "additionalApiRoutesFromDirty": "RECOVERED_PENDING_DEPLOY",
+    "backendChatVsOwnerDirty": "RESTORED_LIVE_401",
+    "authProvidersBootGap": "FIXED_DEPLOYED",
+    "vercelSpeedInsightsLeftover": "REMOVED_DEPLOYED",
+    "onboardingInvisibleHitsTooSmall": "ENLARGED_DEPLOYED",
+    "additionalApiRoutesFromDirty": "RESTORED_DEPLOYED_5e81b3d",
+    "prodProbesAfter5e81b3d": {
+      "health": "200",
+      "chatThreads": "401",
+      "meIdentities": "401",
+      "presenceOffline": "401",
+      "youtubeVideo": "503_youtube_not_configured",
+      "giftsCatalog": "200"
+    },
     "firebaseLegacyDualStack": "NOT_TESTED"
   },
 

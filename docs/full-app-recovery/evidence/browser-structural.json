@@ -1,0 +1,54 @@
+{
+  "url": "https://app.uniapplab.com/",
+  "steps": [
+    {
+      "name": "01-boot",
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/01-boot.png",
+      "url": "https://app.uniapplab.com/home"
+    },
+    {
+      "name": "click:Next",
+      "ok": false,
+      "error": "not found"
+    },
+    {
+      "name": "click:Next",
+      "ok": false,
+      "error": "not found"
+    },
+    {
+      "name": "click:Get started",
+      "ok": false,
+      "error": "not found"
+    },
+    {
+      "name": "click:Agree to Terms",
+      "ok": false,
+      "error": "not found"
+    },
+    {
+      "name": "02-after-onboarding-clicks",
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/02-after-onboarding-clicks.png",
+      "url": "https://app.uniapplab.com/home"
+    },
+    {
+      "name": "03-final",
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/03-final.png",
+      "url": "https://app.uniapplab.com/home"
+    }
+  ],
+  "errors": [
+    "console:Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "console:Failed to load resource: the server responded with a status of 401 ()",
+    "console:Failed to load resource: the server responded with a status of 401 ()"
+  ],
+  "failedResources": [],
+  "authLandmarks": {
+    "Sign Up with Email": false,
+    "Sign In": false,
+    "Continue with Google": false,
+    "Continue with Apple": false
+  },
+  "rootLooksLikeStudio": false,
+  "title": "UniLive’s"
+}

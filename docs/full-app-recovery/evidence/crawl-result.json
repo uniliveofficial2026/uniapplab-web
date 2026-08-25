@@ -1,0 +1,96 @@
+{
+  "steps": [
+    {
+      "name": "01-ready",
+      "url": "https://app.uniapplab.com/home",
+      "buttons": [
+        "Skip onboarding",
+        "Next"
+      ],
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/crawl-01-ready.png"
+    },
+    {
+      "name": "02-next-0",
+      "url": "https://app.uniapplab.com/home",
+      "buttons": [
+        "Skip onboarding",
+        "Next"
+      ],
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/crawl-02-next-0.png"
+    },
+    {
+      "name": "02-next-1",
+      "url": "https://app.uniapplab.com/home",
+      "buttons": [
+        "Skip onboarding",
+        "Get started"
+      ],
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/crawl-02-next-1.png"
+    },
+    {
+      "name": "03-start",
+      "url": "https://app.uniapplab.com/home",
+      "buttons": [
+        "Continue with Google",
+        "Sign Up with Email",
+        "Forgot Password?",
+        "Agree to Terms and Privacy Policy",
+        "Agree to Terms and Privacy Policy",
+        "Open Terms",
+        "Open Privacy Policy"
+      ],
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/crawl-03-start.png"
+    },
+    {
+      "name": "04-auth",
+      "url": "https://app.uniapplab.com/home",
+      "buttons": [
+        "Continue with Google",
+        "Sign Up with Email",
+        "Forgot Password?",
+        "Agreed to Terms and Privacy Policy",
+        "Agree to Terms and Privacy Policy",
+        "Open Terms",
+        "Open Privacy Policy"
+      ],
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/crawl-04-auth.png"
+    },
+    {
+      "name": "05-email-form",
+      "url": "https://app.uniapplab.com/home",
+      "buttons": [
+        "Password",
+        "Email code",
+        "Sign up",
+        "Log in",
+        "Privacy Policy",
+        "Terms of Service",
+        "Back to welcome"
+      ],
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/crawl-05-email-form.png"
+    }
+  ],
+  "errors": [
+    "console:Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "console:Failed to load resource: the server responded with a status of 401 ()",
+    "console:Failed to load resource: the server responded with a status of 401 ()"
+  ],
+  "authEmailVisible": true,
+  "landmarks": {
+    "Home": false,
+    "Messages": false,
+    "Live": false,
+    "Profile": false,
+    "Marketplace": false,
+    "Reels": false,
+    "Feed": false,
+    "Wallet": false,
+    "Sign": true
+  },
+  "url": "https://app.uniapplab.com/home",
+  "errorSample": [
+    "console:Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "console:Failed to load resource: the server responded with a status of 401 ()",
+    "console:Failed to load resource: the server responded with a status of 401 ()"
+  ]
+}
