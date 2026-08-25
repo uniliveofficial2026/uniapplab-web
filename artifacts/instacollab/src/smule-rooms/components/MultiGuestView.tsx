@@ -941,14 +941,20 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
                 ) : null}
                 <input
                   type="text"
+                  inputMode="text"
+                  enterKeyHint="send"
+                  autoComplete="off"
+                  data-testid="live-chat-input"
+                  aria-label="Live chat message"
                   value={chatInput}
                   onChange={(e) => handleChatInputChange(e.target.value)}
                   placeholder="Say Hi..."
-                  className="party-glass-input w-full min-w-0 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] font-bold text-white placeholder:text-white/30"
+                  className="party-glass-input w-full min-w-0 rounded-full py-2.5 pl-4 pr-10 text-[16px] font-bold text-white placeholder:text-white/30"
                 />
                 {chatInput.trim() ? (
                   <button
                     type="submit"
+                    data-testid="live-chat-send"
                     className="absolute right-2 top-1/2 -translate-y-1/2 text-pink-500"
                     aria-label="Send message"
                   >

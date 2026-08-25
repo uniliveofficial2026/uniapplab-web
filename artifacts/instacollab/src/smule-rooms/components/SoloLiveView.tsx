@@ -1074,6 +1074,10 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                 ) : null}
                 <input
                   type="text"
+                  inputMode="text"
+                  enterKeyHint="send"
+                  autoComplete="off"
+                  data-testid="live-chat-input"
                   value={chatInput}
                   onChange={(event) => handleChatInputChange(event.target.value)}
                   placeholder="Say something..."

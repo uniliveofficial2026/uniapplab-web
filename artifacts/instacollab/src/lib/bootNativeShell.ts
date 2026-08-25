@@ -3,7 +3,11 @@
  */
 import { Capacitor } from '@capacitor/core';
 import { isNativeShell } from './nativeShell';
-import { updateAppSafeArea } from './safeArea';
+import {
+  clearNativeKeyboardHeight,
+  setNativeKeyboardHeight,
+  updateAppSafeArea,
+} from './safeArea';
 
 let booted = false;
 const nativeUnsubs: Array<() => void> = [];
@@ -28,13 +32,26 @@ export async function bootNativeShell(): Promise<void> {
 
   try {
     const { Keyboard, KeyboardResize } = await import('@capacitor/keyboard');
-    // Body resize + safe-area update avoids keyboard covering inputs / bottom nav overflow.
-    await Keyboard.setResizeMode({ mode: KeyboardResize.Body }).catch(() => undefined);
-    const k1 = await Keyboard.addListener('keyboardWillShow', () => updateAppSafeArea());
-    const k2 = await Keyboard.addListener('keyboardDidShow', () => updateAppSafeArea());
-    const k3 = await Keyboard.addListener('keyboardWillHide', () => updateAppSafeArea());
-    const k4 = await Keyboard.addListener('keyboardDidHide', () => updateAppSafeArea());
-    nativeUnsubs.push(() => { void k1.remove(); void k2.remove(); void k3.remove(); void k4.remove(); });
+    // ONE strategy: None + shared --app-keyboard-inset / h-vv SSOT.
+    // Body/Native resize + manual inset double-moves composers on real iPhone.
+    await Keyboard.setResizeMode({ mode: KeyboardResize.None }).catch(() => undefined);
+    await Keyboard.setScroll({ isDisabled: true }).catch(() => undefined);
+    const onShow = (info: { keyboardHeight?: number }) => {
+      setNativeKeyboardHeight(Number(info?.keyboardHeight) || 0);
+    };
+    const onHide = () => {
+      clearNativeKeyboardHeight();
+    };
+    const k1 = await Keyboard.addListener('keyboardWillShow', onShow);
+    const k2 = await Keyboard.addListener('keyboardDidShow', onShow);
+    const k3 = await Keyboard.addListener('keyboardWillHide', onHide);
+    const k4 = await Keyboard.addListener('keyboardDidHide', onHide);
+    nativeUnsubs.push(() => {
+      void k1.remove();
+      void k2.remove();
+      void k3.remove();
+      void k4.remove();
+    });
   } catch {
     /* optional */
   }

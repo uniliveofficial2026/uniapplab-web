@@ -1,0 +1,29 @@
+{
+  "strategy": "KeyboardResize.None + setNativeKeyboardHeight",
+  "surfaces": {
+    "messages": {
+      "static": "PASS",
+      "physical": "NOT_TESTED"
+    },
+    "liveChat": {
+      "static": "PASS",
+      "physical": "NOT_TESTED"
+    },
+    "callChat": {
+      "static": "PASS",
+      "physical": "NOT_TESTED"
+    },
+    "auth": {
+      "static": "NOT_TESTED",
+      "physical": "NOT_TESTED"
+    },
+    "marketplace": {
+      "static": "NOT_TESTED",
+      "physical": "NOT_TESTED"
+    },
+    "seller": {
+      "static": "NOT_TESTED",
+      "physical": "NOT_TESTED"
+    }
+  }
+}

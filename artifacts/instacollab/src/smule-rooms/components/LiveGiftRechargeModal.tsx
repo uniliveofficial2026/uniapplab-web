@@ -174,7 +174,7 @@ export function LiveGiftRechargeModal({
 
   return (
     <div className={`fixed inset-0 ${zIndexClass} flex items-center justify-center bg-black/70 p-4`}>
-      <div className="relative flex max-h-[90vh] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 font-sans text-neutral-100 shadow-2xl">
+      <div className="relative flex max-h-[min(90dvh,var(--app-vv-height))] w-full max-w-md flex-col overflow-hidden rounded-2xl border border-neutral-800 bg-neutral-900 font-sans text-neutral-100 shadow-2xl">
         <div className="flex items-center justify-between border-b border-neutral-800 p-4">
           <div className="flex items-center gap-2">
             <Coins className="text-emerald-400" size={20} />

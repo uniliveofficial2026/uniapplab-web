@@ -1,0 +1,164 @@
+{
+  "generatedAt": "2026-08-25T20:40:44.306Z",
+  "count": 83,
+  "byFolder": {
+    "admin": [
+      "components/admin/AdminLeaderboardPanel.tsx",
+      "components/admin/AdminPanel.tsx",
+      "components/admin/IntegrationStatusPanel.tsx"
+    ],
+    "auth": [
+      "components/auth/AuthScreen.tsx",
+      "components/auth/BannedScreen.tsx",
+      "components/auth/EmailOtpPanel.tsx",
+      "components/auth/SplashScreen.tsx",
+      "components/auth/TrendingScreen.tsx",
+      "components/auth/brand/UniLivesPrincessAuthPanel.tsx"
+    ],
+    "common": [
+      "components/common/EditorToolPanels.tsx",
+      "components/common/ScreenFallback.tsx",
+      "components/common/ScreenGuard.tsx",
+      "components/common/SoftwareUpdateModal.tsx"
+    ],
+    "dating": [
+      "components/dating/DatingExperimentPanel.tsx",
+      "components/dating/DatingScreen.tsx",
+      "components/dating/DatingToolsSheet.tsx"
+    ],
+    "dev": [
+      "components/dev/DevLivePanel.tsx"
+    ],
+    "feed": [
+      "components/feed/CaptionModal.tsx",
+      "components/feed/LiveGamesPanel.tsx",
+      "components/feed/PostModal.tsx",
+      "components/feed/PostModalCommentItem.tsx",
+      "components/feed/RepostModal.tsx",
+      "components/feed/RepostPostMediaPanel.tsx",
+      "components/feed/ShareModal.tsx"
+    ],
+    "games": [
+      "components/games/GameHubScreen.tsx",
+      "components/games/GreedyTapScreen.tsx",
+      "components/games/LocalGamesScreen.tsx",
+      "components/games/ThirdPartyGamesScreen.tsx"
+    ],
+    "karaoke": [
+      "components/karaoke/KaraokeMyUploadsPanel.tsx",
+      "components/karaoke/KaraokeScreen.tsx",
+      "components/karaoke/SingingPlayerModal.tsx"
+    ],
+    "launch": [
+      "components/launch/AuthScreen.tsx",
+      "components/launch/OnboardingScreen.tsx",
+      "components/launch/ProfileSetupScreen.tsx",
+      "components/launch/SplashScreen.tsx",
+      "components/launch/TrendingScreen.tsx"
+    ],
+    "layout": [
+      "components/layout/AppScreen.tsx",
+      "components/layout/ShellCreateCaptionPanel.tsx",
+      "components/layout/ShellCreateCrossPostModal.tsx",
+      "components/layout/ShellCreateModal.tsx"
+    ],
+    "legal": [
+      "components/legal/UniLivesInAppLegalScreen.tsx"
+    ],
+    "live": [
+      "components/live/LiveFiltersPanel.tsx",
+      "components/live/LiveScreen.tsx",
+      "components/live/PkStickerSheet.tsx"
+    ],
+    "messages": [
+      "components/messages/ChatLocationShareSheet.tsx",
+      "components/messages/MessagesScreen.tsx",
+      "components/messages/MessagesScreenOverlays.tsx"
+    ],
+    "notifications": [
+      "components/notifications/NotificationsScreen.tsx"
+    ],
+    "profile": [
+      "components/profile/AccountSwitcherModal.tsx",
+      "components/profile/BlockedUsersModal.tsx",
+      "components/profile/CreatorProgressModal.tsx",
+      "components/profile/FollowListModal.tsx",
+      "components/profile/PostArchiveModal.tsx",
+      "components/profile/ProfileCloudSystemsModal.tsx",
+      "components/profile/ProfileEditSettingsModal.tsx",
+      "components/profile/ProfileFollowRequestsPanel.tsx",
+      "components/profile/ProfileReelModal.tsx",
+      "components/profile/ProfileScreen.tsx",
+      "components/profile/ProfileVisitorsModal.tsx"
+    ],
+    "reels": [
+      "components/reels/ReelsScreen.tsx"
+    ],
+    "search": [
+      "components/search/SearchScreen.tsx"
+    ],
+    "sharing": [
+      "components/sharing/brand/UniLivesShareSheetChrome.tsx"
+    ],
+    "studio": [
+      "components/studio/AppLiveStudioPanel.tsx"
+    ],
+    "wallet": [
+      "components/wallet/WalletScreen.tsx"
+    ],
+    "workspace": [
+      "components/workspace/WorkspaceAuthScreen.tsx",
+      "components/workspace/WorkspaceScreen.tsx"
+    ],
+    "youtube": [
+      "components/youtube/AddToPlaylistSheet.tsx",
+      "components/youtube/YoutubeWatchDeepPanel.tsx"
+    ],
+    "CommerceLiveCheckoutModal.tsx": [
+      "smule-rooms/components/CommerceLiveCheckoutModal.tsx"
+    ],
+    "CommerceLiveOrderDetailSheet.tsx": [
+      "smule-rooms/components/CommerceLiveOrderDetailSheet.tsx"
+    ],
+    "CommerceLivePanel.tsx": [
+      "smule-rooms/components/CommerceLivePanel.tsx"
+    ],
+    "GameLivePanel.tsx": [
+      "smule-rooms/components/GameLivePanel.tsx"
+    ],
+    "LiveBeautySheet.tsx": [
+      "smule-rooms/components/LiveBeautySheet.tsx"
+    ],
+    "LiveGiftRechargeModal.tsx": [
+      "smule-rooms/components/LiveGiftRechargeModal.tsx"
+    ],
+    "LiveGiftsPanel.tsx": [
+      "smule-rooms/components/LiveGiftsPanel.tsx"
+    ],
+    "MultiGuestEffectsSheet.tsx": [
+      "smule-rooms/components/MultiGuestEffectsSheet.tsx"
+    ],
+    "PKInviteSheet.tsx": [
+      "smule-rooms/components/PKInviteSheet.tsx"
+    ],
+    "PartyGiftPickerPanel.tsx": [
+      "smule-rooms/components/PartyGiftPickerPanel.tsx"
+    ],
+    "RoomModeSettingsSheet.tsx": [
+      "smule-rooms/components/RoomModeSettingsSheet.tsx"
+    ],
+    "RoomProfilePreviewModal.tsx": [
+      "smule-rooms/components/RoomProfilePreviewModal.tsx"
+    ],
+    "VoiceChangerSheet.tsx": [
+      "smule-rooms/components/VoiceChangerSheet.tsx"
+    ],
+    "WatchTogetherMediaSourceSheet.tsx": [
+      "smule-rooms/components/WatchTogetherMediaSourceSheet.tsx"
+    ],
+    "YoutubeSearchPanel.tsx": [
+      "smule-rooms/components/YoutubeSearchPanel.tsx"
+    ]
+  },
+  "note": "Parsed from *Screen|*Modal|*Sheet|*Panel under artifacts/instacollab/src"
+}

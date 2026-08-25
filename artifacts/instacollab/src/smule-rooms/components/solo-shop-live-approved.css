@@ -163,7 +163,8 @@
   margin-inline: auto;
   display: grid;
   gap: 6px;
-  padding: 4px var(--approved-live-gutter) max(8px, env(safe-area-inset-bottom));
+  padding: 4px var(--approved-live-gutter)
+    max(8px, var(--app-composer-bottom-inset, env(safe-area-inset-bottom, 0px)));
   box-sizing: border-box;
   pointer-events: auto;
   overflow: visible;
@@ -397,7 +398,8 @@
   background: transparent !important;
   box-shadow: none !important;
   color: #fff;
-  font-size: 13px;
+  /* 16px avoids iOS WKWebView focus zoom; visual weight preserved via weight. */
+  font-size: 16px;
   font-weight: 500;
 }
 

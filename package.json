@@ -106,7 +106,11 @@
     "test:presence-failover": "node scripts/full-app-gates/test-presence-failover.mjs",
     "test:auth-boot": "node scripts/full-app-gates/test-auth-boot.mjs",
     "test:full-app-gates": "pnpm run test:full-app-routes && pnpm run test:full-app-components && pnpm run test:full-app-api-map && pnpm run test:production-artifact && pnpm run test:user-identity-ssot && pnpm run test:account-switch-isolation && pnpm run test:profile-to-home && pnpm run test:presence-failover && pnpm run test:auth-boot",
-    "test:authenticated-shell": "pnpm --filter @workspace/instacollab exec node ./scripts/test-authenticated-shell.mjs"
+    "test:authenticated-shell": "pnpm --filter @workspace/instacollab exec node ./scripts/test-authenticated-shell.mjs",
+    "test:all-screen-layout": "node scripts/ui-device-recovery/test-all-screen-layout.mjs",
+    "test:keyboard-layout": "node scripts/ui-device-recovery/test-keyboard-layout.mjs",
+    "test:safe-area-layout": "node scripts/ui-device-recovery/test-safe-area-layout.mjs",
+    "test:ui-device-recovery": "pnpm run test:all-screen-layout && pnpm run test:keyboard-layout && pnpm run test:safe-area-layout"
   },
   "private": true,
   "devDependencies": {

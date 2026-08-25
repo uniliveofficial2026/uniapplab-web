@@ -5,6 +5,7 @@ import './index.css';
 import { ErrorBoundary } from './components/common/ErrorBoundary';
 import { AppQueryProvider } from './providers/AppQueryProvider';
 import { AuthProvidersHost } from './providers/AuthProvidersHost';
+import { AppViewportProvider } from './contexts/AppViewportContext';
 import { PublicRuntimeConfigProvider } from './runtime-config/PublicRuntimeConfigProvider';
 import { registerAppServiceWorker } from './lib/pwaRegister';
 import { bootNativeShell } from './lib/bootNativeShell';
@@ -156,7 +157,9 @@ createRoot(rootEl).render(
     <AppQueryProvider>
       <PublicRuntimeConfigProvider>
         <AuthProvidersHost>
-          <App />
+          <AppViewportProvider>
+            <App />
+          </AppViewportProvider>
         </AuthProvidersHost>
       </PublicRuntimeConfigProvider>
     </AppQueryProvider>

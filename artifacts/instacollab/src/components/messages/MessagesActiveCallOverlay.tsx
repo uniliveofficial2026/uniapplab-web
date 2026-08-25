@@ -227,7 +227,7 @@ export function MessagesActiveCallOverlay({
           onRetryConnect={onRetryConnect}
           onMore={() => setMoreOpen((open) => !open)}
         />
-        <div className="mx-auto w-full max-w-[540px] px-3 pb-[max(12px,var(--app-safe-bottom,0px))]">
+        <div className="mx-auto w-full max-w-[540px] px-3 pb-[max(12px,var(--app-composer-bottom-inset,var(--app-safe-bottom,0px)))]">
           <ChatCallControls
             callKind="audio"
             isMicMuted={isMicMuted}

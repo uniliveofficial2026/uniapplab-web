@@ -172,7 +172,10 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-
     --app-shell-bottom-offset: calc(var(--app-mobile-bottom-nav-h) + var(--app-safe-bottom));
     --app-vv-height: 100dvh;
     --app-vv-width: 100vw;
+    --app-height: 100dvh;
     --app-keyboard-inset: 0px;
+    --keyboard-height: 0px;
+    --app-composer-bottom-inset: env(safe-area-inset-bottom, 0px);
 
     --background: #f8fafc;
     --foreground: #000000;
@@ -506,6 +509,21 @@ div#root:nth-of-type(1) > div:nth-of-type(1) > div:nth-of-type(2) > main:nth-of-
 
   .pb-keyboard {
     padding-bottom: max(var(--app-safe-bottom), var(--app-keyboard-inset, 0px));
+  }
+
+  .pb-composer {
+    padding-bottom: max(0.5rem, var(--app-composer-bottom-inset, var(--app-safe-bottom)));
+  }
+
+  /* Central keyboard policy: hide permanent bottom nav while IME is open. */
+  html[data-keyboard-open='1'] .mobile-bottom-nav {
+    visibility: hidden;
+    pointer-events: none;
+    transform: translateY(110%);
+  }
+
+  html[data-keyboard-open='1'] {
+    --app-mobile-bottom-nav-h: 0px;
   }
 
   /*

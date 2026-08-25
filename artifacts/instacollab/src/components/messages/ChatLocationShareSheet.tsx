@@ -201,7 +201,7 @@ export function ChatLocationShareSheet({ open, onClose, onSend }: ChatLocationSh
             role="dialog"
             aria-modal="true"
             aria-label="Share location"
-            className="fixed inset-x-0 bottom-0 z-[395] mx-auto w-full max-w-lg max-h-[min(88vh,720px)] rounded-t-3xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col"
+            className="fixed inset-x-0 bottom-0 z-[395] mx-auto w-full max-w-lg max-h-[min(88dvh,var(--app-vv-height),720px)] rounded-t-3xl border border-border bg-card shadow-2xl overflow-hidden flex flex-col"
             initial={{ y: '100%' }}
             animate={{ y: 0 }}
             exit={{ y: '100%' }}

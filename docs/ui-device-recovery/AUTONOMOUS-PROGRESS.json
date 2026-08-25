@@ -1,0 +1,15 @@
+{
+  "updatedAt": "2026-08-25T20:40:44.325Z",
+  "fullRealApplication": "FAIL",
+  "uiUxChanged": false,
+  "phase": "viewport-keyboard-ssot-landed",
+  "surfaceIndexCount": 83,
+  "iphone": "BLOCKED_EXTERNAL",
+  "next": [
+    "Reconnect Wei iPhone",
+    "Build/deploy SPA with keyboard SSOT",
+    "Physical Messages/Live keyboard matrix",
+    "WKWebView WEBVIEW automation",
+    "Camera/Mic + iPhone↔Mac RTC"
+  ]
+}

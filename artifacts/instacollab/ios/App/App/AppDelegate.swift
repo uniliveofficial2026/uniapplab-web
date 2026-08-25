@@ -1,5 +1,6 @@
 import UIKit
 import Capacitor
+import WebKit
 
 @UIApplicationMain
 class AppDelegate: UIResponder, UIApplicationDelegate {
@@ -8,7 +9,16 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         // Override point for customization after application launch.
+        #if DEBUG
+        enableWebViewInspectionIfAvailable()
+        #endif
         return true
+    }
+
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        #if DEBUG
+        enableWebViewInspectionIfAvailable()
+        #endif
     }
 
     func applicationWillResignActive(_ application: UIApplication) {
@@ -23,10 +33,6 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
 
     func applicationWillEnterForeground(_ application: UIApplication) {
         // Called as part of the transition from the background to the active state; here you can undo many of the changes made on entering the background.
-    }
-
-    func applicationDidBecomeActive(_ application: UIApplication) {
-        // Restart any tasks that were paused (or not yet started) while the application was inactive. If the application was previously in the background, optionally refresh the user interface.
     }
 
     func applicationWillTerminate(_ application: UIApplication) {
@@ -45,5 +51,31 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
         // tracking app url opens, make sure to keep this call
         return ApplicationDelegateProxy.shared.application(application, continue: userActivity, restorationHandler: restorationHandler)
     }
+
+    #if DEBUG
+    /// QA-only: allow Safari Web Inspector / Appium WEBVIEW context against Cap WKWebView.
+    /// Never enable in Release / production App Store builds.
+    private func enableWebViewInspectionIfAvailable() {
+        guard #available(iOS 16.4, *) else { return }
+        DispatchQueue.main.async {
+            let windows = UIApplication.shared.connectedScenes
+                .compactMap { $0 as? UIWindowScene }
+                .flatMap { $0.windows }
+            for window in windows {
+                Self.markInspectable(in: window)
+            }
+        }
+    }
+
+    @available(iOS 16.4, *)
+    private static func markInspectable(in view: UIView) {
+        if let webView = view as? WKWebView {
+            webView.isInspectable = true
+        }
+        for child in view.subviews {
+            markInspectable(in: child)
+        }
+    }
+    #endif
 
 }

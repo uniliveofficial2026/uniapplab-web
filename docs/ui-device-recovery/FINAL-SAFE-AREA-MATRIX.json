@@ -1,0 +1,11 @@
+{
+  "tokens": [
+    "--app-safe-top",
+    "--app-safe-bottom",
+    "--app-safe-left",
+    "--app-safe-right",
+    "--app-composer-bottom-inset"
+  ],
+  "staticGate": "PASS",
+  "physical": "NOT_TESTED"
+}

@@ -1,0 +1,34 @@
+{
+  "fullRealApplication": "FAIL",
+  "uiUxChanged": false,
+  "allScreensResponsive": "NOT_TESTED",
+  "keyboardHandling": "NOT_TESTED",
+  "textInputsVisible": "NOT_TESTED",
+  "messagesComposer": "NOT_TESTED",
+  "liveChatComposer": "NOT_TESTED",
+  "callChatComposer": "NOT_TESTED",
+  "safeAreas": "NOT_TESTED",
+  "dynamicViewport": "PASS_STATIC",
+  "keyboardSsot": "PASS_STATIC",
+  "bottomNavigation": "PASS_STATIC",
+  "webViewAutomation": "FAIL",
+  "iphone14ProMax": "BLOCKED_EXTERNAL",
+  "iphone14ProMaxNote": "Device offline in xctrace (Wei 26.6). Owner prior FAIL; retest after reconnect + deploy.",
+  "authSSOT": "PASS",
+  "production": "NOT_TESTED",
+  "staticGates": {
+    "test:all-screen-layout": "PASS",
+    "test:keyboard-layout": "PASS",
+    "test:safe-area-layout": "PASS"
+  },
+  "codeFixesLanded": [
+    "KeyboardResize.None + Cap keyboard height SSOT",
+    "safe-bottom no longer includes keyboard",
+    "--app-composer-bottom-inset",
+    "AppViewportProvider",
+    "Messages/Live/Call composer insets + landmarks",
+    "bottom nav hide on keyboard",
+    "DEBUG WKWebView.isInspectable",
+    "Gift/sheet max-height uses --app-vv-height"
+  ]
+}

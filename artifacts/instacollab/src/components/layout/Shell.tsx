@@ -854,7 +854,12 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
 
       {/* Mobile Bottom Navigation */}
       {showShellMobileBottomNav && (
-        <div className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 w-full pt-1 pl-safe pr-safe bg-background border-border border-t flex items-center justify-around z-[100] px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]">
+        <div
+          className="mobile-bottom-nav md:hidden fixed bottom-0 left-0 w-full pt-1 pl-safe pr-safe bg-background border-border border-t flex items-center justify-around z-[100] px-2 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] dark:shadow-[0_-4px_20px_rgba(0,0,0,0.35)]"
+          data-testid="home-nav"
+          role="navigation"
+          aria-label="Primary"
+        >
           <button type="button" onClick={() => handleBottomNavTap('home')} className={navTapIconButtonClass} aria-label="Home">
             <Home className={`w-6 h-6 ${currentTab === 'home' ? 'stroke-[2.5px]' : 'stroke-[1.5px]'}`} />
           </button>

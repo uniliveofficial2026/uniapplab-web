@@ -1,7 +1,16 @@
 /**
- * Central safe-area insets for iOS notch, home indicator, Android status/gesture bars,
- * and soft-keyboard (visualViewport) insets on phone/tablet / Capacitor.
- * Writes --app-safe-* and --app-vv-* on :root for shell chrome and immersive screens.
+ * Central safe-area + dynamic viewport + keyboard SSOT for phone/tablet / Capacitor.
+ *
+ * Writes on :root:
+ *   --app-safe-*          static notch / home-indicator insets (NOT keyboard)
+ *   --app-vv-height/width visual viewport (above keyboard when open)
+ *   --app-keyboard-inset  soft keyboard overlap height
+ *   --keyboard-height     alias of --app-keyboard-inset
+ *   --app-height          alias of --app-vv-height
+ *   --app-shell-*-offset  chrome offsets (nav + static safe)
+ *
+ * Keyboard strategy (native): Capacitor KeyboardResize.None + plugin height events.
+ * Do not also Body-resize the WebView — that double-moves fixed/flex composers.
  */
 import {
   applyPlatformRuntimeToDocument,
@@ -10,6 +19,84 @@ import {
 } from './platform/runtime';
 
 const ROOT = () => document.documentElement;
+
+/** Cap plugin keyboard height (px). 0 when closed / web without Cap. */
+let nativeKeyboardHeightPx = 0;
+
+export type AppViewportSnapshot = {
+  viewportWidth: number;
+  viewportHeight: number;
+  visualViewportHeight: number;
+  keyboardVisible: boolean;
+  keyboardHeight: number;
+  safeAreaTop: number;
+  safeAreaBottom: number;
+  safeAreaLeft: number;
+  safeAreaRight: number;
+  orientation: 'portrait' | 'landscape';
+};
+
+let lastSnapshot: AppViewportSnapshot = {
+  viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 0,
+  viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 0,
+  visualViewportHeight: typeof window !== 'undefined' ? window.innerHeight : 0,
+  keyboardVisible: false,
+  keyboardHeight: 0,
+  safeAreaTop: 0,
+  safeAreaBottom: 0,
+  safeAreaLeft: 0,
+  safeAreaRight: 0,
+  orientation: 'portrait',
+};
+
+const viewportListeners = new Set<(s: AppViewportSnapshot) => void>();
+
+export function getAppViewportSnapshot(): AppViewportSnapshot {
+  return lastSnapshot;
+}
+
+export function subscribeAppViewport(
+  listener: (s: AppViewportSnapshot) => void,
+): () => void {
+  viewportListeners.add(listener);
+  return () => {
+    viewportListeners.delete(listener);
+  };
+}
+
+function emitViewport(snapshot: AppViewportSnapshot): void {
+  lastSnapshot = snapshot;
+  viewportListeners.forEach((fn) => {
+    try {
+      fn(snapshot);
+    } catch {
+      /* ignore subscriber errors */
+    }
+  });
+}
+
+/**
+ * Called from Capacitor keyboardWill/DidShow with event.keyboardHeight.
+ * Prefer this over visualViewport alone on iOS WKWebView.
+ */
+export function setNativeKeyboardHeight(heightPx: number): void {
+  const next = Number.isFinite(heightPx) ? Math.max(0, Math.round(heightPx)) : 0;
+  if (next === nativeKeyboardHeightPx) {
+    scheduleUpdateAppSafeArea();
+    return;
+  }
+  nativeKeyboardHeightPx = next;
+  scheduleUpdateAppSafeArea();
+}
+
+export function clearNativeKeyboardHeight(): void {
+  if (nativeKeyboardHeightPx === 0) {
+    scheduleUpdateAppSafeArea();
+    return;
+  }
+  nativeKeyboardHeightPx = 0;
+  scheduleUpdateAppSafeArea();
+}
 
 function readEnvInset(edge: 'top' | 'bottom' | 'left' | 'right'): number {
   if (typeof document === 'undefined') return 0;
@@ -60,14 +147,12 @@ function visualViewportInsets(): {
 }
 
 /**
- * When env(safe-area-*) and visualViewport both report 0, Capacitor / PWA WebViews
- * still sit under status + gesture bars — apply OS fallbacks so chrome doesn't clip.
+ * When env(safe-area-*) reports 0, Capacitor / PWA WebViews may still sit under
+ * status + gesture bars — apply OS class fallbacks (not model-specific pixels).
  */
 function nativeShellFallbacks(
   envTop: number,
   envBottom: number,
-  vvTop: number,
-  vvBottom: number,
 ): { top: number; bottom: number } {
   const runtime = getPlatformRuntime();
   const needsFallback =
@@ -77,17 +162,29 @@ function nativeShellFallbacks(
   let top = 0;
   let bottom = 0;
 
-  if (envTop <= 0 && vvTop <= 0) {
+  if (envTop <= 0) {
     if (runtime.os === 'android') top = 28;
-    else if (runtime.os === 'ios') top = 47; // notch / Dynamic Island class devices
+    else if (runtime.os === 'ios') top = 47;
   }
 
-  if (envBottom <= 0 && vvBottom <= 0) {
-    if (runtime.os === 'android') bottom = 24; // gesture / 3-button nav
-    else if (runtime.os === 'ios') bottom = 34; // home indicator
+  if (envBottom <= 0) {
+    if (runtime.os === 'android') bottom = 24;
+    else if (runtime.os === 'ios') bottom = 34;
   }
 
   return { top, bottom };
+}
+
+let rafScheduled = false;
+
+export function scheduleUpdateAppSafeArea(): void {
+  if (typeof window === 'undefined') return;
+  if (rafScheduled) return;
+  rafScheduled = true;
+  requestAnimationFrame(() => {
+    rafScheduled = false;
+    updateAppSafeArea();
+  });
 }
 
 export function updateAppSafeArea(): void {
@@ -105,37 +202,77 @@ export function updateAppSafeArea(): void {
     right: readEnvInset('right'),
   };
   const vv = visualViewportInsets();
-  const fallback = nativeShellFallbacks(env.top, env.bottom, vv.top, vv.bottom);
+  const fallback = nativeShellFallbacks(env.top, env.bottom);
 
-  const top = Math.max(env.top, vv.top, fallback.top);
-  // Keyboard / home indicator: prefer the larger of env safe-area and visualViewport shrink.
-  const bottom = Math.max(env.bottom, vv.bottom, fallback.bottom);
+  // Static safe insets only — never fold keyboard height into --app-safe-bottom.
+  const top = Math.max(env.top, fallback.top);
+  const staticBottom = Math.max(env.bottom, fallback.bottom);
   const left = Math.max(env.left, vv.left);
   const right = Math.max(env.right, vv.right);
 
-  // Prefer visualViewport height on native — 100dvh can exceed the WebView and overflow.
-  const height = Math.max(1, Math.round(vv.height || window.innerHeight));
+  // Keyboard: Cap plugin height wins; visualViewport bottom is web/PWA fallback.
+  const vvKeyboard = Math.max(0, vv.bottom - env.bottom);
+  const keyboardInset = Math.max(nativeKeyboardHeightPx, vvKeyboard);
+  const keyboardOpen = keyboardInset > 40;
+
+  // Prefer visualViewport height; when Cap reports keyboard but vv has not shrunk yet,
+  // subtract keyboard so flex shells (h-vv) still clear the IME.
+  let height = Math.max(1, Math.round(vv.height || window.innerHeight));
+  if (
+    keyboardOpen &&
+    nativeKeyboardHeightPx > 40 &&
+    vvKeyboard < nativeKeyboardHeightPx * 0.5
+  ) {
+    height = Math.max(
+      1,
+      Math.round(window.innerHeight - nativeKeyboardHeightPx),
+    );
+  }
   const width = Math.max(1, Math.round(vv.width || window.innerWidth));
 
   root.style.setProperty('--app-safe-top', `${top}px`);
-  root.style.setProperty('--app-safe-bottom', `${bottom}px`);
+  root.style.setProperty('--app-safe-bottom', `${staticBottom}px`);
   root.style.setProperty('--app-safe-left', `${left}px`);
   root.style.setProperty('--app-safe-right', `${right}px`);
   root.style.setProperty('--app-vv-height', `${height}px`);
   root.style.setProperty('--app-vv-width', `${width}px`);
+  root.style.setProperty('--app-height', `${height}px`);
+  root.style.setProperty('--app-keyboard-inset', `${keyboardInset}px`);
+  root.style.setProperty('--keyboard-height', `${keyboardInset}px`);
+  // Composer / fixed footers: keyboard when open, else home-indicator safe bottom.
+  root.style.setProperty(
+    '--app-composer-bottom-inset',
+    `${keyboardOpen ? keyboardInset : staticBottom}px`,
+  );
   root.style.setProperty(
     '--app-shell-top-offset',
     `calc(${top}px + var(--app-mobile-top-nav-h, 60px))`,
   );
   root.style.setProperty(
     '--app-shell-bottom-offset',
-    `calc(${bottom}px + var(--app-mobile-bottom-nav-h, 50px))`,
+    keyboardOpen
+      ? `0px`
+      : `calc(${staticBottom}px + var(--app-mobile-bottom-nav-h, 50px))`,
   );
-  // Keyboard-only inset (visualViewport bottom beyond static safe-area).
-  const keyboard = Math.max(0, vv.bottom - env.bottom);
-  root.style.setProperty('--app-keyboard-inset', `${keyboard}px`);
-  root.dataset.keyboardOpen = keyboard > 40 ? '1' : '0';
+
+  root.dataset.keyboardOpen = keyboardOpen ? '1' : '0';
   root.dataset.nativeOverflowFix = runtime.shell === 'native' ? '1' : '0';
+
+  const orientation: 'portrait' | 'landscape' =
+    width >= height ? 'landscape' : 'portrait';
+
+  emitViewport({
+    viewportWidth: width,
+    viewportHeight: Math.round(window.innerHeight),
+    visualViewportHeight: height,
+    keyboardVisible: keyboardOpen,
+    keyboardHeight: keyboardInset,
+    safeAreaTop: top,
+    safeAreaBottom: staticBottom,
+    safeAreaLeft: left,
+    safeAreaRight: right,
+    orientation,
+  });
 }
 
 /** Tailwind-friendly class fragments for common chrome. */
@@ -149,6 +286,7 @@ export const SAFE_AREA_CLASS = {
   shellBottom: 'pb-[var(--app-shell-bottom-offset)]',
   maxHeightVv: 'max-h-[var(--app-vv-height)]',
   heightVv: 'h-[var(--app-vv-height)]',
+  composerBottom: 'pb-[var(--app-composer-bottom-inset)]',
 } as const;
 
 let installed = false;
@@ -159,8 +297,9 @@ export function installAppSafeArea(): void {
 
   updateAppSafeArea();
 
-  window.addEventListener('resize', updateAppSafeArea, { passive: true });
-  window.addEventListener('orientationchange', updateAppSafeArea, { passive: true });
-  window.visualViewport?.addEventListener('resize', updateAppSafeArea, { passive: true });
-  window.visualViewport?.addEventListener('scroll', updateAppSafeArea, { passive: true });
+  const onGeom = () => scheduleUpdateAppSafeArea();
+  window.addEventListener('resize', onGeom, { passive: true });
+  window.addEventListener('orientationchange', onGeom, { passive: true });
+  window.visualViewport?.addEventListener('resize', onGeom, { passive: true });
+  window.visualViewport?.addEventListener('scroll', onGeom, { passive: true });
 }

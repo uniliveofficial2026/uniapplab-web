@@ -49,7 +49,7 @@ export function GiftSendersOverlay({
 
   return (
     <div className="fixed inset-0 z-[120] bg-black/60 flex flex-col justify-end pointer-events-auto">
-      <div className="bg-[#1a0f2e] w-full max-h-[75vh] rounded-t-3xl border-t border-yellow-500/25 flex flex-col overflow-hidden shadow-[0_-10px_40px_rgba(234,179,8,0.12)] animate-fade-in-up">
+      <div className="bg-[#1a0f2e] w-full max-h-[min(75dvh,var(--app-vv-height))] rounded-t-3xl border-t border-yellow-500/25 flex flex-col overflow-hidden shadow-[0_-10px_40px_rgba(234,179,8,0.12)] animate-fade-in-up">
         <div className="flex justify-between items-center px-5 sm:px-6 py-4 sm:py-5 border-b border-white/5">
           <div className="flex min-w-0 items-center space-x-2.5">
             <Star size={22} className="shrink-0 fill-yellow-400 text-yellow-400" />

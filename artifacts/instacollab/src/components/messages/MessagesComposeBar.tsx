@@ -87,7 +87,11 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
   };
 
   return (
-    <div className="p-3 sm:p-4 pt-2 shrink-0 bg-background w-full z-20 pb-[max(0.5rem,var(--app-safe-bottom),var(--app-keyboard-inset))]">
+    <div
+      className="p-3 sm:p-4 pt-2 shrink-0 bg-background w-full z-20 pb-[max(0.5rem,var(--app-composer-bottom-inset,var(--app-safe-bottom)))]"
+      data-testid="messages-composer"
+      data-ui-id="messages.composer"
+    >
     <div className="flex flex-col gap-2">
        {chatMedia.length > 0 && (
           <div className="flex gap-3 overflow-x-auto py-2 touch-pan-x scrollbar-hide">
@@ -429,6 +433,12 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                 <input
                   ref={messageInputRef}
                   type="text"
+                  inputMode="text"
+                  enterKeyHint="send"
+                  autoComplete="off"
+                  autoCorrect="on"
+                  data-testid="chat-input"
+                  aria-label="Message composer"
                   value={messageText}
                   onChange={(e) => {
                     const nextValue = e.target.value;
@@ -471,7 +481,7 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                     }, 120);
                   }}
                   placeholder={isListening ? "Listening..." : editingMessageIndex !== null ? "Edit message..." : "Type a message..."}
-                  className="w-full bg-transparent border-none outline-none text-[14px] sm:text-[15px] font-medium min-w-0 placeholder:text-muted-foreground/70"
+                  className="w-full bg-transparent border-none outline-none text-[16px] sm:text-[15px] font-medium min-w-0 placeholder:text-muted-foreground/70"
                 />
               </div>
             )}
@@ -498,7 +508,7 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                      className="fixed inset-0 bg-background z-[150] md:hidden block pointer-events-auto"
                      onClick={() => setShowEmojiPicker(false)}
                    />
-                  <div data-main-emoji-panel="true" className="fixed bottom-0 left-0 right-0 h-[60vh] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-t-[32px] border-t border-border z-[160] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300 md:hidden block pointer-events-auto emoji-glass-sheet">
+                  <div data-main-emoji-panel="true" className="fixed bottom-0 left-0 right-0 h-[min(60vh,var(--app-vv-height))] bg-white/80 dark:bg-zinc-900/80 backdrop-blur-xl rounded-t-[32px] border-t border-border z-[160] flex flex-col overflow-hidden shadow-2xl animate-in slide-in-from-bottom duration-300 md:hidden block pointer-events-auto emoji-glass-sheet pb-[var(--app-composer-bottom-inset,0px)]">
                      <div className="flex items-center justify-between p-4 border-b border-border bg-secondary/10 shrink-0">
                        <span className="font-bold text-base">Select Emojis</span>
                        <button
@@ -562,7 +572,12 @@ export function MessagesComposeBar(props: MessagesComposeBarProps) {
                <Mic className="w-6 h-6 pointer-events-none" />
              </button>
              {messageText.trim() || chatMedia.length > 0 || recordedVoice ? (
-               <button type="submit" className="text-primary font-bold hover:scale-110 transition-transform flex items-center justify-center bg-primary text-primary-foreground w-11 h-11 rounded-full shrink-0 shadow-md">
+               <button
+                 type="submit"
+                 data-testid="chat-send"
+                 aria-label="Send message"
+                 className="text-primary font-bold hover:scale-110 transition-transform flex items-center justify-center bg-primary text-primary-foreground w-11 h-11 rounded-full shrink-0 shadow-md"
+               >
                  <Send className="w-5 h-5 text-primary-foreground" />
                </button>
              ) : null}

@@ -1,0 +1,9 @@
+{
+  "primary": {
+    "name": "Wei · iPhone 14 Pro Max",
+    "status": "BLOCKED_EXTERNAL",
+    "reason": "offline"
+  },
+  "simulators": "NOT_TESTED",
+  "androidEmulator": "NOT_TESTED"
+}
