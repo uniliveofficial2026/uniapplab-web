@@ -1,0 +1,43 @@
+name: UniLiveDeviceQA
+options:
+  bundleIdPrefix: com.uniapplab
+  deploymentTarget:
+    iOS: "16.0"
+settings:
+  DEVELOPMENT_TEAM: "4LHM9N9L8Q"
+  CODE_SIGN_STYLE: Automatic
+targets:
+  HostApp:
+    type: application
+    platform: iOS
+    sources:
+      - HostApp
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.uniapplab.unilive.DeviceQAHost
+      TARGETED_DEVICE_FAMILY: "1"
+      GENERATE_INFOPLIST_FILE: YES
+      CODE_SIGN_STYLE: Automatic
+      DEVELOPMENT_TEAM: "4LHM9N9L8Q"
+  UniLiveDeviceQAUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - UniLiveDeviceQAUITests
+    dependencies:
+      - target: HostApp
+    settings:
+      PRODUCT_BUNDLE_IDENTIFIER: com.uniapplab.unilive.DeviceQAUITests
+      TARGETED_DEVICE_FAMILY: "1"
+      GENERATE_INFOPLIST_FILE: YES
+      CODE_SIGN_STYLE: Automatic
+      DEVELOPMENT_TEAM: "4LHM9N9L8Q"
+      TEST_TARGET_NAME: HostApp
+schemes:
+  UniLiveDeviceQA:
+    build:
+      targets:
+        HostApp: all
+        UniLiveDeviceQAUITests: [test]
+    test:
+      targets:
+        - UniLiveDeviceQAUITests

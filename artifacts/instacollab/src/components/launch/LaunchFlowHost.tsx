@@ -69,6 +69,7 @@ export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
       className="h-vv max-h-vv w-full bg-background"
       data-testid={`launch-route-${route}`}
       data-launch-route={route}
+      aria-label={`launch-route-${route}`}
     >
       <ErrorBoundary screen={`launch:${route}`}>{content}</ErrorBoundary>
     </AppScreen>

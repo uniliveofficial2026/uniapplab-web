@@ -332,6 +332,8 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
       className="flex h-vv max-h-vv w-full max-w-full bg-background text-foreground overflow-hidden font-sans min-h-0"
       data-testid="signed-in-shell"
       data-shell-tab={currentTab}
+      aria-label="signed-in-shell"
+      role="main"
     >
       <PostAudioPlaybackRoot />
 
