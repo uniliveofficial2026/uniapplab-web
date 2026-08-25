@@ -1,1 +1,9 @@
-{"version":1787687187747,"reason":"build","id":"09e94136ac2c"}
+{
+  "version": 1787692879968,
+  "reason": "deploy",
+  "id": "bc3d2f9c6896",
+  "gitSha": "9fea359dfcef0d2022a3339857812decbafcb36f",
+  "buildTime": "2026-08-25T21:21:19.960Z",
+  "entryJs": "assets/index-D9YZUFCc.js",
+  "entryCss": "assets/index-CfgA_FXS.css"
+}

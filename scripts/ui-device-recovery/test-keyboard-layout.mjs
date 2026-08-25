@@ -43,7 +43,21 @@ const surfaces = [
   {
     id: 'safe-area-ssot',
     file: 'src/lib/safeArea.ts',
-    must: [/keyboardInset/, /dataset\.keyboardOpen/, /requestAnimationFrame/],
+    must: [
+      /keyboardInset/,
+      /dataset\.keyboardOpen/,
+      /requestAnimationFrame/,
+      /staticBottom/,
+      /root\.style\.setProperty\('--app-safe-bottom', `\$\{staticBottom\}px`\)/,
+    ],
+    mustNot: [/const bottom = Math\.max\(env\.bottom, vv\.bottom/],
+  },
+  {
+    id: 'shell-bottom-offset-keyboard',
+    file: 'src/lib/safeArea.ts',
+    must: [
+      /keyboardOpen\s*\?\s*`0px`\s*:\s*`calc\(\$\{staticBottom\}px \+ var\(--app-mobile-bottom-nav-h/,
+    ],
   },
 ];
 
@@ -53,7 +67,25 @@ for (const surface of surfaces) {
   for (const re of surface.must) {
     assert.match(src, re, `${surface.id} missing ${re}`);
   }
+  for (const re of surface.mustNot || []) {
+    assert.ok(!re.test(src), `${surface.id} forbidden pattern ${re}`);
+  }
   results.push({ id: surface.id, status: 'PASS_STATIC' });
+}
+
+// Published SPA must match recovery bundle (when deploy/spa-public exists)
+const repoRoot = path.resolve(__dirname, '../..');
+const deployIndex = path.join(repoRoot, 'deploy/spa-public/index.html');
+if (fs.existsSync(deployIndex)) {
+  const html = fs.readFileSync(deployIndex, 'utf8');
+  assert.match(html, /index-D9YZUFCc\.js|index-[A-Za-z0-9_-]+\.js/, 'deploy index missing entry js');
+  const deployJs = html.match(/assets\/(index-[A-Za-z0-9_-]+\.js)/)?.[1];
+  if (deployJs) {
+    const js = fs.readFileSync(path.join(repoRoot, 'deploy/spa-public/assets', deployJs), 'utf8');
+    assert.match(js, /app-composer-bottom-inset/, 'deploy bundle missing composer inset');
+    assert.match(js, /KeyboardResize/, 'deploy bundle missing KeyboardResize');
+  }
+  results.push({ id: 'deploy-spa-bundle', status: 'PASS_STATIC' });
 }
 
 console.log(JSON.stringify({ ok: true, surfaces: results }, null, 2));
