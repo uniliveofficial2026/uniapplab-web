@@ -53,6 +53,24 @@ function looksLikeStaticAsset(pathname: string): boolean {
 
 async function spaProxy(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
+  // Never serve a static marketing/oauth brand page as the consumer /home shell.
+  // Trailing-slash /home/ previously shadowed the SPA via public/home/index.html.
+  if (url.pathname === "/home" || url.pathname === "/home/") {
+    const indexUrl = new URL("/index.html", env.SPA_ORIGIN);
+    const indexRes = await fetch(indexUrl.toString(), {
+      method: "GET",
+      headers: { Accept: "text/html", "Cache-Control": "no-cache" },
+      redirect: "manual",
+    });
+    if (indexRes.ok) {
+      const headers = new Headers(indexRes.headers);
+      headers.set("Cache-Control", "public, max-age=0, must-revalidate");
+      headers.set("X-UniLive-Route", "spa-home");
+      for (const [k, v] of Object.entries(SECURITY_HEADERS)) headers.set(k, v);
+      return new Response(indexRes.body, { status: 200, headers });
+    }
+  }
+
   const upstream = await proxy(request, env.SPA_ORIGIN);
   if (upstream.status !== 404) return upstream;
   // Render static does not honor Netlify-style _redirects; SPA deep links need index.html.

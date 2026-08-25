@@ -34,8 +34,15 @@ for (const name of assets.slice(0, 5)) {
 
 const homeShadow = path.join(spa, 'home', 'index.html');
 if (fs.existsSync(homeShadow)) {
-  console.error('FAIL static home/index.html shadows SPA /home route — move to oauth-brand/');
-  process.exit(1);
+  const homeHtml = fs.readFileSync(homeShadow, 'utf8');
+  if (/Why we use Google Sign-In|verified domain/i.test(homeHtml)) {
+    console.error('FAIL static home/index.html is OAuth brand page — must redirect to SPA');
+    process.exit(1);
+  }
+  if (!/location\.replace\('\/'/.test(homeHtml) && !/http-equiv="refresh"/i.test(homeHtml)) {
+    console.error('FAIL home/index.html must redirect into SPA root');
+    process.exit(1);
+  }
 }
 
 console.log(JSON.stringify({ ok: true, spaJsAssets: assets.length }, null, 2));
