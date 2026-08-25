@@ -62,6 +62,25 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
     );
     const hashAccess = hashParams.get('access_token');
     const hashRefresh = hashParams.get('refresh_token');
+    if (hashRefresh && (!hashAccess || hashAccess.length < 40)) {
+      const { data, error } = await withTimeout(
+        supabase.auth.refreshSession({ refresh_token: hashRefresh }),
+        OAUTH_EXCHANGE_MS,
+        'Supabase refreshSession(hash)',
+      );
+      if (error) {
+        return { handled: true, ok: false, reason: error.message };
+      }
+      if (data.session?.user) {
+        writeStoredAuthBackend('supabase');
+        const googleAccessToken = persistGoogleProviderTokenFromSession(data.session);
+        stripSupabaseOAuthParamsFromUrl();
+        void import('../platformApi')
+          .then(({ postPresenceHeartbeat }) => postPresenceHeartbeat())
+          .catch(() => undefined);
+        return { handled: true, ok: true, googleAccessToken };
+      }
+    }
     if (hashAccess && hashRefresh) {
       const { data, error } = await withTimeout(
         supabase.auth.setSession({
@@ -78,6 +97,10 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
         writeStoredAuthBackend('supabase');
         const googleAccessToken = persistGoogleProviderTokenFromSession(data.session);
         stripSupabaseOAuthParamsFromUrl();
+        // Cap/device QA: prove session immediately (don't wait for 60s timer).
+        void import('../platformApi')
+          .then(({ postPresenceHeartbeat }) => postPresenceHeartbeat())
+          .catch(() => undefined);
         return { handled: true, ok: true, googleAccessToken };
       }
     }

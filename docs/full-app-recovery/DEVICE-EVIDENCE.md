@@ -33,12 +33,14 @@ Verification after fix + session inject:
 
 ## iPhone 14 Pro Max
 
-- Connected via `devicectl` (localNetwork)
+- Connected via `devicectl` (localNetwork) — PASS
 - Cap Debug install + launch: PASS (`server.url=https://app.uniapplab.com`)
-- Signed-in shell on device: NOT_TESTED (needs owner profile Continue / login)
+- Physical auth session (`@qa_device` / `2a7e55d4…`): PASS via scheme handoff (see PHYSICAL-AUTH-EVIDENCE.md)
+- Presence from device → postgres `presence_ephemeral`: PASS
+- Signed-in shell navigation matrix: NOT_TESTED
 - Camera / mic / iPhone↔Mac RTC: NOT_TESTED
 
 ## Verdict
 
 `fullRealApplication = FAIL` until signed-in navigation + media flows are proven on device.
-But the `/home` shadow bug that made production look like “not the real app” is fixed.
+Physical **auth session** is no longer the blocker (remote Cap + scheme handoff).

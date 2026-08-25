@@ -242,18 +242,46 @@ export function CloudAuthProvider({ children }: { children: React.ReactNode }) {
 
     void (async () => {
       try {
-        if (isSupabaseOAuthReturnInUrl() && isSupabaseConfigured()) {
-          const oauthReturn = await withTimeout(
-            completeSupabaseOAuthReturnOnce(),
-            OAUTH_RETURN_MS,
-            'Supabase OAuth return',
-          ).catch(() => ({
-            handled: true,
-            ok: false,
-            reason: 'Sign-in timed out — Supabase auth may be recovering. Try again in a minute.',
-          }));
-          if (oauthReturn.handled && !oauthReturn.ok && oauthReturn.reason) {
-            console.warn('[auth] Supabase OAuth return:', oauthReturn.reason);
+        if (isSupabaseConfigured()) {
+          // Cap cold-start may queue a deep link before this effect runs; always attempt flush.
+          const { peekPendingNativeAuthDeepLink } = await import(
+            '../lib/auth/nativeAuthDeepLinkQueue'
+          );
+          if (isSupabaseOAuthReturnInUrl() || peekPendingNativeAuthDeepLink()) {
+            const oauthReturn = await withTimeout(
+              completeSupabaseOAuthReturnOnce(),
+              OAUTH_RETURN_MS,
+              'Supabase OAuth return',
+            ).catch(() => ({
+              handled: true,
+              ok: false,
+              reason: 'Sign-in timed out — Supabase auth may be recovering. Try again in a minute.',
+            }));
+            if (oauthReturn.handled && !oauthReturn.ok && oauthReturn.reason) {
+              console.warn('[auth] Supabase OAuth return:', oauthReturn.reason);
+            }
+            // Deep-link apply reloads the WebView; stop this boot cycle.
+            if (oauthReturn.reason === 'native-deeplink-applied') {
+              markReady();
+              return;
+            }
+            // native-hash-session: continue into startSupabase so onAuthStateChange applies.
+          }
+        }
+
+        // Cap race: launch URL may arrive after first peek — retry briefly.
+        if (isSupabaseConfigured()) {
+          const { isNativeShell } = await import('../lib/nativeShell');
+          if (isNativeShell()) {
+            for (const ms of [80, 400, 1200]) {
+              window.setTimeout(() => {
+                if (cancelled) return;
+                void import('../lib/auth/nativeAuthDeepLinkQueue').then(({ peekPendingNativeAuthDeepLink }) => {
+                  if (!peekPendingNativeAuthDeepLink()) return;
+                  void completeSupabaseOAuthReturnOnce();
+                });
+              }, ms);
+            }
           }
         }
 

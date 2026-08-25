@@ -6,6 +6,8 @@ export function isSupabaseOAuthReturnInUrl(): boolean {
   if (/\btoken_hash=/.test(search)) return true;
   if (/\btype=(signup|email|recovery|invite|magiclink|email_change)/.test(search)) return true;
   if (/\baccess_token=/.test(hash)) return true;
+  if (/\brefresh_token=/.test(hash)) return true;
+  if (/\brt=/.test(search)) return true;
   if (/\berror=/.test(search) && /\berror_description=/.test(search)) return true;
   return false;
 }

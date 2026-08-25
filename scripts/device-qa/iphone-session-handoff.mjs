@@ -1,16 +1,16 @@
 #!/usr/bin/env node
 /**
  * Physical iPhone Cap session handoff — real Supabase QA session into Cap WebView.
- * Does NOT invent identity. Uses existing QA creds from ignored .local file or env.
  *
- * Usage:
- *   node scripts/device-qa/iphone-session-handoff.mjs
+ * Modes:
+ *   UNILIVE_HANDOFF_MODE=scheme  (default) custom scheme + access+refresh hash
+ *   UNILIVE_HANDOFF_MODE=https   https://app.uniapplab.com/home#tokens
+ *   UNILIVE_HANDOFF_MODE=query   custom scheme ?rt= refresh-only (needs new SPA)
  */
 import fs from 'node:fs';
 import path from 'node:path';
 import { spawnSync } from 'node:child_process';
 import { fileURLToPath } from 'node:url';
-import { createClient } from '@supabase/supabase-js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
 const udid = process.env.UNILIVE_IPHONE_UDID || '04E86E0A-14A3-524B-919C-EB7C477083EE';
@@ -24,42 +24,80 @@ function loadCreds() {
   return JSON.parse(fs.readFileSync(p, 'utf8'));
 }
 
-const creds = loadCreds();
-const boot = await fetch('https://app.uniapplab.com/api/app-config/bootstrap').then((r) => r.json());
-const sb = createClient(boot.public.supabaseUrl, boot.public.supabaseAnonKey);
-const { data, error } = await sb.auth.signInWithPassword({
-  email: creds.email,
-  password: creds.password,
-});
-if (error) throw error;
-const s = data.session;
-const me = await fetch('https://app.uniapplab.com/api/me', {
-  headers: { Authorization: `Bearer ${s.access_token}` },
-}).then((r) => r.json());
+async function fetchJson(url, init) {
+  const res = await fetch(url, {
+    ...init,
+    headers: {
+      Accept: 'application/json',
+      'User-Agent': 'UniLive-DeviceQA/1.0',
+      ...(init?.headers || {}),
+    },
+  });
+  const text = await res.text();
+  let json;
+  try {
+    json = JSON.parse(text);
+  } catch {
+    throw new Error(`${url} returned non-JSON (${res.status}): ${text.slice(0, 120)}`);
+  }
+  if (!res.ok) throw new Error(`${url} ${res.status}: ${text.slice(0, 200)}`);
+  return json;
+}
 
-const hash = new URLSearchParams({
-  access_token: s.access_token,
-  refresh_token: s.refresh_token,
-  expires_in: String(s.expires_in || 3600),
+const creds = loadCreds();
+const boot = await fetchJson('https://app.uniapplab.com/api/app-config/bootstrap');
+const supabaseUrl = boot.public.supabaseUrl;
+const anon = boot.public.supabaseAnonKey;
+
+const tokenJson = await fetchJson(`${supabaseUrl}/auth/v1/token?grant_type=password`, {
+  method: 'POST',
+  headers: {
+    apikey: anon,
+    Authorization: `Bearer ${anon}`,
+    'Content-Type': 'application/json',
+  },
+  body: JSON.stringify({ email: creds.email, password: creds.password }),
+});
+
+const access = tokenJson.access_token;
+const refresh = tokenJson.refresh_token;
+const uid = tokenJson.user?.id;
+const me = await fetchJson('https://app.uniapplab.com/api/me', {
+  headers: { Authorization: `Bearer ${access}` },
+});
+
+const dualHash = new URLSearchParams({
+  access_token: access,
+  refresh_token: refresh,
+  expires_in: String(tokenJson.expires_in || 3600),
   token_type: 'bearer',
   type: 'magiclink',
 }).toString();
 
-const urls = [
-  `https://app.uniapplab.com/home#${hash}`,
-  `com.uniapplab.unilive://auth/callback#${hash}`,
-];
+const refreshOnlyHash = new URLSearchParams({
+  refresh_token: refresh,
+  type: 'recovery',
+}).toString();
 
-const mode = process.env.UNILIVE_HANDOFF_MODE === 'scheme' ? 1 : 0;
-const url = urls[mode];
+const urls = {
+  https: `https://app.uniapplab.com/home#${dualHash}`,
+  scheme: `com.uniapplab.unilive://auth/callback#${dualHash}`,
+  query: `com.uniapplab.unilive://auth/callback?rt=${encodeURIComponent(refresh)}`,
+  refresh: `com.uniapplab.unilive://auth/callback#${refreshOnlyHash}`,
+};
+
+const mode = process.env.UNILIVE_HANDOFF_MODE || 'scheme';
+const url = urls[mode] || urls.scheme;
 
 console.log(
   JSON.stringify(
     {
-      uid: String(s.user.id).slice(0, 8),
+      uid: String(uid || '').slice(0, 8),
       profileSetupComplete: me.profileSetupComplete,
       username: me.username || me.publicUserId,
-      payload: url.split('#')[0] + '#<redacted>',
+      mode,
+      payloadLen: url.length,
+      payload: url.replace(access, '<access>').replace(refresh, '<refresh>'),
     },
     null,
     2,

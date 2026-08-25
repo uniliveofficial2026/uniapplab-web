@@ -63,6 +63,20 @@ export function installRuntimeGuards(): void {
 
   window.addEventListener('error', (event) => {
     const payload = event.error ?? event.message;
+    const msg =
+      payload instanceof Error
+        ? payload.message
+        : typeof payload === 'string'
+          ? payload
+          : String(payload ?? '');
+    // Cap Browser.close / opaque cross-origin noise — never blank the shell.
+    if (
+      /^Script error\.?$/i.test(msg) ||
+      /No active window to close/i.test(msg)
+    ) {
+      event.preventDefault();
+      return;
+    }
     if (isBenignCloudNoise(payload)) {
       recoverFirestoreStorageQuota(payload);
       event.preventDefault();

@@ -5939,6 +5939,8 @@
     "name@example.com": "‮‹‹name@example.com››‬",
     "name@unilive.co": "‮‹‹name@unilive.co››‬",
     "native": "‮‹‹native››‬",
+    "native-deeplink-applied": "‮‹‹native-deeplink-applied››‬",
+    "native-hash-session": "‮‹‹native-hash-session››‬",
     "nav": "‮‹‹nav››‬",
     "nav.tab-switch": "‮‹‹nav.tab-switch››‬",
     "navigate": "‮‹‹navigate››‬",

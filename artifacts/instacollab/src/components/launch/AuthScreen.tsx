@@ -134,12 +134,28 @@ export function AuthScreen() {
   };
 
   useEffect(() => {
-    if (!useCloudAuth || !isSupabaseConfigured() || !isSupabaseOAuthReturnInUrl()) return;
+    if (!useCloudAuth || !isSupabaseConfigured()) return;
     let cancelled = false;
     void (async () => {
+      const { peekPendingNativeAuthDeepLink } = await import(
+        '../../lib/auth/nativeAuthDeepLinkQueue'
+      );
+      if (!isSupabaseOAuthReturnInUrl() && !peekPendingNativeAuthDeepLink()) return;
       const result = await completeSupabaseOAuthReturnOnce();
       if (cancelled) return;
       if (!result.handled) return;
+      if (result.reason === 'native-deeplink-applied') return;
+      if (result.reason === 'native-hash-session') {
+        const sync = await syncCloudSessionNow();
+        if (cancelled) return;
+        if (!sync.ok) {
+          showToast(sync.reason);
+          return;
+        }
+        showToast('Signed in!');
+        passAuthGate();
+        return;
+      }
       if (!result.ok) {
         if (result.reason) showToast(result.reason);
         return;

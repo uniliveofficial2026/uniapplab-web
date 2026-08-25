@@ -74,20 +74,33 @@ export async function bootNativeShell(): Promise<void> {
     });
 
     // Google/Apple OAuth returns via com.uniapplab.unilive://auth/callback?code=…
+    // Also used for QA session hash handoff. Queue until auth boot is ready.
     nativeUnsubs.push(() => { void state.remove(); });
 
+    const {
+      noteNativeAuthDeepLink,
+      isNativeAuthBootReady,
+      flushPendingNativeAuthDeepLink,
+    } = await import('./auth/nativeAuthDeepLinkQueue');
+
+    const applyDeepLink = async (url: string) => {
+      noteNativeAuthDeepLink(url);
+      if (!isNativeAuthBootReady()) {
+        // Auth boot will flush via completeSupabaseOAuthReturnOnce / CloudAuthContext.
+        return;
+      }
+      await flushPendingNativeAuthDeepLink();
+    };
+
     const urlOpen = await App.addListener('appUrlOpen', ({ url }) => {
-      void import('./auth/nativeOAuth').then(({ handleNativeOAuthDeepLink }) => {
-        void handleNativeOAuthDeepLink(url);
-      });
+      void applyDeepLink(url);
     });
     nativeUnsubs.push(() => { void urlOpen.remove(); });
 
-    // Cold start: app launched from OAuth deep link.
+    // Cold start: app launched from OAuth / session-handoff deep link.
     const launch = await App.getLaunchUrl().catch(() => null);
     if (launch?.url) {
-      const { handleNativeOAuthDeepLink } = await import('./auth/nativeOAuth');
-      await handleNativeOAuthDeepLink(launch.url);
+      void applyDeepLink(launch.url);
     }
   } catch {
     /* optional */
