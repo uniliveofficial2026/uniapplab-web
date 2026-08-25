@@ -51,8 +51,11 @@ test('seat publish: LiveKit party token derives canPublish server-side (not clie
   // Stage B/C sealed authority: server computes canPublish; hidden admin watch is subscribe-only.
   assert.match(src, /canPublish/);
   assert.match(src, /wantHidden/);
-  assert.match(src, /Boolean\(publish\)/);
+  assert.match(src, /seatedPublisher/);
+  assert.match(src, /publish:\s*canPublish/);
+  assert.match(src, /void publish/);
   assert.doesNotMatch(src, /canPublish:\s*Boolean\(\s*req\.body/);
+  assert.doesNotMatch(src, /canPublish:\s*Boolean\(\s*publish/);
 });
 
 test('multi-guest hook publishes only when canPublish true', () => {
