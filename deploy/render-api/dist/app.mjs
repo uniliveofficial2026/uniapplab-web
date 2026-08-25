@@ -165783,7 +165783,7 @@ async function postgresSetUserOnline(userId, ttlSeconds, deviceId = "default") {
   );
   if (error45) {
     logger.warn({ err: error45.message }, "postgres presence upsert failed");
-    return false;
+    throw error45;
   }
   return true;
 }
@@ -165792,7 +165792,7 @@ async function postgresClearUserDevicePresence(userId, deviceId = "default") {
   const { error: error45 } = await getSupabaseService().from(TABLE).delete().eq("person_id", userId).eq("device_id", device);
   if (error45) {
     logger.warn({ err: error45.message }, "postgres presence clear failed");
-    return false;
+    throw error45;
   }
   return true;
 }
@@ -165801,7 +165801,7 @@ async function postgresListActivePresenceDevices(userId) {
   const { data, error: error45 } = await getSupabaseService().from(TABLE).select("device_id").eq("person_id", userId).gt("expires_at", now3);
   if (error45) {
     logger.warn({ err: error45.message }, "postgres presence list failed");
-    return [];
+    throw error45;
   }
   return (data ?? []).map((row) => String(row.device_id));
 }
@@ -165816,7 +165816,7 @@ async function postgresFilterOnlineUserIds(userIds) {
   const { data, error: error45 } = await getSupabaseService().from(TABLE).select("person_id").in("person_id", unique).gt("expires_at", now3);
   if (error45) {
     logger.warn({ err: error45.message }, "postgres presence filter failed");
-    return [];
+    throw error45;
   }
   return [...new Set((data ?? []).map((row) => String(row.person_id)))];
 }

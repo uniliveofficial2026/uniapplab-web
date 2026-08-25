@@ -38,7 +38,7 @@ export async function postgresSetUserOnline(
   );
   if (error) {
     logger.warn({ err: error.message }, "postgres presence upsert failed");
-    return false;
+    throw error;
   }
   return true;
 }
@@ -55,7 +55,7 @@ export async function postgresClearUserDevicePresence(
     .eq("device_id", device);
   if (error) {
     logger.warn({ err: error.message }, "postgres presence clear failed");
-    return false;
+    throw error;
   }
   return true;
 }
@@ -69,7 +69,7 @@ export async function postgresListActivePresenceDevices(userId: string): Promise
     .gt("expires_at", now);
   if (error) {
     logger.warn({ err: error.message }, "postgres presence list failed");
-    return [];
+    throw error;
   }
   return (data ?? []).map((row) => String((row as { device_id: string }).device_id));
 }
@@ -90,7 +90,7 @@ export async function postgresFilterOnlineUserIds(userIds: string[]): Promise<st
     .gt("expires_at", now);
   if (error) {
     logger.warn({ err: error.message }, "postgres presence filter failed");
-    return [];
+    throw error;
   }
   return [...new Set((data ?? []).map((row) => String((row as { person_id: string }).person_id)))];
 }
