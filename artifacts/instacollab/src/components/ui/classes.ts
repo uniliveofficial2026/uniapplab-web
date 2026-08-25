@@ -30,7 +30,7 @@ export const unilivesButtonSizeClass = {
 export type UniLivesButtonSize = keyof typeof unilivesButtonSizeClass;
 
 export const unilivesInputClass =
-  'w-full rounded-[var(--radius-unilives-lg)] border border-[color:var(--color-unilives-input-border)] bg-[color:var(--color-unilives-input-background)] px-4 py-3 text-[length:var(--text-unilives-body)] font-medium text-[color:var(--color-unilives-text)] outline-none placeholder:text-[color:var(--color-unilives-input-placeholder)] focus:ring-2 focus:ring-[color:var(--color-unilives-focus)]/40 disabled:opacity-50';
+  'w-full rounded-[var(--radius-unilives-lg)] border border-[color:var(--color-unilives-input-border)] bg-[color:var(--color-unilives-input-background)] px-4 py-3 text-base md:text-[length:var(--text-unilives-body)] font-medium text-[color:var(--color-unilives-text)] outline-none placeholder:text-[color:var(--color-unilives-input-placeholder)] focus:ring-2 focus:ring-[color:var(--color-unilives-focus)]/40 disabled:opacity-50';
 
 export const unilivesCardClass =
   'rounded-[var(--radius-unilives-xl)] border border-[color:var(--color-unilives-border)] bg-[color:var(--color-unilives-surface)] text-[color:var(--color-unilives-text)] shadow-[var(--shadow-unilives-sm)]';

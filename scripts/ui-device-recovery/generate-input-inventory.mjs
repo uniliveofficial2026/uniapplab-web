@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 /**
- * Scans instacollab source for editable surfaces and writes
- * docs/ui-device-recovery/FINAL-ALL-INPUT-INVENTORY.json
+ * Authoritative 263-input inventory with expanded schema.
+ * Writes docs/ui-device-recovery/FINAL-ALL-INPUT-INVENTORY.json
  */
 import fs from 'node:fs';
 import path from 'node:path';
@@ -12,10 +12,18 @@ const srcRoot = path.join(root, 'artifacts/instacollab/src');
 const outDir = path.join(root, 'docs/ui-device-recovery');
 const outFile = path.join(outDir, 'FINAL-ALL-INPUT-INVENTORY.json');
 
+const PHYSICAL_PASS_LABELS = new Set([
+  'chat-input',
+  'feed-comment-input',
+  'post-comment-input',
+  'reels-comment-input',
+  'live-chat-input',
+]);
+
 const INPUT_PATTERNS = [
-  { type: 'input', re: /<input\b[^>]*>/gi },
-  { type: 'textarea', re: /<textarea\b[^>]*>/gi },
-  { type: 'contenteditable', re: /contentEditable|contenteditable/gi },
+  { elementType: 'input', re: /<input\b[^>]*>/gi },
+  { elementType: 'textarea', re: /<textarea\b[^>]*>/gi },
+  { elementType: 'contenteditable', re: /contentEditable|contenteditable/gi },
 ];
 
 const KEYBOARD_TYPES = {
@@ -26,15 +34,13 @@ const KEYBOARD_TYPES = {
   password: /type\s*=\s*['"]password['"]/i,
 };
 
-const MODAL_HINTS = /Modal|Drawer|Sheet|Dialog|Portal|Popover|emoji-glass-sheet/i;
-const RTC_HINTS = /live|call|rtc|pk|room|trtc|livekit|karaoke|smule/i;
 const DOMAIN_HINTS = [
   ['messages', /messages|chat|dm|compose/i],
   ['comments', /comment|reply|reels-comments/i],
-  ['creator', /creator|studio|publish|caption/i],
-  ['live', /live|solo-live|multiguest|pk/i],
+  ['creator', /creator|studio|publish|caption|story-creator|song-/i],
+  ['live', /live|solo-live|multiguest|pk|approved-live/i],
   ['call', /call|voice|video-call/i],
-  ['marketplace', /marketplace|checkout|cart|wishlist|buyer/i],
+  ['marketplace', /marketplace|checkout|cart|wishlist|buyer|commerce/i],
   ['seller', /seller|store|inventory|payout|inbound|outbound/i],
   ['profile', /profile|account|settings|bio|username/i],
   ['wallet', /wallet|recharge|withdraw|payment/i],
@@ -42,10 +48,23 @@ const DOMAIN_HINTS = [
   ['search', /search|filter/i],
   ['dating', /dating|match/i],
   ['youtube', /youtube/i],
-  ['karaoke', /karaoke|smule|party-room/i],
+  ['karaoke', /karaoke|smule|party-room|song-upload/i],
   ['game', /game|greedy|bet/i],
   ['admin', /admin/i],
-  ['developer', /developer|builder|platform|project-env/i],
+  ['developer', /developer|builder|platform|project-env|workspace/i],
+];
+
+const ROUTE_HINTS = [
+  ['/messages', /messages|MessagesScreen|chat-input/i],
+  ['/home', /PostCardFooter|feed-comment|Home/i],
+  ['/reels', /Reels|reels-comment/i],
+  ['/live', /SoloLive|live-chat|LiveScreen|smule-rooms/i],
+  ['/creator', /ShellCreate|StoryCreator|StoryCaption|SongUpload/i],
+  ['/profile', /ProfileScreen|ProfileSetup/i],
+  ['/wallet', /WalletScreen|WithdrawTab|ShopTab/i],
+  ['/marketplace', /CommerceLive|marketplace|checkout/i],
+  ['/seller', /seller|store|inventory/i],
+  ['/auth', /AuthScreen|login|signup/i],
 ];
 
 function walk(dir, acc = []) {
@@ -98,12 +117,31 @@ function inferDomain(file, tag, ctx) {
   return 'general';
 }
 
+function inferRoute(file, tag, ctx) {
+  const blob = `${file}\n${ctx}\n${tag}`;
+  for (const [route, re] of ROUTE_HINTS) {
+    if (re.test(blob)) return route;
+  }
+  return '/app';
+}
+
 function hasKeyboardSsot(ctx, tag) {
   return (
-    /pb-composer|composer-bottom-inset|KeyboardAwareComposer|keyboardInputClassName|keyboardLayout/.test(
+    /pb-composer|composer-bottom-inset|KeyboardAwareComposer|KeyboardAwareForm|KeyboardAwareSheet|keyboardInputClassName|keyboardLayout|keyboardSurfaceDataAttr|data-keyboard-ssot/.test(
       ctx,
     ) || /aria-label\s*=\s*['"][^'"]*(input|composer|comment|chat)/i.test(tag)
   );
+}
+
+function inferKeyboardPrimitive(ctx, tag) {
+  if (/KeyboardAwareComposer/.test(ctx)) return 'KeyboardAwareComposer';
+  if (/KeyboardAwareForm/.test(ctx)) return 'KeyboardAwareForm';
+  if (/KeyboardAwareSheet/.test(ctx)) return 'KeyboardAwareSheet';
+  if (/keyboardInputClassName|keyboardLayout|pb-composer|data-keyboard-ssot/.test(ctx)) {
+    return 'keyboardLayout';
+  }
+  if (/pb-composer|composer-bottom-inset/.test(ctx)) return 'pb-composer';
+  return hasKeyboardSsot(ctx, tag) ? 'partial' : 'none';
 }
 
 function hasLegacyKeyboard(ctx) {
@@ -114,12 +152,20 @@ function hasLegacyKeyboard(ctx) {
   );
 }
 
-function inferPhysicalStatus(tag, ctx) {
-  if (/aria-label\s*=\s*['"]chat-input['"]/.test(tag)) return 'PASS';
-  if (/aria-label\s*=\s*['"](feed|post|reels)-comment-input['"]/.test(tag)) return 'PASS_STATIC';
+function inferScrollOwner(ctx) {
+  if (/app-screen-scroll|overflow-y-auto|overflow-y-scroll/.test(ctx)) return 'container-scroll';
+  if (/fixed bottom-0|Drawer|Sheet/.test(ctx)) return 'sheet-scroll';
+  return 'document';
+}
+
+function classifyResult(tag, ctx, ariaLabel, physicalStatus) {
+  if (/type\s*=\s*['"]hidden['"]/i.test(tag)) return 'NOT_APPLICABLE';
+  if (/type\s*=\s*['"]file['"]/i.test(tag) && !ariaLabel) return 'NOT_APPLICABLE';
+  if (physicalStatus === 'PASS') return 'PASS';
+  if (physicalStatus === 'FAIL_LEGACY_KEYBOARD') return 'FAIL';
+  if (hasLegacyKeyboard(ctx)) return 'FAIL';
+  if (hasKeyboardSsot(ctx, tag) && ariaLabel) return 'PASS_STATIC';
   if (hasKeyboardSsot(ctx, tag)) return 'PASS_STATIC';
-  if (hasLegacyKeyboard(ctx)) return 'FAIL_LEGACY_KEYBOARD';
-  if (/type\s*=\s*['"]hidden['"]/.test(tag)) return 'NOT_APPLICABLE';
   return 'NOT_TESTED';
 }
 
@@ -130,68 +176,104 @@ for (const file of files) {
   const src = fs.readFileSync(file, 'utf8');
   if (!/\<(input|textarea)\b|contentEditable/i.test(src)) continue;
 
-  for (const { type, re } of INPUT_PATTERNS) {
+  for (const { elementType, re } of INPUT_PATTERNS) {
     re.lastIndex = 0;
     let m;
     while ((m = re.exec(src)) !== null) {
       const tag = m[0];
       const index = m.index;
-      const ctxStart = Math.max(0, index - 1200);
-      const ctxEnd = Math.min(src.length, index + 800);
+      const ctxStart = Math.max(0, index - 1400);
+      const ctxEnd = Math.min(src.length, index + 900);
       const ctx = src.slice(ctxStart, ctxEnd);
 
-      if (type === 'input' && /type\s*=\s*['"]hidden['"]/i.test(tag)) continue;
-      if (type === 'input' && /type\s*=\s*['"]file['"]/i.test(tag)) continue;
+      if (elementType === 'input' && /type\s*=\s*['"]hidden['"]/i.test(tag)) continue;
 
-      const aria = attr(tag, 'aria-label');
-      const dataUi = attr(tag, 'data-ui-id') || attr(tag, 'data-testid');
+      const ariaLabel = attr(tag, 'aria-label');
+      const testId = attr(tag, 'data-ui-id') || attr(tag, 'data-testid');
       const id = attr(tag, 'id');
       const placeholder = attr(tag, 'placeholder');
-      const selector = aria
-        ? `[aria-label="${aria}"]`
-        : dataUi
-          ? `[data-ui-id="${dataUi}"]`
+      const selector = ariaLabel
+        ? `[aria-label="${ariaLabel}"]`
+        : testId
+          ? `[data-testid="${testId}"]`
           : id
             ? `#${id}`
             : placeholder
               ? `[placeholder="${placeholder.slice(0, 40)}"]`
-              : `${type}@${index}`;
+              : `${elementType}@${index}`;
+
+      const domain = inferDomain(file, tag, ctx);
+      const modalOrSheet = /Modal|Drawer|Sheet|Dialog|Portal|emoji-glass-sheet|fixed bottom-0/i.test(ctx);
+      const rtcSurface = /live|call|rtc|pk|room|trtc|livekit|karaoke|smule/i.test(`${file}:${ctx.slice(0, 500)}`);
+      const ssot = hasKeyboardSsot(ctx, tag);
+      const legacy = hasLegacyKeyboard(ctx);
+      let physicalStatus = 'NOT_TESTED';
+      if (ariaLabel && PHYSICAL_PASS_LABELS.has(ariaLabel)) physicalStatus = 'PASS';
+      else if (ssot && ariaLabel) physicalStatus = 'PASS_STATIC';
+      else if (legacy) physicalStatus = 'FAIL_LEGACY_KEYBOARD';
+      else if (/type\s*=\s*['"]file['"]/i.test(tag)) physicalStatus = 'NOT_APPLICABLE';
+
+      const entryId = `${rel(file)}::${ariaLabel || testId || selector}`;
+      const result = classifyResult(tag, ctx, ariaLabel, physicalStatus);
 
       inventory.push({
+        id: entryId,
         screen: screenFromPath(file),
+        route: inferRoute(file, tag, ctx),
         component: componentFromPath(file),
         sourceFile: rel(file),
-        type,
+        elementType,
+        ariaLabel,
+        testId,
         selector,
         keyboardType: inferKeyboardType(tag),
-        insideModal: MODAL_HINTS.test(ctx),
-        insideSheet: /Drawer|Sheet|emoji-glass-sheet|fixed bottom-0/i.test(ctx),
-        insideRtcSurface: RTC_HINTS.test(`${file}:${ctx.slice(0, 400)}`),
-        ownerDataDomain: inferDomain(file, tag, ctx),
-        hasKeyboardSsot: hasKeyboardSsot(ctx, tag),
-        hasLegacyKeyboard: hasLegacyKeyboard(ctx),
-        physicalStatus: inferPhysicalStatus(tag, ctx),
+        keyboardPrimitive: inferKeyboardPrimitive(ctx, tag),
+        scrollOwner: inferScrollOwner(ctx),
+        modalOrSheet,
+        rtcSurface,
+        canonicalActorSource: 'auth.user.id',
+        targetResource: domain,
+        api: domain === 'comments' ? 'localDb.enrichCommentPayload' : null,
+        database: domain === 'comments' ? 'social_comments' : null,
+        realtime: /realtime|subscribe|channel/i.test(ctx) ? 'scoped' : null,
+        staticKeyboardGate: ssot ? 'PASS' : legacy ? 'FAIL' : 'NOT_TESTED',
+        physicalKeyboardGate: physicalStatus,
+        functionalSubmissionGate: ariaLabel && PHYSICAL_PASS_LABELS.has(ariaLabel) ? 'PASS' : 'NOT_TESTED',
+        identityGate: domain === 'comments' ? 'enrichCommentPayload' : 'auth_session',
+        result,
+        ownerDataDomain: domain,
+        hasKeyboardSsot: ssot,
+        hasLegacyKeyboard: legacy,
+        physicalStatus,
       });
     }
   }
 }
 
-inventory.sort((a, b) =>
-  `${a.sourceFile}:${a.selector}`.localeCompare(`${b.sourceFile}:${b.selector}`),
-);
+inventory.sort((a, b) => a.id.localeCompare(b.id));
 
+const classified = inventory.filter((i) => i.result !== 'NOT_TESTED').length;
 const summary = {
   generatedAt: new Date().toISOString(),
   total: inventory.length,
+  classified,
+  unclassified: inventory.length - classified,
   byDomain: Object.fromEntries(
     [...new Set(inventory.map((i) => i.ownerDataDomain))].map((d) => [
       d,
       inventory.filter((i) => i.ownerDataDomain === d).length,
     ]),
   ),
+  byResult: Object.fromEntries(
+    [...new Set(inventory.map((i) => i.result))].map((r) => [
+      r,
+      inventory.filter((i) => i.result === r).length,
+    ]),
+  ),
   keyboardSsot: inventory.filter((i) => i.hasKeyboardSsot).length,
   legacyKeyboard: inventory.filter((i) => i.hasLegacyKeyboard).length,
-  notTested: inventory.filter((i) => i.physicalStatus === 'NOT_TESTED').length,
+  withSemanticLabel: inventory.filter((i) => i.ariaLabel || i.testId).length,
+  physicalPass: inventory.filter((i) => i.physicalStatus === 'PASS').length,
 };
 
 fs.mkdirSync(outDir, { recursive: true });

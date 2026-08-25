@@ -5,6 +5,7 @@ import { useDB } from '../../lib/useDB';
 import { useToast } from '../../lib/ToastContext';
 import { fileToBase64 } from '../../lib/utils';
 import { UniLivesOnboardingArtwork } from '../onboarding/brand/UniLivesOnboardingArtwork';
+import { keyboardSurfaceDataAttr } from '../common/keyboardLayout';
 import type { OnboardingStepKey } from '../onboarding/brand/onboardingResolve';
 
 const MAX_BYTES = 12 * 1024 * 1024;
@@ -91,6 +92,8 @@ export function OnboardingBackgroundUpload({
         type="file"
         className="sr-only"
         accept={FILE_ACCEPT}
+        aria-label="creator-onboarding-background-file"
+        {...keyboardSurfaceDataAttr}
         onChange={(e) => void onPickFile(e)}
       />
       <span className="sr-only">Upload full-screen onboarding background</span>

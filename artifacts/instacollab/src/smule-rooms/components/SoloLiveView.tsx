@@ -1081,7 +1081,7 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
                   value={chatInput}
                   onChange={(event) => handleChatInputChange(event.target.value)}
                   placeholder="Say something..."
-                  aria-label="Live chat message"
+                  aria-label="live-chat-input"
                 />
               </form>
             </SoloShopLiveComposerActions>

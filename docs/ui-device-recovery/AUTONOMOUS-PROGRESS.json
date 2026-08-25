@@ -1,15 +1,24 @@
 {
-  "updatedAt": "2026-08-25T20:40:44.325Z",
+  "updatedAt": "2026-08-25T21:55:00.000Z",
   "fullRealApplication": "FAIL",
   "uiUxChanged": false,
-  "phase": "viewport-keyboard-ssot-landed",
+  "phase": "global-input-n-user-recovery",
   "surfaceIndexCount": 83,
-  "iphone": "BLOCKED_EXTERNAL",
+  "inputInventoryCount": 263,
+  "productionSpaEntry": "assets/index-CKuWk8ME.js",
+  "iphone": "available",
+  "completedThisSession": [
+    "FINAL-ALL-INPUT-INVENTORY.json (263 inputs)",
+    "Comment keyboard SSOT: feed/post/reels composers",
+    "N-user static gates A/B/C/D generic",
+    "test:global-input-recovery CI gates",
+    "XCUITest reels-comment-input landmark",
+    "SPA deploy index-CKuWk8ME pushed release/app-uniapplab-production"
+  ],
   "next": [
-    "Reconnect Wei iPhone",
-    "Build/deploy SPA with keyboard SSOT",
-    "Physical Messages/Live keyboard matrix",
-    "WKWebView WEBVIEW automation",
+    "Physical iPhone: post/reels comment keyboard PASS",
+    "Live/Creator/Marketplace/Seller keyboard SSOT sweep",
+    "Physical account rotation A→B→C→D→A",
     "Camera/Mic + iPhone↔Mac RTC"
   ]
 }

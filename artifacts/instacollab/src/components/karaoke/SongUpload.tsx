@@ -2,6 +2,7 @@ import React, { useState, useRef, useEffect, useMemo, useCallback } from 'react'
 import { Upload, FileText, Music, Check, X, ArrowRight, ArrowLeft, Play, Pause, FastForward, Info, Timer, Undo, Sun, Moon } from 'lucide-react';
 import { motion, AnimatePresence } from 'motion/react';
 import type { KaraokeUploadInput } from '../../lib/karaokeUploads';
+import { keyboardInputClassName } from '../common/keyboardLayout';
 
 type UploadStep = 'audio' | 'details' | 'lyrics' | 'timing' | 'review';
 
@@ -344,9 +345,10 @@ export const SongUpload = ({
                     <div className="space-y-2">
                       <label className="text-[11px] font-black tracking-widest text-muted-foreground ml-1">SONG TITLE</label>
                       <input 
-                        type="text" 
+                        type="text"
+                        aria-label="creator-song-title-input"
                         placeholder="e.g. Someone Like You" 
-                        className="w-full p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none text-base transition-all font-bold"
+                        className={`w-full p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none transition-all font-bold ${keyboardInputClassName}`}
                         value={songDetails.title}
                         onChange={(e) => setSongDetails({ ...songDetails, title: e.target.value })}
                       />
@@ -354,9 +356,10 @@ export const SongUpload = ({
                     <div className="space-y-2">
                       <label className="text-[11px] font-black tracking-widest text-muted-foreground ml-1">ARTIST NAME</label>
                       <input 
-                        type="text" 
+                        type="text"
+                        aria-label="creator-song-artist-input"
                         placeholder="e.g. Adele" 
-                        className="w-full p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none text-base transition-all font-bold"
+                        className={`w-full p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none transition-all font-bold ${keyboardInputClassName}`}
                         value={songDetails.artist}
                         onChange={(e) => setSongDetails({ ...songDetails, artist: e.target.value })}
                       />
@@ -386,9 +389,10 @@ export const SongUpload = ({
                 <div className="space-y-2">
                   <label className="text-[11px] font-black tracking-widest text-muted-foreground ml-1">TAGS</label>
                   <input 
-                    type="text" 
+                    type="text"
+                    aria-label="creator-song-tags-input"
                     placeholder="pop, ballad, soul" 
-                    className="w-full p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none text-base transition-all font-bold"
+                    className={`w-full p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none transition-all font-bold ${keyboardInputClassName}`}
                     value={songDetails.tags}
                     onChange={(e) => setSongDetails({ ...songDetails, tags: e.target.value })}
                   />
@@ -396,8 +400,9 @@ export const SongUpload = ({
                 <div className="space-y-2">
                   <label className="text-[11px] font-black tracking-widest text-muted-foreground ml-1">ADDITIONAL CREDITS</label>
                   <textarea 
+                    aria-label="creator-song-credits-input"
                     placeholder="Track producers, instrumentalists, etc..." 
-                    className="w-full h-32 p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none text-base resize-none font-bold"
+                    className={`w-full h-32 p-5 bg-muted border border-border rounded-2xl focus:border-primary/50 outline-none resize-none font-bold ${keyboardInputClassName}`}
                     value={songDetails.credits}
                     onChange={(e) => setSongDetails({ ...songDetails, credits: e.target.value })}
                   />
@@ -428,9 +433,10 @@ export const SongUpload = ({
                 </div>
                 <div className="relative">
                   <textarea 
+                    aria-label="creator-song-lyrics-input"
                     placeholder="Type or paste lyrics here.
 Each line will be timed separately." 
-                    className="w-full h-[350px] p-6 bg-muted border border-border rounded-[2rem] focus:border-primary/50 outline-none text-lg font-bold leading-relaxed resize-none scrollbar-hide"
+                    className={`w-full h-[350px] p-6 bg-muted border border-border rounded-[2rem] focus:border-primary/50 outline-none font-bold leading-relaxed resize-none scrollbar-hide ${keyboardInputClassName}`}
                     value={lyrics}
                     onChange={(e) => setLyrics(e.target.value)}
                   />

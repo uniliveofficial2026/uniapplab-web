@@ -20,6 +20,7 @@ import {
 } from '../../lib/themeText';
 import { StoryCreatorEdit, StoryDraftPreview } from './StoryCreatorEdit';
 import { useAppCamera } from '../../contexts/AppCameraContext';
+import { keyboardSurfaceDataAttr } from '../common/keyboardLayout';
 
 export type { StoryCreatorStep, StoryDraftMedia } from './storyDraft';
 
@@ -226,6 +227,8 @@ export function StoryCreatorFlow({
               accept={PHOTO_VIDEO_ACCEPT}
               className="hidden"
               ref={fileInputRef}
+              aria-label="creator-story-media-file"
+              {...keyboardSurfaceDataAttr}
               onChange={handleFileChange}
             />
             <button

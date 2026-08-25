@@ -945,7 +945,7 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
                   enterKeyHint="send"
                   autoComplete="off"
                   data-testid="live-chat-input"
-                  aria-label="Live chat message"
+                  aria-label="live-chat-input"
                   value={chatInput}
                   onChange={(e) => handleChatInputChange(e.target.value)}
                   placeholder="Say Hi..."

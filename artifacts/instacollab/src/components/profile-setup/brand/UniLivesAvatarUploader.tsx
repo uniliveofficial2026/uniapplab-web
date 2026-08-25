@@ -2,6 +2,7 @@ import React from 'react';
 import { Camera } from 'lucide-react';
 import { handleAvatarError } from '../../../lib/utils';
 import { UniLivesAvatarPlaceholder } from './UniLivesAvatarPlaceholder';
+import { keyboardSurfaceDataAttr } from '../../common/keyboardLayout';
 
 type Props = {
   /** Preview URL from parent (base64 / remote / empty). */
@@ -62,6 +63,8 @@ export function UniLivesAvatarUploader({
         type="file"
         className="sr-only"
         accept={accept}
+        aria-label="creator-avatar-file-input"
+        {...keyboardSurfaceDataAttr}
         onChange={onFileChange}
       />
       <button

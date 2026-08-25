@@ -17,3 +17,6 @@ export const keyboardAwareSheetClassName =
 
 export const keyboardAwareSheetTallClassName =
   'max-h-[min(85dvh,calc(var(--app-vv-height,100dvh)*0.92))]';
+
+/** Marks surfaces wired to keyboard SSOT (including file pickers in Creator flows). */
+export const keyboardSurfaceDataAttr = { 'data-keyboard-ssot': 'shared' } as const;

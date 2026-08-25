@@ -28,6 +28,7 @@ export function UniLivesLiveRoomCard({
       data-room-id={roomId}
       data-live-kind={liveKindLabel || undefined}
       data-unilives-live-room-card=""
+      aria-label={roomId ? `live-room-${roomId}` : 'live-room-card'}
       onPointerDown={onPointerDown}
       onClick={onClick}
       className={className}

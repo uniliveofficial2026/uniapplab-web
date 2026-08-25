@@ -1,0 +1,113 @@
+{
+  "generatedAt": "2026-08-25T22:16:31.085Z",
+  "cases": [
+    {
+      "id": "src/components/messages/MessagesComposeBar.tsx::chat-input",
+      "ariaLabel": "chat-input",
+      "route": "/messages",
+      "screen": "messages/MessagesComposeBar.tsx",
+      "rtcSurface": false,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS"
+    },
+    {
+      "id": "src/components/feed/PostCardFooter.tsx::feed-comment-input",
+      "ariaLabel": "feed-comment-input",
+      "route": "/home",
+      "screen": "feed/PostCardFooter.tsx",
+      "rtcSurface": false,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS"
+    },
+    {
+      "id": "src/components/feed/PostModal.tsx::post-comment-input",
+      "ariaLabel": "post-comment-input",
+      "route": "/app",
+      "screen": "feed/PostModal.tsx",
+      "rtcSurface": false,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS"
+    },
+    {
+      "id": "src/components/reels/ReelsCommentsDrawer.tsx::reels-comment-input",
+      "ariaLabel": "reels-comment-input",
+      "route": "/reels",
+      "screen": "reels/ReelsCommentsDrawer.tsx",
+      "rtcSurface": false,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS"
+    },
+    {
+      "id": "src/components/layout/ShellCreateCaptionPanel.tsx::creator-caption-input",
+      "ariaLabel": "creator-caption-input",
+      "route": "/creator",
+      "screen": "layout/ShellCreateCaptionPanel.tsx",
+      "rtcSurface": false,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS_STATIC"
+    },
+    {
+      "id": "src/components/stories/StoryCaptionComposer.tsx::creator-story-caption-input",
+      "ariaLabel": "creator-story-caption-input",
+      "route": "/creator",
+      "screen": "stories/StoryCaptionComposer.tsx",
+      "rtcSurface": false,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS_STATIC"
+    },
+    {
+      "id": "src/components/karaoke/SongUpload.tsx::creator-song-title-input",
+      "ariaLabel": "creator-song-title-input",
+      "route": "/creator",
+      "screen": "karaoke/SongUpload.tsx",
+      "rtcSurface": true,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS_STATIC"
+    },
+    {
+      "id": "src/components/karaoke/SongUpload.tsx::creator-song-artist-input",
+      "ariaLabel": "creator-song-artist-input",
+      "route": "/creator",
+      "screen": "karaoke/SongUpload.tsx",
+      "rtcSurface": true,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS_STATIC"
+    },
+    {
+      "id": "src/components/karaoke/SongUpload.tsx::creator-song-credits-input",
+      "ariaLabel": "creator-song-credits-input",
+      "route": "/creator",
+      "screen": "karaoke/SongUpload.tsx",
+      "rtcSurface": true,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS_STATIC"
+    },
+    {
+      "id": "src/components/karaoke/SongUpload.tsx::creator-song-lyrics-input",
+      "ariaLabel": "creator-song-lyrics-input",
+      "route": "/creator",
+      "screen": "karaoke/SongUpload.tsx",
+      "rtcSurface": true,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS_STATIC"
+    },
+    {
+      "id": "src/components/karaoke/SongUpload.tsx::creator-song-tags-input",
+      "ariaLabel": "creator-song-tags-input",
+      "route": "/creator",
+      "screen": "karaoke/SongUpload.tsx",
+      "rtcSurface": true,
+      "modalOrSheet": false,
+      "physicalStatus": "PASS_STATIC"
+    },
+    {
+      "id": "src/smule-rooms/components/SoloLiveView.tsx::live-chat-input",
+      "ariaLabel": "live-chat-input",
+      "route": "/live",
+      "screen": "smule-rooms/SoloLiveView.tsx",
+      "rtcSurface": true,
+      "modalOrSheet": false,
+      "physicalStatus": "NOT_TESTED"
+    }
+  ]
+}

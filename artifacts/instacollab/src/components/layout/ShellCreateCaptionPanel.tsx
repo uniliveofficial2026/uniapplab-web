@@ -15,6 +15,7 @@ import {
 } from '../messages/messages/chatLocationGeo';
 import { geolocationErrorMessage, getLocationPreviewLabel } from '../messages/messages/chatLocationUtils';
 import { UniLivesVerificationBadge } from '../identity/brand/UniLivesVerificationBadge';
+import { keyboardInputClassName } from '../common/keyboardLayout';
 
 export type ShellCreateCaptionPanelProps = {
   currentUser: User;
@@ -143,13 +144,16 @@ export function ShellCreateCaptionPanel({
                 <div className="flex gap-2">
                   <input
                     type="search"
+                    inputMode="search"
+                    autoComplete="off"
+                    aria-label="creator-location-search"
                     value={locationQuery}
                     onChange={(e) => setLocationQuery(e.target.value)}
                     onKeyDown={(e) => {
                       if (e.key === 'Enter') void handleSearchLocation();
                     }}
                     placeholder="Search city, place, or address…"
-                    className="flex-1 min-w-0 rounded-lg border border-border bg-background px-2.5 py-1.5 text-[12px] font-medium outline-none focus:border-primary"
+                    className={`flex-1 min-w-0 rounded-lg border border-border bg-background px-2.5 py-1.5 outline-none focus:border-primary ${keyboardInputClassName}`}
                   />
                   <button
                     type="button"
@@ -244,12 +248,13 @@ export function ShellCreateCaptionPanel({
         </div>
       )}
       <textarea
+        aria-label="creator-caption-input"
         value={caption}
         onChange={(e) => onCaptionChange(e.target.value)}
         placeholder="Write a caption..."
-        className="flex-1 w-full p-4 text-[15px] resize-none outline-none bg-transparent text-foreground placeholder:text-foreground/45 placeholder:font-medium"
+        className={`flex-1 w-full p-4 resize-none bg-transparent text-foreground placeholder:text-foreground/45 placeholder:font-medium ${keyboardInputClassName}`}
       />
-      <div className="border-t border-border p-3 flex items-center text-muted-foreground gap-1 relative shrink-0">
+      <div className="border-t border-border p-3 flex items-center text-muted-foreground gap-1 relative shrink-0 pb-composer">
         {showHashtagList && (
           <div className="absolute bottom-full left-0 mb-2 w-full bg-card border border-border rounded-xl shadow-xl overflow-hidden z-50">
             <div className="px-3 py-2 border-b border-border flex items-center justify-between bg-secondary/20">
@@ -302,11 +307,14 @@ export function ShellCreateCaptionPanel({
             </div>
             <div className="p-2 border-b border-border shrink-0">
               <input
-                type="text"
+                type="search"
+                inputMode="search"
+                autoComplete="off"
+                aria-label="creator-mention-search"
                 value={mentionSearch}
                 onChange={(e) => onMentionSearchChange(e.target.value)}
                 placeholder="Search creators..."
-                className="w-full text-xs bg-secondary border border-border rounded-lg px-2.5 py-1.5 outline-none font-medium focus:border-primary placeholder:text-muted-foreground"
+                className={`w-full bg-secondary border border-border rounded-lg px-2.5 py-1.5 outline-none font-medium focus:border-primary placeholder:text-muted-foreground ${keyboardInputClassName}`}
               />
             </div>
             <div className="p-1 flex flex-col gap-1 max-h-44 overflow-y-auto no-scrollbar">
