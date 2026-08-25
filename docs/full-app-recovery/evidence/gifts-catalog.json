@@ -1,0 +1,9 @@
+{
+  "result": "PASS",
+  "count": 15,
+  "sample": [
+    "v14_lucky_bill",
+    "v14_mystery_box",
+    "v14_lucky_box"
+  ]
+}

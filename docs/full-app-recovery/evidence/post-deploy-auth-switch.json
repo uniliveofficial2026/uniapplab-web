@@ -1,0 +1,30 @@
+{
+  "spaAsset": "index-D7f4POh8.js",
+  "commit": "ecf4e4f",
+  "userA": {
+    "uid": "2a7e55d4",
+    "url": "https://app.uniapplab.com/home",
+    "profileLoop": false,
+    "shell": true,
+    "usernameHint": "@qa_device",
+    "head": "UniLive’s | Add story | @qa_device | Hi | Sam Sam | Follow | 0 | 0 | 0 | smsamsam800 | Jul 21, 2026 · 5:46 AM | Install on Mac | Install UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS. | Install app | +"
+  },
+  "userB": {
+    "uid": "a4db123f",
+    "url": "https://app.uniapplab.com/home",
+    "profileLoop": false,
+    "shell": true,
+    "usernameHint": "@qa_mac",
+    "head": "UniLive’s | Add story | @qa_mac | Hi | Sam Sam | Follow | 0 | 0 | 0 | smsamsam800 | Jul 21, 2026 · 5:46 AM | Install on Mac | Install UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS. | Install app | +"
+  },
+  "userAAfterSwitch": {
+    "uid": "2a7e55d4",
+    "url": "https://app.uniapplab.com/home",
+    "profileLoop": false,
+    "shell": true,
+    "usernameHint": "@qa_device",
+    "head": "UniLive’s | Add story | @qa_device | Hi | Sam Sam | Follow | 0 | 0 | 0 | smsamsam800 | Jul 21, 2026 · 5:46 AM | Install on Mac | Install UniLive’s from Chrome or Edge for a desktop app window. Safari uses File → Add to Dock on newer macOS. | Install app | +"
+  },
+  "profileLoopFixed": true,
+  "accountSwitchIsolation": true
+}

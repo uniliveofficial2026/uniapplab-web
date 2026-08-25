@@ -1,0 +1,90 @@
+{
+  "ids": {
+    "A": "2a7e55d4",
+    "B": "a4db123f"
+  },
+  "forgery": [
+    {
+      "label": "chat_send_spoof_sender",
+      "status": 403,
+      "body": "{\"error\":\"Not a member of this thread\"}"
+    },
+    {
+      "label": "gift_spoof_sender",
+      "status": 400,
+      "body": "{\"error\":\"giftId and receiverId required\"}"
+    },
+    {
+      "label": "me_patch_other",
+      "status": 403,
+      "body": "{\"code\":\"error.impersonation\",\"error\":\"Invalid identity\"}"
+    },
+    {
+      "label": "wallet_as_b",
+      "status": 403,
+      "body": "{\"code\":\"error.impersonation\",\"error\":\"Invalid identity\"}"
+    }
+  ],
+  "threadsAStatus": 200,
+  "threadsBStatus": 200,
+  "gifts2": {
+    "s": 200,
+    "keys": [
+      "gifts"
+    ],
+    "sample": "{\"gifts\":[]}"
+  },
+  "dm": {
+    "status": 400,
+    "body": {
+      "error": "Could not find the 'dm_key' column of 'chat_threads' in the schema cache"
+    }
+  },
+  "screens": {
+    "messagesA": {
+      "route": "/messages",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | Messages | GROUPS | DIRECT MESSAGES | Your Messages | Send private photo"
+    },
+    "liveA": {
+      "route": "/live",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | Host a Live Concert | Go live or watch creators streaming now. Fol"
+    },
+    "karaokeA": {
+      "route": "/karaoke",
+      "profileLoop": false,
+      "head": "K-Star | Studio | Party Rooms | Explore | Messages | Notifications | Challenges | Leaderboard | Upload Song | Recharge | 0 | VIP Status | Toggle Theme | QA Device | @qa_device | BACK | Studio | GLOBAL CHALLENGE | Karaoke Idol 2026 | Sing your heart out, gather votes, and win a professional studio recording session +"
+    },
+    "datingA": {
+      "route": "/dating",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | Insta Dating | Discover | Likes You | Matches | No more profiles for now"
+    },
+    "youtubeA": {
+      "route": "/youtube",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | YouTube | Feed | Shorts | Live | Playlists | Watch later | Liked | Favorites | Hi"
+    },
+    "creatorA": {
+      "route": "/creator",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | ← | Add story | @qa_device | → | Hi | Sam Sam | Follow | 0 | 0 | 0 | smsamsam800 | Ju"
+    },
+    "walletA": {
+      "route": "/wallet",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | Something went wrong | Screen: wallet | b.toFixed is not a functio"
+    },
+    "gameHubA": {
+      "route": "/games",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | UNILIVE’S | Game Hub | Your center for local library games, third-pa"
+    },
+    "messagesB": {
+      "route": "/messages",
+      "profileLoop": false,
+      "head": "UniLive’s | Home | Explore | Reels | Karaoke | Messages | Notifications | Admin Panel | Dating | Live | 🥕 | 🍖 | Greedy | Game Hub | Wallet | YouTube | Creator | Profile | Marketplace | Light mode | Settings | Add or Switch Account | Log out | Software Update | Messages | GROUPS | DIRECT MESSAGES | Your Messages | Send private photo"
+    }
+  }
+}
