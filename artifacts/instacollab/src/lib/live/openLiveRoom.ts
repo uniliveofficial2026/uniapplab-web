@@ -154,9 +154,22 @@ export function preloadLiveRoomEntry(): Promise<unknown> {
 }
 
 /** Open Create Room (Go Live) — instant App-level room shell. */
-export function openGoLiveCreateRoom(): void {
+export function openGoLiveCreateRoom(options?: { mode?: string; roomName?: string }): void {
   void preloadLiveRoomEntry();
   void import('../preloadAppSurfaces').then((m) => m.preloadHostMediaPath());
+  // Live discovery "Go Live" implies camera Solo by default (CreateRoom otherwise defaults to Chat,
+  // which never mounts SoloLiveView / live-chat-input).
+  try {
+    sessionStorage.setItem(
+      'uni.createRoom.hint',
+      JSON.stringify({
+        mode: options?.mode || 'Solo-Live',
+        roomName: options?.roomName || undefined,
+      }),
+    );
+  } catch {
+    /* ignore */
+  }
   openInstantRoomFlow({
     path: '/room/create',
     entry: 'karaoke-party',

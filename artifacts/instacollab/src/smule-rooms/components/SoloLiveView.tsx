@@ -1,5 +1,7 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
 import { Track } from '../../lib/rtc/livekitCompatibilityBoundary';
+import { subscribeHostMedia } from '../../lib/camera/hostMediaSession';
+import type { HostMediaSnapshot } from '../../lib/camera/hostMediaTypes';
 import {
   Activity,
   Info,
@@ -657,6 +659,19 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   const [seatFullscreenTarget, setSeatFullscreenTarget] = useState<LiveSeatFullscreenTarget | null>(
     null,
   );
+  const [hostMediaSnap, setHostMediaSnap] = useState<HostMediaSnapshot | null>(null);
+
+  useEffect(() => subscribeHostMedia(setHostMediaSnap), []);
+
+  const liveQaState = cameraError
+    ? 'live-error-state'
+    : hostMediaSnap?.state === 'permission-required'
+      ? 'live-permission-camera-pending'
+      : hostMediaSnap?.connecting
+        ? 'live-rtc-connecting'
+        : hostMediaSnap?.live || hostMediaSnap?.publishing
+          ? 'live-rtc-connected'
+          : 'solo-live-view';
 
   const tapLikeAtClientPoint = (clientX: number, clientY: number) => {
     if (!liveLike) return;
@@ -868,6 +883,11 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           ['--solo-live-guest-rail-bottom' as string]: `${Math.max(footerHeight, 104) + 10}px`,
         } as React.CSSProperties
       }
+      data-live-qa-state={liveQaState}
+      data-live-qa-host-media={hostMediaSnap?.state ?? 'unknown'}
+      data-live-qa-chat-open={chatComposerOpen ? '1' : '0'}
+      data-live-qa-room-id={roomDisplayId || ''}
+      aria-label={liveQaState}
     >
       <RoomBackgroundLayer mode={backgroundMode} />
       <div

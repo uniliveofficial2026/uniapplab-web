@@ -285,8 +285,9 @@ final class UniLiveAuthUITests: XCTestCase {
     }
 
     ensureSignedInShell()
-    let root = webRoot()
+    var root = waitForWebRoot()
 
+    // 1) Reach Live discovery
     var openedLive = false
     if tapIfExists(root.buttons["Live"], timeout: 6) {
       openedLive = true
@@ -298,95 +299,137 @@ final class UniLiveAuthUITests: XCTestCase {
         openedLive = true
       }
     }
-    XCTAssertTrue(openedLive, "Live entry must be reachable from shell menu or nav")
+    XCTAssertTrue(openedLive, "NAVIGATION_FAILED: Live entry unreachable")
     sleep(2)
+    root = webRoot()
 
-    // Prefer joining an active room; otherwise start Solo Live via Go Live.
-    var enteredRoom = false
+    // Prefer joining an existing live room; otherwise host via Go Live state machine.
     let liveCard = root.buttons.matching(
-      NSPredicate(format: "identifier CONTAINS[c] %@ OR label CONTAINS[c] %@", "live-room", "LIVE")
+      NSPredicate(format: "label CONTAINS[c] %@", "live-room")
     ).firstMatch
-    if liveCard.waitForExistence(timeout: 6) {
+    if liveCard.waitForExistence(timeout: 5) {
       liveCard.tap()
-      enteredRoom = true
       sleep(4)
-    }
-
-    if !enteredRoom {
-      XCTAssertTrue(tapIfExists(root.buttons["Go Live"], timeout: 10), "Go Live must be reachable")
+      root = webRoot()
+    } else {
+      // 2) Go Live entry
+      var goLive = landmark("go-live-entry", in: root, timeout: 10)
+      if !goLive.exists {
+        goLive = root.buttons["Go Live"].firstMatch
+      }
+      XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
+      goLive.tap()
       sleep(2)
+      root = webRoot()
 
-      // Select Solo live camera mode if mode picker is visible.
-      let soloMode = root.buttons["Solo"].firstMatch
-      if soloMode.waitForExistence(timeout: 6) {
-        soloMode.tap()
+      // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
+      let createEntry = landmark("go-live-entry", in: root, timeout: 12)
+      XCTAssertTrue(
+        createEntry.exists || landmark("go-live-solo-option", in: root, timeout: 6).exists,
+        "APPLICATION_STATE_FAILED: create room not reached"
+      )
+
+      let soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
+      if soloOption.exists {
+        soloOption.tap()
         sleep(1)
       }
 
-      // Ensure room title exists so launch is enabled.
-      let roomTitle = root.textFields.firstMatch
-      if roomTitle.waitForExistence(timeout: 4) {
+      // 4) Room name required for launch
+      var roomTitle = landmark("create-room-name", in: root, timeout: 8)
+      if !roomTitle.exists {
+        roomTitle = root.textFields.firstMatch
+      }
+      if roomTitle.waitForExistence(timeout: 6) {
         roomTitle.tap()
         roomTitle.typeText("QA Device Live")
+        sleep(1)
       }
 
-      let launchBtn = root.buttons.matching(
-        NSPredicate(format: "label CONTAINS[c] %@ OR label CONTAINS[c] %@", "Go Live", "Launch Room")
-      ).firstMatch
-      if launchBtn.waitForExistence(timeout: 8) {
+      // 5) Launch / countdown
+      let launchBtn = landmark("Go Live", in: root, timeout: 8)
+      if launchBtn.exists {
         launchBtn.tap()
-        sleep(2)
-      }
-
-      let skipCountdown = landmark("Skip countdown and go live", in: root, timeout: 15)
-      if skipCountdown.waitForExistence(timeout: 12) {
-        skipCountdown.tap()
-        sleep(8)
       } else {
-        sleep(5)
+        let alt = root.buttons.matching(
+          NSPredicate(format: "label CONTAINS[c] %@", "Go Live")
+        ).firstMatch
+        XCTAssertTrue(alt.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: launch button missing")
+        alt.tap()
       }
-      enteredRoom = true
+      sleep(1)
+      app.tap() // nudge TCC monitors
+
+      let countdown = landmark("live-countdown", in: root, timeout: 8)
+      if !countdown.exists {
+        _ = landmark("Skip countdown and go live", in: root, timeout: 6)
+      }
+      let skip = landmark("Skip countdown and go live", in: root, timeout: 10)
+      if skip.exists {
+        skip.tap()
+      }
+      sleep(3)
+      app.tap()
+      root = waitForWebRoot(timeout: 30)
     }
 
-    XCTAssertTrue(enteredRoom, "Must enter a live room as host or viewer")
-
-    let soloControls = landmark("Solo Live controls", in: root, timeout: 20)
-    if !soloControls.exists {
-      _ = landmark("Shop Live controls", in: root, timeout: 10).exists
+    // 6–10) SoloLiveView / permission / RTC state landmarks (stop early on blocker)
+    let permissionBlocked = landmark("live-permission-camera-pending", in: root, timeout: 6)
+    if permissionBlocked.exists {
+      app.tap()
+      sleep(2)
+      if permissionBlocked.exists {
+        print("PERMISSION_BLOCKED: camera still pending — owner may need Settings Allow")
+        XCTFail("PERMISSION_BLOCKED: live-permission-camera-pending")
+        return
+      }
     }
-    sleep(2)
-    app.tap() // nudge interruption monitors (camera/mic)
 
-    let showChat = root.buttons.matching(
-      NSPredicate(format: "label CONTAINS[c] %@", "Show live chat")
-    ).firstMatch
-    if showChat.waitForExistence(timeout: 6) {
+    let errorState = landmark("live-error-state", in: root, timeout: 4)
+    if errorState.exists {
+      XCTFail("APPLICATION_STATE_FAILED: live-error-state")
+      return
+    }
+
+    let soloView = landmark("solo-live-view", in: root, timeout: 20)
+    if !soloView.exists {
+      let connecting = landmark("live-rtc-connecting", in: root, timeout: 8)
+      let connected = landmark("live-rtc-connected", in: root, timeout: 8)
+      if connecting.exists || connected.exists {
+        // connecting/connected share SoloLiveView mount; continue
+      } else {
+        print("DEBUG_LIVE_STATE=\(root.debugDescription.prefix(4500))")
+        XCTFail("APPLICATION_STATE_FAILED: SoloLiveView not mounted (solo-live-view landmark)")
+        return
+      }
+    }
+
+    let controls = landmark("Solo Live controls", in: root, timeout: 15)
+    if !controls.exists {
+      _ = landmark("Shop Live controls", in: root, timeout: 8)
+    }
+    XCTAssertTrue(
+      landmark("Solo Live controls", in: root, timeout: 5).exists
+        || landmark("Shop Live controls", in: root, timeout: 5).exists,
+      "APPLICATION_STATE_FAILED: solo-live-controls missing"
+    )
+
+    // 11) Chat panel — product default is open; tap Show chat if closed
+    let showChat = landmark("Show chat", in: root, timeout: 6)
+    if showChat.exists {
       showChat.tap()
       sleep(1)
     }
 
-    let chatToggle = root.buttons.matching(
-      NSPredicate(format: "label CONTAINS[c] %@", "chat")
-    ).firstMatch
-    if chatToggle.waitForExistence(timeout: 8) {
-      chatToggle.tap()
-      sleep(1)
-    }
-
+    // 12–14) Composer + keyboard
     var composer = landmark("live-chat-input", in: root, timeout: 12, screenLandmark: "Solo Live controls")
-    if !composer.exists {
-      composer = landmark("live-chat-input", in: root, timeout: 8, screenLandmark: "Shop Live controls")
-    }
     if !composer.exists {
       composer = landmark("live-chat-input", in: root, timeout: 8)
     }
     if !composer.exists {
-      composer = landmark("Live chat message", in: root, timeout: 6)
+      print("LANDMARK_NOT_FOUND: live-chat-input — DEBUG=\(root.debugDescription.prefix(3500))")
     }
-    if !composer.exists {
-      print("DEBUG_LIVE_ROOM=\(root.debugDescription.prefix(4500))")
-    }
-    XCTAssertTrue(composer.waitForExistence(timeout: 25), "live-chat-input landmark required")
+    XCTAssertTrue(composer.waitForExistence(timeout: 12), "LANDMARK_NOT_FOUND: live-chat-input")
     composer.tap()
     sleep(1)
     XCTAssertTrue(composer.exists, "live-chat-input must remain visible when keyboard open")

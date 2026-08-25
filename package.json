@@ -116,14 +116,16 @@
     "test:modal-keyboard": "node scripts/ui-device-recovery/test-modal-keyboard.mjs",
     "test:creator-keyboard": "node scripts/ui-device-recovery/test-creator-keyboard.mjs",
     "test:live-keyboard": "node scripts/ui-device-recovery/test-live-keyboard.mjs",
+    "test:live-host-state-machine": "node scripts/ui-device-recovery/test-live-host-state-machine.mjs",
     "test:marketplace-keyboard": "node scripts/ui-device-recovery/test-marketplace-keyboard.mjs",
     "test:seller-keyboard": "node scripts/ui-device-recovery/test-seller-keyboard.mjs",
     "test:scan-legacy-keyboard": "node scripts/ui-device-recovery/scan-legacy-keyboard.mjs",
     "test:n-user-dataflow": "node scripts/full-app-gates/test-n-user-dataflow.mjs",
     "test:n-user-authorization": "node scripts/full-app-gates/test-n-user-authorization.mjs",
+    "test:n-user-runtime": "UNILIVE_NUSER_MODE=runtime node scripts/n-user-runtime/test-n-user-runtime.mjs",
     "test:multi-account-rotation": "node scripts/full-app-gates/test-multi-account-rotation.mjs",
     "test:realtime-user-isolation": "node scripts/full-app-gates/test-realtime-user-isolation.mjs",
-    "test:global-input-recovery": "pnpm run test:scan-legacy-keyboard && pnpm run test:all-input-surfaces && pnpm run test:comments-keyboard && pnpm run test:modal-keyboard && pnpm run test:creator-keyboard && pnpm run test:live-keyboard && pnpm run test:marketplace-keyboard && pnpm run test:seller-keyboard && pnpm run test:n-user-dataflow && pnpm run test:n-user-authorization && pnpm run test:multi-account-rotation && pnpm run test:realtime-user-isolation"
+    "test:global-input-recovery": "pnpm run test:scan-legacy-keyboard && pnpm run test:all-input-surfaces && pnpm run test:comments-keyboard && pnpm run test:modal-keyboard && pnpm run test:creator-keyboard && pnpm run test:live-keyboard && pnpm run test:live-host-state-machine && pnpm run test:marketplace-keyboard && pnpm run test:seller-keyboard && pnpm run test:n-user-dataflow && pnpm run test:n-user-authorization && pnpm run test:multi-account-rotation && pnpm run test:realtime-user-isolation"
   },
   "private": true,
   "devDependencies": {

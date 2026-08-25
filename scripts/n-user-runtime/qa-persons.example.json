@@ -1,0 +1,26 @@
+{
+  "persons": {
+    "A": {
+      "email": "qa.device+iphone@uniapplab.com",
+      "password": "REPLACE_FROM_qa-device-creds",
+      "role": "device",
+      "note": "Copy password from .local/qa-device-creds.json — never commit real passwords"
+    },
+    "B": {
+      "email": "qa.device+mac@uniapplab.com",
+      "password": "REPLACE_FROM_qa-mac-creds",
+      "role": "mac"
+    },
+    "C": {
+      "email": "qa.device+person-c@uniapplab.com",
+      "password": "PROVISION_REQUIRED",
+      "role": "browser"
+    },
+    "D": {
+      "email": "qa.device+person-d@uniapplab.com",
+      "password": "PROVISION_REQUIRED",
+      "role": "browser"
+    }
+  },
+  "_comment": "Example only. Real file: .local/qa-persons.json (gitignored)."
+}

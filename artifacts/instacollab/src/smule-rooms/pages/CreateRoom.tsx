@@ -87,11 +87,13 @@ const CreateRoom = () => {
     } catch {
       hint = null;
     }
+    // Retain Go Live intent across async cloud hydrate (otherwise Solo-Live is overwritten by Chat).
+    const goLiveHint = hint;
 
     const applyHint = () => {
-      if (!hint) return;
-      if (hint.roomName?.trim()) setRoomName(hint.roomName.trim());
-      if (hint.mode?.trim()) setMode(hint.mode.trim());
+      if (!goLiveHint) return;
+      if (goLiveHint.roomName?.trim()) setRoomName(goLiveHint.roomName.trim());
+      if (goLiveHint.mode?.trim()) setMode(goLiveHint.mode.trim());
     };
 
     const local =
@@ -314,8 +316,20 @@ const CreateRoom = () => {
     { id: 'Private' as const, icon: Lock, label: 'Private' },
   ];
 
+  const liveQaState =
+    goLiveCountdown !== null
+      ? 'live-countdown'
+      : launching
+        ? 'live-room-creating'
+        : 'go-live-entry';
+
   return (
-    <div className="relative flex h-full flex-col bg-slate-950 font-sans text-white">
+    <div
+      className="relative flex h-full flex-col bg-slate-950 font-sans text-white"
+      data-live-qa-state={liveQaState}
+      data-live-qa-mode={mode}
+      aria-label={liveQaState}
+    >
       {goLiveCountdown !== null ? (
         <button
           type="button"
@@ -328,6 +342,7 @@ const CreateRoom = () => {
             if (roomId) navigate(`/room/${roomId}`);
           }}
           aria-label="Skip countdown and go live"
+          data-live-qa-state="live-countdown"
         >
           <p className="mb-3 text-[11px] font-black uppercase tracking-[0.28em] text-white/70">
             Starting stream
@@ -429,6 +444,8 @@ const CreateRoom = () => {
                   placeholder="Welcome to the room!"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
+                  aria-label="create-room-name"
+                  data-testid="create-room-name"
                   className="h-14 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm font-medium text-white outline-none transition placeholder:text-white/35 focus:border-blue-400"
                 />
               </div>
@@ -568,6 +585,8 @@ const CreateRoom = () => {
                   placeholder="Welcome to the room!"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
+                  aria-label="create-room-name"
+                  data-testid="create-room-name"
                   className="h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-[13px] font-medium text-white transition-all placeholder:text-slate-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
                 />
               </div>
@@ -681,6 +700,9 @@ const CreateRoom = () => {
                     handleModeSelect(m.id);
                   }}
                   title={m.label}
+                  aria-label={m.id === 'Solo-Live' ? 'go-live-solo-option' : `go-live-mode-${m.id}`}
+                  aria-pressed={selected}
+                  data-live-qa-mode-option={m.id}
                   className="flex min-w-0 flex-col items-center gap-1"
                 >
                   <span
@@ -708,6 +730,8 @@ const CreateRoom = () => {
         <button
             onClick={handleCreate}
             disabled={!canLaunch || launching || goLiveCountdown !== null}
+            aria-label={launchLabel}
+            data-live-qa-launch={launchLabel}
             className={`w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
               !canLaunch || launching || goLiveCountdown !== null
                 ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'

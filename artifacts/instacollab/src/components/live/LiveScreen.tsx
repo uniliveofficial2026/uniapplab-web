@@ -333,8 +333,10 @@ export function LiveScreen() {
         <div className="relative z-10 flex flex-col sm:flex-row gap-3">
           <button
             type="button"
+            aria-label="go-live-entry"
+            data-live-qa-state="go-live-entry"
             onClick={() => {
-              openGoLiveCreateRoom();
+              openGoLiveCreateRoom({ mode: 'Solo-Live' });
             }}
             className="px-8 py-4 bg-white text-red-700 font-bold rounded-full transition-all hover:scale-105 motion-reduce:hover:scale-100 shadow-2xl whitespace-nowrap text-lg"
           >
