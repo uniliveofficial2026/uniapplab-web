@@ -36,6 +36,26 @@ const surfaces = [
     must: [/composer-bottom-inset|keyboard-inset|safe-bottom/],
   },
   {
+    id: 'feed-comment',
+    file: 'src/components/feed/PostCardFooter.tsx',
+    must: [/feed-comment-input/, /pb-composer/],
+  },
+  {
+    id: 'post-modal-comment',
+    file: 'src/components/feed/PostModal.tsx',
+    must: [/post-comment-input/, /pb-composer/],
+  },
+  {
+    id: 'reels-comment',
+    file: 'src/components/reels/ReelsCommentsDrawer.tsx',
+    must: [/reels-comment-input/, /pb-composer/, /keyboardAwareSheetClassName/],
+  },
+  {
+    id: 'keyboard-layout-ssot',
+    file: 'src/components/common/keyboardLayout.ts',
+    must: [/keyboardComposerClassName/, /keyboardAwareSheetClassName/],
+  },
+  {
     id: 'cap-keyboard',
     file: 'src/lib/bootNativeShell.ts',
     must: [/KeyboardResize\.None/, /keyboardWillShow/, /setNativeKeyboardHeight/],

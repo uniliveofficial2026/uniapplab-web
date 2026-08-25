@@ -6,6 +6,10 @@ import { handleAvatarError, openProfilePreview } from '../../lib/utils';
 import { type CommentLike } from '../../lib/entityResolve';
 import { db as localDb } from '../../lib/db/localDb';
 import { ReelsCommentItem } from './ReelsCommentItem';
+import {
+  keyboardAwareSheetClassName,
+  keyboardInputClassName,
+} from '../common/keyboardLayout';
 
 type ReelsCommentsDrawerProps = {
   isOpen: boolean;
@@ -57,7 +61,8 @@ export function ReelsCommentsDrawer({
             animate={{ y: 0 }}
             exit={{ y: '100%' }}
             transition={{ type: 'spring', damping: 25, stiffness: 200 }}
-            className="fixed inset-x-0 bottom-0 h-[65vh] md:max-h-[500px] bg-card rounded-t-3xl z-[100] flex flex-col border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.5)] pb-safe md:mx-auto md:max-w-[470px] w-full"
+            className={`fixed inset-x-0 bottom-0 h-[65dvh] md:max-h-[500px] ${keyboardAwareSheetClassName} bg-card rounded-t-3xl z-[100] flex flex-col border-t border-border shadow-[0_-10px_40px_rgba(0,0,0,0.5)] md:mx-auto md:max-w-[470px] w-full`}
+            aria-label="reels-comments-sheet"
           >
             <div className="h-12 border-b border-border flex items-center justify-between px-4 shrink-0">
               <div className="w-8"></div>
@@ -127,7 +132,7 @@ export function ReelsCommentsDrawer({
             </div>
             <form
               onSubmit={onSubmit}
-              className="p-4 border-t border-border shrink-0 bg-card flex flex-col gap-2"
+              className="p-4 border-t border-border bg-card flex flex-col gap-2 pb-composer shrink-0"
             >
               {replyingTo && (
                 <div className="flex items-center justify-between text-xs font-bold text-muted-foreground px-1">
@@ -157,6 +162,9 @@ export function ReelsCommentsDrawer({
                   <input
                     ref={commentInputRef}
                     type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    aria-label="reels-comment-input"
                     value={commentText}
                     onChange={(e) => onCommentTextChange(e.target.value)}
                     placeholder={
@@ -164,7 +172,7 @@ export function ReelsCommentsDrawer({
                         ? `Reply to @${replyingTo.username}...`
                         : 'Add a comment...'
                     }
-                    className="w-full bg-transparent border-none outline-none text-sm font-medium"
+                    className={`w-full ${keyboardInputClassName}`}
                   />
                 </div>
                 <button

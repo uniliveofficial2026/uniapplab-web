@@ -113,6 +113,36 @@ final class UniLiveAuthUITests: XCTestCase {
     }
   }
 
+  func testReelsCommentComposerLandmark() throws {
+    app.launch()
+    let root = webRoot()
+    XCTAssertTrue(landmark("signed-in-shell", in: root, timeout: 55).exists)
+
+    let reelsBtn =
+      root.buttons["Reels"].firstMatch.exists
+        ? root.buttons["Reels"].firstMatch
+        : app.buttons["Reels"].firstMatch
+    if reelsBtn.waitForExistence(timeout: 15) {
+      reelsBtn.tap()
+      sleep(2)
+    }
+
+    let commentBubble = root.buttons.matching(
+      NSPredicate(format: "label CONTAINS[c] %@", "comment")
+    ).firstMatch
+    if commentBubble.waitForExistence(timeout: 8) {
+      commentBubble.tap()
+      sleep(1)
+    }
+
+    let composer = landmark("reels-comment-input", in: root, timeout: 15)
+    if composer.exists {
+      composer.tap()
+      sleep(1)
+      XCTAssertTrue(composer.exists, "reels-comment-input must remain visible when keyboard open")
+    }
+  }
+
   func testCameraMicInterruptionMonitors() throws {
     addUIInterruptionMonitor(withDescription: "Camera") { alert in
       for title in ["Allow While Using App", "Allow", "OK"] {

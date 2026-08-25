@@ -110,7 +110,16 @@
     "test:all-screen-layout": "node scripts/ui-device-recovery/test-all-screen-layout.mjs",
     "test:keyboard-layout": "node scripts/ui-device-recovery/test-keyboard-layout.mjs",
     "test:safe-area-layout": "node scripts/ui-device-recovery/test-safe-area-layout.mjs",
-    "test:ui-device-recovery": "pnpm run test:all-screen-layout && pnpm run test:keyboard-layout && pnpm run test:safe-area-layout"
+    "test:ui-device-recovery": "pnpm run test:all-screen-layout && pnpm run test:keyboard-layout && pnpm run test:safe-area-layout",
+    "test:all-input-surfaces": "node scripts/ui-device-recovery/test-all-input-surfaces.mjs",
+    "test:comments-keyboard": "node scripts/ui-device-recovery/test-comments-keyboard.mjs",
+    "test:modal-keyboard": "node scripts/ui-device-recovery/test-modal-keyboard.mjs",
+    "test:creator-keyboard": "node scripts/ui-device-recovery/test-creator-keyboard.mjs",
+    "test:n-user-dataflow": "node scripts/full-app-gates/test-n-user-dataflow.mjs",
+    "test:n-user-authorization": "node scripts/full-app-gates/test-n-user-authorization.mjs",
+    "test:multi-account-rotation": "node scripts/full-app-gates/test-multi-account-rotation.mjs",
+    "test:realtime-user-isolation": "node scripts/full-app-gates/test-realtime-user-isolation.mjs",
+    "test:global-input-recovery": "pnpm run test:all-input-surfaces && pnpm run test:comments-keyboard && pnpm run test:modal-keyboard && pnpm run test:creator-keyboard && pnpm run test:n-user-dataflow && pnpm run test:n-user-authorization && pnpm run test:multi-account-rotation && pnpm run test:realtime-user-isolation"
   },
   "private": true,
   "devDependencies": {

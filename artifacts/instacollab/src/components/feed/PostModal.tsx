@@ -20,6 +20,7 @@ import EmojiPicker, { Theme } from "emoji-picker-react";
 import { useDB, usePostById } from "../../lib/useDB";
 import { useToast } from "../../lib/ToastContext";
 import { useAppCamera } from "../../contexts/AppCameraContext";
+import { keyboardInputClassName } from "../common/keyboardLayout";
 import { useVoice } from "../../lib/useVoice";
 import {
   formatContentDateTime,
@@ -1334,7 +1335,7 @@ export function PostModal({
             )}
             <form
               onSubmit={handleCommentSubmit}
-              className="border-t border-border p-2 md:p-3 flex flex-col bg-secondary/20 shrink-0"
+              className="border-t border-border p-2 md:p-3 flex flex-col bg-secondary/20 shrink-0 pb-composer"
             >
               {replyingTo && (
                 <div className="flex items-center justify-between text-xs text-muted-foreground font-medium bg-card border border-border px-3 py-1 rounded-full self-start mb-2 shadow-sm">
@@ -1476,10 +1477,13 @@ export function PostModal({
                   <input
                     ref={commentInputRef}
                     type="text"
+                    inputMode="text"
+                    autoComplete="off"
+                    aria-label="post-comment-input"
                     value={commentText}
                     onChange={(e) => setCommentText(e.target.value)}
                     placeholder={isListening ? "Listening..." : "Add a comment..."}
-                    className="flex-1 min-w-0 bg-transparent border-none outline-none text-[14px] md:text-[15px] font-medium px-1 placeholder:text-muted-foreground/70"
+                    className={`flex-1 min-w-0 px-1 placeholder:text-muted-foreground/70 ${keyboardInputClassName}`}
                   />
                 )}
                 {!recordedVoice && (

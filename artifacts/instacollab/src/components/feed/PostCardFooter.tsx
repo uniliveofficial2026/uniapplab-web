@@ -18,6 +18,7 @@ import {
 } from '../../lib/utils';
 import { resolveCommentAuthor, type CommentLike } from '../../lib/entityResolve';
 import { CaptionModal } from './CaptionModal';
+import { keyboardInputClassName } from '../common/keyboardLayout';
 import { snapshotPostPlayback } from '../../lib/postPlayback';
 import type { User } from '../../types';
 
@@ -170,16 +171,19 @@ export function PostCardFooter({
         </div>
       )}
 
-      <form onSubmit={onCommentSubmit} className="px-4 mt-3 flex items-center pb-2">
+      <form onSubmit={onCommentSubmit} className="px-4 mt-3 flex items-center pb-composer shrink-0">
         <div className="mr-3">
           <Avatar user={currentUser} size="sm" />
         </div>
         <input
           type="text"
+          inputMode="text"
+          autoComplete="off"
+          aria-label="feed-comment-input"
           value={commentText}
           onChange={(e) => onCommentTextChange(e.target.value)}
           placeholder="Add a comment..."
-          className="flex-1 bg-transparent border-none outline-none text-[14px] font-medium text-foreground placeholder:text-muted-foreground"
+          className={`flex-1 text-foreground placeholder:text-muted-foreground ${keyboardInputClassName}`}
         />
         {commentText.trim() && (
           <button type="submit" className="text-primary font-bold text-[14px] ml-2 hover:text-primary/80 transition-colors">
