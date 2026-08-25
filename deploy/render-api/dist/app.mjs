@@ -26467,7 +26467,7 @@ var require_tools = __commonJS({
     } else {
       asJsonChan = {
         hasSubscribers: false,
-        traceSync(fn, store2, thisArg, ...args) {
+        traceSync(fn, store3, thisArg, ...args) {
           return fn.call(thisArg, ...args);
         }
       };
@@ -26537,8 +26537,8 @@ var require_tools = __commonJS({
       if (asJsonChan.hasSubscribers === false) {
         return _asJson.call(this, obj, msg, num, time3);
       }
-      const store2 = { instance: this, arguments };
-      return asJsonChan.traceSync(_asJson, store2, this, obj, msg, num, time3);
+      const store3 = { instance: this, arguments };
+      return asJsonChan.traceSync(_asJson, store3, this, obj, msg, num, time3);
     }
     function _asJson(obj, msg, num, time3) {
       const stringify3 = this[stringifySym];
@@ -32802,26 +32802,26 @@ var require_RealtimeClient = __commonJS({
     var RECONNECT_INTERVALS = [1e3, 2e3, 5e3, 1e4];
     var DEFAULT_RECONNECT_FALLBACK = 1e4;
     function createMemorySessionStorage() {
-      const store2 = /* @__PURE__ */ new Map();
+      const store3 = /* @__PURE__ */ new Map();
       return {
         get length() {
-          return store2.size;
+          return store3.size;
         },
         clear() {
-          store2.clear();
+          store3.clear();
         },
         getItem(key) {
-          return store2.has(key) ? store2.get(key) : null;
+          return store3.has(key) ? store3.get(key) : null;
         },
         key(index) {
           var _a24;
-          return (_a24 = Array.from(store2.keys())[index]) !== null && _a24 !== void 0 ? _a24 : null;
+          return (_a24 = Array.from(store3.keys())[index]) !== null && _a24 !== void 0 ? _a24 : null;
         },
         removeItem(key) {
-          store2.delete(key);
+          store3.delete(key);
         },
         setItem(key, value) {
-          store2.set(key, String(value));
+          store3.set(key, String(value));
         }
       };
     }
@@ -35468,16 +35468,16 @@ var require_local_storage = __commonJS({
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.memoryLocalStorageAdapter = memoryLocalStorageAdapter;
-    function memoryLocalStorageAdapter(store2 = {}) {
+    function memoryLocalStorageAdapter(store3 = {}) {
       return {
         getItem: (key) => {
-          return store2[key] || null;
+          return store3[key] || null;
         },
         setItem: (key, value) => {
-          store2[key] = value;
+          store3[key] = value;
         },
         removeItem: (key) => {
-          delete store2[key];
+          delete store3[key];
         }
       };
     }
@@ -53148,8 +53148,8 @@ var init_LiveLifecycleService = __esm({
     LiveLifecycleService = class {
       store;
       clock;
-      constructor(store2 = createLiveLifecycleStore(), clock = Date.now) {
-        this.store = store2;
+      constructor(store3 = createLiveLifecycleStore(), clock = Date.now) {
+        this.store = store3;
         this.clock = clock;
       }
       ensureRoom(input) {
@@ -165759,6 +165759,126 @@ var logger = (0, import_pino.default)({
   } : {}
 });
 
+// src/lib/postgresPresence.ts
+var TABLE = "presence_ephemeral";
+function clampTtl(ttlSeconds) {
+  return Math.min(300, Math.max(30, Number(ttlSeconds) || 90));
+}
+function normalizeDeviceId(deviceId) {
+  return String(deviceId || "default").trim().slice(0, 120) || "default";
+}
+async function postgresSetUserOnline(userId, ttlSeconds, deviceId = "default") {
+  const ttl = clampTtl(ttlSeconds);
+  const device = normalizeDeviceId(deviceId);
+  const now3 = /* @__PURE__ */ new Date();
+  const expires = new Date(now3.getTime() + ttl * 1e3);
+  const { error: error45 } = await getSupabaseService().from(TABLE).upsert(
+    {
+      person_id: userId,
+      device_id: device,
+      last_seen: now3.toISOString(),
+      expires_at: expires.toISOString()
+    },
+    { onConflict: "person_id,device_id" }
+  );
+  if (error45) {
+    logger.warn({ err: error45.message }, "postgres presence upsert failed");
+    return false;
+  }
+  return true;
+}
+async function postgresClearUserDevicePresence(userId, deviceId = "default") {
+  const device = normalizeDeviceId(deviceId);
+  const { error: error45 } = await getSupabaseService().from(TABLE).delete().eq("person_id", userId).eq("device_id", device);
+  if (error45) {
+    logger.warn({ err: error45.message }, "postgres presence clear failed");
+    return false;
+  }
+  return true;
+}
+async function postgresListActivePresenceDevices(userId) {
+  const now3 = (/* @__PURE__ */ new Date()).toISOString();
+  const { data, error: error45 } = await getSupabaseService().from(TABLE).select("device_id").eq("person_id", userId).gt("expires_at", now3);
+  if (error45) {
+    logger.warn({ err: error45.message }, "postgres presence list failed");
+    return [];
+  }
+  return (data ?? []).map((row) => String(row.device_id));
+}
+async function postgresIsUserOnline(userId) {
+  const devices = await postgresListActivePresenceDevices(userId);
+  return devices.length > 0;
+}
+async function postgresFilterOnlineUserIds(userIds) {
+  if (!userIds.length) return [];
+  const now3 = (/* @__PURE__ */ new Date()).toISOString();
+  const unique = [...new Set(userIds.map(String).filter(Boolean))];
+  const { data, error: error45 } = await getSupabaseService().from(TABLE).select("person_id").in("person_id", unique).gt("expires_at", now3);
+  if (error45) {
+    logger.warn({ err: error45.message }, "postgres presence filter failed");
+    return [];
+  }
+  return [...new Set((data ?? []).map((row) => String(row.person_id)))];
+}
+async function postgresPruneExpiredPresence(limit = 500) {
+  const now3 = (/* @__PURE__ */ new Date()).toISOString();
+  const { data } = await getSupabaseService().from(TABLE).select("person_id, device_id").lt("expires_at", now3).limit(limit);
+  if (!data?.length) return;
+  for (const row of data) {
+    await getSupabaseService().from(TABLE).delete().eq("person_id", row.person_id).eq("device_id", row.device_id);
+  }
+}
+
+// src/lib/memoryPresence.ts
+var store2 = /* @__PURE__ */ new Map();
+function clampTtl2(ttlSeconds) {
+  return Math.min(300, Math.max(30, Number(ttlSeconds) || 90));
+}
+function normalizeDeviceId2(deviceId) {
+  return String(deviceId || "default").trim().slice(0, 120) || "default";
+}
+function pruneUser(userId, now3 = Date.now()) {
+  const devices = store2.get(userId);
+  if (!devices) return [];
+  const alive = [];
+  for (const [deviceId, entry] of devices) {
+    if (entry.expiresAt <= now3) devices.delete(deviceId);
+    else alive.push(deviceId);
+  }
+  if (!devices.size) store2.delete(userId);
+  return alive;
+}
+function memorySetUserOnline(userId, ttlSeconds, deviceId = "default") {
+  if (!userId) return false;
+  const device = normalizeDeviceId2(deviceId);
+  const ttl = clampTtl2(ttlSeconds);
+  let devices = store2.get(userId);
+  if (!devices) {
+    devices = /* @__PURE__ */ new Map();
+    store2.set(userId, devices);
+  }
+  devices.set(device, { expiresAt: Date.now() + ttl * 1e3 });
+  return true;
+}
+function memoryClearUserDevicePresence(userId, deviceId = "default") {
+  const devices = store2.get(userId);
+  if (!devices) return true;
+  devices.delete(normalizeDeviceId2(deviceId));
+  if (!devices.size) store2.delete(userId);
+  return true;
+}
+function memoryListActivePresenceDevices(userId) {
+  return pruneUser(userId);
+}
+function memoryIsUserOnline(userId) {
+  return memoryListActivePresenceDevices(userId).length > 0;
+}
+function memoryFilterOnlineUserIds(userIds) {
+  return [...new Set(userIds.map(String).filter(Boolean))].filter(
+    (id) => memoryIsUserOnline(id)
+  );
+}
+
 // src/routes/presence.ts
 var router12 = (0, import_express12.Router)();
 function parseUserIds(raw) {
@@ -165776,31 +165896,99 @@ function resolveDeviceId(req) {
   const fromHeader = Array.isArray(header) ? header[0] : header;
   return String(body.deviceId || fromHeader || "default").trim().slice(0, 120) || "default";
 }
-function presenceDegraded(err4) {
+function presenceWarn(err4, label) {
   logger.warn(
     { err: err4 instanceof Error ? err4.message : String(err4) },
-    "presence redis degraded \u2014 fail open"
+    `presence ${label}`
   );
+}
+async function tryUpstash(fn) {
+  if (!isUpstashConfigured()) return { ok: false };
+  try {
+    return { ok: true, value: await fn() };
+  } catch (err4) {
+    presenceWarn(err4, "upstash degraded");
+    return { ok: false };
+  }
+}
+async function tryPostgres(fn) {
+  try {
+    return { ok: true, value: await fn() };
+  } catch (err4) {
+    presenceWarn(err4, "postgres degraded");
+    return { ok: false };
+  }
 }
 router12.get("/presence/online", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser.id;
-    if (!isUpstashConfigured()) {
-      res.json({ online: false, userIds: [], configured: false });
-      return;
-    }
     const ids = parseUserIds(req.query.ids);
-    if (!ids.length) {
-      const online = await isUserOnline(userId);
-      const devices = online ? await listActivePresenceDevices(userId) : [];
-      res.json({ online, userId, devices, configured: true });
+    const upstash2 = await tryUpstash(async () => {
+      if (!ids.length) {
+        const online = await isUserOnline(userId);
+        const devices = online ? await listActivePresenceDevices(userId) : [];
+        return {
+          online,
+          userId,
+          devices,
+          configured: true,
+          backend: "upstash"
+        };
+      }
+      const onlineIds = await filterOnlineUserIds(ids);
+      return { userIds: onlineIds, configured: true, backend: "upstash" };
+    });
+    if (upstash2.ok) {
+      res.json(upstash2.value);
       return;
     }
-    const onlineIds = await filterOnlineUserIds(ids);
-    res.json({ userIds: onlineIds, configured: true });
+    const postgres = await tryPostgres(async () => {
+      void postgresPruneExpiredPresence(100);
+      if (!ids.length) {
+        const online = await postgresIsUserOnline(userId);
+        const devices = online ? await postgresListActivePresenceDevices(userId) : [];
+        return {
+          online,
+          userId,
+          devices,
+          configured: true,
+          backend: "postgres",
+          failover: true
+        };
+      }
+      const onlineIds = await postgresFilterOnlineUserIds(ids);
+      return {
+        userIds: onlineIds,
+        configured: true,
+        backend: "postgres",
+        failover: true
+      };
+    });
+    if (postgres.ok) {
+      res.json(postgres.value);
+      return;
+    }
+    if (!ids.length) {
+      const online = memoryIsUserOnline(userId);
+      res.json({
+        online,
+        userId,
+        devices: online ? memoryListActivePresenceDevices(userId) : [],
+        configured: true,
+        backend: "memory",
+        failover: true
+      });
+      return;
+    }
+    res.json({
+      userIds: memoryFilterOnlineUserIds(ids),
+      configured: true,
+      backend: "memory",
+      failover: true
+    });
   } catch (err4) {
-    presenceDegraded(err4);
-    res.json({ online: false, userIds: [], configured: false, degraded: true });
+    presenceWarn(err4, "get failed");
+    res.json({ online: false, userIds: [], configured: false, degraded: true, backend: "none" });
   }
 });
 router12.post("/presence/online", auth, requireNotBanned, async (req, res) => {
@@ -165811,37 +165999,142 @@ router12.post("/presence/online", auth, requireNotBanned, async (req, res) => {
       300,
       Math.max(30, Number(req.body?.ttlSeconds) || 90)
     );
-    if (!isUpstashConfigured()) {
-      res.json({ ok: false, configured: false });
-      return;
-    }
-    await setUserOnline(userId, ttlSeconds, deviceId);
     const friendIds = parseUserIds(req.body?.friendIds);
-    if (friendIds.length) {
-      const onlineIds = await filterOnlineUserIds(friendIds);
-      res.json({ ok: true, online: true, userIds: onlineIds, deviceId, configured: true });
+    const upstash2 = await tryUpstash(async () => {
+      await setUserOnline(userId, ttlSeconds, deviceId);
+      if (friendIds.length) {
+        const onlineIds = await filterOnlineUserIds(friendIds);
+        return {
+          ok: true,
+          online: true,
+          userIds: onlineIds,
+          deviceId,
+          configured: true,
+          backend: "upstash"
+        };
+      }
+      return {
+        ok: true,
+        online: true,
+        userId,
+        deviceId,
+        configured: true,
+        backend: "upstash"
+      };
+    });
+    if (upstash2.ok) {
+      res.json(upstash2.value);
       return;
     }
-    res.json({ ok: true, online: true, userId, deviceId, configured: true });
+    const postgres = await tryPostgres(async () => {
+      const wrote = await postgresSetUserOnline(userId, ttlSeconds, deviceId);
+      if (!wrote) throw new Error("postgres presence upsert returned false");
+      if (friendIds.length) {
+        const onlineIds = await postgresFilterOnlineUserIds(friendIds);
+        return {
+          ok: true,
+          online: true,
+          userIds: onlineIds,
+          deviceId,
+          configured: true,
+          backend: "postgres",
+          failover: true
+        };
+      }
+      return {
+        ok: true,
+        online: true,
+        userId,
+        deviceId,
+        configured: true,
+        backend: "postgres",
+        failover: true
+      };
+    });
+    if (postgres.ok) {
+      res.json(postgres.value);
+      return;
+    }
+    memorySetUserOnline(userId, ttlSeconds, deviceId);
+    if (friendIds.length) {
+      res.json({
+        ok: true,
+        online: true,
+        userIds: memoryFilterOnlineUserIds(friendIds),
+        deviceId,
+        configured: true,
+        backend: "memory",
+        failover: true
+      });
+      return;
+    }
+    res.json({
+      ok: true,
+      online: true,
+      userId,
+      deviceId,
+      configured: true,
+      backend: "memory",
+      failover: true
+    });
   } catch (err4) {
-    presenceDegraded(err4);
-    res.json({ ok: false, configured: false, degraded: true });
+    presenceWarn(err4, "post failed");
+    res.json({ ok: false, configured: false, degraded: true, backend: "none" });
   }
 });
 router12.post("/presence/offline", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser.id;
     const deviceId = resolveDeviceId(req);
-    if (!isUpstashConfigured()) {
-      res.json({ ok: false, configured: false });
+    const upstash2 = await tryUpstash(async () => {
+      await clearUserDevicePresence(userId, deviceId);
+      const stillOnline = await isUserOnline(userId);
+      return {
+        ok: true,
+        online: stillOnline,
+        userId,
+        deviceId,
+        configured: true,
+        backend: "upstash"
+      };
+    });
+    if (upstash2.ok) {
+      void postgresClearUserDevicePresence(userId, deviceId);
+      memoryClearUserDevicePresence(userId, deviceId);
+      res.json(upstash2.value);
       return;
     }
-    await clearUserDevicePresence(userId, deviceId);
-    const stillOnline = await isUserOnline(userId);
-    res.json({ ok: true, online: stillOnline, userId, deviceId, configured: true });
+    const postgres = await tryPostgres(async () => {
+      await postgresClearUserDevicePresence(userId, deviceId);
+      const stillOnline = await postgresIsUserOnline(userId);
+      return {
+        ok: true,
+        online: stillOnline,
+        userId,
+        deviceId,
+        configured: true,
+        backend: "postgres",
+        failover: true
+      };
+    });
+    if (postgres.ok) {
+      memoryClearUserDevicePresence(userId, deviceId);
+      res.json(postgres.value);
+      return;
+    }
+    memoryClearUserDevicePresence(userId, deviceId);
+    res.json({
+      ok: true,
+      online: memoryIsUserOnline(userId),
+      userId,
+      deviceId,
+      configured: true,
+      backend: "memory",
+      failover: true
+    });
   } catch (err4) {
-    presenceDegraded(err4);
-    res.json({ ok: false, configured: false, degraded: true });
+    presenceWarn(err4, "offline failed");
+    res.json({ ok: false, configured: false, degraded: true, backend: "none" });
   }
 });
 var presence_default = router12;
@@ -214130,13 +214423,13 @@ function buildGoogleInteractionsStreamTransform({
 function convertToGoogleInteractionsInput({
   prompt,
   previousInteractionId,
-  store: store2,
+  store: store3,
   mediaResolution
 }) {
   var _a24, _b18, _c, _d, _e, _f, _g;
   const warnings = [];
-  const incoherentCombo = previousInteractionId != null && store2 === false;
-  const shouldCompact = previousInteractionId != null && store2 !== false;
+  const incoherentCombo = previousInteractionId != null && store3 === false;
+  const shouldCompact = previousInteractionId != null && store3 !== false;
   if (incoherentCombo) {
     warnings.push({
       type: "other",
