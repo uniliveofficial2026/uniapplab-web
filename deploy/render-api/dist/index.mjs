@@ -164048,12 +164048,24 @@ router4.get("/", auth, requireNotBanned, async (req, res, next2) => {
       await sb.rpc("ensure_wallet", { p_user_id: userId });
     } catch {
     }
-    const { data: wallet, error: walletErr } = await sb.from("wallets").select(
-      "balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, commerce_coin_earnings, updated_at"
-    ).eq("user_id", userId).maybeSingle();
-    if (walletErr) {
-      res.status(400).json({ error: walletErr.message });
-      return;
+    let wallet = null;
+    {
+      const full = await sb.from("wallets").select(
+        "balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, commerce_coin_earnings, updated_at"
+      ).eq("user_id", userId).maybeSingle();
+      if (full.error && /commerce_coin_earnings/i.test(full.error.message)) {
+        const basic = await sb.from("wallets").select("balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, updated_at").eq("user_id", userId).maybeSingle();
+        if (basic.error) {
+          res.status(400).json({ error: basic.error.message });
+          return;
+        }
+        wallet = basic.data ?? null;
+      } else if (full.error) {
+        res.status(400).json({ error: full.error.message });
+        return;
+      } else {
+        wallet = full.data ?? null;
+      }
     }
     const { data: limits } = await sb.from("wallet_spend_limits").select(
       "daily_coin_limit, monthly_coin_limit, daily_spent, monthly_spent, day_key, month_key"
@@ -166437,16 +166449,12 @@ router14.post("/tencent/rtc/usersig", auth, requireNotBanned, async (req, res, n
       res.status(503).json({ error: "tencent_rtc_not_configured" });
       return;
     }
-    const body = req.body ?? {};
-    const userId = String(body.userId || req.authUser?.id || "").trim();
+    const userId = String(req.authUser?.id || "").trim();
     if (!userId) {
-      res.status(400).json({ error: "userId_required" });
+      res.status(401).json({ error: "auth_required" });
       return;
     }
-    if (userId !== req.authUser.id && req.profile?.role !== "admin") {
-      res.status(403).json({ error: "usersig_user_mismatch" });
-      return;
-    }
+    const body = req.body ?? {};
     const expireSeconds = typeof body.expireSeconds === "number" && Number.isFinite(body.expireSeconds) ? body.expireSeconds : void 0;
     const result = createTencentRtcUserSig(userId, expireSeconds);
     res.json({

@@ -1,0 +1,1043 @@
+{
+  "generatedAt": "2026-08-25T16:24:48.591Z",
+  "seededFrom": [
+    "docs/full-app-recovery/FULL-ROUTE-MANIFEST.json",
+    "docs/full-app-recovery/FULL-SCREEN-MANIFEST.json",
+    "docs/full-app-recovery/FINAL-STATUS.json",
+    "artifacts/instacollab/src/components/layout/Shell.tsx navItems + settings rows"
+  ],
+  "shellNavItems": [
+    "Home",
+    "Explore",
+    "Reels",
+    "Karaoke",
+    "Messages",
+    "Notifications",
+    "Dating",
+    "Live",
+    "Greedy",
+    "Game Hub",
+    "Wallet",
+    "YouTube",
+    "Creator",
+    "Profile",
+    "Marketplace",
+    "Settings",
+    "Admin Panel",
+    "Add/Switch Account",
+    "Software Update",
+    "Light mode"
+  ],
+  "policy": "Default NOT_TESTED. PASS only when FINAL-STATUS.json (or cited evidence) already proves the item. Do not invent PASS for physical/media.",
+  "summary": {
+    "PASS": 14,
+    "NOT_TESTED": 75,
+    "PARTIAL": 3
+  },
+  "features": [
+    {
+      "id": "homeRouting",
+      "kind": "shell",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json homeRouting=PASS; evidence shell-nav-presence-result homeOk",
+      "routes": [
+        "/",
+        "/home"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "profileSetup",
+      "kind": "auth",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json profileSetup=PASS; profile setup complete routes to home",
+      "routes": [],
+      "screens": [
+        "ProfileSetup"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "signedInShell",
+      "kind": "shell",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json signedInShell=PASS; postdeploy/shell navigation evidence",
+      "routes": [
+        "/home",
+        "/profile"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "authenticatedApi",
+      "kind": "api",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json authenticatedApi=PASS; evidence auth-api-proof.json",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "presencePostgresFailover",
+      "kind": "api",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json presence=PASS; presence.ts upstash→postgres→memory; evidence shell-nav-presence-result backend postgres|memory failover",
+      "routes": [
+        "/api/presence/online",
+        "/api/presence/offline"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "marketplaceOverlay",
+      "kind": "shell",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json marketplace=PASS; Creator Marketplace overlay with catalog + Buy (desktop + mobile)",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "oauthBrandIsolation",
+      "kind": "auth",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json oauthBrandIsolation=PASS",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "fullNavigation",
+      "kind": "shell",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json fullNavigation=PASS",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "identity",
+      "kind": "auth",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json identity=PASS (API actor = auth user)",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:home",
+      "kind": "shellNav",
+      "status": "PASS",
+      "evidenceNote": "Covered by homeRouting PASS in FINAL-STATUS.json",
+      "routes": [
+        "/home"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:explore",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [
+        "/explore",
+        "/search"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:reels",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:karaoke",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:messages",
+      "kind": "shellNav",
+      "status": "PARTIAL",
+      "evidenceNote": "FINAL-STATUS.json messages=PARTIAL",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:notifications",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:dating",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:live",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:greedy",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:game_hub",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:wallet",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:youtube",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:creator",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:profile",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:marketplace",
+      "kind": "shellNav",
+      "status": "PASS",
+      "evidenceNote": "Covered by marketplace overlay PASS in FINAL-STATUS.json",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:settings",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:admin_panel",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:add_switch_account",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:software_update",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "nav:light_mode",
+      "kind": "shellNav",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Shell nav item; source Shell.tsx / settings menu",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:MessagesScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/messages/MessagesScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "MessagesScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:NotificationsScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "NotificationsScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:ReelsScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/reels/ReelsScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "ReelsScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:SearchScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/search/SearchScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "SearchScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:ProfileScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/profile/ProfileScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "ProfileScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:WorkspaceGate",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/workspace/WorkspaceGate.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "WorkspaceGate"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:DatingScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/dating/DatingScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "DatingScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:LaunchFlowHost",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/launch/LaunchFlowHost.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "LaunchFlowHost"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:UserProfilePreview",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/profile/UserProfilePreview.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "UserProfilePreview"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:StoryRing",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/feed/StoryRing.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "StoryRing"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:LiveScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/live/LiveScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "LiveScreen"
+      ],
+      "physicalRequired": true
+    },
+    {
+      "id": "screen:KaraokeScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "KaraokeScreen"
+      ],
+      "physicalRequired": true
+    },
+    {
+      "id": "screen:LocalGamesScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/games/LocalGamesScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "LocalGamesScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:ThirdPartyGamesScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/games/ThirdPartyGamesScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "ThirdPartyGamesScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:GameHubScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/games/GameHubScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "GameHubScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:YouTube",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/pages/YouTube.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "YouTube"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:WalletScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/wallet/WalletScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "WalletScreen"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:DevLivePanel",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/dev/DevLivePanel.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "DevLivePanel"
+      ],
+      "physicalRequired": true
+    },
+    {
+      "id": "screen:PkLiveOverlay",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/live/PkLiveOverlay.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "PkLiveOverlay"
+      ],
+      "physicalRequired": true
+    },
+    {
+      "id": "screen:YoutubeMiniPlayerHost",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/youtube/YoutubeMiniPlayerHost.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "YoutubeMiniPlayerHost"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:AuthScreen",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/auth/AuthScreen.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "AuthScreen"
+      ],
+      "physicalRequired": true
+    },
+    {
+      "id": "screen:ProfileSetup",
+      "kind": "screen",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json profileSetup=PASS",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "ProfileSetup"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:AdminEmbedRoomHost",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/admin/AdminEmbedRoomHost.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "AdminEmbedRoomHost"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:AdminEmbedGiftPreviewHost",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/admin/AdminEmbedGiftPreviewHost.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "AdminEmbedGiftPreviewHost"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:AppLiveStudioShell",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/studio/AppLiveStudioShell.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "AppLiveStudioShell"
+      ],
+      "physicalRequired": true
+    },
+    {
+      "id": "screen:AdminHandoffHost",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/dev/AdminHandoffHost.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "AdminHandoffHost"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:AdminDevBridgeHost",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/dev/AdminDevBridgeHost.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "AdminDevBridgeHost"
+      ],
+      "physicalRequired": false
+    },
+    {
+      "id": "screen:UniLivesCharacterPreviewHost",
+      "kind": "screen",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Screen PRESENT in source (artifacts/instacollab/src/components/character/UniLivesCharacterPreviewHost.tsx); production/physical not fully proven",
+      "routes": [
+        "shell-tab-or-overlay"
+      ],
+      "screens": [
+        "UniLivesCharacterPreviewHost"
+      ],
+      "physicalRequired": true
+    },
+    {
+      "id": "route:/",
+      "kind": "route",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json homeRouting=PASS",
+      "routes": [
+        "/"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/dating",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/dating"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/discover",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/discover"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/explore",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/explore"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/games",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/games"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/games/hub",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/games/hub"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/games/local",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/games/local"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/games/web",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/games/web"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/greedy-tap",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/greedy-tap"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/home",
+      "kind": "route",
+      "status": "PASS",
+      "evidenceNote": "FINAL-STATUS.json homeRouting=PASS",
+      "routes": [
+        "/home"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/index.html",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/index.html"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/karaoke",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/karaoke"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/live",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/live"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/messages",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/messages"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/notifications",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/notifications"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/party",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/party"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/profile",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/profile"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/reels",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/reels"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/room",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/room"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/room/create",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/room/create"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/search",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/search"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/wallet",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/wallet"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/workspace",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/workspace"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "route:/youtube",
+      "kind": "route",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Listed in FULL-ROUTE-MANIFEST.json; runtime not fully proven",
+      "routes": [
+        "/youtube"
+      ],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "realIphoneCamera",
+      "kind": "physical",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json realIphoneCamera=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    },
+    {
+      "id": "realIphoneMicrophone",
+      "kind": "physical",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json realIphoneMicrophone=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    },
+    {
+      "id": "iphoneMacAudioCall",
+      "kind": "physical",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json iphoneMacAudioCall=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    },
+    {
+      "id": "iphoneMacVideoCall",
+      "kind": "physical",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json iphoneMacVideoCall=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    },
+    {
+      "id": "iphoneMacSoloLive",
+      "kind": "physical",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json iphoneMacSoloLive=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    },
+    {
+      "id": "iphoneMacMultiGuest",
+      "kind": "physical",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json iphoneMacMultiGuest=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    },
+    {
+      "id": "pk",
+      "kind": "physical",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json pk=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    },
+    {
+      "id": "gifts",
+      "kind": "feature",
+      "status": "NOT_TESTED",
+      "evidenceNote": "FINAL-STATUS.json gifts=NOT_TESTED",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "messages",
+      "kind": "feature",
+      "status": "PARTIAL",
+      "evidenceNote": "FINAL-STATUS.json messages=PARTIAL",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "postsReels",
+      "kind": "feature",
+      "status": "PARTIAL",
+      "evidenceNote": "FINAL-STATUS.json postsReels=PARTIAL",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": false
+    },
+    {
+      "id": "accountSwitchIsolation",
+      "kind": "auth",
+      "status": "NOT_TESTED",
+      "evidenceNote": "Physical A→B account switch isolation required; see test-account-switch-isolation.mjs evidence key physicalAccountSwitchAtoB",
+      "routes": [],
+      "screens": [],
+      "physicalRequired": true
+    }
+  ]
+}

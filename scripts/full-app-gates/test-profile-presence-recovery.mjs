@@ -51,6 +51,39 @@ check(
   presence.includes('postgresSetUserOnline') && presence.includes('memorySetUserOnline'),
 );
 
+const authLaunch = fs.readFileSync(
+  path.join(root, 'artifacts/instacollab/src/lib/db/domains/authLaunch.ts'),
+  'utf8',
+);
+check(
+  'cloud_profile_complete_is_launch_ssot',
+  authLaunch.includes('const cloudComplete = Boolean(profileSetupCompleteFromServer)') &&
+    authLaunch.includes('cloudComplete ||') &&
+    authLaunch.includes('cloudComplete || legalOk || priorGates.legalAgreementAccepted'),
+);
+
+const walletRoute = fs.readFileSync(
+  path.join(root, 'artifacts/api-server/src/routes/wallet.ts'),
+  'utf8',
+);
+check(
+  'wallet_tolerates_missing_commerce_coin_earnings',
+  /commerce_coin_earnings/i.test(walletRoute) &&
+    walletRoute.includes('commerce_coin_earnings') &&
+    /commerce_coin_earnings/i.test(walletRoute) &&
+    walletRoute.includes('basic = await sb'),
+);
+
+const tencentRtc = fs.readFileSync(
+  path.join(root, 'artifacts/api-server/src/routes/tencentRtc.ts'),
+  'utf8',
+);
+check(
+  'tencent_usersig_uses_auth_actor_only',
+  tencentRtc.includes('req.authUser?.id') &&
+    !/body\.userId\s*\|\|/.test(tencentRtc),
+);
+
 const failed = checks.filter((c) => !c.ok);
 if (failed.length) {
   console.error(`\n${failed.length} gate(s) failed`);

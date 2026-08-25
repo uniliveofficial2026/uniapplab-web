@@ -14,7 +14,7 @@
   "authenticatedApi": "PASS",
   "identity": "PASS",
   "presence": "PASS",
-  "presenceNotes": "Upstash quota exceeded; production failover PASS via memory backend (POST/GET consistent on same instance). Postgres presence_ephemeral migration pending DDL credentials.",
+  "presenceNotes": "Upstash still unavailable/quota; durable postgres presence_ephemeral applied via Supabase MCP; POST/GET backend=postgres failover=true",
   "marketplace": "PASS",
   "marketplaceNotes": "Creator Marketplace overlay opens with catalog categories and Buy controls (desktop + mobile menu path).",
   "realIphoneCamera": "NOT_TESTED",
@@ -48,9 +48,14 @@
     "launched": true
   },
   "blockingNext": [
-    "Physical iPhone signed-in shell screenshots (Cap WebView) after session restore",
-    "TCC Allow Camera/Mic on iPhone when prompted — owner tap only",
-    "iPhone↔Mac call/live media path",
-    "Apply presence_ephemeral SQL when Supabase DDL token available"
-  ]
+    "Deploy SPA/API with launch SSOT + wallet resilience + usersig fix",
+    "Retest authenticated nav without profile loop",
+    "Physical A\u2192B account switch",
+    "Owner TCC Allow then iPhone\u2194Mac media"
+  ],
+  "wallet": "PASS",
+  "walletNotes": "commerce_coin_earnings column applied; /api/wallet 200",
+  "singleSourceTruthUserAuth": "PARTIAL",
+  "authNotes": "AUTH-API-MATRIX + gates PASS; tencent usersig fixed to auth actor; cloud profile_setup_complete now hydrates launch gates (pending deploy)",
+  "profileSetupLoopRegression": "FIXED_PENDING_DEPLOY"
 }

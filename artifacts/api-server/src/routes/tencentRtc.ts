@@ -38,18 +38,14 @@ router.post("/tencent/rtc/usersig", auth, requireNotBanned, async (req, res, nex
       return;
     }
 
-    const body = (req.body ?? {}) as { userId?: string; expireSeconds?: number };
-    const userId = String(body.userId || req.authUser?.id || "").trim();
+    // Canonical actor only — never mint UserSig from client-supplied body.userId.
+    const userId = String(req.authUser?.id || "").trim();
     if (!userId) {
-      res.status(400).json({ error: "userId_required" });
-      return;
-    }
-    // Only allow minting a sig for the authenticated user (or admins later).
-    if (userId !== req.authUser!.id && req.profile?.role !== "admin") {
-      res.status(403).json({ error: "usersig_user_mismatch" });
+      res.status(401).json({ error: "auth_required" });
       return;
     }
 
+    const body = (req.body ?? {}) as { expireSeconds?: number };
     const expireSeconds =
       typeof body.expireSeconds === "number" && Number.isFinite(body.expireSeconds)
         ? body.expireSeconds

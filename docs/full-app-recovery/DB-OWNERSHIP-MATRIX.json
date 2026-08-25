@@ -1,0 +1,367 @@
+{
+  "generatedAt": "2026-08-25T16:23:49.441Z",
+  "sourceRoots": [
+    "artifacts/instacollab/supabase/migrations",
+    "supabase/migrations"
+  ],
+  "canonicalPerson": "auth.users.id (Supabase) — mirrored as profiles.id / user_id / person_id columns",
+  "emailUsernamePolicy": "email and username are profile/auth metadata only; never use as ownership foreign keys for wallets, gifts, chat, presence, or push bindings",
+  "tables": [
+    {
+      "table": "auth_identities",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "provider+provider_user_id → canonical user_id; email never merge key (see artifacts/api-server/src/lib/authIdentities.ts)",
+      "migrationSources": [
+        "artifacts/api-server/src/lib/authIdentities.ts"
+      ]
+    },
+    {
+      "table": "chat_message_reactions",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260704130000_social_complete.sql"
+      ]
+    },
+    {
+      "table": "chat_messages",
+      "canonicalOwnerColumn": "sender_id",
+      "ownerColumns": [
+        "sender_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601200000_chat.sql"
+      ]
+    },
+    {
+      "table": "chat_read_state",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601200000_chat.sql"
+      ]
+    },
+    {
+      "table": "chat_thread_members",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601200000_chat.sql"
+      ]
+    },
+    {
+      "table": "follow_requests",
+      "canonicalOwnerColumn": "requester_id",
+      "ownerColumns": [
+        "requester_id"
+      ],
+      "notes": "requester owns insert; profile_owner_id is target",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260703120000_social_discovery.sql",
+        "artifacts/instacollab/supabase/migrations/20260703150000_follows.sql"
+      ]
+    },
+    {
+      "table": "follows",
+      "canonicalOwnerColumn": "follower_id",
+      "ownerColumns": [
+        "follower_id"
+      ],
+      "notes": "edge owned by follower_id; following_id is target",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260703120000_social_discovery.sql",
+        "artifacts/instacollab/supabase/migrations/20260703150000_follows.sql"
+      ]
+    },
+    {
+      "table": "gift_room_stats",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260710120000_gift_economy_phase1.sql"
+      ]
+    },
+    {
+      "table": "gift_transactions",
+      "canonicalOwnerColumn": "sender_id",
+      "ownerColumns": [
+        "sender_id"
+      ],
+      "notes": "sender is actor; receiver_id is target",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260710120000_gift_economy_phase1.sql"
+      ]
+    },
+    {
+      "table": "party_room_messages",
+      "canonicalOwnerColumn": "sender_id",
+      "ownerColumns": [
+        "sender_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260703140000_party_room_chat.sql"
+      ]
+    },
+    {
+      "table": "party_room_sync_events",
+      "canonicalOwnerColumn": "sender_id",
+      "ownerColumns": [
+        "sender_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260706180000_party_room_live_sync.sql"
+      ]
+    },
+    {
+      "table": "party_rooms",
+      "canonicalOwnerColumn": "owner_id",
+      "ownerColumns": [
+        "owner_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260703120000_social_discovery.sql",
+        "artifacts/instacollab/supabase/migrations/20260703140000_party_room_chat.sql"
+      ]
+    },
+    {
+      "table": "posts",
+      "canonicalOwnerColumn": "author_id",
+      "ownerColumns": [
+        "author_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260701120000_posts.sql"
+      ]
+    },
+    {
+      "table": "presence_ephemeral",
+      "canonicalOwnerColumn": "person_id",
+      "ownerColumns": [
+        "person_id"
+      ],
+      "notes": "TTL presence only — NOT identity authority",
+      "migrationSources": [
+        "supabase/migrations/20260825120000_presence_ephemeral.sql"
+      ]
+    },
+    {
+      "table": "profile_visits",
+      "canonicalOwnerColumn": "owner_id",
+      "ownerColumns": [
+        "owner_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260704130000_social_complete.sql"
+      ]
+    },
+    {
+      "table": "profiles",
+      "canonicalOwnerColumn": "id",
+      "ownerColumns": [
+        "id"
+      ],
+      "notes": "PK references auth.users(id); canonical PERSON; username is unique handle metadata — not ownership FK",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601120000_profiles.sql"
+      ]
+    },
+    {
+      "table": "push_devices",
+      "canonicalOwnerColumn": "person_id",
+      "ownerColumns": [
+        "person_id"
+      ],
+      "notes": "DEVICE↔PERSON binding; device_id is installation PK",
+      "migrationSources": [
+        "supabase/migrations/20260824010100_push_devices.sql"
+      ]
+    },
+    {
+      "table": "recharge_orders",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260710120000_gift_economy_phase1.sql"
+      ]
+    },
+    {
+      "table": "social_comments",
+      "canonicalOwnerColumn": "author_id",
+      "ownerColumns": [
+        "author_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260704120000_social_realtime.sql"
+      ]
+    },
+    {
+      "table": "social_engagement",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260704120000_social_realtime.sql"
+      ]
+    },
+    {
+      "table": "social_stories",
+      "canonicalOwnerColumn": "author_id",
+      "ownerColumns": [
+        "author_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260704120000_social_realtime.sql"
+      ]
+    },
+    {
+      "table": "stream_signals",
+      "canonicalOwnerColumn": "from_user",
+      "ownerColumns": [
+        "from_user"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601210000_streams.sql"
+      ]
+    },
+    {
+      "table": "streams",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601210000_streams.sql"
+      ]
+    },
+    {
+      "table": "user_app_state",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601160000_user_app_state.sql"
+      ]
+    },
+    {
+      "table": "user_entitlements",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "Referenced by entitlements routes; grant target is user_id UUID",
+      "migrationSources": [
+        "artifacts/api-server/src/routes/entitlements.ts"
+      ]
+    },
+    {
+      "table": "user_notifications",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260703120000_social_discovery.sql"
+      ]
+    },
+    {
+      "table": "wallet_spend_limits",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260710120000_gift_economy_phase1.sql"
+      ]
+    },
+    {
+      "table": "wallet_transactions",
+      "canonicalOwnerColumn": "from_user",
+      "ownerColumns": [
+        "from_user",
+        "to_user"
+      ],
+      "notes": "from_user/to_user reference auth.users; neither is email",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601190000_wallets.sql"
+      ]
+    },
+    {
+      "table": "wallets",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "PK references auth.users(id)",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260601190000_wallets.sql"
+      ]
+    },
+    {
+      "table": "youtube_engagement",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260703170000_youtube_engagement.sql"
+      ]
+    },
+    {
+      "table": "youtube_playlist_items",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260711120000_youtube_library_playlists.sql"
+      ]
+    },
+    {
+      "table": "youtube_playlists",
+      "canonicalOwnerColumn": "user_id",
+      "ownerColumns": [
+        "user_id"
+      ],
+      "notes": "none",
+      "migrationSources": [
+        "artifacts/instacollab/supabase/migrations/20260711120000_youtube_library_playlists.sql"
+      ]
+    }
+  ]
+}

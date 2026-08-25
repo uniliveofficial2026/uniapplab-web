@@ -1,0 +1,2474 @@
+{
+  "generatedAt": "2026-08-25T16:26:45.276Z",
+  "source": "Static scan of artifacts/api-server/src/routes/*.ts (+ admin/**); mounts from routes/index.ts",
+  "authContract": "artifacts/api-server/src/middlewares/auth.ts \u2014 Firebase\u2192auth_identities\u2192canonical user_id; email never identity key; body/query userId mismatch \u2192 403 impersonation",
+  "summary": {
+    "protectedRouteCount": 246,
+    "pass": 246,
+    "needs_fix": 0,
+    "fail": 0
+  },
+  "findings": [],
+  "routes": [
+    {
+      "method": "GET",
+      "path": "/api/admin",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/admin",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/approve",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/cancel",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/:id/content",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/create-preview",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/disable",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/items",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/:id/items/:itemId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/:id/items/:itemId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/reject",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/rollback",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/submit",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/:id/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/actions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/assets",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/assignments",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/assignments",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/bindings",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/bootstrap",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/change-sets/:id/approve",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/change-sets/:id/benchmark",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/change-sets/:id/canary",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/change-sets/:id/preview",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/change-sets/:id/reject",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/change-sets/:id/submit",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/chat",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/chat/messages",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/chat/messages/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/clone-catalog",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/clone-catalog/:resourceId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/clone-catalog/domains",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/clone-catalog/types",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/compatibility",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/complete",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "none",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/components",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/content/comments",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/content/comments/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/content/posts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/content/posts/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/content/reels",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/convert",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/detect",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/drafts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/drafts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/drafts/:draftId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/drafts/:draftId/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/drafts/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/drafts/:id/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/elements",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/env",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/env",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/admin/env",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/experiences",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/health-check",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/implement",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/implement/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/import",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/integrations/status",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/jobs/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/jobs/:id/preview",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/jobs/:id/run",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/layouts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/mcp",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/admin/mcp",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/mcp/apply-cursor",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/mcp/servers",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "DELETE",
+      "path": "/api/admin/mcp/servers/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/me",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/memory",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/micro-edit",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/moderation/ban-host",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/moderation/stop-live",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/nodes",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/omni/catalog",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/omni/run",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/overview",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/party-rooms",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/party-rooms/:id/ban",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/party-rooms/:id/end",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/party-rooms/gifts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/permissions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/ports",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/pricing-drafts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/proactive",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/projects",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/projects",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/providers",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/providers/jobs/:jobId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/providers/run",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/publications/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/publications/:id/advance",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/publications/:id/health",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/publications/:id/health",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/publications/:id/metrics",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/publications/:id/pause",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/publications/:id/resume",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/publications/:id/rollback",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/publications/:id/status",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/registry",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/reports/:id/override",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/resolve",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/resources",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/resources/:id/performance",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/resources/:resourceId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/resources/:resourceId/consumers",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/resources/:resourceId/dependencies",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/resources/:resourceId/drafts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/resources/:resourceId/history",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/roles",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/roles",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/roles/:id/revoke",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/runtime-bundles",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/runtime-bundles/compile",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/runtime-bundles/publish",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/runtime-config/audit",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/runtime-config/definitions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/runtime-config/versions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/runtime-config/versions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/runtime-config/versions/:id/activate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/runtime-config/versions/:id/health-check",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/runtime-config/versions/:id/rollback",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/runtime-config/versions/:id/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/scaffold-app",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/sessions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/sessions/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/slo",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/slo/samples",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/streams",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/streams/:id/ban",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/streams/:id/stop",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/tasks",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/tasks",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/tasks/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/tasks/:id/cancel",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/terminal",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/third-party/:providerId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/translations",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/assignments",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/assignments/:assignmentId/disable",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/experiences/:experienceKey/drafts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/fragments/:fragmentKey/versions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/fragments/:versionId/publish",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/fragments/:versionId/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/snapshots",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/snapshots/:snapshotId/publish",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/snapshots/:snapshotId/rollback",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/snapshots/:snapshotId/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/themes/:themeKey/drafts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/themes/:versionId/publish",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/versions/:versionId/publish",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/versions/:versionId/rollback",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/ui-config/versions/:versionId/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/upload-intent",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/upload-intents",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/upload-local",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/users",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users/:id/ban",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users/:id/mute",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/admin/users/:id/role",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/users/:id/unban",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/admin/validate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requirePermission/loadAdminAuthz",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/wallet/transactions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/admin/wallet/users",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ai/generate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/automation",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/messages",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/messages/delete",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/threads",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/threads",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/chat/threads/:threadId/messages",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/chat/typing",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/entitlements/:userId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entitlements/grant",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/entitlements/revoke",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PUT",
+      "path": "/api/gifts/catalog/:id",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/gifts/history",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/gifts/rankings/:roomId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/gifts/send",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "sender_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/i18n/translate",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/:roomId/seats",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/:roomId/seats/:seatIndex/approve",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/:roomId/seats/:seatIndex/leave",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/:roomId/seats/:seatIndex/request",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/pk/challenges",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/pk/challenges/:challengeId",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/pk/challenges/:challengeId/accept",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/pk/challenges/:challengeId/cancel",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/pk/challenges/:challengeId/decline",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/pk/challenges/:challengeId/expire",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/pk/challenges/hosts",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/pk/challenges/inbox",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/end",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/ensure",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/gifts/lifecycle-settle",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/rooms/:roomId/host-dashboard",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/host-dashboard/ingest",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/rooms/:roomId/host-dashboard/snapshot",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/rooms/:roomId/host-summary",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/leave",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/rooms/:roomId/leave-preview",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/pk-roster",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "body.userIds used as target list (not actor); actor from auth",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/pk/end",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/live/rooms/:roomId/pk/session",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/pk/start",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/live/rooms/:roomId/sessions",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/livekit/chat/token",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/livekit/party/token",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/livekit/token",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "none",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/me",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me/identities",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/me/identities/link",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/me/identities/unlink",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/me/me",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "none",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "PATCH",
+      "path": "/api/me/me",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/media/configure-cors",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/media/presign",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/media/upload-base64",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/payments/commerce/checkout-session",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "buyer_user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/payments/commerce/verify-session",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/payments/recharge/checkout-session",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/payments/recharge/verify-session",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/platform/brand",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/presence/offline",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/presence/online",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/presence/online",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/clear-person",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "person_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/push/devices",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "person_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/push/register",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "person_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stream/:id/signal",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "from_user",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stream/:id/viewers",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stream/start",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/stream/stop",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/tencent/rtc/usersig",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id",
+      "resourceOwnerField": "req.authUser.id",
+      "roleCheck": "requireNotBanned + profile.role===admin (inline)",
+      "forgeryNote": "body.userId ignored; UserSig minted only for authenticated actor",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ui-sessions/:sessionId/end",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "none",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ui-sessions/:sessionId/refresh",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "none",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/ui-sessions/:sessionId/snapshot",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "none",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/ui-sessions/start",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "none",
+      "forgeryNote": "body.userId claim rejected unless matches auth; anonymous allowed without claim",
+      "result": "PASS"
+    },
+    {
+      "method": "GET",
+      "path": "/api/wallet",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/commerce-settle",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "buyer_user_id",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/credit",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "n/a",
+      "roleCheck": "requireAdmin",
+      "forgeryNote": "none",
+      "result": "PASS"
+    },
+    {
+      "method": "POST",
+      "path": "/api/wallet/transfer",
+      "authRequired": true,
+      "canonicalActorSource": "req.authUser.id / middleware",
+      "resourceOwnerField": "from_user",
+      "roleCheck": "requireNotBanned",
+      "forgeryNote": "none",
+      "result": "PASS"
+    }
+  ]
+}

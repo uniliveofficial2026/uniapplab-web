@@ -17,16 +17,33 @@ router.get("/", auth, requireNotBanned, async (req, res, next) => {
       /* wallet row may already exist via auth trigger */
     }
 
-    const { data: wallet, error: walletErr } = await sb
-      .from("wallets")
-      .select(
-        "balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, commerce_coin_earnings, updated_at",
-      )
-      .eq("user_id", userId)
-      .maybeSingle();
-    if (walletErr) {
-      res.status(400).json({ error: walletErr.message });
-      return;
+    // Prefer full ledger columns; fall back if commerce_coin_earnings migration not yet applied.
+    let wallet: Record<string, unknown> | null = null;
+    {
+      const full = await sb
+        .from("wallets")
+        .select(
+          "balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, commerce_coin_earnings, updated_at",
+        )
+        .eq("user_id", userId)
+        .maybeSingle();
+      if (full.error && /commerce_coin_earnings/i.test(full.error.message)) {
+        const basic = await sb
+          .from("wallets")
+          .select("balance, diamonds, reward_points, bonus_coins, promo_credits, vip_tokens, updated_at")
+          .eq("user_id", userId)
+          .maybeSingle();
+        if (basic.error) {
+          res.status(400).json({ error: basic.error.message });
+          return;
+        }
+        wallet = (basic.data as Record<string, unknown> | null) ?? null;
+      } else if (full.error) {
+        res.status(400).json({ error: full.error.message });
+        return;
+      } else {
+        wallet = (full.data as Record<string, unknown> | null) ?? null;
+      }
     }
 
     const { data: limits } = await sb

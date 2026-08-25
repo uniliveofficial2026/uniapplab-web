@@ -1,0 +1,282 @@
+{
+  "uid": "2a7e55d4",
+  "results": [
+    {
+      "id": "home",
+      "path": "/",
+      "url": "https://app.uniapplab.com/home",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-home.png"
+    },
+    {
+      "id": "explore",
+      "path": "/explore",
+      "url": "https://app.uniapplab.com/explore",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-explore.png"
+    },
+    {
+      "id": "reels",
+      "path": "/reels",
+      "url": "https://app.uniapplab.com/reels",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-reels.png"
+    },
+    {
+      "id": "karaoke",
+      "path": "/karaoke",
+      "url": "https://app.uniapplab.com/karaoke",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-karaoke.png"
+    },
+    {
+      "id": "messages",
+      "path": "/messages",
+      "url": "https://app.uniapplab.com/messages",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-messages.png"
+    },
+    {
+      "id": "notifications",
+      "path": "/notifications",
+      "url": "https://app.uniapplab.com/notifications",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-notifications.png"
+    },
+    {
+      "id": "dating",
+      "path": "/dating",
+      "url": "https://app.uniapplab.com/dating",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-dating.png"
+    },
+    {
+      "id": "live",
+      "path": "/live",
+      "url": "https://app.uniapplab.com/live",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-live.png"
+    },
+    {
+      "id": "wallet",
+      "path": "/wallet",
+      "url": "https://app.uniapplab.com/wallet",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-wallet.png"
+    },
+    {
+      "id": "youtube",
+      "path": "/youtube",
+      "url": "https://app.uniapplab.com/youtube",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-youtube.png"
+    },
+    {
+      "id": "creator",
+      "path": "/creator",
+      "url": "https://app.uniapplab.com/home",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-creator.png"
+    },
+    {
+      "id": "profile",
+      "path": "/profile",
+      "url": "https://app.uniapplab.com/profile",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-profile.png"
+    },
+    {
+      "id": "settings",
+      "path": "/settings",
+      "url": "https://app.uniapplab.com/profile",
+      "head": "UniLive’s | Set up your profile | Tell people who you are before you join the feed. Synced to your cloud account. | Upload profile photo | DISPLAY NAME | USERNAME | USER ID | User ID is available. | BIO | AVATAR URL (OPTIONAL) | You mu",
+      "profileLoop": true,
+      "hasRoot": true,
+      "shot": "nav-settings.png"
+    },
+    {
+      "id": "greedy",
+      "path": "/games/greedy-slot/",
+      "url": "https://app.uniapplab.com/games/greedy-slot/",
+      "head": "Today's 1672 | FREE SPINS! (3 REMAINING) | BONUS | 1X | 11s left | 🌭 | win 10x | 🍢 | win 15x | 🍖 | win 25x | 🥩 | win 45x | 🥕 | win 5x | 🌽 | win 5x | 🥬 | win 5x | 🍅 | win 5x | 🥗 | Salad > | 🍕 | Pizza > | 10 | 50 | 100 | 1k | 10k | Custom | Coins left | 💰 | 1k > | Today's profit",
+      "profileLoop": false,
+      "hasRoot": true,
+      "shot": "nav-greedy.png"
+    }
+  ],
+  "failures": [],
+  "netFails": [
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://app.uniapplab.com/api/wallet",
+      "s": 400
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://app.uniapplab.com/api/wallet",
+      "s": 400
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://app.uniapplab.com/api/wallet",
+      "s": 400
+    },
+    {
+      "u": "https://app.uniapplab.com/api/wallet",
+      "s": 400
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://app.uniapplab.com/api/wallet",
+      "s": 400
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://app.uniapplab.com/api/wallet",
+      "s": 400
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://ldxrdbyznheayhbkvxlq.supabase.co/auth/v1/health",
+      "s": 401
+    },
+    {
+      "u": "https://app.uniapplab.com/api/leaderboard",
+      "s": 404
+    },
+    {
+      "u": "https://app.uniapplab.com/api/items",
+      "s": 404
+    },
+    {
+      "u": "https://app.uniapplab.com/api/leaderboard",
+      "s": 404
+    }
+  ]
+}

@@ -189,11 +189,13 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
       const userId = this.asLocalDB().currentUserId;
       const priorGates = userId ? this.getUserLaunchGates(userId) : { ...DEFAULT_USER_GATES };
       const legalOk = priorGates.legalAgreementAccepted || this.hasAcceptedLegalAgreement(userId || undefined);
+      // Cloud profile_setup_complete is PERSON SSOT — do not require a prior local legal
+      // gate before hydrating returning-user launch progress (avoids profile-setup loop
+      // after session restore / account switch on a fresh device profile).
+      const cloudComplete = Boolean(profileSetupCompleteFromServer);
       const returning =
-        legalOk &&
-        (Boolean(profileSetupCompleteFromServer) ||
-          priorGates.profileSetupComplete ||
-          priorGates.hasSeenTrending);
+        cloudComplete ||
+        (legalOk && (priorGates.profileSetupComplete || priorGates.hasSeenTrending));
 
       persistLaunchFunnelAfterAuth();
       this.saveLaunchProgress({
@@ -205,7 +207,10 @@ export function WithAuthLaunch<T extends Constructor<DbCoreBacked>>(Base: T): Mi
         this.saveUserLaunchGates(userId, {
           profileSetupComplete: returning || priorGates.profileSetupComplete,
           hasSeenTrending: returning || priorGates.hasSeenTrending,
-          legalAgreementAccepted: legalOk || priorGates.legalAgreementAccepted,
+          // Completing profile setup in cloud required legal acceptance; hydrate local legal
+          // so returning users are not trapped on Profile Setup after auth restore.
+          legalAgreementAccepted:
+            cloudComplete || legalOk || priorGates.legalAgreementAccepted,
         });
       }
     }

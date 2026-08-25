@@ -1,0 +1,12 @@
+{
+  "testedAt": "2026-08-25T16:19:00Z",
+  "endpoint": "/api/presence/online",
+  "postBackend": "postgres",
+  "getBackend": "postgres",
+  "failover": true,
+  "online": true,
+  "migrationApplied": "presence_ephemeral via user-supabase apply_migration",
+  "upstash": "still_quota_or_unavailable",
+  "identityAuthority": false,
+  "result": "PASS"
+}
