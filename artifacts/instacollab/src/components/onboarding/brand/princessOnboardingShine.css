@@ -96,10 +96,10 @@
  * Skip: invisible top-right (no painted skip control).
  */
 .ups-hit-start {
-  left: 15.5%;
-  top: 86.8%;
-  width: 69%;
-  height: 6.4%;
+  left: 12%;
+  top: 85%;
+  width: 76%;
+  height: 9%;
   border-radius: 999px;
 }
 

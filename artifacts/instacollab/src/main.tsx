@@ -1,5 +1,4 @@
 import { createRoot } from 'react-dom/client';
-import { SpeedInsights } from '@vercel/speed-insights/react';
 import './lib/adminMirrorRole';
 import App from './App.tsx';
 import './index.css';
@@ -158,7 +157,6 @@ createRoot(rootEl).render(
       <PublicRuntimeConfigProvider>
         <AuthProvidersHost>
           <App />
-          <SpeedInsights />
         </AuthProvidersHost>
       </PublicRuntimeConfigProvider>
     </AppQueryProvider>

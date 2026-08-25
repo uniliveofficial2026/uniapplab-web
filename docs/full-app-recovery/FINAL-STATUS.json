@@ -1,0 +1,75 @@
+{
+  "fullRealApplication": "FAIL",
+  "production": "FAIL",
+  "productionUrl": "https://app.uniapplab.com",
+  "ownerObservedIncompleteAppIssue": "CONFIRMED_IN_PROGRESS",
+  "priorAcceptanceInvalid": true,
+  "invalidatedSha": "d715b726277211a8c9ed465474d5b3e9e3c6a722",
+  "recoveryBranch": "fix/restore-full-production-app",
+  "recoveryWorktree": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery",
+  "uiUxChanged": false,
+
+  "findings": {
+    "frontendSrcVsOwnerDirty": "IDENTICAL",
+    "backendChatVsOwnerDirty": "STRIPPED_GET_THREADS",
+    "authProvidersBootGap": "FIXED_IN_RECOVERY_PENDING_DEPLOY",
+    "vercelSpeedInsightsLeftover": "REMOVED_IN_RECOVERY_PENDING_DEPLOY",
+    "onboardingInvisibleHitsTooSmall": "ENLARGED_IN_RECOVERY_PENDING_DEPLOY",
+    "firebaseLegacyDualStack": "NOT_TESTED"
+  },
+
+  "consumerApp": "FAIL",
+  "developerPlatform": "NOT_TESTED",
+  "uniliveRtc": "NOT_TESTED",
+
+  "fullSourceReconciled": "FAIL",
+  "originalDirtyTreeAudited": "PASS",
+
+  "fullRoutes": "NOT_TESTED",
+  "fullScreens": "NOT_TESTED",
+  "fullComponents": "NOT_TESTED",
+  "fullAssets": "NOT_TESTED",
+
+  "frontendArtifact": "FAIL",
+  "backendCompleteness": "FAIL",
+
+  "auth": "FAIL",
+  "profiles": "NOT_TESTED",
+  "posts": "NOT_TESTED",
+  "reels": "NOT_TESTED",
+  "messages": "FAIL",
+
+  "audioCall": "NOT_TESTED",
+  "videoCall": "NOT_TESTED",
+  "soloLive": "NOT_TESTED",
+  "shopLive": "NOT_TESTED",
+  "audioLive": "NOT_TESTED",
+  "multiGuest": "NOT_TESTED",
+  "pk": "NOT_TESTED",
+
+  "gifts": "NOT_TESTED",
+  "likes": "NOT_TESTED",
+  "stickers": "NOT_TESTED",
+  "beauty": "NOT_TESTED",
+  "voiceChanger": "NOT_TESTED",
+
+  "games": "NOT_TESTED",
+  "marketplace": "NOT_TESTED",
+  "seller": "NOT_TESTED",
+  "wallet": "NOT_TESTED",
+
+  "studio": "NOT_TESTED",
+  "builder": "NOT_TESTED",
+
+  "iphonePhysical": "FAIL",
+  "iphoneRealCamera": "NOT_TESTED",
+  "iphoneRealMicrophone": "NOT_TESTED",
+
+  "iphoneMacCall": "NOT_TESTED",
+  "iphoneMacLive": "NOT_TESTED",
+  "iphoneMacMultiGuest": "NOT_TESTED",
+  "iphoneMacPk": "NOT_TESTED",
+
+  "androidPhysical": "BLOCKED_EXTERNAL",
+  "apns": "BLOCKED_EXTERNAL"
+}

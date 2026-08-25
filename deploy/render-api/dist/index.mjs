@@ -5667,14 +5667,14 @@ var require_content_type = __commonJS({
       }
       var string4 = type;
       if (parameters && typeof parameters === "object") {
-        var param;
+        var param2;
         var params = Object.keys(parameters).sort();
         for (var i2 = 0; i2 < params.length; i2++) {
-          param = params[i2];
-          if (!TOKEN_REGEXP.test(param)) {
+          param2 = params[i2];
+          if (!TOKEN_REGEXP.test(param2)) {
             throw new TypeError("invalid parameter name");
           }
-          string4 += "; " + param + "=" + qstring(parameters[param]);
+          string4 += "; " + param2 + "=" + qstring(parameters[param2]);
         }
       }
       return string4;
@@ -20523,7 +20523,7 @@ var require_router = __commonJS({
     }
     Router62.prototype = function() {
     };
-    Router62.prototype.param = function param(name24, fn) {
+    Router62.prototype.param = function param2(name24, fn) {
       if (!name24) {
         throw new TypeError("argument name is required");
       }
@@ -20790,7 +20790,7 @@ var require_router = __commonJS({
       let paramVal;
       let paramCallbacks;
       let paramCalled;
-      function param(err4) {
+      function param2(err4) {
         if (err4) {
           return done(err4);
         }
@@ -20803,11 +20803,11 @@ var require_router = __commonJS({
         paramCallbacks = params[key];
         paramCalled = called[key];
         if (paramVal === void 0 || !paramCallbacks) {
-          return param();
+          return param2();
         }
         if (paramCalled && (paramCalled.match === paramVal || paramCalled.error && paramCalled.error !== "route")) {
           req.params[key] = paramCalled.value;
-          return param(paramCalled.error);
+          return param2(paramCalled.error);
         }
         called[key] = paramCalled = {
           error: null,
@@ -20821,10 +20821,10 @@ var require_router = __commonJS({
         paramCalled.value = req.params[key];
         if (err4) {
           paramCalled.error = err4;
-          param(err4);
+          param2(err4);
           return;
         }
-        if (!fn) return param();
+        if (!fn) return param2();
         try {
           const ret = fn(req, res, paramCallback, paramVal, key);
           if (isPromise(ret)) {
@@ -20839,7 +20839,7 @@ var require_router = __commonJS({
           paramCallback(e2);
         }
       }
-      param();
+      param2();
     }
     function restore(fn, obj) {
       const props = new Array(arguments.length - 2);
@@ -21024,7 +21024,7 @@ var require_application = __commonJS({
       this.engines[extension2] = fn;
       return this;
     };
-    app2.param = function param(name24, fn) {
+    app2.param = function param2(name24, fn) {
       if (Array.isArray(name24)) {
         for (var i2 = 0; i2 < name24.length; i2++) {
           this.param(name24[i2], fn);
@@ -22102,12 +22102,12 @@ var require_content_disposition = __commonJS({
       }
       var string4 = String(type).toLowerCase();
       if (parameters && typeof parameters === "object") {
-        var param;
+        var param2;
         var params = Object.keys(parameters).sort();
         for (var i2 = 0; i2 < params.length; i2++) {
-          param = params[i2];
-          var val = param.slice(-1) === "*" ? ustring(parameters[param]) : qstring(parameters[param]);
-          string4 += "; " + param + "=" + val;
+          param2 = params[i2];
+          var val = param2.slice(-1) === "*" ? ustring(parameters[param2]) : qstring(parameters[param2]);
+          string4 += "; " + param2 + "=" + val;
         }
       }
       return string4;
@@ -27993,7 +27993,7 @@ var require_pino = __commonJS({
     function pinoBundlerAbsolutePath(p) {
       try {
         const path17 = __require("path");
-        const outputDir = "/Volumes/Wei2TB/Universal-Fixer-Production-Launch/artifacts/api-server/dist";
+        const outputDir = "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/artifacts/api-server/dist";
         return path17.resolve(outputDir, p.replace(/^\.\//, ""));
       } catch (e2) {
         const f3 = new Function("p", "return new URL(p, import.meta.url).pathname");
@@ -35859,7 +35859,7 @@ var require_webauthn_errors = __commonJS({
           cause: error45
         });
       } else if (error45.name === "NotSupportedError") {
-        const validPubKeyCredParams = publicKey.pubKeyCredParams.filter((param) => param.type === "public-key");
+        const validPubKeyCredParams = publicKey.pubKeyCredParams.filter((param2) => param2.type === "public-key");
         if (validPubKeyCredParams.length === 0) {
           return new WebAuthnError({
             message: 'No entry in pubKeyCredParams was of type "public-key"',
@@ -71321,8 +71321,8 @@ var require_utils4 = __commonJS({
         finalHint = hint;
       } else if (Array.isArray(hint)) {
         finalHint = {};
-        hint.forEach((param) => {
-          finalHint[param] = 1;
+        hint.forEach((param2) => {
+          finalHint[param2] = 1;
         });
       } else if (hint != null && typeof hint === "object") {
         finalHint = {};
@@ -164130,29 +164130,173 @@ function isBad(text2) {
   return BAD_WORDS.some((word) => lower2.includes(word));
 }
 
+// src/lib/chatDmKey.ts
+function buildDmKey(userA, userB) {
+  return [userA, userB].sort().join(":");
+}
+
 // src/routes/chat.ts
 var router7 = (0, import_express7.Router)();
 async function assertThreadMember(threadId, userId) {
   const { data, error: error45 } = await getSupabaseService().from("chat_thread_members").select("user_id").eq("thread_id", threadId).eq("user_id", userId).maybeSingle();
   return !error45 && Boolean(data);
 }
+async function findExistingDmThread(userId, peerId) {
+  const dmKey = buildDmKey(userId, peerId);
+  const service = getSupabaseService();
+  const { data, error: error45 } = await service.from("chat_threads").select("id, created_at").eq("thread_type", "dm").eq("dm_key", dmKey).maybeSingle();
+  if (error45 || !data) return null;
+  const { data: memberships, error: memberErr } = await service.from("chat_thread_members").select("user_id").eq("thread_id", data.id);
+  if (memberErr) return null;
+  const members = new Set((memberships ?? []).map((row) => String(row.user_id || "")).filter(Boolean));
+  return members.size === 2 && members.has(userId) && members.has(peerId) ? data : null;
+}
+function sanitizeGroupMeta(raw, ownerId, memberIds) {
+  const source = raw && typeof raw === "object" ? raw : {};
+  const memberSet = new Set(memberIds);
+  const cleanIds = (value) => Array.isArray(value) ? [...new Set(value.map(String).filter((id) => memberSet.has(id)))] : [];
+  const adminIds = cleanIds(source.adminIds);
+  if (!adminIds.includes(ownerId)) adminIds.unshift(ownerId);
+  return {
+    kind: "group",
+    localId: typeof source.localId === "string" ? source.localId.trim().slice(0, 128) : void 0,
+    title: typeof source.title === "string" ? source.title.trim().slice(0, 120) : void 0,
+    avatarUrl: typeof source.avatarUrl === "string" ? source.avatarUrl.trim().slice(0, 4e3) : void 0,
+    createdBy: ownerId,
+    adminIds,
+    mutedMemberIds: cleanIds(source.mutedMemberIds),
+    adminOnlyPosting: Boolean(source.adminOnlyPosting),
+    requireApprovalToJoin: Boolean(source.requireApprovalToJoin)
+  };
+}
+router7.get("/threads", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const userId = req.authUser.id;
+    const { data: memberships, error: memberErr } = await getSupabaseService().from("chat_thread_members").select("thread_id").eq("user_id", userId);
+    if (memberErr) {
+      res.status(400).json({ error: memberErr.message });
+      return;
+    }
+    const threadIds = (memberships ?? []).map((m2) => m2.thread_id).filter(Boolean);
+    if (threadIds.length === 0) {
+      res.json({ threads: [] });
+      return;
+    }
+    const { data: threads, error: threadErr } = await getSupabaseService().from("chat_threads").select("id, thread_type, dm_key, created_at, updated_at, meta").in("id", threadIds).order("updated_at", { ascending: false });
+    if (threadErr) {
+      res.status(400).json({ error: threadErr.message });
+      return;
+    }
+    const { data: allMembers } = await getSupabaseService().from("chat_thread_members").select("thread_id, user_id").in("thread_id", threadIds);
+    const membersByThread = /* @__PURE__ */ new Map();
+    for (const row of allMembers ?? []) {
+      const list = membersByThread.get(row.thread_id) ?? [];
+      list.push(row.user_id);
+      membersByThread.set(row.thread_id, list);
+    }
+    const enriched = await Promise.all(
+      (threads ?? []).map(async (thread) => {
+        const { data: latest } = await getSupabaseService().from("chat_messages").select("id, body, sender_id, created_at, client_id, payload").eq("thread_id", thread.id).is("deleted_at", null).order("created_at", { ascending: false }).limit(1).maybeSingle();
+        return {
+          ...thread,
+          members: membersByThread.get(thread.id) ?? [],
+          latestMessage: latest ?? null
+        };
+      })
+    );
+    res.json({ threads: enriched });
+  } catch (err4) {
+    next2(err4);
+  }
+});
+router7.get("/threads/:threadId/messages", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const userId = req.authUser.id;
+    const threadIdRaw = req.params.threadId;
+    const threadId = Array.isArray(threadIdRaw) ? threadIdRaw[0] : threadIdRaw;
+    if (!threadId) {
+      res.status(400).json({ error: "threadId required" });
+      return;
+    }
+    const before = typeof req.query.before === "string" ? req.query.before : void 0;
+    const limitRaw = typeof req.query.limit === "string" ? Number.parseInt(req.query.limit, 10) : 50;
+    const limit = Number.isFinite(limitRaw) ? Math.min(Math.max(limitRaw, 1), 100) : 50;
+    const isMember = await assertThreadMember(threadId, userId);
+    if (!isMember) {
+      res.status(403).json({ error: "Not a member of this thread" });
+      return;
+    }
+    let query = getSupabaseService().from("chat_messages").select("id, thread_id, sender_id, body, payload, client_id, created_at, edited_at, deleted_at").eq("thread_id", threadId).is("deleted_at", null).order("created_at", { ascending: false }).limit(limit);
+    if (before) {
+      const { data: cursorRow } = await getSupabaseService().from("chat_messages").select("created_at").eq("id", before).maybeSingle();
+      if (cursorRow?.created_at) {
+        query = query.lt("created_at", cursorRow.created_at);
+      }
+    }
+    const { data, error: error45 } = await query;
+    if (error45) {
+      res.status(400).json({ error: error45.message });
+      return;
+    }
+    res.json({ messages: (data ?? []).reverse(), threadId });
+  } catch (err4) {
+    next2(err4);
+  }
+});
 router7.post("/threads", auth, requireNotBanned, async (req, res, next2) => {
   try {
     const userId = req.authUser.id;
-    const { memberIds } = req.body;
-    const members = Array.from(/* @__PURE__ */ new Set([userId, ...memberIds ?? []])).filter(Boolean);
+    const { memberIds, threadType, meta } = req.body;
+    const members = Array.from(/* @__PURE__ */ new Set([userId, ...(memberIds ?? []).map(String)])).filter(Boolean);
     if (members.length < 2) {
       res.status(400).json({ error: "At least two members required" });
       return;
     }
-    const { data: thread, error: threadErr } = await getSupabaseService().from("chat_threads").insert({}).select("id, created_at").single();
-    if (threadErr || !thread) {
-      res.status(400).json({ error: threadErr?.message ?? "Failed to create thread" });
+    const isGroup = threadType === "group";
+    const isDm = !isGroup && members.length === 2;
+    if (!isDm && !isGroup) {
+      res.status(400).json({ error: "threadType=group is required for multi-member chats" });
+      return;
+    }
+    if (isDm) {
+      const peerId = members.find((id) => id !== userId);
+      const existing = await findExistingDmThread(userId, peerId);
+      if (existing) {
+        res.status(200).json(existing);
+        return;
+      }
+    }
+    const insertRow = {
+      thread_type: isDm ? "dm" : "group",
+      dm_key: isDm ? buildDmKey(userId, members.find((id) => id !== userId)) : null,
+      meta: isGroup ? sanitizeGroupMeta(meta, userId, members) : {}
+    };
+    const service = getSupabaseService();
+    const { data: thread, error: threadErr } = await service.from("chat_threads").insert(insertRow).select("id, created_at").single();
+    if (threadErr) {
+      if (isDm && threadErr.code === "23505") {
+        const peerId = members.find((id) => id !== userId);
+        const existing = await findExistingDmThread(userId, peerId);
+        if (existing) {
+          res.status(200).json(existing);
+          return;
+        }
+      }
+      res.status(400).json({ error: threadErr.message ?? "Failed to create thread" });
       return;
     }
     const rows = members.map((id) => ({ thread_id: thread.id, user_id: id }));
-    const { error: memberErr } = await getSupabaseService().from("chat_thread_members").insert(rows);
+    const { error: memberErr } = await service.from("chat_thread_members").insert(rows);
     if (memberErr) {
+      await service.from("chat_threads").delete().eq("id", thread.id);
+      if (isDm && memberErr.code === "23505") {
+        const peerId = members.find((id) => id !== userId);
+        const existing = await findExistingDmThread(userId, peerId);
+        if (existing) {
+          res.status(200).json(existing);
+          return;
+        }
+      }
       res.status(400).json({ error: memberErr.message });
       return;
     }
@@ -164183,19 +164327,90 @@ router7.post("/messages", auth, requireNotBanned, async (req, res, next2) => {
       res.status(403).json({ error: "Not a member of this thread" });
       return;
     }
+    const normalizedClientId = typeof clientId === "string" && clientId.trim() ? clientId.trim() : null;
+    if (normalizedClientId) {
+      const { data: existing } = await getSupabaseService().from("chat_messages").select("id, thread_id, sender_id, body, created_at, client_id, payload").eq("thread_id", threadId).eq("sender_id", userId).eq("client_id", normalizedClientId).maybeSingle();
+      if (existing) {
+        res.status(200).json(existing);
+        return;
+      }
+    }
     const { data, error: error45 } = await getSupabaseService().from("chat_messages").insert({
       thread_id: threadId,
       sender_id: userId,
       body: text2,
       payload: payload && typeof payload === "object" ? payload : {},
-      client_id: typeof clientId === "string" && clientId.trim() ? clientId.trim() : null
-    }).select("id, thread_id, sender_id, body, created_at").single();
+      client_id: normalizedClientId
+    }).select("id, thread_id, sender_id, body, created_at, client_id, payload").single();
     if (error45) {
+      if (normalizedClientId && error45.code === "23505") {
+        const { data: existing } = await getSupabaseService().from("chat_messages").select("id, thread_id, sender_id, body, created_at, client_id, payload").eq("sender_id", userId).eq("client_id", normalizedClientId).maybeSingle();
+        if (existing) {
+          res.status(200).json(existing);
+          return;
+        }
+      }
       res.status(400).json({ error: error45.message });
       return;
     }
     await getSupabaseService().from("chat_threads").update({ updated_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", threadId);
     res.status(201).json(data);
+  } catch (err4) {
+    next2(err4);
+  }
+});
+router7.post("/messages/delete", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const userId = req.authUser.id;
+    const { threadId, messageId, clientId } = req.body;
+    if (!threadId) {
+      res.status(400).json({ error: "threadId required" });
+      return;
+    }
+    const isMember = await assertThreadMember(threadId, userId);
+    if (!isMember) {
+      res.status(403).json({ error: "Not a member of this thread" });
+      return;
+    }
+    const normalizedMessageId = typeof messageId === "string" && messageId.trim() ? messageId.trim() : null;
+    const normalizedClientId = typeof clientId === "string" && clientId.trim() ? clientId.trim() : null;
+    if (!normalizedMessageId && !normalizedClientId) {
+      res.status(400).json({ error: "messageId or clientId required" });
+      return;
+    }
+    const service = getSupabaseService();
+    let query = service.from("chat_messages").select("id, thread_id, sender_id, deleted_at").eq("thread_id", threadId).eq("sender_id", userId).limit(1);
+    if (normalizedMessageId) {
+      query = query.eq("id", normalizedMessageId);
+    } else {
+      query = query.eq("client_id", normalizedClientId);
+    }
+    const { data: existing, error: lookupErr } = await query.maybeSingle();
+    if (lookupErr) {
+      res.status(400).json({ error: lookupErr.message });
+      return;
+    }
+    if (!existing) {
+      res.status(404).json({ error: "Message not found" });
+      return;
+    }
+    if (existing.deleted_at) {
+      res.status(200).json({
+        id: existing.id,
+        thread_id: threadId,
+        deleted_at: existing.deleted_at,
+        alreadyDeleted: true
+      });
+      return;
+    }
+    const deletedAt = (/* @__PURE__ */ new Date()).toISOString();
+    const { data, error: error45 } = await service.from("chat_messages").update({ deleted_at: deletedAt, body: "Message deleted", payload: {} }).eq("id", existing.id).eq("sender_id", userId).select("id, thread_id, sender_id, body, created_at, client_id, payload, deleted_at").single();
+    if (error45) {
+      res.status(400).json({ error: error45.message });
+      return;
+    }
+    await service.from("chat_threads").update({ updated_at: deletedAt }).eq("id", threadId);
+    res.json(data);
   } catch (err4) {
     next2(err4);
   }
@@ -167444,7 +167659,7 @@ function extractUrlParams(path17) {
   if (!params) {
     return [];
   }
-  return params.map((param) => param.replace(/[{}]/g, ""));
+  return params.map((param2) => param2.replace(/[{}]/g, ""));
 }
 function getDataFromArgs(args) {
   if (!Array.isArray(args) || !args[0] || typeof args[0] !== "object") {
@@ -168830,12 +169045,12 @@ StripeResource.prototype = {
     const commandPath = makeURLInterpolator(isUsingFullPath ? spec2.fullPath : spec2.path || "");
     const path17 = isUsingFullPath ? spec2.fullPath : this.createResourcePathWithSymbols(spec2.path);
     const args = [].slice.call(requestArgs);
-    const urlData = urlParams.reduce((urlData2, param) => {
+    const urlData = urlParams.reduce((urlData2, param2) => {
       const arg = args.shift();
       if (typeof arg !== "string") {
-        throw new Error(`Stripe: Argument "${param}" must be a string, but got: ${arg} (on API request to \`${requestMethod} ${path17}\`)`);
+        throw new Error(`Stripe: Argument "${param2}" must be a string, but got: ${arg} (on API request to \`${requestMethod} ${path17}\`)`);
       }
-      urlData2[param] = arg;
+      urlData2[param2] = arg;
       return urlData2;
     }, {});
     const dataFromArgs = getDataFromArgs(args);
@@ -226789,6 +227004,10 @@ function actorOf(req) {
     req.header("x-unilive-actor") || req.body?.actorId || req.body?.actor || req.query.actorId || ""
   ).trim();
 }
+function param(req, key) {
+  const value = req.params[key];
+  return String(Array.isArray(value) ? value[0] : value || "").trim();
+}
 function sendErr(res, err4) {
   const e2 = err4;
   const code = e2.code || e2.name || "error";
@@ -226820,7 +227039,7 @@ router60.get("/v1/cloud/organizations/:organizationId/projects", async (req, res
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    const projects = cloud.listProjects(req.params.organizationId, actorId);
+    const projects = cloud.listProjects(param(req, "organizationId"), actorId);
     res.json({ projects });
   } catch (err4) {
     sendErr(res, err4);
@@ -226832,7 +227051,7 @@ router60.post("/v1/cloud/organizations/:organizationId/projects", async (req, re
     const actorId = actorOf(req);
     const name24 = String(req.body?.name || "").trim() || "project";
     const created = cloud.createProject({
-      organizationId: req.params.organizationId,
+      organizationId: param(req, "organizationId"),
       name: name24,
       actorId
     });
@@ -226846,8 +227065,8 @@ router60.get("/v1/cloud/projects/:projectId", async (req, res) => {
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    const project = cloud.getProject(req.params.projectId, actorId);
-    const environments = cloud.listEnvironments(req.params.projectId, actorId);
+    const project = cloud.getProject(param(req, "projectId"), actorId);
+    const environments = cloud.listEnvironments(param(req, "projectId"), actorId);
     res.json({ project, environments });
   } catch (err4) {
     sendErr(res, err4);
@@ -226857,7 +227076,7 @@ router60.get("/v1/cloud/projects/:projectId/environments", async (req, res) => {
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    res.json({ environments: cloud.listEnvironments(req.params.projectId, actorId) });
+    res.json({ environments: cloud.listEnvironments(param(req, "projectId"), actorId) });
   } catch (err4) {
     sendErr(res, err4);
   }
@@ -226866,8 +227085,8 @@ router60.get("/v1/cloud/projects/:projectId/audit", async (req, res) => {
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    cloud.getProject(req.params.projectId, actorId);
-    res.json({ audit: cloud.listAudit({ projectId: req.params.projectId, limit: 100 }) });
+    cloud.getProject(param(req, "projectId"), actorId);
+    res.json({ audit: cloud.listAudit({ projectId: param(req, "projectId"), limit: 100 }) });
   } catch (err4) {
     sendErr(res, err4);
   }
@@ -226877,7 +227096,7 @@ router60.post("/v1/cloud/projects/:projectId/providers", async (req, res) => {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
     const row = cloud.connectProvider({
-      projectId: req.params.projectId,
+      projectId: param(req, "projectId"),
       environmentId: String(req.body?.environmentId || ""),
       providerType: String(req.body?.providerType || "rtc"),
       actorId,
@@ -226894,7 +227113,7 @@ router60.get("/v1/cloud/providers/:providerConnectionId/health", async (req, res
   try {
     const cloud = await getUniLiveCloud();
     const actorId = actorOf(req);
-    res.json({ health: cloud.providerHealth(req.params.providerConnectionId, actorId) });
+    res.json({ health: cloud.providerHealth(param(req, "providerConnectionId"), actorId) });
   } catch (err4) {
     sendErr(res, err4);
   }

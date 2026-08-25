@@ -96,10 +96,10 @@
  * Skip: invisible top-right (no painted skip control).
  */
 .upc-hit-next {
-  left: 16%;
-  top: 88.3%;
-  width: 68%;
-  height: 5.6%;
+  left: 12%;
+  top: 86.5%;
+  width: 76%;
+  height: 9%;
   border-radius: 999px;
 }
 

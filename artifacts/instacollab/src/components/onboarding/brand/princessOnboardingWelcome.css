@@ -96,10 +96,11 @@
  * Skip: invisible top-right (no painted skip control).
  */
 .upw-hit-next {
-  left: 15.5%;
-  top: 88.4%;
-  width: 69%;
-  height: 5.8%;
+  /* Slightly taller hit than painted chrome — Cap/notch safe-area otherwise misses taps. */
+  left: 12%;
+  top: 86.5%;
+  width: 76%;
+  height: 9%;
   border-radius: 999px;
 }
 
