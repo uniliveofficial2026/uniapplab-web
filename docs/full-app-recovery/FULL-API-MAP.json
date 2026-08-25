@@ -1,0 +1,2940 @@
+{
+  "serverRoutes": [
+    {
+      "method": "POST",
+      "path": "/translate",
+      "source": "artifacts/api-server/src/routes/i18n.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/overview",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/users",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/users/:id/ban",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/users/:id/unban",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/users/:id/role",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/users/:id/mute",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/content/posts",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/content/reels",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/content/posts/:id",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/content/comments",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/content/comments/:id",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/chat/messages",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "DELETE",
+      "path": "/chat/messages/:id",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/wallet/users",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/wallet/transactions",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/streams",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/streams/:id/stop",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/streams/:id/ban",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/party-rooms",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/party-rooms/:id/end",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/party-rooms/:id/ban",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/party-rooms/gifts",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/moderation/stop-live",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/moderation/ban-host",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/integrations/status",
+      "source": "artifacts/api-server/src/routes/admin.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/definitions",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/versions",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions/:id/validate",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions/:id/health-check",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions/:id/activate",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions/:id/rollback",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/audit",
+      "source": "artifacts/api-server/src/routes/adminRuntimeConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/experiences/:experienceKey/drafts",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions/:versionId/validate",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions/:versionId/publish",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/versions/:versionId/rollback",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/themes/:themeKey/drafts",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/themes/:versionId/publish",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/fragments/:fragmentKey/versions",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/fragments/:versionId/validate",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/fragments/:versionId/publish",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/snapshots",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/snapshots/:snapshotId/validate",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/snapshots/:snapshotId/publish",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/snapshots/:snapshotId/rollback",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/assignments",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/assignments/:assignmentId/disable",
+      "source": "artifacts/api-server/src/routes/adminUiConfig.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/ai/health",
+      "source": "artifacts/api-server/src/routes/ai.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/ai/generate",
+      "source": "artifacts/api-server/src/routes/ai.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/bootstrap",
+      "source": "artifacts/api-server/src/routes/appConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/aurora/health",
+      "source": "artifacts/api-server/src/routes/aurora.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/auth/migrate-firebase",
+      "source": "artifacts/api-server/src/routes/authMigrate.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/automation",
+      "source": "artifacts/api-server/src/routes/automation.ts",
+      "auth": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/automation",
+      "source": "artifacts/api-server/src/routes/automation.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/threads",
+      "source": "artifacts/api-server/src/routes/chat.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/threads/:threadId/messages",
+      "source": "artifacts/api-server/src/routes/chat.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/threads",
+      "source": "artifacts/api-server/src/routes/chat.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/messages",
+      "source": "artifacts/api-server/src/routes/chat.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/messages/delete",
+      "source": "artifacts/api-server/src/routes/chat.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/typing",
+      "source": "artifacts/api-server/src/routes/chat.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/cloud/health",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/cloud/organizations",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/cloud/organizations/:organizationId/projects",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/cloud/organizations/:organizationId/projects",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/cloud/projects/:projectId",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/cloud/projects/:projectId/environments",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/cloud/projects/:projectId/audit",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/cloud/projects/:projectId/providers",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/cloud/providers/:providerConnectionId/health",
+      "source": "artifacts/api-server/src/routes/cloudControlPlane.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/discord/interactions",
+      "source": "artifacts/api-server/src/routes/discord.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/:userId",
+      "source": "artifacts/api-server/src/routes/entitlements.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/grant",
+      "source": "artifacts/api-server/src/routes/entitlements.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/revoke",
+      "source": "artifacts/api-server/src/routes/entitlements.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/feed/posts",
+      "source": "artifacts/api-server/src/routes/feed.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/catalog",
+      "source": "artifacts/api-server/src/routes/gifts.ts",
+      "auth": true
+    },
+    {
+      "method": "PUT",
+      "path": "/catalog/:id",
+      "source": "artifacts/api-server/src/routes/gifts.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/send",
+      "source": "artifacts/api-server/src/routes/gifts.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/history",
+      "source": "artifacts/api-server/src/routes/gifts.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/rankings/:roomId",
+      "source": "artifacts/api-server/src/routes/gifts.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/handoff/task",
+      "source": "artifacts/api-server/src/routes/handoff.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/healthz",
+      "source": "artifacts/api-server/src/routes/health.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/health",
+      "source": "artifacts/api-server/src/routes/health.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/architecture",
+      "source": "artifacts/api-server/src/routes/health.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/me",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/ui-config",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/ui-sessions",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/app-config",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/admin/ui-config",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/admin/runtime-config",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/admin",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/admin",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/wallet",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/push",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/workspace",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/gifts",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/entitlements",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/i18n",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/payments",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/chat",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/stream",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/live/rooms",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/live/pk/challenges",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/live",
+      "source": "artifacts/api-server/src/routes/index.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/linear/health",
+      "source": "artifacts/api-server/src/routes/linear.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/linear/issues",
+      "source": "artifacts/api-server/src/routes/linear.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/linear/webhook",
+      "source": "artifacts/api-server/src/routes/linear.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/ensure",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/pk-roster",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/sessions",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId/leave-preview",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/leave",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/end",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId/pk/session",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/pk/start",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/pk/end",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/host-dashboard/ingest",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId/host-dashboard",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId/host-dashboard/snapshot",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId/host-summary",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/gifts/lifecycle-settle",
+      "source": "artifacts/api-server/src/routes/liveLifecycle.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/inbox",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/hosts",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:challengeId",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:challengeId/accept",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:challengeId/decline",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:challengeId/cancel",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:challengeId/expire",
+      "source": "artifacts/api-server/src/routes/livePkChallenge.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:roomId/seats",
+      "source": "artifacts/api-server/src/routes/liveSeats.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/seats/:seatIndex/request",
+      "source": "artifacts/api-server/src/routes/liveSeats.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/seats/:seatIndex/approve",
+      "source": "artifacts/api-server/src/routes/liveSeats.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:roomId/seats/:seatIndex/leave",
+      "source": "artifacts/api-server/src/routes/liveSeats.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/livekit/health",
+      "source": "artifacts/api-server/src/routes/livekit.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/livekit/token",
+      "source": "artifacts/api-server/src/routes/livekit.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/livekit/chat/token",
+      "source": "artifacts/api-server/src/routes/livekit.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/livekit/party/token",
+      "source": "artifacts/api-server/src/routes/livekit.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/livekit/webhook",
+      "source": "artifacts/api-server/src/routes/livekit.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/me.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "source": "artifacts/api-server/src/routes/me.ts",
+      "auth": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/me.ts",
+      "auth": true
+    },
+    {
+      "method": "PATCH",
+      "path": "/me",
+      "source": "artifacts/api-server/src/routes/me.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/identities",
+      "source": "artifacts/api-server/src/routes/me.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/identities/link",
+      "source": "artifacts/api-server/src/routes/me.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/identities/unlink",
+      "source": "artifacts/api-server/src/routes/me.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/media/health",
+      "source": "artifacts/api-server/src/routes/media.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/media/object/*splat",
+      "source": "artifacts/api-server/src/routes/media.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/media/presign",
+      "source": "artifacts/api-server/src/routes/media.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/media/upload-base64",
+      "source": "artifacts/api-server/src/routes/media.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/media/configure-cors",
+      "source": "artifacts/api-server/src/routes/media.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/mongo/health",
+      "source": "artifacts/api-server/src/routes/mongo.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/recharge/packages",
+      "source": "artifacts/api-server/src/routes/payments.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/recharge/checkout-session",
+      "source": "artifacts/api-server/src/routes/payments.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/recharge/verify-session",
+      "source": "artifacts/api-server/src/routes/payments.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/commerce/checkout-session",
+      "source": "artifacts/api-server/src/routes/payments.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/commerce/verify-session",
+      "source": "artifacts/api-server/src/routes/payments.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/platform/brand",
+      "source": "artifacts/api-server/src/routes/platformBrand.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/platform/brand-icon",
+      "source": "artifacts/api-server/src/routes/platformBrand.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/platform/manifest.webmanifest",
+      "source": "artifacts/api-server/src/routes/platformBrand.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/platform/brand",
+      "source": "artifacts/api-server/src/routes/platformBrand.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/presence/online",
+      "source": "artifacts/api-server/src/routes/presence.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/presence/online",
+      "source": "artifacts/api-server/src/routes/presence.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/presence/offline",
+      "source": "artifacts/api-server/src/routes/presence.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/register",
+      "source": "artifacts/api-server/src/routes/push.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/clear-person",
+      "source": "artifacts/api-server/src/routes/push.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/devices",
+      "source": "artifacts/api-server/src/routes/push.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/qstash/handoff-cycle",
+      "source": "artifacts/api-server/src/routes/qstash.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/live",
+      "source": "artifacts/api-server/src/routes/stream.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/start",
+      "source": "artifacts/api-server/src/routes/stream.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/stop",
+      "source": "artifacts/api-server/src/routes/stream.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:id/viewers",
+      "source": "artifacts/api-server/src/routes/stream.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:id/viewers",
+      "source": "artifacts/api-server/src/routes/stream.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:id/signal",
+      "source": "artifacts/api-server/src/routes/stream.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/tencent/rtc/health",
+      "source": "artifacts/api-server/src/routes/tencentRtc.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/tencent/rtc/usersig",
+      "source": "artifacts/api-server/src/routes/tencentRtc.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/bootstrap",
+      "source": "artifacts/api-server/src/routes/uiConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/experiences/:experienceKey",
+      "source": "artifacts/api-server/src/routes/uiConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/themes/:themeKey",
+      "source": "artifacts/api-server/src/routes/uiConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/snapshots/:snapshotId",
+      "source": "artifacts/api-server/src/routes/uiConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/assets",
+      "source": "artifacts/api-server/src/routes/uiConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/start",
+      "source": "artifacts/api-server/src/routes/uiSessions.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/:sessionId/snapshot",
+      "source": "artifacts/api-server/src/routes/uiSessions.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:sessionId/refresh",
+      "source": "artifacts/api-server/src/routes/uiSessions.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/:sessionId/end",
+      "source": "artifacts/api-server/src/routes/uiSessions.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/v1/health",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/projects",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/projects",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/projects/:projectId",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/environments",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/rtc/rooms",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/rtc/tokens",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/rtc/webhooks/normalize",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/storage/buckets",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/deployments",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/v1/deployments",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/logs",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/metrics",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/v1/providers",
+      "source": "artifacts/api-server/src/routes/uniliveV1.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/upstash/health",
+      "source": "artifacts/api-server/src/routes/upstash.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/ux/signals",
+      "source": "artifacts/api-server/src/routes/ux.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/wallet.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/transfer",
+      "source": "artifacts/api-server/src/routes/wallet.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/commerce-settle",
+      "source": "artifacts/api-server/src/routes/wallet.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/credit",
+      "source": "artifacts/api-server/src/routes/wallet.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/unlock",
+      "source": "artifacts/api-server/src/routes/workspaceUnlock.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/session",
+      "source": "artifacts/api-server/src/routes/workspaceUnlock.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/lock",
+      "source": "artifacts/api-server/src/routes/workspaceUnlock.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/health",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/popular",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/search",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/shorts",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/live",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/live/details",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/live/chat",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/youtube/live/chat",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/playlist",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/video",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/related",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/comments",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/comments/replies",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/youtube/channel",
+      "source": "artifacts/api-server/src/routes/youtube.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/resources",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/resources/:resourceId/dependencies",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/resources/:resourceId/consumers",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/resources/:resourceId/history",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/resources/:resourceId",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/resources/:resourceId/drafts",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/drafts/:draftId",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/drafts/:draftId/validate",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/change-sets/:id/preview",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/change-sets/:id/submit",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/change-sets/:id/approve",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/change-sets/:id/reject",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/change-sets/:id/publish",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/publications/:id/rollback",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/publications/:id/status",
+      "source": "artifacts/api-server/src/routes/admin/accessCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/roles",
+      "source": "artifacts/api-server/src/routes/admin/accessControl.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/roles",
+      "source": "artifacts/api-server/src/routes/admin/accessControl.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/roles/:id/revoke",
+      "source": "artifacts/api-server/src/routes/admin/accessControl.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/drafts",
+      "source": "artifacts/api-server/src/routes/admin/animations.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/drafts",
+      "source": "artifacts/api-server/src/routes/admin/animations.ts",
+      "auth": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/drafts/:id",
+      "source": "artifacts/api-server/src/routes/admin/animations.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/drafts/:id/validate",
+      "source": "artifacts/api-server/src/routes/admin/animations.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/assets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/upload-local",
+      "source": "artifacts/api-server/src/routes/admin/assets.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/:id/content",
+      "source": "artifacts/api-server/src/routes/admin/assets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/upload-intent",
+      "source": "artifacts/api-server/src/routes/admin/assets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/validate",
+      "source": "artifacts/api-server/src/routes/admin/assets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/approve",
+      "source": "artifacts/api-server/src/routes/admin/assets.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/audit.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/:id",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/items",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/:id/items/:itemId",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/:id/items/:itemId",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/validate",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/create-preview",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/submit",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/approve",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/reject",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/publish",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/rollback",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/cancel",
+      "source": "artifacts/api-server/src/routes/admin/changeSets.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/import",
+      "source": "artifacts/api-server/src/routes/admin/designAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/jobs/:id",
+      "source": "artifacts/api-server/src/routes/admin/designAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/jobs/:id/preview",
+      "source": "artifacts/api-server/src/routes/admin/designAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/chat",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/micro-edit",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/sessions",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/sessions/:id",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/projects",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/detect",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/projects",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/scaffold-app",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/terminal",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/ports",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/env",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/env",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "PUT",
+      "path": "/env",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/tasks",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/tasks/:id",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/tasks",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/tasks/:id/cancel",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/mcp",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "PUT",
+      "path": "/mcp",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/mcp/servers",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "DELETE",
+      "path": "/mcp/servers/:id",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/implement",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/implement/:id",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/convert",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/mcp/apply-cursor",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/memory",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/proactive",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/omni/catalog",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/omni/run",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/providers",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/providers/jobs/:jobId",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/providers/run",
+      "source": "artifacts/api-server/src/routes/admin/devAgent.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/mint-local",
+      "source": "artifacts/api-server/src/routes/admin/devHandoff.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/register",
+      "source": "artifacts/api-server/src/routes/admin/devHandoff.ts",
+      "auth": true
+    },
+    {
+      "method": "POST",
+      "path": "/complete",
+      "source": "artifacts/api-server/src/routes/admin/devHandoff.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/pickup",
+      "source": "artifacts/api-server/src/routes/admin/devHandoff.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/drafts",
+      "source": "artifacts/api-server/src/routes/admin/faceEffects.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/drafts",
+      "source": "artifacts/api-server/src/routes/admin/faceEffects.ts",
+      "auth": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/drafts/:id",
+      "source": "artifacts/api-server/src/routes/admin/faceEffects.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/drafts/:id/validate",
+      "source": "artifacts/api-server/src/routes/admin/faceEffects.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/drafts",
+      "source": "artifacts/api-server/src/routes/admin/gifts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/drafts",
+      "source": "artifacts/api-server/src/routes/admin/gifts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/pricing-drafts",
+      "source": "artifacts/api-server/src/routes/admin/gifts.ts",
+      "auth": false
+    },
+    {
+      "method": "PATCH",
+      "path": "/drafts/:id",
+      "source": "artifacts/api-server/src/routes/admin/gifts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/drafts/:id/validate",
+      "source": "artifacts/api-server/src/routes/admin/gifts.ts",
+      "auth": false
+    },
+    {
+      "method": "USE",
+      "path": "/dev/handoff",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/me",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/permissions",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/change-sets",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/ui",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/assets",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/feature-flags",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/secret-references",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/session-assignments",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/audit",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/access",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/access",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/access",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/access",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/gifts",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/face-effects",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/animations",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/media",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/live-ui",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/design-agent",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/dev-agent",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/workspace-config",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "USE",
+      "path": "/publish-jobs",
+      "source": "artifacts/api-server/src/routes/admin/index.ts",
+      "auth": true
+    },
+    {
+      "method": "GET",
+      "path": "/registry",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/experiences",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/nodes",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/layouts",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/actions",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/bindings",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/compatibility",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/validate",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/resolve",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/assignments",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/assignments",
+      "source": "artifacts/api-server/src/routes/admin/liveUi.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/upload-intents",
+      "source": "artifacts/api-server/src/routes/admin/mediaPipeline.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/jobs/:id",
+      "source": "artifacts/api-server/src/routes/admin/mediaPipeline.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/jobs/:id/run",
+      "source": "artifacts/api-server/src/routes/admin/mediaPipeline.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/validate",
+      "source": "artifacts/api-server/src/routes/admin/mediaPipeline.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/slo",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/slo/samples",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/resources/:id/performance",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/change-sets/:id/benchmark",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/reports/:id/override",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/runtime-bundles",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/runtime-bundles/compile",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/runtime-bundles/publish",
+      "source": "artifacts/api-server/src/routes/admin/performance.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/:id",
+      "source": "artifacts/api-server/src/routes/admin/publishJobs.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/change-sets/:id/canary",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/publications/:id/health",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/publications/:id/health",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/publications/:id/pause",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/publications/:id/resume",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/publications/:id/rollback",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/publications/:id/advance",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/publications/:id/metrics",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/publications/:id",
+      "source": "artifacts/api-server/src/routes/admin/rollouts.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/runtimeConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/runtimeConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/health-check",
+      "source": "artifacts/api-server/src/routes/admin/runtimeConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/sessions.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/sessions.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/:id/disable",
+      "source": "artifacts/api-server/src/routes/admin/sessions.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/experiences",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/nodes",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/components",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/elements",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/layouts",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/actions",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/bindings",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/translations",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/assets",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/clone-catalog/types",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/clone-catalog/domains",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/clone-catalog",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/clone-catalog/:resourceId",
+      "source": "artifacts/api-server/src/routes/admin/uiCatalog.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/bootstrap",
+      "source": "artifacts/api-server/src/routes/admin/workspaceConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "GET",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/workspaceConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "PUT",
+      "path": "/",
+      "source": "artifacts/api-server/src/routes/admin/workspaceConfig.ts",
+      "auth": false
+    },
+    {
+      "method": "POST",
+      "path": "/third-party/:providerId",
+      "source": "artifacts/api-server/src/routes/admin/workspaceConfig.ts",
+      "auth": false
+    }
+  ],
+  "frontendCalls": [
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/wallet"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/wallet/transfer"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/wallet/commerce-settle"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/push/register"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/push/clear-person"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts/send"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts/catalog"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts/history?limit=${limit}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/recharge/packages"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/recharge/checkout-session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/recharge/verify-session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/commerce/checkout-session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users${query}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/ban"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/unban"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/role"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/mute"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/threads"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/threads"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/threads/${encodeURIComponent(threadId)}/messages${qs ? "
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/messages"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/messages/delete"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/start"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/stop"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/${streamId}/signal"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/live"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/livekit/token"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/livekit/party/token"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/livekit/chat/token"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/presence/online"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/presence/offline"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/presence/online${query}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/${encodeURIComponent(streamId)}/viewers"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/${encodeURIComponent(streamId)}/viewers"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/typing"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(input.roomId)}/ensure"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(input.roomId)}/sessions"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/leave-preview${q}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/leave"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/end"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk/session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk/start"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk/end"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/inbox"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/hosts"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk-roster"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/accept"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/decline"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/cancel"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/expire"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/host-dashboard/ingest"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/host-summary"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/workspaceAccess.ts",
+      "url": "/api/workspace/unlock"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/ai/platformAi.ts",
+      "url": "/api/ai/generate"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/ai/platformAi.ts",
+      "url": "/api/ai/health"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/auth/migrateFirebaseNewcomer.ts",
+      "url": "${origin}/api/auth/migrate-firebase"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/media/r2Upload.ts",
+      "url": "${apiBaseUrl()}/api/media/health"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/tencent/rtcConfig.ts",
+      "url": "/api/tencent/rtc/usersig"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/tencent/rtcConfig.ts",
+      "url": "/api/tencent/rtc/health"
+    },
+    {
+      "caller": "artifacts/instacollab/src/runtime-config/bootstrapClient.ts",
+      "url": "${apiBaseUrl()}/api/app-config/bootstrap"
+    },
+    {
+      "caller": "artifacts/instacollab/src/services/youtube.ts",
+      "url": "/api/youtube/comments?${params.toString()}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/services/youtube.ts",
+      "url": "/api/youtube/comments/replies?${params.toString()}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/services/youtube.ts",
+      "url": "/api/youtube/channel?${params.toString()}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/ui-access/runtime/runtimeBundleClient.ts",
+      "url": "/api/ui-config/bootstrap"
+    },
+    {
+      "caller": "artifacts/instacollab/src/components/dev/AdminHandoffHost.tsx",
+      "url": "${api}/api/admin/dev/handoff/complete"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/<group>/..."
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/wallet"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/livekit"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/me"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/presence"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/automation"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/platform/brand"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/me"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/wallet"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/wallet/transfer"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/wallet/commerce-settle"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/push/register"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/push/clear-person"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts/send"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts/catalog"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts/history?limit=${limit}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/gifts/rankings/${encodeURIComponent(roomId)}?role=${encodeURIComponent(role)}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/recharge/packages"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/recharge/checkout-session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/recharge/verify-session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/commerce/checkout-session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/payments/commerce/verify-session?sessionId=${encodeURIComponent(sessionId)}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users${query}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/ban"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/unban"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/role"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/admin/users/${userId}/mute"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/threads"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/threads"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/threads/${encodeURIComponent(threadId)}/messages${qs ? "
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/messages"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/messages/delete"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/start"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/stop"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/${streamId}/signal"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/live"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/livekit/token"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/livekit/party/token"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/livekit/chat/token"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/presence/online"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/presence/offline"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/presence/online${query}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/${encodeURIComponent(streamId)}/viewers"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/stream/${encodeURIComponent(streamId)}/viewers"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/chat/typing"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/platform/brand"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/platform/brand"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/automation"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/automation"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(input.roomId)}/ensure"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(input.roomId)}/sessions"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/leave-preview${q}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/leave"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/end"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk/session"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk/start"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk/end"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/inbox"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/hosts"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/pk-roster"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/accept"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/decline"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/cancel"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/pk/challenges/${encodeURIComponent(challengeId)}/expire"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/host-dashboard/snapshot?afterSequence=${Math.max(0, afterSequence)}"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/gifts/lifecycle-settle"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/host-dashboard/ingest"
+    },
+    {
+      "caller": "artifacts/instacollab/src/lib/platformApi.ts",
+      "url": "/api/live/rooms/${encodeURIComponent(roomId)}/host-summary"
+    }
+  ]
+}

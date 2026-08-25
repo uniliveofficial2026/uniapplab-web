@@ -95,7 +95,12 @@
     "asset-studio:validate": "pnpm --filter @workspace/unilives-asset-studio run validate",
     "android:bundle": "pnpm --filter @workspace/instacollab run android:bundle",
     "android:bundle:offline": "pnpm --filter @workspace/instacollab run android:bundle:offline",
-    "test:real-device-mapping": "node scripts/real-device-mapping-gate.mjs"
+    "test:real-device-mapping": "node scripts/real-device-mapping-gate.mjs",
+    "test:full-app-routes": "node scripts/full-app-gates/test-full-app-routes.mjs",
+    "test:full-app-components": "node scripts/full-app-gates/test-full-app-components.mjs",
+    "test:full-app-api-map": "node scripts/full-app-gates/test-full-app-api-map.mjs",
+    "test:production-artifact": "node scripts/full-app-gates/test-production-artifact.mjs",
+    "test:full-app-gates": "pnpm run test:full-app-routes && pnpm run test:full-app-components && pnpm run test:full-app-api-map && pnpm run test:production-artifact"
   },
   "private": true,
   "devDependencies": {

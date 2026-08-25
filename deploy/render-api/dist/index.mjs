@@ -115939,7 +115939,7 @@ var require_util2 = __commonJS({
     exports.createTransparentProxy = createTransparentProxy2;
     exports.stringifyPrimitive = stringifyPrimitive2;
     exports.optionalKeys = optionalKeys2;
-    exports.pick = pick3;
+    exports.pick = pick4;
     exports.omit = omit2;
     exports.extend = extend2;
     exports.safeExtend = safeExtend2;
@@ -116269,7 +116269,7 @@ var require_util2 = __commonJS({
       int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
       uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
     };
-    function pick3(schema, mask) {
+    function pick4(schema, mask) {
       const currDef = schema._zod.def;
       const def = mergeDefs2(schema._zod.def, {
         get shape() {
@@ -153082,8 +153082,10 @@ var KEYS = {
   feedPosts: "ic:feed:posts",
   handoffState: "ic:handoff:state",
   presencePrefix: "ic:presence:",
+  presenceDeviceIndexPrefix: "ic:presence:devices:",
   typingSetPrefix: "ic:typing:set:",
-  streamViewersPrefix: "ic:stream:viewers:"
+  streamViewersPrefix: "ic:stream:viewers:",
+  streamViewerSessionPrefix: "ic:stream:viewer-session:"
 };
 var redis = null;
 function isUpstashConfigured() {
@@ -153135,27 +153137,67 @@ async function setCachedFeedPosts(posts, ttlSeconds = 60) {
   await client.set(KEYS.feedPosts, JSON.stringify(posts), { ex: ttlSeconds });
   return true;
 }
-async function setUserOnline(userId, ttlSeconds = 90) {
+async function setUserOnline(userId, ttlSeconds = 90, deviceId = "default") {
   const client = getRedis();
   if (!client || !userId) return false;
-  await client.set(`${KEYS.presencePrefix}${userId}`, "1", { ex: ttlSeconds });
+  const device = String(deviceId || "default").slice(0, 120);
+  const ttl = Math.min(300, Math.max(30, Number(ttlSeconds) || 90));
+  const deviceKey = `${KEYS.presencePrefix}${userId}:${device}`;
+  const indexKey = `${KEYS.presenceDeviceIndexPrefix}${userId}`;
+  const legacyKey = `${KEYS.presencePrefix}${userId}`;
+  await client.set(deviceKey, "1", { ex: ttl });
+  await client.set(legacyKey, "1", { ex: ttl });
+  await client.sadd(indexKey, device);
+  await client.expire(indexKey, ttl + 30);
   return true;
 }
-async function isUserOnline(userId) {
+async function clearUserDevicePresence(userId, deviceId = "default") {
   const client = getRedis();
   if (!client || !userId) return false;
-  const exists = await client.exists(`${KEYS.presencePrefix}${userId}`);
-  return exists === 1;
+  const device = String(deviceId || "default").slice(0, 120);
+  const deviceKey = `${KEYS.presencePrefix}${userId}:${device}`;
+  const indexKey = `${KEYS.presenceDeviceIndexPrefix}${userId}`;
+  await client.del(deviceKey);
+  await client.srem(indexKey, device);
+  const remaining = await listActivePresenceDevices(userId);
+  if (!remaining.length) {
+    await client.del(`${KEYS.presencePrefix}${userId}`);
+  }
+  return true;
+}
+async function listActivePresenceDevices(userId) {
+  const client = getRedis();
+  if (!client || !userId) return [];
+  const indexKey = `${KEYS.presenceDeviceIndexPrefix}${userId}`;
+  const members = await client.smembers(indexKey);
+  if (!Array.isArray(members) || !members.length) {
+    const legacy = await client.exists(`${KEYS.presencePrefix}${userId}`);
+    return legacy === 1 ? ["default"] : [];
+  }
+  const active = [];
+  for (const device of members) {
+    const exists = await client.exists(`${KEYS.presencePrefix}${userId}:${device}`);
+    if (exists === 1) active.push(String(device));
+    else await client.srem(indexKey, device);
+  }
+  if (!active.length) {
+    const legacy = await client.exists(`${KEYS.presencePrefix}${userId}`);
+    if (legacy === 1) active.push("default");
+  }
+  return active;
+}
+async function isUserOnline(userId) {
+  const devices = await listActivePresenceDevices(userId);
+  return devices.length > 0;
 }
 async function filterOnlineUserIds(userIds) {
   const client = getRedis();
   if (!client || !userIds?.length) return [];
-  const pipeline2 = client.pipeline();
+  const online = [];
   for (const id of userIds) {
-    pipeline2.exists(`${KEYS.presencePrefix}${id}`);
+    if (await isUserOnline(id)) online.push(id);
   }
-  const results = await pipeline2.exec();
-  return userIds.filter((id, index) => results[index] === 1);
+  return online;
 }
 async function setTypingIndicator(threadId, userId, ttlSeconds = 8) {
   const client = getRedis();
@@ -153174,24 +153216,43 @@ async function getTypingUserIds(threadId) {
 async function getStreamViewers(streamId) {
   const client = getRedis();
   if (!client || !streamId) return 0;
-  const raw = await client.get(`${KEYS.streamViewersPrefix}${streamId}`);
-  const n = Number(raw);
-  return Number.isFinite(n) && n > 0 ? n : 0;
-}
-async function incrStreamViewers(streamId) {
-  const client = getRedis();
-  if (!client || !streamId) return 0;
-  return client.incr(`${KEYS.streamViewersPrefix}${streamId}`);
-}
-async function decrStreamViewers(streamId) {
-  const client = getRedis();
-  if (!client || !streamId) return 0;
-  const next2 = await client.decr(`${KEYS.streamViewersPrefix}${streamId}`);
-  if (typeof next2 === "number" && next2 < 0) {
-    await client.set(`${KEYS.streamViewersPrefix}${streamId}`, 0);
-    return 0;
+  const setKey = `${KEYS.streamViewersPrefix}${streamId}`;
+  const members = await client.smembers(setKey);
+  if (!Array.isArray(members) || !members.length) {
+    const raw = await client.get(`${KEYS.streamViewersPrefix}${streamId}:count`);
+    const n = Number(raw);
+    return Number.isFinite(n) && n > 0 ? n : 0;
   }
-  return typeof next2 === "number" ? next2 : 0;
+  let count = 0;
+  for (const sessionId of members) {
+    const exists = await client.exists(
+      `${KEYS.streamViewerSessionPrefix}${streamId}:${sessionId}`
+    );
+    if (exists === 1) count += 1;
+    else await client.srem(setKey, sessionId);
+  }
+  return count;
+}
+async function joinStreamViewer(streamId, sessionId, ttlSeconds = 90) {
+  const client = getRedis();
+  if (!client || !streamId || !sessionId) return 0;
+  const sid = String(sessionId).slice(0, 160);
+  const ttl = Math.min(300, Math.max(30, Number(ttlSeconds) || 90));
+  const setKey = `${KEYS.streamViewersPrefix}${streamId}`;
+  const sessionKey = `${KEYS.streamViewerSessionPrefix}${streamId}:${sid}`;
+  await client.set(sessionKey, "1", { ex: ttl });
+  await client.sadd(setKey, sid);
+  await client.expire(setKey, ttl + 60);
+  return getStreamViewers(streamId);
+}
+async function leaveStreamViewer(streamId, sessionId) {
+  const client = getRedis();
+  if (!client || !streamId || !sessionId) return 0;
+  const sid = String(sessionId).slice(0, 160);
+  const setKey = `${KEYS.streamViewersPrefix}${streamId}`;
+  await client.del(`${KEYS.streamViewerSessionPrefix}${streamId}:${sid}`);
+  await client.srem(setKey, sid);
+  return getStreamViewers(streamId);
 }
 
 // src/lib/r2.ts
@@ -162758,6 +162819,65 @@ async function resolveOrLinkAuthIdentity(input) {
     created: false
   };
 }
+async function listAuthIdentities(userId) {
+  const { data, error: error45 } = await getSupabaseService().from("auth_identities").select("id, user_id, provider, provider_user_id, verified, linkage_status, created_at, updated_at").eq("user_id", userId).neq("linkage_status", "revoked").order("created_at", { ascending: true });
+  if (error45 || !data) return [];
+  return data;
+}
+async function linkVerifiedIdentity(input) {
+  const providerUserId = input.providerUserId.trim();
+  const canonicalUserId = input.canonicalUserId.trim();
+  if (!providerUserId || !canonicalUserId) return { ok: false, code: "error" };
+  const existing = await lookupIdentityRow(input.provider, providerUserId);
+  if (existing && existing.linkage_status !== "revoked") {
+    if (existing.user_id === canonicalUserId) {
+      return { ok: true, created: false, identity: existing };
+    }
+    return { ok: false, code: "conflict", existingUserId: existing.user_id };
+  }
+  if (existing?.linkage_status === "revoked" && existing.user_id === canonicalUserId) {
+    const now3 = (/* @__PURE__ */ new Date()).toISOString();
+    const { data, error: error45 } = await getSupabaseService().from("auth_identities").update({
+      verified: true,
+      linkage_status: "verified",
+      updated_at: now3
+    }).eq("id", existing.id).eq("user_id", canonicalUserId).select("id, user_id, provider, provider_user_id, verified, linkage_status, created_at, updated_at").single();
+    if (error45 || !data) return { ok: false, code: "error" };
+    return { ok: true, created: false, identity: data };
+  }
+  const inserted = await insertIdentity(canonicalUserId, input.provider, providerUserId);
+  if (inserted === "ok") {
+    const row = await lookupIdentityRow(input.provider, providerUserId);
+    if (!row) return { ok: false, code: "error" };
+    return { ok: true, created: true, identity: row };
+  }
+  if (inserted === "conflict") {
+    const raced = await lookupIdentityRow(input.provider, providerUserId);
+    if (raced && raced.user_id !== canonicalUserId) {
+      return { ok: false, code: "conflict", existingUserId: raced.user_id };
+    }
+    if (raced && raced.user_id === canonicalUserId) {
+      return { ok: true, created: false, identity: raced };
+    }
+  }
+  return { ok: false, code: "error" };
+}
+async function unlinkIdentity(input) {
+  const rows = await listAuthIdentities(input.canonicalUserId);
+  const target = rows.find(
+    (r2) => r2.provider === input.provider && r2.provider_user_id === input.providerUserId.trim()
+  );
+  if (!target) return { ok: false, code: "not_found" };
+  if (rows.length <= 1) return { ok: false, code: "last_identity" };
+  const now3 = (/* @__PURE__ */ new Date()).toISOString();
+  const { error: error45 } = await getSupabaseService().from("auth_identities").update({
+    verified: false,
+    linkage_status: "revoked",
+    updated_at: now3
+  }).eq("id", target.id).eq("user_id", input.canonicalUserId);
+  if (error45) return { ok: false, code: "error" };
+  return { ok: true };
+}
 
 // src/domain/admin-control-plane/adminIdentityService.ts
 function resolveAdminActorId(req) {
@@ -163093,7 +163213,7 @@ async function ensurePlatformAdminBootstrap(opts) {
   }
   return current;
 }
-router2.get("/me", auth, async (req, res, next2) => {
+async function handleGetMe(req, res, next2) {
   try {
     const user = req.authUser;
     const profile = req.profile;
@@ -163123,8 +163243,10 @@ router2.get("/me", auth, async (req, res, next2) => {
   } catch (err4) {
     next2(err4);
   }
-});
-router2.patch("/me", auth, requireNotBanned, async (req, res, next2) => {
+}
+router2.get("/", auth, handleGetMe);
+router2.get("/me", auth, handleGetMe);
+async function handlePatchMe(req, res, next2) {
   try {
     const userId = req.authUser.id;
     const { displayName, bio, avatarUrl } = req.body;
@@ -163138,6 +163260,101 @@ router2.patch("/me", auth, requireNotBanned, async (req, res, next2) => {
       return;
     }
     res.json(data);
+  } catch (err4) {
+    next2(err4);
+  }
+}
+router2.patch("/", auth, requireNotBanned, handlePatchMe);
+router2.patch("/me", auth, requireNotBanned, handlePatchMe);
+var LINKABLE_PROVIDERS = /* @__PURE__ */ new Set(["firebase", "google", "apple", "supabase"]);
+router2.get("/identities", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const rows = await listAuthIdentities(req.authUser.id);
+    res.json({
+      identities: rows.map((row) => ({
+        id: row.id,
+        provider: row.provider,
+        providerUserId: row.provider_user_id,
+        verified: row.verified,
+        linkageStatus: row.linkage_status,
+        createdAt: row.created_at,
+        updatedAt: row.updated_at
+      }))
+    });
+  } catch (err4) {
+    next2(err4);
+  }
+});
+router2.post("/identities/link", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const userId = req.authUser.id;
+    const body = req.body;
+    const provider = String(body.provider || "").trim();
+    if (!LINKABLE_PROVIDERS.has(provider)) {
+      res.status(400).json({ error: "unsupported_provider" });
+      return;
+    }
+    let providerUserId = "";
+    if (provider === "firebase" || provider === "google" || provider === "apple") {
+      const token = String(body.idToken || "").trim();
+      if (!token) {
+        res.status(400).json({ error: "idToken required" });
+        return;
+      }
+      const verified = await verifyFirebaseIdToken(token);
+      if (!verified?.firebaseUid) {
+        res.status(401).json({ error: "provider_token_invalid" });
+        return;
+      }
+      providerUserId = verified.firebaseUid;
+    } else {
+      providerUserId = String(body.providerUserId || userId).trim();
+    }
+    const linked = await linkVerifiedIdentity({
+      canonicalUserId: userId,
+      provider,
+      providerUserId
+    });
+    if (!linked.ok && linked.code === "conflict") {
+      res.status(409).json({
+        error: "identity_conflict",
+        message: "This provider subject already belongs to another account. Explicit operator resolution is required."
+      });
+      return;
+    }
+    if (!linked.ok) {
+      res.status(400).json({ error: "identity_link_failed" });
+      return;
+    }
+    res.json({ ok: true, created: linked.created, identity: linked.identity });
+  } catch (err4) {
+    next2(err4);
+  }
+});
+router2.post("/identities/unlink", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const userId = req.authUser.id;
+    const body = req.body;
+    const provider = String(body.provider || "").trim();
+    const providerUserId = String(body.providerUserId || "").trim();
+    if (!LINKABLE_PROVIDERS.has(provider) || !providerUserId) {
+      res.status(400).json({ error: "provider and providerUserId required" });
+      return;
+    }
+    const result = await unlinkIdentity({ canonicalUserId: userId, provider, providerUserId });
+    if (!result.ok && result.code === "last_identity") {
+      res.status(409).json({ error: "cannot_unlink_last_identity" });
+      return;
+    }
+    if (!result.ok && result.code === "not_found") {
+      res.status(404).json({ error: "identity_not_found" });
+      return;
+    }
+    if (!result.ok) {
+      res.status(400).json({ error: "identity_unlink_failed" });
+      return;
+    }
+    res.json({ ok: true });
   } catch (err4) {
     next2(err4);
   }
@@ -164452,12 +164669,17 @@ function canGoLive(role) {
 var router8 = (0, import_express8.Router)();
 router8.get("/live", async (_req, res, next2) => {
   try {
-    const { data, error: error45 } = await getSupabaseService().from("streams").select("id, user_id, title, status, started_at").eq("status", "live").order("started_at", { ascending: false }).limit(20);
+    const { data, error: error45 } = await getSupabaseService().from("streams").select("id, user_id, title, status, started_at, room_type").eq("status", "live").order("started_at", { ascending: false }).limit(20);
     if (error45) {
       res.status(400).json({ error: error45.message });
       return;
     }
-    res.json({ streams: data ?? [] });
+    res.json({
+      streams: (data ?? []).map((row) => ({
+        ...row,
+        room_type: row.room_type || "solo_video"
+      }))
+    });
   } catch (err4) {
     next2(err4);
   }
@@ -164469,12 +164691,24 @@ router8.post("/start", auth, requireNotBanned, async (req, res, next2) => {
       res.status(403).json({ error: "Streamer role required" });
       return;
     }
-    const { title } = req.body;
+    const { title, roomType } = req.body;
+    const allowedTypes = /* @__PURE__ */ new Set([
+      "solo_video",
+      "solo_audio",
+      "audio_party",
+      "video_multi",
+      "pk_1v1",
+      "pk_team",
+      "game",
+      "commerce"
+    ]);
+    const room_type = roomType && allowedTypes.has(roomType) ? roomType : "solo_video";
     const { data, error: error45 } = await getSupabaseService().from("streams").insert({
       user_id: req.authUser.id,
       title: title?.slice(0, 120) ?? "Live",
-      status: "live"
-    }).select("id, user_id, title, status, started_at").single();
+      status: "live",
+      room_type
+    }).select("id, user_id, title, status, started_at, room_type").single();
     if (error45) {
       res.status(400).json({ error: error45.message });
       return;
@@ -164528,7 +164762,8 @@ router8.get("/:id/viewers", async (req, res, next2) => {
 router8.post("/:id/viewers", auth, requireNotBanned, async (req, res, next2) => {
   try {
     const streamId = String(req.params.id);
-    const action = req.body?.action;
+    const body = req.body;
+    const action = body?.action;
     if (action !== "join" && action !== "leave") {
       res.status(400).json({ error: "action must be join or leave" });
       return;
@@ -164542,8 +164777,10 @@ router8.post("/:id/viewers", auth, requireNotBanned, async (req, res, next2) => 
       res.status(404).json({ error: "stream_not_live" });
       return;
     }
-    const viewers = action === "join" ? await incrStreamViewers(streamId) : await decrStreamViewers(streamId);
-    res.json({ streamId, viewers: viewers ?? 0, action, configured: true });
+    const device = String(body.sessionId || body.deviceId || req.headers["x-device-id"] || "default").trim().slice(0, 80) || "default";
+    const sessionId = `${req.authUser.id}:${device}`;
+    const viewers = action === "join" ? await joinStreamViewer(streamId, sessionId) : await leaveStreamViewer(streamId, sessionId);
+    res.json({ streamId, viewers: viewers ?? 0, action, sessionId, configured: true });
   } catch (err4) {
     next2(err4);
   }
@@ -165513,6 +165750,12 @@ function parseUserIds(raw) {
   }
   return [];
 }
+function resolveDeviceId(req) {
+  const body = req.body ?? {};
+  const header = req.headers["x-device-id"];
+  const fromHeader = Array.isArray(header) ? header[0] : header;
+  return String(body.deviceId || fromHeader || "default").trim().slice(0, 120) || "default";
+}
 router12.get("/presence/online", auth, requireNotBanned, async (req, res, next2) => {
   try {
     const userId = req.authUser.id;
@@ -165523,7 +165766,8 @@ router12.get("/presence/online", auth, requireNotBanned, async (req, res, next2)
     const ids = parseUserIds(req.query.ids);
     if (!ids.length) {
       const online = await isUserOnline(userId);
-      res.json({ online, userId, configured: true });
+      const devices = online ? await listActivePresenceDevices(userId) : [];
+      res.json({ online, userId, devices, configured: true });
       return;
     }
     const onlineIds = await filterOnlineUserIds(ids);
@@ -165535,6 +165779,7 @@ router12.get("/presence/online", auth, requireNotBanned, async (req, res, next2)
 router12.post("/presence/online", auth, requireNotBanned, async (req, res, next2) => {
   try {
     const userId = req.authUser.id;
+    const deviceId = resolveDeviceId(req);
     const ttlSeconds = Math.min(
       300,
       Math.max(30, Number(req.body?.ttlSeconds) || 90)
@@ -165543,14 +165788,29 @@ router12.post("/presence/online", auth, requireNotBanned, async (req, res, next2
       res.json({ ok: false, configured: false });
       return;
     }
-    await setUserOnline(userId, ttlSeconds);
+    await setUserOnline(userId, ttlSeconds, deviceId);
     const friendIds = parseUserIds(req.body?.friendIds);
     if (friendIds.length) {
       const onlineIds = await filterOnlineUserIds(friendIds);
-      res.json({ ok: true, online: true, userIds: onlineIds, configured: true });
+      res.json({ ok: true, online: true, userIds: onlineIds, deviceId, configured: true });
       return;
     }
-    res.json({ ok: true, online: true, userId, configured: true });
+    res.json({ ok: true, online: true, userId, deviceId, configured: true });
+  } catch (err4) {
+    next2(err4);
+  }
+});
+router12.post("/presence/offline", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const userId = req.authUser.id;
+    const deviceId = resolveDeviceId(req);
+    if (!isUpstashConfigured()) {
+      res.json({ ok: false, configured: false });
+      return;
+    }
+    await clearUserDevicePresence(userId, deviceId);
+    const stillOnline = await isUserOnline(userId);
+    res.json({ ok: true, online: stillOnline, userId, deviceId, configured: true });
   } catch (err4) {
     next2(err4);
   }
@@ -165677,12 +165937,13 @@ router13.post("/livekit/party/token", auth, requireNotBanned, async (req, res, n
       res.status(400).json({ error: "roomId required" });
       return;
     }
-    const { data: partyRoom, error: error45 } = await getSupabaseService().from("party_rooms").select("id, status").eq("id", trimmedRoomId).maybeSingle();
+    const { data: partyRoom, error: error45 } = await getSupabaseService().from("party_rooms").select("id, status, owner_id").eq("id", trimmedRoomId).maybeSingle();
     if (error45) {
       res.status(400).json({ error: error45.message });
       return;
     }
     let roomStatus = partyRoom?.status;
+    let ownerId = partyRoom?.owner_id;
     if (!partyRoom) {
       const firestoreRoom = await fetchFirestorePartyRoom(trimmedRoomId);
       if (!firestoreRoom) {
@@ -165690,6 +165951,7 @@ router13.post("/livekit/party/token", auth, requireNotBanned, async (req, res, n
         return;
       }
       roomStatus = firestoreRoom.status;
+      ownerId = firestoreRoom.owner_id ?? firestoreRoom.ownerId;
     }
     if (roomStatus && roomStatus !== "active") {
       res.status(400).json({ error: "party_room_ended" });
@@ -165699,7 +165961,13 @@ router13.post("/livekit/party/token", auth, requireNotBanned, async (req, res, n
     const roomName = partyRoomName(trimmedRoomId);
     await ensureLiveKitRoom(roomName);
     const wantHidden = Boolean(hidden) && req.profile?.role === "admin";
-    const canPublish = !wantHidden && Boolean(publish) && (!roomStatus || roomStatus === "active");
+    const isOwner = Boolean(ownerId && ownerId === userId);
+    let seatedPublisher = false;
+    if (!isOwner && !wantHidden) {
+      const { data: seat } = await getSupabaseService().from("live_room_seats").select("seat_index, state").eq("room_id", trimmedRoomId).eq("user_id", userId).in("state", ["approved", "active", "occupied"]).maybeSingle();
+      seatedPublisher = Boolean(seat);
+    }
+    const canPublish = !wantHidden && (isOwner || seatedPublisher);
     const token = await createLiveKitToken({
       identity: userId,
       name: req.profile?.display_name || req.profile?.username || userId,
@@ -165713,8 +165981,10 @@ router13.post("/livekit/party/token", auth, requireNotBanned, async (req, res, n
       roomName,
       roomId: trimmedRoomId,
       publish: canPublish,
-      hidden: wantHidden
+      hidden: wantHidden,
+      role: isOwner ? "host" : seatedPublisher ? "guest" : "viewer"
     });
+    void publish;
   } catch (err4) {
     next2(err4);
   }
@@ -165739,6 +166009,19 @@ router13.post("/livekit/webhook", async (req, res) => {
     if (event.event === "room_finished" && event.room?.name?.startsWith("ic-stream-")) {
       const streamId = event.room.name.replace(/^ic-stream-/, "");
       await getSupabaseService().from("streams").update({ status: "ended", ended_at: (/* @__PURE__ */ new Date()).toISOString() }).eq("id", streamId).eq("status", "live");
+    }
+    if (event.event === "participant_left" && event.room?.name?.startsWith("ic-party-")) {
+      const roomId = event.room.name.replace(/^ic-party-/, "");
+      const identity = event.participant?.identity?.trim();
+      if (identity) {
+        const { getLiveLifecycleService: getLiveLifecycleService2 } = await Promise.resolve().then(() => (init_live_lifecycle(), live_lifecycle_exports));
+        const service = getLiveLifecycleService2();
+        if (service.getRoom(roomId)) {
+          const session = service.listSessions(roomId).find((row) => !row.disconnectedAt && (row.userId === identity || row.participantSessionId === identity));
+          if (session) service.unexpectedDisconnect(roomId, session.participantSessionId);
+          service.expireHostGrace(roomId);
+        }
+      }
     }
     res.json({ ok: true });
   } catch {
@@ -166448,6 +166731,29 @@ function isYoutubeQuotaError(status, body) {
   const message2 = typeof body === "object" && body && "error" in body && typeof body.error?.message === "string" ? body.error.message : typeof body === "object" && body && "message" in body && typeof body.message === "string" ? body.message : "";
   return /quota exceeded/i.test(message2) || /quotaMetric/i.test(message2);
 }
+function parseYoutubeChapters(description) {
+  if (!description?.trim()) return [];
+  const chapters = [];
+  const seen = /* @__PURE__ */ new Set();
+  for (const raw of description.split(/\r?\n/)) {
+    const match = /^\s*((?:\d{1,2}:)?\d{1,2}:\d{2})\s+[-–—]?\s*(.+?)\s*$/.exec(raw);
+    if (!match) continue;
+    const stamp = match[1] ?? "";
+    const label = (match[2] ?? "").trim();
+    if (!label) continue;
+    const parts = stamp.split(":").map((part) => Number.parseInt(part, 10));
+    if (parts.some((part) => !Number.isFinite(part))) continue;
+    let startSeconds = 0;
+    if (parts.length === 3) startSeconds = (parts[0] ?? 0) * 3600 + (parts[1] ?? 0) * 60 + (parts[2] ?? 0);
+    else startSeconds = (parts[0] ?? 0) * 60 + (parts[1] ?? 0);
+    if (seen.has(startSeconds)) continue;
+    seen.add(startSeconds);
+    chapters.push({ startSeconds, label: label.slice(0, 120) });
+  }
+  if (chapters.length < 2) return [];
+  chapters.sort((a, b) => a.startSeconds - b.startSeconds);
+  return chapters;
+}
 function parseIsoDurationSeconds(value) {
   if (!value) return null;
   const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(value.trim());
@@ -166530,22 +166836,199 @@ async function youtubeFetchJson(buildUrl2, init) {
   return last;
 }
 
+// src/lib/youtubeSearchFilters.ts
+var ORDER = /* @__PURE__ */ new Set([
+  "relevance",
+  "date",
+  "viewCount",
+  "rating",
+  "title",
+  "videoCount"
+]);
+var DURATION = /* @__PURE__ */ new Set(["any", "short", "medium", "long"]);
+var DEFINITION = /* @__PURE__ */ new Set(["any", "high", "standard"]);
+var DIMENSION = /* @__PURE__ */ new Set(["any", "2d", "3d"]);
+var CAPTION = /* @__PURE__ */ new Set(["any", "closedCaption", "none"]);
+var LICENSE = /* @__PURE__ */ new Set(["any", "creativeCommon", "youtube"]);
+var EVENT = /* @__PURE__ */ new Set(["any", "completed", "live", "upcoming"]);
+var SAFE = /* @__PURE__ */ new Set(["moderate", "none", "strict"]);
+var UPLOAD = /* @__PURE__ */ new Set(["any", "hour", "today", "week", "month", "year"]);
+var TYPE = /* @__PURE__ */ new Set(["video", "channel", "playlist", "all", "movie", "episode"]);
+var REGION = /^[A-Za-z]{2}$/;
+var LANG = /^[A-Za-z]{2,3}$/;
+var CHANNEL_ID = /^UC[\w-]{20,}$/;
+var RFC3339 = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:Z|[+-]\d{2}:\d{2})$/;
+var LOCATION = /^-?\d+(?:\.\d+)?,-?\d+(?:\.\d+)?$/;
+var RADIUS = /^\d+(?:\.\d+)?(?:m|km|ft|mi)$/i;
+function asYoutubeParamSource(query) {
+  if (query instanceof URLSearchParams) return query;
+  const record2 = query ?? {};
+  return {
+    get(name24) {
+      const value = record2[name24];
+      if (Array.isArray(value)) {
+        const first = value[0];
+        return first == null ? null : String(first);
+      }
+      if (value == null) return null;
+      return String(value);
+    }
+  };
+}
+function pick(value, allowed) {
+  const trimmed = value.trim();
+  return allowed.has(trimmed) ? trimmed : void 0;
+}
+function publishedAfterForUploadDate(uploadDate, nowMs = Date.now()) {
+  if (!uploadDate || uploadDate === "any") return void 0;
+  const hour2 = 36e5;
+  const delta = uploadDate === "hour" ? hour2 : uploadDate === "today" ? 24 * hour2 : uploadDate === "week" ? 7 * 24 * hour2 : uploadDate === "month" ? 30 * 24 * hour2 : 365 * 24 * hour2;
+  return new Date(nowMs - delta).toISOString();
+}
+function parseYoutubeSearchRequest(query) {
+  const src = asYoutubeParamSource(query);
+  const maxParsed = Number.parseInt(src.get("maxResults") ?? "20", 10);
+  const maxResults = Math.min(25, Math.max(1, Number.isFinite(maxParsed) ? maxParsed : 20));
+  const region = (src.get("regionCode") ?? "").trim().toUpperCase();
+  const language = (src.get("relevanceLanguage") ?? "").trim().toLowerCase();
+  const channelId = (src.get("channelId") ?? "").trim();
+  const location2 = (src.get("location") ?? "").trim();
+  const locationRadius = (src.get("locationRadius") ?? "").trim();
+  const publishedAfter = (src.get("publishedAfter") ?? "").trim();
+  const publishedBefore = (src.get("publishedBefore") ?? "").trim();
+  const uploadDate = pick(src.get("uploadDate") ?? "", UPLOAD);
+  return {
+    q: (src.get("q") ?? "").trim(),
+    pageToken: (src.get("pageToken") ?? "").trim() || void 0,
+    maxResults,
+    type: pick(src.get("type") ?? "", TYPE),
+    order: pick(src.get("order") ?? "", ORDER),
+    uploadDate,
+    videoDuration: pick(src.get("videoDuration") ?? "", DURATION),
+    videoDefinition: pick(src.get("videoDefinition") ?? "", DEFINITION),
+    videoDimension: pick(src.get("videoDimension") ?? "", DIMENSION),
+    videoCaption: pick(src.get("videoCaption") ?? "", CAPTION),
+    videoLicense: pick(src.get("videoLicense") ?? "", LICENSE),
+    eventType: pick(src.get("eventType") ?? "", EVENT),
+    safeSearch: pick(src.get("safeSearch") ?? "", SAFE),
+    regionCode: REGION.test(region) ? region : void 0,
+    relevanceLanguage: LANG.test(language) ? language : void 0,
+    channelId: CHANNEL_ID.test(channelId) ? channelId : void 0,
+    location: LOCATION.test(location2) ? location2 : void 0,
+    locationRadius: RADIUS.test(locationRadius) ? locationRadius : void 0,
+    publishedAfter: RFC3339.test(publishedAfter) ? publishedAfter : void 0,
+    publishedBefore: RFC3339.test(publishedBefore) ? publishedBefore : void 0
+  };
+}
+function youtubeSearchUsesVideoConstraints(filters) {
+  return Boolean(
+    filters.videoDuration && filters.videoDuration !== "any" || filters.videoDefinition && filters.videoDefinition !== "any" || filters.videoDimension && filters.videoDimension !== "any" || filters.videoCaption && filters.videoCaption !== "any" || filters.videoLicense && filters.videoLicense !== "any" || filters.eventType && filters.eventType !== "any" || filters.type === "movie" || filters.type === "episode" || filters.location
+  );
+}
+function resolveYoutubeSearchListType(filters) {
+  if (filters.type === "all" && !youtubeSearchUsesVideoConstraints(filters)) {
+    return "video,channel,playlist";
+  }
+  if (filters.type === "channel") return "channel";
+  if (filters.type === "playlist") return "playlist";
+  return "video";
+}
+function isYoutubeHomeBrowse(request) {
+  if (request.q) return false;
+  if (request.channelId) return false;
+  if (request.location) return false;
+  if (request.publishedAfter || request.publishedBefore) return false;
+  if (request.uploadDate && request.uploadDate !== "any") return false;
+  if (request.type && request.type !== "video") return false;
+  if (request.order && request.order !== "relevance") return false;
+  if (request.safeSearch && request.safeSearch !== "moderate") return false;
+  if (request.regionCode || request.relevanceLanguage) return false;
+  return !youtubeSearchUsesVideoConstraints(request);
+}
+function appendNonDefault(params, key, value, skip) {
+  if (!value || value === skip) return;
+  params.set(key, value);
+}
+function youtubeSearchFiltersToQuery(request) {
+  const params = new URLSearchParams();
+  if (request.q) params.set("q", request.q);
+  if (request.pageToken) params.set("pageToken", request.pageToken);
+  if (request.maxResults && request.maxResults !== 20) {
+    params.set("maxResults", String(request.maxResults));
+  }
+  appendNonDefault(params, "type", request.type, "video");
+  appendNonDefault(params, "order", request.order, "relevance");
+  appendNonDefault(params, "uploadDate", request.uploadDate, "any");
+  appendNonDefault(params, "videoDuration", request.videoDuration, "any");
+  appendNonDefault(params, "videoDefinition", request.videoDefinition, "any");
+  appendNonDefault(params, "videoDimension", request.videoDimension, "any");
+  appendNonDefault(params, "videoCaption", request.videoCaption, "any");
+  appendNonDefault(params, "videoLicense", request.videoLicense, "any");
+  appendNonDefault(params, "eventType", request.eventType, "any");
+  appendNonDefault(params, "safeSearch", request.safeSearch, "moderate");
+  appendNonDefault(params, "regionCode", request.regionCode);
+  appendNonDefault(params, "relevanceLanguage", request.relevanceLanguage);
+  appendNonDefault(params, "channelId", request.channelId);
+  appendNonDefault(params, "location", request.location);
+  appendNonDefault(params, "locationRadius", request.locationRadius);
+  appendNonDefault(params, "publishedAfter", request.publishedAfter);
+  appendNonDefault(params, "publishedBefore", request.publishedBefore);
+  return params;
+}
+function youtubeSearchCacheKey(request) {
+  const params = youtubeSearchFiltersToQuery(request);
+  params.sort();
+  return `search:v3:${params.toString() || "home"}`;
+}
+function buildYoutubeSearchListParams(request, apiKey, nowMs = Date.now()) {
+  const type = resolveYoutubeSearchListType(request);
+  const params = new URLSearchParams({
+    part: "snippet",
+    type,
+    maxResults: String(request.maxResults ?? 20),
+    key: apiKey
+  });
+  if (request.q) params.set("q", request.q);
+  if (request.pageToken) params.set("pageToken", request.pageToken);
+  if (request.order && request.order !== "relevance") params.set("order", request.order);
+  if (request.safeSearch) params.set("safeSearch", request.safeSearch);
+  if (request.regionCode) params.set("regionCode", request.regionCode);
+  if (request.relevanceLanguage) params.set("relevanceLanguage", request.relevanceLanguage);
+  if (request.channelId) params.set("channelId", request.channelId);
+  const publishedAfter = request.publishedAfter || publishedAfterForUploadDate(request.uploadDate, nowMs);
+  if (publishedAfter) params.set("publishedAfter", publishedAfter);
+  if (request.publishedBefore) params.set("publishedBefore", request.publishedBefore);
+  if (type === "video") {
+    if (request.videoDuration && request.videoDuration !== "any") {
+      params.set("videoDuration", request.videoDuration);
+    }
+    if (request.videoDefinition && request.videoDefinition !== "any") {
+      params.set("videoDefinition", request.videoDefinition);
+    }
+    if (request.videoDimension && request.videoDimension !== "any") {
+      params.set("videoDimension", request.videoDimension);
+    }
+    if (request.videoCaption && request.videoCaption !== "any") {
+      params.set("videoCaption", request.videoCaption);
+    }
+    if (request.videoLicense && request.videoLicense !== "any") {
+      params.set("videoLicense", request.videoLicense);
+    }
+    if (request.eventType && request.eventType !== "any") {
+      params.set("eventType", request.eventType);
+    }
+    if (request.type === "movie") params.set("videoType", "movie");
+    if (request.type === "episode") params.set("videoType", "episode");
+    if (request.location) {
+      params.set("location", request.location);
+      params.set("locationRadius", request.locationRadius || "10km");
+    }
+  }
+  return params;
+}
+
 // src/routes/youtube.ts
 var router21 = (0, import_express21.Router)();
-var BROWSE_QUERIES = /* @__PURE__ */ new Set([
-  "",
-  "live",
-  "trending",
-  "trending music news gaming",
-  "music",
-  "news",
-  "gaming",
-  "#shorts",
-  "shorts"
-]);
-function isBrowseQuery(q) {
-  return BROWSE_QUERIES.has(q.trim().toLowerCase());
-}
 function mapVideoListItem(item, opts) {
   const videoId = item.id?.trim();
   if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) return null;
@@ -166554,8 +167037,10 @@ function mapVideoListItem(item, opts) {
   const viewers = item.liveStreamingDetails?.concurrentViewers;
   return {
     videoId,
+    kind: "video",
     title: item.snippet?.title?.trim() || "Untitled",
     channelTitle: item.snippet?.channelTitle?.trim() || "YouTube",
+    channelId: item.snippet?.channelId?.trim() || void 0,
     thumbnailUrl: youtubeThumbnailUrl(videoId, item.snippet?.thumbnails),
     publishedAt: item.snippet?.publishedAt,
     durationSeconds,
@@ -166674,22 +167159,66 @@ router21.get("/youtube/popular", async (req, res, next2) => {
     next2(error45);
   }
 });
+function mapSearchListItem(item) {
+  const snippet = item.snippet;
+  const title = snippet?.title?.trim() || "Untitled";
+  const channelTitle = snippet?.channelTitle?.trim() || "YouTube";
+  const publishedAt = snippet?.publishedAt;
+  const thumbs = snippet?.thumbnails;
+  const liveBroadcastContent = snippet?.liveBroadcastContent;
+  const videoId = item.id?.videoId?.trim();
+  const channelId = item.id?.channelId?.trim() || snippet?.channelId?.trim();
+  const playlistId = item.id?.playlistId?.trim();
+  if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    return {
+      kind: "video",
+      videoId,
+      channelId,
+      title,
+      channelTitle,
+      thumbnailUrl: youtubeThumbnailUrl(videoId, thumbs),
+      publishedAt,
+      isLive: liveBroadcastContent === "live",
+      liveBroadcastContent: liveBroadcastContent ?? "none"
+    };
+  }
+  if (channelId) {
+    return {
+      kind: "channel",
+      videoId: "",
+      channelId,
+      title,
+      channelTitle: title,
+      thumbnailUrl: thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url || "",
+      publishedAt
+    };
+  }
+  if (playlistId) {
+    return {
+      kind: "playlist",
+      videoId: "",
+      playlistId,
+      channelId,
+      title,
+      channelTitle,
+      thumbnailUrl: thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url || "",
+      publishedAt
+    };
+  }
+  return null;
+}
 router21.get("/youtube/search", async (req, res, next2) => {
   try {
     if (!youtubeApiKey()) {
       res.status(503).json({ error: "youtube_not_configured" });
       return;
     }
-    const q = String(req.query.q ?? "").trim();
-    const pageToken = String(req.query.pageToken ?? "").trim();
-    const maxResults = Math.min(
-      25,
-      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20)
-    );
-    if (!q || isBrowseQuery(q)) {
-      const cacheKey2 = `search-browse:${q || "home"}:${maxResults}:${pageToken || "first"}`;
+    const request = parseYoutubeSearchRequest(req.query);
+    const maxResults = request.maxResults ?? 20;
+    if (isYoutubeHomeBrowse(request)) {
+      const cacheKey2 = `search-browse:home:${maxResults}:${request.pageToken || "first"}`;
       const cached3 = await getYoutubeCache(cacheKey2);
-      const popular = await fetchMostPopular(maxResults, pageToken || void 0);
+      const popular = await fetchMostPopular(maxResults, request.pageToken);
       if (popular.ok) {
         await setYoutubeCache(cacheKey2, { items: popular.items, nextPageToken: popular.nextPageToken }, 1800);
         res.json({
@@ -166705,39 +167234,34 @@ router21.get("/youtube/search", async (req, res, next2) => {
       }
       res.status(popular.status || 429).json({
         error: "youtube_search_failed",
-        message: popular.message ?? "Quota exceeded",
-        quotaExceeded: true
+        message: popular.message ?? "Popular feed failed",
+        quotaExceeded: popular.quotaExceeded
       });
       return;
     }
-    const cacheKey = `search:${q}:${maxResults}:${pageToken || "first"}`;
+    const cacheKey = youtubeSearchCacheKey(request);
     const cached2 = await getYoutubeCache(cacheKey);
     const result = await youtubeFetchJson((key) => {
-      const params = new URLSearchParams({
-        part: "snippet",
-        type: "video",
-        q,
-        maxResults: String(maxResults),
-        key
-      });
-      if (pageToken) params.set("pageToken", pageToken);
+      const params = buildYoutubeSearchListParams(request, key);
       return `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
     });
     const body = result.body;
     if (result.ok) {
-      const items2 = (body.items ?? []).map((item) => {
-        const videoId = item.id?.videoId?.trim();
-        if (!videoId) return null;
-        return {
-          videoId,
-          title: item.snippet?.title?.trim() || "Untitled",
-          channelTitle: item.snippet?.channelTitle?.trim() || "YouTube",
-          thumbnailUrl: youtubeThumbnailUrl(videoId, item.snippet?.thumbnails),
-          publishedAt: item.snippet?.publishedAt
-        };
-      }).filter((item) => item !== null);
+      let items2 = (body.items ?? []).map((item) => mapSearchListItem(item)).filter((item) => item !== null);
+      const videoIds = items2.filter((item) => item.kind === "video" && item.videoId).map((item) => item.videoId);
+      if (videoIds.length > 0) {
+        const enriched = await fetchVideosByIds(videoIds);
+        if (enriched.ok && enriched.items.length > 0) {
+          const byId = new Map(enriched.items.map((item) => [item.videoId, item]));
+          items2 = items2.map((item) => {
+            if (item.kind !== "video") return item;
+            const extra = byId.get(item.videoId);
+            return extra ? { ...item, ...extra, kind: "video" } : item;
+          });
+        }
+      }
       const payload = { items: items2, nextPageToken: body.nextPageToken ?? null };
-      await setYoutubeCache(cacheKey, payload, 3600);
+      await setYoutubeCache(cacheKey, payload, 900);
       res.json({ ...payload, source: "search.list" });
       return;
     }
@@ -166749,19 +167273,6 @@ router21.get("/youtube/search", async (req, res, next2) => {
         message: body.error?.message
       });
       return;
-    }
-    if (isYoutubeQuotaError(result.status, body)) {
-      const popular = await fetchMostPopular(maxResults);
-      if (popular.ok) {
-        res.json({
-          items: popular.items,
-          nextPageToken: popular.nextPageToken,
-          source: "videos.list",
-          quotaExceeded: true,
-          message: body.error?.message
-        });
-        return;
-      }
     }
     res.status(result.status).json({
       error: "youtube_search_failed",
@@ -166787,27 +167298,52 @@ router21.get("/youtube/shorts", async (req, res, next2) => {
     const respondShortsFromPopular = async (quotaExceeded = false, message2) => {
       const cacheKey2 = `shorts-popular:${maxResults}:${pageToken || "first"}`;
       const cached3 = await getYoutubeCache(cacheKey2);
-      const popular = await fetchMostPopular(Math.min(50, maxResults * 2), pageToken || void 0);
-      if (popular.ok) {
-        const shortsOnly = popular.items.filter((item) => item.durationSeconds != null && item.durationSeconds <= 60).map((item) => ({
-          ...item,
-          isShort: true
-        })).slice(0, maxResults);
-        const payload2 = {
-          items: shortsOnly,
-          nextPageToken: popular.nextPageToken
-        };
-        await setYoutubeCache(cacheKey2, payload2, 1800);
-        res.json({ ...payload2, source: "videos.list", quotaExceeded, message: message2 });
+      const collected = [];
+      let token = pageToken || void 0;
+      let nextPageToken = null;
+      for (let page = 0; page < 4 && collected.length < maxResults; page += 1) {
+        const popular = await fetchMostPopular(50, token);
+        if (!popular.ok) {
+          if (page === 0 && cached3) {
+            res.json({ ...cached3, source: "cache", quotaExceeded: true, message: message2 || popular.message });
+            return true;
+          }
+          break;
+        }
+        for (const item of popular.items) {
+          if (item.durationSeconds != null && item.durationSeconds <= 60) {
+            collected.push({ ...item, isShort: true });
+          }
+        }
+        nextPageToken = popular.nextPageToken;
+        token = popular.nextPageToken || void 0;
+        if (!token) break;
+      }
+      if (collected.length === 0) {
+        const seeded2 = await fetchVideosByIds([...LIVE_SEED_VIDEO_IDS]);
+        if (seeded2.ok) {
+          collected.push(
+            ...seeded2.items.map((item) => ({
+              ...item,
+              isShort: item.durationSeconds != null && item.durationSeconds <= 60
+            }))
+          );
+        }
+      }
+      if (collected.length === 0 && cached3?.items?.length) {
+        res.json({ ...cached3, source: "cache", quotaExceeded, message: message2 });
         return true;
       }
-      if (cached3) {
-        res.json({ ...cached3, source: "cache", quotaExceeded: true, message: message2 || popular.message });
-        return true;
-      }
-      return false;
+      if (collected.length === 0) return false;
+      const payload2 = {
+        items: collected.slice(0, maxResults),
+        nextPageToken
+      };
+      await setYoutubeCache(cacheKey2, payload2, 1800);
+      res.json({ ...payload2, source: "videos.list", quotaExceeded, message: message2 });
+      return true;
     };
-    if (!q || isBrowseQuery(q)) {
+    if (!q) {
       const ok4 = await respondShortsFromPopular();
       if (ok4) return;
       res.status(429).json({
@@ -166893,7 +167429,7 @@ router21.get("/youtube/live", async (req, res, next2) => {
     }
     const eventTypeRaw = String(req.query.eventType ?? "live").trim().toLowerCase();
     const eventType = eventTypeRaw === "upcoming" || eventTypeRaw === "completed" ? eventTypeRaw : "live";
-    const q = String(req.query.q ?? "").trim() || "live";
+    const q = String(req.query.q ?? "").trim();
     const pageToken = String(req.query.pageToken ?? "").trim();
     const idsParam = String(req.query.ids ?? "").split(",").map((id) => id.trim()).filter(Boolean);
     const maxResults = Math.min(
@@ -166943,11 +167479,11 @@ router21.get("/youtube/live", async (req, res, next2) => {
         part: "snippet",
         type: "video",
         eventType,
-        q,
         maxResults: String(maxResults),
         order: "viewCount",
         key
       });
+      if (q) searchParams.set("q", q);
       if (pageToken) searchParams.set("pageToken", pageToken);
       return `https://www.googleapis.com/youtube/v3/search?${searchParams.toString()}`;
     });
@@ -167306,6 +167842,315 @@ router21.get("/youtube/playlist", async (req, res, next2) => {
       };
     }).filter((item) => Boolean(item));
     res.json({ items: items2, nextPageToken: body.nextPageToken ?? null });
+  } catch (error45) {
+    next2(error45);
+  }
+});
+function relatedSearchQuery(title) {
+  const cleaned = title.replace(/\[[^\]]*]/g, " ").replace(/\([^)]*\)/g, " ").replace(/official\s*(music\s*)?(video|audio|mv)/gi, " ").replace(/\s+/g, " ").trim();
+  return (cleaned || title).slice(0, 96);
+}
+router21.get("/youtube/video", async (req, res, next2) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const videoId = String(req.query.videoId ?? "").trim();
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      res.status(400).json({ error: "videoId required" });
+      return;
+    }
+    const cacheKey = `video:${videoId}`;
+    const cached2 = await getYoutubeCache(cacheKey);
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet,contentDetails,statistics,status,liveStreamingDetails",
+        id: videoId,
+        key
+      });
+      return `https://www.googleapis.com/youtube/v3/videos?${params.toString()}`;
+    });
+    const body = result.body;
+    if (!result.ok || !body.items?.[0]) {
+      if (cached2) {
+        res.json({ ...cached2, source: "cache" });
+        return;
+      }
+      res.status(result.ok ? 404 : result.status).json({
+        error: "youtube_video_failed",
+        message: body.error?.message ?? "Video not found"
+      });
+      return;
+    }
+    const item = body.items[0];
+    const mapped = mapVideoListItem(item);
+    if (!mapped) {
+      res.status(404).json({ error: "youtube_video_failed", message: "Video not found" });
+      return;
+    }
+    const description = item.snippet?.description ?? "";
+    const payload = {
+      ...mapped,
+      description,
+      tags: Array.isArray(item.snippet?.tags) ? (item.snippet.tags ?? []).slice(0, 20) : [],
+      categoryId: item.snippet?.categoryId ?? null,
+      embeddable: item.status?.embeddable !== false,
+      viewCount: item.statistics?.viewCount ? Number.parseInt(item.statistics.viewCount, 10) || 0 : 0,
+      likeCount: item.statistics?.likeCount ? Number.parseInt(item.statistics.likeCount, 10) || 0 : 0,
+      commentCount: item.statistics?.commentCount ? Number.parseInt(item.statistics.commentCount ?? "0", 10) || 0 : 0,
+      chapters: parseYoutubeChapters(description)
+    };
+    await setYoutubeCache(cacheKey, payload, 1800);
+    res.json({ ...payload, source: "videos.list" });
+  } catch (error45) {
+    next2(error45);
+  }
+});
+router21.get("/youtube/related", async (req, res, next2) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const videoId = String(req.query.videoId ?? "").trim();
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      res.status(400).json({ error: "videoId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const maxResults = Math.min(
+      25,
+      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20)
+    );
+    const details = await fetchVideosByIds([videoId]);
+    const seed = details.items[0];
+    const q = relatedSearchQuery(seed?.title || "recommended videos");
+    const cacheKey = `related:${videoId}:${q}:${pageToken || "first"}`;
+    const cached2 = await getYoutubeCache(cacheKey);
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet",
+        type: "video",
+        maxResults: String(maxResults),
+        q,
+        key
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      return `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
+    });
+    const body = result.body;
+    if (!result.ok) {
+      if (cached2) {
+        res.json({ ...cached2, source: "cache", quotaExceeded: isYoutubeQuotaError(result.status, body) });
+        return;
+      }
+      res.status(result.status).json({
+        error: "youtube_related_failed",
+        message: body.error?.message ?? "Related failed",
+        quotaExceeded: isYoutubeQuotaError(result.status, body)
+      });
+      return;
+    }
+    const mapped = (body.items ?? []).map((item) => mapSearchListItem(item)).filter((item) => Boolean(item && item.kind === "video" && item.videoId !== videoId));
+    const enriched = await fetchVideosByIds(mapped.map((item) => item.videoId));
+    const byId = new Map(enriched.items.map((item) => [item.videoId, item]));
+    const items2 = mapped.map((item) => byId.get(item.videoId) ?? item);
+    const payload = { items: items2, nextPageToken: body.nextPageToken ?? null };
+    await setYoutubeCache(cacheKey, payload, 900);
+    res.json({ ...payload, source: "search.list" });
+  } catch (error45) {
+    next2(error45);
+  }
+});
+router21.get("/youtube/comments", async (req, res, next2) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const videoId = String(req.query.videoId ?? "").trim();
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      res.status(400).json({ error: "videoId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const order = String(req.query.order ?? "relevance").trim() === "time" ? "time" : "relevance";
+    const maxResults = Math.min(
+      50,
+      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20)
+    );
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet,replies",
+        videoId,
+        maxResults: String(maxResults),
+        order,
+        textFormat: "plainText",
+        key
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      return `https://www.googleapis.com/youtube/v3/commentThreads?${params.toString()}`;
+    });
+    const body = result.body;
+    if (!result.ok) {
+      res.status(result.status).json({
+        error: "youtube_comments_failed",
+        message: body.error?.message ?? "Comments failed",
+        quotaExceeded: isYoutubeQuotaError(result.status, body)
+      });
+      return;
+    }
+    const mapComment = (comment) => ({
+      id: comment.id ?? "",
+      author: comment.snippet?.authorDisplayName?.trim() || "YouTube",
+      authorAvatar: comment.snippet?.authorProfileImageUrl ?? null,
+      authorChannelId: comment.snippet?.authorChannelId?.value ?? null,
+      text: comment.snippet?.textDisplay?.trim() || "",
+      likeCount: comment.snippet?.likeCount ?? 0,
+      publishedAt: comment.snippet?.publishedAt ?? null
+    });
+    const items2 = (body.items ?? []).map((thread) => {
+      const top = thread.snippet?.topLevelComment;
+      const replies = (thread.replies?.comments ?? []).map((comment) => mapComment(comment));
+      return {
+        ...mapComment(top ?? {}),
+        id: top?.id || thread.id || "",
+        replyCount: thread.snippet?.totalReplyCount ?? replies.length,
+        replies
+      };
+    });
+    res.json({ items: items2, nextPageToken: body.nextPageToken ?? null });
+  } catch (error45) {
+    next2(error45);
+  }
+});
+router21.get("/youtube/comments/replies", async (req, res, next2) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const parentId = String(req.query.parentId ?? "").trim();
+    if (!parentId) {
+      res.status(400).json({ error: "parentId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet",
+        parentId,
+        maxResults: "50",
+        textFormat: "plainText",
+        key
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      return `https://www.googleapis.com/youtube/v3/comments?${params.toString()}`;
+    });
+    const body = result.body;
+    if (!result.ok) {
+      res.status(result.status).json({
+        error: "youtube_comment_replies_failed",
+        message: body.error?.message ?? "Replies failed"
+      });
+      return;
+    }
+    const items2 = (body.items ?? []).map((comment) => ({
+      id: comment.id ?? "",
+      author: comment.snippet?.authorDisplayName?.trim() || "YouTube",
+      authorAvatar: comment.snippet?.authorProfileImageUrl ?? null,
+      authorChannelId: comment.snippet?.authorChannelId?.value ?? null,
+      text: comment.snippet?.textDisplay?.trim() || "",
+      likeCount: comment.snippet?.likeCount ?? 0,
+      publishedAt: comment.snippet?.publishedAt ?? null
+    }));
+    res.json({ items: items2, nextPageToken: body.nextPageToken ?? null });
+  } catch (error45) {
+    next2(error45);
+  }
+});
+router21.get("/youtube/channel", async (req, res, next2) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const channelId = String(req.query.channelId ?? "").trim();
+    if (!/^UC[\w-]{20,}$/.test(channelId)) {
+      res.status(400).json({ error: "channelId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const maxResults = Math.min(
+      50,
+      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20)
+    );
+    const channelRes = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet,statistics,contentDetails",
+        id: channelId,
+        key
+      });
+      return `https://www.googleapis.com/youtube/v3/channels?${params.toString()}`;
+    });
+    const channelBody = channelRes.body;
+    if (!channelRes.ok || !channelBody.items?.[0]) {
+      res.status(channelRes.ok ? 404 : channelRes.status).json({
+        error: "youtube_channel_failed",
+        message: channelBody.error?.message ?? "Channel not found"
+      });
+      return;
+    }
+    const channel = channelBody.items[0];
+    const uploadsId = channel.contentDetails?.relatedPlaylists?.uploads?.trim();
+    let items2 = [];
+    let nextPageToken = null;
+    if (uploadsId) {
+      const listRes = await youtubeFetchJson((key) => {
+        const params = new URLSearchParams({
+          part: "snippet,contentDetails",
+          playlistId: uploadsId,
+          maxResults: String(maxResults),
+          key
+        });
+        if (pageToken) params.set("pageToken", pageToken);
+        return `https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`;
+      });
+      const listBody = listRes.body;
+      if (listRes.ok) {
+        items2 = (listBody.items ?? []).map((item) => {
+          const videoId = item.contentDetails?.videoId?.trim() || item.snippet?.resourceId?.videoId?.trim() || "";
+          if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) return null;
+          return {
+            kind: "video",
+            videoId,
+            channelId,
+            title: item.snippet?.title?.trim() || "Untitled",
+            channelTitle: item.snippet?.channelTitle?.trim() || channel.snippet?.title?.trim() || "YouTube",
+            thumbnailUrl: youtubeThumbnailUrl(videoId, item.snippet?.thumbnails),
+            publishedAt: item.snippet?.publishedAt
+          };
+        }).filter((item) => Boolean(item));
+        nextPageToken = listBody.nextPageToken ?? null;
+      }
+    }
+    const thumbs = channel.snippet?.thumbnails;
+    res.json({
+      channel: {
+        channelId,
+        title: channel.snippet?.title?.trim() || "YouTube",
+        description: channel.snippet?.description ?? "",
+        customUrl: channel.snippet?.customUrl ?? null,
+        thumbnailUrl: thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url || "",
+        subscriberCount: channel.statistics?.subscriberCount ? Number.parseInt(channel.statistics.subscriberCount, 10) || 0 : 0,
+        videoCount: channel.statistics?.videoCount ? Number.parseInt(channel.statistics.videoCount, 10) || 0 : 0,
+        viewCount: channel.statistics?.viewCount ? Number.parseInt(channel.statistics.viewCount, 10) || 0 : 0,
+        uploadsPlaylistId: uploadsId ?? null
+      },
+      items: items2,
+      nextPageToken
+    });
   } catch (error45) {
     next2(error45);
   }
@@ -172957,6 +173802,26 @@ router24.put("/catalog/:id", auth, requireAdmin, async (req, res, next2) => {
 router24.post("/send", auth, requireNotBanned, async (req, res, next2) => {
   try {
     const senderId = req.authUser.id;
+    const roomIdForLifecycle = String(req.body?.roomId || "").trim();
+    const giftCommandId = String(req.body?.clientRequestId || "").trim();
+    const receiverIdForLifecycle = String(req.body?.receiverId || "").trim();
+    if (roomIdForLifecycle) {
+      try {
+        const { getLiveLifecycleService: getLiveLifecycleService2 } = await Promise.resolve().then(() => (init_live_lifecycle(), live_lifecycle_exports));
+        const lifecycle = getLiveLifecycleService2();
+        if (giftCommandId) {
+          lifecycle.beginGiftSettlement(roomIdForLifecycle, giftCommandId, receiverIdForLifecycle);
+        } else {
+          lifecycle.rejectIfEnding(roomIdForLifecycle, "gift");
+        }
+      } catch (err4) {
+        const rec = err4;
+        if (rec.status && rec.code) {
+          apiError(res, rec.status, rec.code);
+          return;
+        }
+      }
+    }
     const {
       giftId,
       receiverId,
@@ -172967,7 +173832,11 @@ router24.post("/send", auth, requireNotBanned, async (req, res, next2) => {
       giftName,
       unitPrice,
       tier,
-      metadata
+      metadata,
+      expectedCatalogVersion,
+      expectedPriceVersion,
+      catalogVersion,
+      priceVersion
     } = req.body;
     const gid = String(giftId || "").trim();
     const rid = String(receiverId || "").trim();
@@ -172985,19 +173854,32 @@ router24.post("/send", auth, requireNotBanned, async (req, res, next2) => {
     if (catalogRow) {
       const row = catalogRow;
       if (!isGiftAvailableNow(row)) {
-        res.status(400).json({ error: "gift not available" });
+        apiError(res, 400, "error.giftNotAvailable");
         return;
       }
       price = Number(row.price);
       name24 = row.name;
       giftTier = row.tier || giftTier;
+      const meta = row.metadata || {};
+      const currentCatalog = Number(meta.catalog_version ?? meta.catalogVersion ?? 1);
+      const currentPrice = Number(meta.price_version ?? meta.priceVersion ?? 1);
+      const expectedCat = Number(expectedCatalogVersion ?? catalogVersion ?? NaN);
+      const expectedPrice = Number(expectedPriceVersion ?? priceVersion ?? NaN);
+      if (Number.isFinite(expectedCat) && expectedCat !== currentCatalog) {
+        apiError(res, 409, "gift.catalog_changed", { catalogVersion: currentCatalog, priceVersion: currentPrice });
+        return;
+      }
+      if (Number.isFinite(expectedPrice) && expectedPrice !== currentPrice) {
+        apiError(res, 409, "gift.catalog_changed", { catalogVersion: currentCatalog, priceVersion: currentPrice });
+        return;
+      }
     } else {
       try {
         const { data: blob } = await sb.from("platform_gift_catalog").select("gifts").eq("id", "default").maybeSingle();
         const raw = Array.isArray(blob?.gifts) ? blob.gifts : [];
         const match = raw.find((g) => String(g.id ?? "") === gid);
         if (!match) {
-          res.status(400).json({ error: "unknown gift" });
+          apiError(res, 400, "gift.unknown");
           return;
         }
         price = Math.floor(Number(match.stars ?? match.price) || 0);
@@ -173030,10 +173912,22 @@ router24.post("/send", auth, requireNotBanned, async (req, res, next2) => {
     if (error45) {
       const msg = error45.message || "gift settle failed";
       const status = msg.includes("insufficient") || msg.includes("limit") ? 402 : 400;
-      res.status(status).json({ error: msg });
+      if (msg.includes("insufficient")) {
+        apiError(res, status, "gift.insufficientCoins");
+        return;
+      }
+      apiError(res, status, "common.unknownError");
       return;
     }
     const result = data;
+    if (roomIdForLifecycle && giftCommandId) {
+      try {
+        const { getLiveLifecycleService: getLiveLifecycleService2 } = await Promise.resolve().then(() => (init_live_lifecycle(), live_lifecycle_exports));
+        const total = Math.floor(Number(result.totalCoins ?? price * qty) || 0);
+        getLiveLifecycleService2().completeGiftSettlement(giftCommandId, total, rid);
+      } catch {
+      }
+    }
     res.json({
       ...result,
       event: {
@@ -173563,7 +174457,7 @@ function matchesRule(rule, ctx) {
   }
   return true;
 }
-function pick(rules, scopeType, ctx) {
+function pick2(rules, scopeType, ctx) {
   return rules.filter((r2) => r2.scopeType === scopeType && matchesRule(r2, ctx)).sort((a, b) => a.priority - b.priority || a.ruleKey.localeCompare(b.ruleKey))[0] || null;
 }
 function resolveUiAssignment(ctx, rules, options) {
@@ -173578,7 +174472,7 @@ function resolveUiAssignment(ctx, rules, options) {
   if (ctx.isAdminPreview && ctx.previewSnapshotId && accept(ctx.previewSnapshotId)) {
     return {
       snapshotId: ctx.previewSnapshotId,
-      ruleId: pick(rules, "admin_preview", ctx)?.id ?? null,
+      ruleId: pick2(rules, "admin_preview", ctx)?.id ?? null,
       experimentKey: null,
       variantKey: null,
       applyPolicy: "next_session",
@@ -173588,14 +174482,14 @@ function resolveUiAssignment(ctx, rules, options) {
   if ((ctx.sessionType === "live_room" || ctx.roomId) && ctx.explicitSessionSnapshotId && accept(ctx.explicitSessionSnapshotId)) {
     return {
       snapshotId: ctx.explicitSessionSnapshotId,
-      ruleId: pick(rules, "live_room", ctx)?.id ?? null,
+      ruleId: pick2(rules, "live_room", ctx)?.id ?? null,
       experimentKey: null,
       variantKey: null,
       applyPolicy: "next_session",
       source: "live_room"
     };
   }
-  const liveRule = ctx.roomId ? pick(rules, "live_room", ctx) : null;
+  const liveRule = ctx.roomId ? pick2(rules, "live_room", ctx) : null;
   if (liveRule && accept(liveRule.snapshotId)) {
     return {
       snapshotId: liveRule.snapshotId,
@@ -173609,14 +174503,14 @@ function resolveUiAssignment(ctx, rules, options) {
   if ((ctx.sessionType === "pk" || ctx.pkSessionId) && ctx.explicitSessionSnapshotId && accept(ctx.explicitSessionSnapshotId)) {
     return {
       snapshotId: ctx.explicitSessionSnapshotId,
-      ruleId: pick(rules, "pk", ctx)?.id ?? null,
+      ruleId: pick2(rules, "pk", ctx)?.id ?? null,
       experimentKey: null,
       variantKey: null,
       applyPolicy: "next_session",
       source: "pk"
     };
   }
-  const pkRule = ctx.pkSessionId || ctx.sessionType === "pk" ? pick(rules, "pk", ctx) : null;
+  const pkRule = ctx.pkSessionId || ctx.sessionType === "pk" ? pick2(rules, "pk", ctx) : null;
   if (pkRule && accept(pkRule.snapshotId)) {
     return {
       snapshotId: pkRule.snapshotId,
@@ -173630,14 +174524,14 @@ function resolveUiAssignment(ctx, rules, options) {
   if (ctx.explicitSessionSnapshotId && accept(ctx.explicitSessionSnapshotId)) {
     return {
       snapshotId: ctx.explicitSessionSnapshotId,
-      ruleId: pick(rules, "app_session", ctx)?.id ?? null,
+      ruleId: pick2(rules, "app_session", ctx)?.id ?? null,
       experimentKey: null,
       variantKey: null,
       applyPolicy: "next_session",
       source: "app_session"
     };
   }
-  const appRule = pick(rules, "app_session", ctx);
+  const appRule = pick2(rules, "app_session", ctx);
   if (appRule && accept(appRule.snapshotId)) {
     return {
       snapshotId: appRule.snapshotId,
@@ -173651,14 +174545,14 @@ function resolveUiAssignment(ctx, rules, options) {
   if (ctx.userId && ctx.explicitUserSnapshotId && accept(ctx.explicitUserSnapshotId)) {
     return {
       snapshotId: ctx.explicitUserSnapshotId,
-      ruleId: pick(rules, "authenticated_user", ctx)?.id ?? null,
+      ruleId: pick2(rules, "authenticated_user", ctx)?.id ?? null,
       experimentKey: null,
       variantKey: null,
       applyPolicy: "next_session",
       source: "authenticated_user"
     };
   }
-  const userRule = ctx.userId ? pick(rules, "authenticated_user", ctx) : null;
+  const userRule = ctx.userId ? pick2(rules, "authenticated_user", ctx) : null;
   if (userRule && accept(userRule.snapshotId)) {
     return {
       snapshotId: userRule.snapshotId,
@@ -173669,7 +174563,7 @@ function resolveUiAssignment(ctx, rules, options) {
       source: "authenticated_user"
     };
   }
-  const expRule = pick(rules, "experiment", ctx);
+  const expRule = pick2(rules, "experiment", ctx);
   if (expRule && accept(expRule.snapshotId)) {
     return {
       snapshotId: expRule.snapshotId,
@@ -173680,7 +174574,7 @@ function resolveUiAssignment(ctx, rules, options) {
       source: "experiment"
     };
   }
-  const platformRule = pick(rules, "platform", ctx);
+  const platformRule = pick2(rules, "platform", ctx);
   if (platformRule && accept(platformRule.snapshotId)) {
     return {
       snapshotId: platformRule.snapshotId,
@@ -173691,7 +174585,7 @@ function resolveUiAssignment(ctx, rules, options) {
       source: "platform"
     };
   }
-  const globalRule = pick(rules, "global", ctx);
+  const globalRule = pick2(rules, "global", ctx);
   if (globalRule && accept(globalRule.snapshotId)) {
     return {
       snapshotId: globalRule.snapshotId,
@@ -181788,7 +182682,7 @@ __export(util_exports, {
   omit: () => omit,
   optionalKeys: () => optionalKeys,
   partial: () => partial,
-  pick: () => pick2,
+  pick: () => pick3,
   prefixIssues: () => prefixIssues,
   primitiveTypes: () => primitiveTypes,
   promiseAllObject: () => promiseAllObject,
@@ -182111,7 +183005,7 @@ var BIGINT_FORMAT_RANGES = {
   int64: [/* @__PURE__ */ BigInt("-9223372036854775808"), /* @__PURE__ */ BigInt("9223372036854775807")],
   uint64: [/* @__PURE__ */ BigInt(0), /* @__PURE__ */ BigInt("18446744073709551615")]
 };
-function pick2(schema, mask) {
+function pick3(schema, mask) {
   const currDef = schema._zod.def;
   const def = mergeDefs(schema._zod.def, {
     get shape() {

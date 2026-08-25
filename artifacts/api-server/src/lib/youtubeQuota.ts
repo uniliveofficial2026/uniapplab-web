@@ -45,6 +45,33 @@ export function isYoutubeQuotaError(status: number, body: unknown): boolean {
   return /quota exceeded/i.test(message) || /quotaMetric/i.test(message);
 }
 
+/** Parse description timestamps into chapters (YouTube-style `0:00 Title` lines). */
+export function parseYoutubeChapters(
+  description: string | undefined,
+): Array<{ startSeconds: number; label: string }> {
+  if (!description?.trim()) return [];
+  const chapters: Array<{ startSeconds: number; label: string }> = [];
+  const seen = new Set<number>();
+  for (const raw of description.split(/\r?\n/)) {
+    const match = /^\s*((?:\d{1,2}:)?\d{1,2}:\d{2})\s+[-–—]?\s*(.+?)\s*$/.exec(raw);
+    if (!match) continue;
+    const stamp = match[1] ?? "";
+    const label = (match[2] ?? "").trim();
+    if (!label) continue;
+    const parts = stamp.split(":").map((part) => Number.parseInt(part, 10));
+    if (parts.some((part) => !Number.isFinite(part))) continue;
+    let startSeconds = 0;
+    if (parts.length === 3) startSeconds = (parts[0] ?? 0) * 3600 + (parts[1] ?? 0) * 60 + (parts[2] ?? 0);
+    else startSeconds = (parts[0] ?? 0) * 60 + (parts[1] ?? 0);
+    if (seen.has(startSeconds)) continue;
+    seen.add(startSeconds);
+    chapters.push({ startSeconds, label: label.slice(0, 120) });
+  }
+  if (chapters.length < 2) return [];
+  chapters.sort((a, b) => a.startSeconds - b.startSeconds);
+  return chapters;
+}
+
 export function parseIsoDurationSeconds(value: string | undefined): number | null {
   if (!value) return null;
   const match = /^PT(?:(\d+)H)?(?:(\d+)M)?(?:(\d+)S)?$/i.exec(value.trim());

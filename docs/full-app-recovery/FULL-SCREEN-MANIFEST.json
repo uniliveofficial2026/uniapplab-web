@@ -1,0 +1,450 @@
+[
+  {
+    "id": "MessagesScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/messages/MessagesScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/messages/MessagesScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "NotificationsScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/notifications/NotificationsScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "ReelsScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/reels/ReelsScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/reels/ReelsScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "SearchScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/search/SearchScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/search/SearchScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "ProfileScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/profile/ProfileScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/profile/ProfileScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "WorkspaceGate",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/workspace/WorkspaceGate.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/workspace/WorkspaceGate"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "DatingScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/dating/DatingScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/dating/DatingScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "LaunchFlowHost",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/launch/LaunchFlowHost.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/launch/LaunchFlowHost"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "UserProfilePreview",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/profile/UserProfilePreview.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/profile/UserProfilePreview"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "StoryRing",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/feed/StoryRing.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/feed/StoryRing"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "LiveScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/live/LiveScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/live/LiveScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "KaraokeScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/karaoke/KaraokeScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "LocalGamesScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/games/LocalGamesScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/games/LocalGamesScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "ThirdPartyGamesScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/games/ThirdPartyGamesScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/games/ThirdPartyGamesScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "GameHubScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/games/GameHubScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/games/GameHubScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "YouTube",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/pages/YouTube.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./pages/YouTube"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "WalletScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/wallet/WalletScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/wallet/WalletScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "DevLivePanel",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/dev/DevLivePanel.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/dev/DevLivePanel"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "PkLiveOverlay",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/live/PkLiveOverlay.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/live/PkLiveOverlay"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "YoutubeMiniPlayerHost",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/youtube/YoutubeMiniPlayerHost.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/youtube/YoutubeMiniPlayerHost"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "AuthScreen",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/auth/AuthScreen.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/auth/AuthScreen"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "ProfileSetup",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/auth/ProfileSetup.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/auth/ProfileSetup"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "AdminEmbedRoomHost",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/admin/AdminEmbedRoomHost.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/admin/AdminEmbedRoomHost"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "AdminEmbedGiftPreviewHost",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/admin/AdminEmbedGiftPreviewHost.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/admin/AdminEmbedGiftPreviewHost"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "AppLiveStudioShell",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/studio/AppLiveStudioShell.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/studio/AppLiveStudioShell"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "AdminHandoffHost",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/dev/AdminHandoffHost.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/dev/AdminHandoffHost"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "AdminDevBridgeHost",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/dev/AdminDevBridgeHost.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/dev/AdminDevBridgeHost"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesCharacterPreviewHost",
+    "route": "shell-tab-or-overlay",
+    "source": "artifacts/instacollab/src/components/character/UniLivesCharacterPreviewHost.tsx",
+    "entryPoints": [
+      "App.tsx lazy"
+    ],
+    "requiredChunks": [
+      "./components/character/UniLivesCharacterPreviewHost"
+    ],
+    "featureFlags": [],
+    "assets": [],
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED",
+    "statusOnPhysicalDevice": "NOT_TESTED"
+  }
+]

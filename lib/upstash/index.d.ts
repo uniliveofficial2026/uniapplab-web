@@ -5,8 +5,10 @@ declare module "@workspace/upstash" {
     feedPosts: string;
     handoffState: string;
     presencePrefix: string;
+    presenceDeviceIndexPrefix: string;
     typingSetPrefix: string;
     streamViewersPrefix: string;
+    streamViewerSessionPrefix: string;
   };
 
   export function isUpstashConfigured(): boolean;
@@ -25,7 +27,16 @@ declare module "@workspace/upstash" {
   export function rewriteHandoffQueue(
     tasks: Record<string, unknown>[],
   ): Promise<boolean>;
-  export function setUserOnline(userId: string, ttlSeconds?: number): Promise<boolean>;
+  export function setUserOnline(
+    userId: string,
+    ttlSeconds?: number,
+    deviceId?: string,
+  ): Promise<boolean>;
+  export function clearUserDevicePresence(
+    userId: string,
+    deviceId?: string,
+  ): Promise<boolean>;
+  export function listActivePresenceDevices(userId: string): Promise<string[]>;
   export function isUserOnline(userId: string): Promise<boolean>;
   export function filterOnlineUserIds(userIds: string[]): Promise<string[]>;
   export function setTypingIndicator(
@@ -35,6 +46,21 @@ declare module "@workspace/upstash" {
   ): Promise<boolean>;
   export function getTypingUserIds(threadId: string): Promise<string[]>;
   export function getStreamViewers(streamId: string): Promise<number>;
-  export function incrStreamViewers(streamId: string): Promise<number>;
-  export function decrStreamViewers(streamId: string): Promise<number>;
+  export function joinStreamViewer(
+    streamId: string,
+    sessionId: string,
+    ttlSeconds?: number,
+  ): Promise<number>;
+  export function leaveStreamViewer(
+    streamId: string,
+    sessionId: string,
+  ): Promise<number>;
+  export function incrStreamViewers(
+    streamId: string,
+    sessionId?: string,
+  ): Promise<number>;
+  export function decrStreamViewers(
+    streamId: string,
+    sessionId?: string,
+  ): Promise<number>;
 }

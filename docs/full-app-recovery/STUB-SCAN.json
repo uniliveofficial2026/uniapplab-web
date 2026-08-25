@@ -1,0 +1,1562 @@
+[
+  {
+    "file": "artifacts/instacollab/src/App.tsx",
+    "line": 96,
+    "text": ": function DevLivePanelHostStub() {"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminControlCenter.tsx",
+    "line": 1270,
+    "text": "placeholder=\"Search\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminControlCenter.tsx",
+    "line": 1326,
+    "text": "<input value={creditUserId} onChange={(e) => setCreditUserId(e.target.value)} placeholder=\"User UUID\" className=\"flex-1 text-sm border border-border rounded-xl "
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx",
+    "line": 277,
+    "text": "placeholder=\"Add custom tier\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx",
+    "line": 329,
+    "text": "placeholder=\"Add custom provider\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx",
+    "line": 389,
+    "text": "placeholder,"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx",
+    "line": 397,
+    "text": "placeholder: string;"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx",
+    "line": 423,
+    "text": "placeholder={placeholder}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx",
+    "line": 631,
+    "text": "placeholder='{\"smooth\":0.5,\"whiten\":0.3}'"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/AdminPanel.tsx",
+    "line": 138,
+    "text": "placeholder=\"Search username\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/GiftIconMediaPicker.tsx",
+    "line": 54,
+    "text": "placeholder={isGiftIconMediaUrl(value) ? 'Custom image selected' : 'Emoji\u2026'}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/GiftIconMediaPicker.tsx",
+    "line": 112,
+    "text": "searchPlaceHolder=\"Search emoji\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/IntegrationStatusPanel.tsx",
+    "line": 200,
+    "text": "placeholder=\"VITE_MY_API_KEY\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/IntegrationStatusPanel.tsx",
+    "line": 371,
+    "text": "placeholder=\"Paste value\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/admin/SplashAdMediaPicker.tsx",
+    "line": 161,
+    "text": "placeholder=\"https://\u2026 or leave blank after upload\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/ar/ARFilterCarousel.tsx",
+    "line": 169,
+    "text": "placeholder=\"Search effects\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/ar/ARFilterCarousel.tsx",
+    "line": 171,
+    "text": "className=\"h-9 w-full rounded-full border border-white/20 bg-black/45 pl-9 pr-9 text-xs text-white placeholder:text-white/40 backdrop-blur-md outline-none trans"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/AuthScreen.tsx",
+    "line": 205,
+    "text": "placeholder=\"Jane Doe\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/AuthScreen.tsx",
+    "line": 216,
+    "text": "placeholder=\"name@example.com\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/AuthScreen.tsx",
+    "line": 226,
+    "text": "placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/EmailOtpPanel.tsx",
+    "line": 190,
+    "text": "placeholder=\"Display name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/EmailOtpPanel.tsx",
+    "line": 198,
+    "text": "placeholder=\"Username\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/EmailOtpPanel.tsx",
+    "line": 208,
+    "text": "placeholder=\"Email\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/EmailOtpPanel.tsx",
+    "line": 258,
+    "text": "placeholder=\"123456\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/ProfileSetup.tsx",
+    "line": 210,
+    "text": "placeholder=\"unique_handle\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/ProfileSetup.tsx",
+    "line": 234,
+    "text": "placeholder=\"Full Name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/ProfileSetup.tsx",
+    "line": 251,
+    "text": "placeholder=\"Tell the world who you are...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/auth/brand/UniLivesPrincessForgotForm.tsx",
+    "line": 48,
+    "text": "placeholder=\" \""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/camera/BodyShapeTray.tsx",
+    "line": 28,
+    "text": "/** Show controls but block interaction (coming soon). */"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/camera/BodyShapeTray.tsx",
+    "line": 136,
+    "text": "Body shape \u2014 coming soon"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/common/Avatar.tsx",
+    "line": 182,
+    "text": "placeholder=\"Share a thought...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/common/Avatar.tsx",
+    "line": 183,
+    "text": "className=\"w-full h-[65px] bg-transparent border-none text-center flex items-center justify-center text-[13px] font-black tracking-tight outline-none placeholde"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/common/EditorToolPanels.tsx",
+    "line": 344,
+    "text": "<input type=\"text\" value={textOverlay} onChange={(e) => onTextOverlayChange(e.target.value)} placeholder=\"Type overlay text...\" className=\"flex-1 bg-background "
+  },
+  {
+    "file": "artifacts/instacollab/src/components/common/ScreenFallback.tsx",
+    "line": 6,
+    "text": "* Always-visible screen placeholder \u2014 never a blank page."
+  },
+  {
+    "file": "artifacts/instacollab/src/components/common/ThoughtViewOverlay.tsx",
+    "line": 122,
+    "text": "placeholder=\"Share a thought...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/common/ThoughtViewOverlay.tsx",
+    "line": 124,
+    "text": "className=\"relative z-10 w-full min-h-[72px] max-h-[220px] bg-transparent border-none text-center text-[17px] font-black tracking-tight outline-none placeholder"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/dating/DatingToolsSheet.tsx",
+    "line": 353,
+    "text": "placeholder=\"Prompt 1 question\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/dating/DatingToolsSheet.tsx",
+    "line": 359,
+    "text": "placeholder=\"Prompt 1 answer\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/dating/DatingToolsSheet.tsx",
+    "line": 365,
+    "text": "placeholder=\"Prompt 2 question\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/dating/DatingToolsSheet.tsx",
+    "line": 371,
+    "text": "placeholder=\"Prompt 2 answer\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/dating/DatingToolsSheet.tsx",
+    "line": 377,
+    "text": "placeholder=\"Media URL\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/deepar/DeepARFilterCarousel.tsx",
+    "line": 175,
+    "text": "placeholder=\"Search effects\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/deepar/DeepARFilterCarousel.tsx",
+    "line": 177,
+    "text": "className=\"h-9 w-full rounded-full border border-white/20 bg-black/45 pl-9 pr-9 text-xs text-white placeholder:text-white/40 backdrop-blur-md outline-none trans"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/dev/DevLivePanel.tsx",
+    "line": 294,
+    "text": "placeholder=\"Filter tasks (like, follow, message\u2026)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/discovery/brand/UniLivesDiscoverySearch.tsx",
+    "line": 7,
+    "text": "placeholder?: string;"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/discovery/brand/UniLivesDiscoverySearch.tsx",
+    "line": 20,
+    "text": "placeholder = 'Search...',"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/discovery/brand/UniLivesDiscoverySearch.tsx",
+    "line": 32,
+    "text": "placeholder={placeholder}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/PostCardFooter.tsx",
+    "line": 181,
+    "text": "placeholder=\"Add a comment...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/PostCardFooter.tsx",
+    "line": 182,
+    "text": "className=\"flex-1 bg-transparent border-none outline-none text-[14px] font-medium text-foreground placeholder:text-muted-foreground\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/PostModal.tsx",
+    "line": 1481,
+    "text": "placeholder={isListening ? \"Listening...\" : \"Add a comment...\"}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/PostModal.tsx",
+    "line": 1482,
+    "text": "className=\"flex-1 min-w-0 bg-transparent border-none outline-none text-[14px] md:text-[15px] font-medium px-1 placeholder:text-muted-foreground/70\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/ProfileStoryCardMedia.tsx",
+    "line": 25,
+    "text": "className=\"profile-story-card-media-el profile-story-card-media-el--placeholder\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/ProfileStoryCardMedia.tsx",
+    "line": 74,
+    "text": "className=\"profile-story-card-media-el profile-story-card-media-el--placeholder\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/RepostModal.tsx",
+    "line": 242,
+    "text": "placeholder=\"Add your thoughts...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/RepostModal.tsx",
+    "line": 265,
+    "text": "placeholder=\"Drop a funny text overlay...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/ShareModal.tsx",
+    "line": 92,
+    "text": "placeholder=\"Search users...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/StoryRing.tsx",
+    "line": 1011,
+    "text": "placeholder=\"Share a thought...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/StoryRing.tsx",
+    "line": 1012,
+    "text": "className=\"w-full h-[65px] bg-transparent border-none text-center flex items-center justify-center text-[13px] font-black tracking-tight outline-none placeholde"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/StoryRingPortals.tsx",
+    "line": 560,
+    "text": "placeholder={isSent ? \"Sent!\" : \"Send message...\"}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/feed/StoryRingPortals.tsx",
+    "line": 561,
+    "text": "className=\"w-full bg-transparent text-foreground placeholder:text-muted-foreground outline-none text-[15px] font-medium min-w-0\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/games/ThirdPartyGamesScreen.tsx",
+    "line": 107,
+    "text": "<input placeholder=\"Search games...\" className=\"w-full sm:w-auto pl-10 pr-4 py-2 bg-secondary rounded-xl text-xs font-semibold focus:outline-none focus:ring-2 f"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/identity/brand/UniLivesIdentityMedia.tsx",
+    "line": 20,
+    "text": "* Production/placeholder registry \u2192 img URL."
+  },
+  {
+    "file": "artifacts/instacollab/src/components/identity/brand/UniLivesIdentityMedia.tsx",
+    "line": 35,
+    "text": "const hasProduction = asset && (asset.status === 'production' || asset.status === 'placeholder');"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 564,
+    "text": "placeholder=\"Write a reply...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 3453,
+    "text": "placeholder=\"Search catalog, community uploads, and cover recordings...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 4868,
+    "text": "placeholder=\"Write a reply...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 4888,
+    "text": "placeholder=\"Write a sweet comment... \ud83c\udfa4\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 4954,
+    "text": "placeholder=\"Type custom seed (e.g., violet, music)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 5041,
+    "text": "placeholder=\"E.g. Sarah Sings\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 5056,
+    "text": "placeholder=\"Tell other stars about your voice type, genres, and favorite covers...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/KaraokeScreen.tsx",
+    "line": 5868,
+    "text": "placeholder=\"E.g. Late Night Chill Vibes \ud83c\udf19\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/RecordingStudio.tsx",
+    "line": 2360,
+    "text": "placeholder=\"Tell listeners about your cover\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/RecordingStudio.tsx",
+    "line": 2361,
+    "text": "className=\"w-full min-h-[140px] rounded-t-2xl rounded-b-none border border-white/10 border-b-0 bg-zinc-950 px-4 py-3 text-[15px] text-white placeholder:text-zin"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/RecordingStudio.tsx",
+    "line": 2425,
+    "text": "placeholder=\"Search creators\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/RecordingStudio.tsx",
+    "line": 2426,
+    "text": "className=\"w-full text-xs bg-zinc-950 border border-white/10 rounded-lg px-2.5 py-1.5 outline-none font-medium text-white placeholder:text-zinc-500 focus:border"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/RecordingStudio.tsx",
+    "line": 3183,
+    "text": "window.dispatchEvent(new CustomEvent('app-toast', { detail: 'More options coming soon' }));"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/SongUpload.tsx",
+    "line": 348,
+    "text": "placeholder=\"e.g. Someone Like You\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/SongUpload.tsx",
+    "line": 358,
+    "text": "placeholder=\"e.g. Adele\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/SongUpload.tsx",
+    "line": 390,
+    "text": "placeholder=\"pop, ballad, soul\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/SongUpload.tsx",
+    "line": 399,
+    "text": "placeholder=\"Track producers, instrumentalists, etc...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/karaoke/SongUpload.tsx",
+    "line": 431,
+    "text": "placeholder=\"Type or paste lyrics here."
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 568,
+    "text": "placeholder=\"Display name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 577,
+    "text": "placeholder=\"Username\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 591,
+    "text": "placeholder=\"Email\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 602,
+    "text": "placeholder=\"Password\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 679,
+    "text": "placeholder=\"you@example.com\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 693,
+    "text": "placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 707,
+    "text": "placeholder=\"Your name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 716,
+    "text": "placeholder=\"creative_you\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "line": 732,
+    "text": "placeholder=\"\u2022\u2022\u2022\u2022\u2022\u2022\u2022\u2022\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/LaunchBrandMark.tsx",
+    "line": 10,
+    "text": "import { applyAppBrandToDocument, readAppBrandSnapshot } from '../../lib/appBrandRuntime';"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/LaunchBrandMark.tsx",
+    "line": 175,
+    "text": "applyAppBrandToDocument({ logoUrl: dataUrl, mediaType: nextMediaType });"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx",
+    "line": 258,
+    "text": "placeholder=\"creative_you\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx",
+    "line": 277,
+    "text": "placeholder=\"A short intro...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/ProfileSetupScreen.tsx",
+    "line": 286,
+    "text": "placeholder=\"https://...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/launch/PublicUserIdField.tsx",
+    "line": 56,
+    "text": "placeholder=\"my_unique_id\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/layout/ShellCreateCaptionPanel.tsx",
+    "line": 151,
+    "text": "placeholder=\"Search city, place, or address\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/layout/ShellCreateCaptionPanel.tsx",
+    "line": 249,
+    "text": "placeholder=\"Write a caption...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/layout/ShellCreateCaptionPanel.tsx",
+    "line": 250,
+    "text": "className=\"flex-1 w-full p-4 text-[15px] resize-none outline-none bg-transparent text-foreground placeholder:text-foreground/45 placeholder:font-medium\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/layout/ShellCreateCaptionPanel.tsx",
+    "line": 308,
+    "text": "placeholder=\"Search creators...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/layout/ShellCreateCaptionPanel.tsx",
+    "line": 309,
+    "text": "className=\"w-full text-xs bg-secondary border border-border rounded-lg px-2.5 py-1.5 outline-none font-medium focus:border-primary placeholder:text-muted-foregr"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/legal/brand/UniLivesLegalMedia.tsx",
+    "line": 26,
+    "text": "const hasProduction = asset.status === 'production' || asset.status === 'placeholder';"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/LiveFiltersPanel.tsx",
+    "line": 273,
+    "text": "placeholder=\"Search live, room, user, name, id, country\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/LiveFiltersPanel.tsx",
+    "line": 277,
+    "text": "className=\"w-full rounded-2xl border border-border bg-card py-3 pl-10 pr-10 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreground"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/LiveFiltersPanel.tsx",
+    "line": 450,
+    "text": "placeholder=\"Search countries\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/LiveFiltersPanel.tsx",
+    "line": 454,
+    "text": "className=\"w-full rounded-xl border border-border bg-background py-2.5 pl-9 pr-9 text-sm font-semibold text-foreground outline-none placeholder:text-muted-foreg"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/LiveSellPkRoom.tsx",
+    "line": 318,
+    "text": "<input value={draft} onChange={(event) => setDraft(event.target.value)} placeholder=\"Say something...\" aria-label=\"Say something\" />"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/OneVsOnePkRoom.tsx",
+    "line": 118,
+    "text": "placeholder: string;"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/OneVsOnePkRoom.tsx",
+    "line": 507,
+    "text": "placeholder={text.saySomething}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/OneVsOnePkSessionContainer.tsx",
+    "line": 57,
+    "text": "import { emptyPkCameraPlaceholder, PkUserCamera, type PkAttachableVideoTrack } from './PkUserCamera';"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/OneVsOnePkSessionContainer.tsx",
+    "line": 847,
+    "text": "return emptyPkCameraPlaceholder(leftCreator.name);"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/OneVsOnePkSessionContainer.tsx",
+    "line": 852,
+    "text": "if (!userId) return emptyPkCameraPlaceholder(rightCreator.name);"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/OneVsOnePkSessionContainer.tsx",
+    "line": 865,
+    "text": "return emptyPkCameraPlaceholder(rightCreator.name);"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/PkChallengeLiveStage.tsx",
+    "line": 118,
+    "text": "placeholder: string;"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/PkChallengeLiveStage.tsx",
+    "line": 315,
+    "text": "placeholder={text.saySomething}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/PkUserCamera.tsx",
+    "line": 91,
+    "text": "export function emptyPkCameraPlaceholder(label: string): ReactNode {"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/TeamPkRoom.tsx",
+    "line": 429,
+    "text": "placeholder={labels.saySomething}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/TeamPkSessionContainer.tsx",
+    "line": 53,
+    "text": "import { emptyPkCameraPlaceholder, PkUserCamera, type PkAttachableVideoTrack } from './PkUserCamera';"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/live/TeamPkSessionContainer.tsx",
+    "line": 601,
+    "text": "return emptyPkCameraPlaceholder(creator.name);"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/CallApprovedChrome.tsx",
+    "line": 440,
+    "text": "placeholder=\"Type a message...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/ChatLocationShareSheet.tsx",
+    "line": 280,
+    "text": "placeholder=\"Search city, address, place\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/ChatLocationShareSheet.tsx",
+    "line": 318,
+    "text": "placeholder=\"37.7749\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/ChatLocationShareSheet.tsx",
+    "line": 329,
+    "text": "placeholder=\"-122.4194\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/ChatLocationShareSheet.tsx",
+    "line": 419,
+    "text": "placeholder=\"e.g. Coffee shop, Home\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessageFileCard.tsx",
+    "line": 14,
+    "text": "/** Text-only stub from before file media was implemented */"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesChatHeader.tsx",
+    "line": 183,
+    "text": "placeholder=\"Search with #, @, name...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesComposeBar.tsx",
+    "line": 473,
+    "text": "placeholder={isListening ? \"Listening...\" : editingMessageIndex !== null ? \"Edit message...\" : \"Type a message...\"}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesComposeBar.tsx",
+    "line": 474,
+    "text": "className=\"w-full bg-transparent border-none outline-none text-[14px] sm:text-[15px] font-medium min-w-0 placeholder:text-muted-foreground/70\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreen.tsx",
+    "line": 474,
+    "text": "// Resolve groups before users \u2014 findUserById always returns a placeholder User,"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 210,
+    "text": "placeholder=\"Filter by user name, @username, or ID...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 283,
+    "text": "placeholder=\"Group Name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 290,
+    "text": "placeholder=\"Search users by name, @username, or ID...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 624,
+    "text": "placeholder=\"Group name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 640,
+    "text": "placeholder=\"Search by name, username, ID...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 715,
+    "text": "placeholder=\"Search users by name, username, ID...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 798,
+    "text": "placeholder=\"Search members by name, username, ID...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 888,
+    "text": "placeholder=\"Search with #, @, name...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "line": 959,
+    "text": "placeholder=\"Search with #, @, name...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/messages/MessagesSidebar.tsx",
+    "line": 130,
+    "text": "placeholder=\"Search with #, @, name...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx",
+    "line": 14,
+    "text": "ListTodo,"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx",
+    "line": 47,
+    "text": "task: ListTodo,"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx",
+    "line": 276,
+    "text": "<ListTodo className=\"w-3 h-3 text-white\" />"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx",
+    "line": 392,
+    "text": "placeholder=\"Search by name or message\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx",
+    "line": 393,
+    "text": "className=\"w-full rounded-lg border border-border bg-secondary py-2 pl-9 pr-8 text-sm text-foreground outline-none placeholder:text-foreground/45 focus:border-r"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/notifications/NotificationsScreen.tsx",
+    "line": 601,
+    "text": "<ListTodo className=\"w-6 h-6\" />"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile-setup/brand/UniLivesAvatarPlaceholder.tsx",
+    "line": 13,
+    "text": "* Avatar placeholder when no user photo is set."
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile-setup/brand/UniLivesAvatarPlaceholder.tsx",
+    "line": 17,
+    "text": "export function UniLivesAvatarPlaceholder({"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile-setup/brand/UniLivesAvatarPlaceholder.tsx",
+    "line": 21,
+    "text": "const id = 'profile-setup.avatar.placeholder';"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile-setup/brand/UniLivesAvatarUploader.tsx",
+    "line": 4,
+    "text": "import { UniLivesAvatarPlaceholder } from './UniLivesAvatarPlaceholder';"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile-setup/brand/UniLivesAvatarUploader.tsx",
+    "line": 53,
+    "text": "<UniLivesAvatarPlaceholder />"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/AccountSwitcherModal.tsx",
+    "line": 109,
+    "text": "'w-full px-4 py-3 rounded-xl bg-secondary/40 border border-border text-sm font-semibold text-foreground placeholder:text-muted-foreground focus:outline-none foc"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/BlockedUsersModal.tsx",
+    "line": 83,
+    "text": "placeholder=\"Search blocked accounts\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/BlockedUsersModal.tsx",
+    "line": 84,
+    "text": "className=\"w-full rounded-lg px-4 py-2 text-sm text-foreground outline-none placeholder:text-foreground/45 bg-secondary border border-border focus:border-ring t"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/FollowListModal.tsx",
+    "line": 108,
+    "text": "placeholder=\"Search\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/FollowListModal.tsx",
+    "line": 109,
+    "text": "className=\"w-full rounded-lg px-4 py-2 text-sm text-foreground outline-none placeholder:text-foreground/45 bg-secondary border border-border focus:border-ring t"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileCloudSystemsModal.tsx",
+    "line": 440,
+    "text": "placeholder=\"Storage name (e.g. Wei Storage)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileCloudSystemsModal.tsx",
+    "line": 446,
+    "text": "placeholder=\"Account label (e.g. my-prod-storage)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileCloudSystemsModal.tsx",
+    "line": 452,
+    "text": "placeholder=\"Bucket / Container name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileCloudSystemsModal.tsx",
+    "line": 459,
+    "text": "placeholder=\"Region\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileCloudSystemsModal.tsx",
+    "line": 465,
+    "text": "placeholder=\"Endpoint (optional)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileCloudSystemsModal.tsx",
+    "line": 473,
+    "text": "placeholder=\"Access key / client id\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileCloudSystemsModal.tsx",
+    "line": 480,
+    "text": "placeholder=\"Secret key\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileEditSettingsModal.tsx",
+    "line": 356,
+    "text": "placeholder=\"Custom seed or image URL\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileScreen.tsx",
+    "line": 426,
+    "text": "placeholder=\"Collection Name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileScreen.tsx",
+    "line": 485,
+    "text": "placeholder=\"Explain why your account should be verified...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileVisitorsModal.tsx",
+    "line": 291,
+    "text": "placeholder=\"Search visitors\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/profile/ProfileVisitorsModal.tsx",
+    "line": 292,
+    "text": "className=\"min-w-0 flex-1 rounded-lg px-4 py-2 text-sm text-foreground outline-none placeholder:text-foreground/45 bg-secondary border border-border focus:borde"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/reels/ReelsCommentsDrawer.tsx",
+    "line": 162,
+    "text": "placeholder={"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/search/SearchScreen.tsx",
+    "line": 137,
+    "text": "placeholder={"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/sharing/brand/UniLivesSharingMedia.tsx",
+    "line": 29,
+    "text": "const hasProduction = asset.status === 'production' || asset.status === 'placeholder';"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/stories/StoryCaptionComposer.tsx",
+    "line": 24,
+    "text": "placeholder?: string;"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/stories/StoryCaptionComposer.tsx",
+    "line": 33,
+    "text": "placeholder = 'Write a caption...',"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/stories/StoryCaptionComposer.tsx",
+    "line": 74,
+    "text": "placeholder={placeholder}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/stories/StoryCaptionComposer.tsx",
+    "line": 75,
+    "text": "className=\"flex-1 w-full p-4 text-[15px] resize-none outline-none bg-transparent placeholder:text-muted-foreground placeholder:font-medium min-h-[120px]\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/stories/StoryCaptionComposer.tsx",
+    "line": 133,
+    "text": "placeholder=\"Search creators...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/stories/StoryCaptionComposer.tsx",
+    "line": 134,
+    "text": "className=\"w-full text-xs bg-secondary border border-border rounded-lg px-2.5 py-1.5 outline-none font-medium focus:border-primary placeholder:text-muted-foregr"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/stories/StoryCreatorEdit.tsx",
+    "line": 393,
+    "text": "placeholder={"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/BuyExchangeTab.tsx",
+    "line": 331,
+    "text": "placeholder=\"0.00\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/BuyExchangeTab.tsx",
+    "line": 451,
+    "text": "placeholder=\"Jane Doe\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/BuyExchangeTab.tsx",
+    "line": 462,
+    "text": "placeholder=\"4111 2222 3333 4444\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/BuyExchangeTab.tsx",
+    "line": 474,
+    "text": "placeholder=\"MM/YY\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/BuyExchangeTab.tsx",
+    "line": 484,
+    "text": "placeholder=\"3-digit\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/CryptoTab.tsx",
+    "line": 313,
+    "text": "placeholder=\"0.00\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/GameCoinTab.tsx",
+    "line": 295,
+    "text": "placeholder=\"e.g. 58291048 or character_key\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/ShopTab.tsx",
+    "line": 329,
+    "text": "placeholder=\"e.g. Creator Soundboard Pro\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/WithdrawTab.tsx",
+    "line": 128,
+    "text": "placeholder=\"0.00\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/WithdrawTab.tsx",
+    "line": 153,
+    "text": "placeholder=\"Chase, Bank of America, etc.\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/wallet/WithdrawTab.tsx",
+    "line": 186,
+    "text": "placeholder=\"e.g. payout@streamwallet.com\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GmailTab.tsx",
+    "line": 342,
+    "text": "placeholder=\"Search conversations by keywords...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GmailTab.tsx",
+    "line": 515,
+    "text": "placeholder=\"name@company.com\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GmailTab.tsx",
+    "line": 527,
+    "text": "placeholder=\"Weekly Updates / Client Review\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GmailTab.tsx",
+    "line": 539,
+    "text": "placeholder=\"Write your email here...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleCalendarTab.tsx",
+    "line": 362,
+    "text": "placeholder=\"Filter schedule titles...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleCalendarTab.tsx",
+    "line": 490,
+    "text": "placeholder=\"e.g. Design Sync / Sprint Review\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleCalendarTab.tsx",
+    "line": 501,
+    "text": "placeholder=\"e.g. Discuss deployment variables...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleCalendarTab.tsx",
+    "line": 608,
+    "text": "placeholder=\"e.g. Design Sprint sync\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleChatTab.tsx",
+    "line": 580,
+    "text": "placeholder={`Message ${selectedSpace.displayName}...`}"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleContactsTab.tsx",
+    "line": 366,
+    "text": "placeholder=\"Filter names, emails...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleContactsTab.tsx",
+    "line": 485,
+    "text": "placeholder=\"John\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleContactsTab.tsx",
+    "line": 495,
+    "text": "placeholder=\"Doe\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleContactsTab.tsx",
+    "line": 507,
+    "text": "placeholder=\"name@unilive.co\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleContactsTab.tsx",
+    "line": 518,
+    "text": "placeholder=\"+1 (555) 700-1100\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleContactsTab.tsx",
+    "line": 529,
+    "text": "placeholder=\"e.g. Lead system designer...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleDocsTab.tsx",
+    "line": 356,
+    "text": "placeholder=\"Search documents by name...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleDocsTab.tsx",
+    "line": 456,
+    "text": "placeholder=\"Start writing elegant templates here...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleDocsTab.tsx",
+    "line": 504,
+    "text": "placeholder=\"e.g. Design Wireframes Specification\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleKeepTab.tsx",
+    "line": 251,
+    "text": "placeholder=\"Search matching sticky notes or tag lists...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleKeepTab.tsx",
+    "line": 285,
+    "text": "placeholder=\"Title for note...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleKeepTab.tsx",
+    "line": 286,
+    "text": "className=\"w-full font-bold text-sm bg-transparent border-none outline-none text-foreground placeholder:text-muted-foreground\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleKeepTab.tsx",
+    "line": 315,
+    "text": "placeholder=\"Add item...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleKeepTab.tsx",
+    "line": 331,
+    "text": "placeholder=\"Take a note...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleKeepTab.tsx",
+    "line": 333,
+    "text": "className=\"w-full bg-transparent border-none outline-none text-xs text-foreground placeholder:text-muted-foreground leading-relaxed resize-none\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/GoogleKeepTab.tsx",
+    "line": 351,
+    "text": "placeholder=\"Add label...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/WorkspaceAuthScreen.tsx",
+    "line": 88,
+    "text": "placeholder=\"\u2022\u2022\u2022\u2022\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/WorkspaceAuthScreen.tsx",
+    "line": 89,
+    "text": "className=\"w-full rounded-2xl border border-border bg-background px-4 py-3 text-base font-semibold tracking-[0.35em] text-center text-foreground placeholder:tra"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/WorkspaceScreen.tsx",
+    "line": 830,
+    "text": "placeholder=\"What needs to be done?\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/WorkspaceScreen.tsx",
+    "line": 962,
+    "text": "placeholder=\"Search files...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/WorkspaceScreen.tsx",
+    "line": 1054,
+    "text": "placeholder=\"Search team documents, spreadsheets...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/WorkspaceScreen.tsx",
+    "line": 1217,
+    "text": "<input type=\"text\" className=\"w-full border border-border rounded-lg bg-secondary/50 p-2 text-sm focus:outline-none focus:ring-2 focus:ring-primary/50\" placehol"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/workspace/WorkspaceScreen.tsx",
+    "line": 1267,
+    "text": "<input type=\"text\" placeholder=\"Search app...\" className=\"w-full bg-secondary/50 border border-border rounded-lg pl-9 p-2 text-sm focus:outline-none focus:ring-"
+  },
+  {
+    "file": "artifacts/instacollab/src/components/youtube/AddToPlaylistSheet.tsx",
+    "line": 125,
+    "text": "placeholder=\"Create new playlist\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/youtube/YoutubeLiveFullscreenFeed.tsx",
+    "line": 1101,
+    "text": "placeholder=\"Say something\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/youtube/YoutubeLiveFullscreenFeed.tsx",
+    "line": 1102,
+    "text": "className=\"h-11 min-w-0 flex-1 rounded-full border border-white/15 bg-black/40 px-4 text-[15px] text-white outline-none placeholder:text-white/45\""
+  },
+  {
+    "file": "artifacts/instacollab/src/components/youtube/YoutubeMiniPlayerPicker.tsx",
+    "line": 169,
+    "text": "placeholder=\"https://youtube.com/watch?v=\u2026 or playlist\""
+  },
+  {
+    "file": "artifacts/instacollab/src/contexts/ChatCallProviderHost.tsx",
+    "line": 12,
+    "text": "/** Placeholder until ChatCallProviderImpl hydrates \u2014 same shape, no LiveKit. */"
+  },
+  {
+    "file": "artifacts/instacollab/src/lib/AuthContext.tsx",
+    "line": 7,
+    "text": "AUTH_OFFLINE_STUB,"
+  },
+  {
+    "file": "artifacts/instacollab/src/lib/utils.tsx",
+    "line": 220,
+    "text": "// Do not swap failed loads with stock placeholder images."
+  },
+  {
+    "file": "artifacts/instacollab/src/lib/auth/authContextStore.tsx",
+    "line": 52,
+    "text": "export const AUTH_OFFLINE_STUB: AuthContextValue = {"
+  },
+  {
+    "file": "artifacts/instacollab/src/lib/auth/authContextStore.tsx",
+    "line": 90,
+    "text": "'[auth] useAuth called without AuthProvider context \u2014 using offline stub. Hard refresh if this persists.',"
+  },
+  {
+    "file": "artifacts/instacollab/src/lib/auth/authContextStore.tsx",
+    "line": 93,
+    "text": "return AUTH_OFFLINE_STUB;"
+  },
+  {
+    "file": "artifacts/instacollab/src/lib/i18n/I18nContext.tsx",
+    "line": 156,
+    "text": "attributeFilter: ['placeholder', 'title', 'aria-label', 'alt'],"
+  },
+  {
+    "file": "artifacts/instacollab/src/lib/i18n/I18nContext.tsx",
+    "line": 183,
+    "text": "placeholderFailures: [],"
+  },
+  {
+    "file": "artifacts/instacollab/src/pages/YouTube.tsx",
+    "line": 869,
+    "text": "placeholder=\"Search videos, paste URL, or playlist link\""
+  },
+  {
+    "file": "artifacts/instacollab/src/pages/YouTube.tsx",
+    "line": 1003,
+    "text": "placeholder=\"Search Shorts (or leave blank for trending)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/pages/YouTube.tsx",
+    "line": 1186,
+    "text": "placeholder=\"Search YouTube Live (news, gaming, music\u2026)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/pages/YouTube.tsx",
+    "line": 1429,
+    "text": "placeholder=\"https://www.youtube.com/playlist?list=PL\u2026\""
+  },
+  {
+    "file": "artifacts/instacollab/src/pages/YouTube.tsx",
+    "line": 1526,
+    "text": "placeholder=\"New playlist name\""
+  },
+  {
+    "file": "artifacts/instacollab/src/pages/YouTube.tsx",
+    "line": 1542,
+    "text": "placeholder=\"Import public playlist URL\""
+  },
+  {
+    "file": "artifacts/instacollab/src/providers/AuthProvidersHost.tsx",
+    "line": 6,
+    "text": "* not fall into the undefined-context offline stub (which breaks production login)."
+  },
+  {
+    "file": "artifacts/instacollab/src/providers/AuthProvidersHost.tsx",
+    "line": 9,
+    "text": "import { AuthContext, AUTH_OFFLINE_STUB, type AuthContextValue } from '../lib/auth/authContextStore';"
+  },
+  {
+    "file": "artifacts/instacollab/src/providers/AuthProvidersHost.tsx",
+    "line": 16,
+    "text": "const AUTH_BOOT_STUB: AuthContextValue = {"
+  },
+  {
+    "file": "artifacts/instacollab/src/providers/AuthProvidersHost.tsx",
+    "line": 17,
+    "text": "...AUTH_OFFLINE_STUB,"
+  },
+  {
+    "file": "artifacts/instacollab/src/providers/AuthProvidersHost.tsx",
+    "line": 57,
+    "text": "<AuthContext.Provider value={AUTH_BOOT_STUB}>"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/ArenaRankingsOverlay.tsx",
+    "line": 237,
+    "text": "placeholder=\"Enter Stars...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/ArenaRankingsOverlay.tsx",
+    "line": 238,
+    "text": "className=\"w-full bg-[#1e0f33] border border-white/10 rounded-full pl-3.5 pr-8 py-2 text-xs text-white placeholder-gray-500 focus:outline-none focus:border-pink"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/CommerceLivePanel.tsx",
+    "line": 258,
+    "text": "<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder=\"Search products\" aria-label=\"Search products\" />"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/CommerceLivePanel.tsx",
+    "line": 295,
+    "text": "<input value={draftTitle} onChange={(event) => setDraftTitle(event.target.value)} placeholder=\"Product title\" aria-label=\"Product title\" />"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/CommerceLivePanel.tsx",
+    "line": 304,
+    "text": "placeholder={draftPriceType === 'cash' ? 'Price in USD (e.g. 29.99)' : 'Price in UniCoins'}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/CommerceLivePanel.tsx",
+    "line": 343,
+    "text": "placeholder=\"Or paste photo/video URL (optional)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/CommerceLivePanel.tsx",
+    "line": 346,
+    "text": "<input value={draftInventory} onChange={(event) => setDraftInventory(event.target.value)} inputMode=\"numeric\" placeholder=\"Inventory (optional)\" aria-label=\"Inv"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/CommerceLivePanel.tsx",
+    "line": 376,
+    "text": "<input value={query} onChange={(event) => setQuery(event.target.value)} placeholder=\"Search by order ID or buyer\" aria-label=\"Search orders\" />"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/CommerceOrdersWorkspace.tsx",
+    "line": 8,
+    "text": "export function CommerceOrdersWorkspace({role,orders,onMarkShipped,onContactCustomer,onTrackOrder,onExport}:CommerceOrdersWorkspaceProps){const [tab,setTab]=use"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/GameLiveView.tsx",
+    "line": 736,
+    "text": "placeholder=\"Say hi...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/GameLiveView.tsx",
+    "line": 737,
+    "text": "className=\"party-glass-input w-full min-w-0 rounded-full py-2 pl-3.5 pr-9 text-[12px] font-bold text-white placeholder:text-white/30\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/GameLiveView.tsx",
+    "line": 800,
+    "text": "<div className=\"game-live-screen-placeholder flex h-full w-full flex-col items-center justify-center gap-4 bg-black text-center\">"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/GameLiveViewerWatchLayout.tsx",
+    "line": 474,
+    "text": "placeholder=\"Say Hi...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/GameLiveViewerWatchLayout.tsx",
+    "line": 475,
+    "text": "className=\"party-glass-input w-full min-w-0 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] font-bold text-white placeholder:text-white/30\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/LiveGiftRechargeModal.tsx",
+    "line": 248,
+    "text": "placeholder=\"e.g. 2500\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/MultiGuestView.tsx",
+    "line": 946,
+    "text": "placeholder=\"Say Hi...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/MultiGuestView.tsx",
+    "line": 947,
+    "text": "className=\"party-glass-input w-full min-w-0 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] font-bold text-white placeholder:text-white/30\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/PKInviteSheet.tsx",
+    "line": 339,
+    "text": "<div className=\"pkx-search-wrap\"><Search aria-hidden=\"true\" /><input type=\"search\" value={search} onChange={(event) => setSearch(event.target.value)} placeholde"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/PartyGiftPickerPanel.tsx",
+    "line": 288,
+    "text": "placeholder=\"Effect SVGA URL (optional)\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomAnnouncementEditor.tsx",
+    "line": 3,
+    "text": "import { isPlaceholderSetting } from '../utils/roomMedia';"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomAnnouncementEditor.tsx",
+    "line": 10,
+    "text": "if (bulletin && !isPlaceholderSetting(bulletin)) return bulletin;"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomAnnouncementEditor.tsx",
+    "line": 12,
+    "text": "if (greetings && !isPlaceholderSetting(greetings)) return greetings;"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomAnnouncementEditor.tsx",
+    "line": 37,
+    "text": "placeholder=\"Room announcement shown to guests. Use {name} for each viewer's name.\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomKeyGate.tsx",
+    "line": 82,
+    "text": "placeholder=\"Enter room key\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomModeSettingsSheet.tsx",
+    "line": 205,
+    "text": "placeholder={`${MIN_ROOM_KEY_LENGTH}-${MAX_ROOM_KEY_LENGTH} characters`}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomModeSettingsSheet.tsx",
+    "line": 243,
+    "text": "placeholder=\"Enter current room key\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomSettingsEditors.tsx",
+    "line": 53,
+    "text": "placeholder,"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomSettingsEditors.tsx",
+    "line": 61,
+    "text": "placeholder?: string;"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomSettingsEditors.tsx",
+    "line": 80,
+    "text": "placeholder={placeholder}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomSettingsEditors.tsx",
+    "line": 88,
+    "text": "placeholder={placeholder}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/RoomSettingsEditors.tsx",
+    "line": 237,
+    "text": "placeholder=\"https://...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SeatBanDurationPicker.tsx",
+    "line": 94,
+    "text": "placeholder=\"Amount\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SoloLiveVideoStage.tsx",
+    "line": 6,
+    "text": "type HostPlaceholder = {"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SoloLiveVideoStage.tsx",
+    "line": 19,
+    "text": "hostPoster: HostPlaceholder | null;"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SoloLiveVideoStage.tsx",
+    "line": 74,
+    "text": "<div className=\"solo-live-stage-placeholder solo-live-stage-placeholder--overlay\">"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SoloLiveVideoStage.tsx",
+    "line": 75,
+    "text": "<p className=\"solo-live-stage-placeholder-text\">{statusText}</p>"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SoloLiveView.tsx",
+    "line": 1079,
+    "text": "placeholder=\"Say something...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SongSelector.tsx",
+    "line": 197,
+    "text": "placeholder=\"Search by Artists or Songs\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/SongSelector.tsx",
+    "line": 198,
+    "text": "className=\"ml-2 min-w-0 flex-1 border-none bg-transparent text-sm text-gray-200 outline-none placeholder:text-gray-500\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/WatchTogetherMediaSourceSheet.tsx",
+    "line": 338,
+    "text": "placeholder=\"https://example.com/video.mp4 or YouTube URL\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/WatchTogetherMediaSourceSheet.tsx",
+    "line": 345,
+    "text": "className=\"w-full rounded-xl border border-white/10 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-pink-500"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/WatchTogetherView.tsx",
+    "line": 998,
+    "text": "placeholder=\"Say Hi...\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/WatchTogetherView.tsx",
+    "line": 999,
+    "text": "className=\"party-glass-input w-full min-w-0 rounded-full py-2.5 pl-4 pr-10 text-[12.5px] text-white font-bold placeholder:text-white/30\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/YoutubeSearchPanel.tsx",
+    "line": 326,
+    "text": "placeholder=\"Search or paste YouTube link\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/components/YoutubeSearchPanel.tsx",
+    "line": 327,
+    "text": "className=\"w-full min-w-0 rounded-xl border border-white/10 bg-black/40 py-2.5 pl-9 pr-3 text-sm text-white outline-none placeholder:text-white/30 focus:border-"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/CreateRoom.tsx",
+    "line": 429,
+    "text": "placeholder=\"Welcome to the room!\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/CreateRoom.tsx",
+    "line": 432,
+    "text": "className=\"h-14 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm font-medium text-white outline-none transition placeholder:text-white/35 focus"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/CreateRoom.tsx",
+    "line": 496,
+    "text": "placeholder={`Choose a key (${MIN_ROOM_KEY_LENGTH}-${MAX_ROOM_KEY_LENGTH} characters)`}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/CreateRoom.tsx",
+    "line": 568,
+    "text": "placeholder=\"Welcome to the room!\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/CreateRoom.tsx",
+    "line": 571,
+    "text": "className=\"h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-[13px] font-medium text-white transition-all placeholder:text-slate-600 focus:bo"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/CreateRoom.tsx",
+    "line": 635,
+    "text": "placeholder={`Choose a key (${MIN_ROOM_KEY_LENGTH}-${MAX_ROOM_KEY_LENGTH} characters)`}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 24,
+    "text": "isPlaceholderSetting,"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 61,
+    "text": "placeholder?: string;"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 81,
+    "text": "return isPlaceholderSetting(value) ? fallback : value!.trim();"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 207,
+    "text": "options?: { multiline?: boolean; placeholder?: string },"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 214,
+    "text": "placeholder: options?.placeholder,"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 250,
+    "text": "placeholder: 'Display name for this room',"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 276,
+    "text": "placeholder: 'Room announcement shown to guests',"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 286,
+    "text": "placeholder: 'Welcome message for new guests',"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 333,
+    "text": "onClick={() => openTextEditor('coOwner', 'Co-owner', { placeholder: 'Username' })}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 360,
+    "text": "placeholder: 'Admin 1, Admin 2',"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 389,
+    "text": "placeholder: 'Singer 1, Singer 2',"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 467,
+    "text": "placeholder: 'Playlist name or description',"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 477,
+    "text": "placeholder: 'Blocked usernames',"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/EditRoom.tsx",
+    "line": 505,
+    "text": "placeholder={editor.placeholder}"
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/Room.tsx",
+    "line": 6476,
+    "text": "placeholder=\"Search songs or artists\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/Room.tsx",
+    "line": 6477,
+    "text": "className=\"ml-2 text-xs bg-transparent border-none outline-none flex-1 min-w-0 text-gray-200 placeholder:text-gray-400\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/Room.tsx",
+    "line": 7324,
+    "text": "placeholder=\"Let's talk\""
+  },
+  {
+    "file": "artifacts/instacollab/src/smule-rooms/pages/Room.tsx",
+    "line": 7325,
+    "text": "className=\"party-glass-input w-full rounded-full py-2.5 pl-4 pr-10 text-[12.5px] text-white placeholder-gray-400\""
+  }
+]

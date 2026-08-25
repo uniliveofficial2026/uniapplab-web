@@ -7,14 +7,17 @@
   "invalidatedSha": "d715b726277211a8c9ed465474d5b3e9e3c6a722",
   "recoveryBranch": "fix/restore-full-production-app",
   "recoveryWorktree": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery",
+  "deployedRecoveryShaLive": "5a259bf97a48f73209213302dcd4838269635633",
+  "pendingRedeployNote": "Additional API recoveries (me/presence/stream/gifts/livekit/youtube/upstash) built locally; not yet the next live tip until commit+deploy.",
   "uiUxChanged": false,
 
   "findings": {
     "frontendSrcVsOwnerDirty": "IDENTICAL",
-    "backendChatVsOwnerDirty": "STRIPPED_GET_THREADS",
-    "authProvidersBootGap": "FIXED_IN_RECOVERY_PENDING_DEPLOY",
-    "vercelSpeedInsightsLeftover": "REMOVED_IN_RECOVERY_PENDING_DEPLOY",
-    "onboardingInvisibleHitsTooSmall": "ENLARGED_IN_RECOVERY_PENDING_DEPLOY",
+    "backendChatVsOwnerDirty": "RESTORED_AND_LIVE_401",
+    "authProvidersBootGap": "FIXED_DEPLOYED_ON_5a259bf",
+    "vercelSpeedInsightsLeftover": "REMOVED_DEPLOYED_ON_5a259bf",
+    "onboardingInvisibleHitsTooSmall": "ENLARGED_DEPLOYED_ON_5a259bf",
+    "additionalApiRoutesFromDirty": "RECOVERED_PENDING_DEPLOY",
     "firebaseLegacyDualStack": "NOT_TESTED"
   },
 
@@ -25,13 +28,20 @@
   "fullSourceReconciled": "FAIL",
   "originalDirtyTreeAudited": "PASS",
 
-  "fullRoutes": "NOT_TESTED",
-  "fullScreens": "NOT_TESTED",
-  "fullComponents": "NOT_TESTED",
+  "fullRoutes": "FAIL",
+  "fullScreens": "FAIL",
+  "fullComponents": "FAIL",
   "fullAssets": "NOT_TESTED",
 
   "frontendArtifact": "FAIL",
   "backendCompleteness": "FAIL",
+
+  "localGates": {
+    "test:full-app-routes": "PASS",
+    "test:full-app-components": "PASS",
+    "test:full-app-api-map": "PASS",
+    "test:production-artifact": "PASS"
+  },
 
   "auth": "FAIL",
   "profiles": "NOT_TESTED",

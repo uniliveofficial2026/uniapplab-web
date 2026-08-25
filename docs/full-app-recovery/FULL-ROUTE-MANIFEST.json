@@ -1,0 +1,236 @@
+[
+  {
+    "route": "/party",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/navigationRestore.ts"
+  },
+  {
+    "route": "/room/create",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/navigationRestore.ts"
+  },
+  {
+    "route": "/",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/dating",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/discover",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/explore",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/games",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/games/hub",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/games/local",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/games/web",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/greedy-tap",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/home",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/index.html",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/karaoke",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/live",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/messages",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/notifications",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/party",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/profile",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/reels",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/room",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/search",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/wallet",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/workspace",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/youtube",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/appShellRoutes.ts"
+  },
+  {
+    "route": "/",
+    "component": null,
+    "lazyChunk": null,
+    "authRequirement": "unknown",
+    "featureFlag": null,
+    "layout": "shell",
+    "sourceFile": "artifacts/instacollab/src/lib/shareLinks.ts"
+  }
+]

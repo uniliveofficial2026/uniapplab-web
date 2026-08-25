@@ -4,10 +4,10 @@ import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { getSupabaseService } from "../lib/supabase";
 import { deleteLiveKitRoom, isLiveKitConfigured, streamRoomName } from "../lib/livekit";
 import {
-  decrStreamViewers,
   getStreamViewers,
-  incrStreamViewers,
   isUpstashConfigured,
+  joinStreamViewer,
+  leaveStreamViewer,
 } from "../lib/upstash";
 
 /** Stream metadata lives in PostgreSQL (Supabase); viewer counts are ephemeral in Redis. */
@@ -21,7 +21,7 @@ router.get("/live", async (_req, res, next) => {
   try {
     const { data, error } = await getSupabaseService()
       .from("streams")
-      .select("id, user_id, title, status, started_at")
+      .select("id, user_id, title, status, started_at, room_type")
       .eq("status", "live")
       .order("started_at", { ascending: false })
       .limit(20);
@@ -29,7 +29,12 @@ router.get("/live", async (_req, res, next) => {
       res.status(400).json({ error: error.message });
       return;
     }
-    res.json({ streams: data ?? [] });
+    res.json({
+      streams: (data ?? []).map((row) => ({
+        ...row,
+        room_type: row.room_type || "solo_video",
+      })),
+    });
   } catch (err) {
     next(err);
   }
@@ -42,15 +47,28 @@ router.post("/start", auth, requireNotBanned, async (req, res, next) => {
       res.status(403).json({ error: "Streamer role required" });
       return;
     }
-    const { title } = req.body as { title?: string };
+    const { title, roomType } = req.body as { title?: string; roomType?: string };
+    const allowedTypes = new Set([
+      "solo_video",
+      "solo_audio",
+      "audio_party",
+      "video_multi",
+      "pk_1v1",
+      "pk_team",
+      "game",
+      "commerce",
+    ]);
+    const room_type =
+      roomType && allowedTypes.has(roomType) ? roomType : "solo_video";
     const { data, error } = await getSupabaseService()
       .from("streams")
       .insert({
         user_id: req.authUser!.id,
         title: title?.slice(0, 120) ?? "Live",
         status: "live",
+        room_type,
       })
-      .select("id, user_id, title, status, started_at")
+      .select("id, user_id, title, status, started_at, room_type")
       .single();
     if (error) {
       res.status(400).json({ error: error.message });
@@ -117,7 +135,8 @@ router.get("/:id/viewers", async (req, res, next) => {
 router.post("/:id/viewers", auth, requireNotBanned, async (req, res, next) => {
   try {
     const streamId = String(req.params.id);
-    const action = (req.body as { action?: string })?.action;
+    const body = req.body as { action?: string; deviceId?: string; sessionId?: string };
+    const action = body?.action;
     if (action !== "join" && action !== "leave") {
       res.status(400).json({ error: "action must be join or leave" });
       return;
@@ -137,11 +156,17 @@ router.post("/:id/viewers", auth, requireNotBanned, async (req, res, next) => {
       return;
     }
 
+    const device =
+      String(body.sessionId || body.deviceId || req.headers["x-device-id"] || "default")
+        .trim()
+        .slice(0, 80) || "default";
+    // Unique membership per user+device — reconnect/join is idempotent.
+    const sessionId = `${req.authUser!.id}:${device}`;
     const viewers =
       action === "join"
-        ? await incrStreamViewers(streamId)
-        : await decrStreamViewers(streamId);
-    res.json({ streamId, viewers: viewers ?? 0, action, configured: true });
+        ? await joinStreamViewer(streamId, sessionId)
+        : await leaveStreamViewer(streamId, sessionId);
+    res.json({ streamId, viewers: viewers ?? 0, action, sessionId, configured: true });
   } catch (err) {
     next(err);
   }

@@ -1,0 +1,802 @@
+[
+  {
+    "id": "InstantRoomEntryHost",
+    "source": "artifacts/instacollab/src/components/live/InstantRoomEntryHost.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LiveDiscoveryCardChrome",
+    "source": "artifacts/instacollab/src/components/live/LiveDiscoveryCardChrome.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LiveDiscoveryVideoPreview",
+    "source": "artifacts/instacollab/src/components/live/LiveDiscoveryVideoPreview.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LiveFiltersPanel",
+    "source": "artifacts/instacollab/src/components/live/LiveFiltersPanel.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LiveScreen",
+    "source": "artifacts/instacollab/src/components/live/LiveScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LiveSellPkRoom",
+    "source": "artifacts/instacollab/src/components/live/LiveSellPkRoom.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "OneVsOnePkRoom",
+    "source": "artifacts/instacollab/src/components/live/OneVsOnePkRoom.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "OneVsOnePkSessionContainer",
+    "source": "artifacts/instacollab/src/components/live/OneVsOnePkSessionContainer.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PkChallengeLiveStage",
+    "source": "artifacts/instacollab/src/components/live/PkChallengeLiveStage.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PkLiveOverlay",
+    "source": "artifacts/instacollab/src/components/live/PkLiveOverlay.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PkStickerSheet",
+    "source": "artifacts/instacollab/src/components/live/PkStickerSheet.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PkUserCamera",
+    "source": "artifacts/instacollab/src/components/live/PkUserCamera.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "TeamPkRoom",
+    "source": "artifacts/instacollab/src/components/live/TeamPkRoom.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "TeamPkSessionContainer",
+    "source": "artifacts/instacollab/src/components/live/TeamPkSessionContainer.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": true,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "AudioCallStage",
+    "source": "artifacts/instacollab/src/components/messages/AudioCallStage.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "AudioCallWaveBars",
+    "source": "artifacts/instacollab/src/components/messages/AudioCallWaveBars.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "CallApprovedChrome",
+    "source": "artifacts/instacollab/src/components/messages/CallApprovedChrome.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": true,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "CallControlsChrome",
+    "source": "artifacts/instacollab/src/components/messages/CallControlsChrome.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "CallVideoSurface",
+    "source": "artifacts/instacollab/src/components/messages/CallVideoSurface.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": true,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatCallControls",
+    "source": "artifacts/instacollab/src/components/messages/ChatCallControls.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatCallLocalCameraStage",
+    "source": "artifacts/instacollab/src/components/messages/ChatCallLocalCameraStage.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatCallMediaHost",
+    "source": "artifacts/instacollab/src/components/messages/ChatCallMediaHost.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatCallPipWindow",
+    "source": "artifacts/instacollab/src/components/messages/ChatCallPipWindow.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatFileInAppViewer",
+    "source": "artifacts/instacollab/src/components/messages/ChatFileInAppViewer.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatFilePreviewPortal",
+    "source": "artifacts/instacollab/src/components/messages/ChatFilePreviewPortal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatFullscreenMediaPortal",
+    "source": "artifacts/instacollab/src/components/messages/ChatFullscreenMediaPortal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatInlineVideo",
+    "source": "artifacts/instacollab/src/components/messages/ChatInlineVideo.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatLocationMapPortal",
+    "source": "artifacts/instacollab/src/components/messages/ChatLocationMapPortal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatLocationShareSheet",
+    "source": "artifacts/instacollab/src/components/messages/ChatLocationShareSheet.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "GroupActiveCallBanner",
+    "source": "artifacts/instacollab/src/components/messages/GroupActiveCallBanner.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "GroupVideoCallStage",
+    "source": "artifacts/instacollab/src/components/messages/GroupVideoCallStage.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "IncomingCallDynamicBanner",
+    "source": "artifacts/instacollab/src/components/messages/IncomingCallDynamicBanner.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessageFileCard",
+    "source": "artifacts/instacollab/src/components/messages/MessageFileCard.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessageLocationCard",
+    "source": "artifacts/instacollab/src/components/messages/MessageLocationCard.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessageMediaPlaylist",
+    "source": "artifacts/instacollab/src/components/messages/MessageMediaPlaylist.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesActiveCallOverlay",
+    "source": "artifacts/instacollab/src/components/messages/MessagesActiveCallOverlay.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesChatHeader",
+    "source": "artifacts/instacollab/src/components/messages/MessagesChatHeader.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesChatThread",
+    "source": "artifacts/instacollab/src/components/messages/MessagesChatThread.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesComposeBar",
+    "source": "artifacts/instacollab/src/components/messages/MessagesComposeBar.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesEmptyChat",
+    "source": "artifacts/instacollab/src/components/messages/MessagesEmptyChat.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesScreen",
+    "source": "artifacts/instacollab/src/components/messages/MessagesScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesScreenOverlays",
+    "source": "artifacts/instacollab/src/components/messages/MessagesScreenOverlays.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MessagesSidebar",
+    "source": "artifacts/instacollab/src/components/messages/MessagesSidebar.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "MusicDiscPlayer",
+    "source": "artifacts/instacollab/src/components/messages/MusicDiscPlayer.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "OutgoingCallStage",
+    "source": "artifacts/instacollab/src/components/messages/OutgoingCallStage.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "SharedLinkCard",
+    "source": "artifacts/instacollab/src/components/messages/SharedLinkCard.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "VoiceMessagePlayer",
+    "source": "artifacts/instacollab/src/components/messages/VoiceMessagePlayer.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "Waveform",
+    "source": "artifacts/instacollab/src/components/messages/Waveform.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "AuthScreen",
+    "source": "artifacts/instacollab/src/components/auth/AuthScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "BannedScreen",
+    "source": "artifacts/instacollab/src/components/auth/BannedScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "EmailOtpPanel",
+    "source": "artifacts/instacollab/src/components/auth/EmailOtpPanel.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ProfileSetup",
+    "source": "artifacts/instacollab/src/components/auth/ProfileSetup.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "SplashScreen",
+    "source": "artifacts/instacollab/src/components/auth/SplashScreen.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "TrendingScreen",
+    "source": "artifacts/instacollab/src/components/auth/TrendingScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthBackground",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthBackground.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthBrandHeader",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthBrandHeader.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthButton",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthButton.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthCard",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthCard.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthDivider",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthDivider.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthInput",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthInput.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthShell",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthShell.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesAuthStatus",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesAuthStatus.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesOtpInput",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesOtpInput.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesPrincessAuthActions",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesPrincessAuthActions.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesPrincessAuthLayout",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesPrincessAuthLayout.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesPrincessAuthPanel",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesPrincessAuthPanel.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesPrincessForgotForm",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesPrincessForgotForm.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesPrincessForgotLayout",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesPrincessForgotLayout.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "UniLivesSocialAuthButton",
+    "source": "artifacts/instacollab/src/components/auth/brand/UniLivesSocialAuthButton.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "CaptionModal",
+    "source": "artifacts/instacollab/src/components/feed/CaptionModal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "Feed",
+    "source": "artifacts/instacollab/src/components/feed/Feed.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LiveGamesPanel",
+    "source": "artifacts/instacollab/src/components/feed/LiveGamesPanel.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "Post",
+    "source": "artifacts/instacollab/src/components/feed/Post.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": true,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PostCardFooter",
+    "source": "artifacts/instacollab/src/components/feed/PostCardFooter.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PostContentFullscreenPortal",
+    "source": "artifacts/instacollab/src/components/feed/PostContentFullscreenPortal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PostMediaStage",
+    "source": "artifacts/instacollab/src/components/feed/PostMediaStage.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PostModal",
+    "source": "artifacts/instacollab/src/components/feed/PostModal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PostModalCommentItem",
+    "source": "artifacts/instacollab/src/components/feed/PostModalCommentItem.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "PostOptionsMenu",
+    "source": "artifacts/instacollab/src/components/feed/PostOptionsMenu.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ProfileStoryCardMedia",
+    "source": "artifacts/instacollab/src/components/feed/ProfileStoryCardMedia.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "RepostModal",
+    "source": "artifacts/instacollab/src/components/feed/RepostModal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "RepostPostMediaPanel",
+    "source": "artifacts/instacollab/src/components/feed/RepostPostMediaPanel.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ShareModal",
+    "source": "artifacts/instacollab/src/components/feed/ShareModal.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "StoryRing",
+    "source": "artifacts/instacollab/src/components/feed/StoryRing.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "StoryRingPortals",
+    "source": "artifacts/instacollab/src/components/feed/StoryRingPortals.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "StoryStrip",
+    "source": "artifacts/instacollab/src/components/feed/StoryStrip.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": true,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "BuyExchangeTab",
+    "source": "artifacts/instacollab/src/components/wallet/BuyExchangeTab.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "CryptoTab",
+    "source": "artifacts/instacollab/src/components/wallet/CryptoTab.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "GameCoinTab",
+    "source": "artifacts/instacollab/src/components/wallet/GameCoinTab.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "OverviewTab",
+    "source": "artifacts/instacollab/src/components/wallet/OverviewTab.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ShopTab",
+    "source": "artifacts/instacollab/src/components/wallet/ShopTab.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "WalletScreen",
+    "source": "artifacts/instacollab/src/components/wallet/WalletScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "WithdrawTab",
+    "source": "artifacts/instacollab/src/components/wallet/WithdrawTab.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "GameHubScreen",
+    "source": "artifacts/instacollab/src/components/games/GameHubScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "GreedyTapScreen",
+    "source": "artifacts/instacollab/src/components/games/GreedyTapScreen.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LocalGamePlayer",
+    "source": "artifacts/instacollab/src/components/games/LocalGamePlayer.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": true,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "LocalGamesScreen",
+    "source": "artifacts/instacollab/src/components/games/LocalGamesScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ThirdPartyGamesScreen",
+    "source": "artifacts/instacollab/src/components/games/ThirdPartyGamesScreen.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "Shell",
+    "source": "artifacts/instacollab/src/components/layout/Shell.tsx",
+    "hasInteractiveHandler": true,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  },
+  {
+    "id": "ChatCallContext",
+    "source": "artifacts/instacollab/src/contexts/ChatCallContext.tsx",
+    "hasInteractiveHandler": false,
+    "stubMarkers": false,
+    "statusInFullSource": "PRESENT",
+    "statusInProductionBuild": "NOT_TESTED"
+  }
+]

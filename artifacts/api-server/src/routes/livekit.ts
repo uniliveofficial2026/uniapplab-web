@@ -175,7 +175,7 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
 
     const { data: partyRoom, error } = await getSupabaseService()
       .from("party_rooms")
-      .select("id, status")
+      .select("id, status, owner_id")
       .eq("id", trimmedRoomId)
       .maybeSingle();
 
@@ -185,6 +185,7 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
     }
 
     let roomStatus = partyRoom?.status as string | undefined;
+    let ownerId = partyRoom?.owner_id as string | undefined;
 
     if (!partyRoom) {
       const firestoreRoom = await fetchFirestorePartyRoom(trimmedRoomId);
@@ -193,6 +194,8 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
         return;
       }
       roomStatus = firestoreRoom.status;
+      ownerId = (firestoreRoom as { owner_id?: string; ownerId?: string }).owner_id
+        ?? (firestoreRoom as { ownerId?: string }).ownerId;
     }
 
     if (roomStatus && roomStatus !== "active") {
@@ -204,12 +207,25 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
     const roomName = partyRoomName(trimmedRoomId);
     await ensureLiveKitRoom(roomName);
 
-    // Room must exist (Supabase or Firestore). Publish only for active rooms.
-    // Platform admins may request a hidden subscribe-only token for silent watch
-    // (private rooms included; host roster / participant list stay unchanged).
+    // LiveKit publishing permission is derived server-side from room role/seat state.
+    // Never trust client-supplied publish=true as sufficient authority.
     const wantHidden = Boolean(hidden) && req.profile?.role === "admin";
-    const canPublish =
-      !wantHidden && Boolean(publish) && (!roomStatus || roomStatus === "active");
+    const isOwner = Boolean(ownerId && ownerId === userId);
+
+    let seatedPublisher = false;
+    if (!isOwner && !wantHidden) {
+      const { data: seat } = await getSupabaseService()
+        .from("live_room_seats")
+        .select("seat_index, state")
+        .eq("room_id", trimmedRoomId)
+        .eq("user_id", userId)
+        .in("state", ["approved", "active", "occupied"])
+        .maybeSingle();
+      seatedPublisher = Boolean(seat);
+    }
+
+    const canPublish = !wantHidden && (isOwner || seatedPublisher);
+
     const token = await createLiveKitToken({
       identity: userId,
       name: req.profile?.display_name || req.profile?.username || userId,
@@ -225,7 +241,9 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
       roomId: trimmedRoomId,
       publish: canPublish,
       hidden: wantHidden,
+      role: isOwner ? "host" : seatedPublisher ? "guest" : "viewer",
     });
+    void publish; // Client publish flag is not authority — retained only for API shape compatibility.
   } catch (err) {
     next(err);
   }
@@ -264,6 +282,22 @@ router.post("/livekit/webhook", async (req, res) => {
         .update({ status: "ended", ended_at: new Date().toISOString() })
         .eq("id", streamId)
         .eq("status", "live");
+    }
+
+    if (event.event === "participant_left" && event.room?.name?.startsWith("ic-party-")) {
+      const roomId = event.room.name.replace(/^ic-party-/, "");
+      const identity = event.participant?.identity?.trim();
+      if (identity) {
+        const { getLiveLifecycleService } = await import("../domain/live-lifecycle");
+        const service = getLiveLifecycleService();
+        if (service.getRoom(roomId)) {
+          const session = service
+            .listSessions(roomId)
+            .find((row) => !row.disconnectedAt && (row.userId === identity || row.participantSessionId === identity));
+          if (session) service.unexpectedDisconnect(roomId, session.participantSessionId);
+          service.expireHostGrace(roomId);
+        }
+      }
     }
 
     res.json({ ok: true });

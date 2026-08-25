@@ -8,16 +8,25 @@ import {
   youtubeApiKey,
   youtubeFetchJson,
   youtubeThumbnailUrl,
+  parseYoutubeChapters,
 } from "../lib/youtubeQuota";
+import {
+  buildYoutubeSearchListParams,
+  isYoutubeHomeBrowse,
+  parseYoutubeSearchRequest,
+  youtubeSearchCacheKey,
+} from "../lib/youtubeSearchFilters";
 
 const router: IRouter = Router();
 
 type YoutubeApiSearchItem = {
-  id?: { videoId?: string };
+  id?: { kind?: string; videoId?: string; channelId?: string; playlistId?: string };
   snippet?: {
     title?: string;
     channelTitle?: string;
+    channelId?: string;
     publishedAt?: string;
+    liveBroadcastContent?: string;
     thumbnails?: {
       medium?: { url?: string };
       high?: { url?: string };
@@ -36,6 +45,8 @@ type VideoListItem = {
     description?: string;
     publishedAt?: string;
     liveBroadcastContent?: string;
+    tags?: string[];
+    categoryId?: string;
     thumbnails?: {
       medium?: { url?: string };
       high?: { url?: string };
@@ -44,7 +55,8 @@ type VideoListItem = {
     };
   };
   contentDetails?: { duration?: string };
-  statistics?: { viewCount?: string; likeCount?: string };
+  statistics?: { viewCount?: string; likeCount?: string; commentCount?: string };
+  status?: { embeddable?: boolean };
   liveStreamingDetails?: {
     concurrentViewers?: string;
     activeLiveChatId?: string;
@@ -54,7 +66,10 @@ type VideoListItem = {
 };
 
 type FeedItem = {
+  kind?: "video" | "channel" | "playlist";
   videoId: string;
+  channelId?: string;
+  playlistId?: string;
   title: string;
   channelTitle: string;
   thumbnailUrl: string;
@@ -67,22 +82,6 @@ type FeedItem = {
   durationSeconds?: number;
 };
 
-const BROWSE_QUERIES = new Set([
-  "",
-  "live",
-  "trending",
-  "trending music news gaming",
-  "music",
-  "news",
-  "gaming",
-  "#shorts",
-  "shorts",
-]);
-
-function isBrowseQuery(q: string): boolean {
-  return BROWSE_QUERIES.has(q.trim().toLowerCase());
-}
-
 function mapVideoListItem(item: VideoListItem, opts?: { preferShort?: boolean }): FeedItem | null {
   const videoId = item.id?.trim();
   if (!videoId || !/^[a-zA-Z0-9_-]{11}$/.test(videoId)) return null;
@@ -91,8 +90,10 @@ function mapVideoListItem(item: VideoListItem, opts?: { preferShort?: boolean })
   const viewers = item.liveStreamingDetails?.concurrentViewers;
   return {
     videoId,
+    kind: "video" as const,
     title: item.snippet?.title?.trim() || "Untitled",
     channelTitle: item.snippet?.channelTitle?.trim() || "YouTube",
+    channelId: item.snippet?.channelId?.trim() || undefined,
     thumbnailUrl: youtubeThumbnailUrl(videoId, item.snippet?.thumbnails),
     publishedAt: item.snippet?.publishedAt,
     durationSeconds,
@@ -259,6 +260,59 @@ router.get("/youtube/popular", async (req, res, next) => {
   }
 });
 
+function mapSearchListItem(item: YoutubeApiSearchItem): FeedItem | null {
+  const snippet = item.snippet;
+  const title = snippet?.title?.trim() || "Untitled";
+  const channelTitle = snippet?.channelTitle?.trim() || "YouTube";
+  const publishedAt = snippet?.publishedAt;
+  const thumbs = snippet?.thumbnails;
+  const liveBroadcastContent = snippet?.liveBroadcastContent;
+  const videoId = item.id?.videoId?.trim();
+  const channelId = item.id?.channelId?.trim() || snippet?.channelId?.trim();
+  const playlistId = item.id?.playlistId?.trim();
+
+  if (videoId && /^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+    return {
+      kind: "video",
+      videoId,
+      channelId,
+      title,
+      channelTitle,
+      thumbnailUrl: youtubeThumbnailUrl(videoId, thumbs),
+      publishedAt,
+      isLive: liveBroadcastContent === "live",
+      liveBroadcastContent: liveBroadcastContent ?? "none",
+    };
+  }
+
+  if (channelId) {
+    return {
+      kind: "channel",
+      videoId: "",
+      channelId,
+      title,
+      channelTitle: title,
+      thumbnailUrl: thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url || "",
+      publishedAt,
+    };
+  }
+
+  if (playlistId) {
+    return {
+      kind: "playlist",
+      videoId: "",
+      playlistId,
+      channelId,
+      title,
+      channelTitle,
+      thumbnailUrl: thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url || "",
+      publishedAt,
+    };
+  }
+
+  return null;
+}
+
 router.get("/youtube/search", async (req, res, next) => {
   try {
     if (!youtubeApiKey()) {
@@ -266,18 +320,14 @@ router.get("/youtube/search", async (req, res, next) => {
       return;
     }
 
-    const q = String(req.query.q ?? "").trim();
-    const pageToken = String(req.query.pageToken ?? "").trim();
-    const maxResults = Math.min(
-      25,
-      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20),
-    );
+    const request = parseYoutubeSearchRequest(req.query);
+    const maxResults = request.maxResults ?? 20;
 
-    // Browse queries → cheap popular chart (avoids Search Queries quota).
-    if (!q || isBrowseQuery(q)) {
-      const cacheKey = `search-browse:${q || "home"}:${maxResults}:${pageToken || "first"}`;
+    // Empty query + default filters → mostPopular chart (home rail). Real searches always use search.list.
+    if (isYoutubeHomeBrowse(request)) {
+      const cacheKey = `search-browse:home:${maxResults}:${request.pageToken || "first"}`;
       const cached = await getYoutubeCache<{ items: FeedItem[]; nextPageToken: string | null }>(cacheKey);
-      const popular = await fetchMostPopular(maxResults, pageToken || undefined);
+      const popular = await fetchMostPopular(maxResults, request.pageToken);
       if (popular.ok) {
         await setYoutubeCache(cacheKey, { items: popular.items, nextPageToken: popular.nextPageToken }, 1800);
         res.json({
@@ -293,24 +343,17 @@ router.get("/youtube/search", async (req, res, next) => {
       }
       res.status(popular.status || 429).json({
         error: "youtube_search_failed",
-        message: popular.message ?? "Quota exceeded",
-        quotaExceeded: true,
+        message: popular.message ?? "Popular feed failed",
+        quotaExceeded: popular.quotaExceeded,
       });
       return;
     }
 
-    const cacheKey = `search:${q}:${maxResults}:${pageToken || "first"}`;
+    const cacheKey = youtubeSearchCacheKey(request);
     const cached = await getYoutubeCache<{ items: FeedItem[]; nextPageToken: string | null }>(cacheKey);
 
     const result = await youtubeFetchJson((key) => {
-      const params = new URLSearchParams({
-        part: "snippet",
-        type: "video",
-        q,
-        maxResults: String(maxResults),
-        key,
-      });
-      if (pageToken) params.set("pageToken", pageToken);
+      const params = buildYoutubeSearchListParams(request, key);
       return `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
     });
 
@@ -321,22 +364,25 @@ router.get("/youtube/search", async (req, res, next) => {
     };
 
     if (result.ok) {
-      const items = (body.items ?? [])
-        .map((item): FeedItem | null => {
-          const videoId = item.id?.videoId?.trim();
-          if (!videoId) return null;
-          return {
-            videoId,
-            title: item.snippet?.title?.trim() || "Untitled",
-            channelTitle: item.snippet?.channelTitle?.trim() || "YouTube",
-            thumbnailUrl: youtubeThumbnailUrl(videoId, item.snippet?.thumbnails),
-            publishedAt: item.snippet?.publishedAt,
-          };
-        })
+      let items = (body.items ?? [])
+        .map((item) => mapSearchListItem(item))
         .filter((item): item is FeedItem => item !== null);
 
+      const videoIds = items.filter((item) => item.kind === "video" && item.videoId).map((item) => item.videoId);
+      if (videoIds.length > 0) {
+        const enriched = await fetchVideosByIds(videoIds);
+        if (enriched.ok && enriched.items.length > 0) {
+          const byId = new Map(enriched.items.map((item) => [item.videoId, item]));
+          items = items.map((item) => {
+            if (item.kind !== "video") return item;
+            const extra = byId.get(item.videoId);
+            return extra ? { ...item, ...extra, kind: "video" as const } : item;
+          });
+        }
+      }
+
       const payload = { items, nextPageToken: body.nextPageToken ?? null };
-      await setYoutubeCache(cacheKey, payload, 3600);
+      await setYoutubeCache(cacheKey, payload, 900);
       res.json({ ...payload, source: "search.list" });
       return;
     }
@@ -349,21 +395,6 @@ router.get("/youtube/search", async (req, res, next) => {
         message: body.error?.message,
       });
       return;
-    }
-
-    // Last resort: popular chart so Home never fully breaks.
-    if (isYoutubeQuotaError(result.status, body)) {
-      const popular = await fetchMostPopular(maxResults);
-      if (popular.ok) {
-        res.json({
-          items: popular.items,
-          nextPageToken: popular.nextPageToken,
-          source: "videos.list",
-          quotaExceeded: true,
-          message: body.error?.message,
-        });
-        return;
-      }
     }
 
     res.status(result.status).json({
@@ -393,34 +424,58 @@ router.get("/youtube/shorts", async (req, res, next) => {
     const respondShortsFromPopular = async (quotaExceeded = false, message?: string) => {
       const cacheKey = `shorts-popular:${maxResults}:${pageToken || "first"}`;
       const cached = await getYoutubeCache<{ items: FeedItem[]; nextPageToken: string | null }>(cacheKey);
-      const popular = await fetchMostPopular(Math.min(50, maxResults * 2), pageToken || undefined);
-      if (popular.ok) {
-        const shortsOnly = popular.items
-          .filter((item) => item.durationSeconds != null && item.durationSeconds <= 60)
-          .map((item) => ({
-            ...item,
-            isShort: true as const,
-          }))
-          .slice(0, maxResults);
-        // If this page has no ≤60s clips, advance with whatever short-ish rows we can;
-        // never relabel long videos as Shorts.
-        const payload = {
-          items: shortsOnly,
-          nextPageToken: popular.nextPageToken,
-        };
-        await setYoutubeCache(cacheKey, payload, 1800);
-        res.json({ ...payload, source: "videos.list", quotaExceeded, message });
+      const collected: FeedItem[] = [];
+      let token: string | undefined = pageToken || undefined;
+      let nextPageToken: string | null = null;
+
+      for (let page = 0; page < 4 && collected.length < maxResults; page += 1) {
+        const popular = await fetchMostPopular(50, token);
+        if (!popular.ok) {
+          if (page === 0 && cached) {
+            res.json({ ...cached, source: "cache", quotaExceeded: true, message: message || popular.message });
+            return true;
+          }
+          break;
+        }
+        for (const item of popular.items) {
+          if (item.durationSeconds != null && item.durationSeconds <= 60) {
+            collected.push({ ...item, isShort: true });
+          }
+        }
+        nextPageToken = popular.nextPageToken;
+        token = popular.nextPageToken || undefined;
+        if (!token) break;
+      }
+
+      if (collected.length === 0) {
+        const seeded = await fetchVideosByIds([...LIVE_SEED_VIDEO_IDS]);
+        if (seeded.ok) {
+          collected.push(
+            ...seeded.items.map((item) => ({
+              ...item,
+              isShort: item.durationSeconds != null && item.durationSeconds <= 60,
+            })),
+          );
+        }
+      }
+
+      if (collected.length === 0 && cached?.items?.length) {
+        res.json({ ...cached, source: "cache", quotaExceeded, message });
         return true;
       }
-      if (cached) {
-        res.json({ ...cached, source: "cache", quotaExceeded: true, message: message || popular.message });
-        return true;
-      }
-      return false;
+      if (collected.length === 0) return false;
+
+      const payload = {
+        items: collected.slice(0, maxResults),
+        nextPageToken,
+      };
+      await setYoutubeCache(cacheKey, payload, 1800);
+      res.json({ ...payload, source: "videos.list", quotaExceeded, message });
+      return true;
     };
 
     // Default Shorts rail — no search.list (saves 100 units / call).
-    if (!q || isBrowseQuery(q)) {
+    if (!q) {
       const ok = await respondShortsFromPopular();
       if (ok) return;
       res.status(429).json({
@@ -529,7 +584,7 @@ router.get("/youtube/live", async (req, res, next) => {
     const eventTypeRaw = String(req.query.eventType ?? "live").trim().toLowerCase();
     const eventType =
       eventTypeRaw === "upcoming" || eventTypeRaw === "completed" ? eventTypeRaw : "live";
-    const q = String(req.query.q ?? "").trim() || "live";
+    const q = String(req.query.q ?? "").trim();
     const pageToken = String(req.query.pageToken ?? "").trim();
     const idsParam = String(req.query.ids ?? "")
       .split(",")
@@ -591,11 +646,11 @@ router.get("/youtube/live", async (req, res, next) => {
         part: "snippet",
         type: "video",
         eventType,
-        q,
         maxResults: String(maxResults),
         order: "viewCount",
         key,
       });
+      if (q) searchParams.set("q", q);
       if (pageToken) searchParams.set("pageToken", pageToken);
       return `https://www.googleapis.com/youtube/v3/search?${searchParams.toString()}`;
     });
@@ -1124,6 +1179,449 @@ router.get("/youtube/playlist", async (req, res, next) => {
       .filter((item): item is NonNullable<typeof item> => Boolean(item));
 
     res.json({ items, nextPageToken: body.nextPageToken ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+function relatedSearchQuery(title: string): string {
+  const cleaned = title
+    .replace(/\[[^\]]*]/g, " ")
+    .replace(/\([^)]*\)/g, " ")
+    .replace(/official\s*(music\s*)?(video|audio|mv)/gi, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+  return (cleaned || title).slice(0, 96);
+}
+
+router.get("/youtube/video", async (req, res, next) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const videoId = String(req.query.videoId ?? "").trim();
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      res.status(400).json({ error: "videoId required" });
+      return;
+    }
+    const cacheKey = `video:${videoId}`;
+    const cached = await getYoutubeCache<Record<string, unknown>>(cacheKey);
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet,contentDetails,statistics,status,liveStreamingDetails",
+        id: videoId,
+        key,
+      });
+      return `https://www.googleapis.com/youtube/v3/videos?${params.toString()}`;
+    });
+    const body = result.body as {
+      items?: VideoListItem[];
+      error?: { message?: string };
+    };
+    if (!result.ok || !body.items?.[0]) {
+      if (cached) {
+        res.json({ ...cached, source: "cache" });
+        return;
+      }
+      res.status(result.ok ? 404 : result.status).json({
+        error: "youtube_video_failed",
+        message: body.error?.message ?? "Video not found",
+      });
+      return;
+    }
+    const item = body.items[0];
+    const mapped = mapVideoListItem(item);
+    if (!mapped) {
+      res.status(404).json({ error: "youtube_video_failed", message: "Video not found" });
+      return;
+    }
+    const description = item.snippet?.description ?? "";
+    const payload = {
+      ...mapped,
+      description,
+      tags: Array.isArray((item.snippet as { tags?: string[] } | undefined)?.tags)
+        ? ((item.snippet as { tags?: string[] }).tags ?? []).slice(0, 20)
+        : [],
+      categoryId: (item.snippet as { categoryId?: string } | undefined)?.categoryId ?? null,
+      embeddable: (item.status as { embeddable?: boolean } | undefined)?.embeddable !== false,
+      viewCount: item.statistics?.viewCount ? Number.parseInt(item.statistics.viewCount, 10) || 0 : 0,
+      likeCount: item.statistics?.likeCount ? Number.parseInt(item.statistics.likeCount, 10) || 0 : 0,
+      commentCount: (item.statistics as { commentCount?: string } | undefined)?.commentCount
+        ? Number.parseInt((item.statistics as { commentCount?: string }).commentCount ?? "0", 10) || 0
+        : 0,
+      chapters: parseYoutubeChapters(description),
+    };
+    await setYoutubeCache(cacheKey, payload, 1800);
+    res.json({ ...payload, source: "videos.list" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/youtube/related", async (req, res, next) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const videoId = String(req.query.videoId ?? "").trim();
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      res.status(400).json({ error: "videoId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const maxResults = Math.min(
+      25,
+      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20),
+    );
+
+    const details = await fetchVideosByIds([videoId]);
+    const seed = details.items[0];
+    const q = relatedSearchQuery(seed?.title || "recommended videos");
+    const cacheKey = `related:${videoId}:${q}:${pageToken || "first"}`;
+    const cached = await getYoutubeCache<{ items: FeedItem[]; nextPageToken: string | null }>(cacheKey);
+
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet",
+        type: "video",
+        maxResults: String(maxResults),
+        q,
+        key,
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      return `https://www.googleapis.com/youtube/v3/search?${params.toString()}`;
+    });
+
+    const body = result.body as {
+      items?: YoutubeApiSearchItem[];
+      nextPageToken?: string;
+      error?: { message?: string };
+    };
+
+    if (!result.ok) {
+      if (cached) {
+        res.json({ ...cached, source: "cache", quotaExceeded: isYoutubeQuotaError(result.status, body) });
+        return;
+      }
+      res.status(result.status).json({
+        error: "youtube_related_failed",
+        message: body.error?.message ?? "Related failed",
+        quotaExceeded: isYoutubeQuotaError(result.status, body),
+      });
+      return;
+    }
+
+    const mapped = (body.items ?? [])
+      .map((item) => mapSearchListItem(item))
+      .filter((item): item is FeedItem => Boolean(item && item.kind === "video" && item.videoId !== videoId));
+
+    const enriched = await fetchVideosByIds(mapped.map((item) => item.videoId));
+    const byId = new Map(enriched.items.map((item) => [item.videoId, item]));
+    const items = mapped.map((item) => byId.get(item.videoId) ?? item);
+    const payload = { items, nextPageToken: body.nextPageToken ?? null };
+    await setYoutubeCache(cacheKey, payload, 900);
+    res.json({ ...payload, source: "search.list" });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/youtube/comments", async (req, res, next) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const videoId = String(req.query.videoId ?? "").trim();
+    if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) {
+      res.status(400).json({ error: "videoId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const order = String(req.query.order ?? "relevance").trim() === "time" ? "time" : "relevance";
+    const maxResults = Math.min(
+      50,
+      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20),
+    );
+
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet,replies",
+        videoId,
+        maxResults: String(maxResults),
+        order,
+        textFormat: "plainText",
+        key,
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      return `https://www.googleapis.com/youtube/v3/commentThreads?${params.toString()}`;
+    });
+
+    const body = result.body as {
+      items?: Array<{
+        id?: string;
+        snippet?: {
+          totalReplyCount?: number;
+          topLevelComment?: {
+            id?: string;
+            snippet?: {
+              authorDisplayName?: string;
+              authorProfileImageUrl?: string;
+              authorChannelId?: { value?: string };
+              textDisplay?: string;
+              likeCount?: number;
+              publishedAt?: string;
+            };
+          };
+        };
+        replies?: {
+          comments?: Array<{
+            id?: string;
+            snippet?: {
+              authorDisplayName?: string;
+              authorProfileImageUrl?: string;
+              authorChannelId?: { value?: string };
+              textDisplay?: string;
+              likeCount?: number;
+              publishedAt?: string;
+            };
+          }>;
+        };
+      }>;
+      nextPageToken?: string;
+      error?: { message?: string };
+    };
+
+    if (!result.ok) {
+      res.status(result.status).json({
+        error: "youtube_comments_failed",
+        message: body.error?.message ?? "Comments failed",
+        quotaExceeded: isYoutubeQuotaError(result.status, body),
+      });
+      return;
+    }
+
+    const mapComment = (comment: {
+      id?: string;
+      snippet?: {
+        authorDisplayName?: string;
+        authorProfileImageUrl?: string;
+        authorChannelId?: { value?: string };
+        textDisplay?: string;
+        likeCount?: number;
+        publishedAt?: string;
+      };
+    }) => ({
+      id: comment.id ?? "",
+      author: comment.snippet?.authorDisplayName?.trim() || "YouTube",
+      authorAvatar: comment.snippet?.authorProfileImageUrl ?? null,
+      authorChannelId: comment.snippet?.authorChannelId?.value ?? null,
+      text: comment.snippet?.textDisplay?.trim() || "",
+      likeCount: comment.snippet?.likeCount ?? 0,
+      publishedAt: comment.snippet?.publishedAt ?? null,
+    });
+
+    const items = (body.items ?? []).map((thread) => {
+      const top = thread.snippet?.topLevelComment;
+      const replies = (thread.replies?.comments ?? []).map((comment) => mapComment(comment));
+      return {
+        ...mapComment(top ?? {}),
+        id: top?.id || thread.id || "",
+        replyCount: thread.snippet?.totalReplyCount ?? replies.length,
+        replies,
+      };
+    });
+
+    res.json({ items, nextPageToken: body.nextPageToken ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/youtube/comments/replies", async (req, res, next) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const parentId = String(req.query.parentId ?? "").trim();
+    if (!parentId) {
+      res.status(400).json({ error: "parentId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const result = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet",
+        parentId,
+        maxResults: "50",
+        textFormat: "plainText",
+        key,
+      });
+      if (pageToken) params.set("pageToken", pageToken);
+      return `https://www.googleapis.com/youtube/v3/comments?${params.toString()}`;
+    });
+    const body = result.body as {
+      items?: Array<{
+        id?: string;
+        snippet?: {
+          authorDisplayName?: string;
+          authorProfileImageUrl?: string;
+          authorChannelId?: { value?: string };
+          textDisplay?: string;
+          likeCount?: number;
+          publishedAt?: string;
+        };
+      }>;
+      nextPageToken?: string;
+      error?: { message?: string };
+    };
+    if (!result.ok) {
+      res.status(result.status).json({
+        error: "youtube_comment_replies_failed",
+        message: body.error?.message ?? "Replies failed",
+      });
+      return;
+    }
+    const items = (body.items ?? []).map((comment) => ({
+      id: comment.id ?? "",
+      author: comment.snippet?.authorDisplayName?.trim() || "YouTube",
+      authorAvatar: comment.snippet?.authorProfileImageUrl ?? null,
+      authorChannelId: comment.snippet?.authorChannelId?.value ?? null,
+      text: comment.snippet?.textDisplay?.trim() || "",
+      likeCount: comment.snippet?.likeCount ?? 0,
+      publishedAt: comment.snippet?.publishedAt ?? null,
+    }));
+    res.json({ items, nextPageToken: body.nextPageToken ?? null });
+  } catch (error) {
+    next(error);
+  }
+});
+
+router.get("/youtube/channel", async (req, res, next) => {
+  try {
+    if (!youtubeApiKey()) {
+      res.status(503).json({ error: "youtube_not_configured" });
+      return;
+    }
+    const channelId = String(req.query.channelId ?? "").trim();
+    if (!/^UC[\w-]{20,}$/.test(channelId)) {
+      res.status(400).json({ error: "channelId required" });
+      return;
+    }
+    const pageToken = String(req.query.pageToken ?? "").trim();
+    const maxResults = Math.min(
+      50,
+      Math.max(1, Number.parseInt(String(req.query.maxResults ?? "20"), 10) || 20),
+    );
+
+    const channelRes = await youtubeFetchJson((key) => {
+      const params = new URLSearchParams({
+        part: "snippet,statistics,contentDetails",
+        id: channelId,
+        key,
+      });
+      return `https://www.googleapis.com/youtube/v3/channels?${params.toString()}`;
+    });
+    const channelBody = channelRes.body as {
+      items?: Array<{
+        id?: string;
+        snippet?: {
+          title?: string;
+          description?: string;
+          customUrl?: string;
+          thumbnails?: { high?: { url?: string }; medium?: { url?: string }; default?: { url?: string } };
+        };
+        statistics?: { subscriberCount?: string; videoCount?: string; viewCount?: string };
+        contentDetails?: { relatedPlaylists?: { uploads?: string } };
+      }>;
+      error?: { message?: string };
+    };
+    if (!channelRes.ok || !channelBody.items?.[0]) {
+      res.status(channelRes.ok ? 404 : channelRes.status).json({
+        error: "youtube_channel_failed",
+        message: channelBody.error?.message ?? "Channel not found",
+      });
+      return;
+    }
+    const channel = channelBody.items[0];
+    const uploadsId = channel.contentDetails?.relatedPlaylists?.uploads?.trim();
+    let items: FeedItem[] = [];
+    let nextPageToken: string | null = null;
+    if (uploadsId) {
+      const listRes = await youtubeFetchJson((key) => {
+        const params = new URLSearchParams({
+          part: "snippet,contentDetails",
+          playlistId: uploadsId,
+          maxResults: String(maxResults),
+          key,
+        });
+        if (pageToken) params.set("pageToken", pageToken);
+        return `https://www.googleapis.com/youtube/v3/playlistItems?${params.toString()}`;
+      });
+      const listBody = listRes.body as {
+        items?: Array<{
+          contentDetails?: { videoId?: string };
+          snippet?: {
+            title?: string;
+            channelTitle?: string;
+            publishedAt?: string;
+            resourceId?: { videoId?: string };
+            thumbnails?: {
+              medium?: { url?: string };
+              high?: { url?: string };
+              default?: { url?: string };
+              maxres?: { url?: string };
+            };
+          };
+        }>;
+        nextPageToken?: string;
+      };
+      if (listRes.ok) {
+        items = (listBody.items ?? [])
+          .map((item): FeedItem | null => {
+            const videoId =
+              item.contentDetails?.videoId?.trim() || item.snippet?.resourceId?.videoId?.trim() || "";
+            if (!/^[a-zA-Z0-9_-]{11}$/.test(videoId)) return null;
+            return {
+              kind: "video",
+              videoId,
+              channelId,
+              title: item.snippet?.title?.trim() || "Untitled",
+              channelTitle: item.snippet?.channelTitle?.trim() || channel.snippet?.title?.trim() || "YouTube",
+              thumbnailUrl: youtubeThumbnailUrl(videoId, item.snippet?.thumbnails),
+              publishedAt: item.snippet?.publishedAt,
+            };
+          })
+          .filter((item): item is FeedItem => Boolean(item));
+        nextPageToken = listBody.nextPageToken ?? null;
+      }
+    }
+
+    const thumbs = channel.snippet?.thumbnails;
+    res.json({
+      channel: {
+        channelId,
+        title: channel.snippet?.title?.trim() || "YouTube",
+        description: channel.snippet?.description ?? "",
+        customUrl: channel.snippet?.customUrl ?? null,
+        thumbnailUrl: thumbs?.high?.url || thumbs?.medium?.url || thumbs?.default?.url || "",
+        subscriberCount: channel.statistics?.subscriberCount
+          ? Number.parseInt(channel.statistics.subscriberCount, 10) || 0
+          : 0,
+        videoCount: channel.statistics?.videoCount
+          ? Number.parseInt(channel.statistics.videoCount, 10) || 0
+          : 0,
+        viewCount: channel.statistics?.viewCount
+          ? Number.parseInt(channel.statistics.viewCount, 10) || 0
+          : 0,
+        uploadsPlaylistId: uploadsId ?? null,
+      },
+      items,
+      nextPageToken,
+    });
   } catch (error) {
     next(error);
   }

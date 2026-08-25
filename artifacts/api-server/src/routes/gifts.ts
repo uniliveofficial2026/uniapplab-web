@@ -3,6 +3,7 @@ import { auth } from "../middlewares/auth";
 import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { requireAdmin } from "../middlewares/requireAdmin";
 import { getSupabaseService } from "../lib/supabase";
+import { apiError } from "../lib/apiError";
 
 const router: IRouter = Router();
 
@@ -230,6 +231,26 @@ router.put("/catalog/:id", auth, requireAdmin, async (req, res, next) => {
 router.post("/send", auth, requireNotBanned, async (req, res, next) => {
   try {
     const senderId = req.authUser!.id;
+    const roomIdForLifecycle = String((req.body as { roomId?: string })?.roomId || "").trim();
+    const giftCommandId = String((req.body as { clientRequestId?: string })?.clientRequestId || "").trim();
+    const receiverIdForLifecycle = String((req.body as { receiverId?: string })?.receiverId || "").trim();
+    if (roomIdForLifecycle) {
+      try {
+        const { getLiveLifecycleService } = await import("../domain/live-lifecycle");
+        const lifecycle = getLiveLifecycleService();
+        if (giftCommandId) {
+          lifecycle.beginGiftSettlement(roomIdForLifecycle, giftCommandId, receiverIdForLifecycle);
+        } else {
+          lifecycle.rejectIfEnding(roomIdForLifecycle, "gift");
+        }
+      } catch (err) {
+        const rec = err as { status?: number; code?: string };
+        if (rec.status && rec.code) {
+          apiError(res, rec.status, rec.code);
+          return;
+        }
+      }
+    }
     const {
       giftId,
       receiverId,
@@ -241,6 +262,10 @@ router.post("/send", auth, requireNotBanned, async (req, res, next) => {
       unitPrice,
       tier,
       metadata,
+      expectedCatalogVersion,
+      expectedPriceVersion,
+      catalogVersion,
+      priceVersion,
     } = req.body as {
       giftId?: string;
       receiverId?: string;
@@ -252,6 +277,10 @@ router.post("/send", auth, requireNotBanned, async (req, res, next) => {
       unitPrice?: number;
       tier?: string;
       metadata?: Record<string, unknown>;
+      expectedCatalogVersion?: number;
+      expectedPriceVersion?: number;
+      catalogVersion?: number;
+      priceVersion?: number;
     };
 
     const gid = String(giftId || "").trim();
@@ -279,12 +308,25 @@ router.post("/send", auth, requireNotBanned, async (req, res, next) => {
     if (catalogRow) {
       const row = catalogRow as GiftCatalogRow;
       if (!isGiftAvailableNow(row)) {
-        res.status(400).json({ error: "gift not available" });
+        apiError(res, 400, "error.giftNotAvailable");
         return;
       }
       price = Number(row.price);
       name = row.name;
       giftTier = row.tier || giftTier;
+      const meta = (row.metadata || {}) as Record<string, unknown>;
+      const currentCatalog = Number(meta.catalog_version ?? meta.catalogVersion ?? 1);
+      const currentPrice = Number(meta.price_version ?? meta.priceVersion ?? 1);
+      const expectedCat = Number(expectedCatalogVersion ?? catalogVersion ?? NaN);
+      const expectedPrice = Number(expectedPriceVersion ?? priceVersion ?? NaN);
+      if (Number.isFinite(expectedCat) && expectedCat !== currentCatalog) {
+        apiError(res, 409, "gift.catalog_changed", { catalogVersion: currentCatalog, priceVersion: currentPrice });
+        return;
+      }
+      if (Number.isFinite(expectedPrice) && expectedPrice !== currentPrice) {
+        apiError(res, 409, "gift.catalog_changed", { catalogVersion: currentCatalog, priceVersion: currentPrice });
+        return;
+      }
     } else {
       // Fall back to jsonb catalog — never trust client unitPrice alone.
       try {
@@ -296,7 +338,7 @@ router.post("/send", auth, requireNotBanned, async (req, res, next) => {
         const raw = Array.isArray(blob?.gifts) ? (blob.gifts as Record<string, unknown>[]) : [];
         const match = raw.find((g) => String(g.id ?? "") === gid);
         if (!match) {
-          res.status(400).json({ error: "unknown gift" });
+          apiError(res, 400, "gift.unknown");
           return;
         }
         price = Math.floor(Number(match.stars ?? match.price) || 0);
@@ -334,11 +376,24 @@ router.post("/send", auth, requireNotBanned, async (req, res, next) => {
       const msg = error.message || "gift settle failed";
       const status =
         msg.includes("insufficient") || msg.includes("limit") ? 402 : 400;
-      res.status(status).json({ error: msg });
+      if (msg.includes("insufficient")) {
+        apiError(res, status, "gift.insufficientCoins");
+        return;
+      }
+      apiError(res, status, "common.unknownError");
       return;
     }
 
     const result = data as Record<string, unknown>;
+    if (roomIdForLifecycle && giftCommandId) {
+      try {
+        const { getLiveLifecycleService } = await import("../domain/live-lifecycle");
+        const total = Math.floor(Number(result.totalCoins ?? price * qty) || 0);
+        getLiveLifecycleService().completeGiftSettlement(giftCommandId, total, rid);
+      } catch {
+        /* dashboard is diagnostic; settlement already committed */
+      }
+    }
     res.json({
       ...result,
       event: {

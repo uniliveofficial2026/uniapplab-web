@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master, 'stage-d/**', 'stage-c/**', 'release/**', 'qa/**']
+    branches: [main, master, 'stage-d/**', 'stage-c/**', 'release/**', 'qa/**', 'fix/**']
   pull_request:
   workflow_dispatch:
 
@@ -46,6 +46,9 @@ jobs:
 
       - name: Real-device / production mapping contracts
         run: pnpm run test:real-device-mapping
+
+      - name: Full-app completeness gates
+        run: pnpm run test:full-app-gates
 
       - name: Stage B UniLiveRTC + platform foundation
         run: pnpm run test:stage-b

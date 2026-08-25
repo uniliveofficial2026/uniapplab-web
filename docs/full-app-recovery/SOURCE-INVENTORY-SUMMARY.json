@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-08-25T11:59:03.420411+00:00",
+  "gitSha": "pending",
+  "tabs": [],
+  "screenCount": 28,
+  "routeCount": 26,
+  "componentCount": 100,
+  "apiRouteCount": 393,
+  "frontendApiCallCount": 144,
+  "featureFlagCount": 80,
+  "stubHitCount": 312
+}

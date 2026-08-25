@@ -1,0 +1,562 @@
+[
+  {
+    "name": "VITE_ADMIN_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_API_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_APP_ORIGIN",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_CALL_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_CDN_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_CHAT_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_CUSTOM_",
+    "source": "artifacts/instacollab/src/lib/adminIntegrationStore.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_DEEPAR_LICENSE_KEY",
+    "source": "artifacts/instacollab/src/components/karaoke/RecordingStudio.tsx",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_ENABLE_DEMO_CONTENT",
+    "source": "artifacts/instacollab/src/lib/demoContentPolicy.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_FIREBASE_",
+    "source": "artifacts/instacollab/src/lib/devChangelog.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_FIREBASE_API_KEY",
+    "source": "artifacts/instacollab/src/lib/firebase/firebaseConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_FIREBASE_APP_ID",
+    "source": "artifacts/instacollab/src/lib/firebase/firebaseConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_FIREBASE_AUTH_DOMAIN",
+    "source": "artifacts/instacollab/src/lib/firebase/firebaseConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_FIREBASE_PROJECT_ID",
+    "source": "artifacts/instacollab/src/lib/firebase/firebaseConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_FIREBASE_USE_EMULATORS",
+    "source": "artifacts/instacollab/src/lib/firebase/app.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_LANDING_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_LIVEKIT_URL",
+    "source": "artifacts/instacollab/src/lib/livekit/livekitConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_LIVE_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_MEDIA_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_MS",
+    "source": "artifacts/instacollab/src/lib/chat/cloudChatSync.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_MY_API_KEY",
+    "source": "artifacts/instacollab/src/components/admin/IntegrationStatusPanel.tsx",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_NATIVE_ANDROID_CALL_FGS",
+    "source": "artifacts/instacollab/src/lib/chat/nativeIncomingCallBridge.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_NATIVE_ANDROID_TELECOM",
+    "source": "artifacts/instacollab/src/lib/chat/nativeIncomingCallBridge.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_NATIVE_INCOMING_CALL_BRIDGE",
+    "source": "artifacts/instacollab/src/lib/chat/nativeIncomingCallBridge.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_NATIVE_IOS_CALLKIT",
+    "source": "artifacts/instacollab/src/lib/chat/nativeIncomingCallBridge.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_NATIVE_IOS_PUSHKIT",
+    "source": "artifacts/instacollab/src/lib/chat/nativeIncomingCallBridge.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_REWARD_COINS",
+    "source": "artifacts/instacollab/src/smule-rooms/components/GameLivePanel.tsx",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_REWARD_KEY",
+    "source": "artifacts/instacollab/src/smule-rooms/utils/liveArcadeGames.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_SITE_URL",
+    "source": "artifacts/instacollab/src/lib/domains/uniapplab.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_SUPABASE_",
+    "source": "artifacts/instacollab/src/lib/devChangelog.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_SUPABASE_ANON_KEY",
+    "source": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_SUPABASE_PUBLISHABLE_KEY",
+    "source": "artifacts/instacollab/src/lib/integrationEnv.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_SUPABASE_URL",
+    "source": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_APP_ID",
+    "source": "artifacts/instacollab/src/lib/webar/tencentMobileLicenseConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_BUNDLE_ID",
+    "source": "artifacts/instacollab/src/lib/webar/tencentMobileLicenseConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_LICENSE_KEY",
+    "source": "artifacts/instacollab/src/lib/webar/webarConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_LICENSE_URL",
+    "source": "artifacts/instacollab/src/lib/webar/webarConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_RTC_SDK_APP_ID",
+    "source": "artifacts/instacollab/src/lib/tencent/rtcConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_RTC_TRANSPORT",
+    "source": "artifacts/instacollab/src/lib/tencent/rtcConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_WEBAR_",
+    "source": "artifacts/instacollab/src/lib/webar/tencentMobileLicenseConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_WEBAR_APP_ID",
+    "source": "artifacts/instacollab/src/lib/webar/webarConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_WEBAR_LICENSE_KEY",
+    "source": "artifacts/instacollab/src/lib/webar/webarConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_TENCENT_WEBAR_TOKEN",
+    "source": "artifacts/instacollab/src/lib/webar/webarConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_UNIFIED_LIVE",
+    "source": "artifacts/instacollab/src/lib/unifiedLive.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_WORKSPACE_STAFF_CODE",
+    "source": "artifacts/instacollab/src/lib/workspaceAccess.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "VITE_YOUTUBE_API_KEY",
+    "source": "artifacts/instacollab/src/lib/youtubeSearchFilters.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.BASE_URL",
+    "source": "artifacts/instacollab/src/lib/localGames/player.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.DEV",
+    "source": "artifacts/instacollab/src/components/launch/AuthScreen.tsx",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_API_URL",
+    "source": "artifacts/instacollab/src/lib/platformApi.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_APP_ORIGIN",
+    "source": "artifacts/instacollab/src/lib/greedyTap/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_DEEPAR_LICENSE_KEY",
+    "source": "artifacts/instacollab/src/lib/deepar/deeparConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_API_KEY",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_APP_ID",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_AUTH_DOMAIN",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_DATABASE_URL",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_FIRESTORE_DATABASE_ID",
+    "source": "artifacts/instacollab/src/lib/firebase/app.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_MEASUREMENT_ID",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_OAUTH_USE_POPUP",
+    "source": "artifacts/instacollab/src/lib/firebase/oauth.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_OAUTH_USE_REDIRECT",
+    "source": "artifacts/instacollab/src/lib/firebase/oauth.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_PROJECT_ID",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_STORAGE_BUCKET",
+    "source": "artifacts/instacollab/src/lib/firebase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_FIREBASE_USE_EMULATORS",
+    "source": "artifacts/instacollab/src/lib/firebase/app.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_GREEDY_TAP_APP_URL",
+    "source": "artifacts/instacollab/src/lib/greedyTap/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_GREEDY_TAP_ORIGIN",
+    "source": "artifacts/instacollab/src/lib/greedyTap/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_GREEDY_TAP_REALTIME_ORIGIN",
+    "source": "artifacts/instacollab/src/lib/greedyTap/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_HANDOFF",
+    "source": "artifacts/instacollab/src/lib/handoff.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_LOCAL_LIVE_API",
+    "source": "artifacts/instacollab/src/lib/platformApi.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_MEDIA_WORKER_URL",
+    "source": "artifacts/instacollab/src/lib/media/r2Upload.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_PERF_TRACE",
+    "source": "artifacts/instacollab/src/main.tsx",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_PWA_DEV",
+    "source": "artifacts/instacollab/src/lib/pwaRegister.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_STRIPE_PUBLISHABLE_KEY",
+    "source": "artifacts/instacollab/src/lib/commercePayments.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_SUPABASE_ANON_KEY",
+    "source": "artifacts/instacollab/src/lib/supabase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY",
+    "source": "artifacts/instacollab/src/lib/supabase/config.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_SUPABASE_URL",
+    "source": "artifacts/instacollab/src/lib/supabase/profilesTableReady.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_TENCENT_RTC_TRANSPORT",
+    "source": "artifacts/instacollab/src/lib/tencent/rtcConfig.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_UNIFIED_LIVE",
+    "source": "artifacts/instacollab/src/lib/unifiedLive.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_UNIFIED_LIVE_API",
+    "source": "artifacts/instacollab/src/lib/unifiedLive.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_UX_TELEMETRY",
+    "source": "artifacts/instacollab/src/lib/uxTelemetry.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  },
+  {
+    "name": "import.meta.env.VITE_WORKSPACE_STAFF_CODE",
+    "source": "artifacts/instacollab/src/lib/workspaceAccess.ts",
+    "default": "unknown",
+    "productionValuePresent": "NOT_TESTED",
+    "scope": "client"
+  }
+]

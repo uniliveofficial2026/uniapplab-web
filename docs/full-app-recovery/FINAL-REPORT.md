@@ -1,29 +1,56 @@
-# UniLive’s FULL APP RECOVERY — STATUS
+# Full-app recovery — FINAL REPORT (honest; not acceptance)
 
-## Verdict
-**FAIL** — prior real-device acceptance is **INVALID**. Owner observation confirmed.
+**Status: FAIL — prior device acceptance INVALID. Do not treat this as PASS.**
 
-## Production
-https://app.uniapplab.com
+## Owner authority
 
-## What was wrong (evidence)
+Owner opened the real-device production app and reported it still broken / not the full UniLive’s application. That overrides CI, contracts, health, and prior PASS reports.
 
-1. **Backend chat was stripped** vs owner dirty source: production `GET /api/chat/threads` → 404. Owner dirty `chat.ts` includes list/read/DM routes.
-2. **Auth boot gap**: `AuthProvidersHost` rendered children with **no** AuthContext until async import finished → `useAuth` offline stub warning on production.
-3. **Vercel Speed Insights** still imported → `/_vercel/speed-insights/script.js` 404/MIME fail on Cloudflare/Render hosting.
-4. **Onboarding “Next” is painted in JPG art**; real controls are invisible hit targets. Cap/notch geometry made hits too small → taps feel like a dead/fake app.
-5. Frontend `artifacts/instacollab/src` is **identical** to owner dirty tree — incompleteness was **not** “missing SPA files from dirty tree.” Dirty API + runtime defects were.
+## What was wrong (root causes found)
 
-## Recovery branch
-`fix/restore-full-production-app`  
-Worktree: `/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery`
+1. **Frontend `instacollab/src` was already complete** vs owner dirty tree (1348/1348 identical). The incomplete feel was not “missing SPA src.”
+2. **Backend chat list was stripped** — owner dirty `chat.ts` had GET `/threads` etc.; release tip did not. Production previously 404’d; after `5a259bf` returns **401** (route present).
+3. **Auth boot gap** — `AuthProvidersHost` rendered children without AuthContext until async load → offline stub behavior.
+4. **Vercel SpeedInsights** left in SPA → 404/MIME noise on non-Vercel hosting.
+5. **Onboarding hit targets** too small on Cap/notch — painted “Next” is art; real buttons invisible.
+6. **Additional API surface still thinner than owner dirty** — me identities, presence offline/devices, stream room_type/viewers, gifts lifecycle/catalog, livekit seat publish authority, youtube detail routes, fuller Upstash. **Recovered into recovery branch and rebuilt `deploy/render-api` — pending next deploy tip.**
 
-## Fixes included (pending full redeploy verification)
+## What is live now (`5a259bf`)
 
-- Restore fuller `chat.ts` + `chatDmKey.ts` into Render API bundle
-- AuthContext boot stub while providers hydrate
-- Remove SpeedInsights
-- Enlarge onboarding invisible hit targets (no visual redesign)
+- SPA + API on Render at recovery SHA `5a259bf…`
+- Health 200
+- `/api/chat/threads` → 401 JSON (not missing-route 404)
+- No SpeedInsights in production index chunk
 
-## Honesty
-No feature is marked PASS until runtime evidence on iPhone + Mac after deploy.
+## What is NOT PASS yet
+
+- Owner-visible full-app completeness on iPhone
+- Auth → home → nav functional walkthrough
+- Messages/calls/live/PK/gifts/marketplace functional PASS
+- iPhone↔Mac media qualification
+- Remaining dirty migrations / app.ts merge
+
+## Gates added
+
+`pnpm run test:full-app-gates` (routes, components, API map, production artifact) wired into CI.
+
+## Manifests generated
+
+Under `docs/full-app-recovery/`:
+
+- FULL-SOURCE-MANIFEST.md
+- FULL-SCREEN-MANIFEST.json
+- FULL-ROUTE-MANIFEST.json
+- FULL-COMPONENT-MANIFEST.json
+- FULL-API-MAP.json
+- FEATURE-FLAGS.json
+- STUB-SCAN.json
+- RECOVERED-FILES.md
+- FINAL-STATUS.json (FAIL)
+
+## Next required steps
+
+1. Commit + deploy this API recovery tip.
+2. Re-open Cap on iPhone; confirm full consumer shell (not Studio).
+3. Only then run iPhone↔Mac call/live functional tests.
+4. Keep `fullRealApplication=FAIL` until owner’s full app is visibly present and functions work.
