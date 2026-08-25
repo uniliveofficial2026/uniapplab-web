@@ -1,0 +1,1 @@
+import{r as e}from"./vendor-react-D0evzek3.js";function n(t){if(!t||typeof t!="object")return!1;const o=t.nodeType;return o===1||o===9||o===11}function r(){if(typeof document>"u")return null;const t=document.body;return n(t)?t:null}function s(){const[t,o]=e.useState(null);return e.useEffect(()=>{o(r())},[]),t}export{r,s as u};

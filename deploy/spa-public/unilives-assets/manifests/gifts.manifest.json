@@ -1,0 +1,1729 @@
+{
+  "version": 1,
+  "category": "gift",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "gift.normal.rose",
+      "brand": "UniLive\u2019s",
+      "name": "Rose",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/rose/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/rose/rose.svga",
+        "webm": "/unilives-assets/gifts/normal/rose/rose.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/rose/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "rose"
+      ]
+    },
+    {
+      "id": "gift.normal.heart",
+      "brand": "UniLive\u2019s",
+      "name": "Heart",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/heart/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/heart/heart.svga",
+        "webm": "/unilives-assets/gifts/normal/heart/heart.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/heart/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 11,
+      "replacementFor": [
+        "heart"
+      ]
+    },
+    {
+      "id": "gift.normal.mic",
+      "brand": "UniLive\u2019s",
+      "name": "Mic",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/mic/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/mic/mic.svga",
+        "webm": "/unilives-assets/gifts/normal/mic/mic.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/mic/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 12,
+      "replacementFor": [
+        "mic"
+      ]
+    },
+    {
+      "id": "gift.normal.star",
+      "brand": "UniLive\u2019s",
+      "name": "Star",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/star/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/star/star.svga",
+        "webm": "/unilives-assets/gifts/normal/star/star.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/star/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 13,
+      "replacementFor": [
+        "star"
+      ]
+    },
+    {
+      "id": "gift.normal.coffee",
+      "brand": "UniLive\u2019s",
+      "name": "Coffee",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/coffee/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/coffee/coffee.svga",
+        "webm": "/unilives-assets/gifts/normal/coffee/coffee.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/coffee/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "coffee"
+      ]
+    },
+    {
+      "id": "gift.normal.cake",
+      "brand": "UniLive\u2019s",
+      "name": "Cake",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/cake/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/cake/cake.svga",
+        "webm": "/unilives-assets/gifts/normal/cake/cake.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/cake/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "cake"
+      ]
+    },
+    {
+      "id": "gift.normal.teddy-bear",
+      "brand": "UniLive\u2019s",
+      "name": "Teddy Bear",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/teddy-bear/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/teddy-bear/teddy-bear.svga",
+        "webm": "/unilives-assets/gifts/normal/teddy-bear/teddy-bear.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/teddy-bear/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "teddy_bear"
+      ]
+    },
+    {
+      "id": "gift.normal.chocolate",
+      "brand": "UniLive\u2019s",
+      "name": "Chocolate",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/chocolate/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/chocolate/chocolate.svga",
+        "webm": "/unilives-assets/gifts/normal/chocolate/chocolate.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/chocolate/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "chocolate"
+      ]
+    },
+    {
+      "id": "gift.normal.flower-bouquet",
+      "brand": "UniLive\u2019s",
+      "name": "Flower Bouquet",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/flower-bouquet/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/flower-bouquet/flower-bouquet.svga",
+        "webm": "/unilives-assets/gifts/normal/flower-bouquet/flower-bouquet.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/flower-bouquet/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "flower_bouquet"
+      ]
+    },
+    {
+      "id": "gift.normal.balloon",
+      "brand": "UniLive\u2019s",
+      "name": "Balloon",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/balloon/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/balloon/balloon.svga",
+        "webm": "/unilives-assets/gifts/normal/balloon/balloon.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/balloon/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "balloon"
+      ]
+    },
+    {
+      "id": "gift.normal.lucky-clover",
+      "brand": "UniLive\u2019s",
+      "name": "Lucky Clover",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/lucky/lucky-clover/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/lucky/lucky-clover/lucky-clover.svga",
+        "webm": "/unilives-assets/gifts/lucky/lucky-clover/lucky-clover.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/lucky/lucky-clover/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "lucky_clover"
+      ],
+      "tags": [
+        "lucky"
+      ]
+    },
+    {
+      "id": "gift.normal.kiss",
+      "brand": "UniLive\u2019s",
+      "name": "Kiss",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/normal/kiss/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/normal/kiss/kiss.svga",
+        "webm": "/unilives-assets/gifts/normal/kiss/kiss.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/normal/kiss/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 10,
+      "replacementFor": [
+        "kiss"
+      ]
+    },
+    {
+      "id": "gift.premium.crown",
+      "brand": "UniLive\u2019s",
+      "name": "Crown",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/crown/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/crown/crown.svga",
+        "webm": "/unilives-assets/gifts/premium/crown/crown.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/crown/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 40,
+      "replacementFor": [
+        "crown"
+      ]
+    },
+    {
+      "id": "gift.premium.rocket",
+      "brand": "UniLive\u2019s",
+      "name": "Rocket",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/rocket/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/rocket/rocket.svga",
+        "webm": "/unilives-assets/gifts/premium/rocket/rocket.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/rocket/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 41,
+      "replacementFor": [
+        "rocket"
+      ]
+    },
+    {
+      "id": "gift.premium.diamond",
+      "brand": "UniLive\u2019s",
+      "name": "Diamond",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/diamond/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/diamond/diamond.svga",
+        "webm": "/unilives-assets/gifts/premium/diamond/diamond.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/diamond/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 42,
+      "replacementFor": [
+        "diamond"
+      ]
+    },
+    {
+      "id": "gift.premium.castle",
+      "brand": "UniLive\u2019s",
+      "name": "Castle",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/castle/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/castle/castle.svga",
+        "webm": "/unilives-assets/gifts/premium/castle/castle.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/castle/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 43,
+      "replacementFor": [
+        "castle"
+      ]
+    },
+    {
+      "id": "gift.premium.royal-crown",
+      "brand": "UniLive\u2019s",
+      "name": "Royal Crown",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/royal-crown/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/royal-crown/royal-crown.svga",
+        "webm": "/unilives-assets/gifts/premium/royal-crown/royal-crown.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/royal-crown/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 40,
+      "replacementFor": [
+        "royal_crown"
+      ]
+    },
+    {
+      "id": "gift.premium.diamond-ring",
+      "brand": "UniLive\u2019s",
+      "name": "Diamond Ring",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/diamond-ring/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/diamond-ring/diamond-ring.svga",
+        "webm": "/unilives-assets/gifts/premium/diamond-ring/diamond-ring.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/diamond-ring/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 41,
+      "replacementFor": [
+        "diamond_ring"
+      ]
+    },
+    {
+      "id": "gift.premium.super-car",
+      "brand": "UniLive\u2019s",
+      "name": "Super Car",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/super-car/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/super-car/super-car.svga",
+        "webm": "/unilives-assets/gifts/premium/super-car/super-car.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/super-car/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 42,
+      "replacementFor": [
+        "super_car"
+      ]
+    },
+    {
+      "id": "gift.premium.crystal-diamond",
+      "brand": "UniLive\u2019s",
+      "name": "Crystal Diamond",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/crystal-diamond/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/crystal-diamond/crystal-diamond.svga",
+        "webm": "/unilives-assets/gifts/premium/crystal-diamond/crystal-diamond.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/crystal-diamond/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 42,
+      "replacementFor": [
+        "crystal_diamond"
+      ]
+    },
+    {
+      "id": "gift.premium.champagne",
+      "brand": "UniLive\u2019s",
+      "name": "Champagne",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/champagne/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/champagne/champagne.svga",
+        "webm": "/unilives-assets/gifts/premium/champagne/champagne.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/champagne/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 40,
+      "replacementFor": [
+        "champagne"
+      ]
+    },
+    {
+      "id": "gift.premium.treasure-chest",
+      "brand": "UniLive\u2019s",
+      "name": "Treasure Chest",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/treasure-chest/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/treasure-chest/treasure-chest.svga",
+        "webm": "/unilives-assets/gifts/premium/treasure-chest/treasure-chest.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/treasure-chest/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 42,
+      "replacementFor": [
+        "treasure_chest"
+      ]
+    },
+    {
+      "id": "gift.premium.luxury-bag",
+      "brand": "UniLive\u2019s",
+      "name": "Luxury Bag",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/luxury-bag/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/luxury-bag/luxury-bag.svga",
+        "webm": "/unilives-assets/gifts/premium/luxury-bag/luxury-bag.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/luxury-bag/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 43,
+      "replacementFor": [
+        "luxury_bag"
+      ]
+    },
+    {
+      "id": "gift.premium.luxury-watch",
+      "brand": "UniLive\u2019s",
+      "name": "Luxury Watch",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/luxury-watch/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/luxury-watch/luxury-watch.svga",
+        "webm": "/unilives-assets/gifts/premium/luxury-watch/luxury-watch.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/luxury-watch/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 44,
+      "replacementFor": [
+        "luxury_watch"
+      ]
+    },
+    {
+      "id": "gift.premium.yacht",
+      "brand": "UniLive\u2019s",
+      "name": "Yacht",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/yacht/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/yacht/yacht.svga",
+        "webm": "/unilives-assets/gifts/premium/yacht/yacht.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/yacht/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 45,
+      "replacementFor": [
+        "yacht"
+      ]
+    },
+    {
+      "id": "gift.premium.private-jet",
+      "brand": "UniLive\u2019s",
+      "name": "Private Jet",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/premium/private-jet/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/premium/private-jet/private-jet.svga",
+        "webm": "/unilives-assets/gifts/premium/private-jet/private-jet.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/premium/private-jet/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 46,
+      "replacementFor": [
+        "private_jet"
+      ]
+    },
+    {
+      "id": "gift.epic.unicorn",
+      "brand": "UniLive\u2019s",
+      "name": "Unicorn",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/unicorn/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/unicorn/unicorn.svga",
+        "webm": "/unilives-assets/gifts/epic/unicorn/unicorn.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/unicorn/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 71,
+      "replacementFor": [
+        "unicorn"
+      ]
+    },
+    {
+      "id": "gift.epic.galaxy",
+      "brand": "UniLive\u2019s",
+      "name": "Galaxy",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/galaxy/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/galaxy/galaxy.svga",
+        "webm": "/unilives-assets/gifts/epic/galaxy/galaxy.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/galaxy/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 72,
+      "replacementFor": [
+        "galaxy"
+      ]
+    },
+    {
+      "id": "gift.epic.golden-dragon",
+      "brand": "UniLive\u2019s",
+      "name": "Golden Dragon",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/golden-dragon/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/golden-dragon/golden-dragon.svga",
+        "webm": "/unilives-assets/gifts/epic/golden-dragon/golden-dragon.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/golden-dragon/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 70,
+      "replacementFor": [
+        "golden_dragon"
+      ]
+    },
+    {
+      "id": "gift.epic.studio-phoenix",
+      "brand": "UniLive\u2019s",
+      "name": "Phoenix",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/studio-phoenix/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/studio-phoenix/studio-phoenix.svga",
+        "webm": "/unilives-assets/gifts/epic/studio-phoenix/studio-phoenix.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/studio-phoenix/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 70,
+      "replacementFor": [
+        "studio_phoenix"
+      ]
+    },
+    {
+      "id": "gift.epic.crystal-castle",
+      "brand": "UniLive\u2019s",
+      "name": "Crystal Castle",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/crystal-castle/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/crystal-castle/crystal-castle.svga",
+        "webm": "/unilives-assets/gifts/epic/crystal-castle/crystal-castle.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/crystal-castle/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 71,
+      "replacementFor": [
+        "crystal_castle"
+      ]
+    },
+    {
+      "id": "gift.epic.galaxy-portal",
+      "brand": "UniLive\u2019s",
+      "name": "Galaxy Portal",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/galaxy-portal/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/galaxy-portal/galaxy-portal.svga",
+        "webm": "/unilives-assets/gifts/epic/galaxy-portal/galaxy-portal.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/galaxy-portal/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 72,
+      "replacementFor": [
+        "galaxy_portal"
+      ]
+    },
+    {
+      "id": "gift.epic.flying-unicorn",
+      "brand": "UniLive\u2019s",
+      "name": "Flying Unicorn",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/flying-unicorn/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/flying-unicorn/flying-unicorn.svga",
+        "webm": "/unilives-assets/gifts/epic/flying-unicorn/flying-unicorn.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/flying-unicorn/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 73,
+      "replacementFor": [
+        "flying_unicorn"
+      ]
+    },
+    {
+      "id": "gift.epic.star-whale",
+      "brand": "UniLive\u2019s",
+      "name": "Star Whale",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/star-whale/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/star-whale/star-whale.svga",
+        "webm": "/unilives-assets/gifts/epic/star-whale/star-whale.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/star-whale/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 74,
+      "replacementFor": [
+        "star_whale"
+      ]
+    },
+    {
+      "id": "gift.epic.ice-queen",
+      "brand": "UniLive\u2019s",
+      "name": "Ice Queen",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/ice-queen/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/ice-queen/ice-queen.svga",
+        "webm": "/unilives-assets/gifts/epic/ice-queen/ice-queen.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/ice-queen/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 75,
+      "replacementFor": [
+        "ice_queen"
+      ]
+    },
+    {
+      "id": "gift.epic.magic-tree",
+      "brand": "UniLive\u2019s",
+      "name": "Magic Tree",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/magic-tree/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/magic-tree/magic-tree.svga",
+        "webm": "/unilives-assets/gifts/epic/magic-tree/magic-tree.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/magic-tree/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 76,
+      "replacementFor": [
+        "magic_tree"
+      ]
+    },
+    {
+      "id": "gift.epic.rainbow-pegasus",
+      "brand": "UniLive\u2019s",
+      "name": "Rainbow Pegasus",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/rainbow-pegasus/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/rainbow-pegasus/rainbow-pegasus.svga",
+        "webm": "/unilives-assets/gifts/epic/rainbow-pegasus/rainbow-pegasus.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/rainbow-pegasus/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 77,
+      "replacementFor": [
+        "rainbow_pegasus"
+      ]
+    },
+    {
+      "id": "gift.epic.space-rocket",
+      "brand": "UniLive\u2019s",
+      "name": "Space Rocket",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/epic/space-rocket/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/epic/space-rocket/space-rocket.svga",
+        "webm": "/unilives-assets/gifts/epic/space-rocket/space-rocket.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/epic/space-rocket/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 78,
+      "replacementFor": [
+        "space_rocket"
+      ]
+    },
+    {
+      "id": "gift.legendary.dragon",
+      "brand": "UniLive\u2019s",
+      "name": "Dragon",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/dragon/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/dragon/dragon.svga",
+        "webm": "/unilives-assets/gifts/legendary/dragon/dragon.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/dragon/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 90,
+      "replacementFor": [
+        "dragon"
+      ]
+    },
+    {
+      "id": "gift.legendary.universe",
+      "brand": "UniLive\u2019s",
+      "name": "Universe",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/universe/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/universe/universe.svga",
+        "webm": "/unilives-assets/gifts/legendary/universe/universe.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/universe/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 91,
+      "replacementFor": [
+        "universe"
+      ]
+    },
+    {
+      "id": "gift.legendary.phoenix",
+      "brand": "UniLive\u2019s",
+      "name": "Phoenix",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/phoenix/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/phoenix/phoenix.svga",
+        "webm": "/unilives-assets/gifts/legendary/phoenix/phoenix.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/phoenix/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 90,
+      "replacementFor": [
+        "phoenix"
+      ]
+    },
+    {
+      "id": "gift.legendary.golden-palace",
+      "brand": "UniLive\u2019s",
+      "name": "Golden Palace",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/golden-palace/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/golden-palace/golden-palace.svga",
+        "webm": "/unilives-assets/gifts/legendary/golden-palace/golden-palace.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/golden-palace/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 90,
+      "replacementFor": [
+        "golden_palace"
+      ]
+    },
+    {
+      "id": "gift.legendary.lion-king",
+      "brand": "UniLive\u2019s",
+      "name": "Lion King",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/lion-king/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/lion-king/lion-king.svga",
+        "webm": "/unilives-assets/gifts/legendary/lion-king/lion-king.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/lion-king/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 90,
+      "replacementFor": [
+        "lion_king"
+      ]
+    },
+    {
+      "id": "gift.legendary.titan-robot",
+      "brand": "UniLive\u2019s",
+      "name": "Titan Robot",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/titan-robot/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/titan-robot/titan-robot.svga",
+        "webm": "/unilives-assets/gifts/legendary/titan-robot/titan-robot.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/titan-robot/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 90,
+      "replacementFor": [
+        "titan_robot"
+      ]
+    },
+    {
+      "id": "gift.legendary.emperor-throne",
+      "brand": "UniLive\u2019s",
+      "name": "Emperor Throne",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/emperor-throne/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/emperor-throne/emperor-throne.svga",
+        "webm": "/unilives-assets/gifts/legendary/emperor-throne/emperor-throne.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/emperor-throne/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 90,
+      "replacementFor": [
+        "emperor_throne"
+      ]
+    },
+    {
+      "id": "gift.legendary.celestial-angel",
+      "brand": "UniLive\u2019s",
+      "name": "Celestial Angel",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/celestial-angel/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/celestial-angel/celestial-angel.svga",
+        "webm": "/unilives-assets/gifts/legendary/celestial-angel/celestial-angel.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/celestial-angel/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 90,
+      "replacementFor": [
+        "celestial_angel"
+      ]
+    },
+    {
+      "id": "gift.legendary.universe-creation",
+      "brand": "UniLive\u2019s",
+      "name": "Universe Creation",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/universe-creation/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/universe-creation/universe-creation.svga",
+        "webm": "/unilives-assets/gifts/legendary/universe-creation/universe-creation.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/universe-creation/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 91,
+      "replacementFor": [
+        "universe_creation"
+      ]
+    },
+    {
+      "id": "gift.legendary.time-portal",
+      "brand": "UniLive\u2019s",
+      "name": "Time Portal",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/time-portal/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/time-portal/time-portal.svga",
+        "webm": "/unilives-assets/gifts/legendary/time-portal/time-portal.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/time-portal/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 91,
+      "replacementFor": [
+        "time_portal"
+      ]
+    },
+    {
+      "id": "gift.legendary.king-of-dragons",
+      "brand": "UniLive\u2019s",
+      "name": "King of Dragons",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/king-of-dragons/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/king-of-dragons/king-of-dragons.svga",
+        "webm": "/unilives-assets/gifts/legendary/king-of-dragons/king-of-dragons.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/king-of-dragons/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 92,
+      "replacementFor": [
+        "king_of_dragons"
+      ]
+    },
+    {
+      "id": "gift.legendary.space-battleship",
+      "brand": "UniLive\u2019s",
+      "name": "Space Battleship",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/space-battleship/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/space-battleship/space-battleship.svga",
+        "webm": "/unilives-assets/gifts/legendary/space-battleship/space-battleship.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/space-battleship/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 92,
+      "replacementFor": [
+        "space_battleship"
+      ]
+    },
+    {
+      "id": "gift.legendary.cosmic-explosion",
+      "brand": "UniLive\u2019s",
+      "name": "Cosmic Explosion",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/legendary/cosmic-explosion/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/legendary/cosmic-explosion/cosmic-explosion.svga",
+        "webm": "/unilives-assets/gifts/legendary/cosmic-explosion/cosmic-explosion.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/legendary/cosmic-explosion/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 10000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 93,
+      "replacementFor": [
+        "cosmic_explosion"
+      ]
+    },
+    {
+      "id": "gift.mythic.eternity",
+      "brand": "UniLive\u2019s",
+      "name": "Eternity",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/eternity/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/eternity/eternity.svga",
+        "webm": "/unilives-assets/gifts/mythic/eternity/eternity.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/eternity/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "eternity"
+      ]
+    },
+    {
+      "id": "gift.mythic.divine",
+      "brand": "UniLive\u2019s",
+      "name": "Divine",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/divine/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/divine/divine.svga",
+        "webm": "/unilives-assets/gifts/mythic/divine/divine.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/divine/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "divine"
+      ]
+    },
+    {
+      "id": "gift.mythic.universe",
+      "brand": "UniLive\u2019s",
+      "name": "Universe",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/universe/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/universe/universe.svga",
+        "webm": "/unilives-assets/gifts/mythic/universe/universe.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/universe/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "tags": [
+        "visual-only-reserved",
+        "unassigned"
+      ]
+    },
+    {
+      "id": "gift.mythic.galaxy-emperor",
+      "brand": "UniLive\u2019s",
+      "name": "Galaxy Emperor",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/galaxy-emperor/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/galaxy-emperor/galaxy-emperor.svga",
+        "webm": "/unilives-assets/gifts/mythic/galaxy-emperor/galaxy-emperor.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/galaxy-emperor/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "galaxy_emperor"
+      ]
+    },
+    {
+      "id": "gift.mythic.cosmic-phoenix",
+      "brand": "UniLive\u2019s",
+      "name": "Cosmic Phoenix",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/cosmic-phoenix/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/cosmic-phoenix/cosmic-phoenix.svga",
+        "webm": "/unilives-assets/gifts/mythic/cosmic-phoenix/cosmic-phoenix.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/cosmic-phoenix/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "cosmic_phoenix"
+      ]
+    },
+    {
+      "id": "gift.mythic.mythic-citadel",
+      "brand": "UniLive\u2019s",
+      "name": "Mythic Citadel",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/mythic-citadel/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/mythic-citadel/mythic-citadel.svga",
+        "webm": "/unilives-assets/gifts/mythic/mythic-citadel/mythic-citadel.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/mythic-citadel/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "mythic_citadel"
+      ]
+    },
+    {
+      "id": "gift.mythic.eternal-ocean",
+      "brand": "UniLive\u2019s",
+      "name": "Eternal Ocean",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/eternal-ocean/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/eternal-ocean/eternal-ocean.svga",
+        "webm": "/unilives-assets/gifts/mythic/eternal-ocean/eternal-ocean.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/eternal-ocean/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "eternal_ocean"
+      ]
+    },
+    {
+      "id": "gift.mythic.solar-dragon",
+      "brand": "UniLive\u2019s",
+      "name": "Solar Dragon",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/solar-dragon/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/solar-dragon/solar-dragon.svga",
+        "webm": "/unilives-assets/gifts/mythic/solar-dragon/solar-dragon.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/solar-dragon/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "solar_dragon"
+      ]
+    },
+    {
+      "id": "gift.mythic.supernova-prime",
+      "brand": "UniLive\u2019s",
+      "name": "Supernova Prime",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/mythic/supernova-prime/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/mythic/supernova-prime/supernova-prime.svga",
+        "webm": "/unilives-assets/gifts/mythic/supernova-prime/supernova-prime.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/mythic/supernova-prime/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 12000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 100,
+      "replacementFor": [
+        "supernova_prime"
+      ]
+    },
+    {
+      "id": "gift.seasonal.xmas-tree",
+      "brand": "UniLive\u2019s",
+      "name": "Xmas Tree",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/xmas-tree/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/xmas-tree/xmas-tree.svga",
+        "webm": "/unilives-assets/gifts/seasonal/xmas-tree/xmas-tree.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/xmas-tree/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "xmas_tree"
+      ],
+      "tags": [
+        "seasonal",
+        "christmas"
+      ]
+    },
+    {
+      "id": "gift.seasonal.santa-sleigh",
+      "brand": "UniLive\u2019s",
+      "name": "Santa Sleigh",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/santa-sleigh/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/santa-sleigh/santa-sleigh.svga",
+        "webm": "/unilives-assets/gifts/seasonal/santa-sleigh/santa-sleigh.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/santa-sleigh/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "santa_sleigh"
+      ],
+      "tags": [
+        "seasonal",
+        "christmas"
+      ]
+    },
+    {
+      "id": "gift.seasonal.red-packet",
+      "brand": "UniLive\u2019s",
+      "name": "Red Packet",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/red-packet/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/red-packet/red-packet.svga",
+        "webm": "/unilives-assets/gifts/seasonal/red-packet/red-packet.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/red-packet/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "red_packet"
+      ],
+      "tags": [
+        "seasonal",
+        "lunar"
+      ]
+    },
+    {
+      "id": "gift.seasonal.lion-dance",
+      "brand": "UniLive\u2019s",
+      "name": "Lion Dance",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/lion-dance/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/lion-dance/lion-dance.svga",
+        "webm": "/unilives-assets/gifts/seasonal/lion-dance/lion-dance.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/lion-dance/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "lion_dance"
+      ],
+      "tags": [
+        "seasonal",
+        "lunar"
+      ]
+    },
+    {
+      "id": "gift.seasonal.cupids-arrow",
+      "brand": "UniLive\u2019s",
+      "name": "Cupid's Arrow",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/cupids-arrow/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/cupids-arrow/cupids-arrow.svga",
+        "webm": "/unilives-assets/gifts/seasonal/cupids-arrow/cupids-arrow.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/cupids-arrow/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "cupids_arrow"
+      ],
+      "tags": [
+        "seasonal",
+        "valentine"
+      ]
+    },
+    {
+      "id": "gift.seasonal.true-love",
+      "brand": "UniLive\u2019s",
+      "name": "True Love",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/true-love/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/true-love/true-love.svga",
+        "webm": "/unilives-assets/gifts/seasonal/true-love/true-love.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/true-love/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "true_love"
+      ],
+      "tags": [
+        "seasonal",
+        "valentine"
+      ]
+    },
+    {
+      "id": "gift.seasonal.pumpkin-lantern",
+      "brand": "UniLive\u2019s",
+      "name": "Pumpkin Lantern",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/pumpkin-lantern/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/pumpkin-lantern/pumpkin-lantern.svga",
+        "webm": "/unilives-assets/gifts/seasonal/pumpkin-lantern/pumpkin-lantern.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/pumpkin-lantern/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "pumpkin_lantern"
+      ],
+      "tags": [
+        "seasonal",
+        "halloween"
+      ]
+    },
+    {
+      "id": "gift.seasonal.dracula-castle",
+      "brand": "UniLive\u2019s",
+      "name": "Dracula Castle",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/seasonal/dracula-castle/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/seasonal/dracula-castle/dracula-castle.svga",
+        "webm": "/unilives-assets/gifts/seasonal/dracula-castle/dracula-castle.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/seasonal/dracula-castle/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 50,
+      "replacementFor": [
+        "dracula_castle"
+      ],
+      "tags": [
+        "seasonal",
+        "halloween"
+      ]
+    },
+    {
+      "id": "gift.vip-exclusive.vip-crown",
+      "brand": "UniLive\u2019s",
+      "name": "VIP Crown",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/vip-exclusive/vip-crown/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/vip-exclusive/vip-crown/vip-crown.svga",
+        "webm": "/unilives-assets/gifts/vip-exclusive/vip-crown/vip-crown.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/vip-exclusive/vip-crown/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": false,
+      "priority": 80,
+      "replacementFor": [
+        "vip_crown"
+      ],
+      "tags": [
+        "vip"
+      ]
+    },
+    {
+      "id": "gift.vip-exclusive.vip-lambo",
+      "brand": "UniLive\u2019s",
+      "name": "VIP Lambo",
+      "category": "gift",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/gifts/vip-exclusive/vip-lambo/thumbnail.webp",
+        "svga": "/unilives-assets/gifts/vip-exclusive/vip-lambo/vip-lambo.svga",
+        "webm": "/unilives-assets/gifts/vip-exclusive/vip-lambo/vip-lambo.webm"
+      },
+      "thumbnail": "/unilives-assets/gifts/vip-exclusive/vip-lambo/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 4000,
+      "loop": false,
+      "fullScreen": true,
+      "priority": 85,
+      "replacementFor": [
+        "vip_lambo"
+      ],
+      "tags": [
+        "vip"
+      ]
+    }
+  ]
+}

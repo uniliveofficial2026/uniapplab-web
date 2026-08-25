@@ -1,0 +1,355 @@
+{
+  "version": 1,
+  "category": "sticker",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "sticker.reaction.fire",
+      "brand": "UniLive\u2019s",
+      "name": "Fire",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/fire/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/fire/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/fire/fire.svga",
+        "webm": "/unilives-assets/stickers/animated/fire/fire.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/fire/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83d\udd25"
+      ],
+      "replacementFor": [
+        "fire"
+      ]
+    },
+    {
+      "id": "sticker.reaction.sparkles",
+      "brand": "UniLive\u2019s",
+      "name": "Sparkles",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/sparkles/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/sparkles/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/sparkles/sparkles.svga",
+        "webm": "/unilives-assets/stickers/animated/sparkles/sparkles.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/sparkles/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\u2728"
+      ],
+      "replacementFor": [
+        "sparkles"
+      ]
+    },
+    {
+      "id": "sticker.reaction.hundred",
+      "brand": "UniLive\u2019s",
+      "name": "Hundred",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/hundred/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/hundred/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/hundred/hundred.svga",
+        "webm": "/unilives-assets/stickers/animated/hundred/hundred.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/hundred/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83d\udcaf"
+      ],
+      "replacementFor": [
+        "hundred"
+      ]
+    },
+    {
+      "id": "sticker.reaction.party",
+      "brand": "UniLive\u2019s",
+      "name": "Party",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/party/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/party/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/party/party.svga",
+        "webm": "/unilives-assets/stickers/animated/party/party.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/party/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83c\udf89"
+      ],
+      "replacementFor": [
+        "party"
+      ]
+    },
+    {
+      "id": "sticker.reaction.heart",
+      "brand": "UniLive\u2019s",
+      "name": "Heart",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/heart/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/heart/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/heart/heart.svga",
+        "webm": "/unilives-assets/stickers/animated/heart/heart.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/heart/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\u2764\ufe0f"
+      ],
+      "replacementFor": [
+        "heart"
+      ]
+    },
+    {
+      "id": "sticker.reaction.joy",
+      "brand": "UniLive\u2019s",
+      "name": "Joy",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/joy/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/joy/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/joy/joy.svga",
+        "webm": "/unilives-assets/stickers/animated/joy/joy.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/joy/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83d\ude02"
+      ],
+      "replacementFor": [
+        "joy"
+      ]
+    },
+    {
+      "id": "sticker.static.mountain",
+      "brand": "UniLive\u2019s",
+      "name": "Mountain",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/static/mountain/thumbnail.webp",
+        "png": "/unilives-assets/stickers/static/mountain/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/mountain/mountain.svga",
+        "webm": "/unilives-assets/stickers/animated/mountain/mountain.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/static/mountain/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83c\udfd4\ufe0f"
+      ],
+      "replacementFor": [
+        "mountain"
+      ]
+    },
+    {
+      "id": "sticker.static.camera",
+      "brand": "UniLive\u2019s",
+      "name": "Camera",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/static/camera/thumbnail.webp",
+        "png": "/unilives-assets/stickers/static/camera/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/camera/camera.svga",
+        "webm": "/unilives-assets/stickers/animated/camera/camera.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/static/camera/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83d\udcf8"
+      ],
+      "replacementFor": [
+        "camera"
+      ]
+    },
+    {
+      "id": "sticker.static.music",
+      "brand": "UniLive\u2019s",
+      "name": "Music",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/static/music/thumbnail.webp",
+        "png": "/unilives-assets/stickers/static/music/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/music/music.svga",
+        "webm": "/unilives-assets/stickers/animated/music/music.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/static/music/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83c\udfb5"
+      ],
+      "replacementFor": [
+        "music"
+      ]
+    },
+    {
+      "id": "sticker.reaction.star",
+      "brand": "UniLive\u2019s",
+      "name": "Star",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/star/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/star/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/star/star.svga",
+        "webm": "/unilives-assets/stickers/animated/star/star.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/star/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\u2b50"
+      ],
+      "replacementFor": [
+        "star"
+      ]
+    },
+    {
+      "id": "sticker.reaction.eyes",
+      "brand": "UniLive\u2019s",
+      "name": "Eyes",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/eyes/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/eyes/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/eyes/eyes.svga",
+        "webm": "/unilives-assets/stickers/animated/eyes/eyes.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/eyes/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83d\udc40"
+      ],
+      "replacementFor": [
+        "eyes"
+      ]
+    },
+    {
+      "id": "sticker.reaction.rocket",
+      "brand": "UniLive\u2019s",
+      "name": "Rocket",
+      "category": "sticker",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/stickers/reaction/rocket/thumbnail.webp",
+        "png": "/unilives-assets/stickers/reaction/rocket/thumbnail.png",
+        "svga": "/unilives-assets/stickers/animated/rocket/rocket.svga",
+        "webm": "/unilives-assets/stickers/animated/rocket/rocket.webm"
+      },
+      "thumbnail": "/unilives-assets/stickers/reaction/rocket/thumbnail.webp",
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "durationMs": 2000,
+      "loop": false,
+      "priority": 20,
+      "tags": [
+        "editor-overlay",
+        "temporary-emoji-fallback",
+        "\ud83d\ude80"
+      ],
+      "replacementFor": [
+        "rocket"
+      ]
+    }
+  ]
+}

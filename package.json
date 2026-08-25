@@ -94,7 +94,8 @@
     "asset-studio:approve": "pnpm --filter @workspace/unilives-asset-studio exec tsx src/cli/approve.ts",
     "asset-studio:validate": "pnpm --filter @workspace/unilives-asset-studio run validate",
     "android:bundle": "pnpm --filter @workspace/instacollab run android:bundle",
-    "android:bundle:offline": "pnpm --filter @workspace/instacollab run android:bundle:offline"
+    "android:bundle:offline": "pnpm --filter @workspace/instacollab run android:bundle:offline",
+    "test:real-device-mapping": "node scripts/real-device-mapping-gate.mjs"
   },
   "private": true,
   "devDependencies": {

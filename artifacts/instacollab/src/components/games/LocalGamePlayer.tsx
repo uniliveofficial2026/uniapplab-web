@@ -94,11 +94,17 @@ export function LocalGamePlayer({ game, onClose, onSessionEnd }: LocalGamePlayer
       setFrameHint(null);
       try {
         if (game.playKind === 'web') {
-          // Prefer the verified fixed UI on http://127.0.0.1:3000/ when it is up.
-          const localFixed = await tryLocalFixedServer(game.productionAppUrl);
-          if (localFixed) {
-            setLaunch({ mode: 'sw', url: localFixed });
-            return;
+          // Local fixed server (:3000) is DEV-only. Production must never probe loopback.
+          const allowLocalFixed =
+            import.meta.env.DEV &&
+            typeof game.productionAppUrl === 'string' &&
+            /^(https?:\/\/)?(127\.0\.0\.1|localhost)(:\d+)?/i.test(game.productionAppUrl);
+          if (allowLocalFixed) {
+            const localFixed = await tryLocalFixedServer(game.productionAppUrl);
+            if (localFixed) {
+              setLaunch({ mode: 'sw', url: localFixed });
+              return;
+            }
           }
           // Production / offline: UniLive embed built from that same remix package.
           const embedUrl =

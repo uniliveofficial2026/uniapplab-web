@@ -1,0 +1,36 @@
+{
+  "installedAt": "2026-07-07T10:07:27.014Z",
+  "package": "tencentcloud-webar",
+  "version": null,
+  "modules": [
+    "beautify",
+    "segmentation"
+  ],
+  "backgrounds": [
+    "https://webar-static.tencent-cloud.com/assets/background/1.jpg",
+    "https://webar-static.tencent-cloud.com/assets/background/2.jpg",
+    "https://webar-static.tencent-cloud.com/assets/background/3.jpg",
+    "https://webar-static.tencent-cloud.com/assets/background/4.jpg",
+    "/trtc-webar/backgrounds/video-bg-1.mp4",
+    "/trtc-webar/backgrounds/video-bg-2.mp4"
+  ],
+  "videoBackgrounds": [
+    "/trtc-webar/backgrounds/video-bg-1.mp4",
+    "/trtc-webar/backgrounds/video-bg-2.mp4"
+  ],
+  "tabs": [
+    "beauty",
+    "makeup",
+    "sticker",
+    "filter",
+    "background"
+  ],
+  "features": [
+    "setBeautify",
+    "getEffectList",
+    "getCommonFilter",
+    "setEffect",
+    "setFilter",
+    "setBackground"
+  ]
+}

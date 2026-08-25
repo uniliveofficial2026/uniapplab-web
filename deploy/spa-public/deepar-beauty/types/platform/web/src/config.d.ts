@@ -1,0 +1,12 @@
+export declare let isForceShutdown: boolean;
+export declare const version: string;
+export declare const isTrialVersion: boolean;
+export declare const isDomainLocked: boolean;
+export declare const isDemoVersion: boolean;
+export declare const trialTimeMs: number;
+declare function _checkDemoVersionExpired(): void;
+declare function _checkDomain(): void;
+export declare const checkDemoVersionExpired: typeof _checkDemoVersionExpired;
+export declare const checkDomainLock: typeof _checkDomain;
+export declare function setForceShutdown(bool: boolean): void;
+export {};

@@ -1,0 +1,45 @@
+{
+  "ok": true,
+  "origin": "https://app.uniapplab.com",
+  "at": "2026-08-25T00:31:22.386Z",
+  "fakeMedia": false,
+  "video": {
+    "label": "FaceTime HD Camera (1C1C:B782)",
+    "readyState": "ended",
+    "muted": false,
+    "enabled": true,
+    "settings": {
+      "aspectRatio": 1.7777777777777777,
+      "deviceId": "448030d02815e795f0abe30f52bb7e1ef0fb04cb6cbb50c555fde51e39055ee9",
+      "frameRate": 30,
+      "groupId": "31aed28627ff3a1ee7399332bbe4dc0078f0a1ca4e5689e109889b8d36deeba0",
+      "height": 720,
+      "resizeMode": "none",
+      "width": 1280
+    }
+  },
+  "audio": {
+    "label": "Default - MacBook Air Microphone (Built-in)",
+    "readyState": "ended",
+    "muted": false,
+    "enabled": true,
+    "settings": {
+      "autoGainControl": true,
+      "channelCount": 1,
+      "deviceId": "default",
+      "echoCancellation": true,
+      "groupId": "5c43bf68e8e4fd93acc4debe61f927ed0a0d683365fc0120e6dc8b88b8e30407",
+      "latency": 0.01,
+      "noiseSuppression": true,
+      "sampleRate": 48000,
+      "sampleSize": 16,
+      "voiceIsolation": false
+    }
+  },
+  "framePath": "/Volumes/Wei2TB/Universal-Fixer-Device-QA/docs/real-device-qa/evidence/production-origin-real-gum-frame.jpg",
+  "error": null,
+  "dimensions": {
+    "w": 1280,
+    "h": 720
+  }
+}

@@ -1,0 +1,1 @@
+const a=!1,e="instacollab:platform-admin-moderation";function i(t){if(!t||typeof t!="object")return!1;const o=t;return o.source!==e?!1:o.action==="seats"||o.action==="ban-seats"||o.action==="viewers"}function c(t,o,n){const s=t?.contentWindow;if(!s)return!1;const r={source:e,action:o,...n?{roomId:String(n)}:{}};return s.postMessage(r,"*"),!0}export{a as D,i,c as p};

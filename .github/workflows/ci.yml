@@ -2,7 +2,7 @@ name: CI
 
 on:
   push:
-    branches: [main, master, 'stage-d/**', 'stage-c/**', 'release/**']
+    branches: [main, master, 'stage-d/**', 'stage-c/**', 'release/**', 'qa/**']
   pull_request:
   workflow_dispatch:
 
@@ -43,6 +43,9 @@ jobs:
 
       - name: Typecheck instacollab
         run: pnpm --filter @workspace/instacollab run typecheck
+
+      - name: Real-device / production mapping contracts
+        run: pnpm run test:real-device-mapping
 
       - name: Stage B UniLiveRTC + platform foundation
         run: pnpm run test:stage-b

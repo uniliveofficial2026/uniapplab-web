@@ -1,0 +1,29 @@
+{
+  "schemaVersion": 1,
+  "worktree": "/Volumes/Wei2TB/Universal-Fixer-Device-QA",
+  "baseSha": "9e8c44a587b00e217f7cc79aa97044ec664f3a00",
+  "productionUrl": "https://app.uniapplab.com",
+  "rtcStack": "UniLiveRTC → LiveKitRTCProvider → LiveKit",
+  "uiUxChanged": false,
+  "checkpointAt": "2026-08-25T00:40:00Z",
+  "currentSlice": "finalize-docs-spa-rebuild-commit",
+  "completed": [
+    "worktree-on-9e8c44a",
+    "device-inventory",
+    "maps-audits",
+    "ios-build-install-launch",
+    "android-assembleDebug",
+    "desktop-real-gum-evidence",
+    "stage-a-b-c-d-pass",
+    "visual-22-22",
+    "mapping-gate",
+    "spa-rebuild-with-LocalGamePlayer-fix"
+  ],
+  "devicesFound": {
+    "iphone14ProMax": "installed_launched",
+    "ipad": "offline",
+    "android": "none_attached",
+    "macDesktopCameraMic": "real_gum_pass"
+  },
+  "nextAction": "commit+push qa and release; deploy spa-public; re-verify production LocalGamePlayer chunk"
+}

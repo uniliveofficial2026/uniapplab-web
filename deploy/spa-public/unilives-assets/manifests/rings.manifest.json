@@ -1,0 +1,139 @@
+{
+  "version": 1,
+  "category": "avatar-ring",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "ring.vip.default",
+      "brand": "UniLive\u2019s",
+      "name": "VIP ring",
+      "category": "avatar-ring",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/avatar-rings/vip/default.png",
+        "webp": "/unilives-assets/avatar-rings/vip/default.webp",
+        "webm": "/unilives-assets/avatar-rings/animated/default.webm"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "ring.vip.svip",
+      "brand": "UniLive\u2019s",
+      "name": "SVIP ring",
+      "category": "avatar-ring",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/avatar-rings/svip/svip.png",
+        "webp": "/unilives-assets/avatar-rings/svip/svip.webp",
+        "webm": "/unilives-assets/avatar-rings/animated/svip.webm"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "ring.vip.vvip",
+      "brand": "UniLive\u2019s",
+      "name": "VVIP ring",
+      "category": "avatar-ring",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/avatar-rings/vvip/vvip.png",
+        "webp": "/unilives-assets/avatar-rings/vvip/vvip.webp",
+        "webm": "/unilives-assets/avatar-rings/animated/vvip.webm"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "ring.host.elite",
+      "brand": "UniLive\u2019s",
+      "name": "Elite host ring",
+      "category": "avatar-ring",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/avatar-rings/host/elite.png",
+        "webp": "/unilives-assets/avatar-rings/host/elite.webp",
+        "webm": "/unilives-assets/avatar-rings/animated/elite.webm"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "ring.fan.super",
+      "brand": "UniLive\u2019s",
+      "name": "Super fan ring",
+      "category": "avatar-ring",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/avatar-rings/fan/super.png",
+        "webp": "/unilives-assets/avatar-rings/fan/super.webp",
+        "webm": "/unilives-assets/avatar-rings/animated/super.webm"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "ring.standard.default",
+      "brand": "UniLive\u2019s",
+      "name": "Standard ring",
+      "category": "avatar-ring",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/avatar-rings/standard/default.png",
+        "webp": "/unilives-assets/avatar-rings/standard/default.webp",
+        "webm": "/unilives-assets/avatar-rings/animated/default.webm"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    }
+  ]
+}

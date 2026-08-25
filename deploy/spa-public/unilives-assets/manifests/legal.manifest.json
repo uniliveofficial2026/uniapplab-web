@@ -1,0 +1,287 @@
+{
+  "version": 1,
+  "category": "legal",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "legal.document.background",
+      "brand": "UniLive\u2019s",
+      "name": "Legal document background",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/document-bg.webp",
+        "png": "/unilives-assets/legal/privacy/document-bg.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.document.header",
+      "brand": "UniLive\u2019s",
+      "name": "Legal document header",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/document-header.webp",
+        "png": "/unilives-assets/legal/privacy/document-header.png",
+        "svg": "/unilives-assets/legal/privacy/document-header.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.document.footer",
+      "brand": "UniLive\u2019s",
+      "name": "Legal document footer",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/document-footer.webp",
+        "png": "/unilives-assets/legal/privacy/document-footer.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.terms.icon",
+      "brand": "UniLive\u2019s",
+      "name": "Terms icon",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/terms/icon.webp",
+        "png": "/unilives-assets/legal/terms/icon.png",
+        "svg": "/unilives-assets/legal/terms/icon.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.privacy.icon",
+      "brand": "UniLive\u2019s",
+      "name": "Privacy icon",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/icon.webp",
+        "png": "/unilives-assets/legal/privacy/icon.png",
+        "svg": "/unilives-assets/legal/privacy/icon.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.community.icon",
+      "brand": "UniLive\u2019s",
+      "name": "Community guidelines icon",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/community-rules/icon.webp",
+        "png": "/unilives-assets/legal/community-rules/icon.png",
+        "svg": "/unilives-assets/legal/community-rules/icon.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.copyright.icon",
+      "brand": "UniLive\u2019s",
+      "name": "Copyright icon",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/copyright/icon.webp",
+        "png": "/unilives-assets/legal/copyright/icon.png",
+        "svg": "/unilives-assets/legal/copyright/icon.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.safety.icon",
+      "brand": "UniLive\u2019s",
+      "name": "Safety icon",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/safety/icon.webp",
+        "png": "/unilives-assets/legal/safety/icon.png",
+        "svg": "/unilives-assets/legal/safety/icon.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.consent.icon",
+      "brand": "UniLive\u2019s",
+      "name": "Consent icon",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/consent-icon.webp",
+        "png": "/unilives-assets/legal/privacy/consent-icon.png",
+        "svg": "/unilives-assets/legal/privacy/consent-icon.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.state.loading",
+      "brand": "UniLive\u2019s",
+      "name": "Legal loading",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/loading.webp",
+        "png": "/unilives-assets/legal/privacy/loading.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.state.error",
+      "brand": "UniLive\u2019s",
+      "name": "Legal error",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/error.webp",
+        "png": "/unilives-assets/legal/privacy/error.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.state.success",
+      "brand": "UniLive\u2019s",
+      "name": "Legal success",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "webp": "/unilives-assets/legal/privacy/success.webp",
+        "png": "/unilives-assets/legal/privacy/success.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "legal.fallback.default",
+      "brand": "UniLive\u2019s",
+      "name": "Legal fallback",
+      "category": "legal",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/brand/app-logo.png",
+        "webp": "/brand/app-logo.png"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-10"
+      ],
+      "visualOnly": true
+    }
+  ]
+}

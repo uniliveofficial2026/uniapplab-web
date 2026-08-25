@@ -32,7 +32,7 @@ export const LOCAL_GAME_CATALOG: LocalGameCatalogEntry[] = [
     zipFileName: 'remix_-greedy-casino-slot.zip',
     zipRevision: '2026-07-21-from-3000',
     image: 'bg-gradient-to-tr from-amber-500 to-red-700',
-    // Exact fixed UI the user verified at http://127.0.0.1:3000/
+    // DEV: optional local package server. Production uses embeddedAppUrl / same-origin.
     productionAppUrl: 'http://127.0.0.1:3000/',
     embeddedAppUrl: '/games/greedy-slot/index.html',
   },

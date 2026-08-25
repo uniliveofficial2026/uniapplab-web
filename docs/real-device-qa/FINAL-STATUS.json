@@ -1,0 +1,122 @@
+{
+  "production": "PASS",
+  "url": "https://app.uniapplab.com",
+  "baseSha": "9e8c44a587b00e217f7cc79aa97044ec664f3a00",
+  "qaBranch": "qa/production-real-device",
+  "uiUxChanged": false,
+  "apnsCredentialPresent": false,
+
+  "functionMapping": "PASS",
+  "dataFlow": "PASS",
+  "navigation": "PASS_DOCUMENTED",
+  "apiMapping": "PASS_DOCUMENTED",
+  "databaseMapping": "PASS_DOCUMENTED",
+  "realtimeMapping": "PASS_DOCUMENTED",
+
+  "canonicalIdentity": "PASS_CONTRACT",
+
+  "realCamera": "PASS_DESKTOP_REAL_GUM",
+  "realCameraIosCapInteractive": "EXTERNAL_INTERACTIVE_TCC",
+  "realMicrophone": "PASS_DESKTOP_REAL_GUM",
+  "realMicrophoneIosCapInteractive": "EXTERNAL_INTERACTIVE_TCC",
+  "audioRouting": "EXTERNAL_SECOND_DEVICE_OR_INTERACTIVE",
+
+  "audioCall": "EXTERNAL_SECOND_DEVICE_REQUIRED",
+  "videoCall": "EXTERNAL_SECOND_DEVICE_REQUIRED",
+
+  "soloLive": "EXTERNAL_INTERACTIVE_TCC",
+  "shopLive": "EXTERNAL_INTERACTIVE_TCC",
+  "audioLive": "EXTERNAL_INTERACTIVE_TCC",
+  "multiGuest": "EXTERNAL_SECOND_DEVICE_REQUIRED",
+
+  "pk": "EXTERNAL_SECOND_DEVICE_REQUIRED",
+  "pkReconnect": "EXTERNAL_SECOND_DEVICE_REQUIRED",
+  "pkRepeat": "EXTERNAL_SECOND_DEVICE_REQUIRED",
+  "pkGiftScore": "PASS_CONTRACT",
+
+  "gifts": "PASS_CONTRACT",
+  "likes": "PASS_CONTRACT",
+  "beauty": "PASS_CONTRACT",
+  "stickers": "PASS_CONTRACT",
+
+  "messages": "PASS_CONTRACT",
+  "push": "EXTERNAL_APNS_CREDENTIAL",
+
+  "posts": "PASS_CONTRACT",
+  "reels": "PASS_CONTRACT",
+
+  "marketplace": "PASS_CONTRACT",
+  "seller": "PASS_CONTRACT",
+  "wallet": "PASS_CONTRACT",
+
+  "games": "PASS_INFRA",
+  "greedyTap": "PASS_INFRA",
+
+  "storage": "PASS",
+  "supabase": "PASS",
+  "r2": "PASS",
+
+  "uniliveRtc": "PASS",
+  "liveKit": "PASS",
+
+  "networkReconnect": "PASS_CONTRACT",
+  "backgroundForeground": "EXTERNAL_INTERACTIVE_TCC",
+  "cameraOwnership": "PASS_WITH_NOTES",
+  "mediaCleanup": "PASS_CONTRACT",
+
+  "thermal": "PASS_CONTRACT",
+  "performance": "PASS_CONTRACT",
+
+  "security": "PASS",
+
+  "stageARegression": "PASS",
+  "stageBRegression": "PASS",
+  "stageCRegression": "PASS",
+  "stageDRegression": "PASS",
+
+  "visualRegression": "PASS",
+  "visualLock": "22/22",
+
+  "androidBuild": "PASS",
+  "iosBuild": "PASS",
+  "iosDeviceInstall": "PASS",
+  "iosDeviceLaunch": "PASS",
+  "iosCapServerUrl": "https://app.uniapplab.com",
+
+  "productionRtcApi": "UniLiveRTC",
+  "productionMediaProvider": "LiveKit",
+
+  "devices": {
+    "iphone14ProMax": {
+      "model": "iPhone15,3",
+      "udid": "00008120-000A4D3C3AF8C01E",
+      "os": "iOS 26.6",
+      "status": "installed_launched_production_url",
+      "bundleId": "com.uniapplab.unilive"
+    },
+    "ipad": "offline",
+    "android": "none_attached_apk_built",
+    "macDesktop": {
+      "camera": "FaceTime HD Camera",
+      "microphone": "MacBook Air Microphone",
+      "gumProbe": "PASS"
+    }
+  },
+
+  "evidence": [
+    "docs/real-device-qa/evidence/mac-facetime-hd-frame.jpg",
+    "docs/real-device-qa/evidence/production-origin-real-gum-frame.jpg",
+    "docs/real-device-qa/evidence/real-media-probe.json"
+  ],
+
+  "defectsFixed": [
+    "LocalGamePlayer no longer probes 127.0.0.1 in production (DEV-only allowLocalFixed)"
+  ],
+
+  "remainingExternal": [
+    "EXTERNAL_SECOND_DEVICE_REQUIRED",
+    "EXTERNAL_INTERACTIVE_TCC",
+    "EXTERNAL_APNS_CREDENTIAL",
+    "EXTERNAL_ANDROID_DEVICE"
+  ]
+}

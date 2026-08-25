@@ -1,0 +1,360 @@
+{
+  "version": 1,
+  "category": "badge",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "badge.official.verified",
+      "brand": "UniLive\u2019s",
+      "name": "Verified",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/official/verified.png",
+        "webp": "/unilives-assets/badges/official/verified.webp",
+        "svg": "/unilives-assets/badges/official/verified.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.role.admin",
+      "brand": "UniLive\u2019s",
+      "name": "Admin",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/administration/admin.png",
+        "webp": "/unilives-assets/badges/administration/admin.webp",
+        "svg": "/unilives-assets/badges/administration/admin.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.role.moderator",
+      "brand": "UniLive\u2019s",
+      "name": "Moderator",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/moderation/moderator.png",
+        "webp": "/unilives-assets/badges/moderation/moderator.webp",
+        "svg": "/unilives-assets/badges/moderation/moderator.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.host.elite",
+      "brand": "UniLive\u2019s",
+      "name": "Elite host",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/host/elite.png",
+        "webp": "/unilives-assets/badges/host/elite.webp",
+        "svg": "/unilives-assets/badges/host/elite.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.vip.default",
+      "brand": "UniLive\u2019s",
+      "name": "VIP",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/vip/default.png",
+        "webp": "/unilives-assets/badges/vip/default.webp",
+        "svg": "/unilives-assets/badges/vip/default.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.vip.svip",
+      "brand": "UniLive\u2019s",
+      "name": "SVIP",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/vip/svip.png",
+        "webp": "/unilives-assets/badges/vip/svip.webp",
+        "svg": "/unilives-assets/badges/vip/svip.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.vip.vvip",
+      "brand": "UniLive\u2019s",
+      "name": "VVIP",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/vip/vvip.png",
+        "webp": "/unilives-assets/badges/vip/vvip.webp",
+        "svg": "/unilives-assets/badges/vip/vvip.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.level.25",
+      "brand": "UniLive\u2019s",
+      "name": "Level 25",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/level/25.png",
+        "webp": "/unilives-assets/badges/level/25.webp",
+        "svg": "/unilives-assets/badges/level/25.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.fan.super",
+      "brand": "UniLive\u2019s",
+      "name": "Super fan",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/fan/super.png",
+        "webp": "/unilives-assets/badges/fan/super.webp",
+        "svg": "/unilives-assets/badges/fan/super.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.creator.default",
+      "brand": "UniLive\u2019s",
+      "name": "Creator",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/creator/default.png",
+        "webp": "/unilives-assets/badges/creator/default.webp",
+        "svg": "/unilives-assets/badges/creator/default.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.level.default",
+      "brand": "UniLive\u2019s",
+      "name": "Level",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/level/default.png",
+        "webp": "/unilives-assets/badges/level/default.webp",
+        "svg": "/unilives-assets/badges/level/default.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.level.10",
+      "brand": "UniLive\u2019s",
+      "name": "Level 10",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/level/10.png",
+        "webp": "/unilives-assets/badges/level/10.webp",
+        "svg": "/unilives-assets/badges/level/10.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.level.50",
+      "brand": "UniLive\u2019s",
+      "name": "Level 50",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/level/50.png",
+        "webp": "/unilives-assets/badges/level/50.webp",
+        "svg": "/unilives-assets/badges/level/50.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.role.cohost",
+      "brand": "UniLive\u2019s",
+      "name": "Cohost",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/moderation/cohost.png",
+        "webp": "/unilives-assets/badges/moderation/cohost.webp",
+        "svg": "/unilives-assets/badges/moderation/cohost.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.role.supporter",
+      "brand": "UniLive\u2019s",
+      "name": "Supporter",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/fan/supporter.png",
+        "webp": "/unilives-assets/badges/fan/supporter.webp",
+        "svg": "/unilives-assets/badges/fan/supporter.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "badge.verification.default",
+      "brand": "UniLive\u2019s",
+      "name": "Verified",
+      "category": "badge",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/badges/official/verified.png",
+        "webp": "/unilives-assets/badges/official/verified.webp",
+        "svg": "/unilives-assets/badges/official/verified.svg"
+      },
+      "fallback": "/brand/app-logo.png",
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "priority": 50,
+      "tags": [
+        "visualOnly",
+        "phase-9",
+        "alias-of-badge.official.verified"
+      ],
+      "visualOnly": true
+    }
+  ]
+}

@@ -1,0 +1,91 @@
+{
+  "version": 1,
+  "category": "frame",
+  "brand": "UniLive\u2019s",
+  "assets": [
+    {
+      "id": "frame.profile.unicorn-dream",
+      "brand": "UniLive\u2019s",
+      "name": "Unicorn Dream",
+      "category": "frame",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/frames/profile/unicorn-dream.png",
+        "webp": "/unilives-assets/frames/profile/unicorn-dream.webp"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "frame.comment.vip",
+      "brand": "UniLive\u2019s",
+      "name": "VIP comment frame",
+      "category": "frame",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/frames/comment/vip.png",
+        "webp": "/unilives-assets/frames/comment/vip.webp"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "frame.seat.audio.vip",
+      "brand": "UniLive\u2019s",
+      "name": "VIP audio seat",
+      "category": "frame",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/frames/audio-seat/vip.png",
+        "webp": "/unilives-assets/frames/audio-seat/vip.webp"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    },
+    {
+      "id": "frame.seat.video.host",
+      "brand": "UniLive\u2019s",
+      "name": "Host video seat",
+      "category": "frame",
+      "status": "missing",
+      "version": 1,
+      "formats": {
+        "png": "/unilives-assets/frames/video-seat/host.png",
+        "webp": "/unilives-assets/frames/video-seat/host.webp"
+      },
+      "fallback": "/brand/app-logo.png",
+      "priority": 50,
+      "reducedMotionFallback": "/brand/app-logo.png",
+      "lowPerformanceFallback": "/brand/app-logo.png",
+      "tags": [
+        "visualOnly",
+        "phase-9"
+      ],
+      "visualOnly": true
+    }
+  ]
+}
