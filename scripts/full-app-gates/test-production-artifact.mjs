@@ -31,4 +31,11 @@ for (const name of assets.slice(0, 5)) {
     process.exit(1);
   }
 }
+
+const homeShadow = path.join(spa, 'home', 'index.html');
+if (fs.existsSync(homeShadow)) {
+  console.error('FAIL static home/index.html shadows SPA /home route — move to oauth-brand/');
+  process.exit(1);
+}
+
 console.log(JSON.stringify({ ok: true, spaJsAssets: assets.length }, null, 2));
