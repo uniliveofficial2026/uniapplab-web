@@ -1,0 +1,166 @@
+{
+  "base": "https://app.uniapplab.com",
+  "email": "d***@unilive.app",
+  "steps": [
+    {
+      "name": "01-boot",
+      "url": "https://app.uniapplab.com/home",
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/auth-01-boot.png"
+    },
+    {
+      "name": "02-auth-or-shell",
+      "url": "https://app.uniapplab.com/home",
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/auth-02-auth-or-shell.png"
+    },
+    {
+      "name": "03-login-filled",
+      "url": "https://app.uniapplab.com/home",
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/auth-03-login-filled.png"
+    },
+    {
+      "name": "04-after-login",
+      "url": "https://app.uniapplab.com/home",
+      "screenshot": "/Volumes/Wei2TB/Universal-Fixer-Full-App-Recovery/docs/full-app-recovery/evidence/auth-04-after-login.png"
+    }
+  ],
+  "networkFailures": [
+    {
+      "status": 401,
+      "url": "https://app.uniapplab.com/api/chat/threads"
+    },
+    {
+      "status": 401,
+      "url": "https://app.uniapplab.com/api/me/identities"
+    },
+    {
+      "status": 401,
+      "url": "https://app.uniapplab.com/api/presence/offline"
+    }
+  ],
+  "consoleErrors": [
+    "Failed to load resource: net::ERR_CONNECTION_REFUSED",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 401 ()",
+    "Failed to load resource: the server responded with a status of 401 ()",
+    "Failed to load resource: the server responded with a status of 401 ()",
+    "Failed to load resource: the server responded with a status of 401 ()"
+  ],
+  "apiSamples": [
+    {
+      "status": 200,
+      "url": "https://app.uniapplab.com/api/app-config/bootstrap"
+    },
+    {
+      "status": 204,
+      "url": "https://app.uniapplab.com/api/ux/signals"
+    },
+    {
+      "status": 200,
+      "url": "https://app.uniapplab.com/api/automation"
+    },
+    {
+      "status": 200,
+      "url": "https://app.uniapplab.com/api/platform/brand"
+    },
+    {
+      "status": 401,
+      "url": "https://app.uniapplab.com/api/chat/threads"
+    },
+    {
+      "status": 401,
+      "url": "https://app.uniapplab.com/api/me/identities"
+    },
+    {
+      "status": 200,
+      "url": "https://app.uniapplab.com/api/gifts/catalog"
+    },
+    {
+      "status": 401,
+      "url": "https://app.uniapplab.com/api/presence/offline"
+    },
+    {
+      "status": 200,
+      "url": "https://app.uniapplab.com/api/v1/health"
+    },
+    {
+      "status": 200,
+      "url": "https://app.uniapplab.com/api/app-config/bootstrap"
+    }
+  ],
+  "shell": {
+    "Home": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Reels": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Messages": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Live": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Profile": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Marketplace": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Wallet": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    },
+    "Discover": {
+      "clicked": false,
+      "url": "https://app.uniapplab.com/home"
+    }
+  },
+  "status": "FAIL",
+  "authenticatedApi": {
+    "/api/chat/threads": {
+      "status": 401,
+      "body": {
+        "code": "error.unauthorized",
+        "error": "Please sign in to continue."
+      }
+    },
+    "/api/me/identities": {
+      "status": 401,
+      "body": {
+        "code": "error.unauthorized",
+        "error": "Please sign in to continue."
+      }
+    },
+    "/api/gifts/catalog": {
+      "status": 200,
+      "body": {
+        "gifts": []
+      }
+    },
+    "/api/presence/offline": {
+      "status": 401,
+      "body": {
+        "code": "error.unauthorized",
+        "error": "Please sign in to continue."
+      }
+    },
+    "/api/v1/health": {
+      "status": 200,
+      "body": {
+        "ok": true,
+        "apiVersion": "v1",
+        "productionRtcApi": "UniLiveRTC",
+        "productionMediaProvider": "LiveKit"
+      }
+    },
+    "bootstrapWebsocket": "ws://localhost:5173"
+  },
+  "signedInShell": "FAIL"
+}

@@ -1,0 +1,12 @@
+{
+  "emailDomain": "uniapplab.com",
+  "uidPrefix": "2a7e55d4",
+  "results": {
+    "/api/chat/threads": 200,
+    "/api/me/identities": 200,
+    "/api/me": 200,
+    "/api/gifts/catalog": 200,
+    "/api/presence/offline": "200_ok_false_upstash_unconfigured"
+  },
+  "websocketOriginBeforeFix": "ws://localhost:5173"
+}

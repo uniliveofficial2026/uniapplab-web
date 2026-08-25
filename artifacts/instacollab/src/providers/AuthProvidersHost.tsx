@@ -4,27 +4,46 @@
  *
  * Until the real AuthProvider mounts, wrap with AuthContext so `useAuth()` does
  * not fall into the undefined-context offline stub (which breaks production login).
+ *
+ * Boot stub is explicitly BOOTING (loading: true) — never a signed-in fake user.
  */
 import React, { useEffect, useState } from 'react';
-import { AuthContext, AUTH_OFFLINE_STUB, type AuthContextValue } from '../lib/auth/authContextStore';
+import { AuthContext, type AuthContextValue } from '../lib/auth/authContextStore';
 
 type Bundle = {
   CloudAuthProvider: React.ComponentType<{ children: React.ReactNode }>;
   AuthProvider: React.ComponentType<{ children: React.ReactNode }>;
 };
 
+const bootReject = async () => ({ ok: false as const, reason: 'Auth still loading' });
+
+/** Explicit BOOTING state — not AUTH_OFFLINE_STUB (which has loading:false). */
 const AUTH_BOOT_STUB: AuthContextValue = {
-  ...AUTH_OFFLINE_STUB,
+  user: null,
+  profile: null,
+  setProfile: () => {},
   loading: true,
-  loginWithGoogle: async () => ({ ok: false, reason: 'Auth still loading' }),
-  connectGoogleWorkspace: async () => ({ ok: false, reason: 'Auth still loading' }),
-  switchAccount: async () => ({ ok: false, reason: 'Auth still loading' }),
-  linkGoogleAccount: async () => ({ ok: false, reason: 'Auth still loading' }),
+  userAccounts: [],
+  googleAccessToken: null,
+  loginWithGoogle: bootReject,
+  connectGoogleWorkspace: bootReject,
+  loginWithApple: async () => {},
+  loginWithEmail: async () => {},
+  signupWithEmail: async () => {},
+  resetPassword: async () => {},
+  logout: async () => {},
+  switchAccount: bootReject,
+  linkGoogleAccount: bootReject,
   linkEmailAccount: async () => ({ ok: false, reason: 'Auth still loading' }),
   linkEmailSignUp: async () => ({ ok: false, reason: 'Auth still loading' }),
   resendEmailConfirmation: async () => ({ ok: false, reason: 'Auth still loading' }),
   sendEmailAuthOtp: async () => ({ ok: false, reason: 'Auth still loading' }),
   verifyEmailAuthOtp: async () => ({ ok: false, reason: 'Auth still loading' }),
+  deleteAccount: async () => {},
+  selectAccount: async () => {},
+  removeAccount: () => {},
+  ensureDeviceAccountsSynced: async () => {},
+  refreshAccountSwitcher: async () => {},
 };
 
 export function AuthProvidersHost({ children }: { children: React.ReactNode }) {

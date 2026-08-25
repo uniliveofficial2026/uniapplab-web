@@ -79,6 +79,24 @@ export function parsePublicBootstrap(input: unknown): PublicBootstrapResponse {
   }
   const features = (p.features || {}) as Record<string, unknown>;
   const limits = (p.limits || {}) as Record<string, unknown>;
+  const appOrigin = String(p.appOrigin || '');
+  let websocketOrigin = String(p.websocketOrigin || '');
+  // Client-side fail-open: never keep localhost / insecure ws websocket origins in production.
+  {
+    const looksLocal =
+      !websocketOrigin ||
+      /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(websocketOrigin) ||
+      (env === 'production' && /^ws:\/\//i.test(websocketOrigin));
+    if (looksLocal) {
+      try {
+        const u = new URL(appOrigin || (typeof window !== 'undefined' ? window.location.origin : 'https://app.uniapplab.com'));
+        u.protocol = u.protocol === 'http:' ? 'ws:' : 'wss:';
+        websocketOrigin = u.origin;
+      } catch {
+        websocketOrigin = 'wss://app.uniapplab.com';
+      }
+    }
+  }
   return {
     schemaVersion: 1,
     configVersion: rec.configVersion,
@@ -86,8 +104,8 @@ export function parsePublicBootstrap(input: unknown): PublicBootstrapResponse {
     checksum: rec.checksum,
     public: {
       apiOrigin: String(p.apiOrigin || ''),
-      appOrigin: String(p.appOrigin || ''),
-      websocketOrigin: String(p.websocketOrigin || ''),
+      appOrigin,
+      websocketOrigin,
       mediaOrigin: String(p.mediaOrigin || ''),
       cdnOrigin: p.cdnOrigin == null ? undefined : String(p.cdnOrigin),
       supportUrl: p.supportUrl == null ? undefined : String(p.supportUrl),

@@ -176815,7 +176815,7 @@ var BUNDLED_BOOTSTRAP_DEFAULTS = {
   "public": {
     "apiOrigin": "http://localhost:5000",
     "appOrigin": "http://localhost:5173",
-    "websocketOrigin": "ws://localhost:5173",
+    "websocketOrigin": "",
     "mediaOrigin": "",
     "cdnOrigin": "",
     "supportUrl": "",
@@ -177189,6 +177189,22 @@ function buildPublicBootstrapFromEnv() {
     stripe: "stripe",
     firebase: "firebase"
   };
+  {
+    const ws = String(pub.websocketOrigin || "");
+    const app2 = String(pub.appOrigin || "");
+    const looksLocal = !ws || /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(ws) || environment === "production" && /^ws:\/\//i.test(ws);
+    if (looksLocal && app2) {
+      try {
+        const u = new URL(app2);
+        u.protocol = u.protocol === "http:" ? "ws:" : "wss:";
+        pub.websocketOrigin = u.origin;
+      } catch {
+        pub.websocketOrigin = "wss://app.uniapplab.com";
+      }
+    } else if (looksLocal) {
+      pub.websocketOrigin = "wss://app.uniapplab.com";
+    }
+  }
   const unknown2 = unknownKeysRejected(pub, ALLOWED_PUBLIC_KEYS);
   if (unknown2.length) throw new Error(`unknown public keys: ${unknown2.join(",")}`);
   const checksum2 = createHash3("sha256").update(JSON.stringify(pub)).digest("hex");

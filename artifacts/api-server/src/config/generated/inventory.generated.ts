@@ -1385,7 +1385,7 @@ export const BUNDLED_BOOTSTRAP_DEFAULTS = {
   "public": {
     "apiOrigin": "http://localhost:5000",
     "appOrigin": "http://localhost:5173",
-    "websocketOrigin": "ws://localhost:5173",
+    "websocketOrigin": "",
     "mediaOrigin": "",
     "cdnOrigin": "",
     "supportUrl": "",

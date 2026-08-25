@@ -93,6 +93,27 @@ export function buildPublicBootstrapFromEnv(): {
     firebase: "firebase",
   };
 
+  // Never ship localhost websocket origins outside local/test — fail open to app origin.
+  {
+    const ws = String(pub.websocketOrigin || "");
+    const app = String(pub.appOrigin || "");
+    const looksLocal =
+      !ws ||
+      /localhost|127\.0\.0\.1|0\.0\.0\.0/i.test(ws) ||
+      (environment === "production" && /^ws:\/\//i.test(ws));
+    if (looksLocal && app) {
+      try {
+        const u = new URL(app);
+        u.protocol = u.protocol === "http:" ? "ws:" : "wss:";
+        pub.websocketOrigin = u.origin;
+      } catch {
+        pub.websocketOrigin = "wss://app.uniapplab.com";
+      }
+    } else if (looksLocal) {
+      pub.websocketOrigin = "wss://app.uniapplab.com";
+    }
+  }
+
   const unknown = unknownKeysRejected(pub, ALLOWED_PUBLIC_KEYS);
   if (unknown.length) throw new Error(`unknown public keys: ${unknown.join(",")}`);
 
