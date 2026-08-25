@@ -102,10 +102,13 @@ async function authHeaders(): Promise<HeadersInit> {
 }
 
 /**
- * Route groups migrated to Supabase Edge Functions.
- * `/api/<group>/...` → `${SUPABASE_URL}/functions/v1/<group>/...`.
- * The Vercel Express API remains the fallback for the Firebase-auth lane,
- * network failures, and any surface not yet cut over.
+ * Optional Edge Function preference (legacy Vercel cutover).
+ *
+ * Production UniApplab hosts serve the Render API at same-origin `/api/*`.
+ * Prefer that path — Edge Functions for presence/chat/me are incomplete and
+ * previously returned CORS/404 as authoritative failures, blocking the app.
+ *
+ * Edge is only attempted off UniApplab hosts (or when explicitly forced).
  */
 const EDGE_MIGRATED_PREFIXES = [
   '/api/wallet',
@@ -128,7 +131,15 @@ const EXPRESS_ONLY_ADMIN_MOD =
   /^\/api\/admin\/(streams|party-rooms)\/[^/]+\/(stop|ban|end)$/;
 const EXPRESS_ONLY_ADMIN_MOD_UNIFIED = /^\/api\/admin\/moderation\/(stop-live|ban-host)$/;
 
+function preferSameOriginApi(): boolean {
+  if (typeof window === 'undefined') return false;
+  const forceEdge = String(import.meta.env.VITE_FORCE_EDGE_API || '').trim() === '1';
+  if (forceEdge) return false;
+  return isUniapplabHost(window.location.hostname);
+}
+
 function edgeMigratedPath(path: string): string | null {
+  if (preferSameOriginApi()) return null;
   if (path.startsWith('http')) return null;
   const clean = path.startsWith('/') ? path : `/${path}`;
   const bare = clean.split('?')[0] ?? clean;
@@ -197,21 +208,8 @@ async function tryEdgeFunction(
     // A rejected token means the caller belongs to a lane the Edge Function
     // can't verify (e.g. Firebase) — hand back to Express instead of erroring.
     if (res.status === 401) return null;
-    // LiveKit party rooms may live only in Firestore, which the Edge Function
-    // can't resolve; let Express (with its Firestore fallback) try on 404.
-    if (res.status === 404 && edgePath.startsWith('/livekit/')) return null;
-    // Only fall back when the Edge route itself is missing — not business 404s.
-    // Also fall back for stream/party not found so Express can use Firestore/LiveKit.
-    if (res.status === 404 && edgePath.startsWith('/admin/')) {
-      const bodyText = await res.clone().text().catch(() => '');
-      if (
-        /"error"\s*:\s*"not_found"/i.test(bodyText) ||
-        /"error"\s*:\s*"(stream_not_found|party_room_not_found)"/i.test(bodyText) ||
-        (!bodyText.trim() && /\/(stop|ban|end)$/.test(edgePath))
-      ) {
-        return null;
-      }
-    }
+    // Missing Edge deploy / gateway 404 → Express (Render) is authoritative.
+    if (res.status === 404) return null;
     return res;
   } catch {
     // Edge unreachable/timeout — fall back to the Express API.

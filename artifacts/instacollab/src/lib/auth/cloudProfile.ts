@@ -73,6 +73,26 @@ async function fetchProfileOnBackend(
   return fetchProfile(userId);
 }
 
+const AVAILABILITY_TIMEOUT_MS = 4_000;
+
+function withAvailabilityTimeout<T>(promise: Promise<T>, label: string): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const timer = setTimeout(() => {
+      reject(new Error(`${label} timed out`));
+    }, AVAILABILITY_TIMEOUT_MS);
+    promise.then(
+      (value) => {
+        clearTimeout(timer);
+        resolve(value);
+      },
+      (err) => {
+        clearTimeout(timer);
+        reject(err);
+      },
+    );
+  });
+}
+
 export async function isCloudPublicUserIdAvailable(
   publicUserId: string,
   exceptUserId?: string
@@ -81,17 +101,40 @@ export async function isCloudPublicUserIdAvailable(
   if (!normalized) return false;
 
   const owners = exceptUserId ? identityOwnerIds(exceptUserId) : [];
+
+  // Supabase-auth accounts: Supabase is canonical. Do not block setup on a hung
+  // Firebase Firestore query (common when Firebase rules/indexes stall).
+  if (exceptUserId && isSupabaseAuthUserId(exceptUserId) && isSupabaseConfigured()) {
+    try {
+      return await withAvailabilityTimeout(
+        isSupabasePublicUserIdAvailable(publicUserId, owners),
+        'supabase public user id',
+      );
+    } catch (err) {
+      console.warn('[auth] public user id availability check failed (blocking):', err);
+      return false;
+    }
+  }
+
   const checks: Array<Promise<boolean>> = [];
 
   if (isSupabaseConfigured()) {
-    checks.push(isSupabasePublicUserIdAvailable(publicUserId, owners));
+    checks.push(
+      withAvailabilityTimeout(
+        isSupabasePublicUserIdAvailable(publicUserId, owners),
+        'supabase public user id',
+      ),
+    );
   }
   if (isFirebaseConfigured()) {
     checks.push(
-      (async () => {
-        const { isFirebasePublicUserIdAvailable } = await firebaseProfileApi();
-        return isFirebasePublicUserIdAvailable(publicUserId, owners);
-      })(),
+      withAvailabilityTimeout(
+        (async () => {
+          const { isFirebasePublicUserIdAvailable } = await firebaseProfileApi();
+          return isFirebasePublicUserIdAvailable(publicUserId, owners);
+        })(),
+        'firebase public user id',
+      ),
     );
   }
 
@@ -117,16 +160,34 @@ export async function isCloudUsernameAvailable(
   if (!normalized) return false;
 
   const owners = exceptUserId ? identityOwnerIds(exceptUserId) : [];
+
+  if (exceptUserId && isSupabaseAuthUserId(exceptUserId) && isSupabaseConfigured()) {
+    try {
+      return await withAvailabilityTimeout(
+        isSupabaseUsernameAvailable(username, owners),
+        'supabase username',
+      );
+    } catch (err) {
+      console.warn('[auth] username availability check failed (blocking):', err);
+      return false;
+    }
+  }
+
   const checks: Array<Promise<boolean>> = [];
   if (isSupabaseConfigured()) {
-    checks.push(isSupabaseUsernameAvailable(username, owners));
+    checks.push(
+      withAvailabilityTimeout(isSupabaseUsernameAvailable(username, owners), 'supabase username'),
+    );
   }
   if (isFirebaseConfigured()) {
     checks.push(
-      (async () => {
-        const { isFirebaseUsernameAvailable } = await firebaseProfileApi();
-        return isFirebaseUsernameAvailable(username, owners);
-      })(),
+      withAvailabilityTimeout(
+        (async () => {
+          const { isFirebaseUsernameAvailable } = await firebaseProfileApi();
+          return isFirebaseUsernameAvailable(username, owners);
+        })(),
+        'firebase username',
+      ),
     );
   }
   if (checks.length === 0) return true;

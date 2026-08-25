@@ -8,7 +8,8 @@
     "build": "node ./build.mjs",
     "start": "node --enable-source-maps ./dist/index.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test:live-pk-challenge": "tsx --test test/live-pk-challenge.test.mjs"
+    "test:live-pk-challenge": "tsx --test test/live-pk-challenge.test.mjs",
+    "test:memory-presence": "tsx --test test/memory-presence.test.mjs"
   },
   "dependencies": {
     "@ai-sdk/google": "^4.0.10",

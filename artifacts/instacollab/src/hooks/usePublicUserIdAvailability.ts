@@ -86,9 +86,14 @@ export function usePublicUserIdAvailability(
         });
     }, DEBOUNCE_MS);
 
+    const hardCap = window.setTimeout(() => {
+      if (!cancelled) setStatus((prev) => (prev === 'checking' ? 'unreachable' : prev));
+    }, 6_000);
+
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      window.clearTimeout(hardCap);
     };
   }, [
     draft,

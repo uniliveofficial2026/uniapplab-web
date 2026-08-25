@@ -298,7 +298,6 @@ export function ProfileSetupScreen() {
                 !legalAccepted ||
                 publicUserIdStatus === 'taken' ||
                 publicUserIdStatus === 'checking' ||
-                publicUserIdStatus === 'unreachable' ||
                 publicUserIdStatus === 'invalid'
               }
             >
