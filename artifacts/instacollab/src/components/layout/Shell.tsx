@@ -328,7 +328,11 @@ export function Shell({ currentTab, setCurrentTab, currentUser, children }: Shel
   const isReelsTab = currentTab === 'reels';
 
   return (
-    <div className="flex h-vv max-h-vv w-full max-w-full bg-background text-foreground overflow-hidden font-sans min-h-0">
+    <div
+      className="flex h-vv max-h-vv w-full max-w-full bg-background text-foreground overflow-hidden font-sans min-h-0"
+      data-testid="signed-in-shell"
+      data-shell-tab={currentTab}
+    >
       <PostAudioPlaybackRoot />
 
       <ShellCreateModal

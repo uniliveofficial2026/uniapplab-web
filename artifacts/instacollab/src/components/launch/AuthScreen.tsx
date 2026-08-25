@@ -589,6 +589,8 @@ export function AuthScreen() {
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="Email"
+                  aria-label="Email"
+                  data-testid="auth-email"
                   required
                 />
               </PrincessField>
@@ -600,11 +602,19 @@ export function AuthScreen() {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="Password"
+                  aria-label="Password"
+                  data-testid="auth-password"
                   required
                   minLength={6}
                 />
               </PrincessField>
-              <button type="submit" className="upa-cta" disabled={busy || !agreed}>
+              <button
+                type="submit"
+                className="upa-cta"
+                disabled={busy || !agreed}
+                aria-label={emailAuthMode === 'signin' ? 'Log in' : 'Sign up'}
+                data-testid="auth-submit"
+              >
                 {emailAuthMode === 'signin' ? 'Log in' : 'Sign up'}
               </button>
             </form>

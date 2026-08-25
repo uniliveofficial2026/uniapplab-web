@@ -69,7 +69,18 @@ export async function handleNativeOAuthDeepLink(url: string): Promise<boolean> {
   await closeNativeOAuthBrowser();
   const search = nativeOAuthCallbackToAppSearch(url);
   if (!search) return false;
-  const next = `${window.location.pathname || '/'}${search}`;
+  // Prefer production SPA path so Cap remote-server builds land on real origin.
+  const path =
+    window.location.protocol === 'https:' && /uniapplab\.com$/i.test(window.location.hostname)
+      ? window.location.pathname || '/home'
+      : '/home';
+  const next = `${path}${search}`;
   window.location.replace(next);
+  // Force OAuth/hash session exchange after navigation settles.
+  window.setTimeout(() => {
+    void import('./completeSupabaseOAuthReturn').then(({ completeSupabaseOAuthReturn }) => {
+      void completeSupabaseOAuthReturn();
+    });
+  }, 50);
   return true;
 }

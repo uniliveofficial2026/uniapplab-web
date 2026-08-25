@@ -55,6 +55,33 @@ export async function completeSupabaseOAuthReturn(): Promise<SupabaseOAuthReturn
   }
 
   try {
+    // Implicit/hash session return (magic link, Cap deep-link handoff).
+    // Do not rely solely on detectSessionInUrl timing after location.replace.
+    const hashParams = new URLSearchParams(
+      (window.location.hash || '').replace(/^#/, ''),
+    );
+    const hashAccess = hashParams.get('access_token');
+    const hashRefresh = hashParams.get('refresh_token');
+    if (hashAccess && hashRefresh) {
+      const { data, error } = await withTimeout(
+        supabase.auth.setSession({
+          access_token: hashAccess,
+          refresh_token: hashRefresh,
+        }),
+        OAUTH_EXCHANGE_MS,
+        'Supabase setSession(hash)',
+      );
+      if (error) {
+        return { handled: true, ok: false, reason: error.message };
+      }
+      if (data.session?.user) {
+        writeStoredAuthBackend('supabase');
+        const googleAccessToken = persistGoogleProviderTokenFromSession(data.session);
+        stripSupabaseOAuthParamsFromUrl();
+        return { handled: true, ok: true, googleAccessToken };
+      }
+    }
+
     const tokenHash = params.get('token_hash');
     const otpType = params.get('type');
     if (tokenHash && otpType) {

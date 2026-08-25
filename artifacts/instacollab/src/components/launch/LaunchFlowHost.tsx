@@ -64,7 +64,12 @@ export function LaunchFlowHost({ route }: { route: LaunchRoute }) {
   if (!content) return null;
 
   return (
-    <AppScreen immersive className="h-vv max-h-vv w-full bg-background">
+    <AppScreen
+      immersive
+      className="h-vv max-h-vv w-full bg-background"
+      data-testid={`launch-route-${route}`}
+      data-launch-route={route}
+    >
       <ErrorBoundary screen={`launch:${route}`}>{content}</ErrorBoundary>
     </AppScreen>
   );
