@@ -2,15 +2,19 @@
   "fullRealApplication": "FAIL",
   "production": "FAIL",
   "productionUrl": "https://app.uniapplab.com",
-  "applicationSha": "f25a7d00767107851363ce0e260328b46dc6342a",
-  "previousApplicationSha": "7e4f6cfab306e0f825532342bbc995f472bb01c3",
-  "deployIdsAt7e4f6cf": {
-    "spa": "dep-da6p6qoae00c738l1d0g",
-    "api": "dep-da6p6r0ae00c738l1d2g"
-  },
+  "applicationSha": "02ce26432dbd0b2a9c27dc47af8f9edc106a2e58",
+  "spaDeployId": "dep-da6po6c9v7es73a22910",
+  "apiDeployId": "dep-da6ph12d0e5s73dc9gag",
   "uiUxChanged": false,
   "priorAcceptanceInvalid": true,
-  "ownerObservedIncompleteAppIssue": "CONFIRMED_IN_PROGRESS",
+  "ownerObservedIncompleteAppIssue": "ROOT_CAUSE_IDENTIFIED_PARTIAL_FIX",
+
+  "criticalFinding": {
+    "issue": "static public/home/index.html OAuth brand page shadowed SPA /home",
+    "effect": "Cap/browser at /home showed marketing/OAuth HTML instead of real UniLive’s shell",
+    "fix": "redirect home/index.html into SPA + oauth-brand moved + CF purge",
+    "status": "PASS"
+  },
 
   "websocketOrigin": "PASS",
   "speedInsights": "PASS",
@@ -23,10 +27,11 @@
     "giftsCatalog": "PASS",
     "presence": "FAIL"
   },
-  "presenceDetail": "Upstash Redis max requests limit exceeded; API now fail-opens (f25a7d0)",
+  "presenceDetail": "Upstash Redis quota exceeded; API fail-opens with degraded:true",
 
-  "signedInShell": "FAIL",
-  "signedInBrowserLogin": "FAIL",
+  "signedInShell": "PARTIAL",
+  "signedInShellDetail": "After /home fix + session inject: ProfileSetup (Set up your profile) — real app, not brand page",
+  "fullNavigation": "NOT_TESTED",
 
   "iphonePhysical": "PARTIAL",
   "iphoneInstall": "PASS",
@@ -41,5 +46,6 @@
   "iphoneMacMultiGuest": "NOT_TESTED",
 
   "androidPhysical": "BLOCKED_EXTERNAL",
-  "apns": "BLOCKED_EXTERNAL"
+  "apns": "BLOCKED_EXTERNAL",
+  "upstashQuota": "BLOCKED_EXTERNAL"
 }
