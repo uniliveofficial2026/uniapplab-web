@@ -341,12 +341,29 @@ final class UniLiveAuthUITests: XCTestCase {
       let skipCountdown = landmark("Skip countdown and go live", in: root, timeout: 15)
       if skipCountdown.waitForExistence(timeout: 12) {
         skipCountdown.tap()
-        sleep(3)
+        sleep(8)
+      } else {
+        sleep(5)
       }
       enteredRoom = true
     }
 
     XCTAssertTrue(enteredRoom, "Must enter a live room as host or viewer")
+
+    let soloControls = landmark("Solo Live controls", in: root, timeout: 20)
+    if !soloControls.exists {
+      _ = landmark("Shop Live controls", in: root, timeout: 10).exists
+    }
+    sleep(2)
+    app.tap() // nudge interruption monitors (camera/mic)
+
+    let showChat = root.buttons.matching(
+      NSPredicate(format: "label CONTAINS[c] %@", "Show live chat")
+    ).firstMatch
+    if showChat.waitForExistence(timeout: 6) {
+      showChat.tap()
+      sleep(1)
+    }
 
     let chatToggle = root.buttons.matching(
       NSPredicate(format: "label CONTAINS[c] %@", "chat")

@@ -25,8 +25,9 @@
       "route": "/app",
       "screen": "feed/PostModal.tsx",
       "rtcSurface": false,
-      "modalOrSheet": false,
-      "physicalStatus": "PASS"
+      "modalOrSheet": true,
+      "physicalStatus": "PASS",
+      "physicalBundle": "assets/index-B6fNt2f1.js"
     },
     {
       "id": "src/components/reels/ReelsCommentsDrawer.tsx::reels-comment-input",
@@ -107,7 +108,8 @@
       "screen": "smule-rooms/SoloLiveView.tsx",
       "rtcSurface": true,
       "modalOrSheet": false,
-      "physicalStatus": "NOT_TESTED"
+      "physicalStatus": "FAIL",
+      "physicalNote": "Navigation reached Live/Go Live on index-B6fNt2f1.js; composer landmark not found after 284s (2026-08-25)"
     }
   ]
 }
