@@ -165740,6 +165740,26 @@ var livePkChallenge_default = router11;
 
 // src/routes/presence.ts
 var import_express12 = __toESM(require_express2(), 1);
+
+// src/lib/logger.ts
+var import_pino = __toESM(require_pino(), 1);
+var usePretty = process.env.VERCEL !== "1" && process.env.NODE_ENV !== "production" && process.env.LOG_PRETTY === "1";
+var logger = (0, import_pino.default)({
+  level: process.env.LOG_LEVEL ?? "info",
+  redact: [
+    "req.headers.authorization",
+    "req.headers.cookie",
+    "res.headers['set-cookie']"
+  ],
+  ...usePretty ? {
+    transport: {
+      target: "pino-pretty",
+      options: { colorize: true }
+    }
+  } : {}
+});
+
+// src/routes/presence.ts
 var router12 = (0, import_express12.Router)();
 function parseUserIds(raw) {
   if (Array.isArray(raw)) {
@@ -165756,7 +165776,13 @@ function resolveDeviceId(req) {
   const fromHeader = Array.isArray(header) ? header[0] : header;
   return String(body.deviceId || fromHeader || "default").trim().slice(0, 120) || "default";
 }
-router12.get("/presence/online", auth, requireNotBanned, async (req, res, next2) => {
+function presenceDegraded(err4) {
+  logger.warn(
+    { err: err4 instanceof Error ? err4.message : String(err4) },
+    "presence redis degraded \u2014 fail open"
+  );
+}
+router12.get("/presence/online", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser.id;
     if (!isUpstashConfigured()) {
@@ -165773,10 +165799,11 @@ router12.get("/presence/online", auth, requireNotBanned, async (req, res, next2)
     const onlineIds = await filterOnlineUserIds(ids);
     res.json({ userIds: onlineIds, configured: true });
   } catch (err4) {
-    next2(err4);
+    presenceDegraded(err4);
+    res.json({ online: false, userIds: [], configured: false, degraded: true });
   }
 });
-router12.post("/presence/online", auth, requireNotBanned, async (req, res, next2) => {
+router12.post("/presence/online", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser.id;
     const deviceId = resolveDeviceId(req);
@@ -165797,10 +165824,11 @@ router12.post("/presence/online", auth, requireNotBanned, async (req, res, next2
     }
     res.json({ ok: true, online: true, userId, deviceId, configured: true });
   } catch (err4) {
-    next2(err4);
+    presenceDegraded(err4);
+    res.json({ ok: false, configured: false, degraded: true });
   }
 });
-router12.post("/presence/offline", auth, requireNotBanned, async (req, res, next2) => {
+router12.post("/presence/offline", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser.id;
     const deviceId = resolveDeviceId(req);
@@ -165812,7 +165840,8 @@ router12.post("/presence/offline", auth, requireNotBanned, async (req, res, next
     const stillOnline = await isUserOnline(userId);
     res.json({ ok: true, online: stillOnline, userId, deviceId, configured: true });
   } catch (err4) {
-    next2(err4);
+    presenceDegraded(err4);
+    res.json({ ok: false, configured: false, degraded: true });
   }
 });
 var presence_default = router12;
@@ -173351,24 +173380,6 @@ function createStripe(platformFunctions, requestSender = defaultRequestSenderFac
 // ../../node_modules/.pnpm/stripe@18.5.0_@types+node@25.6.2/node_modules/stripe/esm/stripe.esm.node.js
 var Stripe = createStripe(new NodePlatformFunctions());
 var stripe_esm_node_default = Stripe;
-
-// src/lib/logger.ts
-var import_pino = __toESM(require_pino(), 1);
-var usePretty = process.env.VERCEL !== "1" && process.env.NODE_ENV !== "production" && process.env.LOG_PRETTY === "1";
-var logger = (0, import_pino.default)({
-  level: process.env.LOG_LEVEL ?? "info",
-  redact: [
-    "req.headers.authorization",
-    "req.headers.cookie",
-    "res.headers['set-cookie']"
-  ],
-  ...usePretty ? {
-    transport: {
-      target: "pino-pretty",
-      options: { colorize: true }
-    }
-  } : {}
-});
 
 // src/routes/payments.ts
 var router23 = (0, import_express23.Router)();

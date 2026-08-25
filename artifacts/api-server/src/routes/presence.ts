@@ -9,6 +9,7 @@ import {
   listActivePresenceDevices,
   setUserOnline,
 } from "../lib/upstash";
+import { logger } from "../lib/logger";
 
 const router: IRouter = Router();
 
@@ -32,7 +33,14 @@ function resolveDeviceId(req: { body?: unknown; headers: Record<string, unknown>
   return String(body.deviceId || fromHeader || "default").trim().slice(0, 120) || "default";
 }
 
-router.get("/presence/online", auth, requireNotBanned, async (req, res, next) => {
+function presenceDegraded(err: unknown) {
+  logger.warn(
+    { err: err instanceof Error ? err.message : String(err) },
+    "presence redis degraded — fail open",
+  );
+}
+
+router.get("/presence/online", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser!.id;
     if (!isUpstashConfigured()) {
@@ -51,11 +59,12 @@ router.get("/presence/online", auth, requireNotBanned, async (req, res, next) =>
     const onlineIds = await filterOnlineUserIds(ids);
     res.json({ userIds: onlineIds, configured: true });
   } catch (err) {
-    next(err);
+    presenceDegraded(err);
+    res.json({ online: false, userIds: [], configured: false, degraded: true });
   }
 });
 
-router.post("/presence/online", auth, requireNotBanned, async (req, res, next) => {
+router.post("/presence/online", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser!.id;
     const deviceId = resolveDeviceId(req);
@@ -81,11 +90,12 @@ router.post("/presence/online", auth, requireNotBanned, async (req, res, next) =
 
     res.json({ ok: true, online: true, userId, deviceId, configured: true });
   } catch (err) {
-    next(err);
+    presenceDegraded(err);
+    res.json({ ok: false, configured: false, degraded: true });
   }
 });
 
-router.post("/presence/offline", auth, requireNotBanned, async (req, res, next) => {
+router.post("/presence/offline", auth, requireNotBanned, async (req, res) => {
   try {
     const userId = req.authUser!.id;
     const deviceId = resolveDeviceId(req);
@@ -97,7 +107,8 @@ router.post("/presence/offline", auth, requireNotBanned, async (req, res, next) 
     const stillOnline = await isUserOnline(userId);
     res.json({ ok: true, online: stillOnline, userId, deviceId, configured: true });
   } catch (err) {
-    next(err);
+    presenceDegraded(err);
+    res.json({ ok: false, configured: false, degraded: true });
   }
 });
 
