@@ -84,7 +84,7 @@ final class UniLiveAuthUITests: XCTestCase {
     sleep(2)
 
     // Open first direct message thread (QA Mac in device QA seed).
-    let opened = false
+    var opened = false
     for candidate in [root.images["qa_mac"], root.staticTexts["QA Mac"], root.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "qa_mac")).firstMatch] {
       if candidate.waitForExistence(timeout: 4) {
         candidate.tap()

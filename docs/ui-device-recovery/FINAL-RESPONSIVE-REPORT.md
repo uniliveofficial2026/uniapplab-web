@@ -2,11 +2,37 @@
 
 ## Verdict
 
-`fullRealApplication`: **FAIL**
+`fullRealApplication`: **FAIL** (83-surface + Live/camera/RTC matrix incomplete)
 
-Physical authority: Wei · iPhone 14 Pro Max was **offline** during this pass (`xctrace`: Devices Offline). Prior owner finding (keyboard covering inputs / layouts not fitting) remains authoritative until reconnect + retest.
+`productionSpaRolledForward`: **PASS**
 
-## What landed (uiUxChanged=false)
+## Production identity (2026-08-25)
+
+| Field | Value |
+|-------|-------|
+| Entry JS | `assets/index-D5djAASz.js` |
+| Entry CSS | `assets/index-CfgA_FXS.css` |
+| build-identity.json | live at `/build-identity.json` |
+| Keyboard SSOT bundle | contains `KeyboardResize`, `app-composer-bottom-inset` |
+| Messages chunk | `MessagesScreen-BZo-atFW.js` with `aria-label="chat-input"` |
+
+## Physical iPhone (Wei · 14 Pro Max)
+
+| Test | Result |
+|------|--------|
+| XCUITest signed-in-shell | **PASS** |
+| XCUITest Messages → thread → chat-input focus | **PASS** |
+| Live chat keyboard | NOT_TESTED |
+| Camera/Mic | NOT_TESTED |
+| iPhone↔Mac call/live | NOT_TESTED |
+
+## Root cause fixed (WKWebView automation)
+
+XCUITest queries by identifier failed; WKWebView exposes **aria-label** (e.g. `signed-in-shell, main`). UITests now match `label CONTAINS` tokens.
+
+## Remaining to full PASS
+
+Live composer, marketplace/seller forms, 83-surface matrix, camera/mic TCC, RTC cross-device, account switch isolation.
 
 1. **Keyboard strategy SSOT:** Capacitor `KeyboardResize.None` + plugin `keyboardHeight` → `--app-keyboard-inset` / `--app-composer-bottom-inset`.
 2. **Safe-area SSOT:** `--app-safe-bottom` is static only (no longer inflated by keyboard).

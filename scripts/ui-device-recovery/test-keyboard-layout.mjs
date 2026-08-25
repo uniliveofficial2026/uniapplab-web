@@ -84,6 +84,7 @@ if (fs.existsSync(deployIndex)) {
     const js = fs.readFileSync(path.join(repoRoot, 'deploy/spa-public/assets', deployJs), 'utf8');
     assert.match(js, /app-composer-bottom-inset/, 'deploy bundle missing composer inset');
     assert.match(js, /KeyboardResize/, 'deploy bundle missing KeyboardResize');
+    assert.match(js, /home-nav|signed-in-shell/, 'deploy bundle missing shell landmarks');
   }
   results.push({ id: 'deploy-spa-bundle', status: 'PASS_STATIC' });
 }
