@@ -708,11 +708,28 @@ const CreateRoom = () => {
       <div
         className={
           isLiveCameraMode
-            ? 'relative z-[60] shrink-0 bg-transparent px-5 pb-4 pt-2 pointer-events-auto'
-            : 'sticky bottom-0 left-0 right-0 z-40 shrink-0 bg-slate-950/95 px-5 pb-5 pt-4 backdrop-blur-md'
+            ? 'relative z-[60] shrink-0 bg-transparent px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 pointer-events-auto'
+            : 'sticky bottom-0 left-0 right-0 z-40 shrink-0 bg-slate-950/95 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur-md'
         }
       >
-        <section className="mb-4 flex flex-col gap-3">
+        {/* Launch above mode chips so the CTA stays above the home indicator on phones. */}
+        <button
+            type="button"
+            onClick={handleCreate}
+            disabled={!canLaunch || launching || goLiveCountdown !== null}
+            aria-label="live-go-live-launch"
+            data-live-qa-launch={launchLabel}
+            data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}
+            className={`mb-3 w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
+              !canLaunch || launching || goLiveCountdown !== null
+                ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'
+                : 'border border-white/10 bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-500'
+            }`}
+          >
+            {launchLabel}
+          </button>
+
+        <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
             <label className="text-[10px] font-black uppercase tracking-[0.2em] text-slate-500">
               Mode
@@ -757,22 +774,6 @@ const CreateRoom = () => {
             })}
           </div>
         </section>
-
-        <button
-            type="button"
-            onClick={handleCreate}
-            disabled={!canLaunch || launching || goLiveCountdown !== null}
-            aria-label="live-go-live-launch"
-            data-live-qa-launch={launchLabel}
-            data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}
-            className={`w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
-              !canLaunch || launching || goLiveCountdown !== null
-                ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'
-                : 'border border-white/10 bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-500'
-            }`}
-          >
-            {launchLabel}
-          </button>
       </div>
     </div>
   );
