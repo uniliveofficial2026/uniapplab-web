@@ -19,6 +19,7 @@ import {
   getOrCreateHostLiveKitRoom,
   reconnectHostLiveKitWithNewGrants,
 } from '../../lib/livekit/hostLiveKitRoom';
+import { startRemoteCameraDiagnosticsPolling } from '../../lib/livekit/liveKitRemoteViewerDiag';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
 import {
   noteHostPublishing,
@@ -183,6 +184,12 @@ export function useMultiGuestLiveKit({
     room.on(RoomEvent.Connected, onConnected);
     room.on(RoomEvent.Disconnected, onDisconnected);
 
+    const stopRemoteDiag = startRemoteCameraDiagnosticsPolling({
+      getRoom: () => roomRef.current,
+      roomId,
+      intervalMs: 1500,
+    });
+
     const fetchToken = () =>
       fetchPartyLiveKitToken(roomId, hidden ? false : canPublish, { hidden });
 
@@ -207,6 +214,7 @@ export function useMultiGuestLiveKit({
 
     return () => {
       cancelled = true;
+      stopRemoteDiag();
       room.off(RoomEvent.TrackSubscribed, onTrackSubscribed);
       room.off(RoomEvent.TrackUnsubscribed, onTrackUnsubscribed);
       room.off(RoomEvent.ParticipantDisconnected, onVideoChange);

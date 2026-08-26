@@ -12,7 +12,7 @@ import {
 } from '../rtc/livekitCompatibilityBoundary';
 import { WEBAR_OUTPUT_FPS } from '../webar/webarCameraConfig';
 import { resolveLiveKitVideoPublishOptions } from '../rtc/liveKitPublishProfile';
-import { diagnoseVideoTrack, emitCameraSwitchTrace } from '../camera/cameraSwitchTrace';
+import { diagnoseVideoTrack, emitCameraSwitchTrace, publishPipelineCorrelation } from '../camera/cameraSwitchTrace';
 
 export const PROCESSED_VIDEO_LIVEKIT_PUBLISH: TrackPublishOptions = {
   source: Track.Source.Camera,
@@ -68,8 +68,16 @@ export async function updateLiveKitLocalVideoTrack(
     });
     try {
       await localTrack.replaceTrack(prepared, true);
+      const pubSid =
+        typeof publication?.trackSid === 'string' ? publication.trackSid : undefined;
       emitCameraSwitchTrace('CAMERA_RTC_REPLACE_OK', {
         track: diagnoseVideoTrack(prepared),
+        liveKitPublicationSid: pubSid,
+      });
+      publishPipelineCorrelation({
+        rtcSenderTrackIdHash: diagnoseVideoTrack(prepared)?.trackIdHash,
+        renderOutputTrackIdHash: diagnoseVideoTrack(prepared)?.trackIdHash,
+        liveKitPublicationSid: pubSid,
       });
       return 'replaced';
     } catch (err) {
@@ -81,9 +89,18 @@ export async function updateLiveKitLocalVideoTrack(
   }
 
   await participant.publishTrack(prepared, publishOptions);
+  const published = participant.getTrackPublication(Track.Source.Camera);
   emitCameraSwitchTrace('CAMERA_RTC_REPLACE_OK', {
     track: diagnoseVideoTrack(prepared),
     mode: 'published',
+    liveKitPublicationSid:
+      typeof published?.trackSid === 'string' ? published.trackSid : undefined,
+  });
+  publishPipelineCorrelation({
+    rtcSenderTrackIdHash: diagnoseVideoTrack(prepared)?.trackIdHash,
+    renderOutputTrackIdHash: diagnoseVideoTrack(prepared)?.trackIdHash,
+    liveKitPublicationSid:
+      typeof published?.trackSid === 'string' ? published.trackSid : undefined,
   });
   return 'published';
 }

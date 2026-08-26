@@ -204,6 +204,15 @@ export type SoloLiveViewProps = {
   onRetryCamera?: () => void;
   effectsArReady?: boolean;
   cameraFacingMode?: CameraFacingMode;
+  cameraGeneration?: number;
+  cameraTrackDiag?: {
+    trackIdHash: string;
+    facingMode?: string;
+    width?: number;
+    height?: number;
+    frameRate?: number;
+    readyState?: string;
+  } | null;
   onToggleCameraFacing?: () => void;
   beautyEffectId?: BeautyPresetId;
   beautyEffects?: TencentEffectSelection;
@@ -394,6 +403,8 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
   onRetryCamera,
   effectsArReady = false,
   cameraFacingMode = 'user',
+  cameraGeneration = 0,
+  cameraTrackDiag = null,
   onToggleCameraFacing,
   beautyEffectId = 'none',
   beautyEffects = EMPTY_TENCENT_EFFECT_SELECTION,
@@ -429,7 +440,11 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
     [activeSeats],
   );
   const selfUsesCssMirror =
-    cameraFacingMode === 'user' &&
+    (cameraTrackDiag?.facingMode === 'environment'
+      ? false
+      : cameraTrackDiag?.facingMode === 'user'
+        ? true
+        : cameraFacingMode === 'user') &&
     !(effectsConfigured && deeparEffectActive && effectsArReady);
   const selfCameraActive = isSelfHost && userCameraOn;
   const selfMediaMounted = isSelfHost;
@@ -886,6 +901,16 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
     );
   };
 
+  // Landmarks must reflect ACTUAL track settings when available (not requested-only state).
+  const actualFacing: CameraFacingMode =
+    cameraTrackDiag?.facingMode === 'environment' || cameraTrackDiag?.facingMode === 'user'
+      ? cameraTrackDiag.facingMode
+      : cameraFacingMode;
+  const cameraFacingLandmark =
+    actualFacing === 'environment' ? 'camera-facing-rear' : 'camera-facing-front';
+  const cameraGenerationLandmark =
+    cameraGeneration > 0 ? `camera-source-generation-${cameraGeneration}` : 'camera-source-generation-0';
+
   return (
     <div
       className={`solo-live-layout relative flex h-full min-h-0 flex-1 flex-col w-full font-sans ${
@@ -901,16 +926,26 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       data-live-qa-host-media={hostMediaSnap?.state ?? 'unknown'}
       data-live-qa-chat-open={chatComposerOpen ? '1' : '0'}
       data-live-qa-room-id={roomDisplayId || ''}
-      data-live-qa-camera-facing={cameraFacingMode === 'environment' ? 'rear' : 'front'}
+      data-live-qa-camera-facing={actualFacing === 'environment' ? 'rear' : 'front'}
+      data-live-qa-camera-generation={String(cameraGeneration || 0)}
+      data-live-qa-camera-facing-mode={actualFacing}
+      data-live-qa-camera-width={cameraTrackDiag?.width != null ? String(cameraTrackDiag.width) : ''}
+      data-live-qa-camera-height={cameraTrackDiag?.height != null ? String(cameraTrackDiag.height) : ''}
       aria-label={liveQaState}
     >
       <span
         className="sr-only"
-        aria-label={
-          cameraFacingMode === 'environment' ? 'camera-facing-rear' : 'camera-facing-front'
-        }
-        data-live-qa-camera-facing={cameraFacingMode === 'environment' ? 'rear' : 'front'}
+        aria-label={cameraFacingLandmark}
+        data-live-qa-camera-facing={actualFacing === 'environment' ? 'rear' : 'front'}
       />
+      <span className="sr-only" aria-label={cameraGenerationLandmark} />
+      <span
+        className="sr-only"
+        aria-label={hostMediaSnap?.publishing || hostMediaSnap?.live ? 'camera-rtc-published' : 'camera-rtc-idle'}
+      />
+      {roomDisplayId ? (
+        <span className="sr-only" aria-label={`live-room-id-${roomDisplayId}`} data-live-qa-room-id={roomDisplayId} />
+      ) : null}
       <RoomBackgroundLayer mode={backgroundMode} />
       <div
         ref={stageShellRef}

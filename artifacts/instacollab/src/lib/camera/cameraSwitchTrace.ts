@@ -19,7 +19,9 @@ export type CameraSwitchTraceStep =
   | 'CAMERA_RTC_REPLACE_FAIL'
   | 'CAMERA_OLD_TRACK_STOPPED'
   | 'CAMERA_SWITCH_COMPLETE'
-  | 'CAMERA_SWITCH_ERROR';
+  | 'CAMERA_SWITCH_ERROR'
+  | 'CAMERA_PIPELINE_CORRELATION'
+  | 'CAMERA_GENERATION_BUMP';
 
 export type CameraTrackDiag = {
   trackIdHash: string;
@@ -35,7 +37,37 @@ export type CameraTrackDiag = {
   groupIdHash?: string;
 };
 
-function hashId(value: string | undefined): string | undefined {
+export type CameraPipelineCorrelation = {
+  cameraGeneration: number;
+  requestedFacing?: string;
+  actualFacing?: string;
+  sourceTrackIdHash?: string;
+  renderInputTrackIdHash?: string;
+  renderOutputTrackIdHash?: string;
+  rtcSenderTrackIdHash?: string;
+  liveKitPublicationSid?: string;
+  liveKitParticipantIdentityHash?: string;
+  roomIdHash?: string;
+  canonicalPersonIdHash?: string;
+  switching?: boolean;
+  at: number;
+};
+
+type CameraDebugWindow = Window & {
+  __UNILIVE_CAMERA_SWITCH_DEBUG__?: unknown;
+  __UNILIVE_CAMERA_PIPELINE__?: CameraPipelineCorrelation;
+  __UNILIVE_CAMERA_SWITCH_HISTORY__?: unknown[];
+};
+
+/** Monotonic source generation — bumps only after a successful physical facing transition. */
+let cameraGeneration = 0;
+let switching = false;
+let lastCorrelation: CameraPipelineCorrelation = {
+  cameraGeneration: 0,
+  at: 0,
+};
+
+export function hashId(value: string | undefined): string | undefined {
   if (!value) return undefined;
   let h = 2166136261;
   for (let i = 0; i < value.length; i += 1) {
@@ -43,6 +75,24 @@ function hashId(value: string | undefined): string | undefined {
     h = Math.imul(h, 16777619);
   }
   return `h${(h >>> 0).toString(16).padStart(8, '0')}`;
+}
+
+export function getCameraGeneration(): number {
+  return cameraGeneration;
+}
+
+export function bumpCameraGeneration(reason?: string): number {
+  cameraGeneration += 1;
+  emitCameraSwitchTrace('CAMERA_GENERATION_BUMP', {
+    cameraGeneration,
+    reason: reason?.slice(0, 80),
+  });
+  return cameraGeneration;
+}
+
+export function setCameraSwitching(next: boolean): void {
+  switching = next;
+  publishPipelineCorrelation({ switching: next });
 }
 
 export function diagnoseVideoTrack(track: MediaStreamTrack | null | undefined): CameraTrackDiag | null {
@@ -68,15 +118,53 @@ export function diagnoseVideoTrack(track: MediaStreamTrack | null | undefined): 
   };
 }
 
+export function publishPipelineCorrelation(
+  partial: Partial<Omit<CameraPipelineCorrelation, 'at' | 'cameraGeneration'>> & {
+    cameraGeneration?: number;
+  } = {},
+): CameraPipelineCorrelation {
+  lastCorrelation = {
+    ...lastCorrelation,
+    ...partial,
+    cameraGeneration: partial.cameraGeneration ?? cameraGeneration,
+    switching: partial.switching ?? switching,
+    at: Date.now(),
+  };
+  if (typeof window === 'undefined') return lastCorrelation;
+  try {
+    const w = window as CameraDebugWindow;
+    w.__UNILIVE_CAMERA_PIPELINE__ = lastCorrelation;
+  } catch {
+    /* ignore */
+  }
+  emitCameraSwitchTrace('CAMERA_PIPELINE_CORRELATION', { ...lastCorrelation });
+  return lastCorrelation;
+}
+
+export function getCameraPipelineCorrelation(): CameraPipelineCorrelation {
+  return lastCorrelation;
+}
+
 export function emitCameraSwitchTrace(
   step: CameraSwitchTraceStep,
   detail?: Record<string, unknown>,
 ): void {
   if (typeof window === 'undefined') return;
   try {
-    const payload = { step, at: Date.now(), ...detail };
-    (window as Window & { __UNILIVE_CAMERA_SWITCH_DEBUG__?: unknown }).__UNILIVE_CAMERA_SWITCH_DEBUG__ =
-      payload;
+    const payload = {
+      step,
+      at: Date.now(),
+      cameraGeneration,
+      ...detail,
+    };
+    const w = window as CameraDebugWindow;
+    w.__UNILIVE_CAMERA_SWITCH_DEBUG__ = payload;
+    const hist = Array.isArray(w.__UNILIVE_CAMERA_SWITCH_HISTORY__)
+      ? w.__UNILIVE_CAMERA_SWITCH_HISTORY__
+      : [];
+    hist.push(payload);
+    while (hist.length > 40) hist.shift();
+    w.__UNILIVE_CAMERA_SWITCH_HISTORY__ = hist;
     console.info('[CameraSwitch]', step, detail ?? {});
   } catch {
     /* ignore */

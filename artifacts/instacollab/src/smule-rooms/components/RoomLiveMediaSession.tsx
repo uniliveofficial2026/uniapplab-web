@@ -135,6 +135,8 @@ export function buildLiveViewMediaProps(media: RoomLiveMediaBundle) {
     beautyCatalogs: media.camera.beautyCatalogs,
     readyEffectIds: media.camera.readyEffectIds,
     cameraFacingMode: media.camera.cameraFacingMode,
+    cameraGeneration: media.camera.cameraGeneration,
+    cameraTrackDiag: media.camera.cameraTrackDiag,
     onToggleCameraFacing: media.camera.toggleCameraFacing,
   };
 }

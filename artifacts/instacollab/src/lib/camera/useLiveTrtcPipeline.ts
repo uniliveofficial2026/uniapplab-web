@@ -21,7 +21,7 @@ import {
 } from '../deepar/deeparEffectSelection';
 import { useDeepAR } from '../deepar/useDeepAR';
 import { useCameraStream, type CameraFacingMode } from './useCameraStream';
-import { getAppCameraFacing, setAppCameraFacing } from './appCameraOwner';
+import { getAppCameraFacing, getAppCameraGeneration, setAppCameraFacing, diagnoseAppCameraTrack } from './appCameraOwner';
 import {
   nextCameraFacingMode,
   readCameraFacingMode,
@@ -38,7 +38,7 @@ import {
   noteHostRawPreviewReady,
   setHostMediaPresetId,
 } from './hostMediaSession';
-import { emitCameraSwitchTrace } from './cameraSwitchTrace';
+import { emitCameraSwitchTrace, hashId, publishPipelineCorrelation } from './cameraSwitchTrace';
 import { isTencentWebARConfigured, warmTencentWebARPipelineNow } from '../webar/useTencentWebAR';
 import type { TencentEffectItem, TencentEffectSelection } from '../webar/webarTypes';
 import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../webar/webarTypes';
@@ -71,6 +71,8 @@ export type LiveTrtcPipelineState = {
   cameraPermissionDenied: boolean;
   retryCamera: () => void;
   cameraFacingMode: CameraFacingMode;
+  cameraGeneration: number;
+  cameraTrackDiag: ReturnType<typeof diagnoseAppCameraTrack>;
   toggleCameraFacing: () => void;
   arActive: boolean;
   arReady: boolean;
@@ -138,6 +140,7 @@ export function useLiveTrtcPipeline({
   const inputTrackIdRef = useRef('');
   const [videoTrack, setVideoTrack] = useState<MediaStreamTrack | null>(null);
   const [facingMode, setFacingMode] = useState<CameraFacingMode>('user');
+  const [cameraGeneration, setCameraGeneration] = useState(() => getAppCameraGeneration());
   const switchingRef = useRef(false);
   const tracedRawRef = useRef(false);
   const tracedBeautyRef = useRef(false);
@@ -160,10 +163,19 @@ export function useLiveTrtcPipeline({
           getAppCameraFacing(),
         );
         setFacingMode(actual);
+        setCameraGeneration(getAppCameraGeneration());
+        const trackDiag = diagnoseAppCameraTrack();
+        emitCameraSwitchTrace('CAMERA_NEW_TRACK_SETTINGS', {
+          track: trackDiag,
+          actualFacing: actual,
+          cameraGeneration: getAppCameraGeneration(),
+        });
+        console.info('[CameraSwitch] ACTIVE_TRACK_SETTINGS', trackDiag);
         noteHostCameraSwitchFrame();
       })
       .catch(() => {
         setFacingMode(getAppCameraFacing());
+        setCameraGeneration(getAppCameraGeneration());
       })
       .finally(() => {
         switchingRef.current = false;
@@ -182,6 +194,31 @@ export function useLiveTrtcPipeline({
   const cameraReady = resolveCameraReady(camera);
   const inputStream = useTrtcCameraInput(enabled, camera, facingMode);
   const inputTrackId = inputStream?.getVideoTracks()[0]?.id ?? '';
+
+  // Keep UI facing + landmarks aligned to ACTUAL shared track settings.
+  useEffect(() => {
+    if (!enabled) return undefined;
+    const syncFacing = () => {
+      const track = diagnoseAppCameraTrack();
+      const fromSettings =
+        track?.facingMode === 'user' || track?.facingMode === 'environment'
+          ? track.facingMode
+          : getAppCameraFacing();
+      setFacingMode((prev) => (prev === fromSettings ? prev : fromSettings));
+      setCameraGeneration((prev) => {
+        const next = getAppCameraGeneration();
+        return prev === next ? prev : next;
+      });
+      publishPipelineCorrelation({
+        actualFacing: fromSettings,
+        sourceTrackIdHash: track?.trackIdHash,
+        cameraGeneration: getAppCameraGeneration(),
+      });
+    };
+    syncFacing();
+    const id = window.setInterval(syncFacing, 2000);
+    return () => window.clearInterval(id);
+  }, [enabled, inputTrackId]);
 
   useEffect(() => {
     if (!enabled) {
@@ -305,6 +342,10 @@ export function useLiveTrtcPipeline({
     if (publishSourceRef.current === 'raw' && publishTrackRef.current === rawTrack) return;
     publishSourceRef.current = 'raw';
     publishTrackRef.current = rawTrack;
+    publishPipelineCorrelation({
+      renderOutputTrackIdHash: hashId(rawTrack.id),
+      rtcSenderTrackIdHash: hashId(rawTrack.id),
+    });
     setVideoTrack(rawTrack);
   }, []);
 
@@ -314,6 +355,9 @@ export function useLiveTrtcPipeline({
     if (publishSourceRef.current === 'canvas' && publishTrackRef.current === prepared) return;
     publishSourceRef.current = 'canvas';
     publishTrackRef.current = prepared;
+    publishPipelineCorrelation({
+      renderOutputTrackIdHash: hashId(prepared.id),
+    });
     setVideoTrack(prepared);
   }, []);
 
@@ -323,6 +367,9 @@ export function useLiveTrtcPipeline({
     if (publishSourceRef.current === 'beauty' && publishTrackRef.current === prepared) return;
     publishSourceRef.current = 'beauty';
     publishTrackRef.current = prepared;
+    publishPipelineCorrelation({
+      renderOutputTrackIdHash: hashId(prepared.id),
+    });
     setVideoTrack(prepared);
   }, []);
 
@@ -410,6 +457,8 @@ export function useLiveTrtcPipeline({
     cameraPermissionDenied: camera.permissionDenied,
     retryCamera: camera.retry,
     cameraFacingMode: facingMode,
+    cameraGeneration,
+    cameraTrackDiag: diagnoseAppCameraTrack(),
     toggleCameraFacing,
     arActive: effectSelected,
     arReady: deepar.ready,

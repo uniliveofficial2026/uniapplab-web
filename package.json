@@ -119,6 +119,7 @@
     "test:live-host-state-machine": "node scripts/ui-device-recovery/test-live-host-state-machine.mjs",
     "test:camera-ownership": "node scripts/ui-device-recovery/test-camera-ownership.mjs",
     "test:camera-switch": "node scripts/ui-device-recovery/test-camera-ownership.mjs",
+    "test:camera-remote-publication": "node scripts/ui-device-recovery/test-camera-remote-publication.mjs",
     "test:marketplace-keyboard": "node scripts/ui-device-recovery/test-marketplace-keyboard.mjs",
     "test:seller-keyboard": "node scripts/ui-device-recovery/test-seller-keyboard.mjs",
     "test:scan-legacy-keyboard": "node scripts/ui-device-recovery/scan-legacy-keyboard.mjs",

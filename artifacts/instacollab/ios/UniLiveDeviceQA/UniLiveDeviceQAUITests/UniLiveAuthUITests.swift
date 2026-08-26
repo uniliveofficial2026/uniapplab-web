@@ -600,6 +600,16 @@ final class UniLiveAuthUITests: XCTestCase {
       "APPLICATION_STATE_FAILED: SoloLiveView not mounted for camera switch"
     )
 
+    // Emit room id for Mac Viewer B join file
+    let roomLandmark = root.descendants(matching: .any).matching(
+      NSPredicate(format: "label BEGINSWITH %@", "live-room-id-")
+    ).firstMatch
+    if roomLandmark.waitForExistence(timeout: 6) {
+      let label = roomLandmark.label
+      let rid = label.replacingOccurrences(of: "live-room-id-", with: "")
+      print("CAMERA_ROOM_ID=\(rid)")
+    }
+
     let frontBefore = landmark("camera-facing-front", in: root, timeout: 8)
     print("CAMERA_FRONT_BEFORE=\(frontBefore.exists)")
 
@@ -676,6 +686,102 @@ final class UniLiveAuthUITests: XCTestCase {
     )
     print("ROOM_RECONNECTED=NO")
     print("CAMERA_SWITCH_CYCLES=front_rear_front_PASS")
+  }
+
+  /// 10 front↔rear transitions without app relaunch.
+  func testSoloLiveCameraFlipStress() throws {
+    addUIInterruptionMonitor(withDescription: "Camera") { alert in
+      for title in ["Allow While Using App", "Allow", "OK"] {
+        let b = alert.buttons[title]
+        if b.exists { b.tap(); return true }
+      }
+      return false
+    }
+
+    ensureSignedInShell()
+    var root = waitForWebRoot()
+
+    var openedLive = false
+    if tapIfExists(root.buttons["Live"], timeout: 6) {
+      openedLive = true
+    } else if tapIfExists(landmark("Open menu", in: root, timeout: 10), timeout: 10) {
+      sleep(1)
+      openedLive = tapIfExists(root.buttons["Live"], timeout: 8)
+        || tapIfExists(root.staticTexts["Live"], timeout: 6)
+    }
+    XCTAssertTrue(openedLive, "NAVIGATION_FAILED: Live entry unreachable")
+    sleep(2)
+    root = webRoot()
+
+    var goLive = landmark("go-live-entry", in: root, timeout: 10)
+    if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
+    XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
+    goLive.tap()
+    sleep(3)
+    root = webRoot()
+    app.tap()
+
+    if !(landmark("solo-live-view", in: root, timeout: 12).exists
+      || landmark("live-rtc-connected", in: root, timeout: 8).exists) {
+      if landmark("live-go-live-launch", in: root, timeout: 6).exists {
+        landmark("live-go-live-launch", in: root, timeout: 2).tap()
+        sleep(3)
+        if landmark("live-countdown", in: root, timeout: 6).exists {
+          landmark("Skip countdown and go live", in: root, timeout: 4).tap()
+        }
+        sleep(3)
+      }
+    }
+    root = waitForWebRoot(timeout: 30)
+    XCTAssertTrue(
+      landmark("solo-live-view", in: root, timeout: 20).exists
+        || landmark("live-rtc-connected", in: root, timeout: 10).exists,
+      "APPLICATION_STATE_FAILED: SoloLiveView missing for stress"
+    )
+
+    // Print room id for Mac Viewer B join
+    let roomAttr = root.descendants(matching: .any).matching(
+      NSPredicate(format: "value CONTAINS[c] %@ OR label CONTAINS[c] %@", "room", "room")
+    ).firstMatch
+    print("CAMERA_STRESS_ROOM_HINT=\(roomAttr.exists)")
+
+    var expectRear = true
+    for cycle in 1...10 {
+      root = webRoot()
+      var guestsBtn = root.buttons["Guests"].firstMatch
+      if !guestsBtn.exists { guestsBtn = landmark("Guests", in: root, timeout: 4) }
+      if guestsBtn.waitForExistence(timeout: 6) {
+        guestsBtn.tap()
+        sleep(1)
+        root = webRoot()
+      }
+
+      var switchBtn = landmark("camera-switch", in: root, timeout: 6)
+      if !switchBtn.exists { switchBtn = root.buttons["Flip"].firstMatch }
+      if !switchBtn.exists {
+        switchBtn = root.descendants(matching: .any).matching(
+          NSPredicate(format: "label == %@ OR identifier == %@", "camera-switch", "camera-switch")
+        ).firstMatch
+      }
+      XCTAssertTrue(switchBtn.waitForExistence(timeout: 10), "STRESS_FAIL cycle=\(cycle) camera-switch missing")
+      switchBtn.tap()
+      sleep(3)
+      root = webRoot()
+
+      let want = expectRear ? "camera-facing-rear" : "camera-facing-front"
+      let got = landmark(want, in: root, timeout: 12)
+      print("CAMERA_STRESS_CYCLE=\(cycle) expect=\(want) ok=\(got.exists)")
+      XCTAssertTrue(got.exists, "STRESS_FAIL cycle=\(cycle) missing \(want)")
+      expectRear.toggle()
+    }
+
+    print("CAMERA_STRESS_10_CYCLES=PASS")
+    XCTAssertTrue(
+      landmark("solo-live-view", in: root, timeout: 5).exists
+        || landmark("live-rtc-connected", in: root, timeout: 5).exists,
+      "STRESS_FAIL: SoloLiveView lost after 10 cycles"
+    )
+    print("ROOM_RECONNECTED=NO")
   }
 
   func testPostModalCommentComposerLandmark() throws {

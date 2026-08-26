@@ -10,7 +10,14 @@
  */
 import { openCameraMediaStream, type CameraFacingMode } from './cameraAcquire';
 import { WEBAR_CAMERA_FRAME_RATE } from './cameraPipelinePolicy';
-import { diagnoseVideoTrack, emitCameraSwitchTrace } from './cameraSwitchTrace';
+import {
+  bumpCameraGeneration,
+  diagnoseVideoTrack,
+  emitCameraSwitchTrace,
+  getCameraGeneration,
+  publishPipelineCorrelation,
+  setCameraSwitching,
+} from './cameraSwitchTrace';
 
 export type { CameraFacingMode } from './cameraAcquire';
 
@@ -146,9 +153,20 @@ async function ensureStreamForLeases(): Promise<MediaStream | null> {
     exactFacing: primary.exactFacing,
   });
 
+  const facingChanged =
+    !previous || sharedFacing !== opened.facingMode || previous !== opened.stream;
   sharedStream = opened.stream;
   applyActualFacing(opened.facingMode);
   if (previous && previous !== opened.stream) stopStream(previous);
+  if (facingChanged || getCameraGeneration() === 0) {
+    bumpCameraGeneration(previous ? 'ensure-facing-or-replace' : 'initial-acquire');
+  }
+  publishPipelineCorrelation({
+    requestedFacing: primary.facingMode,
+    actualFacing: opened.facingMode,
+    sourceTrackIdHash: diagnoseVideoTrack(opened.stream.getVideoTracks()[0])?.trackIdHash,
+    renderInputTrackIdHash: diagnoseVideoTrack(opened.stream.getVideoTracks()[0])?.trackIdHash,
+  });
   notify(opened.stream);
 
   void import('../webar/tencentWebARWarm')
@@ -184,6 +202,15 @@ export function getAppCameraStream(): MediaStream | null {
 
 export function getAppCameraFacing(): CameraFacingMode {
   return sharedFacing;
+}
+
+export function getAppCameraGeneration(): number {
+  return getCameraGeneration();
+}
+
+/** Safe settings dump of the active shared video track (no raw device ids). */
+export function diagnoseAppCameraTrack() {
+  return diagnoseVideoTrack(getAppCameraStream()?.getVideoTracks()[0]);
 }
 
 /** Subscribe to the single camera stream — fires on open / flip / close. */
@@ -261,6 +288,7 @@ export function setAppCameraFacing(facingMode: CameraFacingMode): Promise<MediaS
     const previousFacing = sharedFacing;
     const previousTrack = previous?.getVideoTracks()[0] ?? null;
 
+    setCameraSwitching(true);
     emitCameraSwitchTrace('CAMERA_SWITCH_TAP', {
       requested: facingMode,
       previousFacing,
@@ -268,6 +296,11 @@ export function setAppCameraFacing(facingMode: CameraFacingMode): Promise<MediaS
     });
     emitCameraSwitchTrace('CAMERA_CURRENT_TRACK_BEFORE', {
       track: diagnoseVideoTrack(previousTrack),
+    });
+    publishPipelineCorrelation({
+      requestedFacing: facingMode,
+      actualFacing: previousFacing,
+      sourceTrackIdHash: diagnoseVideoTrack(previousTrack)?.trackIdHash,
     });
 
     for (const lease of leases.values()) {
@@ -326,24 +359,41 @@ export function setAppCameraFacing(facingMode: CameraFacingMode): Promise<MediaS
           track: diagnoseVideoTrack(previousTrack),
         });
       }
+      const gen = bumpCameraGeneration(`switch-${previousFacing}-to-${opened.facingMode}`);
+      const sourceDiag = diagnoseVideoTrack(opened.stream.getVideoTracks()[0]);
+      publishPipelineCorrelation({
+        requestedFacing: facingMode,
+        actualFacing: opened.facingMode,
+        sourceTrackIdHash: sourceDiag?.trackIdHash,
+        renderInputTrackIdHash: sourceDiag?.trackIdHash,
+        cameraGeneration: gen,
+      });
       notify(opened.stream);
       emitCameraSwitchTrace('CAMERA_PREVIEW_REPLACED', {
-        track: diagnoseVideoTrack(opened.stream.getVideoTracks()[0]),
+        track: sourceDiag,
         facing: opened.facingMode,
+        cameraGeneration: gen,
       });
       void import('../webar/tencentWebARWarm')
         .then((m) => {
           m.onSharedInputReplaced(opened.stream);
           emitCameraSwitchTrace('CAMERA_RENDER_GRAPH_REPLACED', {
             facing: opened.facingMode,
+            cameraGeneration: gen,
+            renderInputTrackIdHash: sourceDiag?.trackIdHash,
+          });
+          publishPipelineCorrelation({
+            renderInputTrackIdHash: sourceDiag?.trackIdHash,
           });
         })
         .catch(() => undefined);
       emitCameraSwitchTrace('CAMERA_SWITCH_COMPLETE', {
         requested: facingMode,
         actual: opened.facingMode,
-        track: diagnoseVideoTrack(opened.stream.getVideoTracks()[0]),
+        track: sourceDiag,
+        cameraGeneration: gen,
       });
+      setCameraSwitching(false);
       return opened.stream;
     } catch (err) {
       emitCameraSwitchTrace('CAMERA_SWITCH_ERROR', {
@@ -358,9 +408,16 @@ export function setAppCameraFacing(facingMode: CameraFacingMode): Promise<MediaS
           lease.facingMode = previousFacing;
           if (previousFacing === 'user') lease.exactFacing = false;
         }
+        publishPipelineCorrelation({
+          requestedFacing: facingMode,
+          actualFacing: previousFacing,
+          sourceTrackIdHash: diagnoseVideoTrack(previousTrack)?.trackIdHash,
+        });
         notify(previous);
+        setCameraSwitching(false);
         return previous;
       }
+      setCameraSwitching(false);
       throw new Error('This camera is not available on your device.');
     }
   });
