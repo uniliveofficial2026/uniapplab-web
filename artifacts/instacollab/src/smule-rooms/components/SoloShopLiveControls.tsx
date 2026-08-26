@@ -122,6 +122,7 @@ export function SoloShopLiveControls({
           className={`approved-live-control ${guestsOpen ? 'is-active' : ''}`}
           onClick={onOpenGuests}
           aria-expanded={guestsOpen}
+          aria-label="Guests"
         >
           <ControlIcon><Users aria-hidden="true" /></ControlIcon>
           <ControlLabel>Guests</ControlLabel>
