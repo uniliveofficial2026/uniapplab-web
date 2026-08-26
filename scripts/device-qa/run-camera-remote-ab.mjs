@@ -30,14 +30,26 @@ const ROOM_FILE = path.join(root, '.local/camera-ab-room.json');
 const STAGE_FILE = path.join(root, '.local/camera-ab-stages.json');
 fs.mkdirSync(OUT, { recursive: true });
 
+if (!process.env.PLAYWRIGHT_BROWSERS_PATH) {
+  process.env.PLAYWRIGHT_BROWSERS_PATH = '/Volumes/Wei2TB/MacData/tools/playwright-browsers';
+}
 async function loadPlaywright() {
   const candidates = [
     path.join(root, 'artifacts/instacollab/node_modules/playwright'),
     path.join(root, 'node_modules/playwright'),
   ];
   for (const p of candidates) {
-    if (fs.existsSync(path.join(p, 'package.json'))) {
-      return import(pathToFileURL(path.join(p, 'index.js')).href);
+    if (!fs.existsSync(path.join(p, 'package.json'))) continue;
+    try {
+      // CJS require is reliable for playwright's chromium export shape.
+      return require(p);
+    } catch {
+      try {
+        const mod = await import(pathToFileURL(path.join(p, 'index.js')).href);
+        return mod?.default ?? mod;
+      } catch {
+        /* try next */
+      }
     }
   }
   return null;
@@ -300,14 +312,43 @@ async function mintViewerGrant(appBase, access, roomId) {
  * Does not invent tokens — only uses /api/livekit/party/token result.
  */
 async function proveRemoteFramesViaLiveKit(grant, hostPersonId, sampleMs = 12_000) {
+  // Prefer @livekit/rtc-node in Node (native WebRTC). Fall back to livekit-client
+  // only when RTCPeerConnection exists.
   let Room;
+  let VideoStream;
+  let TrackKind;
+  let usingRtcNode = false;
   try {
-    ({ Room } = require(path.join(root, 'artifacts/instacollab/node_modules/livekit-client')));
+    const rtcNode = require(path.join(root, 'artifacts/instacollab/node_modules/@livekit/rtc-node'));
+    Room = rtcNode.Room || rtcNode.default?.Room;
+    VideoStream = rtcNode.VideoStream;
+    TrackKind = rtcNode.TrackKind;
+    usingRtcNode = Boolean(Room);
   } catch {
     try {
-      ({ Room } = require('livekit-client'));
+      const rtcNode = require('@livekit/rtc-node');
+      Room = rtcNode.Room || rtcNode.default?.Room;
+      VideoStream = rtcNode.VideoStream;
+      TrackKind = rtcNode.TrackKind;
+      usingRtcNode = Boolean(Room);
     } catch {
-      return { ok: false, failClass: 'OTHER_WITH_EXACT_EVIDENCE', detail: 'livekit-client missing' };
+      if (typeof globalThis.RTCPeerConnection !== 'function') {
+        return {
+          ok: false,
+          failClass: 'LIVEKIT_CONNECT_FAILED',
+          detail:
+            'Node has no WebRTC; install @livekit/rtc-node or Playwright Chromium for Mac viewer frames',
+        };
+      }
+      try {
+        ({ Room } = require(path.join(root, 'artifacts/instacollab/node_modules/livekit-client')));
+      } catch {
+        try {
+          ({ Room } = require('livekit-client'));
+        } catch {
+          return { ok: false, failClass: 'OTHER_WITH_EXACT_EVIDENCE', detail: 'livekit-client missing' };
+        }
+      }
     }
   }
 
@@ -317,28 +358,46 @@ async function proveRemoteFramesViaLiveKit(grant, hostPersonId, sampleMs = 12_00
     trace('VIEWER_LIVEKIT_CONNECTED', {
       roomNameHash: hashId(grant.roomName || room.name),
       participantCount: room.remoteParticipants.size,
+      rtcBackend: usingRtcNode ? 'rtc-node' : 'livekit-client',
     });
+
+    const listVideoPubs = (participant) => {
+      const map =
+        participant.trackPublications ||
+        participant.videoTrackPublications ||
+        new Map();
+      return [...map.values()].filter((pub) => {
+        const kind = pub.kind ?? pub.track?.kind;
+        return (
+          kind === TrackKind?.KIND_VIDEO ||
+          kind === 'video' ||
+          kind === 1 ||
+          Boolean(pub.videoTrack) ||
+          pub.source === 'camera' ||
+          Boolean(pub.track?.mediaStreamTrack)
+        );
+      });
+    };
 
     const deadline = Date.now() + sampleMs;
     let host = null;
     while (Date.now() < deadline && !host) {
       for (const p of room.remoteParticipants.values()) {
         const id = p.identity?.trim();
-        if (!id) continue;
-        if (hostPersonId && id !== hostPersonId) continue;
-        const pubs = [...p.videoTrackPublications.values()].filter((pub) => pub.track);
-        if (pubs.length) {
-          host = { participant: p, publication: pubs[0] };
-          break;
-        }
-      }
-      if (!host && !hostPersonId) {
-        for (const p of room.remoteParticipants.values()) {
-          const pubs = [...p.videoTrackPublications.values()].filter((pub) => pub.track);
-          if (pubs.length) {
-            host = { participant: p, publication: pubs[0] };
-            break;
+        if (hostPersonId && id && id !== hostPersonId) continue;
+        for (const pub of listVideoPubs(p)) {
+          if (typeof pub.setSubscribed === 'function') {
+            try {
+              pub.setSubscribed(true);
+            } catch {
+              /* ignore */
+            }
           }
+        }
+        const ready = listVideoPubs(p).find((pub) => pub.track || pub.videoTrack);
+        if (ready) {
+          host = { participant: p, publication: ready };
+          break;
         }
       }
       if (!host) await new Promise((r) => setTimeout(r, 500));
@@ -356,40 +415,73 @@ async function proveRemoteFramesViaLiveKit(grant, hostPersonId, sampleMs = 12_00
       };
     }
 
+    const pubSid = host.publication.sid || host.publication.trackSid || null;
     trace('VIEWER_HOST_PARTICIPANT_FOUND', {
       hostIdentityHash: hashId(host.participant.identity),
-      publicationSid: host.publication.trackSid || null,
+      publicationSid: pubSid,
     });
-    trace('VIEWER_VIDEO_SUBSCRIBED', {
-      publicationSid: host.publication.trackSid || null,
-    });
+    trace('VIEWER_VIDEO_SUBSCRIBED', { publicationSid: pubSid });
 
-    const track = host.publication.track;
-    const media = track?.mediaStreamTrack;
-    if (!media || media.readyState === 'ended') {
-      await room.disconnect();
-      return { ok: false, failClass: 'REMOTE_TRACK_NOT_ATTACHED' };
+    const track = host.publication.track || host.publication.videoTrack;
+    let frames0 = 0;
+    let frames1 = 0;
+    let bytes0 = 0;
+    let bytes1 = 0;
+
+    if (usingRtcNode && VideoStream && track) {
+      const stream = new VideoStream(track);
+      const reader = stream.getReader();
+      const countFrames = async (ms) => {
+        let n = 0;
+        const end = Date.now() + ms;
+        while (Date.now() < end) {
+          const remaining = Math.max(1, end - Date.now());
+          const result = await Promise.race([
+            reader.read(),
+            new Promise((resolve) => setTimeout(() => resolve({ timeout: true }), remaining)),
+          ]);
+          if (result?.timeout || result?.done) break;
+          if (result?.value) n += 1;
+        }
+        return n;
+      };
+      frames0 = await countFrames(1500);
+      frames1 = frames0 + (await countFrames(4000));
+      try {
+        reader.releaseLock();
+      } catch {
+        /* ignore */
+      }
+      try {
+        await stream.cancel();
+      } catch {
+        /* ignore */
+      }
+    } else {
+      const media = track?.mediaStreamTrack;
+      if (!media || media.readyState === 'ended') {
+        await room.disconnect();
+        return { ok: false, failClass: 'REMOTE_TRACK_NOT_ATTACHED' };
+      }
+      const readStats = async () => {
+        if (typeof track.getReceiverStats !== 'function') return null;
+        try {
+          const s = await track.getReceiverStats();
+          return s && typeof s === 'object' ? s : null;
+        } catch {
+          return null;
+        }
+      };
+      const t0 = await readStats();
+      await new Promise((r) => setTimeout(r, 4000));
+      const t1 = await readStats();
+      frames0 = typeof t0?.framesDecoded === 'number' ? t0.framesDecoded : 0;
+      frames1 = typeof t1?.framesDecoded === 'number' ? t1.framesDecoded : 0;
+      bytes0 = typeof t0?.bytesReceived === 'number' ? t0.bytesReceived : 0;
+      bytes1 = typeof t1?.bytesReceived === 'number' ? t1.bytesReceived : 0;
     }
 
-    const readStats = async () => {
-      if (typeof track.getReceiverStats !== 'function') return null;
-      try {
-        const s = await track.getReceiverStats();
-        return s && typeof s === 'object' ? s : null;
-      } catch {
-        return null;
-      }
-    };
-
-    const t0 = await readStats();
-    await new Promise((r) => setTimeout(r, 4000));
-    const t1 = await readStats();
-    const frames0 = typeof t0?.framesDecoded === 'number' ? t0.framesDecoded : 0;
-    const frames1 = typeof t1?.framesDecoded === 'number' ? t1.framesDecoded : 0;
-    const bytes0 = typeof t0?.bytesReceived === 'number' ? t0.bytesReceived : 0;
-    const bytes1 = typeof t1?.bytesReceived === 'number' ? t1.bytesReceived : 0;
     const progressing = frames1 > frames0 || bytes1 > bytes0;
-
     await room.disconnect();
 
     if (!progressing) {
@@ -402,7 +494,7 @@ async function proveRemoteFramesViaLiveKit(grant, hostPersonId, sampleMs = 12_00
     trace('VIEWER_REMOTE_FRAMES_ACTIVE', { frames0, frames1, bytes0, bytes1 });
     return {
       ok: true,
-      stats: { frames0, frames1, bytes0, bytes1, publicationSid: host.publication.trackSid },
+      stats: { frames0, frames1, bytes0, bytes1, publicationSid: pubSid },
     };
   } catch (err) {
     try {

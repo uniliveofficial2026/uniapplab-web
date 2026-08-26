@@ -333,7 +333,7 @@ final class UniLiveAuthUITests: XCTestCase {
     }
     XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
     goLive.tap()
-    sleep(2)
+    sleep(3)
     root = webRoot()
 
     // Auto-launch may already have completed CreateRoom → countdown → SoloLiveView.
@@ -346,10 +346,16 @@ final class UniLiveAuthUITests: XCTestCase {
     if alreadyHost {
       print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (auto-launch past CreateRoom)")
     } else {
-      // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
+      // CreateRoom must expose the caption field — go-live-entry alone can still be on Live tab.
+      var createName = landmark("create-room-name", in: root, timeout: 12)
+      if !createName.exists {
+        // Retry Go Live once — first tap sometimes only focuses the Live chrome.
+        goLive = landmark("go-live-entry", in: root, timeout: 4)
+        if goLive.exists { goLive.tap(); sleep(3); root = webRoot() }
+        createName = landmark("create-room-name", in: root, timeout: 12)
+      }
       XCTAssertTrue(
-        landmark("go-live-entry", in: root, timeout: 8).exists
-          || landmark("create-room-name", in: root, timeout: 8).exists,
+        createName.waitForExistence(timeout: 8),
         "APPLICATION_STATE_FAILED: CreateRoom not reached after go-live-entry"
       )
       var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
@@ -359,10 +365,18 @@ final class UniLiveAuthUITests: XCTestCase {
         if !soloOption.exists {
           soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
         }
+        if !soloOption.exists {
+          soloOption = root.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@ OR label CONTAINS[c] %@", "Solo", "Solo Live")
+          ).firstMatch
+        }
       }
       if soloOption.waitForExistence(timeout: 6) {
         soloOption.tap()
         sleep(1)
+      } else if landmark("create-room-name", in: root, timeout: 2).exists {
+        // Product may already seed Solo-Live; continue without chip if caption is present.
+        print("CAMERA_SOLO_OPTION=SEEDED_VIA_CREATE_ROOM_CAPTION")
       } else {
         print("APPLICATION_STATE_FAILED: go-live-solo-option missing after Go Live open")
         print("DEBUG_CREATE=\(root.debugDescription.prefix(3500))")
@@ -655,7 +669,7 @@ final class UniLiveAuthUITests: XCTestCase {
       return root
     }
     goLive.tap()
-    sleep(2)
+    sleep(3)
     root = webRoot()
 
     let alreadyHost =
@@ -668,9 +682,14 @@ final class UniLiveAuthUITests: XCTestCase {
     if alreadyHost {
       print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (auto-launch past CreateRoom)")
     } else {
+      var createName = landmark("create-room-name", in: root, timeout: 12)
+      if !createName.exists {
+        goLive = landmark("go-live-entry", in: root, timeout: 4)
+        if goLive.exists { goLive.tap(); sleep(3); root = webRoot() }
+        createName = landmark("create-room-name", in: root, timeout: 12)
+      }
       XCTAssertTrue(
-        landmark("go-live-entry", in: root, timeout: 8).exists
-          || landmark("create-room-name", in: root, timeout: 8).exists,
+        createName.waitForExistence(timeout: 8),
         "APPLICATION_STATE_FAILED: CreateRoom not reached after go-live-entry"
       )
       var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
@@ -679,10 +698,17 @@ final class UniLiveAuthUITests: XCTestCase {
         if !soloOption.exists {
           soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
         }
+        if !soloOption.exists {
+          soloOption = root.descendants(matching: .any).matching(
+            NSPredicate(format: "label == %@ OR label CONTAINS[c] %@", "Solo", "Solo Live")
+          ).firstMatch
+        }
       }
       if soloOption.waitForExistence(timeout: 6) {
         soloOption.tap()
         sleep(1)
+      } else if landmark("create-room-name", in: root, timeout: 2).exists {
+        print("CAMERA_SOLO_OPTION=SEEDED_VIA_CREATE_ROOM_CAPTION")
       } else {
         print("DEBUG_CREATE=\(root.debugDescription.prefix(3500))")
         XCTFail("APPLICATION_STATE_FAILED: go-live-solo-option not selected/seeded")

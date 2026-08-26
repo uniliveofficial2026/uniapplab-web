@@ -15,6 +15,8 @@ export UNILIVE_CAMERA_HOLD_BEFORE_FLIP_SEC="${UNILIVE_CAMERA_HOLD_BEFORE_FLIP_SE
 export UNILIVE_CAMERA_ROOM_WAIT_MS="${UNILIVE_CAMERA_ROOM_WAIT_MS:-360000}"
 export UNILIVE_CAMERA_AB_SECONDS="${UNILIVE_CAMERA_AB_SECONDS:-120}"
 export UNILIVE_CAMERA_ROOM_MAX_AGE_MS="${UNILIVE_CAMERA_ROOM_MAX_AGE_MS:-900000}"
+# Prefer the stable MacData Playwright Chromium install used by other UniLive smokes.
+export PLAYWRIGHT_BROWSERS_PATH="${PLAYWRIGHT_BROWSERS_PATH:-/Volumes/Wei2TB/MacData/tools/playwright-browsers}"
 
 rm -f "$ROOT/.local/camera-ab-room.json" "$ROOT/.local/camera-ab-stages.json"
 
