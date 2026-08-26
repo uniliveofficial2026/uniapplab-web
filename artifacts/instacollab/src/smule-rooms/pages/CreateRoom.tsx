@@ -48,6 +48,10 @@ const CreateRoom = () => {
   const pendingNavigateRef = useRef<string | null>(null);
   const launchLockRef = useRef(false);
   const handleCreateRef = useRef<() => void>(() => {});
+  const modeRef = useRef(mode);
+  const roomNameRef = useRef(roomName);
+  modeRef.current = mode;
+  roomNameRef.current = roomName;
   const [autoLaunchArmed, setAutoLaunchArmed] = useState(false);
 
   useEffect(() => {
@@ -98,17 +102,36 @@ const CreateRoom = () => {
       if (hint.mode?.trim()) setMode(hint.mode.trim());
     };
 
+    const scheduleAutoLaunch = () => {
+      launchLockRef.current = false;
+      setAutoLaunchArmed(true);
+      let attempts = 0;
+      const tick = () => {
+        attempts += 1;
+        const ready =
+          LIVE_CAMERA_MODES.has(modeRef.current) && Boolean(roomNameRef.current.trim());
+        if (ready) {
+          handleCreateRef.current();
+          return;
+        }
+        if (attempts < 12) {
+          window.setTimeout(tick, 250);
+        }
+      };
+      window.setTimeout(tick, 200);
+    };
+
     // Retain Go Live intent across async cloud hydrate (otherwise Solo-Live is overwritten by Chat).
     let goLiveHint = readHint();
     applyHint(goLiveHint);
-    if (goLiveHint?.autoLaunch) setAutoLaunchArmed(true);
+    if (goLiveHint?.autoLaunch) scheduleAutoLaunch();
 
     const onCreateRoomHint = (event: Event) => {
       const detail = (event as CustomEvent<{ roomName?: string; mode?: string; autoLaunch?: boolean }>).detail;
       if (!detail) return;
       goLiveHint = detail;
       applyHint(detail);
-      if (detail.autoLaunch) setAutoLaunchArmed(true);
+      if (detail.autoLaunch) scheduleAutoLaunch();
       try {
         sessionStorage.removeItem('uni.createRoom.hint');
       } catch {
@@ -127,6 +150,7 @@ const CreateRoom = () => {
       if (cancelled || !cloudId || cloudId === local) return;
       hydrateFromRoom(cloudId);
       applyHint(goLiveHint);
+      if (goLiveHint?.autoLaunch) scheduleAutoLaunch();
     });
 
     return () => {
@@ -297,6 +321,7 @@ const CreateRoom = () => {
           roomMode: mode as 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest',
         });
         pendingNavigateRef.current = roomIdString;
+        setAutoLaunchArmed(false);
         setGoLiveCountdown(1);
         return;
       }
@@ -315,16 +340,6 @@ const CreateRoom = () => {
     }
   };
   handleCreateRef.current = handleCreate;
-
-  useEffect(() => {
-    if (!autoLaunchArmed) return undefined;
-    if (!roomName.trim() || !LIVE_CAMERA_MODES.has(mode)) return undefined;
-    const timer = window.setTimeout(() => {
-      setAutoLaunchArmed(false);
-      handleCreateRef.current();
-    }, 800);
-    return () => window.clearTimeout(timer);
-  }, [autoLaunchArmed, roomName, mode]);
 
   const handleModeSelect = (modeId: string) => {
     if (goLiveCountdown !== null) return;
@@ -377,7 +392,9 @@ const CreateRoom = () => {
         ? 'live-countdown'
         : launching
           ? 'live-room-creating'
-          : launchBlockReason || 'go-live-entry';
+          : autoLaunchArmed
+            ? 'go-live-auto-launch-armed'
+            : launchBlockReason || 'go-live-entry';
 
   return (
     <div

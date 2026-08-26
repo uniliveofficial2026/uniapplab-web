@@ -4800,6 +4800,7 @@
     "global": "global",
     "global-${globalAnnouncement.queueKey}": "global-${globalAnnouncement.queueKey}",
     "gmail": "gmail",
+    "go-live-auto-launch-armed": "go-live-auto-launch-armed",
     "go-live-entry": "go-live-entry",
     "go-live-mode-${m.id}": "go-live-mode-${m.id}",
     "go-live-solo-option": "go-live-solo-option",
