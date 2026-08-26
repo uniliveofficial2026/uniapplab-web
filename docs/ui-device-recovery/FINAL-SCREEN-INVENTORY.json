@@ -1,0 +1,488 @@
+{
+  "generatedAt": "2026-08-26T22:05:21.264Z",
+  "count": 23,
+  "screens": [
+    {
+      "screenId": "home",
+      "route": "/home",
+      "component": "homeTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "search",
+      "route": "/explore",
+      "component": "searchTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "reels",
+      "route": "/reels",
+      "component": "reelsTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "screen",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "messages",
+      "route": "/messages",
+      "component": "messagesTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "notifications",
+      "route": "/notifications",
+      "component": "notificationsTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "workspace",
+      "route": "/workspace",
+      "component": "workspaceTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "dating",
+      "route": "/dating",
+      "component": "datingTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "profile",
+      "route": "/profile",
+      "component": "profileTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "live",
+      "route": "/live",
+      "component": "liveTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "screen",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [
+        "camera",
+        "mic"
+      ],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "karaoke",
+      "route": "/karaoke",
+      "component": "karaokeTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "rooms",
+      "route": "/party",
+      "component": "roomsTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": false,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [
+        "camera",
+        "mic"
+      ],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "wallet",
+      "route": "/wallet",
+      "component": "walletTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "youtube",
+      "route": "/youtube",
+      "component": "youtubeTab",
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "scrollOwner": "main",
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "navigate",
+        "render"
+      ],
+      "status": "INDEXED"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": false,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "splash",
+      "route": "/splash",
+      "component": "SplashScreen",
+      "scrollOwner": "none"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": false,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "onboarding",
+      "route": "/onboarding",
+      "component": "OnboardingScreen",
+      "scrollOwner": "screen"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": false,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "auth",
+      "route": "/auth",
+      "component": "AuthScreen",
+      "scrollOwner": "screen"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "trending",
+      "route": "/trending",
+      "component": "TrendingScreen",
+      "scrollOwner": "screen"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": false,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "post-modal",
+      "route": "overlay:post",
+      "component": "PostModal",
+      "scrollOwner": "modal-body"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "immersive",
+      "bottomNav": false,
+      "safeAreaTop": "immersive-chrome",
+      "safeAreaBottom": "composer",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [
+        "camera",
+        "mic"
+      ],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "solo-live",
+      "route": "/room/solo",
+      "component": "SoloLiveView",
+      "scrollOwner": "screen"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "marketplace",
+      "route": "overlay:marketplace",
+      "component": "CommerceLivePanel",
+      "scrollOwner": "sheet"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "seller-center",
+      "route": "/seller",
+      "component": "SellerCenter",
+      "scrollOwner": "main"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "admin",
+      "route": "/admin",
+      "component": "AdminPanel",
+      "scrollOwner": "main"
+    },
+    {
+      "mobileSupported": true,
+      "tabletSupported": true,
+      "desktopSupported": true,
+      "headerType": "shell",
+      "bottomNav": true,
+      "safeAreaTop": "shell",
+      "safeAreaBottom": "shell",
+      "keyboardInputs": "varies",
+      "modals": "varies",
+      "hardware": [],
+      "functionalActions": [
+        "render"
+      ],
+      "status": "INDEXED",
+      "screenId": "notifications",
+      "route": "/notifications",
+      "component": "NotificationsScreen",
+      "scrollOwner": "main"
+    }
+  ]
+}

@@ -24,30 +24,69 @@ const ROOT = () => document.documentElement;
 let nativeKeyboardHeightPx = 0;
 
 export type AppViewportSnapshot = {
+  /** Layout viewport width (window.innerWidth). */
   viewportWidth: number;
+  /** Layout viewport height (window.innerHeight). */
   viewportHeight: number;
+  /** Visual viewport width (above keyboard when open). */
+  visualViewportWidth: number;
   visualViewportHeight: number;
+  layoutViewportWidth: number;
+  layoutViewportHeight: number;
   keyboardVisible: boolean;
+  isKeyboardOpen: boolean;
   keyboardHeight: number;
+  keyboardInset: number;
   safeAreaTop: number;
   safeAreaBottom: number;
   safeAreaLeft: number;
   safeAreaRight: number;
+  safeTop: number;
+  safeBottom: number;
+  safeLeft: number;
+  safeRight: number;
   orientation: 'portrait' | 'landscape';
+  isPortrait: boolean;
+  isLandscape: boolean;
+  isMobile: boolean;
+  isTablet: boolean;
+  horizontalOverflow: boolean;
+  horizontalOverflowPx: number;
 };
 
-let lastSnapshot: AppViewportSnapshot = {
-  viewportWidth: typeof window !== 'undefined' ? window.innerWidth : 0,
-  viewportHeight: typeof window !== 'undefined' ? window.innerHeight : 0,
-  visualViewportHeight: typeof window !== 'undefined' ? window.innerHeight : 0,
-  keyboardVisible: false,
-  keyboardHeight: 0,
-  safeAreaTop: 0,
-  safeAreaBottom: 0,
-  safeAreaLeft: 0,
-  safeAreaRight: 0,
-  orientation: 'portrait',
-};
+function emptyViewportSnapshot(): AppViewportSnapshot {
+  const w = typeof window !== 'undefined' ? window.innerWidth : 0;
+  const h = typeof window !== 'undefined' ? window.innerHeight : 0;
+  return {
+    viewportWidth: w,
+    viewportHeight: h,
+    visualViewportWidth: w,
+    visualViewportHeight: h,
+    layoutViewportWidth: w,
+    layoutViewportHeight: h,
+    keyboardVisible: false,
+    isKeyboardOpen: false,
+    keyboardHeight: 0,
+    keyboardInset: 0,
+    safeAreaTop: 0,
+    safeAreaBottom: 0,
+    safeAreaLeft: 0,
+    safeAreaRight: 0,
+    safeTop: 0,
+    safeBottom: 0,
+    safeLeft: 0,
+    safeRight: 0,
+    orientation: 'portrait',
+    isPortrait: true,
+    isLandscape: false,
+    isMobile: w < 768,
+    isTablet: w >= 768 && w < 1024,
+    horizontalOverflow: false,
+    horizontalOverflowPx: 0,
+  };
+}
+
+let lastSnapshot: AppViewportSnapshot = emptyViewportSnapshot();
 
 const viewportListeners = new Set<(s: AppViewportSnapshot) => void>();
 
@@ -234,8 +273,13 @@ export function updateAppSafeArea(): void {
   root.style.setProperty('--app-safe-bottom', `${staticBottom}px`);
   root.style.setProperty('--app-safe-left', `${left}px`);
   root.style.setProperty('--app-safe-right', `${right}px`);
+  const layoutWidth = Math.max(1, Math.round(window.innerWidth));
+  const layoutHeight = Math.max(1, Math.round(window.innerHeight));
+
   root.style.setProperty('--app-vv-height', `${height}px`);
   root.style.setProperty('--app-vv-width', `${width}px`);
+  root.style.setProperty('--app-layout-vv-width', `${layoutWidth}px`);
+  root.style.setProperty('--app-layout-vv-height', `${layoutHeight}px`);
   root.style.setProperty('--app-height', `${height}px`);
   root.style.setProperty('--app-keyboard-inset', `${keyboardInset}px`);
   root.style.setProperty('--keyboard-height', `${keyboardInset}px`);
@@ -260,19 +304,57 @@ export function updateAppSafeArea(): void {
 
   const orientation: 'portrait' | 'landscape' =
     width >= height ? 'landscape' : 'portrait';
+  const isMobile = layoutWidth < 768;
+  const isTablet = layoutWidth >= 768 && layoutWidth < 1024;
+  const overflowPx = measureHorizontalOverflowPx();
+  const horizontalOverflow = overflowPx > 2;
+
+  root.dataset.horizontalOverflow = horizontalOverflow ? '1' : '0';
+  if (horizontalOverflow) {
+    root.style.setProperty('--app-horizontal-overflow-px', `${overflowPx}px`);
+  } else {
+    root.style.removeProperty('--app-horizontal-overflow-px');
+  }
 
   emitViewport({
-    viewportWidth: width,
-    viewportHeight: Math.round(window.innerHeight),
+    viewportWidth: layoutWidth,
+    viewportHeight: layoutHeight,
+    visualViewportWidth: width,
     visualViewportHeight: height,
+    layoutViewportWidth: layoutWidth,
+    layoutViewportHeight: layoutHeight,
     keyboardVisible: keyboardOpen,
+    isKeyboardOpen: keyboardOpen,
     keyboardHeight: keyboardInset,
+    keyboardInset,
     safeAreaTop: top,
     safeAreaBottom: staticBottom,
     safeAreaLeft: left,
     safeAreaRight: right,
+    safeTop: top,
+    safeBottom: staticBottom,
+    safeLeft: left,
+    safeRight: right,
     orientation,
+    isPortrait: orientation === 'portrait',
+    isLandscape: orientation === 'landscape',
+    isMobile,
+    isTablet,
+    horizontalOverflow,
+    horizontalOverflowPx: overflowPx,
   });
+}
+
+/** Document-level horizontal overflow (excludes intentional inner scroll regions). */
+export function measureHorizontalOverflowPx(): number {
+  if (typeof document === 'undefined') return 0;
+  const doc = document.documentElement;
+  const body = document.body;
+  const docOverflow = Math.max(0, doc.scrollWidth - doc.clientWidth);
+  const bodyOverflow = body
+    ? Math.max(0, body.scrollWidth - body.clientWidth)
+    : 0;
+  return Math.max(docOverflow, bodyOverflow);
 }
 
 /** Tailwind-friendly class fragments for common chrome. */
@@ -302,4 +384,28 @@ export function installAppSafeArea(): void {
   window.addEventListener('orientationchange', onGeom, { passive: true });
   window.visualViewport?.addEventListener('resize', onGeom, { passive: true });
   window.visualViewport?.addEventListener('scroll', onGeom, { passive: true });
+
+  if (typeof MutationObserver !== 'undefined') {
+    let overflowRaf = 0;
+    const scheduleOverflowCheck = () => {
+      if (overflowRaf) return;
+      overflowRaf = requestAnimationFrame(() => {
+        overflowRaf = 0;
+        const px = measureHorizontalOverflowPx();
+        const root = ROOT();
+        const prev = root.dataset.horizontalOverflow === '1';
+        const next = px > 2;
+        if (prev !== next || px !== lastSnapshot.horizontalOverflowPx) {
+          scheduleUpdateAppSafeArea();
+        }
+      });
+    };
+    const mo = new MutationObserver(scheduleOverflowCheck);
+    mo.observe(document.documentElement, {
+      childList: true,
+      subtree: true,
+      attributes: true,
+      attributeFilter: ['class', 'style', 'hidden'],
+    });
+  }
 }

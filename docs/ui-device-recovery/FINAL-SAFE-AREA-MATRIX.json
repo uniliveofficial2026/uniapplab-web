@@ -1,11 +1,258 @@
 {
-  "tokens": [
-    "--app-safe-top",
-    "--app-safe-bottom",
-    "--app-safe-left",
-    "--app-safe-right",
-    "--app-composer-bottom-inset"
-  ],
-  "staticGate": "PASS",
-  "physical": "NOT_TESTED"
+  "generatedAt": "2026-08-26T22:05:21.264Z",
+  "entries": [
+    {
+      "screenId": "home",
+      "route": "/home",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "search",
+      "route": "/explore",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "reels",
+      "route": "/reels",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "messages",
+      "route": "/messages",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "notifications",
+      "route": "/notifications",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "workspace",
+      "route": "/workspace",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "dating",
+      "route": "/dating",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "profile",
+      "route": "/profile",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "live",
+      "route": "/live",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "karaoke",
+      "route": "/karaoke",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "rooms",
+      "route": "/party",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "wallet",
+      "route": "/wallet",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "youtube",
+      "route": "/youtube",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "splash",
+      "route": "/splash",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "onboarding",
+      "route": "/onboarding",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "auth",
+      "route": "/auth",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "trending",
+      "route": "/trending",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "post-modal",
+      "route": "overlay:post",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "sheet-safe-top",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "solo-live",
+      "route": "/room/solo",
+      "topSafeArea": "immersive-chrome",
+      "bottomSafeArea": "composer",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "marketplace",
+      "route": "overlay:marketplace",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "vv-max-height",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "seller-center",
+      "route": "/seller",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "admin",
+      "route": "/admin",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    },
+    {
+      "screenId": "notifications",
+      "route": "/notifications",
+      "topSafeArea": "shell",
+      "bottomSafeArea": "shell",
+      "keyboardOpen": "composer-inset",
+      "keyboardClosed": "static-safe-bottom",
+      "modal": "inherit",
+      "sheet": "none",
+      "status": "INDEXED"
+    }
+  ]
 }

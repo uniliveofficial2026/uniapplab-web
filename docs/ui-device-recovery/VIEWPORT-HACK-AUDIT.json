@@ -1,0 +1,1304 @@
+{
+  "generatedAt": "2026-08-26T22:05:21.264Z",
+  "count": 216,
+  "ssotOwners": 3,
+  "review": 213,
+  "entries": [
+    {
+      "file": "src/components/admin/AdminControlCenter.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/admin/AdminControlCenter.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/admin/AdminEmbedGiftPreviewHost.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/admin/AdminEmbedGiftPreviewHost.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/admin/AdminEmbedRoomHost.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/admin/AdminRoomLiveEmbed.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/admin/AdminRoomLiveEmbed.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/admin/AdminUiPickOverlay.tsx",
+      "pattern": "innerHeight",
+      "count": 3,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/admin/GiftPreviewPhoneFrame.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/admin/admin-embed-app.css",
+      "pattern": "position-fixed",
+      "count": 3,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/ar/ARCameraCapture.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/auth/AuthScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/auth/ProfileSetup.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/auth/SplashScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/auth/TrendingScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/auth/brand/princessAuth.css",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/brand/princessLoadingRefresh.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/camera/BodyShapeTray.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/camera/CameraBeautyBottomShell.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/camera/CameraBeautyBottomShell.tsx",
+      "pattern": "position-fixed",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/camera/CameraCaptureViewport.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/camera/CameraCaptureViewport.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/character/UniLivesCharacterPreviewHost.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/Avatar.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/AvatarThoughtBubble.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/FullscreenMediaStage.tsx",
+      "pattern": "raw-safe-area",
+      "count": 3,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/common/FullscreenMediaStage.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/FullscreenPostMediaContent.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/common/KeyboardAwareSheet.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/MobileDevConnectBanner.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/common/MobileDevConnectBanner.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/OfflineStatusBanner.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/PwaInstallPrompt.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/PwaUpdateToast.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/SoftwareUpdateModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/ThoughtViewOverlay.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/common/keyboardLayout.ts",
+      "pattern": "100vh",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/dating/DatingToolsSheet.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/dating/DatingToolsSheet.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/dating/DatingToolsSheet.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/deepar/DeepARCameraCapture.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/dev/DevLivePanel.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/CaptionModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/Feed.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/Post.tsx",
+      "pattern": "innerHeight",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/Post.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/PostContentFullscreenPortal.tsx",
+      "pattern": "raw-safe-area",
+      "count": 2,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/feed/PostModal.tsx",
+      "pattern": "raw-safe-area",
+      "count": 3,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/feed/PostModal.tsx",
+      "pattern": "position-fixed",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/PostModal.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/PostOptionsMenu.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/RepostModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/ShareModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/StoryRing.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/StoryRingPortals.tsx",
+      "pattern": "raw-safe-area",
+      "count": 4,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/feed/StoryRingPortals.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/feed/StoryRingPortals.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/games/LocalGamePlayer.tsx",
+      "pattern": "position-fixed",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/KaraokeProfileBackgroundEditor.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/KaraokeScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 12,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/KaraokeScreen.tsx",
+      "pattern": "position-sticky",
+      "count": 5,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/KaraokeSmuleRoomFlow.tsx",
+      "pattern": "h-screen",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/KaraokeSmuleRoomFlow.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/RecordingStudio.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/karaoke/RecordingStudio.tsx",
+      "pattern": "position-fixed",
+      "count": 3,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/SingingPlayerModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/SongUpload.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/admin-embed-full.css",
+      "pattern": "h-screen",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/karaoke/admin-embed-full.css",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/karaoke/karaoke-smule-embed.css",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/karaoke/karaoke-smule-embed.css",
+      "pattern": "position-fixed",
+      "count": 6,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/launch/TrendingScreen.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/launch/launchUi.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/layout/Shell.tsx",
+      "pattern": "position-fixed",
+      "count": 5,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/layout/Shell.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/layout/ShellCreateCrossPostModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/layout/ShellCreateModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/layout/ShellCreateModal.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/legal/UniLivesInAppLegalScreen.tsx",
+      "pattern": "raw-safe-area",
+      "count": 2,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/legal/UniLivesInAppLegalScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/live/InstantRoomEntryHost.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/live/LiveScreen.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/live/live-sell-pk-room.css",
+      "pattern": "raw-safe-area",
+      "count": 5,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/live/live-sell-pk-room.css",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/live/one-vs-one-pk-room.css",
+      "pattern": "raw-safe-area",
+      "count": 5,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/live/one-vs-one-pk-room.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/live/pk-challenge-live-stage.css",
+      "pattern": "raw-safe-area",
+      "count": 6,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/live/team-pk-room.css",
+      "pattern": "raw-safe-area",
+      "count": 4,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/live/team-pk-room.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/ChatCallLocalCameraStage.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/ChatCallMediaHost.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/ChatCallPipWindow.tsx",
+      "pattern": "innerHeight",
+      "count": 3,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/ChatCallPipWindow.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/ChatFilePreviewPortal.tsx",
+      "pattern": "raw-safe-area",
+      "count": 4,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/messages/ChatFilePreviewPortal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/ChatFullscreenMediaPortal.tsx",
+      "pattern": "raw-safe-area",
+      "count": 3,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/messages/ChatLocationMapPortal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/ChatLocationShareSheet.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/MessagesActiveCallOverlay.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/MessagesComposeBar.tsx",
+      "pattern": "position-fixed",
+      "count": 3,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/MessagesScreen.tsx",
+      "pattern": "innerHeight",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/MessagesScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/MessagesScreenOverlays.tsx",
+      "pattern": "position-fixed",
+      "count": 3,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/messages/call-approved-ui.css",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/AccountSwitcherModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/BlockedUsersModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/CreatorProgressModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/FollowListModal.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/PostArchiveModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/ProfileCloudSystemsModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/ProfileEditSettingsModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/ProfileReelModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/ProfileScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/ProfileVisitorsModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/UserProfilePreview.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/profile/UserProfilePreview.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/reels/ReelContentFullscreenPortal.tsx",
+      "pattern": "raw-safe-area",
+      "count": 2,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/reels/ReelsCommentsDrawer.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/reels/ReelsScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/stories/StoryCreatorEdit.tsx",
+      "pattern": "position-fixed",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/stories/StoryCreatorFlow.tsx",
+      "pattern": "raw-safe-area",
+      "count": 4,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/wallet/BuyExchangeTab.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/wallet/GameCoinTab.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/GmailTab.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/GoogleCalendarTab.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/GoogleChatTab.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/GoogleContactsTab.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/GoogleDocsTab.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/GoogleKeepTab.tsx",
+      "pattern": "position-sticky",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/WorkspaceMediaFullscreenPortal.tsx",
+      "pattern": "raw-safe-area",
+      "count": 2,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/workspace/WorkspaceScreen.tsx",
+      "pattern": "position-fixed",
+      "count": 6,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/workspace/WorkspaceScreen.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/youtube/AddToPlaylistSheet.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/youtube/YoutubeLiveFullscreenFeed.tsx",
+      "pattern": "raw-safe-area",
+      "count": 9,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/components/youtube/YoutubeLiveFullscreenFeed.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/youtube/YoutubeMiniPlayerFloating.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/components/youtube/YoutubeMiniPlayerPicker.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/contexts/AppViewportContext.tsx",
+      "pattern": "visualViewport",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/contexts/ChatCallVideoEffectsHost.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/contexts/GreedySessionContext.tsx",
+      "pattern": "innerHeight",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/contexts/GreedySessionContext.tsx",
+      "pattern": "position-fixed",
+      "count": 6,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/index.css",
+      "pattern": "visualViewport",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/index.css",
+      "pattern": "raw-safe-area",
+      "count": 5,
+      "classification": "SSOT_OWNER"
+    },
+    {
+      "file": "src/index.css",
+      "pattern": "position-fixed",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/index.css",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/ToastContext.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/adminLiveMirrorStream.ts",
+      "pattern": "innerHeight",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/adminMirrorSync.ts",
+      "pattern": "innerHeight",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/adminUiPickPreview.ts",
+      "pattern": "innerHeight",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/appOverlayDetect.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/auth/providerState.ts",
+      "pattern": "position-sticky",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/bootNativeShell.ts",
+      "pattern": "keyboardHeight",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/cloudSocial/platformAppBrandCloud.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/cloudSocial/platformGiftCatalogCloud.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/db/domains/authPosts.ts",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/devChangelog.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/localGames/catalog.ts",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/localGames/import.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/localGames/types.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/qa/visualRuntimeProbe.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/safeArea.ts",
+      "pattern": "innerHeight",
+      "count": 7,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/safeArea.ts",
+      "pattern": "visualViewport",
+      "count": 14,
+      "classification": "SSOT_OWNER"
+    },
+    {
+      "file": "src/lib/safeArea.ts",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "SSOT_OWNER"
+    },
+    {
+      "file": "src/lib/safeArea.ts",
+      "pattern": "keyboardHeight",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/safeArea.ts",
+      "pattern": "position-fixed",
+      "count": 3,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/supabase/safeRealtimeChannel.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/themeText.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/lib/youtubeMiniPlayer.ts",
+      "pattern": "innerHeight",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/pages/YouTube.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/presentation/design-system/tokens/themeTokens.ts",
+      "pattern": "raw-safe-area",
+      "count": 4,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/providers/AuthProvidersHost.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/ArenaRankingsOverlay.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/CreateRoomLivePreview.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/GiftPlayOverlay.tsx",
+      "pattern": "raw-safe-area",
+      "count": 2,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/GiftSendersOverlay.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/Header.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/LiveBeautySheet.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/LiveGiftRechargeModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/LiveLifecycleConfirmOverlay.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/LyricsOverlay.tsx",
+      "pattern": "innerHeight",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/LyricsOverlay.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/PlatformAdminModerationListener.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomFooterTrayActions.tsx",
+      "pattern": "innerHeight",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomHeaderActionsMenu.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomLivePipWindow.tsx",
+      "pattern": "innerHeight",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomLivePipWindow.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomProfilePreviewModal.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomSettingsEditors.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomSettingsShell.tsx",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/RoomViewersOverlay.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/SeatBanCountdownBanner.tsx",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/SeatBanCountdownBanner.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/SeatBanDurationPicker.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/SongSelector.tsx",
+      "pattern": "raw-safe-area",
+      "count": 3,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/SongSelector.tsx",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/WatchTogetherMediaSourceSheet.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/commerce-live-panel-approved.css",
+      "pattern": "raw-safe-area",
+      "count": 3,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/host-realtime-dashboard.css",
+      "pattern": "raw-safe-area",
+      "count": 2,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/host-realtime-dashboard.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/live-tools-approved-v13.css",
+      "pattern": "raw-safe-area",
+      "count": 5,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/live-tools-approved-v13.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/live-tools-approved-v14.css",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/live-tools-approved-v14.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/live-tools-approved-v15.css",
+      "pattern": "raw-safe-area",
+      "count": 4,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/live-tools-approved-v15.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/live-tools-approved-v15.css",
+      "pattern": "position-sticky",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/pk-invite-sheet.css",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/components/solo-shop-live-approved.css",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/components/v15-live-room-chrome.css",
+      "pattern": "raw-safe-area",
+      "count": 1,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/pages/CreateRoom.tsx",
+      "pattern": "position-sticky",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/pages/Room.tsx",
+      "pattern": "position-fixed",
+      "count": 4,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/pages/RoomDetails.tsx",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/smule-rooms.css",
+      "pattern": "raw-safe-area",
+      "count": 7,
+      "classification": "REVIEW_TOKEN_MIGRATION"
+    },
+    {
+      "file": "src/smule-rooms/smule-rooms.css",
+      "pattern": "position-fixed",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/smule-rooms.css",
+      "pattern": "position-sticky",
+      "count": 2,
+      "classification": "REVIEW"
+    },
+    {
+      "file": "src/smule-rooms/utils/roomProfilePreviewPortal.ts",
+      "pattern": "position-fixed",
+      "count": 1,
+      "classification": "REVIEW"
+    }
+  ]
+}

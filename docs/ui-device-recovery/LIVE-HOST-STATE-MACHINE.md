@@ -1,35 +1,45 @@
 # Live host state-machine — root cause (2026-08-25)
 
 ## Verdict
-`fullRealApplication = FAIL` (unchanged until SoloLiveView + live-chat-input proven)
+`fullRealApplication = FAIL` (unchanged)
 
-## Physical evidence (prior)
-- `live-chat-input` FAIL after 284s on `index-B6fNt2f1.js`
-- Navigation reached Live → Go Live
+## Failed state (physical)
+Not a keyboard/AX timeout on `live-chat-input`.
 
-## Root cause chain (application state, not keyboard/AX)
+Exact stuck state: **CreateRoom Solo setup never enters `live-countdown` / SoloLiveView**.
 
-### 1) Mode never Solo
-`CreateRoom` defaults `mode` to **`Chat`**. `SoloLiveView` / `live-chat-input` only mount when `roomMode === 'SoloLive'` (`Solo-Live` settings).
+Evidence on device (prior runs on `index-BnupXPI0` / `index-5Q--sHwi` / `index-Dpejr59h` / `index-Cd3jFonH`):
+- CreateRoom reached with Solo camera preview, caption seeded, Solo mode selected
+- `live-go-live-launch` found and tapped (including coordinate taps)
+- `handleCreate` never advanced (no countdown / no `live-launch-blocked-*`)
+- Latest tip `index-LFsYfl3D.js` / live-version `09927f00b9cc` deployed; physical retest blocked by **automation mode timeout** (`AX_ATTACH_FAILED`)
 
-### 2) Hint not reapplied on keep-alive CreateRoom
-CreateRoom can stay mounted; `uni:create-room-hint` must re-apply Solo + caption.
+## Root cause chain
+1. CreateRoom defaulted to Chat → SoloLiveView never mounts without Solo-Live seed
+2. Keep-alive CreateRoom ignored new Go Live hints → fixed via `uni:create-room-hint`
+3. Caption required for launch → seed `Live`
+4. WKWebView/XCUITest taps on Go Live do not invoke React handlers reliably
+5. Auto-launch from discovery Go Live hint + retry until Solo+caption ready (`5b9ae84`)
 
-### 3) Launch CTA not receiving WebView clicks (current physical)
-On `index-BnupXPI0.js`: Solo seeded, caption `Live`, `live-go-live-launch` found and tapped twice (including coordinate tap), but `handleCreate` never ran (no countdown / no `live-launch-blocked-*`).
+## Fixes shipped (recovery → release)
+| Commit | Change |
+|--------|--------|
+| d94243b+ | Solo seed + hint event |
+| 87a2856 | launch landmarks / block reasons |
+| e3d8d42 | CTA above home indicator + safe-area |
+| 49f4329 | aria-disabled / Enter path |
+| 9e8cbc5 | autoLaunch from Go Live |
+| 5b9ae84 | autoLaunch retry via mode/name refs |
 
-AX showed mode chips at y≈796 on a 932pt screen — Go Live sat under/near the home indicator. XCUITest “taps” the AX node; WKWebView never gets `onClick`.
+## Chat visibility (once SoloLiveView mounts)
+`chatComposerOpen` defaults true; toggle Show/Hide chat — do not permanently force composer.
 
-## Fixes
-1. `openGoLiveCreateRoom({ mode: 'Solo-Live', roomName: 'Live' })` + `uni:create-room-hint`
-2. CreateRoom retains / re-applies hint; exposes `live-go-live-launch`, `live-launch-blocked-*`, countdown/creating landmarks
-3. Go Live CTA ordered **above** mode chips + `safe-area-inset-bottom` padding
-4. XCUITest asserts each transition; fails early with:
-   `NAVIGATION_FAILED` | `PERMISSION_BLOCKED` | `APPLICATION_STATE_FAILED` | `LANDMARK_NOT_FOUND`
-5. Never joins an existing live card for this host test (viewer path ≠ Solo host)
+## Camera/Mic
+Not deferred. TCC monitors present; pending state = `live-permission-camera-pending`.
 
-## Camera / Mic
-TCC monitors run during host launch. `live-permission-camera-pending` is asserted — not deferred behind chat PASS.
+## N-user (parallel)
+A/B auth + wallet isolation + late HTTP race: PASS  
+C/D: `BLOCKED_EXTERNAL` (fixtures missing)
 
-## Production tip (verify after each push)
-Public HTML `assets/index-*.js` must return HTTP 200 (watch for Cloudflare poisoned 404 on new hashes).
+## Next physical step
+Unlock/trust iPhone automation mode, then re-run `testLiveChatComposerLandmark` on `index-LFsYfl3D.js`. Expect countdown within ~3s of Go Live entry if autoLaunch works.

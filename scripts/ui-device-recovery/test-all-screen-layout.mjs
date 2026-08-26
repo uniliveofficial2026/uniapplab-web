@@ -40,6 +40,10 @@ assert.match(safeArea, /--app-composer-bottom-inset/);
 assert.match(safeArea, /--app-keyboard-inset/);
 assert.match(safeArea, /--app-vv-height/);
 assert.match(safeArea, /subscribeAppViewport/);
+assert.match(safeArea, /measureHorizontalOverflowPx/);
+assert.match(safeArea, /isMobile/);
+assert.match(safeArea, /keyboardInset/);
+assert.match(safeArea, /layoutViewportWidth/);
 // Must NOT fold keyboard into static safe-bottom assignment from vv.bottom alone
 assert.ok(
   !/const bottom = Math\.max\(env\.bottom, vv\.bottom/.test(safeArea),
@@ -64,6 +68,10 @@ assert.match(compose, /text-\[16px\]/);
 
 const liveCss = read('src/smule-rooms/components/solo-shop-live-approved.css');
 assert.match(liveCss, /--app-composer-bottom-inset/);
+assert.ok(
+  !/env\(safe-area-inset-bottom\)/.test(liveCss),
+  'solo-shop-live-approved.css must use SSOT tokens not raw env() bottom inset',
+);
 
 const liveView = read('src/smule-rooms/components/SoloLiveView.tsx');
 assert.match(liveView, /data-testid="live-chat-input"/);

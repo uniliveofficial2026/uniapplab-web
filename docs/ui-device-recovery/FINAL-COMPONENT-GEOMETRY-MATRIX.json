@@ -1,0 +1,42 @@
+{
+  "generatedAt": "2026-08-26T22:05:21.264Z",
+  "count": 3,
+  "components": [
+    {
+      "screen": "shell",
+      "component": "mobile-bottom-nav",
+      "selector": ".mobile-bottom-nav",
+      "role": "bottomNav",
+      "safeBounds": "above --app-safe-bottom",
+      "overflow": "none",
+      "overlap": "none",
+      "minTouchSize": 44,
+      "textOverflow": "truncate",
+      "status": "INDEXED"
+    },
+    {
+      "screen": "messages",
+      "component": "chat-composer",
+      "selector": "[data-testid=\"chat-input\"]",
+      "role": "composer",
+      "safeBounds": "--app-composer-bottom-inset",
+      "overflow": "none",
+      "overlap": "none",
+      "minTouchSize": 44,
+      "textOverflow": "ellipsis",
+      "status": "INDEXED"
+    },
+    {
+      "screen": "live",
+      "component": "live-chat-input",
+      "selector": "[data-testid=\"live-chat-input\"]",
+      "role": "composer",
+      "safeBounds": "--app-composer-bottom-inset",
+      "overflow": "none",
+      "overlap": "none",
+      "minTouchSize": 44,
+      "textOverflow": "ellipsis",
+      "status": "INDEXED"
+    }
+  ]
+}

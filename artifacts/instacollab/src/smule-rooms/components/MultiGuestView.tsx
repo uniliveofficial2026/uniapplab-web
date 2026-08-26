@@ -914,7 +914,7 @@ export const MultiGuestView: React.FC<MultiGuestViewProps> = ({
           <div
             id="multi-guest-footer"
             ref={footerRef}
-            className="multi-guest-footer relative z-50 shrink-0 border-t border-white/5 bg-black/30 px-2 pb-[max(10px,env(safe-area-inset-bottom))] pt-2 backdrop-blur-xl sm:px-4"
+            className="multi-guest-footer relative z-50 shrink-0 border-t border-white/5 bg-black/30 px-2 pb-[max(10px,var(--app-composer-bottom-inset))] pt-2 backdrop-blur-xl sm:px-4"
           >
             <div className="flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
               <form onSubmit={handleSendMessage} className="relative min-w-0 w-full sm:flex-1">

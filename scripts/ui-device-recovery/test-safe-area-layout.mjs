@@ -22,6 +22,9 @@ for (const token of [
   '--app-safe-right',
   '--app-shell-bottom-offset',
   '--app-vv-height',
+  '--app-vv-width',
+  '--app-layout-vv-width',
+  '--app-layout-vv-height',
   '--app-keyboard-inset',
   '--app-composer-bottom-inset',
 ]) {

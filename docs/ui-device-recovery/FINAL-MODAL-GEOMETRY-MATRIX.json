@@ -1,0 +1,127 @@
+{
+  "generatedAt": "2026-08-26T22:05:21.264Z",
+  "count": 11,
+  "modals": [
+    {
+      "route": "components/feed/Feed",
+      "component": "Feed",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/feed/PostModal",
+      "component": "PostModal",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": true,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/feed/PostModalCommentItem",
+      "component": "PostModalCommentItem",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/layout/Shell",
+      "component": "Shell",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/layout/ShellCreateCrossPostModal",
+      "component": "ShellCreateCrossPostModal",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/layout/ShellCreateModal",
+      "component": "ShellCreateModal",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/notifications/NotificationsScreen",
+      "component": "NotificationsScreen",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/profile/AccountSwitcherModal",
+      "component": "AccountSwitcherModal",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/profile/PostArchiveModal",
+      "component": "PostArchiveModal",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/profile/ProfileScreen",
+      "component": "ProfileScreen",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    },
+    {
+      "route": "components/search/SearchScreen",
+      "component": "SearchScreen",
+      "maxWidth": "viewport",
+      "maxHeight": "var(--app-vv-height)",
+      "scrollOwner": "modal-body",
+      "safeTop": "var(--app-safe-top)",
+      "safeBottom": "var(--app-composer-bottom-inset)",
+      "keyboardAware": false,
+      "physicalStatus": "NOT_TESTED"
+    }
+  ]
+}

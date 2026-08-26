@@ -1,6 +1,6 @@
 {
   "summary": {
-    "generatedAt": "2026-08-25T23:11:45.562Z",
+    "generatedAt": "2026-08-26T16:57:09.508Z",
     "total": 303,
     "classified": 55,
     "unclassified": 248,
@@ -8976,7 +8976,7 @@
       "physicalStatus": "NOT_TESTED"
     },
     {
-      "id": "src/smule-rooms/pages/CreateRoom.tsx::input@15353",
+      "id": "src/smule-rooms/pages/CreateRoom.tsx::input@26694",
       "screen": "smule-rooms/pages",
       "route": "/live",
       "component": "CreateRoom",
@@ -8984,7 +8984,7 @@
       "elementType": "input",
       "ariaLabel": null,
       "testId": null,
-      "selector": "input@15353",
+      "selector": "input@26694",
       "keyboardType": "text",
       "keyboardPrimitive": "none",
       "scrollOwner": "document",
@@ -9006,7 +9006,7 @@
       "physicalStatus": "NOT_APPLICABLE"
     },
     {
-      "id": "src/smule-rooms/pages/CreateRoom.tsx::input@21861",
+      "id": "src/smule-rooms/pages/CreateRoom.tsx::input@33655",
       "screen": "smule-rooms/pages",
       "route": "/live",
       "component": "CreateRoom",
@@ -9014,7 +9014,7 @@
       "elementType": "input",
       "ariaLabel": null,
       "testId": null,
-      "selector": "input@21861",
+      "selector": "input@33655",
       "keyboardType": "text",
       "keyboardPrimitive": "none",
       "scrollOwner": "document",

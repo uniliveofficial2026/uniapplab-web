@@ -7323,7 +7323,7 @@ export function Room() {
       {roomMode !== 'WatchTogether' && roomMode !== 'GameLive' && roomMode !== 'MultiGuest' && roomMode !== 'SoloLive' && (
         <div
           id="party-room-footer"
-          className="relative z-30 shrink-0 border-t border-white/5 bg-[#07010a]/95 backdrop-blur-md pt-[10px] pb-[max(10px,env(safe-area-inset-bottom))] px-3 sm:px-4"
+          className="relative z-30 shrink-0 border-t border-white/5 bg-[#07010a]/95 backdrop-blur-md pt-[10px] pb-[max(10px,var(--app-composer-bottom-inset))] px-3 sm:px-4"
         >
         <div className="party-room-footer-row flex w-full min-w-0 flex-col gap-2 sm:flex-row sm:items-center sm:gap-2">
           {/* Rounded "Let's talk" Input Box wrapper */}

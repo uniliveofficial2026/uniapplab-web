@@ -164,7 +164,7 @@
   display: grid;
   gap: 6px;
   padding: 4px var(--approved-live-gutter)
-    max(8px, var(--app-composer-bottom-inset, env(safe-area-inset-bottom, 0px)));
+    max(8px, var(--app-composer-bottom-inset, var(--app-safe-bottom, 0px)));
   box-sizing: border-box;
   pointer-events: auto;
   overflow: visible;
@@ -234,7 +234,7 @@
   justify-items: center;
   width: 100%;
   min-height: 64px;
-  padding: 2px 0 max(2px, env(safe-area-inset-bottom));
+  padding: 2px 0 max(2px, var(--app-composer-bottom-inset, var(--app-safe-bottom)));
   gap: 0;
   box-sizing: border-box;
 }
@@ -656,7 +656,7 @@
   max-height: 40%;
   min-height: 0;
   overflow: auto;
-  padding: 8px 14px max(18px, env(safe-area-inset-bottom));
+  padding: 8px 14px max(18px, var(--app-composer-bottom-inset, var(--app-safe-bottom)));
   border: 1px solid rgba(207, 72, 255, 0.3);
   border-bottom: 0;
   border-radius: 24px 24px 0 0;

@@ -987,8 +987,8 @@ const CreateRoom = () => {
       <div
         className={
           isLiveCameraMode
-            ? 'relative z-[60] shrink-0 bg-transparent px-5 pb-[max(1rem,env(safe-area-inset-bottom))] pt-2 pointer-events-auto'
-            : 'sticky bottom-0 left-0 right-0 z-40 shrink-0 bg-slate-950/95 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur-md'
+            ? 'relative z-[60] shrink-0 bg-transparent px-5 pb-[max(1rem,var(--app-composer-bottom-inset))] pt-2 pointer-events-auto'
+            : 'sticky bottom-0 left-0 right-0 z-40 shrink-0 bg-slate-950/95 px-5 pb-[max(1.25rem,var(--app-composer-bottom-inset))] pt-4 backdrop-blur-md'
         }
       >
         {/*

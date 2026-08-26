@@ -1,0 +1,939 @@
+{
+  "generatedAt": "2026-08-26T21:28:54.369Z",
+  "base": "https://app.uniapplab.com",
+  "entries": [
+    {
+      "viewport": "smallPhone",
+      "screenId": "home",
+      "route": "/home",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "smallPhone",
+      "screenId": "explore",
+      "route": "/explore",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "smallPhone",
+      "screenId": "reels",
+      "route": "/reels",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "smallPhone",
+      "screenId": "messages",
+      "route": "/messages",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "smallPhone",
+      "screenId": "live",
+      "route": "/live",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "smallPhone",
+      "screenId": "wallet",
+      "route": "/wallet",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "smallPhone",
+      "screenId": "profile",
+      "route": "/profile",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "standardPhone",
+      "screenId": "home",
+      "route": "/home",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "standardPhone",
+      "screenId": "explore",
+      "route": "/explore",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "standardPhone",
+      "screenId": "reels",
+      "route": "/reels",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "standardPhone",
+      "screenId": "messages",
+      "route": "/messages",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "standardPhone",
+      "screenId": "live",
+      "route": "/live",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "standardPhone",
+      "screenId": "wallet",
+      "route": "/wallet",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "standardPhone",
+      "screenId": "profile",
+      "route": "/profile",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "modernPhone",
+      "screenId": "home",
+      "route": "/home",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "modernPhone",
+      "screenId": "explore",
+      "route": "/explore",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "modernPhone",
+      "screenId": "reels",
+      "route": "/reels",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "modernPhone",
+      "screenId": "messages",
+      "route": "/messages",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "modernPhone",
+      "screenId": "live",
+      "route": "/live",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "modernPhone",
+      "screenId": "wallet",
+      "route": "/wallet",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "modernPhone",
+      "screenId": "profile",
+      "route": "/profile",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "largePhone",
+      "screenId": "home",
+      "route": "/home",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "largePhone",
+      "screenId": "explore",
+      "route": "/explore",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "largePhone",
+      "screenId": "reels",
+      "route": "/reels",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "largePhone",
+      "screenId": "messages",
+      "route": "/messages",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "largePhone",
+      "screenId": "live",
+      "route": "/live",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "largePhone",
+      "screenId": "wallet",
+      "route": "/wallet",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "largePhone",
+      "screenId": "profile",
+      "route": "/profile",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "androidPhone",
+      "screenId": "home",
+      "route": "/home",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "androidPhone",
+      "screenId": "explore",
+      "route": "/explore",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "androidPhone",
+      "screenId": "reels",
+      "route": "/reels",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "androidPhone",
+      "screenId": "messages",
+      "route": "/messages",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "androidPhone",
+      "screenId": "live",
+      "route": "/live",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "androidPhone",
+      "screenId": "wallet",
+      "route": "/wallet",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "androidPhone",
+      "screenId": "profile",
+      "route": "/profile",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "tablet",
+      "screenId": "home",
+      "route": "/home",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "tablet",
+      "screenId": "explore",
+      "route": "/explore",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "tablet",
+      "screenId": "reels",
+      "route": "/reels",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "tablet",
+      "screenId": "messages",
+      "route": "/messages",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "tablet",
+      "screenId": "live",
+      "route": "/live",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "tablet",
+      "screenId": "wallet",
+      "route": "/wallet",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "tablet",
+      "screenId": "profile",
+      "route": "/profile",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "home",
+      "route": "/home",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "explore",
+      "route": "/explore",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "reels",
+      "route": "/reels",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "messages",
+      "route": "/messages",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "live",
+      "route": "/live",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "wallet",
+      "route": "/wallet",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    },
+    {
+      "viewport": "desktop",
+      "screenId": "profile",
+      "route": "/profile",
+      "horizontalOverflowPx": 0,
+      "status": "PASS",
+      "failures": [
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "home-nav",
+          "reason": "missing"
+        },
+        {
+          "failureClass": "ZERO_SIZE",
+          "id": "mobile-bottom-nav",
+          "reason": "missing"
+        }
+      ]
+    }
+  ],
+  "failures": [],
+  "ok": true
+}

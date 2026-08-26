@@ -1,0 +1,214 @@
+{
+  "generatedAt": "2026-08-26T21:48:07.304Z",
+  "base": "https://app.uniapplab.com",
+  "screensIndexed": 23,
+  "results": {
+    "home": {
+      "smallPhone": "BLOCKED_AUTH",
+      "standardPhone": "BLOCKED_AUTH",
+      "largePhone": "BLOCKED_AUTH",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "BLOCKED_AUTH",
+      "tablet": "BLOCKED_AUTH",
+      "desktop": "BLOCKED_AUTH"
+    },
+    "search": {
+      "smallPhone": "BLOCKED_AUTH",
+      "standardPhone": "BLOCKED_AUTH",
+      "largePhone": "BLOCKED_AUTH",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "BLOCKED_AUTH",
+      "tablet": "BLOCKED_AUTH",
+      "desktop": "BLOCKED_AUTH"
+    },
+    "reels": {
+      "smallPhone": "BLOCKED_AUTH",
+      "standardPhone": "BLOCKED_AUTH",
+      "largePhone": "BLOCKED_AUTH",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "BLOCKED_AUTH",
+      "tablet": "BLOCKED_AUTH",
+      "desktop": "BLOCKED_AUTH"
+    },
+    "messages": {
+      "smallPhone": "BLOCKED_AUTH",
+      "standardPhone": "BLOCKED_AUTH",
+      "largePhone": "BLOCKED_AUTH",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "BLOCKED_AUTH",
+      "tablet": "BLOCKED_AUTH",
+      "desktop": "BLOCKED_AUTH"
+    },
+    "notifications": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "workspace": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "dating": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "profile": {
+      "smallPhone": "BLOCKED_AUTH",
+      "standardPhone": "BLOCKED_AUTH",
+      "largePhone": "BLOCKED_AUTH",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "BLOCKED_AUTH",
+      "tablet": "BLOCKED_AUTH",
+      "desktop": "BLOCKED_AUTH"
+    },
+    "live": {
+      "smallPhone": "BLOCKED_AUTH",
+      "standardPhone": "BLOCKED_AUTH",
+      "largePhone": "BLOCKED_AUTH",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "BLOCKED_AUTH",
+      "tablet": "BLOCKED_AUTH",
+      "desktop": "BLOCKED_AUTH"
+    },
+    "karaoke": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "rooms": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "wallet": {
+      "smallPhone": "BLOCKED_AUTH",
+      "standardPhone": "BLOCKED_AUTH",
+      "largePhone": "BLOCKED_AUTH",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "BLOCKED_AUTH",
+      "tablet": "BLOCKED_AUTH",
+      "desktop": "BLOCKED_AUTH"
+    },
+    "youtube": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "splash": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "onboarding": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "auth": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "trending": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "post-modal": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "solo-live": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "marketplace": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "seller-center": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    },
+    "admin": {
+      "smallPhone": "NOT_APPLICABLE",
+      "standardPhone": "NOT_APPLICABLE",
+      "largePhone": "NOT_APPLICABLE",
+      "physicalIphone": "BLOCKED_EXTERNAL_DEVICE",
+      "android": "NOT_APPLICABLE",
+      "tablet": "NOT_APPLICABLE",
+      "desktop": "NOT_APPLICABLE"
+    }
+  },
+  "failures": [],
+  "summary": {
+    "smallPhone": "NOT_APPLICABLE",
+    "standardPhone": "NOT_APPLICABLE",
+    "largePhone": "NOT_APPLICABLE",
+    "android": "NOT_APPLICABLE",
+    "tablet": "NOT_APPLICABLE",
+    "desktop": "NOT_APPLICABLE"
+  }
+}

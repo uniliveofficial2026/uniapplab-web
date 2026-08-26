@@ -1,0 +1,190 @@
+{
+  "generatedAt": "2026-08-26T22:05:21.264Z",
+  "count": 23,
+  "entries": [
+    {
+      "route": "/home",
+      "screenId": "home",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/explore",
+      "screenId": "search",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/reels",
+      "screenId": "reels",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/messages",
+      "screenId": "messages",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": "nearest-scroll-container"
+    },
+    {
+      "route": "/notifications",
+      "screenId": "notifications",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/workspace",
+      "screenId": "workspace",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/dating",
+      "screenId": "dating",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/profile",
+      "screenId": "profile",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/live",
+      "screenId": "live",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": "nearest-scroll-container"
+    },
+    {
+      "route": "/karaoke",
+      "screenId": "karaoke",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/party",
+      "screenId": "rooms",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/wallet",
+      "screenId": "wallet",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/youtube",
+      "screenId": "youtube",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/splash",
+      "screenId": "splash",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/onboarding",
+      "screenId": "onboarding",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/auth",
+      "screenId": "auth",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/trending",
+      "screenId": "trending",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "overlay:post",
+      "screenId": "post-modal",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": ".modal-body",
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": "nearest-scroll-container"
+    },
+    {
+      "route": "/room/solo",
+      "screenId": "solo-live",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": "nearest-scroll-container"
+    },
+    {
+      "route": "overlay:marketplace",
+      "screenId": "marketplace",
+      "rootScrollOwner": "screen",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": ".sheet-body",
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/seller",
+      "screenId": "seller-center",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/admin",
+      "screenId": "admin",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    },
+    {
+      "route": "/notifications",
+      "screenId": "notifications",
+      "rootScrollOwner": "#root > main",
+      "nestedScrollOwner": null,
+      "sheetScrollOwner": null,
+      "keyboardScrollOwner": null
+    }
+  ]
+}
