@@ -36,6 +36,8 @@ const checks = [
       /create-room-name/,
       /goLiveHint/,
       /uni:create-room-hint/,
+      /live-go-live-launch/,
+      /live-launch-blocked-/,
     ],
   },
   {
