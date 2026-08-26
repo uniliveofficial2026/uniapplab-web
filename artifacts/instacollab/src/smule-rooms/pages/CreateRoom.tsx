@@ -46,6 +46,7 @@ const CreateRoom = () => {
   const [goLiveCountdown, setGoLiveCountdown] = useState<number | null>(null);
   const [launchBlockReason, setLaunchBlockReason] = useState<string | null>(null);
   const pendingNavigateRef = useRef<string | null>(null);
+  const launchLockRef = useRef(false);
 
   useEffect(() => {
     void import('../../lib/webar/tencentWebARWarm').then((m) => {
@@ -138,6 +139,7 @@ const CreateRoom = () => {
         pendingNavigateRef.current = null;
         setGoLiveCountdown(null);
         setLaunching(false);
+        launchLockRef.current = false;
         if (roomId) navigate(`/room/${roomId}`);
       }, 700);
       return () => window.clearTimeout(timer);
@@ -173,6 +175,10 @@ const CreateRoom = () => {
   };
 
   const handleCreate = () => {
+    if (launchLockRef.current) {
+      setLaunchBlockReason('live-launch-blocked-busy');
+      return;
+    }
     if (!roomName.trim()) {
       setLaunchBlockReason('live-launch-blocked-caption');
       return;
@@ -192,6 +198,7 @@ const CreateRoom = () => {
     }
     setPrivateKeyError(null);
     setLaunchBlockReason(null);
+    launchLockRef.current = true;
     setLaunching(true);
 
     const isLiveCameraMode = LIVE_CAMERA_MODES.has(mode);
@@ -201,6 +208,7 @@ const CreateRoom = () => {
         resolveLocalOwnerPartyRoomId(currentUser?.id, { createIfMissing: true }) ??
         canonicalRoomId;
       if (!roomIdString) {
+        launchLockRef.current = false;
         setLaunching(false);
         setLaunchBlockReason('live-launch-blocked-room-id');
         return;
@@ -292,10 +300,12 @@ const CreateRoom = () => {
       navigate(`/room/${roomIdString}`);
     } catch (err) {
       console.error('[CreateRoom] launch failed', err);
+      launchLockRef.current = false;
       setLaunching(false);
       setLaunchBlockReason('live-error-state');
     } finally {
       if (!isLiveCameraMode) {
+        launchLockRef.current = false;
         setLaunching(false);
       }
     }
@@ -370,6 +380,7 @@ const CreateRoom = () => {
             pendingNavigateRef.current = null;
             setGoLiveCountdown(null);
             setLaunching(false);
+            launchLockRef.current = false;
             if (roomId) navigate(`/room/${roomId}`);
           }}
           aria-label="Skip countdown and go live"
@@ -475,6 +486,12 @@ const CreateRoom = () => {
                   placeholder="Welcome to the room!"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreate();
+                    }
+                  }}
                   aria-label="create-room-name"
                   data-testid="create-room-name"
                   className="h-14 w-full rounded-xl border border-white/15 bg-black/45 px-3 text-sm font-medium text-white outline-none transition placeholder:text-white/35 focus:border-blue-400"
@@ -616,6 +633,12 @@ const CreateRoom = () => {
                   placeholder="Welcome to the room!"
                   value={roomName}
                   onChange={(e) => setRoomName(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleCreate();
+                    }
+                  }}
                   aria-label="create-room-name"
                   data-testid="create-room-name"
                   className="h-11 w-full rounded-xl border border-white/10 bg-slate-950 px-3 text-[13px] font-medium text-white transition-all placeholder:text-slate-600 focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
@@ -712,11 +735,24 @@ const CreateRoom = () => {
             : 'sticky bottom-0 left-0 right-0 z-40 shrink-0 bg-slate-950/95 px-5 pb-[max(1.25rem,env(safe-area-inset-bottom))] pt-4 backdrop-blur-md'
         }
       >
-        {/* Launch above mode chips so the CTA stays above the home indicator on phones. */}
+        {/*
+          Use aria-disabled (not HTML disabled): WKWebView often drops AX/XCUITest
+          activation on native-disabled <button>, so handleCreate never runs.
+        */}
         <button
             type="button"
-            onClick={handleCreate}
-            disabled={!canLaunch || launching || goLiveCountdown !== null}
+            onClick={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleCreate();
+            }}
+            onPointerUp={(event) => {
+              if (event.pointerType === 'touch') {
+                event.preventDefault();
+                handleCreate();
+              }
+            }}
+            aria-disabled={!canLaunch || launching || goLiveCountdown !== null}
             aria-label="live-go-live-launch"
             data-live-qa-launch={launchLabel}
             data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}

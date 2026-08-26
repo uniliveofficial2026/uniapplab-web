@@ -356,34 +356,32 @@ final class UniLiveAuthUITests: XCTestCase {
       sleep(1)
     }
 
-    // 5) Launch — dedicated landmark (avoid colliding with discovery "Go Live" text)
-    var launchBtn = landmark("live-go-live-launch", in: root, timeout: 10)
+    // 5) Launch — prefer Enter on caption (reliable in WKWebView), then tap CTA
+    var roomTitleForLaunch = landmark("create-room-name", in: root, timeout: 4)
+    if roomTitleForLaunch.exists {
+      roomTitleForLaunch.tap()
+      sleep(0.5)
+      roomTitleForLaunch.typeText("\n")
+      sleep(1)
+    }
+
+    var launchBtn = landmark("live-go-live-launch", in: root, timeout: 8)
     if !launchBtn.exists {
       launchBtn = root.buttons["live-go-live-launch"].firstMatch
     }
-    if !launchBtn.exists {
-      launchBtn = root.buttons.matching(
-        NSPredicate(format: "label ==[c] %@ OR label CONTAINS[c] %@", "Go Live", "Going live")
-      ).firstMatch
-    }
-    XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: live-go-live-launch missing")
-    if launchBtn.exists && !launchBtn.isEnabled {
-      XCTFail("APPLICATION_STATE_FAILED: Go Live disabled (caption/privacy validation)")
-      return
-    }
-    // WKWebView: scroll into view and use coordinate tap so the click reaches React onClick
-    if launchBtn.isHittable == false {
-      launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-    } else {
-      launchBtn.tap()
-    }
-    sleep(1)
-    // Second tap if first AX tap did not advance state (common Cap/WK hit-test miss)
-    if landmark("live-countdown", in: root, timeout: 2).exists == false
-      && landmark("live-room-creating", in: root, timeout: 1).exists == false
+    if landmark("live-countdown", in: root, timeout: 3).exists == false
+      && landmark("live-room-creating", in: root, timeout: 2).exists == false
     {
-      launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.55)).tap()
+      XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: live-go-live-launch missing")
+      // Avoid isEnabled check — we use aria-disabled, not HTML disabled
+      launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
       sleep(1)
+      if landmark("live-countdown", in: root, timeout: 2).exists == false
+        && landmark("live-room-creating", in: root, timeout: 1).exists == false
+      {
+        launchBtn.tap()
+        sleep(1)
+      }
     }
     app.tap() // nudge TCC monitors
 
