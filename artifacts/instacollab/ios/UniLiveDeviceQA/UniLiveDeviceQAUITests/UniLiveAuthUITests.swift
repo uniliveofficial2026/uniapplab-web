@@ -360,9 +360,9 @@ final class UniLiveAuthUITests: XCTestCase {
     var roomTitleForLaunch = landmark("create-room-name", in: root, timeout: 4)
     if roomTitleForLaunch.exists {
       roomTitleForLaunch.tap()
-      sleep(0.5)
+      Thread.sleep(forTimeInterval: 0.5)
       roomTitleForLaunch.typeText("\n")
-      sleep(1)
+      Thread.sleep(forTimeInterval: 1.0)
     }
 
     var launchBtn = landmark("live-go-live-launch", in: root, timeout: 8)
