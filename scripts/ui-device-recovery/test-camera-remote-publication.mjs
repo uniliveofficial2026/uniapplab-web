@@ -13,8 +13,11 @@ const files = [
   'artifacts/instacollab/src/lib/camera/appCameraOwner.ts',
   'artifacts/instacollab/src/lib/livekit/liveKitVideoPublish.ts',
   'artifacts/instacollab/src/lib/livekit/liveKitRemoteViewerDiag.ts',
+  'artifacts/instacollab/src/lib/live/activeLiveQa.ts',
+  'artifacts/instacollab/src/lib/live/viewerJoinQa.ts',
   'artifacts/instacollab/src/smule-rooms/hooks/useMultiGuestLiveKit.ts',
   'artifacts/instacollab/src/smule-rooms/components/SoloLiveView.tsx',
+  'scripts/device-qa/run-camera-remote-ab.mjs',
 ];
 
 const required = [
@@ -25,11 +28,15 @@ const required = [
   'publishPipelineCorrelation',
   '__UNILIVE_CAMERA_PIPELINE__',
   '__UNILIVE_REMOTE_CAMERA_DEBUG__',
+  '__UNILIVE_ACTIVE_LIVE_QA__',
+  'VIEWER_RTC_GRANT_OK',
+  'ROOM_NOT_DISCOVERED',
   'framesDecoded',
   'startRemoteCameraDiagnosticsPolling',
   'camera-source-generation-',
   'camera-rtc-published',
   'actualFacing',
+  'fetchOwnerActivePartyRoom',
 ];
 
 let failed = false;

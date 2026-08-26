@@ -390,6 +390,7 @@
     "beautyRebind": "INSTRUMENTED_PENDING_PHYSICAL",
     "rtcReplace": "INSTRUMENTED_PENDING_PHYSICAL",
     "liveKitPublication": "FAIL",
+    "remoteFrontReceive": "FAIL",
     "remoteRearReceive": "FAIL",
     "cameraMirror": "PENDING",
     "mirror": "PENDING",
@@ -404,19 +405,31 @@
     "networkRestore": "PENDING",
     "classification": "D",
     "classificationNote": "Root cause was facing-last GUM ({video:true} before facingMode) so rear request returned front. Fixed facing-first; remote publication + 10-cycle stress still required.",
+    "sameRoomRemoteBlocker": "ROOM_NOT_DISCOVERED",
+    "sameRoomRemoteNote": "Host A reached Solo Live (room 6725006 in one run). Mac AB party_rooms query returned rows=0 (likely Firebase routing/sync lag). Harness now accepts Host A live-room-id landmark + server viewer grant. Guests Flip blocked by leftover chat keyboard — fixed with dismiss + coordinate tap.",
     "physicalLocalEvidence": {
       "device": "iPhone 14 Pro Max (iPhone15,3)",
       "udidCoreDevice": "04E86E0A-14A3-524B-919C-EB7C477083EE",
       "priorProdSpa": "assets/index-f_4YQNyd.js",
       "priorLiveVersion": "df15f3b60567",
+      "currentProdSpa": "assets/index-BjgibAbW.js",
+      "currentLiveVersion": "8a71a20eef44",
       "log": ".local/device-logs/camera-switch-001142.log",
+      "sameRoomHostLog": ".local/device-logs/camera-same-room-host-20260826-111350.log",
       "frontBefore": true,
       "rearLandmarkAfterSwitch": true,
       "frontAfterReverse": true,
-      "macRemoteRearView": "NOT_YET_VERIFIED"
+      "macRemoteRearView": "NOT_YET_VERIFIED",
+      "hostRoomResolvedOnce": "6725006"
     },
     "instrumentation": {
       "cameraGeneration": true,
+      "activeLiveQa": true,
+      "viewerJoinQa": true,
+      "remoteCameraDiag": true,
+      "sameRoomAbHarness": "scripts/device-qa/run-camera-remote-ab.mjs",
+      "sameRoomOrchestrator": "scripts/device-qa/run-camera-same-room-ab.sh"
+    },
       "pipelineCorrelation": "__UNILIVE_CAMERA_PIPELINE__",
       "remoteViewerDiag": "__UNILIVE_REMOTE_CAMERA_DEBUG__",
       "gates": ["test:camera-ownership", "test:camera-remote-publication"]

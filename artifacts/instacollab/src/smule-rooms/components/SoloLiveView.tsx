@@ -76,6 +76,7 @@ import {
   SoloShopLiveDailyGiftSheet,
   type SoloShopLiveMoreAction,
 } from './SoloShopLiveControls';
+import { clearActiveLiveQa, publishActiveLiveQa } from '../../lib/live/activeLiveQa';
 
 type ChatViewerPayload = {
   id: string;
@@ -702,6 +703,36 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
           ? 'live-rtc-connected'
           : 'solo-live-view';
 
+  useEffect(() => {
+    if (!roomDisplayId) {
+      clearActiveLiveQa();
+      return undefined;
+    }
+    publishActiveLiveQa({
+      appRoomId: roomDisplayId,
+      roomType: isCommerceLive ? 'commerce' : 'solo',
+      hostPersonId: hostUserId || null,
+      liveState: liveQaState,
+      rtcState: hostMediaSnap?.live || hostMediaSnap?.publishing
+        ? 'connected'
+        : hostMediaSnap?.connecting
+          ? 'connecting'
+          : 'idle',
+      rtcRoomName: roomDisplayId,
+    });
+    return () => {
+      clearActiveLiveQa();
+    };
+  }, [
+    roomDisplayId,
+    isCommerceLive,
+    hostUserId,
+    liveQaState,
+    hostMediaSnap?.live,
+    hostMediaSnap?.publishing,
+    hostMediaSnap?.connecting,
+  ]);
+
   const tapLikeAtClientPoint = (clientX: number, clientY: number) => {
     if (!liveLike) return;
     const stage =
@@ -931,7 +962,11 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       data-live-qa-camera-facing-mode={actualFacing}
       data-live-qa-camera-width={cameraTrackDiag?.width != null ? String(cameraTrackDiag.width) : ''}
       data-live-qa-camera-height={cameraTrackDiag?.height != null ? String(cameraTrackDiag.height) : ''}
-      aria-label={liveQaState}
+      aria-label={
+        roomDisplayId
+          ? `${liveQaState} live-room-id-${roomDisplayId}`
+          : liveQaState
+      }
     >
       <span
         className="sr-only"

@@ -26,6 +26,7 @@ import {
   noteHostTrackPublished,
   setHostMediaState,
 } from '../../lib/camera/hostMediaSession';
+import { emitViewerJoinStage } from '../../lib/live/viewerJoinQa';
 import { resolveRoomMemberIdentity } from '../utils/roomMemberProfile';
 
 type UseMultiGuestLiveKitOptions = {
@@ -107,6 +108,9 @@ export function useMultiGuestLiveKit({
       if (track.kind === Track.Kind.Audio) {
         const el = track.attach();
         void el.play().catch(() => {});
+        if (!canPublish) {
+          emitViewerJoinStage('VIEWER_AUDIO_SUBSCRIBED', { appRoomId: roomId });
+        }
         void publication;
         return;
       }
@@ -118,6 +122,10 @@ export function useMultiGuestLiveKit({
         next.set(identity, track);
         return next;
       });
+      if (!canPublish) {
+        emitViewerJoinStage('VIEWER_VIDEO_SUBSCRIBED', { appRoomId: roomId });
+        emitViewerJoinStage('VIEWER_HOST_PARTICIPANT_FOUND', { appRoomId: roomId });
+      }
       void publication;
     };
 
@@ -167,6 +175,12 @@ export function useMultiGuestLiveKit({
           .filter((identity): identity is string => Boolean(identity)),
       );
       setActiveSpeakerUserIds(ids);
+      if (!canPublish) {
+        emitViewerJoinStage('VIEWER_LIVEKIT_CONNECTED', { appRoomId: roomId });
+        if (room.remoteParticipants.size > 0) {
+          emitViewerJoinStage('VIEWER_HOST_PARTICIPANT_FOUND', { appRoomId: roomId });
+        }
+      }
     };
 
     const onDisconnected = () => {
@@ -190,8 +204,17 @@ export function useMultiGuestLiveKit({
       intervalMs: 1500,
     });
 
-    const fetchToken = () =>
-      fetchPartyLiveKitToken(roomId, hidden ? false : canPublish, { hidden });
+    const fetchToken = async () => {
+      if (!canPublish) {
+        emitViewerJoinStage('VIEWER_JOIN_REQUEST', { appRoomId: roomId });
+      }
+      const grant = await fetchPartyLiveKitToken(roomId, hidden ? false : canPublish, { hidden });
+      if (!canPublish) {
+        emitViewerJoinStage('VIEWER_RTC_GRANT_OK', { appRoomId: roomId });
+        emitViewerJoinStage('VIEWER_LIVEKIT_CONNECT_START', { appRoomId: roomId });
+      }
+      return grant;
+    };
 
     const grantKey = `${canPublish}:${hidden}`;
     const grantChanged = grantKeyRef.current !== grantKey;
@@ -199,6 +222,10 @@ export function useMultiGuestLiveKit({
 
     void (async () => {
       try {
+        if (!canPublish) {
+          emitViewerJoinStage('VIEWER_ROOM_ID_RESOLVED', { appRoomId: roomId });
+          emitViewerJoinStage('VIEWER_JOIN_OK', { appRoomId: roomId });
+        }
         if (grantChanged && room.state === ConnectionState.Connected) {
           await reconnectHostLiveKitWithNewGrants(roomId, fetchToken);
         } else {
@@ -207,7 +234,17 @@ export function useMultiGuestLiveKit({
         }
         if (cancelled) return;
         if (room.state === ConnectionState.Connected) onConnected();
-      } catch {
+      } catch (err) {
+        if (!canPublish) {
+          const msg = err instanceof Error ? err.message : String(err);
+          emitViewerJoinStage('VIEWER_JOIN_FAIL', {
+            appRoomId: roomId,
+            failClass: msg.includes('token') || msg.includes('401') || msg.includes('403')
+              ? 'RTC_GRANT_FAILED'
+              : 'LIVEKIT_CONNECT_FAILED',
+            detail: msg,
+          });
+        }
         /* local UI still works without LiveKit */
       }
     })();

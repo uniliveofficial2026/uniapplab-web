@@ -110,12 +110,18 @@ final class UniLiveAuthUITests: XCTestCase {
   }
 
   private func launchCapAppOnce() {
-    app.launch()
+    // Prefer activate over launch so an already-warm Cap Solo Live session survives.
+    if app.state == .runningForeground || app.state == .runningBackground {
+      app.activate()
+    } else {
+      app.launch()
+    }
     XCTAssertTrue(app.wait(for: .runningForeground, timeout: 35), "Cap app must reach foreground")
     sleep(2)
   }
 
   private func waitForWebRoot(timeout: TimeInterval = 55) -> XCUIElement {
+    let allowTerminate = qaEnv("UNILIVE_DEVICE_QA_TERMINATE") == "1"
     for attempt in 1...Self.axAttachRetries {
       if app.state == .notRunning {
         launchCapAppOnce()
@@ -132,15 +138,31 @@ final class UniLiveAuthUITests: XCTestCase {
         if shell.waitForExistence(timeout: min(timeout, 20)) {
           return web
         }
+        // Solo Live / CreateRoom may not expose signed-in-shell in AX — still usable web root.
+        if landmark("solo-live-view", in: web, timeout: 2).exists
+          || landmark("live-rtc-connected", in: web, timeout: 2).exists
+          || landmark("go-live-entry", in: web, timeout: 2).exists
+          || landmark("live-go-live-launch", in: web, timeout: 2).exists
+        {
+          return web
+        }
         if attempt < Self.axAttachRetries {
+          print("CAMERA_AX_RETRY attempt=\(attempt) missing signed-in-shell (no terminate)")
           continue
         }
         return web
       }
       if attempt < Self.axAttachRetries {
-        app.terminate()
-        sleep(2)
-        launchCapAppOnce()
+        if allowTerminate {
+          print("CAMERA_AX_TERMINATE_RELAUNCH attempt=\(attempt)")
+          app.terminate()
+          sleep(2)
+          launchCapAppOnce()
+        } else {
+          print("CAMERA_AX_REATTACH_NO_TERMINATE attempt=\(attempt)")
+          app.activate()
+          sleep(2)
+        }
       }
     }
     return webRoot()
@@ -542,11 +564,24 @@ final class UniLiveAuthUITests: XCTestCase {
     composer.tap()
     sleep(1)
     XCTAssertTrue(composer.exists, "live-chat-input must remain visible when keyboard open")
+    // Same-room remote harness: emit Host A app room id, then dismiss keyboard so
+    // the following camera flip test can hit Guests / Flip.
+    emitCameraRoomId(from: root)
+    dismissLiveKeyboardIfNeeded(root)
   }
 
-  /// Front → rear → front camera switch on physical Solo Live host.
-  func testSoloLiveFrontRearFrontCamera() throws {
+  /// Shared Solo Live host entry — mirrors hardened live-chat state machine.
+  /// Prefer keeping an already-active Solo session warm (same-room remote proof).
+  @discardableResult
+  private func reachSoloLiveHostForCamera() -> XCUIElement {
     addUIInterruptionMonitor(withDescription: "Camera") { alert in
+      for title in ["Allow While Using App", "Allow", "OK"] {
+        let b = alert.buttons[title]
+        if b.exists { b.tap(); return true }
+      }
+      return false
+    }
+    addUIInterruptionMonitor(withDescription: "Microphone") { alert in
       for title in ["Allow While Using App", "Allow", "OK"] {
         let b = alert.buttons[title]
         if b.exists { b.tap(); return true }
@@ -556,6 +591,15 @@ final class UniLiveAuthUITests: XCTestCase {
 
     ensureSignedInShell()
     var root = waitForWebRoot()
+
+    // Already hosting — do not end Live / recreate room.
+    if landmark("solo-live-view", in: root, timeout: 3).exists
+      || landmark("live-rtc-connected", in: root, timeout: 2).exists
+      || landmark("camera-facing-front", in: root, timeout: 2).exists
+      || landmark("camera-facing-rear", in: root, timeout: 2).exists {
+      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE")
+      return root
+    }
 
     var openedLive = false
     if tapIfExists(root.buttons["Live"], timeout: 6) {
@@ -569,80 +613,288 @@ final class UniLiveAuthUITests: XCTestCase {
     sleep(2)
     root = webRoot()
 
-    // Already hosting Solo Live from a prior session — skip Go Live entry.
-    if landmark("solo-live-view", in: root, timeout: 4).exists
-      || landmark("camera-facing-front", in: root, timeout: 3).exists
-      || landmark("camera-facing-rear", in: root, timeout: 3).exists
-      || landmark("live-rtc-connected", in: root, timeout: 3).exists {
-      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE")
-    } else {
-      var goLive = landmark("go-live-entry", in: root, timeout: 14)
-      if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
-      if !goLive.exists {
-        goLive = root.descendants(matching: .any).matching(
-          NSPredicate(format: "label CONTAINS[c] %@", "Go Live")
-        ).firstMatch
-      }
-      if goLive.waitForExistence(timeout: 16) {
-        goLive.tap()
-        sleep(3)
+    // Re-check after Live tab — auto-resume may already be in Solo.
+    if landmark("solo-live-view", in: root, timeout: 3).exists
+      || landmark("live-rtc-connected", in: root, timeout: 2).exists
+      || landmark("live-rtc-connecting", in: root, timeout: 2).exists {
+      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE_AFTER_LIVE_TAB")
+      return root
+    }
+
+    var goLive = landmark("go-live-entry", in: root, timeout: 10)
+    if !goLive.exists {
+      goLive = root.buttons["Go Live"].firstMatch
+    }
+    if !goLive.exists {
+      root.swipeDown()
+      sleep(1)
+      root = webRoot()
+      goLive = landmark("go-live-entry", in: root, timeout: 6)
+    }
+    if !goLive.exists {
+      goLive = root.buttons["Go Live"].firstMatch
+    }
+    if !goLive.exists {
+      goLive = root.descendants(matching: .any).matching(
+        NSPredicate(format: "label ==[c] %@ OR label CONTAINS[c] %@", "Go Live", "Go Live")
+      ).firstMatch
+    }
+    if !goLive.exists {
+      let hero = root.staticTexts["Host a Live Concert"].firstMatch
+      if hero.waitForExistence(timeout: 4) {
+        hero.tap()
+        sleep(1)
         root = webRoot()
-        app.tap()
-      } else {
-        print("DEBUG_LIVE_ENTRY=\(root.debugDescription.prefix(3500))")
-        XCTFail("APPLICATION_STATE_FAILED: go-live-entry missing")
-        return
+        goLive = landmark("go-live-entry", in: root, timeout: 4)
+        if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
       }
     }
+    if !goLive.waitForExistence(timeout: 12) {
+      print("DEBUG_LIVE_NO_GOLIVE=\(root.debugDescription.prefix(4500))")
+      XCTFail("APPLICATION_STATE_FAILED: go-live-entry missing")
+      return root
+    }
+    goLive.tap()
+    sleep(2)
+    root = webRoot()
 
-    let soloReady =
-      landmark("solo-live-view", in: root, timeout: 20).exists
-      || landmark("live-rtc-connected", in: root, timeout: 8).exists
-      || landmark("live-rtc-connecting", in: root, timeout: 8).exists
-    if !soloReady {
-      // Fall through CreateRoom launch if auto-launch lagged
-      if landmark("live-go-live-launch", in: root, timeout: 6).exists {
-        landmark("live-go-live-launch", in: root, timeout: 2).tap()
-        sleep(3)
-        if landmark("live-countdown", in: root, timeout: 6).exists {
-          landmark("Skip countdown and go live", in: root, timeout: 4).tap()
+    let alreadyHost =
+      landmark("solo-live-view", in: root, timeout: 4).exists
+      || landmark("live-rtc-connecting", in: root, timeout: 2).exists
+      || landmark("live-rtc-connected", in: root, timeout: 2).exists
+      || landmark("live-countdown", in: root, timeout: 2).exists
+      || landmark("live-permission-camera-pending", in: root, timeout: 2).exists
+
+    if alreadyHost {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (auto-launch past CreateRoom)")
+    } else {
+      XCTAssertTrue(
+        landmark("go-live-entry", in: root, timeout: 8).exists
+          || landmark("create-room-name", in: root, timeout: 8).exists,
+        "APPLICATION_STATE_FAILED: CreateRoom not reached after go-live-entry"
+      )
+      var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
+      if !soloOption.exists {
+        soloOption = root.switches["go-live-solo-option"]
+        if !soloOption.exists {
+          soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
         }
-        sleep(3)
+      }
+      if soloOption.waitForExistence(timeout: 6) {
+        soloOption.tap()
+        sleep(1)
+      } else {
+        print("DEBUG_CREATE=\(root.debugDescription.prefix(3500))")
+        XCTFail("APPLICATION_STATE_FAILED: go-live-solo-option not selected/seeded")
+        return root
+      }
+
+      var roomTitle = landmark("create-room-name", in: root, timeout: 8)
+      if !roomTitle.exists {
+        roomTitle = root.textFields.firstMatch
+      }
+      XCTAssertTrue(roomTitle.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: create-room-name missing")
+      let captionValue = (roomTitle.value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      if captionValue.isEmpty || captionValue == "Welcome to the room!" {
+        roomTitle.tap()
+        sleep(1)
+        if !captionValue.isEmpty {
+          let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: captionValue.count)
+          roomTitle.typeText(deleteString)
+        }
+        roomTitle.typeText("QA Device Live")
+        sleep(1)
       }
     }
-    root = waitForWebRoot(timeout: 30)
-    XCTAssertTrue(
-      landmark("solo-live-view", in: root, timeout: 20).exists
-        || landmark("live-rtc-connected", in: root, timeout: 10).exists
-        || landmark("live-rtc-connecting", in: root, timeout: 10).exists,
-      "APPLICATION_STATE_FAILED: SoloLiveView not mounted for camera switch"
-    )
 
-    // Emit room id for Mac Viewer B join file
-    let roomLandmark = root.descendants(matching: .any).matching(
-      NSPredicate(format: "label BEGINSWITH %@", "live-room-id-")
-    ).firstMatch
-    if roomLandmark.waitForExistence(timeout: 6) {
-      let label = roomLandmark.label
-      let rid = label.replacingOccurrences(of: "live-room-id-", with: "")
-      print("CAMERA_ROOM_ID=\(rid)")
+    if alreadyHost
+      || landmark("live-countdown", in: root, timeout: 4).exists
+      || landmark("live-room-creating", in: root, timeout: 2).exists
+      || landmark("solo-live-view", in: root, timeout: 2).exists {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (auto-launch)")
+    } else {
+      var launchBtn = landmark("live-go-live-launch", in: root, timeout: 10)
+      if !launchBtn.exists {
+        launchBtn = root.buttons["live-go-live-launch"].firstMatch
+      }
+      XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: live-go-live-launch missing")
+      launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+      sleep(2)
+      if landmark("live-countdown", in: root, timeout: 3).exists == false
+        && landmark("live-room-creating", in: root, timeout: 2).exists == false
+        && landmark("solo-live-view", in: root, timeout: 2).exists == false
+      {
+        launchBtn.tap()
+        sleep(2)
+      }
+    }
+    app.tap()
+
+    let skip = landmark("Skip countdown and go live", in: root, timeout: 4)
+    let countdown = landmark("live-countdown", in: root, timeout: alreadyHost ? 2 : 12)
+    if skip.exists {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED")
+      skip.tap()
+    } else if countdown.exists {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED")
+      countdown.tap()
+    } else if alreadyHost
+      || landmark("solo-live-view", in: root, timeout: 3).exists
+      || landmark("live-rtc-connecting", in: root, timeout: 2).exists
+      || landmark("live-rtc-connected", in: root, timeout: 2).exists
+    {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (already in SoloLiveView)")
+    } else {
+      let creating = landmark("live-room-creating", in: root, timeout: 8)
+      XCTAssertTrue(creating.exists, "APPLICATION_STATE_FAILED: neither live-countdown nor live-room-creating after launch")
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (creating)")
     }
 
-    let frontBefore = landmark("camera-facing-front", in: root, timeout: 8)
-    print("CAMERA_FRONT_BEFORE=\(frontBefore.exists)")
+    sleep(4)
+    app.tap()
+    root = waitForWebRoot(timeout: 30)
 
-    // Flip lives in Guests panel (approved control), not the footer row.
+    let permissionBlocked = landmark("live-permission-camera-pending", in: root, timeout: 6)
+    if permissionBlocked.exists {
+      app.tap()
+      sleep(2)
+      if permissionBlocked.exists {
+        XCTFail("PERMISSION_BLOCKED: live-permission-camera-pending")
+        return root
+      }
+    }
+
+    XCTAssertFalse(landmark("live-error-state", in: root, timeout: 3).exists, "APPLICATION_STATE_FAILED: live-error-state")
+
+    // Assert SoloLiveView / RTC landmarks (no blind sleep-only success).
+    let soloMounted =
+      landmark("solo-live-view", in: root, timeout: 20).exists
+      || landmark("live-rtc-connecting", in: root, timeout: 10).exists
+      || landmark("live-rtc-connected", in: root, timeout: 10).exists
+    XCTAssertTrue(soloMounted, "APPLICATION_STATE_FAILED: SoloLiveView not mounted for camera switch")
+
+    // Prefer connected + published before Mac join.
+    _ = landmark("live-rtc-connected", in: root, timeout: 25)
+    _ = landmark("camera-rtc-published", in: root, timeout: 20)
+    if landmark("live-rtc-connected", in: root, timeout: 2).exists {
+      print("HOST_RTC=CONNECTED")
+    } else if landmark("live-rtc-connecting", in: root, timeout: 2).exists {
+      print("HOST_RTC=CONNECTING")
+    }
+    if landmark("camera-rtc-published", in: root, timeout: 2).exists {
+      print("HOST_PUBLICATION=PRESENT")
+    }
+
+    return root
+  }
+
+  private func dismissLiveKeyboardIfNeeded(_ rootIn: XCUIElement) {
+    var root = rootIn
+    // live-chat-input focus from prior test leaves keyboard covering Guests / Flip.
+    if app.keyboards.buttons.count > 0 || landmark("live-chat-input", in: root, timeout: 2).exists {
+      print("CAMERA_DISMISS_KEYBOARD")
+      app.swipeDown()
+      sleep(1)
+      let controls = landmark("Solo Live controls", in: root, timeout: 3)
+      if controls.exists {
+        controls.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.05)).tap()
+      } else {
+        root.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.15)).tap()
+      }
+      sleep(1)
+      if app.keyboards.buttons["Return"].exists {
+        app.keyboards.buttons["Return"].tap()
+        sleep(1)
+      }
+      // Final fallback: tap top chrome
+      root.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08)).tap()
+      sleep(1)
+    }
+  }
+
+  private func emitCameraRoomId(from root: XCUIElement) {
+    // Prefer dedicated landmark; also accept room id embedded in SoloLiveView aria-label.
+    let roomLandmark = root.descendants(matching: .any).matching(
+      NSPredicate(format: "label BEGINSWITH %@ OR label CONTAINS %@", "live-room-id-", "live-room-id-")
+    ).firstMatch
+    if roomLandmark.waitForExistence(timeout: 8) {
+      let label = roomLandmark.label
+      if let range = label.range(of: "live-room-id-") {
+        let after = String(label[range.upperBound...])
+        let rid = after.split(whereSeparator: { !$0.isNumber }).first.map(String.init) ?? after
+        if !rid.isEmpty {
+          print("CAMERA_ROOM_ID=\(rid)")
+          return
+        }
+      }
+    }
+    // data-live-qa-room-id sometimes surfaces as value
+    let byValue = root.descendants(matching: .any).matching(
+      NSPredicate(format: "value MATCHES %@", "[0-9]{7}")
+    ).firstMatch
+    if byValue.waitForExistence(timeout: 3), let v = byValue.value as? String, v.count == 7 {
+      print("CAMERA_ROOM_ID=\(v)")
+      return
+    }
+    print("CAMERA_ROOM_ID=MISSING")
+  }
+
+  private func tapPossiblyBlocked(_ element: XCUIElement, name: String) {
+    if element.isHittable {
+      element.tap()
+    } else {
+      print("CAMERA_COORD_TAP=\(name)")
+      element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+    }
+  }
+
+  private func holdForMacViewerJoin() {
+    let raw = qaEnv("UNILIVE_CAMERA_HOLD_BEFORE_FLIP_SEC")
+    let holdSec = Int(raw).flatMap { $0 > 0 ? $0 : nil } ?? 90
+    print("CAMERA_HOLD_FOR_VIEWER_SEC=\(holdSec)")
+    var remaining = holdSec
+    while remaining > 0 {
+      let slice = min(15, remaining)
+      sleep(UInt32(slice))
+      remaining -= slice
+      _ = app.wait(for: .runningForeground, timeout: 3)
+      var root = webRoot()
+      dismissLiveKeyboardIfNeeded(root)
+      root = webRoot()
+      if !landmark("solo-live-view", in: root, timeout: 2).exists
+        && !landmark("live-rtc-connected", in: root, timeout: 2).exists
+        && !landmark("camera-facing-front", in: root, timeout: 2).exists
+        && !landmark("camera-facing-rear", in: root, timeout: 2).exists
+      {
+        print("CAMERA_AX_REATTACH_ATTEMPT remaining=\(remaining)")
+        app.activate()
+        root = waitForWebRoot(timeout: 20)
+      }
+      emitCameraRoomId(from: root)
+      print("CAMERA_HOLD_TICK remaining=\(remaining)")
+    }
+  }
+
+  private func openGuestsAndTapCameraSwitch(rootIn: XCUIElement) -> XCUIElement {
+    var root = rootIn
+    dismissLiveKeyboardIfNeeded(root)
+    root = webRoot()
+
     var guestsBtn = root.buttons["Guests"].firstMatch
     if !guestsBtn.exists {
       guestsBtn = landmark("Guests", in: root, timeout: 6)
     }
-    if guestsBtn.waitForExistence(timeout: 8) {
-      guestsBtn.tap()
-      sleep(2)
-      root = webRoot()
+    if !guestsBtn.exists {
+      guestsBtn = root.descendants(matching: .any).matching(
+        NSPredicate(format: "label == %@ OR identifier == %@", "Guests", "Guests")
+      ).firstMatch
     }
+    XCTAssertTrue(guestsBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: Guests control missing")
+    tapPossiblyBlocked(guestsBtn, name: "Guests")
+    sleep(2)
+    root = webRoot()
 
-    var switchBtn = landmark("camera-switch", in: root, timeout: 10)
+    var switchBtn = landmark("camera-switch", in: root, timeout: 8)
     if !switchBtn.exists {
       switchBtn = root.buttons["Flip"].firstMatch
     }
@@ -650,21 +902,51 @@ final class UniLiveAuthUITests: XCTestCase {
       switchBtn = root.buttons["Flip camera"].firstMatch
     }
     if !switchBtn.exists {
-      // Cap AX sometimes exposes aria-label as identifier only
       switchBtn = root.descendants(matching: .any).matching(
-        NSPredicate(format: "label == %@ OR identifier == %@", "camera-switch", "camera-switch")
+        NSPredicate(format: "label == %@ OR identifier == %@ OR label CONTAINS[c] %@", "camera-switch", "camera-switch", "Flip")
       ).firstMatch
     }
-    if !switchBtn.waitForExistence(timeout: 12) {
+    if !switchBtn.waitForExistence(timeout: 6) {
+      tapPossiblyBlocked(guestsBtn, name: "Guests-retry")
+      sleep(2)
+      root = webRoot()
+      switchBtn = landmark("camera-switch", in: root, timeout: 8)
+      if !switchBtn.exists { switchBtn = root.buttons["Flip"].firstMatch }
+      if !switchBtn.exists {
+        switchBtn = root.descendants(matching: .any).matching(
+          NSPredicate(format: "label == %@ OR identifier == %@ OR label CONTAINS[c] %@", "camera-switch", "camera-switch", "Flip")
+        ).firstMatch
+      }
+    }
+    if !switchBtn.waitForExistence(timeout: 10) {
       print("DEBUG_CAMERA=\(root.debugDescription.prefix(4500))")
       XCTFail("APPLICATION_STATE_FAILED: camera-switch missing (open Guests first)")
-      return
+      return root
     }
-
-    switchBtn.tap()
+    print("CAMERA_SWITCH_TAP")
+    tapPossiblyBlocked(switchBtn, name: "camera-switch")
     sleep(3)
     app.tap()
+    return webRoot()
+  }
+
+  /// Front → rear → front camera switch on physical Solo Live host.
+  func testSoloLiveFrontRearFrontCamera() throws {
+    var root = reachSoloLiveHostForCamera()
+    emitCameraRoomId(from: root)
+
+    // Give Mac Viewer B time to discover + join the SAME room before flipping.
+    holdForMacViewerJoin()
     root = webRoot()
+    emitCameraRoomId(from: root)
+
+    let frontBefore = landmark("camera-facing-front", in: root, timeout: 8)
+    print("CAMERA_FRONT_BEFORE=\(frontBefore.exists)")
+    if frontBefore.exists {
+      print("CAMERA_SWITCH_REQUEST_REAR")
+    }
+
+    root = openGuestsAndTapCameraSwitch(rootIn: root)
 
     let rear = landmark("camera-facing-rear", in: root, timeout: 12)
     if !rear.exists {
@@ -676,25 +958,14 @@ final class UniLiveAuthUITests: XCTestCase {
     print("CAMERA_SWITCH_CLASS=TRACK_LANDMARK_REAR")
     print("LAUNCH_CAMERA=REAR_ACTIVE")
 
-    // Ensure Guests panel still available for reverse switch
-    guestsBtn = root.buttons["Guests"].firstMatch
-    if guestsBtn.exists { guestsBtn.tap(); sleep(1); root = webRoot() }
+    // Hold rear briefly so Mac can sample remote rear frames.
+    sleep(20)
 
-    switchBtn = landmark("camera-switch", in: root, timeout: 8)
-    if !switchBtn.exists { switchBtn = root.buttons["Flip"].firstMatch }
-    if !switchBtn.exists {
-      switchBtn = root.descendants(matching: .any).matching(
-        NSPredicate(format: "label == %@ OR identifier == %@", "camera-switch", "camera-switch")
-      ).firstMatch
-    }
-    switchBtn.tap()
-    sleep(3)
-    root = webRoot()
+    root = openGuestsAndTapCameraSwitch(rootIn: root)
 
     let frontAfter = landmark("camera-facing-front", in: root, timeout: 12)
     XCTAssertTrue(frontAfter.exists, "REAR→FRONT_FAIL: camera-facing-front not restored")
     print("LAUNCH_CAMERA=FRONT_ACTIVE")
-    // Room lifecycle must remain SoloLiveView (CreateRoom landmarks may linger in InstantRoom AX).
     XCTAssertTrue(
       landmark("solo-live-view", in: root, timeout: 8).exists
         || landmark("live-rtc-connected", in: root, timeout: 5).exists
@@ -704,103 +975,20 @@ final class UniLiveAuthUITests: XCTestCase {
     )
     print("ROOM_RECONNECTED=NO")
     print("CAMERA_SWITCH_CYCLES=front_rear_front_PASS")
+    sleep(15)
   }
 
   /// 10 front↔rear transitions without app relaunch.
   func testSoloLiveCameraFlipStress() throws {
-    addUIInterruptionMonitor(withDescription: "Camera") { alert in
-      for title in ["Allow While Using App", "Allow", "OK"] {
-        let b = alert.buttons[title]
-        if b.exists { b.tap(); return true }
-      }
-      return false
-    }
-
-    ensureSignedInShell()
-    var root = waitForWebRoot()
-
-    var openedLive = false
-    if tapIfExists(root.buttons["Live"], timeout: 6) {
-      openedLive = true
-    } else if tapIfExists(landmark("Open menu", in: root, timeout: 10), timeout: 10) {
-      sleep(1)
-      openedLive = tapIfExists(root.buttons["Live"], timeout: 8)
-        || tapIfExists(root.staticTexts["Live"], timeout: 6)
-    }
-    XCTAssertTrue(openedLive, "NAVIGATION_FAILED: Live entry unreachable")
-    sleep(2)
+    var root = reachSoloLiveHostForCamera()
+    emitCameraRoomId(from: root)
+    holdForMacViewerJoin()
     root = webRoot()
-
-    if landmark("solo-live-view", in: root, timeout: 4).exists
-      || landmark("camera-facing-front", in: root, timeout: 3).exists
-      || landmark("live-rtc-connected", in: root, timeout: 3).exists {
-      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE")
-    } else {
-      var goLive = landmark("go-live-entry", in: root, timeout: 14)
-      if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
-      if !goLive.exists {
-        goLive = root.descendants(matching: .any).matching(
-          NSPredicate(format: "label CONTAINS[c] %@", "Go Live")
-        ).firstMatch
-      }
-      XCTAssertTrue(goLive.waitForExistence(timeout: 16), "APPLICATION_STATE_FAILED: go-live-entry missing")
-      goLive.tap()
-      sleep(3)
-      root = webRoot()
-      app.tap()
-    }
-
-    if !(landmark("solo-live-view", in: root, timeout: 12).exists
-      || landmark("live-rtc-connected", in: root, timeout: 8).exists) {
-      if landmark("live-go-live-launch", in: root, timeout: 6).exists {
-        landmark("live-go-live-launch", in: root, timeout: 2).tap()
-        sleep(3)
-        if landmark("live-countdown", in: root, timeout: 6).exists {
-          landmark("Skip countdown and go live", in: root, timeout: 4).tap()
-        }
-        sleep(3)
-      }
-    }
-    root = waitForWebRoot(timeout: 30)
-    XCTAssertTrue(
-      landmark("solo-live-view", in: root, timeout: 20).exists
-        || landmark("live-rtc-connected", in: root, timeout: 10).exists,
-      "APPLICATION_STATE_FAILED: SoloLiveView missing for stress"
-    )
-
-    // Print room id for Mac Viewer B join
-    let roomAttr = root.descendants(matching: .any).matching(
-      NSPredicate(format: "label BEGINSWITH %@", "live-room-id-")
-    ).firstMatch
-    if roomAttr.waitForExistence(timeout: 5) {
-      let rid = roomAttr.label.replacingOccurrences(of: "live-room-id-", with: "")
-      print("CAMERA_ROOM_ID=\(rid)")
-    }
-    print("CAMERA_STRESS_ROOM_HINT=\(roomAttr.exists)")
+    print("CAMERA_STRESS_ROOM_HINT=ready")
 
     var expectRear = true
     for cycle in 1...10 {
-      root = webRoot()
-      var guestsBtn = root.buttons["Guests"].firstMatch
-      if !guestsBtn.exists { guestsBtn = landmark("Guests", in: root, timeout: 4) }
-      if guestsBtn.waitForExistence(timeout: 6) {
-        guestsBtn.tap()
-        sleep(1)
-        root = webRoot()
-      }
-
-      var switchBtn = landmark("camera-switch", in: root, timeout: 6)
-      if !switchBtn.exists { switchBtn = root.buttons["Flip"].firstMatch }
-      if !switchBtn.exists {
-        switchBtn = root.descendants(matching: .any).matching(
-          NSPredicate(format: "label == %@ OR identifier == %@", "camera-switch", "camera-switch")
-        ).firstMatch
-      }
-      XCTAssertTrue(switchBtn.waitForExistence(timeout: 10), "STRESS_FAIL cycle=\(cycle) camera-switch missing")
-      switchBtn.tap()
-      sleep(3)
-      root = webRoot()
-
+      root = openGuestsAndTapCameraSwitch(rootIn: root)
       let want = expectRear ? "camera-facing-rear" : "camera-facing-front"
       let got = landmark(want, in: root, timeout: 12)
       print("CAMERA_STRESS_CYCLE=\(cycle) expect=\(want) ok=\(got.exists)")
