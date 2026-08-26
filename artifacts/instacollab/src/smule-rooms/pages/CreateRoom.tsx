@@ -80,6 +80,29 @@ function emitCreateRoomTransition(step: LaunchTransition, detail?: Record<string
   }
 }
 
+/** Advance InstantRoomEntryHost MemoryRouter to the live room (not CreateRoom). */
+function goToHostLiveRoom(roomId: string, options?: { mode?: string; roomName?: string }): void {
+  emitCreateRoomTransition('ROOM_CREATED', { roomId });
+  // InstantRoomEntryHost owns a MemoryRouter keyed by flowKey. Plain navigate() can
+  // leave CreateRoom mounted (AX still shows go-live-entry + ROOM_CREATED). Re-open
+  // the shell at /room/:id so Room → SoloLiveView mounts.
+  try {
+    window.dispatchEvent(
+      new CustomEvent('instant-room-open', {
+        detail: {
+          path: `/room/${roomId}`,
+          roomId,
+          entry: 'karaoke-party',
+          roomName: options?.roomName,
+          roomMode: options?.mode,
+        },
+      }),
+    );
+  } catch {
+    /* ignore */
+  }
+}
+
 const CreateRoom = () => {
   const navigate = useNavigate();
   const navigateSettingsBack = useRoomSettingsNavigateBack();
@@ -242,8 +265,13 @@ const CreateRoom = () => {
         setLaunching(false);
         launchLockRef.current = false;
         setLaunchTransition('ROOM_CREATED');
-        emitCreateRoomTransition('ROOM_CREATED', { roomId });
-        if (roomId) navigate(`/room/${roomId}`);
+        if (roomId) {
+          goToHostLiveRoom(roomId, {
+            mode: snapRef.current.mode,
+            roomName: snapRef.current.roomName,
+          });
+          navigate(`/room/${roomId}`, { replace: true });
+        }
       }, 700);
       return () => window.clearTimeout(timer);
     }
@@ -462,7 +490,8 @@ const CreateRoom = () => {
       pendingAutoLaunchRef.current = false;
       setLaunchTransition('ROOM_CREATING');
       emitCreateRoomTransition('ROOM_CREATING', { roomId: roomIdString, source });
-      navigate(`/room/${roomIdString}`);
+      goToHostLiveRoom(roomIdString, { mode: snap.mode, roomName: snap.roomName });
+      navigate(`/room/${roomIdString}`, { replace: true });
     } catch (err) {
       console.error('[CreateRoom] launch failed', err);
       launchLockRef.current = false;
@@ -597,7 +626,10 @@ const CreateRoom = () => {
             setGoLiveCountdown(null);
             setLaunching(false);
             launchLockRef.current = false;
-            if (roomId) navigate(`/room/${roomId}`);
+            if (roomId) {
+              goToHostLiveRoom(roomId, { mode, roomName });
+              navigate(`/room/${roomId}`, { replace: true });
+            }
           }}
           aria-label="Skip countdown and go live"
           data-live-qa-state="live-countdown"

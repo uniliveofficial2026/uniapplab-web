@@ -41,6 +41,8 @@ const checks = [
       /live-launch-blocked-/,
       /COUNTDOWN_START/,
       /CREATE_ROOM_CLICKED/,
+      /goToHostLiveRoom/,
+      /instant-room-open/,
       /native-dom/,
       /type="button"/,
       /snapRef/,

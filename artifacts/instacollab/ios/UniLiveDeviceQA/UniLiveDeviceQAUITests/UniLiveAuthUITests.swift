@@ -360,7 +360,7 @@ final class UniLiveAuthUITests: XCTestCase {
     // Also classify A–G from transition landmarks when launch stalls.
     func classifyLaunchFailure(_ rootEl: XCUIElement) -> String {
       let transitions = [
-        "COUNTDOWN_START", "CREATE_ROOM_REQUEST_OK", "CREATE_ROOM_REQUEST_FAIL",
+        "COUNTDOWN_START", "ROOM_CREATED", "CREATE_ROOM_REQUEST_OK", "CREATE_ROOM_REQUEST_FAIL",
         "CREATE_ROOM_REQUEST_START", "CREATE_ROOM_VALIDATION_BLOCKED",
         "CREATE_ROOM_VALIDATION_PASS", "CREATE_ROOM_VALIDATING", "CREATE_ROOM_CLICKED",
       ]
@@ -368,6 +368,7 @@ final class UniLiveAuthUITests: XCTestCase {
         if landmark(t, in: rootEl, timeout: 1).exists {
           switch t {
           case "COUNTDOWN_START": return "G_COUNTDOWN_STARTED"
+          case "ROOM_CREATED": return "F_API_OK_NAV_STUCK_ON_CREATE"
           case "CREATE_ROOM_REQUEST_OK": return "F_API_OK_STATE_STUCK"
           case "CREATE_ROOM_REQUEST_FAIL": return "E_ROOM_API_FAILED"
           case "CREATE_ROOM_REQUEST_START": return "D_API_NEVER_COMPLETED"
