@@ -19,7 +19,7 @@ const checks = [
   {
     id: 'go-live-seeds-solo',
     file: 'src/lib/live/openLiveRoom.ts',
-    must: [/Solo-Live/, /uni\.createRoom\.hint/, /openGoLiveCreateRoom/, /uni:create-room-hint/, /roomName: options\?\.roomName \|\| 'Live'/],
+    must: [/Solo-Live/, /uni\.createRoom\.hint/, /openGoLiveCreateRoom/, /uni:create-room-hint/, /roomName: options\?\.roomName \|\| 'Live'/, /autoLaunch/],
   },
   {
     id: 'live-screen-go-live-entry',
@@ -38,6 +38,7 @@ const checks = [
       /uni:create-room-hint/,
       /live-go-live-launch/,
       /live-launch-blocked-/,
+      /autoLaunchArmed/,
     ],
   },
   {
