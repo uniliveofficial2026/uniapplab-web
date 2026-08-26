@@ -10,6 +10,7 @@
  */
 import { openCameraMediaStream, type CameraFacingMode } from './cameraAcquire';
 import { WEBAR_CAMERA_FRAME_RATE } from './cameraPipelinePolicy';
+import { diagnoseVideoTrack, emitCameraSwitchTrace } from './cameraSwitchTrace';
 
 export type { CameraFacingMode } from './cameraAcquire';
 
@@ -258,32 +259,105 @@ export function setAppCameraFacing(facingMode: CameraFacingMode): Promise<MediaS
     }
     const previous = sharedStream;
     const previousFacing = sharedFacing;
-    for (const lease of leases.values()) lease.facingMode = facingMode;
-    // Keep the last valid preview until the new device stream is live.
-    // Nulling `sharedStream` first blanks the host preview during flip.
+    const previousTrack = previous?.getVideoTracks()[0] ?? null;
+
+    emitCameraSwitchTrace('CAMERA_SWITCH_TAP', {
+      requested: facingMode,
+      previousFacing,
+      previous: diagnoseVideoTrack(previousTrack),
+    });
+    emitCameraSwitchTrace('CAMERA_CURRENT_TRACK_BEFORE', {
+      track: diagnoseVideoTrack(previousTrack),
+    });
+
+    for (const lease of leases.values()) {
+      lease.facingMode = facingMode;
+      // Rear on Cap/iOS often needs verified facing; front uses ideal.
+      lease.exactFacing = facingMode === 'environment';
+    }
     const primary = Array.from(leases.values())[0]!;
-    try {
-      const opened = await openCameraMediaStream({
+
+    const openWith = async (releaseBefore: boolean) =>
+      openCameraMediaStream({
         facingMode,
         audio: Array.from(leases.values()).some((lease) => lease.audio),
         videoIdeal: primary.videoIdeal,
         frameRate: primary.frameRate,
         exactFacing: Array.from(leases.values()).some((lease) => lease.exactFacing),
+        releaseBeforeAcquire: releaseBefore,
+        previousStream: releaseBefore ? previous : null,
       });
+
+    try {
+      let opened: Awaited<ReturnType<typeof openCameraMediaStream>>;
+      try {
+        // Prefer keeping current track alive until the new side is live (atomic).
+        opened = await openWith(false);
+      } catch (err) {
+        const name =
+          err && typeof err === 'object' && 'name' in err
+            ? String((err as { name?: unknown }).name)
+            : '';
+        // iOS exclusive capture: second GUM fails while first track owns the session.
+        if (name === 'NotReadableError' || name === 'TrackStartError' || name === 'AbortError') {
+          opened = await openWith(true);
+        } else {
+          throw err;
+        }
+      }
+
+      const reported = opened.stream.getVideoTracks()[0]?.getSettings().facingMode;
+      if (
+        (reported === 'user' || reported === 'environment') &&
+        reported !== facingMode &&
+        previous &&
+        previous !== opened.stream
+      ) {
+        // Got a live stream but wrong facing while old track still held the device.
+        stopStream(opened.stream);
+        opened = await openWith(true);
+      }
+
       sharedStream = opened.stream;
       applyActualFacing(opened.facingMode);
-      if (previous && previous !== opened.stream) stopStream(previous);
+      if (previous && previous !== opened.stream) {
+        stopStream(previous);
+        emitCameraSwitchTrace('CAMERA_OLD_TRACK_STOPPED', {
+          track: diagnoseVideoTrack(previousTrack),
+        });
+      }
       notify(opened.stream);
+      emitCameraSwitchTrace('CAMERA_PREVIEW_REPLACED', {
+        track: diagnoseVideoTrack(opened.stream.getVideoTracks()[0]),
+        facing: opened.facingMode,
+      });
       void import('../webar/tencentWebARWarm')
-        .then((m) => m.onSharedInputReplaced(opened.stream))
+        .then((m) => {
+          m.onSharedInputReplaced(opened.stream);
+          emitCameraSwitchTrace('CAMERA_RENDER_GRAPH_REPLACED', {
+            facing: opened.facingMode,
+          });
+        })
         .catch(() => undefined);
+      emitCameraSwitchTrace('CAMERA_SWITCH_COMPLETE', {
+        requested: facingMode,
+        actual: opened.facingMode,
+        track: diagnoseVideoTrack(opened.stream.getVideoTracks()[0]),
+      });
       return opened.stream;
-    } catch {
-      // Flip failed (e.g. no back camera) — restore the prior stream + facing if still live.
+    } catch (err) {
+      emitCameraSwitchTrace('CAMERA_SWITCH_ERROR', {
+        requested: facingMode,
+        message: err instanceof Error ? err.message.slice(0, 160) : 'unknown',
+      });
+      // Flip failed — restore the prior stream + facing if still live.
       if (isStreamLive(previous)) {
         sharedStream = previous;
         applyActualFacing(previousFacing);
-        for (const lease of leases.values()) lease.facingMode = previousFacing;
+        for (const lease of leases.values()) {
+          lease.facingMode = previousFacing;
+          if (previousFacing === 'user') lease.exactFacing = false;
+        }
         notify(previous);
         return previous;
       }

@@ -901,8 +901,16 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
       data-live-qa-host-media={hostMediaSnap?.state ?? 'unknown'}
       data-live-qa-chat-open={chatComposerOpen ? '1' : '0'}
       data-live-qa-room-id={roomDisplayId || ''}
+      data-live-qa-camera-facing={cameraFacingMode === 'environment' ? 'rear' : 'front'}
       aria-label={liveQaState}
     >
+      <span
+        className="sr-only"
+        aria-label={
+          cameraFacingMode === 'environment' ? 'camera-facing-rear' : 'camera-facing-front'
+        }
+        data-live-qa-camera-facing={cameraFacingMode === 'environment' ? 'rear' : 'front'}
+      />
       <RoomBackgroundLayer mode={backgroundMode} />
       <div
         ref={stageShellRef}

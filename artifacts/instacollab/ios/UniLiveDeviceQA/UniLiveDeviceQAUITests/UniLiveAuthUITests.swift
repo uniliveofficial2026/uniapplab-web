@@ -544,6 +544,105 @@ final class UniLiveAuthUITests: XCTestCase {
     XCTAssertTrue(composer.exists, "live-chat-input must remain visible when keyboard open")
   }
 
+  /// Front → rear → front camera switch on physical Solo Live host.
+  func testSoloLiveFrontRearFrontCamera() throws {
+    addUIInterruptionMonitor(withDescription: "Camera") { alert in
+      for title in ["Allow While Using App", "Allow", "OK"] {
+        let b = alert.buttons[title]
+        if b.exists { b.tap(); return true }
+      }
+      return false
+    }
+
+    ensureSignedInShell()
+    var root = waitForWebRoot()
+
+    var openedLive = false
+    if tapIfExists(root.buttons["Live"], timeout: 6) {
+      openedLive = true
+    } else if tapIfExists(landmark("Open menu", in: root, timeout: 10), timeout: 10) {
+      sleep(1)
+      openedLive = tapIfExists(root.buttons["Live"], timeout: 8)
+        || tapIfExists(root.staticTexts["Live"], timeout: 6)
+    }
+    XCTAssertTrue(openedLive, "NAVIGATION_FAILED: Live entry unreachable")
+    sleep(2)
+    root = webRoot()
+
+    var goLive = landmark("go-live-entry", in: root, timeout: 10)
+    if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
+    XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
+    goLive.tap()
+    sleep(3)
+    root = webRoot()
+    app.tap()
+
+    let soloReady =
+      landmark("solo-live-view", in: root, timeout: 20).exists
+      || landmark("live-rtc-connected", in: root, timeout: 8).exists
+      || landmark("live-rtc-connecting", in: root, timeout: 8).exists
+    if !soloReady {
+      // Fall through CreateRoom launch if auto-launch lagged
+      if landmark("live-go-live-launch", in: root, timeout: 6).exists {
+        landmark("live-go-live-launch", in: root, timeout: 2).tap()
+        sleep(3)
+        if landmark("live-countdown", in: root, timeout: 6).exists {
+          landmark("Skip countdown and go live", in: root, timeout: 4).tap()
+        }
+        sleep(3)
+      }
+    }
+    root = waitForWebRoot(timeout: 30)
+    XCTAssertTrue(
+      landmark("solo-live-view", in: root, timeout: 20).exists
+        || landmark("live-rtc-connected", in: root, timeout: 10).exists
+        || landmark("live-rtc-connecting", in: root, timeout: 10).exists,
+      "APPLICATION_STATE_FAILED: SoloLiveView not mounted for camera switch"
+    )
+
+    let frontBefore = landmark("camera-facing-front", in: root, timeout: 8)
+    print("CAMERA_FRONT_BEFORE=\(frontBefore.exists)")
+
+    var switchBtn = landmark("camera-switch", in: root, timeout: 10)
+    if !switchBtn.exists {
+      switchBtn = root.buttons["Flip"].firstMatch
+    }
+    if !switchBtn.exists {
+      switchBtn = root.buttons["Flip camera"].firstMatch
+    }
+    XCTAssertTrue(switchBtn.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: camera-switch missing")
+
+    switchBtn.tap()
+    sleep(3)
+    app.tap()
+    root = webRoot()
+
+    let rear = landmark("camera-facing-rear", in: root, timeout: 12)
+    if !rear.exists {
+      print("CAMERA_SWITCH_CLASS=D_OR_FAIL rear landmark missing after switch")
+      print("DEBUG_CAMERA=\(root.debugDescription.prefix(4000))")
+      XCTFail("REAR_CAMERA_FAIL: camera-facing-rear not active after switch")
+      return
+    }
+    print("CAMERA_SWITCH_CLASS=G_OR_PASS rear-active landmark present")
+    print("LAUNCH_CAMERA=REAR_ACTIVE")
+
+    switchBtn = landmark("camera-switch", in: root, timeout: 8)
+    if !switchBtn.exists { switchBtn = root.buttons["Flip"].firstMatch }
+    switchBtn.tap()
+    sleep(3)
+    root = webRoot()
+
+    let frontAfter = landmark("camera-facing-front", in: root, timeout: 12)
+    XCTAssertTrue(frontAfter.exists, "REAR→FRONT_FAIL: camera-facing-front not restored")
+    print("LAUNCH_CAMERA=FRONT_ACTIVE")
+    // Room must still be SoloLiveView — no reconnect to CreateRoom
+    XCTAssertFalse(
+      landmark("go-live-entry", in: root, timeout: 2).exists,
+      "ROOM_RECONNECT_FAIL: CreateRoom reappeared after camera switch"
+    )
+  }
+
   func testPostModalCommentComposerLandmark() throws {
     ensureSignedInShell()
     let root = webRoot()

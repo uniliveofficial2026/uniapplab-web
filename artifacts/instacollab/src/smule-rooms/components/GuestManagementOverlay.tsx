@@ -256,7 +256,14 @@ export function GuestManagementOverlay({
                 </i>
                 <span>Camera</span>
               </button>
-              <button className="lt15-mini-action" type="button" onClick={onFlipCamera} disabled={!onFlipCamera}>
+              <button
+                className="lt15-mini-action"
+                type="button"
+                onClick={onFlipCamera}
+                disabled={!onFlipCamera}
+                aria-label="camera-switch"
+                data-testid="camera-switch"
+              >
                 <i>
                   <FlipHorizontal2 size={17} />
                 </i>

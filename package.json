@@ -117,6 +117,8 @@
     "test:creator-keyboard": "node scripts/ui-device-recovery/test-creator-keyboard.mjs",
     "test:live-keyboard": "node scripts/ui-device-recovery/test-live-keyboard.mjs",
     "test:live-host-state-machine": "node scripts/ui-device-recovery/test-live-host-state-machine.mjs",
+    "test:camera-ownership": "node scripts/ui-device-recovery/test-camera-ownership.mjs",
+    "test:camera-switch": "node scripts/ui-device-recovery/test-camera-ownership.mjs",
     "test:marketplace-keyboard": "node scripts/ui-device-recovery/test-marketplace-keyboard.mjs",
     "test:seller-keyboard": "node scripts/ui-device-recovery/test-seller-keyboard.mjs",
     "test:scan-legacy-keyboard": "node scripts/ui-device-recovery/scan-legacy-keyboard.mjs",

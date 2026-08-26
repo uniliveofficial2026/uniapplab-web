@@ -12,6 +12,7 @@ import {
 } from '../rtc/livekitCompatibilityBoundary';
 import { WEBAR_OUTPUT_FPS } from '../webar/webarCameraConfig';
 import { resolveLiveKitVideoPublishOptions } from '../rtc/liveKitPublishProfile';
+import { diagnoseVideoTrack, emitCameraSwitchTrace } from '../camera/cameraSwitchTrace';
 
 export const PROCESSED_VIDEO_LIVEKIT_PUBLISH: TrackPublishOptions = {
   source: Track.Source.Camera,
@@ -61,10 +62,28 @@ export async function updateLiveKitLocalVideoTrack(
     if (localTrack.mediaStreamTrack?.id === prepared.id) {
       return 'skipped';
     }
-    await localTrack.replaceTrack(prepared, true);
-    return 'replaced';
+    emitCameraSwitchTrace('CAMERA_RTC_REPLACE_START', {
+      from: diagnoseVideoTrack(localTrack.mediaStreamTrack),
+      to: diagnoseVideoTrack(prepared),
+    });
+    try {
+      await localTrack.replaceTrack(prepared, true);
+      emitCameraSwitchTrace('CAMERA_RTC_REPLACE_OK', {
+        track: diagnoseVideoTrack(prepared),
+      });
+      return 'replaced';
+    } catch (err) {
+      emitCameraSwitchTrace('CAMERA_RTC_REPLACE_FAIL', {
+        message: err instanceof Error ? err.message.slice(0, 120) : 'unknown',
+      });
+      throw err;
+    }
   }
 
   await participant.publishTrack(prepared, publishOptions);
+  emitCameraSwitchTrace('CAMERA_RTC_REPLACE_OK', {
+    track: diagnoseVideoTrack(prepared),
+    mode: 'published',
+  });
   return 'published';
 }

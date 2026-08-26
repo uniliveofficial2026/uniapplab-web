@@ -1,0 +1,1 @@
+function a(e,r="user"){const n=e?.getSettings().facingMode;return n==="environment"||n==="user"?n:r}function t(e){return e==="user"?"environment":"user"}function u(e){return e==="user"}function o(e){return e==="user"||e==="environment"}export{o as a,t as n,a as r,u as s};

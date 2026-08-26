@@ -21,6 +21,12 @@ import {
 } from '../deepar/deeparEffectSelection';
 import { useDeepAR } from '../deepar/useDeepAR';
 import { useCameraStream, type CameraFacingMode } from './useCameraStream';
+import { getAppCameraFacing, setAppCameraFacing } from './appCameraOwner';
+import {
+  nextCameraFacingMode,
+  readCameraFacingMode,
+  shouldMirrorCameraPreview,
+} from './cameraMirrorPolicy';
 import { resolveCameraReady, useTrtcCameraInput } from './trtcCameraPipeline';
 import { useVideoFrameReady } from './useVideoFrameReady';
 import {
@@ -32,6 +38,7 @@ import {
   noteHostRawPreviewReady,
   setHostMediaPresetId,
 } from './hostMediaSession';
+import { emitCameraSwitchTrace } from './cameraSwitchTrace';
 import { isTencentWebARConfigured, warmTencentWebARPipelineNow } from '../webar/useTencentWebAR';
 import type { TencentEffectItem, TencentEffectSelection } from '../webar/webarTypes';
 import { EMPTY_BODY_SHAPE, EMPTY_TENCENT_EFFECT_SELECTION } from '../webar/webarTypes';
@@ -134,17 +141,34 @@ export function useLiveTrtcPipeline({
   const switchingRef = useRef(false);
   const tracedRawRef = useRef(false);
   const tracedBeautyRef = useRef(false);
-  const mirrorSelf = facingMode === 'user';
+  const mirrorSelf = shouldMirrorCameraPreview(facingMode);
 
   useEffect(() => {
     if (enabled && shouldPreloadTrtcModule()) warmTencentWebARPipelineNow();
   }, [enabled]);
 
   const toggleCameraFacing = useCallback(() => {
+    if (switchingRef.current) return;
     switchingRef.current = true;
     noteHostCameraSwitchStarted();
-    setFacingMode((prev) => (prev === 'user' ? 'environment' : 'user'));
-  }, []);
+    const requested = nextCameraFacingMode(facingMode);
+    emitCameraSwitchTrace('CAMERA_SWITCH_TAP', { requested, from: facingMode });
+    void setAppCameraFacing(requested)
+      .then((stream) => {
+        const actual = readCameraFacingMode(
+          stream?.getVideoTracks()[0],
+          getAppCameraFacing(),
+        );
+        setFacingMode(actual);
+        noteHostCameraSwitchFrame();
+      })
+      .catch(() => {
+        setFacingMode(getAppCameraFacing());
+      })
+      .finally(() => {
+        switchingRef.current = false;
+      });
+  }, [facingMode]);
 
   const camera = useCameraStream({
     enabled,
@@ -152,7 +176,7 @@ export function useLiveTrtcPipeline({
     facingMode,
     videoIdeal: captureIdealRef.current,
     frameRate: WEBAR_CAMERA_FRAME_RATE,
-    exactFacing: false,
+    exactFacing: facingMode === 'environment',
   });
 
   const cameraReady = resolveCameraReady(camera);
@@ -175,7 +199,6 @@ export function useLiveTrtcPipeline({
   useEffect(() => {
     if (!enabled || !cameraReady) return;
     if (switchingRef.current) {
-      switchingRef.current = false;
       noteHostCameraSwitchFrame();
     }
     if (!tracedRawRef.current) {

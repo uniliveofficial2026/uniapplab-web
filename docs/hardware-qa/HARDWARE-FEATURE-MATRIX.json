@@ -1,5 +1,5 @@
 {
-  "generatedAt": "2026-08-26T02:28:47.274429+00:00",
+  "generatedAt": "2026-08-26T03:52:52.150347+00:00",
   "scope": "hardware actually referenced by UniLive product source/native projects",
   "categories": {
     "CAMERA": {
@@ -32,7 +32,7 @@
         "artifacts/instacollab/src/lib/chat/useChatCallTrtcPipeline.ts",
         "artifacts/instacollab/src/lib/deepar/deeparClient.ts"
       ],
-      "notes": "Single owner via appCameraOwner \u2192 beauty/WebAR \u2192 LiveKit publish; CreateRoom preview uses same pipeline policy."
+      "notes": "Single owner appCameraOwner \u2192 beauty/WebAR \u2192 LiveKit. front/rear split required; rearCamera/cameraSwitch FAIL until physical PASS."
     },
     "MICROPHONE": {
       "usedByProduct": true,
@@ -378,5 +378,19 @@
       ],
       "notes": "Not a product feature unless thermal governor APIs are wired."
     }
+  },
+  "cameraDetail": {
+    "cameraPermission": "PASS_IF_PHYSICALLY_PROVEN",
+    "frontCamera": "PASS_IF_PHYSICALLY_PROVEN",
+    "rearCamera": "FAIL",
+    "cameraSwitch": "FAIL",
+    "cameraMirror": "PENDING",
+    "cameraOrientation": "PENDING",
+    "cameraPreview": "PENDING",
+    "cameraRtcPublish": "PENDING",
+    "cameraCleanup": "PENDING",
+    "rootCauseHypothesis": "D \u2014 openCameraMediaStream preferred {video:true} before facingMode so rear switch returned front",
+    "fix": "facing-first GUM + verified setAppCameraFacing + exclusive handoff + RTC replace trace",
+    "owner": "appCameraOwner"
   }
 }

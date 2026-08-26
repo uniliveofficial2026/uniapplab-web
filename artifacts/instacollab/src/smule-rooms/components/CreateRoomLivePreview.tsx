@@ -15,10 +15,13 @@ import {
 } from '../../lib/camera/cameraPipelinePolicy';
 import {
   nextCameraFacingMode,
+  readCameraFacingMode,
   shouldMirrorCameraPreview,
 } from '../../lib/camera/cameraMirrorPolicy';
+import { getAppCameraFacing, setAppCameraFacing } from '../../lib/camera/appCameraOwner';
 import { useTrtcCameraInput } from '../../lib/camera/trtcCameraPipeline';
 import { useCameraStream, type CameraFacingMode } from '../../lib/camera/useCameraStream';
+import { emitCameraSwitchTrace } from '../../lib/camera/cameraSwitchTrace';
 import { useVideoFrameReady } from '../../lib/camera/useVideoFrameReady';
 import {
   hydrateTencentWebARCatalogsFromStorage,
@@ -105,7 +108,7 @@ export function CreateRoomLivePreview({
     facingMode,
     videoIdeal: captureIdealRef.current,
     frameRate: WEBAR_CAMERA_FRAME_RATE,
-    exactFacing: false,
+    exactFacing: facingMode === 'environment',
   });
 
   const inputStream = useTrtcCameraInput(enabled, camera, facingMode);
@@ -185,8 +188,18 @@ export function CreateRoomLivePreview({
   }, [enabled]);
 
   const flipCamera = useCallback(() => {
-    setFacingMode((current) => nextCameraFacingMode(current));
-  }, []);
+    const requested = nextCameraFacingMode(facingMode);
+    emitCameraSwitchTrace('CAMERA_SWITCH_TAP', { requested, from: facingMode, surface: 'create-room' });
+    void setAppCameraFacing(requested)
+      .then((stream) => {
+        const actual =
+          readCameraFacingMode(stream?.getVideoTracks()[0], getAppCameraFacing());
+        setFacingMode(actual);
+      })
+      .catch(() => {
+        setFacingMode(getAppCameraFacing());
+      });
+  }, [facingMode]);
 
   const handleSelectBeauty = useCallback((nextBeautyId: BeautyPresetId) => {
     setBeautifyOverride(null);
@@ -273,7 +286,9 @@ export function CreateRoomLivePreview({
         type="button"
         onClick={flipCamera}
         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-white/20 bg-black/55 text-white backdrop-blur-md"
-        aria-label="Flip camera"
+        aria-label="camera-switch"
+        data-testid="camera-switch"
+        title="Flip camera"
       >
         <SwitchCamera size={15} />
       </button>

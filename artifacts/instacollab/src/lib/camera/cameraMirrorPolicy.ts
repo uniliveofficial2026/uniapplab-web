@@ -1,12 +1,13 @@
 import type { CameraFacingMode } from './useCameraStream';
 
-/** Read front/back from track settings — default to front when unknown. */
+/** Read front/back from track settings — use fallback when WebKit omits facingMode. */
 export function readCameraFacingMode(
   track: MediaStreamTrack | null | undefined,
+  fallback: CameraFacingMode = 'user',
 ): CameraFacingMode {
   const facing = track?.getSettings().facingMode;
-  if (facing === 'environment') return 'environment';
-  return 'user';
+  if (facing === 'environment' || facing === 'user') return facing;
+  return fallback;
 }
 
 export function nextCameraFacingMode(current: CameraFacingMode): CameraFacingMode {

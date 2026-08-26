@@ -1,14 +1,21 @@
 /**
- * Camera acquisition — simplest getUserMedia first, then upgrade quality.
+ * Camera acquisition — facing-aware getUserMedia with timeout guards.
  *
  * Critical reliability rules:
- * 1. Ask for `{ video: true }` FIRST (permission + any camera).
+ * 1. When a facingMode is requested, try that facing FIRST (ideal → exact).
+ *    Never prefer bare `{ video: true }` first — on iOS that returns the front
+ *    camera and makes rear switch look like a no-op (classification D).
  * 2. Every getUserMedia has a timeout; on TimeoutError we STOP (no cascade).
- * 3. NotFound often means "this browser is not allowed in OS Camera privacy"
- *    or a brief device-release race — diagnose with Permissions API + one delayed retry.
+ * 3. Verify track.getSettings().facingMode when available; retry if mismatch.
+ * 4. NotFound often means OS Camera privacy or a brief device-release race.
  */
 import { isCameraPermissionError } from './errors';
 import { explainInsecureMediaContext } from '../platform/runtime';
+import {
+  diagnoseVideoTrack,
+  emitCameraSwitchTrace,
+  summarizeVideoInputs,
+} from './cameraSwitchTrace';
 
 export type CameraFacingMode = 'user' | 'environment';
 
@@ -18,6 +25,9 @@ export type OpenCameraMediaOptions = {
   videoIdeal: { width: number; height: number };
   frameRate?: { ideal?: number; max?: number };
   exactFacing?: boolean;
+  /** When true, prefer releasing the previous stream before rear/front GUM (iOS exclusive). */
+  releaseBeforeAcquire?: boolean;
+  previousStream?: MediaStream | null;
 };
 
 export type OpenCameraMediaResult = {
@@ -126,7 +136,7 @@ function hintMotion(stream: MediaStream): MediaStream {
   return stream;
 }
 
-function detectFacing(stream: MediaStream, fallback: CameraFacingMode): CameraFacingMode {
+export function detectFacing(stream: MediaStream, fallback: CameraFacingMode): CameraFacingMode {
   try {
     const f = stream.getVideoTracks()[0]?.getSettings().facingMode;
     if (f === 'user' || f === 'environment') return f;
@@ -136,10 +146,44 @@ function detectFacing(stream: MediaStream, fallback: CameraFacingMode): CameraFa
   return fallback;
 }
 
+function facingMatches(stream: MediaStream, requested: CameraFacingMode): boolean {
+  try {
+    const f = stream.getVideoTracks()[0]?.getSettings().facingMode;
+    // Some WebKit builds omit facingMode — treat as unknown (accept).
+    if (f !== 'user' && f !== 'environment') return true;
+    return f === requested;
+  } catch {
+    return true;
+  }
+}
+
 async function gum(constraints: MediaStreamConstraints): Promise<MediaStream> {
-  return hintMotion(
-    await withTimeout(navigator.mediaDevices.getUserMedia(constraints), GUM_TIMEOUT_MS),
-  );
+  emitCameraSwitchTrace('CAMERA_GET_USER_MEDIA_START', {
+    hasFacing:
+      typeof constraints.video === 'object' &&
+      constraints.video !== null &&
+      'facingMode' in constraints.video,
+    hasDeviceId:
+      typeof constraints.video === 'object' &&
+      constraints.video !== null &&
+      'deviceId' in constraints.video,
+    audio: Boolean(constraints.audio),
+  });
+  try {
+    const stream = hintMotion(
+      await withTimeout(navigator.mediaDevices.getUserMedia(constraints), GUM_TIMEOUT_MS),
+    );
+    emitCameraSwitchTrace('CAMERA_GET_USER_MEDIA_OK', {
+      track: diagnoseVideoTrack(stream.getVideoTracks()[0]),
+    });
+    return stream;
+  } catch (err) {
+    emitCameraSwitchTrace('CAMERA_GET_USER_MEDIA_FAIL', {
+      name: errName(err),
+      message: err instanceof Error ? err.message.slice(0, 120) : 'unknown',
+    });
+    throw err;
+  }
 }
 
 async function upgradeQuality(
@@ -158,6 +202,30 @@ async function upgradeQuality(
   } catch {
     /* keep default */
   }
+}
+
+function stopStreamTracks(stream: MediaStream | null | undefined): void {
+  if (!stream) return;
+  try {
+    stream.getTracks().forEach((t) => t.stop());
+  } catch {
+    /* ignore */
+  }
+}
+
+function scoreDeviceForFacing(device: MediaDeviceInfo, facing: CameraFacingMode): number {
+  const label = (device.label || '').toLowerCase();
+  if (facing === 'user') {
+    if (/front|user|facetime|selfie|true.?depth/.test(label)) return 0;
+    if (/back|rear|environment|ultra|tele|wide/.test(label)) return 5;
+    return 2;
+  }
+  // environment / rear — prefer default wide/back, avoid ultra/tele/macro when possible
+  if (/ultra|tele|macro|continuity|virtual|obs|snap|camo/.test(label)) return 4;
+  if (/back|rear|environment|wide/.test(label) && !/ultra|tele/.test(label)) return 0;
+  if (/back|rear|environment/.test(label)) return 1;
+  if (/front|user|facetime|selfie/.test(label)) return 5;
+  return 3;
 }
 
 async function friendlyFailure(lastErr: unknown): Promise<Error> {
@@ -182,7 +250,6 @@ async function friendlyFailure(lastErr: unknown): Promise<Error> {
     );
   }
   if (isNotFound(lastErr)) {
-    // macOS / Windows: master Camera toggle ON is not enough — the browser app must be ON.
     if (permission === 'granted' || labeled > 0) {
       return new Error(
         `Camera is visible but ${app} cannot open it. Quit other apps using the camera, unplug/replug USB cams, then tap Retry.`,
@@ -197,7 +264,7 @@ async function friendlyFailure(lastErr: unknown): Promise<Error> {
 }
 
 /**
- * Acquire a camera MediaStream.
+ * Acquire a camera MediaStream for the requested facing side.
  * Always settles (success or clear Error) — never hangs the app.
  */
 export async function openCameraMediaStream(
@@ -210,38 +277,114 @@ export async function openCameraMediaStream(
     throw new Error(explainInsecureMediaContext());
   }
 
-  const { facingMode, audio, videoIdeal, frameRate } = opts;
+  const { facingMode, audio, videoIdeal, frameRate, exactFacing } = opts;
+
+  emitCameraSwitchTrace(
+    facingMode === 'environment' ? 'CAMERA_SWITCH_REQUEST_REAR' : 'CAMERA_SWITCH_REQUEST_FRONT',
+    {
+      exactFacing: Boolean(exactFacing),
+      releaseBeforeAcquire: Boolean(opts.releaseBeforeAcquire),
+      inputs: await summarizeVideoInputs(),
+      previous: diagnoseVideoTrack(opts.previousStream?.getVideoTracks()[0]),
+    },
+  );
+
+  // iOS often refuses a second physical capture while the first track owns the session.
+  if (opts.releaseBeforeAcquire && opts.previousStream) {
+    stopStreamTracks(opts.previousStream);
+    await sleep(280);
+  }
+
   const finish = async (stream: MediaStream): Promise<OpenCameraMediaResult> => {
     await upgradeQuality(stream, videoIdeal, frameRate);
-    return { stream, facingMode: detectFacing(stream, facingMode) };
+    const actual = detectFacing(stream, facingMode);
+    emitCameraSwitchTrace('CAMERA_NEW_TRACK_SETTINGS', {
+      requested: facingMode,
+      actual,
+      track: diagnoseVideoTrack(stream.getVideoTracks()[0]),
+    });
+    return { stream, facingMode: actual };
   };
 
-  // Always try video-only first when the caller asked for audio+video — a missing mic
-  // makes Chrome return NotFound for the combined request (looks like "no camera").
-  const plans: MediaStreamConstraints[] = audio
-    ? [
-        { video: true, audio: false },
-        { video: { facingMode }, audio: false },
-        { video: true, audio: true },
-        { video: { facingMode }, audio: true },
-      ]
-    : [{ video: true }, { video: { facingMode } }];
+  const accept = async (
+    stream: MediaStream,
+    opts?: { bareVideo?: boolean },
+  ): Promise<OpenCameraMediaResult | null> => {
+    const reported = (() => {
+      try {
+        return stream.getVideoTracks()[0]?.getSettings().facingMode;
+      } catch {
+        return undefined;
+      }
+    })();
+    // Never accept a known front track when rear was requested (class D).
+    if (facingMode === 'environment' && reported === 'user') {
+      stopStreamTracks(stream);
+      return null;
+    }
+    if (facingMode === 'user' && reported === 'environment' && (exactFacing || opts?.bareVideo)) {
+      stopStreamTracks(stream);
+      return null;
+    }
+    // Bare `{ video: true }` on iOS returns the default (usually front). Reject it for
+    // rear unless settings explicitly confirm environment.
+    if (opts?.bareVideo && facingMode === 'environment' && reported !== 'environment') {
+      stopStreamTracks(stream);
+      return null;
+    }
+    if (!facingMatches(stream, facingMode) && (exactFacing || facingMode === 'environment')) {
+      stopStreamTracks(stream);
+      return null;
+    }
+    return finish(stream);
+  };
+
+  // Facing-first plans. Bare `{ video: true }` is LAST so rear switch cannot
+  // silently succeed with the default front camera.
+  const facingConstraint: MediaTrackConstraints = exactFacing
+    ? { facingMode: { exact: facingMode } }
+    : { facingMode: { ideal: facingMode } };
+
+  type Plan = { constraints: MediaStreamConstraints; bareVideo?: boolean };
+  const plans: Plan[] = [
+    { constraints: { video: facingConstraint, audio: false } },
+    ...(exactFacing
+      ? []
+      : [{ constraints: { video: { facingMode }, audio: false } as MediaStreamConstraints }]),
+    ...(audio
+      ? [
+          { constraints: { video: facingConstraint, audio: true } as MediaStreamConstraints },
+          ...(!exactFacing
+            ? [{ constraints: { video: { facingMode }, audio: true } as MediaStreamConstraints }]
+            : []),
+        ]
+      : []),
+    // Last-resort any-camera — only when facing-specific plans fail.
+    // For environment, accept() rejects unless settings confirm rear.
+    { constraints: { video: true, audio: false }, bareVideo: true },
+    ...(audio
+      ? [{ constraints: { video: true, audio: true } as MediaStreamConstraints, bareVideo: true }]
+      : []),
+  ];
 
   let lastErr: unknown = null;
 
-  for (const constraints of plans) {
+  for (const plan of plans) {
     try {
-      return await finish(await gum(constraints));
+      const stream = await gum(plan.constraints);
+      const accepted = await accept(stream, { bareVideo: plan.bareVideo });
+      if (accepted) return accepted;
     } catch (err) {
       lastErr = err;
       if (isCameraPermissionError(err) || isTimeout(err)) {
         throw await friendlyFailure(err);
       }
       if (isNotReadable(err) || isNotFound(err)) {
-        // Device still releasing after a React remount / prior tab — wait, then one more try.
         await sleep(isNotFound(err) ? 600 : 350);
         try {
-          return await finish(await gum({ video: true, audio: false }));
+          const stream = await gum({ video: facingConstraint, audio: false });
+          const accepted = await accept(stream);
+          if (accepted) return accepted;
         } catch (retryErr) {
           lastErr = retryErr;
           if (isCameraPermissionError(retryErr) || isTimeout(retryErr)) {
@@ -252,36 +395,29 @@ export async function openCameraMediaStream(
     }
   }
 
-  // Prefer physical cameras first — Continuity / virtual cams often list but fail to open.
+  // Enumerate and pick a device that matches the requested side.
   const devices = await listVideoInputs();
-  const ranked = [...devices].sort((a, b) => {
-    const score = (d: MediaDeviceInfo) => {
-      const label = (d.label || '').toLowerCase();
-      if (/continuity|iphone|ipad|virtual|obs|snap|manycam|camo/.test(label)) return 2;
-      if (/faceTime|integrated|built-?in|facetime/.test(label)) return 0;
-      return 1;
-    };
-    return score(a) - score(b);
-  });
+  const ranked = [...devices].sort(
+    (a, b) => scoreDeviceForFacing(a, facingMode) - scoreDeviceForFacing(b, facingMode),
+  );
 
   for (const device of ranked) {
     if (!device.deviceId) continue;
-    try {
-      return await finish(
-        await gum({ video: { deviceId: { ideal: device.deviceId } }, audio: false }),
-      );
-    } catch (err) {
-      lastErr = err;
-      if (isCameraPermissionError(err) || isTimeout(err)) throw await friendlyFailure(err);
-    }
-    // exact as last resort for this device
-    try {
-      return await finish(
-        await gum({ video: { deviceId: { exact: device.deviceId } }, audio: false }),
-      );
-    } catch (err) {
-      lastErr = err;
-      if (isCameraPermissionError(err) || isTimeout(err)) throw await friendlyFailure(err);
+    for (const deviceId of [
+      { ideal: device.deviceId } as ConstrainDOMString,
+      { exact: device.deviceId } as ConstrainDOMString,
+    ]) {
+      try {
+        const stream = await gum({
+          video: { deviceId, facingMode: { ideal: facingMode } },
+          audio: false,
+        });
+        const accepted = await accept(stream);
+        if (accepted) return accepted;
+      } catch (err) {
+        lastErr = err;
+        if (isCameraPermissionError(err) || isTimeout(err)) throw await friendlyFailure(err);
+      }
     }
   }
 
