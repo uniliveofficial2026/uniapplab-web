@@ -569,13 +569,31 @@ final class UniLiveAuthUITests: XCTestCase {
     sleep(2)
     root = webRoot()
 
-    var goLive = landmark("go-live-entry", in: root, timeout: 10)
-    if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
-    XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
-    goLive.tap()
-    sleep(3)
-    root = webRoot()
-    app.tap()
+    // Already hosting Solo Live from a prior session — skip Go Live entry.
+    if landmark("solo-live-view", in: root, timeout: 4).exists
+      || landmark("camera-facing-front", in: root, timeout: 3).exists
+      || landmark("camera-facing-rear", in: root, timeout: 3).exists
+      || landmark("live-rtc-connected", in: root, timeout: 3).exists {
+      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE")
+    } else {
+      var goLive = landmark("go-live-entry", in: root, timeout: 14)
+      if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
+      if !goLive.exists {
+        goLive = root.descendants(matching: .any).matching(
+          NSPredicate(format: "label CONTAINS[c] %@", "Go Live")
+        ).firstMatch
+      }
+      if goLive.waitForExistence(timeout: 16) {
+        goLive.tap()
+        sleep(3)
+        root = webRoot()
+        app.tap()
+      } else {
+        print("DEBUG_LIVE_ENTRY=\(root.debugDescription.prefix(3500))")
+        XCTFail("APPLICATION_STATE_FAILED: go-live-entry missing")
+        return
+      }
+    }
 
     let soloReady =
       landmark("solo-live-view", in: root, timeout: 20).exists
@@ -713,13 +731,24 @@ final class UniLiveAuthUITests: XCTestCase {
     sleep(2)
     root = webRoot()
 
-    var goLive = landmark("go-live-entry", in: root, timeout: 10)
-    if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
-    XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
-    goLive.tap()
-    sleep(3)
-    root = webRoot()
-    app.tap()
+    if landmark("solo-live-view", in: root, timeout: 4).exists
+      || landmark("camera-facing-front", in: root, timeout: 3).exists
+      || landmark("live-rtc-connected", in: root, timeout: 3).exists {
+      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE")
+    } else {
+      var goLive = landmark("go-live-entry", in: root, timeout: 14)
+      if !goLive.exists { goLive = root.buttons["Go Live"].firstMatch }
+      if !goLive.exists {
+        goLive = root.descendants(matching: .any).matching(
+          NSPredicate(format: "label CONTAINS[c] %@", "Go Live")
+        ).firstMatch
+      }
+      XCTAssertTrue(goLive.waitForExistence(timeout: 16), "APPLICATION_STATE_FAILED: go-live-entry missing")
+      goLive.tap()
+      sleep(3)
+      root = webRoot()
+      app.tap()
+    }
 
     if !(landmark("solo-live-view", in: root, timeout: 12).exists
       || landmark("live-rtc-connected", in: root, timeout: 8).exists) {
@@ -741,8 +770,12 @@ final class UniLiveAuthUITests: XCTestCase {
 
     // Print room id for Mac Viewer B join
     let roomAttr = root.descendants(matching: .any).matching(
-      NSPredicate(format: "value CONTAINS[c] %@ OR label CONTAINS[c] %@", "room", "room")
+      NSPredicate(format: "label BEGINSWITH %@", "live-room-id-")
     ).firstMatch
+    if roomAttr.waitForExistence(timeout: 5) {
+      let rid = roomAttr.label.replacingOccurrences(of: "live-room-id-", with: "")
+      print("CAMERA_ROOM_ID=\(rid)")
+    }
     print("CAMERA_STRESS_ROOM_HINT=\(roomAttr.exists)")
 
     var expectRear = true
