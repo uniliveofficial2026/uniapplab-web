@@ -44,6 +44,7 @@ const CreateRoom = () => {
   const [canonicalRoomId, setCanonicalRoomId] = useState<string | null>(null);
   const [launching, setLaunching] = useState(false);
   const [goLiveCountdown, setGoLiveCountdown] = useState<number | null>(null);
+  const [launchBlockReason, setLaunchBlockReason] = useState<string | null>(null);
   const pendingNavigateRef = useRef<string | null>(null);
 
   useEffect(() => {
@@ -172,7 +173,12 @@ const CreateRoom = () => {
   };
 
   const handleCreate = () => {
-    if (!roomName.trim() || launching || goLiveCountdown !== null) {
+    if (!roomName.trim()) {
+      setLaunchBlockReason('live-launch-blocked-caption');
+      return;
+    }
+    if (launching || goLiveCountdown !== null) {
+      setLaunchBlockReason('live-launch-blocked-busy');
       return;
     }
 
@@ -180,10 +186,12 @@ const CreateRoom = () => {
       const validation = validateRoomKeyInput(privateRoomKey);
       if (!validation.valid) {
         setPrivateKeyError(validation.message ?? 'Enter a valid room key.');
+        setLaunchBlockReason('live-launch-blocked-privacy');
         return;
       }
     }
     setPrivateKeyError(null);
+    setLaunchBlockReason(null);
     setLaunching(true);
 
     const isLiveCameraMode = LIVE_CAMERA_MODES.has(mode);
@@ -194,6 +202,7 @@ const CreateRoom = () => {
         canonicalRoomId;
       if (!roomIdString) {
         setLaunching(false);
+        setLaunchBlockReason('live-launch-blocked-room-id');
         return;
       }
 
@@ -281,6 +290,10 @@ const CreateRoom = () => {
       }
 
       navigate(`/room/${roomIdString}`);
+    } catch (err) {
+      console.error('[CreateRoom] launch failed', err);
+      setLaunching(false);
+      setLaunchBlockReason('live-error-state');
     } finally {
       if (!isLiveCameraMode) {
         setLaunching(false);
@@ -333,11 +346,13 @@ const CreateRoom = () => {
   ];
 
   const liveQaState =
-    goLiveCountdown !== null
-      ? 'live-countdown'
-      : launching
-        ? 'live-room-creating'
-        : 'go-live-entry';
+    launchBlockReason === 'live-error-state'
+      ? 'live-error-state'
+      : goLiveCountdown !== null
+        ? 'live-countdown'
+        : launching
+          ? 'live-room-creating'
+          : launchBlockReason || 'go-live-entry';
 
   return (
     <div
@@ -693,7 +708,7 @@ const CreateRoom = () => {
       <div
         className={
           isLiveCameraMode
-            ? 'relative z-40 shrink-0 bg-transparent px-5 pb-4 pt-2'
+            ? 'relative z-[60] shrink-0 bg-transparent px-5 pb-4 pt-2 pointer-events-auto'
             : 'sticky bottom-0 left-0 right-0 z-40 shrink-0 bg-slate-950/95 px-5 pb-5 pt-4 backdrop-blur-md'
         }
       >
@@ -744,10 +759,12 @@ const CreateRoom = () => {
         </section>
 
         <button
+            type="button"
             onClick={handleCreate}
             disabled={!canLaunch || launching || goLiveCountdown !== null}
-            aria-label={launchLabel}
+            aria-label="live-go-live-launch"
             data-live-qa-launch={launchLabel}
+            data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}
             className={`w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
               !canLaunch || launching || goLiveCountdown !== null
                 ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'
