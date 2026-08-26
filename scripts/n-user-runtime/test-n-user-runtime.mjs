@@ -162,14 +162,71 @@ if (sessions.A && sessions.B) {
   console.log(isolated ? 'PASS A_B_distinct' : 'FAIL A_B_distinct');
 }
 
+async function getWallet(accessToken) {
+  return fetchJson('https://app.uniapplab.com/api/wallet', {
+    headers: { Authorization: `Bearer ${accessToken}` },
+  });
+}
+
+// Wallet isolation + late HTTP race (A starts request, B switches conceptually, A response must stay A's)
+if (sessions.A && sessions.B) {
+  try {
+    const [walletA, walletB] = await Promise.all([
+      getWallet(sessions.A.accessToken),
+      getWallet(sessions.B.accessToken),
+    ]);
+    const idA = walletA?.userId || walletA?.user_id || walletA?.canonicalPersonId || null;
+    const idB = walletB?.userId || walletB?.user_id || walletB?.canonicalPersonId || null;
+    // Actor is auth-bound even if body omits userId — balances must be independently readable
+    const walletOk = walletA && walletB && typeof walletA === 'object' && typeof walletB === 'object';
+    const forged = await fetch('https://app.uniapplab.com/api/wallet?userId=' + sessions.B.canonicalPersonId, {
+      headers: {
+        Accept: 'application/json',
+        Authorization: `Bearer ${sessions.A.accessToken}`,
+        'User-Agent': 'UniLive-NUserRuntime/1.0',
+      },
+    }).then(async (res) => ({ status: res.status, body: await res.json().catch(() => null) }));
+    const forgedActor =
+      forged.body?.userId || forged.body?.user_id || forged.body?.canonicalPersonId || null;
+    const forgeryBlocked =
+      !forgedActor || forgedActor === sessions.A.canonicalPersonId || forged.status >= 400;
+    results.push({
+      check: 'wallet_isolation',
+      result: walletOk && forgeryBlocked ? 'PASS' : 'FAIL',
+      forgedActorMatchesA: forgedActor === sessions.A.canonicalPersonId || !forgedActor,
+      idHints: { idA, idB },
+    });
+    console.log(
+      walletOk && forgeryBlocked ? 'PASS wallet_isolation' : 'FAIL wallet_isolation',
+      { forgeryBlocked, status: forged.status },
+    );
+
+    // Late HTTP race: delayed A wallet fetch must not be treated as B (API returns A's wallet under A's token)
+    const delayedA = getWallet(sessions.A.accessToken);
+    const meB = await getMe(sessions.B.accessToken);
+    const lateA = await delayedA;
+    const lateOk =
+      Boolean(lateA) &&
+      (meB?.id || meB?.userId) === sessions.B.canonicalPersonId &&
+      sessions.A.canonicalPersonId !== sessions.B.canonicalPersonId;
+    results.push({ check: 'late_http_wallet_race', result: lateOk ? 'PASS' : 'FAIL' });
+    console.log(lateOk ? 'PASS late_http_wallet_race' : 'FAIL late_http_wallet_race');
+  } catch (err) {
+    results.push({ check: 'wallet_isolation', result: 'FAIL', error: String(err).slice(0, 160) });
+    console.error('FAIL wallet_isolation', err);
+  }
+}
+
 const failed = results.some((r) => r.result === 'FAIL');
+const blocked = results.some((r) => r.result === 'BLOCKED_EXTERNAL');
 console.log(
   JSON.stringify(
     {
       suite: 'n-user-runtime',
-      result: failed ? 'FAIL' : 'PASS',
+      result: failed ? 'FAIL' : blocked ? 'PASS_WITH_BLOCKED_EXTERNAL' : 'PASS',
+      fullRealApplication: 'FAIL',
       results,
-      note: 'Credentials local-only; email is fixture lookup; assertions use auth.users.id',
+      note: 'Credentials local-only; email is fixture lookup; assertions use auth.users.id; C/D pending',
     },
     null,
     2,

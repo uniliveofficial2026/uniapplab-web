@@ -158,7 +158,7 @@ export function openGoLiveCreateRoom(options?: { mode?: string; roomName?: strin
   void preloadLiveRoomEntry();
   void import('../preloadAppSurfaces').then((m) => m.preloadHostMediaPath());
   // Live discovery "Go Live" implies camera Solo by default (CreateRoom otherwise defaults to Chat,
-  // which never mounts SoloLiveView / live-chat-input).
+  // which never mounts SoloLiveView / live-chat-input). Re-dispatch hint for kept-alive CreateRoom.
   const hint = {
     mode: options?.mode || 'Solo-Live',
     // Caption is required to launch; seed a safe default when opening from Live discovery.

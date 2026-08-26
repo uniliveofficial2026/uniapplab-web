@@ -303,81 +303,94 @@ final class UniLiveAuthUITests: XCTestCase {
     sleep(2)
     root = webRoot()
 
-    // Prefer joining an existing live room; otherwise host via Go Live state machine.
-    let liveCard = root.buttons.matching(
-      NSPredicate(format: "label CONTAINS[c] %@", "live-room")
-    ).firstMatch
-    if liveCard.waitForExistence(timeout: 5) {
-      liveCard.tap()
-      sleep(4)
-      root = webRoot()
-    } else {
-      // 2) Go Live entry
-      var goLive = landmark("go-live-entry", in: root, timeout: 10)
-      if !goLive.exists {
-        goLive = root.buttons["Go Live"].firstMatch
-      }
-      XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
-      goLive.tap()
-      sleep(2)
-      root = webRoot()
+    // Solo-host state machine only — never join an existing live card (viewer path
+    // does not prove CreateRoom → SoloLiveView → live-chat-input for the host).
+    var goLive = landmark("go-live-entry", in: root, timeout: 10)
+    if !goLive.exists {
+      goLive = root.buttons["Go Live"].firstMatch
+    }
+    XCTAssertTrue(goLive.waitForExistence(timeout: 12), "APPLICATION_STATE_FAILED: go-live-entry missing")
+    goLive.tap()
+    sleep(2)
+    root = webRoot()
 
-      // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
-      var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
+    // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
+    XCTAssertTrue(
+      landmark("go-live-entry", in: root, timeout: 8).exists
+        || landmark("create-room-name", in: root, timeout: 8).exists,
+      "APPLICATION_STATE_FAILED: CreateRoom not reached after go-live-entry"
+    )
+    var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
+    if !soloOption.exists {
+      // WKWebView may expose mode chips as switches with go-live-mode-* labels.
+      soloOption = root.switches["go-live-solo-option"]
       if !soloOption.exists {
-        // WKWebView may expose mode chips as switches with go-live-mode-* labels.
-        soloOption = root.switches["go-live-solo-option"]
-        if !soloOption.exists {
-          soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
-        }
+        soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
       }
-      if soloOption.waitForExistence(timeout: 6) {
-        soloOption.tap()
-        sleep(1)
-      }
+    }
+    if soloOption.waitForExistence(timeout: 6) {
+      soloOption.tap()
+      sleep(1)
+    } else {
+      print("APPLICATION_STATE_FAILED: go-live-solo-option missing after Go Live open")
+      print("DEBUG_CREATE=\(root.debugDescription.prefix(3500))")
+      XCTFail("APPLICATION_STATE_FAILED: go-live-solo-option not selected/seeded")
+      return
+    }
 
-      // 4) Room name required for launch — clear and type so canLaunch becomes true
-      var roomTitle = landmark("create-room-name", in: root, timeout: 8)
-      if !roomTitle.exists {
-        roomTitle = root.textFields.firstMatch
-      }
-      XCTAssertTrue(roomTitle.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: create-room-name missing")
+    // 4) Caption — product seeds "Live"; only type if empty/disabled
+    var roomTitle = landmark("create-room-name", in: root, timeout: 8)
+    if !roomTitle.exists {
+      roomTitle = root.textFields.firstMatch
+    }
+    XCTAssertTrue(roomTitle.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: create-room-name missing")
+    let captionValue = (roomTitle.value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+    if captionValue.isEmpty || captionValue == "Welcome to the room!" {
       roomTitle.tap()
       sleep(1)
-      // Clear existing value then type
-      if let value = roomTitle.value as? String, !value.isEmpty {
-        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)
+      if !captionValue.isEmpty {
+        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: captionValue.count)
         roomTitle.typeText(deleteString)
       }
       roomTitle.typeText("QA Device Live")
       sleep(1)
+    }
 
-      // 5) Launch — must be enabled after caption
-      var launchBtn = landmark("Go Live", in: root, timeout: 8)
-      if !launchBtn.exists {
-        launchBtn = root.buttons.matching(
-          NSPredicate(format: "label ==[c] %@ OR label CONTAINS[c] %@", "Go Live", "Going live")
-        ).firstMatch
-      }
-      XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: launch button missing")
-      if launchBtn.exists && !launchBtn.isEnabled {
-        XCTFail("APPLICATION_STATE_FAILED: Go Live disabled (caption/privacy validation)")
+    // 5) Launch — must be enabled after caption / Solo seed
+    var launchBtn = landmark("Go Live", in: root, timeout: 8)
+    if !launchBtn.exists {
+      launchBtn = root.buttons.matching(
+        NSPredicate(format: "label ==[c] %@ OR label CONTAINS[c] %@", "Go Live", "Going live")
+      ).firstMatch
+    }
+    XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: launch button missing")
+    if launchBtn.exists && !launchBtn.isEnabled {
+      XCTFail("APPLICATION_STATE_FAILED: Go Live disabled (caption/privacy validation)")
+      return
+    }
+    launchBtn.tap()
+    sleep(1)
+    app.tap() // nudge TCC monitors
+
+    // 6) Countdown observed or intentionally skipped
+    let countdown = landmark("live-countdown", in: root, timeout: 12)
+    let skip = landmark("Skip countdown and go live", in: root, timeout: 4)
+    if skip.exists {
+      skip.tap()
+    } else if countdown.exists {
+      countdown.tap()
+    } else {
+      let creating = landmark("live-room-creating", in: root, timeout: 4)
+      if !creating.exists {
+        print("APPLICATION_STATE_FAILED: neither live-countdown nor live-room-creating after launch")
+        print("DEBUG_AFTER_LAUNCH=\(root.debugDescription.prefix(4000))")
+        XCTFail("APPLICATION_STATE_FAILED: launch did not enter countdown/creating")
         return
       }
-      launchBtn.tap()
-      sleep(1)
-      app.tap() // nudge TCC monitors
-
-      let skip = landmark("Skip countdown and go live", in: root, timeout: 12)
-      if skip.exists {
-        skip.tap()
-      } else if landmark("live-countdown", in: root, timeout: 4).exists {
-        landmark("live-countdown", in: root, timeout: 2).tap()
-      }
-      sleep(4)
-      app.tap()
-      root = waitForWebRoot(timeout: 30)
     }
+    sleep(4)
+    app.tap()
+    root = waitForWebRoot(timeout: 30)
 
     // 6–10) SoloLiveView / permission / RTC state landmarks (stop early on blocker)
     let permissionBlocked = landmark("live-permission-camera-pending", in: root, timeout: 6)
