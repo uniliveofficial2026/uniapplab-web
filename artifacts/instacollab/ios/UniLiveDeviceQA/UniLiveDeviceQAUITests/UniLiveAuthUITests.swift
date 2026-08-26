@@ -356,32 +356,19 @@ final class UniLiveAuthUITests: XCTestCase {
       sleep(1)
     }
 
-    // 5) Launch — prefer Enter on caption (reliable in WKWebView), then tap CTA
-    var roomTitleForLaunch = landmark("create-room-name", in: root, timeout: 4)
-    if roomTitleForLaunch.exists {
-      roomTitleForLaunch.tap()
-      Thread.sleep(forTimeInterval: 0.5)
-      roomTitleForLaunch.typeText("\n")
-      Thread.sleep(forTimeInterval: 1.0)
-    }
-
-    var launchBtn = landmark("live-go-live-launch", in: root, timeout: 8)
+    // 5) Launch — tap CTA (pointerup path); avoid typeText("\n") which corrupts React caption
+    var launchBtn = landmark("live-go-live-launch", in: root, timeout: 10)
     if !launchBtn.exists {
       launchBtn = root.buttons["live-go-live-launch"].firstMatch
     }
+    XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: live-go-live-launch missing")
+    launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
+    sleep(2)
     if landmark("live-countdown", in: root, timeout: 3).exists == false
       && landmark("live-room-creating", in: root, timeout: 2).exists == false
     {
-      XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: live-go-live-launch missing")
-      // Avoid isEnabled check — we use aria-disabled, not HTML disabled
-      launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-      sleep(1)
-      if landmark("live-countdown", in: root, timeout: 2).exists == false
-        && landmark("live-room-creating", in: root, timeout: 1).exists == false
-      {
-        launchBtn.tap()
-        sleep(1)
-      }
+      launchBtn.tap()
+      sleep(2)
     }
     app.tap() // nudge TCC monitors
 

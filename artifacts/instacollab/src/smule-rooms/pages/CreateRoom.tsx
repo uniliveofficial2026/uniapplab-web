@@ -47,6 +47,8 @@ const CreateRoom = () => {
   const [launchBlockReason, setLaunchBlockReason] = useState<string | null>(null);
   const pendingNavigateRef = useRef<string | null>(null);
   const launchLockRef = useRef(false);
+  const handleCreateRef = useRef<() => void>(() => {});
+  const [autoLaunchArmed, setAutoLaunchArmed] = useState(false);
 
   useEffect(() => {
     void import('../../lib/webar/tencentWebARWarm').then((m) => {
@@ -79,18 +81,18 @@ const CreateRoom = () => {
       }
     };
 
-    const readHint = (): { roomName?: string; mode?: string } | null => {
+    const readHint = (): { roomName?: string; mode?: string; autoLaunch?: boolean } | null => {
       try {
         const raw = sessionStorage.getItem('uni.createRoom.hint');
         if (!raw) return null;
         sessionStorage.removeItem('uni.createRoom.hint');
-        return JSON.parse(raw) as { roomName?: string; mode?: string };
+        return JSON.parse(raw) as { roomName?: string; mode?: string; autoLaunch?: boolean };
       } catch {
         return null;
       }
     };
 
-    const applyHint = (hint: { roomName?: string; mode?: string } | null) => {
+    const applyHint = (hint: { roomName?: string; mode?: string; autoLaunch?: boolean } | null) => {
       if (!hint) return;
       if (hint.roomName?.trim()) setRoomName(hint.roomName.trim());
       if (hint.mode?.trim()) setMode(hint.mode.trim());
@@ -99,12 +101,14 @@ const CreateRoom = () => {
     // Retain Go Live intent across async cloud hydrate (otherwise Solo-Live is overwritten by Chat).
     let goLiveHint = readHint();
     applyHint(goLiveHint);
+    if (goLiveHint?.autoLaunch) setAutoLaunchArmed(true);
 
     const onCreateRoomHint = (event: Event) => {
-      const detail = (event as CustomEvent<{ roomName?: string; mode?: string }>).detail;
+      const detail = (event as CustomEvent<{ roomName?: string; mode?: string; autoLaunch?: boolean }>).detail;
       if (!detail) return;
       goLiveHint = detail;
       applyHint(detail);
+      if (detail.autoLaunch) setAutoLaunchArmed(true);
       try {
         sessionStorage.removeItem('uni.createRoom.hint');
       } catch {
@@ -310,6 +314,17 @@ const CreateRoom = () => {
       }
     }
   };
+  handleCreateRef.current = handleCreate;
+
+  useEffect(() => {
+    if (!autoLaunchArmed) return undefined;
+    if (!roomName.trim() || !LIVE_CAMERA_MODES.has(mode)) return undefined;
+    const timer = window.setTimeout(() => {
+      setAutoLaunchArmed(false);
+      handleCreateRef.current();
+    }, 800);
+    return () => window.clearTimeout(timer);
+  }, [autoLaunchArmed, roomName, mode]);
 
   const handleModeSelect = (modeId: string) => {
     if (goLiveCountdown !== null) return;
@@ -736,23 +751,21 @@ const CreateRoom = () => {
         }
       >
         {/*
-          Use aria-disabled (not HTML disabled): WKWebView often drops AX/XCUITest
-          activation on native-disabled <button>, so handleCreate never runs.
+          Prefer pointerup for Cap/WKWebView: XCUITest activation often skips click
+          and may use non-touch pointer types — do not filter on pointerType.
         */}
         <button
             type="button"
+            onPointerUp={(event) => {
+              event.preventDefault();
+              event.stopPropagation();
+              handleCreate();
+            }}
             onClick={(event) => {
               event.preventDefault();
               event.stopPropagation();
               handleCreate();
             }}
-            onPointerUp={(event) => {
-              if (event.pointerType === 'touch') {
-                event.preventDefault();
-                handleCreate();
-              }
-            }}
-            aria-disabled={!canLaunch || launching || goLiveCountdown !== null}
             aria-label="live-go-live-launch"
             data-live-qa-launch={launchLabel}
             data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}

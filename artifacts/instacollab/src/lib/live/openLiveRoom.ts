@@ -163,6 +163,9 @@ export function openGoLiveCreateRoom(options?: { mode?: string; roomName?: strin
     mode: options?.mode || 'Solo-Live',
     // Caption is required to launch; seed a safe default when opening from Live discovery.
     roomName: options?.roomName || 'Live',
+    // Discovery Go Live should proceed to countdown once Solo+caption are applied
+    // (CreateRoom keep-alive + WK hit-testing otherwise stall on the setup screen).
+    autoLaunch: true as const,
   };
   try {
     sessionStorage.setItem('uni.createRoom.hint', JSON.stringify(hint));
