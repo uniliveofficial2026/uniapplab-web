@@ -267,6 +267,7 @@
     "${lineIndex + 1}. ${text || 'Voice/Media message'}": "${lineIndex + 1}. ${text || 'Voice/Media message'}",
     "${line}-${index}": "${line}-${index}",
     "${liveNotificationKindLabel(notification.liveKind)} live update": "${liveNotificationKindLabel(notification.liveKind)} مباشر update",
+    "${liveQaState} live-room-id-${roomDisplayId}": "${liveQaState} live-room-id-${roomDisplayId}",
     "${liveReel.textOverlayPos ?? 50}%": "${liveReel.textOverlayPos ?? 50}%",
     "${liveReel.textOverlaySize || 22}px": "${liveReel.textOverlaySize || 22}px",
     "${lockedLabel} has been locked by the Host/Admin!": "${lockedLabel} has been locked by the Host/Admin!",

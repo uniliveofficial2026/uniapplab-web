@@ -13,7 +13,7 @@ import { upsertManagedRoom } from '../utils/managedRooms';
 import { initRoomExp } from '../utils/roomExp';
 import { initRoomGifts } from '../utils/roomGifts';
 import { resolveLocalOwnerPartyRoomId, reconcileOwnerPartyRoomIdFromCloud, getStoredOwnerPartyRoomId, setStoredOwnerPartyRoomId } from '../utils/ownerPartyRoomId';
-import { syncPartyRoomToCloud } from '../utils/syncPartyRoomCloud';
+import { syncPartyRoomToCloudAsync } from '../utils/syncPartyRoomCloud';
 import { clearHostLiveEnded } from '../../lib/live/hostLiveEndedRegistry';
 import { getRoomSettings } from '../utils/storage';
 import { useAppCamera } from '../../contexts/AppCameraContext';
@@ -305,7 +305,7 @@ const CreateRoom = () => {
     }
   };
 
-  const handleCreate = (source: string) => {
+  const handleCreate = async (source: string) => {
     const snap = snapRef.current;
     emitCreateRoomTransition('CREATE_ROOM_CLICKED', {
       source,
@@ -446,7 +446,7 @@ const CreateRoom = () => {
         source,
       });
 
-      syncPartyRoomToCloud(roomIdString, snap.currentUserId, {
+      await syncPartyRoomToCloudAsync(roomIdString, snap.currentUserId, {
         roomName: snap.roomName,
         roomMode: snap.mode as RoomMode,
         privacy: snap.privacy,

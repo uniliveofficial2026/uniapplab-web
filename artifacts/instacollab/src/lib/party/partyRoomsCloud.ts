@@ -65,44 +65,106 @@ export function isPartyRoomLiveSyncCloudAvailable(): boolean {
 }
 
 export async function upsertPartyRoom(row: PartyRoomUpsert, ownerId?: string): Promise<PartyRoomRow> {
-  if (shouldUseFirebaseForPartyCloud(ownerId ?? row.owner_id) && isFirebasePartyRoomsAvailable()) {
+  // Solo Live discovery SSOT is Supabase `party_rooms` when configured.
+  // Never write Firebase-only while viewers still poll Supabase — that yields ROOM_NOT_DISCOVERED.
+  const uid = ownerId ?? row.owner_id;
+  if (isSupabasePartyRoomsCloudAvailable()) {
+    try {
+      return await upsertSupabasePartyRoom(row);
+    } catch (err) {
+      if (isFirebasePartyRoomsAvailable()) {
+        console.warn('[party-room] supabase upsert failed; firebase failover write', err);
+        return upsertFirebasePartyRoom(row);
+      }
+      throw err;
+    }
+  }
+  if (shouldUseFirebaseForPartyCloud(uid) && isFirebasePartyRoomsAvailable()) {
+    return upsertFirebasePartyRoom(row);
+  }
+  if (isFirebasePartyRoomsAvailable()) {
     return upsertFirebasePartyRoom(row);
   }
   return upsertSupabasePartyRoom(row);
 }
 
 export async function fetchActivePartyRooms(limit = 40, userId?: string): Promise<PartyRoomRow[]> {
-  if (shouldUseFirebaseForPartyCloud(userId) && isFirebasePartyRoomsAvailable()) {
+  if (isSupabasePartyRoomsCloudAvailable()) {
+    try {
+      const rows = await fetchSupabaseActivePartyRooms(limit);
+      if (rows.length > 0 || !isFirebasePartyRoomsAvailable()) return rows;
+    } catch {
+      /* fall through */
+    }
+  }
+  if (isFirebasePartyRoomsAvailable()) {
     return fetchFirebaseActivePartyRooms(limit);
   }
   try {
     return await fetchSupabaseActivePartyRooms(limit);
   } catch {
-    if (isFirebasePartyRoomsAvailable()) return fetchFirebaseActivePartyRooms(limit);
     return [];
   }
 }
 
 export async function fetchPartyRoomById(roomId: string, userId?: string): Promise<PartyRoomRow | null> {
-  if (shouldUseFirebaseForPartyCloud(userId) && isFirebasePartyRoomsAvailable()) {
+  if (isSupabasePartyRoomsCloudAvailable()) {
+    try {
+      const row = await fetchSupabasePartyRoomById(roomId);
+      if (row || !isFirebasePartyRoomsAvailable()) return row;
+    } catch {
+      /* fall through */
+    }
+  }
+  if (isFirebasePartyRoomsAvailable()) {
     return fetchFirebasePartyRoomById(roomId);
   }
   try {
     return await fetchSupabasePartyRoomById(roomId);
   } catch {
-    if (isFirebasePartyRoomsAvailable()) return fetchFirebasePartyRoomById(roomId);
     return null;
   }
 }
 
 export async function fetchOwnerActivePartyRoom(ownerId: string): Promise<PartyRoomRow | null> {
-  if (shouldUseFirebaseForPartyCloud(ownerId) && isFirebasePartyRoomsAvailable()) {
-    return fetchFirebaseOwnerActivePartyRoom(ownerId);
+  // Prefer Supabase (viewer discovery SSOT). If empty, check Firebase and rehydrate.
+  if (isSupabasePartyRoomsCloudAvailable()) {
+    try {
+      const row = await fetchSupabaseOwnerActivePartyRoom(ownerId);
+      if (row) return row;
+    } catch {
+      /* fall through */
+    }
+  }
+  if (isFirebasePartyRoomsAvailable()) {
+    const fb = await fetchFirebaseOwnerActivePartyRoom(ownerId).catch(() => null);
+    if (fb?.id && fb.status === 'active' && isSupabasePartyRoomsCloudAvailable()) {
+      try {
+        return await upsertSupabasePartyRoom({
+          id: fb.id,
+          owner_id: fb.owner_id || ownerId,
+          room_name: fb.room_name || `Room ${fb.id}`,
+          room_mode: fb.room_mode,
+          privacy: fb.privacy,
+          join_policy: fb.join_policy,
+          room_key_hash: fb.room_key_hash,
+          seat_join_mode: fb.seat_join_mode,
+          who_can_be_seated: fb.who_can_be_seated,
+          cover_url: fb.cover_url,
+          tags: fb.tags,
+          max_participants: fb.max_participants,
+          participant_count: fb.participant_count,
+          status: 'active',
+        });
+      } catch {
+        return fb;
+      }
+    }
+    return fb;
   }
   try {
     return await fetchSupabaseOwnerActivePartyRoom(ownerId);
   } catch {
-    if (isFirebasePartyRoomsAvailable()) return fetchFirebaseOwnerActivePartyRoom(ownerId);
     return null;
   }
 }

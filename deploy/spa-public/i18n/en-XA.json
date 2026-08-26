@@ -265,6 +265,7 @@
     "${lineIndex + 1}. ${text || 'Voice/Media message'}": "[!! ${ĺíńéÍńďéẋ + 1}. ${ťéẋť || 'Ṽöíçé/Ṁéďíå ṁéššåġé'} !!]",
     "${line}-${index}": "[!! ${ĺíńé}-${íńďéẋ} !!]",
     "${liveNotificationKindLabel(notification.liveKind)} live update": "[!! ${ĺíṽéŃöťíḟíçåťíöńĶíńďĹåḃéĺ(ńöťíḟíçåťíöń.ĺíṽéĶíńď)} ĺíṽé üpďåťé !!]",
+    "${liveQaState} live-room-id-${roomDisplayId}": "[!! ${ĺíṽéǪåŠťåťé} ĺíṽé-řööṁ-íď-${řööṁĎíšpĺåÿÍď} !!]",
     "${liveReel.textOverlayPos ?? 50}%": "[!! ${ĺíṽéŘééĺ.ťéẋťÖṽéřĺåÿṖöš ?? 50}% !!]",
     "${liveReel.textOverlaySize || 22}px": "[!! ${ĺíṽéŘééĺ.ťéẋťÖṽéřĺåÿŠížé || 22}pẋ !!]",
     "${lockedLabel} has been locked by the Host/Admin!": "[!! ${ĺöçķéďĹåḃéĺ} ĥåš ḃééń ĺöçķéď ḃÿ ťĥé Ĥöšť/Åďṁíń! !!]",

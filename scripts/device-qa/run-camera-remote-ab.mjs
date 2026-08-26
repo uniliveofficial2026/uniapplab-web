@@ -6,8 +6,13 @@
  * Viewer B = Playwright Chromium on Mac using .local/qa-mac-creds.json
  *            (optional — LiveKit grant path is primary for framesDecoded)
  *
- * Discovery SSOT = UniLive control plane (Supabase party_rooms / fetchOwnerActivePartyRoom), NOT LiveKit.
- * Viewer B NEVER creates a room.
+ * Discovery SSOT = UniLive control plane party_rooms via fetchOwnerActivePartyRoom
+ * (Supabase primary). Fallback order:
+ *   1) owner active party_rooms query (Viewer B auth)
+ *   2) host-owned party_rooms query (Host A auth)
+ *   3) Host A live-room-id landmark / room file (QA correlation only)
+ *
+ * Viewer B NEVER creates a room. Landmark is NOT production discovery.
  *
  * Usage:
  *   node scripts/device-qa/run-camera-remote-ab.mjs
@@ -225,22 +230,36 @@ async function waitForHostRoom(opts) {
   const deadline = Date.now() + Number(process.env.UNILIVE_CAMERA_ROOM_WAIT_MS || 240_000);
   let last = { failClass: 'ROOM_NOT_DISCOVERED', room: null };
   while (Date.now() < deadline) {
-    // Optional file from orchestrator / XCUITest log scrape
-    if (!process.env.UNILIVE_CAMERA_ROOM_ID && fs.existsSync(ROOM_FILE)) {
+    // 1–2) Authoritative control-plane: active owner Solo party_rooms (viewer, then host).
+    last = await discoverHostRoom({
+      ...opts,
+      explicitRoomId: '',
+    });
+    if (!last.failClass && last.room) return last;
+
+    // 3) QA landmark / room file — correlation only, not production discovery SSOT.
+    let landmarkId = process.env.UNILIVE_CAMERA_ROOM_ID?.trim() || '';
+    if (!landmarkId && fs.existsSync(ROOM_FILE)) {
       try {
         const j = loadJson(ROOM_FILE);
-        if (j.roomId) {
-          process.env.UNILIVE_CAMERA_ROOM_ID = String(j.roomId);
-        }
+        if (j.roomId) landmarkId = String(j.roomId);
       } catch {
         /* retry */
       }
     }
-    last = await discoverHostRoom({
-      ...opts,
-      explicitRoomId: process.env.UNILIVE_CAMERA_ROOM_ID?.trim() || '',
-    });
-    if (!last.failClass && last.room) return last;
+    if (landmarkId) {
+      last = await discoverHostRoom({
+        ...opts,
+        explicitRoomId: landmarkId,
+      });
+      if (!last.failClass && last.room) {
+        last = {
+          ...last,
+          room: { ...last.room, _source: last.room._source || 'host-app-landmark' },
+        };
+        return last;
+      }
+    }
     await new Promise((r) => setTimeout(r, 2000));
   }
   return last;
