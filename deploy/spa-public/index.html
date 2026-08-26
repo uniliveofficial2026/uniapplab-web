@@ -58,17 +58,27 @@
     </script>
     <link rel="icon" href="/brand/app-logo.png" type="image/png" />
     <link rel="apple-touch-icon" href="/brand/app-logo.png" />
-    <link rel="preload" href="/unilives-assets/brand/loading/princess-boot-splash-locked.jpg" as="image" />
+    <script>
+      try {
+        if (localStorage.getItem('unilives_boot_splash_seen_device') !== '1') {
+          var l = document.createElement('link');
+          l.rel = 'preload';
+          l.href = '/unilives-assets/brand/loading/princess-boot-splash-locked.jpg';
+          l.as = 'image';
+          document.head.appendChild(l);
+        }
+      } catch (e) {}
+    </script>
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap"
       rel="stylesheet"
       media="print"
       onload="this.media='all'"
     />
     <noscript>
-      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;900&display=swap" rel="stylesheet" />
+      <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
     </noscript>
     <title>UniLive’s</title>
     <meta
@@ -142,12 +152,12 @@
         background: #060821;
       }
     </style>
-    <script type="module" crossorigin src="/assets/index-D0nXnsZE.js"></script>
+    <script type="module" crossorigin src="/assets/index-BXD6GeFh.js"></script>
     <link rel="modulepreload" crossorigin href="/assets/vendor-react-Cp0aZ57f.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-utils-Ce1ZTWB2.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-supabase-CXjp-iK5.js">
     <link rel="modulepreload" crossorigin href="/assets/vendor-motion-S1BKFH4T.js">
-    <link rel="modulepreload" crossorigin href="/assets/vendor-icons-xsEb4x1Q.js">
+    <link rel="modulepreload" crossorigin href="/assets/vendor-icons-Cj0C5QKq.js">
     <link rel="stylesheet" crossorigin href="/assets/index-BTOAuT4H.css">
   <link rel="manifest" href="/manifest.webmanifest"></head>
   <body>

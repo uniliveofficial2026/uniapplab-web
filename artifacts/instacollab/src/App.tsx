@@ -16,8 +16,6 @@ import { ErrorBoundary } from './components/common/ErrorBoundary';
 
 // Default home tab — eager so first paint is instant.
 import { Feed } from './components/feed/Feed';
-// Greedy — eager so the tab opens with no lazy-chunk wait.
-import { GreedyTapScreen, prefetchGreedyTap } from './components/games/GreedyTapScreen';
 import { GreedySessionProvider } from './contexts/GreedySessionContext';
 import { beginInstantAction } from './lib/performance';
 import { cancelRoutePrefetch, scheduleLikelyNextPrefetch } from './lib/navPrefetch';
@@ -89,6 +87,13 @@ const YouTubePage = lazy(() =>
 const WalletScreen = lazy(() =>
   import('./components/wallet/WalletScreen').then((m) => ({ default: m.WalletScreen }))
 );
+const GreedyTapScreen = lazy(() =>
+  import('./components/games/GreedyTapScreen').then((m) => ({ default: m.GreedyTapScreen }))
+);
+
+function prefetchGreedyTap(): void {
+  void import('./components/games/GreedyTapScreen').then((m) => m.prefetchGreedyTap());
+}
 const DevLivePanelHost = import.meta.env.DEV
   ? lazy(() =>
       import('./components/dev/DevLivePanel').then((m) => ({ default: m.DevLivePanelHost }))

@@ -187,12 +187,26 @@ window.setTimeout(() => {
 void bootNativeShell();
 registerAppServiceWorker();
 initWalletKstarSyncListeners();
-initAppCloudSystems();
-installPresenceHeartbeat();
+
+function scheduleDeferredBoot(fn: () => void, timeoutMs = 5_000): void {
+  if (typeof window === 'undefined') return;
+  const ric = window.requestIdleCallback;
+  if (ric) {
+    ric(fn, { timeout: timeoutMs });
+    return;
+  }
+  window.setTimeout(fn, Math.min(timeoutMs, 2_000));
+}
+
+scheduleDeferredBoot(() => {
+  initAppCloudSystems();
+  installPresenceHeartbeat();
+}, 2_500);
+
 clearChunkReloadGuard();
 
-// Security: hard-purge same User ID across local accounts + device switcher rows.
-void import('./lib/auth/identityDedupe').then(async (m) => {
+scheduleDeferredBoot(() => {
+  void import('./lib/auth/identityDedupe').then(async (m) => {
   try {
     const result = await m.runLocalIdentitySecurityCleanup({
       users: db.users ?? [],
@@ -219,7 +233,8 @@ void import('./lib/auth/identityDedupe').then(async (m) => {
   } catch (err) {
     console.warn('[security] firebase identity purge failed', err);
   }
-});
+  });
+}, 6_000);
 
 void import('./lib/instantUiBoot').then((m) => m.startInstantUiBoot());
 
@@ -239,9 +254,9 @@ void initSupabaseClient().then(() => {
   };
   const idle = typeof window !== 'undefined' ? window.requestIdleCallback : undefined;
   if (typeof idle === 'function') {
-    idle.call(window, warm, { timeout: 2500 });
+    idle.call(window, warm, { timeout: 5_000 });
   } else {
-    globalThis.setTimeout(warm, 800);
+    globalThis.setTimeout(warm, 1_500);
   }
 });
 

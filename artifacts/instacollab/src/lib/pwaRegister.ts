@@ -30,7 +30,8 @@ export function registerAppServiceWorker() {
   if (typeof window === 'undefined' || !('serviceWorker' in navigator)) return;
   if (!shouldRegisterPwa()) return;
 
-  updateSw = registerSW({
+  const register = () => {
+    updateSw = registerSW({
     immediate: true,
     onOfflineReady() {
       window.dispatchEvent(new CustomEvent('pwa-offline-ready'));
@@ -57,6 +58,14 @@ export function registerAppServiceWorker() {
       window.addEventListener('beforeunload', () => window.clearInterval(interval));
     },
   });
+  };
+
+  const ric = window.requestIdleCallback;
+  if (ric) {
+    ric(register, { timeout: 4_000 });
+  } else {
+    window.setTimeout(register, 2_000);
+  }
 }
 
 export function applyPwaUpdate() {

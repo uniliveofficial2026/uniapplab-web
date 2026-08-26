@@ -254,9 +254,67 @@ export default defineConfig(async ({ mode }) => {
           /^\/assets\//,
           /^\/live-version\.json$/,
         ],
-        // Never precache version probe or API shell responses.
-        globIgnores: ["**/live-version.json", "**/api/**"],
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,jpg,jpeg,webp,woff2}"],
+        // Never precache version probe, API shell responses, or heavy lazy-only chunks.
+        globIgnores: [
+          "**/live-version.json",
+          "**/api/**",
+          "**/unilives-assets/**",
+          "**/live-gifts/**",
+          "**/live-tools-v14/**",
+          "**/live-tools-v13/**",
+          "**/live-tools-v15/**",
+          "**/i18n/**",
+          "**/greedy-tap/**",
+          "**/games/**",
+          "assets/vendor-webar-*",
+          "assets/vendor-three-*",
+          "assets/vendor-livekit-*",
+          "assets/vendor-firebase-*",
+          "assets/vendor-deepar-*",
+          "assets/vendor-ai-*",
+          "assets/vendor-emoji-*",
+          "assets/vendor-charts-*",
+          "assets/vendor-svga-*",
+          "assets/smule-rooms-*",
+          "assets/KaraokeScreen-*",
+          "assets/UniLivesCharacterPreviewHost-*",
+          "assets/WorkspaceGate-*",
+          "assets/RoomsHost-*",
+          "assets/LiveScreen-*",
+          "assets/YouTube-*",
+          "assets/**/*.jpg",
+          "assets/**/*.jpeg",
+          "assets/**/*.webp",
+          "assets/**/*.png",
+          "assets/**/*.svg",
+        ],
+        // Shell-only precache — lazy feature chunks + artwork load on demand via runtime cache.
+        globPatterns: [
+          "index.html",
+          "assets/index-*.js",
+          "assets/index-*.css",
+          "assets/vendor-react-*.js",
+          "assets/vendor-router-*.js",
+          "assets/vendor-utils-*.js",
+          "assets/vendor-icons-*.js",
+          "assets/vendor-motion-*.js",
+          "assets/vendor-supabase-*.js",
+          "assets/instantUiBoot-*.js",
+          "assets/app-*.js",
+          "assets/firebase-config-*.js",
+          "assets/preloadAppSurfaces-*.js",
+          "brand/app-logo.png",
+          "icons/icon-192.png",
+          "icons/icon-512.png",
+          "icons/icon-192-maskable.png",
+          "icons/icon-512-maskable.png",
+          "pwa-icon.png",
+          "pwa-icon.svg",
+          "robots.txt",
+          "manifest.webmanifest",
+          "firebase-config.json",
+          "supabase-config.json",
+        ],
         runtimeCaching: [
           {
             urlPattern: ({ url }) =>
@@ -269,6 +327,25 @@ export default defineConfig(async ({ mode }) => {
               url.hostname.endsWith("livekit.cloud") ||
               url.hostname.includes("livekit"),
             handler: "NetworkOnly",
+          },
+          {
+            urlPattern: ({ url }) =>
+              /^\/(unilives-assets|live-gifts|live-tools-v14|live-tools-v13|live-tools-v15|i18n|greedy-tap|games)\//.test(
+                url.pathname,
+              ),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "app-static-assets",
+              expiration: { maxEntries: 160, maxAgeSeconds: 30 * 24 * 60 * 60 },
+            },
+          },
+          {
+            urlPattern: ({ url }) => url.pathname.startsWith("/assets/"),
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "app-chunks",
+              expiration: { maxEntries: 96, maxAgeSeconds: 7 * 24 * 60 * 60 },
+            },
           },
           {
             urlPattern: ({ request, url }) =>

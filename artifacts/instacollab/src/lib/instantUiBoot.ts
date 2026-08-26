@@ -113,20 +113,23 @@ export function warmEntireAppChunks(): void {
 
 /**
  * Call once at app boot (after first paint).
- * With cached session: preload hot surfaces immediately; defer AR/live/heavy stacks.
+ * Defer chunk preloads until idle so they do not compete with the entry bundle.
  */
 export function startInstantUiBoot(): void {
   if (started || typeof window === 'undefined') return;
   started = true;
 
-  // Hot tabs only at boot — full preload waits for shell ready.
-  warmCoreScreenChunks();
+  if (!hasInstantSessionCache()) return;
 
-  if (hasInstantSessionCache()) {
-    onAppShellReady(() => {
+  scheduleIdle(() => {
+    warmCoreScreenChunks();
+  }, 1_500);
+
+  onAppShellReady(() => {
+    scheduleIdle(() => {
       warmEntireAppChunks();
-    });
-  }
+    }, 2_500);
+  });
 }
 
 export { hasInstantSessionCache } from './instantCachePolicy';
