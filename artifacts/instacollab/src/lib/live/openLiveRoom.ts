@@ -159,15 +159,18 @@ export function openGoLiveCreateRoom(options?: { mode?: string; roomName?: strin
   void import('../preloadAppSurfaces').then((m) => m.preloadHostMediaPath());
   // Live discovery "Go Live" implies camera Solo by default (CreateRoom otherwise defaults to Chat,
   // which never mounts SoloLiveView / live-chat-input).
+  const hint = {
+    mode: options?.mode || 'Solo-Live',
+    // Caption is required to launch; seed a safe default when opening from Live discovery.
+    roomName: options?.roomName || 'Live',
+  };
   try {
-    sessionStorage.setItem(
-      'uni.createRoom.hint',
-      JSON.stringify({
-        mode: options?.mode || 'Solo-Live',
-        // Caption is required to launch; seed a safe default when opening from Live discovery.
-        roomName: options?.roomName || 'Live',
-      }),
-    );
+    sessionStorage.setItem('uni.createRoom.hint', JSON.stringify(hint));
+  } catch {
+    /* ignore */
+  }
+  try {
+    window.dispatchEvent(new CustomEvent('uni:create-room-hint', { detail: hint }));
   } catch {
     /* ignore */
   }

@@ -77,39 +77,55 @@ const CreateRoom = () => {
       }
     };
 
-    let hint: { roomName?: string; mode?: string } | null = null;
-    try {
-      const raw = sessionStorage.getItem('uni.createRoom.hint');
-      if (raw) {
+    const readHint = (): { roomName?: string; mode?: string } | null => {
+      try {
+        const raw = sessionStorage.getItem('uni.createRoom.hint');
+        if (!raw) return null;
         sessionStorage.removeItem('uni.createRoom.hint');
-        hint = JSON.parse(raw) as { roomName?: string; mode?: string };
+        return JSON.parse(raw) as { roomName?: string; mode?: string };
+      } catch {
+        return null;
       }
-    } catch {
-      hint = null;
-    }
-    // Retain Go Live intent across async cloud hydrate (otherwise Solo-Live is overwritten by Chat).
-    const goLiveHint = hint;
-
-    const applyHint = () => {
-      if (!goLiveHint) return;
-      if (goLiveHint.roomName?.trim()) setRoomName(goLiveHint.roomName.trim());
-      if (goLiveHint.mode?.trim()) setMode(goLiveHint.mode.trim());
     };
+
+    const applyHint = (hint: { roomName?: string; mode?: string } | null) => {
+      if (!hint) return;
+      if (hint.roomName?.trim()) setRoomName(hint.roomName.trim());
+      if (hint.mode?.trim()) setMode(hint.mode.trim());
+    };
+
+    // Retain Go Live intent across async cloud hydrate (otherwise Solo-Live is overwritten by Chat).
+    let goLiveHint = readHint();
+    applyHint(goLiveHint);
+
+    const onCreateRoomHint = (event: Event) => {
+      const detail = (event as CustomEvent<{ roomName?: string; mode?: string }>).detail;
+      if (!detail) return;
+      goLiveHint = detail;
+      applyHint(detail);
+      try {
+        sessionStorage.removeItem('uni.createRoom.hint');
+      } catch {
+        /* ignore */
+      }
+    };
+    window.addEventListener('uni:create-room-hint', onCreateRoomHint as EventListener);
 
     const local =
       getStoredOwnerPartyRoomId(currentUser?.id) ??
       resolveLocalOwnerPartyRoomId(currentUser?.id);
     if (local) hydrateFromRoom(local);
-    applyHint();
+    applyHint(goLiveHint);
 
     void reconcileOwnerPartyRoomIdFromCloud(currentUser?.id).then((cloudId) => {
       if (cancelled || !cloudId || cloudId === local) return;
       hydrateFromRoom(cloudId);
-      applyHint();
+      applyHint(goLiveHint);
     });
 
     return () => {
       cancelled = true;
+      window.removeEventListener('uni:create-room-hint', onCreateRoomHint as EventListener);
     };
   }, [currentUser?.id]);
 

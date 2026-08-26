@@ -323,7 +323,7 @@ final class UniLiveAuthUITests: XCTestCase {
       root = webRoot()
 
       // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
-      let soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
+      var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
       if !soloOption.exists {
         // WKWebView may expose mode chips as switches with go-live-mode-* labels.
         soloOption = root.switches["go-live-solo-option"]
