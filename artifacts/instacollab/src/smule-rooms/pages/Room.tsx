@@ -2230,10 +2230,7 @@ export function Room() {
   // Host session lease: keep party_rooms.updated_at fresh while Solo host session is active.
   useEffect(() => {
     if (!isCanonicalLiveHost || liveBroadcastEnded || !roomDisplayId) return undefined;
-    if (roomMode !== 'SoloLive' && roomMode !== 'ShopLive' && roomMode !== 'AudioLive') {
-      return undefined;
-    }
-    let cancelled = false;
+    if (roomMode !== 'SoloLive') return undefined;
     const beat = () => {
       void import('../../lib/party/partyRoomsCloud')
         .then((m) => m.touchPartyRoomHeartbeat(roomDisplayId, self.id))
@@ -2242,9 +2239,7 @@ export function Room() {
     beat();
     const timer = window.setInterval(beat, 30_000);
     return () => {
-      cancelled = true;
       window.clearInterval(timer);
-      void cancelled;
     };
   }, [isCanonicalLiveHost, liveBroadcastEnded, roomDisplayId, roomMode, self.id]);
 

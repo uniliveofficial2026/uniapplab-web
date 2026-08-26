@@ -9,10 +9,12 @@
  */
 import fs from 'node:fs';
 import path from 'node:path';
+import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { chromium } from 'playwright';
 
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '../..');
+const require = createRequire(path.join(ROOT, 'artifacts/instacollab/package.json'));
+const { chromium } = require('playwright');
 const BASE = (process.env.UNILIVE_VISUAL_BASE || 'https://app.uniapplab.com').replace(/\/$/, '');
 const OUT = path.join(ROOT, 'docs/visual-runtime/FINAL-TEMPORAL-PROOF.json');
 const BROWSERS =
@@ -98,11 +100,13 @@ async function main() {
         <div class="thought-bubble-living" style="width:80px;height:40px;position:relative">
           <div class="thought-bubble-shimmer"></div>
         </div>
-        <div class="v14-animated-artwork__image" data-v14-animate="true" style="width:64px;height:64px;background:#f43"></div>
+        <span class="v14-animated-artwork v14-animated-artwork--gift" data-v14-motion="lucky-pop" data-v14-animate="true" style="width:64px;height:64px;display:inline-flex">
+          <img class="v14-animated-artwork__image" src="/brand/app-logo.png" alt="" width="64" height="64" />
+        </span>
       `;
       document.body.appendChild(host);
 
-      const pick = (sel) => document.querySelector(sel);
+      const pick = (sel) => document.querySelector('#qa-temporal-fixtures ' + sel);
       const measure = (sel, kind) => {
         const el = pick(sel);
         if (!el) return { id: sel, status: 'FAIL', reason: 'missing' };
