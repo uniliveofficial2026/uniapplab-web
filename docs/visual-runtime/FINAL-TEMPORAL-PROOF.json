@@ -1,0 +1,100 @@
+{
+  "at": "2026-08-26T19:09:23.667Z",
+  "base": "https://app.uniapplab.com",
+  "spaEntry": "index-D_FbCiAT.js",
+  "reducedMotion": false,
+  "visibilityState": "visible",
+  "loading": {
+    "status": "ABSENT_AFTER_BOOT",
+    "note": "splash may have completed"
+  },
+  "thoughtBubble": {
+    "id": ".thought-bubble-living",
+    "kind": "thoughtBubble",
+    "playState": "running",
+    "t0": 0,
+    "t1": 449.9709999719523,
+    "width": 80,
+    "height": 40,
+    "status": "PASS"
+  },
+  "liveRing": {
+    "id": ".avatar-ring-spinner--live",
+    "kind": "liveRing",
+    "playState": "running",
+    "t0": 0,
+    "t1": 449.9709999719523,
+    "width": 56,
+    "height": 56,
+    "status": "PASS"
+  },
+  "storyRing": {
+    "id": ".avatar-ring-spinner--story",
+    "kind": "storyRing",
+    "playState": "running",
+    "t0": 0,
+    "t1": 449.9709999719523,
+    "width": 56,
+    "height": 56,
+    "status": "PASS"
+  },
+  "v14Motion": {
+    "id": ".v14-animated-artwork__image",
+    "kind": "v14Motion",
+    "playState": "running",
+    "t0": 0,
+    "t1": 449.9709999719523,
+    "width": 35.20000457763672,
+    "height": 35.19999694824219,
+    "status": "PASS"
+  },
+  "samples": [
+    {
+      "id": ".avatar-ring-spinner--live",
+      "kind": "liveRing",
+      "playState": "running",
+      "t0": 0,
+      "t1": 449.9709999719523,
+      "width": 56,
+      "height": 56,
+      "status": "PASS"
+    },
+    {
+      "id": ".avatar-ring-spinner--story",
+      "kind": "storyRing",
+      "playState": "running",
+      "t0": 0,
+      "t1": 449.9709999719523,
+      "width": 56,
+      "height": 56,
+      "status": "PASS"
+    },
+    {
+      "id": ".thought-bubble-living",
+      "kind": "thoughtBubble",
+      "playState": "running",
+      "t0": 0,
+      "t1": 449.9709999719523,
+      "width": 80,
+      "height": 40,
+      "status": "PASS"
+    },
+    {
+      "id": ".v14-animated-artwork__image",
+      "kind": "v14Motion",
+      "playState": "running",
+      "t0": 0,
+      "t1": 449.9709999719523,
+      "width": 35.20000457763672,
+      "height": 35.19999694824219,
+      "status": "PASS"
+    }
+  ],
+  "pass": true,
+  "backgroundForeground": {
+    "status": "PASS",
+    "playState": "running",
+    "tA": 449.9709999719523,
+    "tB": 1249.9109999719522
+  }
+}

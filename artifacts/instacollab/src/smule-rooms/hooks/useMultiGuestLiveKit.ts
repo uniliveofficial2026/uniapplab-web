@@ -17,11 +17,14 @@ import {
   connectHostLiveKitRoom,
   disposeHostLiveKitRoom,
   getOrCreateHostLiveKitRoom,
+  invalidateHostLiveKitAuth,
   reconnectHostLiveKitWithNewGrants,
 } from '../../lib/livekit/hostLiveKitRoom';
 import { startRemoteCameraDiagnosticsPolling } from '../../lib/livekit/liveKitRemoteViewerDiag';
 import { fetchPartyLiveKitToken } from '../../lib/platformApi';
 import {
+  getHostMediaSnapshot,
+  noteHostMediaError,
   noteHostPublishing,
   noteHostTrackPublished,
   setHostMediaState,
@@ -167,7 +170,12 @@ export function useMultiGuestLiveKit({
     const onConnected = () => {
       registerLiveKitRoom(roomId, room);
       setConnected(true);
-      setHostMediaState('connecting');
+      // Do not clobber publishing/live — otherwise Solo stays live-rtc-connecting forever
+      // after a successful connect when camera publish is still catching up.
+      const snap = getHostMediaSnapshot();
+      if (snap.state !== 'publishing' && snap.state !== 'live') {
+        setHostMediaState('connecting');
+      }
       syncRemoteVideos(room);
       const ids = new Set(
         room.activeSpeakers
@@ -179,6 +187,13 @@ export function useMultiGuestLiveKit({
         emitViewerJoinStage('VIEWER_LIVEKIT_CONNECTED', { appRoomId: roomId });
         if (room.remoteParticipants.size > 0) {
           emitViewerJoinStage('VIEWER_HOST_PARTICIPANT_FOUND', { appRoomId: roomId });
+        }
+      } else {
+        const hasPublishedVideo = Array.from(room.localParticipant.videoTrackPublications.values()).some(
+          (publication) => Boolean(publication.track) && !publication.isMuted,
+        );
+        if (hasPublishedVideo) {
+          noteHostTrackPublished();
         }
       }
     };
@@ -227,6 +242,7 @@ export function useMultiGuestLiveKit({
           emitViewerJoinStage('VIEWER_JOIN_OK', { appRoomId: roomId });
         }
         if (grantChanged && room.state === ConnectionState.Connected) {
+          invalidateHostLiveKitAuth(roomId);
           await reconnectHostLiveKitWithNewGrants(roomId, fetchToken);
         } else {
           setHostMediaState('connecting');
@@ -235,6 +251,9 @@ export function useMultiGuestLiveKit({
         if (cancelled) return;
         if (room.state === ConnectionState.Connected) onConnected();
       } catch (err) {
+        if (canPublish) {
+          noteHostMediaError('livekit_connect_failed');
+        }
         if (!canPublish) {
           const msg = err instanceof Error ? err.message : String(err);
           emitViewerJoinStage('VIEWER_JOIN_FAIL', {
@@ -309,7 +328,12 @@ export function useMultiGuestLiveKit({
           await updateLiveKitLocalAudioTrack(room.localParticipant, null);
           publishedAudioTrackIdRef.current = null;
         }
-      } catch {
+      } catch (err) {
+        if (canPublish) {
+          noteHostMediaError(
+            err instanceof Error && err.message ? `publish_failed:${err.message.slice(0, 80)}` : 'publish_failed',
+          );
+        }
         /* LiveKit publish errors — local preview still works */
       }
     };

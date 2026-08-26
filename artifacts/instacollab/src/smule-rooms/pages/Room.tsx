@@ -2227,19 +2227,33 @@ export function Room() {
     setHostDashboard((prev) => prev ?? emptyHostDashboard(roomDisplayId, liveStartedAtRef.current));
   }, [isCanonicalLiveHost, liveBroadcastEnded, roomDisplayId]);
 
-  // Host session lease: keep party_rooms.updated_at fresh while Solo host session is active.
+  // Host session lease: keep party_rooms.updated_at fresh only while Solo host
+  // has an active media session (avoid advertising ROOM_ACTIVE_NO_RTC forever).
   useEffect(() => {
     if (!isCanonicalLiveHost || liveBroadcastEnded || !roomDisplayId) return undefined;
     if (roomMode !== 'SoloLive') return undefined;
+    let cancelled = false;
+    let timer: number | undefined;
     const beat = () => {
-      void import('../../lib/party/partyRoomsCloud')
-        .then((m) => m.touchPartyRoomHeartbeat(roomDisplayId, self.id))
+      void import('../../lib/camera/hostMediaSession')
+        .then((m) => {
+          if (cancelled) return;
+          const snap = m.getHostMediaSnapshot?.() ?? null;
+          const publishing = Boolean(
+            snap && (snap.live || snap.publishing || snap.state === 'live' || snap.state === 'publishing'),
+          );
+          if (!publishing) return;
+          return import('../../lib/party/partyRoomsCloud').then((cloud) =>
+            cloud.touchPartyRoomHeartbeat(roomDisplayId, self.id),
+          );
+        })
         .catch(() => undefined);
     };
     beat();
-    const timer = window.setInterval(beat, 30_000);
+    timer = window.setInterval(beat, 30_000);
     return () => {
-      window.clearInterval(timer);
+      cancelled = true;
+      if (timer) window.clearInterval(timer);
     };
   }, [isCanonicalLiveHost, liveBroadcastEnded, roomDisplayId, roomMode, self.id]);
 
