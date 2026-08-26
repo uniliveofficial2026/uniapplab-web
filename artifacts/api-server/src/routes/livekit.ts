@@ -173,9 +173,10 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
       return;
     }
 
-    const { data: partyRoom, error } = await getSupabaseService()
+    const sb = getSupabaseService();
+    const { data: partyRoom, error } = await sb
       .from("party_rooms")
-      .select("id, status, owner_id")
+      .select("id, status, owner_id, room_mode")
       .eq("id", trimmedRoomId)
       .maybeSingle();
 
@@ -186,24 +187,48 @@ router.post("/livekit/party/token", auth, requireNotBanned, async (req, res, nex
 
     let roomStatus = partyRoom?.status as string | undefined;
     let ownerId = partyRoom?.owner_id as string | undefined;
+    const userId = req.authUser!.id;
 
     if (!partyRoom) {
+      // Dual-write era: Solo Live may exist only in Firestore while viewers discover via
+      // Supabase party_rooms. Rehydrate SSOT here so token mint and discovery converge.
       const firestoreRoom = await fetchFirestorePartyRoom(trimmedRoomId);
       if (!firestoreRoom) {
         res.status(404).json({ error: "party_room_not_found" });
         return;
       }
       roomStatus = firestoreRoom.status;
-      ownerId = (firestoreRoom as { owner_id?: string; ownerId?: string }).owner_id
-        ?? (firestoreRoom as { ownerId?: string }).ownerId;
+      ownerId =
+        firestoreRoom.owner_id ||
+        (firestoreRoom as { ownerId?: string }).ownerId ||
+        undefined;
+
+      if (ownerId && roomStatus === "active") {
+        const now = new Date().toISOString();
+        const { error: upsertErr } = await sb.from("party_rooms").upsert(
+          {
+            id: trimmedRoomId,
+            owner_id: ownerId,
+            room_name: `Room ${trimmedRoomId}`,
+            room_mode: "Solo-Live",
+            privacy: firestoreRoom.privacy || "Public",
+            join_policy: "Anyone",
+            status: "active",
+            tags: ["Solo-Live"],
+            updated_at: now,
+          },
+          { onConflict: "id" },
+        );
+        if (upsertErr) {
+          console.warn("[livekit/party/token] supabase rehydrate failed", upsertErr.message);
+        }
+      }
     }
 
     if (roomStatus && roomStatus !== "active") {
       res.status(400).json({ error: "party_room_ended" });
       return;
     }
-
-    const userId = req.authUser!.id;
     const roomName = partyRoomName(trimmedRoomId);
     await ensureLiveKitRoom(roomName);
 

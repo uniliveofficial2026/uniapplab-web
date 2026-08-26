@@ -817,7 +817,7 @@ final class UniLiveAuthUITests: XCTestCase {
     let roomLandmark = root.descendants(matching: .any).matching(
       NSPredicate(format: "label BEGINSWITH %@ OR label CONTAINS %@", "live-room-id-", "live-room-id-")
     ).firstMatch
-    if roomLandmark.waitForExistence(timeout: 8) {
+    if roomLandmark.waitForExistence(timeout: 4) {
       let label = roomLandmark.label
       if let range = label.range(of: "live-room-id-") {
         let after = String(label[range.upperBound...])
@@ -828,11 +828,23 @@ final class UniLiveAuthUITests: XCTestCase {
         }
       }
     }
-    // data-live-qa-room-id sometimes surfaces as value
+    // Product chrome: "Copy room ID 6725006"
+    let copyBtn = root.descendants(matching: .any).matching(
+      NSPredicate(format: "label CONTAINS[c] %@", "Copy room ID")
+    ).firstMatch
+    if copyBtn.waitForExistence(timeout: 4) {
+      let label = copyBtn.label
+      let digits = label.filter { $0.isNumber }
+      if digits.count >= 7 {
+        let rid = String(digits.suffix(7))
+        print("CAMERA_ROOM_ID=\(rid)")
+        return
+      }
+    }
     let byValue = root.descendants(matching: .any).matching(
       NSPredicate(format: "value MATCHES %@", "[0-9]{7}")
     ).firstMatch
-    if byValue.waitForExistence(timeout: 3), let v = byValue.value as? String, v.count == 7 {
+    if byValue.waitForExistence(timeout: 2), let v = byValue.value as? String, v.count == 7 {
       print("CAMERA_ROOM_ID=\(v)")
       return
     }
@@ -879,6 +891,14 @@ final class UniLiveAuthUITests: XCTestCase {
     var root = rootIn
     dismissLiveKeyboardIfNeeded(root)
     root = webRoot()
+    // Extra dismiss: chat input / Messenger banners leave Guests non-hittable.
+    if app.keyboards.buttons.count > 0 {
+      app.swipeDown()
+      sleep(1)
+    }
+    root.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+    sleep(1)
+    root = webRoot()
 
     var guestsBtn = root.buttons["Guests"].firstMatch
     if !guestsBtn.exists {
@@ -890,9 +910,47 @@ final class UniLiveAuthUITests: XCTestCase {
       ).firstMatch
     }
     XCTAssertTrue(guestsBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: Guests control missing")
-    tapPossiblyBlocked(guestsBtn, name: "Guests")
-    sleep(2)
-    root = webRoot()
+
+    var panelOpen = false
+    for attempt in 1...4 {
+      print("CAMERA_GUESTS_OPEN_ATTEMPT=\(attempt) hittable=\(guestsBtn.isHittable)")
+      if guestsBtn.isHittable {
+        guestsBtn.tap()
+      } else {
+        // Prefer control-bar mid-point over button-local coord (often blocked).
+        let controls = landmark("Solo Live controls", in: root, timeout: 2)
+        if controls.exists {
+          print("CAMERA_COORD_TAP=Guests-via-controls")
+          controls.coordinate(withNormalizedOffset: CGVector(dx: 0.38, dy: 0.55)).tap()
+        } else {
+          tapPossiblyBlocked(guestsBtn, name: "Guests")
+        }
+      }
+      sleep(2)
+      root = webRoot()
+      let closePanel = landmark("Close guests panel", in: root, timeout: 3)
+      let guestsTitle = root.descendants(matching: .any).matching(
+        NSPredicate(format: "label CONTAINS[c] %@", "Guests (")
+      ).firstMatch
+      let flipProbe = landmark("camera-switch", in: root, timeout: 2)
+      if closePanel.exists || guestsTitle.exists || flipProbe.exists {
+        panelOpen = true
+        print("CAMERA_GUESTS_PANEL_OPEN=1")
+        break
+      }
+      print("CAMERA_GUESTS_PANEL_OPEN=0")
+      dismissLiveKeyboardIfNeeded(root)
+      root = webRoot()
+      guestsBtn = root.buttons["Guests"].firstMatch
+      if !guestsBtn.exists {
+        guestsBtn = landmark("Guests", in: root, timeout: 3)
+      }
+    }
+    if !panelOpen {
+      print("DEBUG_CAMERA=\(root.debugDescription.prefix(4500))")
+      XCTFail("APPLICATION_STATE_FAILED: Guests panel did not open")
+      return root
+    }
 
     var switchBtn = landmark("camera-switch", in: root, timeout: 8)
     if !switchBtn.exists {
@@ -906,18 +964,6 @@ final class UniLiveAuthUITests: XCTestCase {
         NSPredicate(format: "label == %@ OR identifier == %@ OR label CONTAINS[c] %@", "camera-switch", "camera-switch", "Flip")
       ).firstMatch
     }
-    if !switchBtn.waitForExistence(timeout: 6) {
-      tapPossiblyBlocked(guestsBtn, name: "Guests-retry")
-      sleep(2)
-      root = webRoot()
-      switchBtn = landmark("camera-switch", in: root, timeout: 8)
-      if !switchBtn.exists { switchBtn = root.buttons["Flip"].firstMatch }
-      if !switchBtn.exists {
-        switchBtn = root.descendants(matching: .any).matching(
-          NSPredicate(format: "label == %@ OR identifier == %@ OR label CONTAINS[c] %@", "camera-switch", "camera-switch", "Flip")
-        ).firstMatch
-      }
-    }
     if !switchBtn.waitForExistence(timeout: 10) {
       print("DEBUG_CAMERA=\(root.debugDescription.prefix(4500))")
       XCTFail("APPLICATION_STATE_FAILED: camera-switch missing (open Guests first)")
@@ -926,7 +972,15 @@ final class UniLiveAuthUITests: XCTestCase {
     print("CAMERA_SWITCH_TAP")
     tapPossiblyBlocked(switchBtn, name: "camera-switch")
     sleep(3)
-    app.tap()
+    // Dismiss guests sheet so landmarks remain visible.
+    let closeAfter = landmark("Close guests panel", in: root, timeout: 2)
+    if closeAfter.exists {
+      tapPossiblyBlocked(closeAfter, name: "Close guests panel")
+      sleep(1)
+    } else {
+      root.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.12)).tap()
+      sleep(1)
+    }
     return webRoot()
   }
 

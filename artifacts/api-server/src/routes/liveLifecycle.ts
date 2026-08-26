@@ -3,6 +3,7 @@ import { auth } from "../middlewares/auth";
 import { requireNotBanned } from "../middlewares/requireNotBanned";
 import { apiError } from "../lib/apiError";
 import { appendAudit } from "../domain/admin-control-plane/auditService";
+import { getSupabaseService } from "../lib/supabase";
 import {
   getLiveLifecycleService,
   processLiveLifecycleOutbox,
@@ -62,14 +63,57 @@ router.post("/:roomId/ensure", auth, requireNotBanned, async (req, res, next) =>
       roomType?: string;
       hostUserId?: string;
       hasCanonicalCohostTransfer?: boolean;
+      roomMode?: string;
+      roomName?: string;
+      privacy?: string;
     };
+    const hostUserId = actor(req).userId;
     const service = getLiveLifecycleService();
     const room = service.ensureRoom({
       roomId,
       roomType: roomTypeFromBody(body.roomType),
-      hostUserId: actor(req).userId,
+      hostUserId,
       hasCanonicalCohostTransfer: Boolean(body.hasCanonicalCohostTransfer),
     });
+
+    // Solo Live discovery SSOT = Supabase party_rooms. Host ensure must register here
+    // even when client Firestore dual-write succeeded and client Supabase upsert failed.
+    const roomType = room.roomType;
+    const roomMode =
+      typeof body.roomMode === "string" && body.roomMode.trim()
+        ? body.roomMode.trim()
+        : roomType === "commerce"
+          ? "Commerce-Live"
+          : roomType === "video_multi" || roomType === "audio_party"
+            ? "Multi-Guest"
+            : roomType === "solo_audio"
+              ? "Chat"
+              : "Solo-Live";
+    const now = new Date().toISOString();
+    const { error: partyErr } = await getSupabaseService().from("party_rooms").upsert(
+      {
+        id: roomId,
+        owner_id: hostUserId,
+        room_name:
+          typeof body.roomName === "string" && body.roomName.trim()
+            ? body.roomName.trim()
+            : `Room ${roomId}`,
+        room_mode: roomMode,
+        privacy:
+          typeof body.privacy === "string" && body.privacy.trim()
+            ? body.privacy.trim()
+            : "Public",
+        join_policy: "Anyone",
+        status: "active",
+        tags: [roomMode],
+        updated_at: now,
+      },
+      { onConflict: "id" },
+    );
+    if (partyErr) {
+      console.warn("[live/rooms/ensure] party_rooms upsert failed", partyErr.message);
+    }
+
     res.json({
       roomId: room.roomId,
       roomType: room.roomType,
@@ -77,6 +121,7 @@ router.post("/:roomId/ensure", auth, requireNotBanned, async (req, res, next) =>
       roomVersion: room.version,
       startedAt: room.startedAt,
       hostUserId: room.hostUserId,
+      partyRoomRegistered: !partyErr,
     });
   } catch (err) {
     if (!handleDomainError(res, err)) next(err);
