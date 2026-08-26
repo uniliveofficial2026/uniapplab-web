@@ -164,7 +164,8 @@ export function openGoLiveCreateRoom(options?: { mode?: string; roomName?: strin
       'uni.createRoom.hint',
       JSON.stringify({
         mode: options?.mode || 'Solo-Live',
-        roomName: options?.roomName || undefined,
+        // Caption is required to launch; seed a safe default when opening from Live discovery.
+        roomName: options?.roomName || 'Live',
       }),
     );
   } catch {

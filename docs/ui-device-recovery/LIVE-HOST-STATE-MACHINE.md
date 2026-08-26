@@ -26,5 +26,16 @@ Chat visibility once SoloLiveView mounts: `chatComposerOpen` defaults to `true`;
 ## Camera / Mic
 TCC interruption monitors run during host launch. Permission pending is exposed as `live-permission-camera-pending` — not deferred behind chat PASS.
 
-## Bundle after fix
-`assets/index-BMgZgBS_.js` (pending production deploy)
+## Physical retest (index-BMgZgBS_.js)
+Classified failure after Solo seed deployed:
+
+`APPLICATION_STATE_FAILED: still on CreateRoom (never navigated to SoloLiveView)`
+
+AX tree showed Solo camera preview (BEAUTY / Flip camera) and mode switches
+`go-live-mode-Chat` / `go-live-mode-Radio` — CreateRoom **was** in camera Solo path,
+but **Go Live launch never completed** (disabled or untapped), so navigation to
+`/room/:id` / SoloLiveView never happened.
+
+Follow-up:
+1. Seed default caption `Live` in Go Live hint (canLaunch requires roomName).
+2. XCUITest clears/types `create-room-name`, asserts launch enabled, taps countdown.

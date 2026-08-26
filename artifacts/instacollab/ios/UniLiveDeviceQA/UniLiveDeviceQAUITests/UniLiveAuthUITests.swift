@@ -323,52 +323,58 @@ final class UniLiveAuthUITests: XCTestCase {
       root = webRoot()
 
       // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
-      let createEntry = landmark("go-live-entry", in: root, timeout: 12)
-      XCTAssertTrue(
-        createEntry.exists || landmark("go-live-solo-option", in: root, timeout: 6).exists,
-        "APPLICATION_STATE_FAILED: create room not reached"
-      )
-
       let soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
-      if soloOption.exists {
+      if !soloOption.exists {
+        // WKWebView may expose mode chips as switches with go-live-mode-* labels.
+        soloOption = root.switches["go-live-solo-option"]
+        if !soloOption.exists {
+          soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
+        }
+      }
+      if soloOption.waitForExistence(timeout: 6) {
         soloOption.tap()
         sleep(1)
       }
 
-      // 4) Room name required for launch
+      // 4) Room name required for launch — clear and type so canLaunch becomes true
       var roomTitle = landmark("create-room-name", in: root, timeout: 8)
       if !roomTitle.exists {
         roomTitle = root.textFields.firstMatch
       }
-      if roomTitle.waitForExistence(timeout: 6) {
-        roomTitle.tap()
-        roomTitle.typeText("QA Device Live")
-        sleep(1)
+      XCTAssertTrue(roomTitle.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: create-room-name missing")
+      roomTitle.tap()
+      sleep(1)
+      // Clear existing value then type
+      if let value = roomTitle.value as? String, !value.isEmpty {
+        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: value.count)
+        roomTitle.typeText(deleteString)
       }
+      roomTitle.typeText("QA Device Live")
+      sleep(1)
 
-      // 5) Launch / countdown
-      let launchBtn = landmark("Go Live", in: root, timeout: 8)
-      if launchBtn.exists {
-        launchBtn.tap()
-      } else {
-        let alt = root.buttons.matching(
-          NSPredicate(format: "label CONTAINS[c] %@", "Go Live")
+      // 5) Launch — must be enabled after caption
+      var launchBtn = landmark("Go Live", in: root, timeout: 8)
+      if !launchBtn.exists {
+        launchBtn = root.buttons.matching(
+          NSPredicate(format: "label ==[c] %@ OR label CONTAINS[c] %@", "Go Live", "Going live")
         ).firstMatch
-        XCTAssertTrue(alt.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: launch button missing")
-        alt.tap()
       }
+      XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: launch button missing")
+      if launchBtn.exists && !launchBtn.isEnabled {
+        XCTFail("APPLICATION_STATE_FAILED: Go Live disabled (caption/privacy validation)")
+        return
+      }
+      launchBtn.tap()
       sleep(1)
       app.tap() // nudge TCC monitors
 
-      let countdown = landmark("live-countdown", in: root, timeout: 8)
-      if !countdown.exists {
-        _ = landmark("Skip countdown and go live", in: root, timeout: 6)
-      }
-      let skip = landmark("Skip countdown and go live", in: root, timeout: 10)
+      let skip = landmark("Skip countdown and go live", in: root, timeout: 12)
       if skip.exists {
         skip.tap()
+      } else if landmark("live-countdown", in: root, timeout: 4).exists {
+        landmark("live-countdown", in: root, timeout: 2).tap()
       }
-      sleep(3)
+      sleep(4)
       app.tap()
       root = waitForWebRoot(timeout: 30)
     }
@@ -398,8 +404,20 @@ final class UniLiveAuthUITests: XCTestCase {
       if connecting.exists || connected.exists {
         // connecting/connected share SoloLiveView mount; continue
       } else {
+        let stillCreate = landmark("go-live-entry", in: root, timeout: 3)
+        let countdownLeft = landmark("live-countdown", in: root, timeout: 3)
+        let perm = landmark("live-permission-camera-pending", in: root, timeout: 3)
+        print("APPLICATION_STATE_FAILED: SoloLiveView missing — create=\(stillCreate.exists) countdown=\(countdownLeft.exists) perm=\(perm.exists)")
         print("DEBUG_LIVE_STATE=\(root.debugDescription.prefix(4500))")
-        XCTFail("APPLICATION_STATE_FAILED: SoloLiveView not mounted (solo-live-view landmark)")
+        if stillCreate.exists {
+          XCTFail("APPLICATION_STATE_FAILED: still on CreateRoom (never navigated to SoloLiveView)")
+        } else if countdownLeft.exists {
+          XCTFail("APPLICATION_STATE_FAILED: stuck on live-countdown")
+        } else if perm.exists {
+          XCTFail("PERMISSION_BLOCKED: live-permission-camera-pending")
+        } else {
+          XCTFail("APPLICATION_STATE_FAILED: SoloLiveView not mounted (solo-live-view landmark)")
+        }
         return
       }
     }
