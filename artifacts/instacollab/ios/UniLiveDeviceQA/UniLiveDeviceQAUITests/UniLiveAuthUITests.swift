@@ -356,19 +356,58 @@ final class UniLiveAuthUITests: XCTestCase {
       sleep(1)
     }
 
-    // 5) Launch — tap CTA (pointerup path); avoid typeText("\n") which corrupts React caption
-    var launchBtn = landmark("live-go-live-launch", in: root, timeout: 10)
-    if !launchBtn.exists {
-      launchBtn = root.buttons["live-go-live-launch"].firstMatch
+    // 5) Launch — prefer observing auto-launch (single-shot); then form submit CTA
+    // Also classify A–G from transition landmarks when launch stalls.
+    func classifyLaunchFailure(_ rootEl: XCUIElement) -> String {
+      let transitions = [
+        "COUNTDOWN_START", "CREATE_ROOM_REQUEST_OK", "CREATE_ROOM_REQUEST_FAIL",
+        "CREATE_ROOM_REQUEST_START", "CREATE_ROOM_VALIDATION_BLOCKED",
+        "CREATE_ROOM_VALIDATION_PASS", "CREATE_ROOM_VALIDATING", "CREATE_ROOM_CLICKED",
+      ]
+      for t in transitions {
+        if landmark(t, in: rootEl, timeout: 1).exists {
+          switch t {
+          case "COUNTDOWN_START": return "G_COUNTDOWN_STARTED"
+          case "CREATE_ROOM_REQUEST_OK": return "F_API_OK_STATE_STUCK"
+          case "CREATE_ROOM_REQUEST_FAIL": return "E_ROOM_API_FAILED"
+          case "CREATE_ROOM_REQUEST_START": return "D_API_NEVER_COMPLETED"
+          case "CREATE_ROOM_VALIDATION_BLOCKED": return "B_VALIDATION_BLOCKED"
+          case "CREATE_ROOM_VALIDATION_PASS", "CREATE_ROOM_VALIDATING", "CREATE_ROOM_CLICKED":
+            return "D_HANDLER_RAN_API_NOT_CONFIRMED"
+          default: break
+          }
+        }
+      }
+      if landmark("live-launch-blocked-caption", in: rootEl, timeout: 1).exists
+        || landmark("live-launch-blocked-privacy", in: rootEl, timeout: 1).exists
+        || landmark("live-launch-blocked-auth", in: rootEl, timeout: 1).exists
+        || landmark("live-launch-blocked-room-id", in: rootEl, timeout: 1).exists
+        || landmark("live-launch-blocked-busy", in: rootEl, timeout: 1).exists {
+        return "B_VALIDATION_BLOCKED"
+      }
+      return "A_CLICK_HANDLER_NOT_EXECUTED"
     }
-    XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: live-go-live-launch missing")
-    launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
-    sleep(2)
-    if landmark("live-countdown", in: root, timeout: 3).exists == false
-      && landmark("live-room-creating", in: root, timeout: 2).exists == false
-    {
-      launchBtn.tap()
+
+    // Auto-launch may already have advanced past CreateRoom.
+    if landmark("live-countdown", in: root, timeout: 4).exists
+      || landmark("live-room-creating", in: root, timeout: 2).exists
+      || landmark("solo-live-view", in: root, timeout: 2).exists {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (auto-launch)")
+    } else {
+      var launchBtn = landmark("live-go-live-launch", in: root, timeout: 10)
+      if !launchBtn.exists {
+        launchBtn = root.buttons["live-go-live-launch"].firstMatch
+      }
+      XCTAssertTrue(launchBtn.waitForExistence(timeout: 10), "APPLICATION_STATE_FAILED: live-go-live-launch missing")
+      launchBtn.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.5)).tap()
       sleep(2)
+      if landmark("live-countdown", in: root, timeout: 3).exists == false
+        && landmark("live-room-creating", in: root, timeout: 2).exists == false
+      {
+        // Form submit path: activate button (WK often maps AX activate → click/submit)
+        launchBtn.tap()
+        sleep(2)
+      }
     }
     app.tap() // nudge TCC monitors
 
@@ -376,9 +415,12 @@ final class UniLiveAuthUITests: XCTestCase {
     let blockedCaption = landmark("live-launch-blocked-caption", in: root, timeout: 2)
     let blockedRoom = landmark("live-launch-blocked-room-id", in: root, timeout: 1)
     let blockedBusy = landmark("live-launch-blocked-busy", in: root, timeout: 1)
-    if blockedCaption.exists || blockedRoom.exists || blockedBusy.exists {
-      let reason = blockedCaption.exists ? "caption" : blockedRoom.exists ? "room-id" : "busy"
-      print("APPLICATION_STATE_FAILED: launch blocked reason=\(reason)")
+    let blockedAuth = landmark("live-launch-blocked-auth", in: root, timeout: 1)
+    if blockedCaption.exists || blockedRoom.exists || blockedBusy.exists || blockedAuth.exists {
+      let reason = blockedCaption.exists ? "caption"
+        : blockedRoom.exists ? "room-id"
+        : blockedAuth.exists ? "auth" : "busy"
+      print("LAUNCH_CLASSIFICATION=B_VALIDATION_BLOCKED reason=\(reason)")
       print("DEBUG_LAUNCH_BLOCK=\(root.debugDescription.prefix(3500))")
       XCTFail("APPLICATION_STATE_FAILED: live-launch-blocked-\(reason)")
       return
@@ -387,17 +429,22 @@ final class UniLiveAuthUITests: XCTestCase {
     let countdown = landmark("live-countdown", in: root, timeout: 12)
     let skip = landmark("Skip countdown and go live", in: root, timeout: 4)
     if skip.exists {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED")
       skip.tap()
     } else if countdown.exists {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED")
       countdown.tap()
     } else {
       let creating = landmark("live-room-creating", in: root, timeout: 4)
       if !creating.exists {
+        let cls = classifyLaunchFailure(root)
+        print("LAUNCH_CLASSIFICATION=\(cls)")
         print("APPLICATION_STATE_FAILED: neither live-countdown nor live-room-creating after launch")
         print("DEBUG_AFTER_LAUNCH=\(root.debugDescription.prefix(5000))")
-        XCTFail("APPLICATION_STATE_FAILED: launch did not enter countdown/creating")
+        XCTFail("APPLICATION_STATE_FAILED: launch did not enter countdown/creating [\(cls)]")
         return
       }
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (creating)")
     }
     sleep(4)
     app.tap()

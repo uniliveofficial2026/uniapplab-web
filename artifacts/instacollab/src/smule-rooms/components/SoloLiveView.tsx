@@ -663,6 +663,20 @@ export const SoloLiveView: React.FC<SoloLiveViewProps> = ({
 
   useEffect(() => subscribeHostMedia(setHostMediaSnap), []);
 
+  useEffect(() => {
+    try {
+      const w = window as Window & { __UNILIVE_CREATE_ROOM_DEBUG__?: unknown };
+      w.__UNILIVE_CREATE_ROOM_DEBUG__ = {
+        step: 'SOLO_VIEW_MOUNTED',
+        at: Date.now(),
+        roomId: roomDisplayId,
+      };
+      console.info('[SoloLiveView]', 'SOLO_VIEW_MOUNTED', { roomId: roomDisplayId });
+    } catch {
+      /* ignore */
+    }
+  }, [roomDisplayId]);
+
   const liveQaState = cameraError
     ? 'live-error-state'
     : hostMediaSnap?.state === 'permission-required'

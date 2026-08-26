@@ -26,6 +26,60 @@ import {
 
 const LIVE_CAMERA_MODES = new Set(['Solo-Live', 'Commerce-Live', 'Multi-Guest']);
 
+type CreateRoomHint = { roomName?: string; mode?: string; autoLaunch?: boolean };
+
+type LaunchTransition =
+  | 'IDLE'
+  | 'CREATE_ROOM_CLICKED'
+  | 'CREATE_ROOM_VALIDATING'
+  | 'CREATE_ROOM_VALIDATION_PASS'
+  | 'CREATE_ROOM_VALIDATION_BLOCKED'
+  | 'CREATE_ROOM_REQUEST_START'
+  | 'CREATE_ROOM_REQUEST_OK'
+  | 'CREATE_ROOM_REQUEST_FAIL'
+  | 'COUNTDOWN_START'
+  | 'ROOM_CREATING'
+  | 'ROOM_CREATED';
+
+/** Survives CreateRoom effect re-runs when auth id hydrates after first paint. */
+let retainedGoLiveHint: CreateRoomHint | null = null;
+
+function readCreateRoomHint(consume: boolean): CreateRoomHint | null {
+  try {
+    const raw = sessionStorage.getItem('uni.createRoom.hint');
+    if (!raw) return retainedGoLiveHint;
+    const parsed = JSON.parse(raw) as CreateRoomHint;
+    retainedGoLiveHint = parsed;
+    if (consume) sessionStorage.removeItem('uni.createRoom.hint');
+    return parsed;
+  } catch {
+    return retainedGoLiveHint;
+  }
+}
+
+function clearRetainedGoLiveHint(): void {
+  retainedGoLiveHint = null;
+  try {
+    sessionStorage.removeItem('uni.createRoom.hint');
+  } catch {
+    /* ignore */
+  }
+}
+
+function emitCreateRoomTransition(step: LaunchTransition, detail?: Record<string, unknown>): void {
+  if (typeof window === 'undefined') return;
+  try {
+    const payload = { step, at: Date.now(), ...detail };
+    (window as Window & { __UNILIVE_CREATE_ROOM_DEBUG__?: unknown }).__UNILIVE_CREATE_ROOM_DEBUG__ =
+      payload;
+    if (import.meta.env.DEV || import.meta.env.MODE === 'production') {
+      console.info('[CreateRoom]', step, detail ?? {});
+    }
+  } catch {
+    /* ignore */
+  }
+}
+
 const CreateRoom = () => {
   const navigate = useNavigate();
   const navigateSettingsBack = useRoomSettingsNavigateBack();
@@ -45,14 +99,35 @@ const CreateRoom = () => {
   const [launching, setLaunching] = useState(false);
   const [goLiveCountdown, setGoLiveCountdown] = useState<number | null>(null);
   const [launchBlockReason, setLaunchBlockReason] = useState<string | null>(null);
+  const [launchTransition, setLaunchTransition] = useState<LaunchTransition>('IDLE');
   const pendingNavigateRef = useRef<string | null>(null);
   const launchLockRef = useRef(false);
-  const handleCreateRef = useRef<() => void>(() => {});
-  const modeRef = useRef(mode);
-  const roomNameRef = useRef(roomName);
-  modeRef.current = mode;
-  roomNameRef.current = roomName;
-  const [autoLaunchArmed, setAutoLaunchArmed] = useState(false);
+  const handleCreateRef = useRef<(source: string) => void>(() => {});
+  const pendingAutoLaunchRef = useRef(false);
+  const snapRef = useRef({
+    mode,
+    roomName,
+    privacy,
+    privateRoomKey,
+    launching,
+    goLiveCountdown,
+    canonicalRoomId,
+    coverPreview,
+    currentUserId: currentUser?.id ?? '',
+    hostDisplayName,
+  });
+  snapRef.current = {
+    mode,
+    roomName,
+    privacy,
+    privateRoomKey,
+    launching,
+    goLiveCountdown,
+    canonicalRoomId,
+    coverPreview,
+    currentUserId: currentUser?.id ?? '',
+    hostDisplayName,
+  };
 
   useEffect(() => {
     void import('../../lib/webar/tencentWebARWarm').then((m) => {
@@ -78,62 +153,42 @@ const CreateRoom = () => {
     const hydrateFromRoom = (roomId: string) => {
       setCanonicalRoomId(roomId);
       const settings = getRoomSettings(roomId);
-      if (settings.roomName?.trim()) setRoomName(settings.roomName);
-      if (settings.roomMode) setMode(String(settings.roomMode));
+      // Do not overwrite an active Go Live hint (Solo + caption) with stale Chat settings.
+      const hint = retainedGoLiveHint;
+      if (!hint?.mode?.trim() && settings.roomName?.trim()) setRoomName(settings.roomName);
+      if (!hint?.mode?.trim() && settings.roomMode) setMode(String(settings.roomMode));
+      if (hint?.roomName?.trim()) setRoomName(hint.roomName.trim());
+      if (hint?.mode?.trim()) setMode(hint.mode.trim());
       if (settings.privacy === 'Private' || settings.privacy === 'Public') {
         setPrivacy(settings.privacy);
       }
     };
 
-    const readHint = (): { roomName?: string; mode?: string; autoLaunch?: boolean } | null => {
-      try {
-        const raw = sessionStorage.getItem('uni.createRoom.hint');
-        if (!raw) return null;
-        sessionStorage.removeItem('uni.createRoom.hint');
-        return JSON.parse(raw) as { roomName?: string; mode?: string; autoLaunch?: boolean };
-      } catch {
-        return null;
-      }
-    };
-
-    const applyHint = (hint: { roomName?: string; mode?: string; autoLaunch?: boolean } | null) => {
+    const applyHint = (hint: CreateRoomHint | null) => {
       if (!hint) return;
-      if (hint.roomName?.trim()) setRoomName(hint.roomName.trim());
-      if (hint.mode?.trim()) setMode(hint.mode.trim());
+      if (hint.roomName?.trim()) {
+        const next = hint.roomName.trim();
+        snapRef.current.roomName = next;
+        setRoomName(next);
+      }
+      if (hint.mode?.trim()) {
+        const next = hint.mode.trim();
+        snapRef.current.mode = next;
+        setMode(next);
+      }
+      if (hint.autoLaunch) pendingAutoLaunchRef.current = true;
     };
 
-    const scheduleAutoLaunch = () => {
-      launchLockRef.current = false;
-      setAutoLaunchArmed(true);
-      let attempts = 0;
-      const tick = () => {
-        attempts += 1;
-        const ready =
-          LIVE_CAMERA_MODES.has(modeRef.current) && Boolean(roomNameRef.current.trim());
-        if (ready) {
-          handleCreateRef.current();
-          return;
-        }
-        if (attempts < 12) {
-          window.setTimeout(tick, 250);
-        }
-      };
-      window.setTimeout(tick, 200);
-    };
-
-    // Retain Go Live intent across async cloud hydrate (otherwise Solo-Live is overwritten by Chat).
-    let goLiveHint = readHint();
-    applyHint(goLiveHint);
-    if (goLiveHint?.autoLaunch) scheduleAutoLaunch();
+    const hint = readCreateRoomHint(false);
+    applyHint(hint);
 
     const onCreateRoomHint = (event: Event) => {
-      const detail = (event as CustomEvent<{ roomName?: string; mode?: string; autoLaunch?: boolean }>).detail;
+      const detail = (event as CustomEvent<CreateRoomHint>).detail;
       if (!detail) return;
-      goLiveHint = detail;
+      retainedGoLiveHint = detail;
       applyHint(detail);
-      if (detail.autoLaunch) scheduleAutoLaunch();
       try {
-        sessionStorage.removeItem('uni.createRoom.hint');
+        sessionStorage.setItem('uni.createRoom.hint', JSON.stringify(detail));
       } catch {
         /* ignore */
       }
@@ -144,13 +199,12 @@ const CreateRoom = () => {
       getStoredOwnerPartyRoomId(currentUser?.id) ??
       resolveLocalOwnerPartyRoomId(currentUser?.id);
     if (local) hydrateFromRoom(local);
-    applyHint(goLiveHint);
+    applyHint(retainedGoLiveHint ?? hint);
 
     void reconcileOwnerPartyRoomIdFromCloud(currentUser?.id).then((cloudId) => {
       if (cancelled || !cloudId || cloudId === local) return;
       hydrateFromRoom(cloudId);
-      applyHint(goLiveHint);
-      if (goLiveHint?.autoLaunch) scheduleAutoLaunch();
+      applyHint(retainedGoLiveHint);
     });
 
     return () => {
@@ -168,6 +222,8 @@ const CreateRoom = () => {
         setGoLiveCountdown(null);
         setLaunching(false);
         launchLockRef.current = false;
+        setLaunchTransition('ROOM_CREATED');
+        emitCreateRoomTransition('ROOM_CREATED', { roomId });
         if (roomId) navigate(`/room/${roomId}`);
       }, 700);
       return () => window.clearTimeout(timer);
@@ -202,56 +258,104 @@ const CreateRoom = () => {
     }
   };
 
-  const handleCreate = () => {
+  const handleCreate = (source: string) => {
+    const snap = snapRef.current;
+    emitCreateRoomTransition('CREATE_ROOM_CLICKED', {
+      source,
+      mode: snap.mode,
+      roomName: snap.roomName,
+      lock: launchLockRef.current,
+    });
+    setLaunchTransition('CREATE_ROOM_CLICKED');
+
+    // Explicit user intent always clears a stale lock from a prior failed attempt.
+    if (source === 'user' || source === 'form-submit') {
+      launchLockRef.current = false;
+    }
+
     if (launchLockRef.current) {
       setLaunchBlockReason('live-launch-blocked-busy');
-      return;
-    }
-    if (!roomName.trim()) {
-      setLaunchBlockReason('live-launch-blocked-caption');
-      return;
-    }
-    if (launching || goLiveCountdown !== null) {
-      setLaunchBlockReason('live-launch-blocked-busy');
+      setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
+      emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', { reason: 'busy-lock', source });
       return;
     }
 
-    if (privacy === 'Private') {
-      const validation = validateRoomKeyInput(privateRoomKey);
+    setLaunchTransition('CREATE_ROOM_VALIDATING');
+    emitCreateRoomTransition('CREATE_ROOM_VALIDATING', { source });
+
+    if (!snap.roomName.trim()) {
+      setLaunchBlockReason('live-launch-blocked-caption');
+      setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
+      emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', { reason: 'caption', source });
+      return;
+    }
+    if (snap.launching || snap.goLiveCountdown !== null) {
+      setLaunchBlockReason('live-launch-blocked-busy');
+      setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
+      emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', {
+        reason: snap.goLiveCountdown !== null ? 'countdown-active' : 'launching',
+        source,
+      });
+      return;
+    }
+
+    if (snap.privacy === 'Private') {
+      const validation = validateRoomKeyInput(snap.privateRoomKey);
       if (!validation.valid) {
         setPrivateKeyError(validation.message ?? 'Enter a valid room key.');
         setLaunchBlockReason('live-launch-blocked-privacy');
+        setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
+        emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', { reason: 'privacy', source });
         return;
       }
     }
+
+    if (!snap.currentUserId.trim()) {
+      setLaunchBlockReason('live-launch-blocked-auth');
+      setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
+      emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', { reason: 'auth', source });
+      return;
+    }
+
     setPrivateKeyError(null);
     setLaunchBlockReason(null);
+    setLaunchTransition('CREATE_ROOM_VALIDATION_PASS');
+    emitCreateRoomTransition('CREATE_ROOM_VALIDATION_PASS', {
+      source,
+      mode: snap.mode,
+      roomName: snap.roomName,
+    });
+
     launchLockRef.current = true;
     setLaunching(true);
+    setLaunchTransition('CREATE_ROOM_REQUEST_START');
+    emitCreateRoomTransition('CREATE_ROOM_REQUEST_START', { source });
 
-    const isLiveCameraMode = LIVE_CAMERA_MODES.has(mode);
+    const isLiveCameraMode = LIVE_CAMERA_MODES.has(snap.mode);
 
     try {
       const roomIdString =
-        resolveLocalOwnerPartyRoomId(currentUser?.id, { createIfMissing: true }) ??
-        canonicalRoomId;
+        resolveLocalOwnerPartyRoomId(snap.currentUserId, { createIfMissing: true }) ??
+        snap.canonicalRoomId;
       if (!roomIdString) {
         launchLockRef.current = false;
         setLaunching(false);
         setLaunchBlockReason('live-launch-blocked-room-id');
+        setLaunchTransition('CREATE_ROOM_REQUEST_FAIL');
+        emitCreateRoomTransition('CREATE_ROOM_REQUEST_FAIL', { reason: 'room-id', source });
         return;
       }
 
-      const privacyPatch = roomPrivacyPatch(privacy, privateRoomKey);
+      const privacyPatch = roomPrivacyPatch(snap.privacy, snap.privateRoomKey);
       const ownerSettings = assignOwnerToSettings(
         {
-          roomName,
+          roomName: snap.roomName,
           roomId: roomIdString,
-          roomMode: mode as RoomMode,
-          coverPhoto: coverPreview ?? 'Default',
+          roomMode: snap.mode as RoomMode,
+          coverPhoto: snap.coverPreview ?? 'Default',
           whoCanBeSeated: 'Anyone',
           seatJoinMode: 'free',
-          ...(mode === 'Multi-Guest'
+          ...(snap.mode === 'Multi-Guest'
             ? {
                 multiGuestSeatCount: resolveMultiGuestSeatCount(
                   liveSetupRef.current?.multiGuestSeatCount,
@@ -260,7 +364,11 @@ const CreateRoom = () => {
             : {}),
           ...privacyPatch,
         },
-        currentUser,
+        {
+          id: snap.currentUserId,
+          displayName: snap.hostDisplayName,
+          username: snap.hostDisplayName,
+        },
       );
 
       saveRoomSettings(roomIdString, ownerSettings);
@@ -276,29 +384,34 @@ const CreateRoom = () => {
 
       upsertManagedRoom({
         id: roomIdString,
-        name: roomName,
-        roomMode: mode as RoomMode,
+        name: snap.roomName,
+        roomMode: snap.mode as RoomMode,
         role: 'owner',
-        hostName: hostDisplayName,
+        hostName: snap.hostDisplayName,
       });
 
       localStorage.setItem('currentUserRole', 'owner');
       localStorage.setItem('activeRoomId', roomIdString);
-      if (currentUser?.id) {
-        setStoredOwnerPartyRoomId(currentUser.id, roomIdString);
-        clearHostLiveEnded({ roomId: roomIdString, hostUserId: currentUser.id });
-      }
+      setStoredOwnerPartyRoomId(snap.currentUserId, roomIdString);
+      clearHostLiveEnded({ roomId: roomIdString, hostUserId: snap.currentUserId });
 
-      syncPartyRoomToCloud(roomIdString, currentUser?.id, {
-        roomName,
-        roomMode: mode as RoomMode,
-        privacy,
+      setLaunchTransition('CREATE_ROOM_REQUEST_OK');
+      emitCreateRoomTransition('CREATE_ROOM_REQUEST_OK', {
+        roomId: roomIdString,
+        mode: snap.mode,
+        source,
+      });
+
+      syncPartyRoomToCloud(roomIdString, snap.currentUserId, {
+        roomName: snap.roomName,
+        roomMode: snap.mode as RoomMode,
+        privacy: snap.privacy,
         whoCanJoin: privacyPatch.whoCanJoin,
         roomKey: privacyPatch.roomKey,
         whoCanBeSeated: 'Anyone',
         seatJoinMode: 'free',
-        coverPhoto: coverPreview ?? 'Default',
-        ...(mode === 'Multi-Guest'
+        coverPhoto: snap.coverPreview ?? 'Default',
+        ...(snap.mode === 'Multi-Guest'
           ? {
               multiGuestSeatCount: resolveMultiGuestSeatCount(
                 liveSetupRef.current?.multiGuestSeatCount,
@@ -306,7 +419,7 @@ const CreateRoom = () => {
             }
           : {}),
       });
-      void reconcileOwnerPartyRoomIdFromCloud(currentUser?.id);
+      void reconcileOwnerPartyRoomIdFromCloud(snap.currentUserId);
 
       if (isLiveCameraMode) {
         const setup = liveSetupRef.current ?? {
@@ -314,24 +427,37 @@ const CreateRoom = () => {
           beautyEffects: { ...EMPTY_TENCENT_EFFECT_SELECTION },
           bodyShape: { ...EMPTY_BODY_SHAPE },
           beautifyOverride: null,
-          roomMode: mode as 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest',
+          roomMode: snap.mode as 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest',
         };
         stashPendingCreateRoomBeauty({
           ...setup,
-          roomMode: mode as 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest',
+          roomMode: snap.mode as 'Solo-Live' | 'Commerce-Live' | 'Multi-Guest',
         });
         pendingNavigateRef.current = roomIdString;
-        setAutoLaunchArmed(false);
+        clearRetainedGoLiveHint();
+        pendingAutoLaunchRef.current = false;
+        setLaunchTransition('COUNTDOWN_START');
+        emitCreateRoomTransition('COUNTDOWN_START', { roomId: roomIdString, source });
         setGoLiveCountdown(1);
         return;
       }
 
+      clearRetainedGoLiveHint();
+      pendingAutoLaunchRef.current = false;
+      setLaunchTransition('ROOM_CREATING');
+      emitCreateRoomTransition('ROOM_CREATING', { roomId: roomIdString, source });
       navigate(`/room/${roomIdString}`);
     } catch (err) {
       console.error('[CreateRoom] launch failed', err);
       launchLockRef.current = false;
       setLaunching(false);
       setLaunchBlockReason('live-error-state');
+      setLaunchTransition('CREATE_ROOM_REQUEST_FAIL');
+      emitCreateRoomTransition('CREATE_ROOM_REQUEST_FAIL', {
+        reason: 'exception',
+        message: err instanceof Error ? err.message : 'unknown',
+        source,
+      });
     } finally {
       if (!isLiveCameraMode) {
         launchLockRef.current = false;
@@ -341,9 +467,19 @@ const CreateRoom = () => {
   };
   handleCreateRef.current = handleCreate;
 
+  // Single-shot auto-launch when Go Live hint is ready — no retry spam.
+  useEffect(() => {
+    if (!pendingAutoLaunchRef.current) return;
+    if (!currentUser?.id?.trim()) return;
+    if (!LIVE_CAMERA_MODES.has(mode) || !roomName.trim()) return;
+    pendingAutoLaunchRef.current = false;
+    queueMicrotask(() => handleCreateRef.current('auto-launch'));
+  }, [mode, roomName, currentUser?.id]);
+
   const handleModeSelect = (modeId: string) => {
     if (goLiveCountdown !== null) return;
     setMode(modeId);
+    snapRef.current.mode = modeId;
   };
 
   const handleHeaderBack = () => {
@@ -354,7 +490,8 @@ const CreateRoom = () => {
   const privateKeyValidation = validateRoomKeyInput(privateRoomKey);
   const canLaunch =
     roomName.trim().length > 0 &&
-    (privacy === 'Public' || privateKeyValidation.valid);
+    (privacy === 'Public' || privateKeyValidation.valid) &&
+    Boolean(currentUser?.id?.trim());
   const isLiveCameraMode = LIVE_CAMERA_MODES.has(mode);
   const initialMultiSeatCount = resolveMultiGuestSeatCount(
     canonicalRoomId ? getRoomSettings(canonicalRoomId).multiGuestSeatCount : 16,
@@ -392,17 +529,19 @@ const CreateRoom = () => {
         ? 'live-countdown'
         : launching
           ? 'live-room-creating'
-          : autoLaunchArmed
-            ? 'go-live-auto-launch-armed'
-            : launchBlockReason || 'go-live-entry';
+          : launchBlockReason || 'go-live-entry';
 
   return (
     <div
       className="relative flex h-full flex-col bg-slate-950 font-sans text-white"
       data-live-qa-state={liveQaState}
       data-live-qa-mode={mode}
+      data-live-qa-transition={launchTransition}
       aria-label={liveQaState}
     >
+      {launchTransition !== 'IDLE' ? (
+        <span className="sr-only" aria-label={launchTransition} data-live-qa-transition={launchTransition} />
+      ) : null}
       {goLiveCountdown !== null ? (
         <button
           type="button"
@@ -517,11 +656,15 @@ const CreateRoom = () => {
                   type="text"
                   placeholder="Welcome to the room!"
                   value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    snapRef.current.roomName = next;
+                    setRoomName(next);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleCreate();
+                      handleCreate('caption-enter');
                     }
                   }}
                   aria-label="create-room-name"
@@ -664,11 +807,15 @@ const CreateRoom = () => {
                   type="text"
                   placeholder="Welcome to the room!"
                   value={roomName}
-                  onChange={(e) => setRoomName(e.target.value)}
+                  onChange={(e) => {
+                    const next = e.target.value;
+                    snapRef.current.roomName = next;
+                    setRoomName(next);
+                  }}
                   onKeyDown={(e) => {
                     if (e.key === 'Enter') {
                       e.preventDefault();
-                      handleCreate();
+                      handleCreate('caption-enter');
                     }
                   }}
                   aria-label="create-room-name"
@@ -768,25 +915,26 @@ const CreateRoom = () => {
         }
       >
         {/*
-          Prefer pointerup for Cap/WKWebView: XCUITest activation often skips click
-          and may use non-touch pointer types — do not filter on pointerType.
+          Explicit form submit semantics for Cap/WKWebView + XCUITest.
+          Do not rely on browser default button-in-form behavior alone.
         */}
-        <button
-            type="button"
-            onPointerUp={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleCreate();
-            }}
-            onClick={(event) => {
-              event.preventDefault();
-              event.stopPropagation();
-              handleCreate();
-            }}
+        <form
+          className="mb-3"
+          onSubmit={(event) => {
+            event.preventDefault();
+            event.stopPropagation();
+            handleCreate('form-submit');
+          }}
+          noValidate
+        >
+          <button
+            type="submit"
             aria-label="live-go-live-launch"
+            data-testid="live-go-live-launch"
             data-live-qa-launch={launchLabel}
             data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}
-            className={`mb-3 w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
+            data-live-qa-transition={launchTransition}
+            className={`w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
               !canLaunch || launching || goLiveCountdown !== null
                 ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'
                 : 'border border-white/10 bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-500'
@@ -794,6 +942,7 @@ const CreateRoom = () => {
           >
             {launchLabel}
           </button>
+        </form>
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
