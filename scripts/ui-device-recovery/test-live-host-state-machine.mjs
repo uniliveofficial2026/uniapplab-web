@@ -41,10 +41,11 @@ const checks = [
       /live-launch-blocked-/,
       /COUNTDOWN_START/,
       /CREATE_ROOM_CLICKED/,
-      /form-submit/,
-      /type="submit"/,
+      /native-dom/,
+      /type="button"/,
       /snapRef/,
       /pendingAutoLaunchRef/,
+      /launchBtnRef/,
     ],
   },
   {

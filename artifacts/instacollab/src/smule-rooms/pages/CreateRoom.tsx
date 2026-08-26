@@ -103,7 +103,9 @@ const CreateRoom = () => {
   const pendingNavigateRef = useRef<string | null>(null);
   const launchLockRef = useRef(false);
   const handleCreateRef = useRef<(source: string) => void>(() => {});
+  const launchBtnRef = useRef<HTMLButtonElement | null>(null);
   const pendingAutoLaunchRef = useRef(false);
+  const autoLaunchAttemptedRef = useRef(false);
   const snapRef = useRef({
     mode,
     roomName,
@@ -176,7 +178,21 @@ const CreateRoom = () => {
         snapRef.current.mode = next;
         setMode(next);
       }
-      if (hint.autoLaunch) pendingAutoLaunchRef.current = true;
+      if (hint.autoLaunch) {
+        pendingAutoLaunchRef.current = true;
+        autoLaunchAttemptedRef.current = false;
+      }
+    };
+
+    const tryAutoLaunchFromHint = (source: string) => {
+      if (!pendingAutoLaunchRef.current || autoLaunchAttemptedRef.current) return;
+      const snap = snapRef.current;
+      if (!LIVE_CAMERA_MODES.has(snap.mode) || !snap.roomName.trim() || !snap.currentUserId.trim()) {
+        return;
+      }
+      autoLaunchAttemptedRef.current = true;
+      pendingAutoLaunchRef.current = false;
+      window.setTimeout(() => handleCreateRef.current(source), 50);
     };
 
     const hint = readCreateRoomHint(false);
@@ -192,6 +208,7 @@ const CreateRoom = () => {
       } catch {
         /* ignore */
       }
+      tryAutoLaunchFromHint('hint-event');
     };
     window.addEventListener('uni:create-room-hint', onCreateRoomHint as EventListener);
 
@@ -200,11 +217,13 @@ const CreateRoom = () => {
       resolveLocalOwnerPartyRoomId(currentUser?.id);
     if (local) hydrateFromRoom(local);
     applyHint(retainedGoLiveHint ?? hint);
+    tryAutoLaunchFromHint('hint-hydrate');
 
     void reconcileOwnerPartyRoomIdFromCloud(currentUser?.id).then((cloudId) => {
       if (cancelled || !cloudId || cloudId === local) return;
       hydrateFromRoom(cloudId);
       applyHint(retainedGoLiveHint);
+      tryAutoLaunchFromHint('hint-cloud');
     });
 
     return () => {
@@ -265,19 +284,25 @@ const CreateRoom = () => {
       mode: snap.mode,
       roomName: snap.roomName,
       lock: launchLockRef.current,
+      userIdPresent: Boolean(snap.currentUserId.trim()),
     });
     setLaunchTransition('CREATE_ROOM_CLICKED');
 
-    // Explicit user intent always clears a stale lock from a prior failed attempt.
-    if (source === 'user' || source === 'form-submit') {
-      launchLockRef.current = false;
-    }
-
-    if (launchLockRef.current) {
+    // Never leave a prior failed attempt in permanent lock. Countdown is the only hard busy.
+    if (snap.goLiveCountdown !== null) {
       setLaunchBlockReason('live-launch-blocked-busy');
       setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
-      emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', { reason: 'busy-lock', source });
+      emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', {
+        reason: 'countdown-active',
+        source,
+      });
       return;
+    }
+    launchLockRef.current = false;
+    if (snap.launching) {
+      // Stale launching without countdown — recover to IDLE so retry works.
+      setLaunching(false);
+      snapRef.current.launching = false;
     }
 
     setLaunchTransition('CREATE_ROOM_VALIDATING');
@@ -287,15 +312,6 @@ const CreateRoom = () => {
       setLaunchBlockReason('live-launch-blocked-caption');
       setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
       emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', { reason: 'caption', source });
-      return;
-    }
-    if (snap.launching || snap.goLiveCountdown !== null) {
-      setLaunchBlockReason('live-launch-blocked-busy');
-      setLaunchTransition('CREATE_ROOM_VALIDATION_BLOCKED');
-      emitCreateRoomTransition('CREATE_ROOM_VALIDATION_BLOCKED', {
-        reason: snap.goLiveCountdown !== null ? 'countdown-active' : 'launching',
-        source,
-      });
       return;
     }
 
@@ -467,13 +483,23 @@ const CreateRoom = () => {
   };
   handleCreateRef.current = handleCreate;
 
-  // Single-shot auto-launch when Go Live hint is ready — no retry spam.
+  // Bridge for Cap/WK diagnostics — no secrets.
   useEffect(() => {
-    if (!pendingAutoLaunchRef.current) return;
+    const w = window as Window & { __UNILIVE_CREATE_ROOM_LAUNCH__?: () => void };
+    w.__UNILIVE_CREATE_ROOM_LAUNCH__ = () => handleCreateRef.current('bridge');
+    return () => {
+      if (w.__UNILIVE_CREATE_ROOM_LAUNCH__) delete w.__UNILIVE_CREATE_ROOM_LAUNCH__;
+    };
+  }, []);
+
+  // Single-shot auto-launch when React state catches up (hint path may already have fired).
+  useEffect(() => {
+    if (!pendingAutoLaunchRef.current || autoLaunchAttemptedRef.current) return;
     if (!currentUser?.id?.trim()) return;
     if (!LIVE_CAMERA_MODES.has(mode) || !roomName.trim()) return;
+    autoLaunchAttemptedRef.current = true;
     pendingAutoLaunchRef.current = false;
-    queueMicrotask(() => handleCreateRef.current('auto-launch'));
+    window.setTimeout(() => handleCreateRef.current('auto-launch'), 50);
   }, [mode, roomName, currentUser?.id]);
 
   const handleModeSelect = (modeId: string) => {
@@ -493,6 +519,25 @@ const CreateRoom = () => {
     (privacy === 'Public' || privateKeyValidation.valid) &&
     Boolean(currentUser?.id?.trim());
   const isLiveCameraMode = LIVE_CAMERA_MODES.has(mode);
+
+  // Native DOM listeners (capture) — Cap AX often skips React synthetic click on this CTA
+  // while mode-chip onClick still works. Match chip semantics + guarantee one DOM path.
+  useEffect(() => {
+    const el = launchBtnRef.current;
+    if (!el) return undefined;
+    const onNative = (event: Event) => {
+      event.preventDefault();
+      event.stopPropagation();
+      handleCreateRef.current('native-dom');
+    };
+    el.addEventListener('click', onNative, true);
+    el.addEventListener('pointerup', onNative, true);
+    return () => {
+      el.removeEventListener('click', onNative, true);
+      el.removeEventListener('pointerup', onNative, true);
+    };
+  }, [isLiveCameraMode, launching, goLiveCountdown]);
+
   const initialMultiSeatCount = resolveMultiGuestSeatCount(
     canonicalRoomId ? getRoomSettings(canonicalRoomId).multiGuestSeatCount : 16,
   );
@@ -915,34 +960,31 @@ const CreateRoom = () => {
         }
       >
         {/*
-          Explicit form submit semantics for Cap/WKWebView + XCUITest.
-          Do not rely on browser default button-in-form behavior alone.
+          Match mode-chip button semantics (type=button + onClick). Cap/WK AX activates
+          those reliably; form submit did not fire CREATE_ROOM_CLICKED on device.
+          Native capture listeners are attached via launchBtnRef.
         */}
-        <form
-          className="mb-3"
-          onSubmit={(event) => {
+        <button
+          ref={launchBtnRef}
+          type="button"
+          onClick={(event) => {
             event.preventDefault();
             event.stopPropagation();
-            handleCreate('form-submit');
+            handleCreate('user');
           }}
-          noValidate
+          aria-label="live-go-live-launch"
+          data-testid="live-go-live-launch"
+          data-live-qa-launch={launchLabel}
+          data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}
+          data-live-qa-transition={launchTransition}
+          className={`mb-3 w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
+            !canLaunch || launching || goLiveCountdown !== null
+              ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'
+              : 'border border-white/10 bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-500'
+          }`}
         >
-          <button
-            type="submit"
-            aria-label="live-go-live-launch"
-            data-testid="live-go-live-launch"
-            data-live-qa-launch={launchLabel}
-            data-live-qa-launch-enabled={canLaunch && !launching && goLiveCountdown === null ? '1' : '0'}
-            data-live-qa-transition={launchTransition}
-            className={`w-full rounded-2xl py-4 text-sm font-black uppercase tracking-widest shadow-2xl transition-all active:scale-[0.98] ${
-              !canLaunch || launching || goLiveCountdown !== null
-                ? 'cursor-not-allowed bg-slate-800 text-slate-600 opacity-50'
-                : 'border border-white/10 bg-blue-600 text-white shadow-blue-500/20 hover:bg-blue-500'
-            }`}
-          >
-            {launchLabel}
-          </button>
-        </form>
+          {launchLabel}
+        </button>
 
         <section className="flex flex-col gap-3">
           <div className="flex items-center justify-between gap-2">
