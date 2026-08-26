@@ -314,46 +314,57 @@ final class UniLiveAuthUITests: XCTestCase {
     sleep(2)
     root = webRoot()
 
-    // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
-    XCTAssertTrue(
-      landmark("go-live-entry", in: root, timeout: 8).exists
-        || landmark("create-room-name", in: root, timeout: 8).exists,
-      "APPLICATION_STATE_FAILED: CreateRoom not reached after go-live-entry"
-    )
-    var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
-    if !soloOption.exists {
-      // WKWebView may expose mode chips as switches with go-live-mode-* labels.
-      soloOption = root.switches["go-live-solo-option"]
-      if !soloOption.exists {
-        soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
-      }
-    }
-    if soloOption.waitForExistence(timeout: 6) {
-      soloOption.tap()
-      sleep(1)
+    // Auto-launch may already have completed CreateRoom → countdown → SoloLiveView.
+    let alreadyHost =
+      landmark("solo-live-view", in: root, timeout: 4).exists
+      || landmark("live-rtc-connecting", in: root, timeout: 2).exists
+      || landmark("live-rtc-connected", in: root, timeout: 2).exists
+      || landmark("live-countdown", in: root, timeout: 2).exists
+      || landmark("live-permission-camera-pending", in: root, timeout: 2).exists
+    if alreadyHost {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (auto-launch past CreateRoom)")
     } else {
-      print("APPLICATION_STATE_FAILED: go-live-solo-option missing after Go Live open")
-      print("DEBUG_CREATE=\(root.debugDescription.prefix(3500))")
-      XCTFail("APPLICATION_STATE_FAILED: go-live-solo-option not selected/seeded")
-      return
-    }
-
-    // 4) Caption — product seeds "Live"; only type if empty/disabled
-    var roomTitle = landmark("create-room-name", in: root, timeout: 8)
-    if !roomTitle.exists {
-      roomTitle = root.textFields.firstMatch
-    }
-    XCTAssertTrue(roomTitle.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: create-room-name missing")
-    let captionValue = (roomTitle.value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-    if captionValue.isEmpty || captionValue == "Welcome to the room!" {
-      roomTitle.tap()
-      sleep(1)
-      if !captionValue.isEmpty {
-        let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: captionValue.count)
-        roomTitle.typeText(deleteString)
+      // 3) Create room / Solo option (Go Live seeds Solo-Live; re-assert if needed)
+      XCTAssertTrue(
+        landmark("go-live-entry", in: root, timeout: 8).exists
+          || landmark("create-room-name", in: root, timeout: 8).exists,
+        "APPLICATION_STATE_FAILED: CreateRoom not reached after go-live-entry"
+      )
+      var soloOption = landmark("go-live-solo-option", in: root, timeout: 8)
+      if !soloOption.exists {
+        // WKWebView may expose mode chips as switches with go-live-mode-* labels.
+        soloOption = root.switches["go-live-solo-option"]
+        if !soloOption.exists {
+          soloOption = root.descendants(matching: .any)["go-live-mode-Solo-Live"]
+        }
       }
-      roomTitle.typeText("QA Device Live")
-      sleep(1)
+      if soloOption.waitForExistence(timeout: 6) {
+        soloOption.tap()
+        sleep(1)
+      } else {
+        print("APPLICATION_STATE_FAILED: go-live-solo-option missing after Go Live open")
+        print("DEBUG_CREATE=\(root.debugDescription.prefix(3500))")
+        XCTFail("APPLICATION_STATE_FAILED: go-live-solo-option not selected/seeded")
+        return
+      }
+
+      // 4) Caption — product seeds "Live"; only type if empty/disabled
+      var roomTitle = landmark("create-room-name", in: root, timeout: 8)
+      if !roomTitle.exists {
+        roomTitle = root.textFields.firstMatch
+      }
+      XCTAssertTrue(roomTitle.waitForExistence(timeout: 8), "APPLICATION_STATE_FAILED: create-room-name missing")
+      let captionValue = (roomTitle.value as? String)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+      if captionValue.isEmpty || captionValue == "Welcome to the room!" {
+        roomTitle.tap()
+        sleep(1)
+        if !captionValue.isEmpty {
+          let deleteString = String(repeating: XCUIKeyboardKey.delete.rawValue, count: captionValue.count)
+          roomTitle.typeText(deleteString)
+        }
+        roomTitle.typeText("QA Device Live")
+        sleep(1)
+      }
     }
 
     // 5) Launch — prefer observing auto-launch (single-shot); then form submit CTA
@@ -390,7 +401,8 @@ final class UniLiveAuthUITests: XCTestCase {
     }
 
     // Auto-launch may already have advanced past CreateRoom.
-    if landmark("live-countdown", in: root, timeout: 4).exists
+    if alreadyHost
+      || landmark("live-countdown", in: root, timeout: 4).exists
       || landmark("live-room-creating", in: root, timeout: 2).exists
       || landmark("solo-live-view", in: root, timeout: 2).exists {
       print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (auto-launch)")
@@ -404,6 +416,7 @@ final class UniLiveAuthUITests: XCTestCase {
       sleep(2)
       if landmark("live-countdown", in: root, timeout: 3).exists == false
         && landmark("live-room-creating", in: root, timeout: 2).exists == false
+        && landmark("solo-live-view", in: root, timeout: 2).exists == false
       {
         // Form submit path: activate button (WK often maps AX activate → click/submit)
         launchBtn.tap()
@@ -427,7 +440,7 @@ final class UniLiveAuthUITests: XCTestCase {
       return
     }
 
-    let countdown = landmark("live-countdown", in: root, timeout: 12)
+    let countdown = landmark("live-countdown", in: root, timeout: alreadyHost ? 2 : 12)
     let skip = landmark("Skip countdown and go live", in: root, timeout: 4)
     if skip.exists {
       print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED")
@@ -435,6 +448,12 @@ final class UniLiveAuthUITests: XCTestCase {
     } else if countdown.exists {
       print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED")
       countdown.tap()
+    } else if alreadyHost
+      || landmark("solo-live-view", in: root, timeout: 3).exists
+      || landmark("live-rtc-connecting", in: root, timeout: 2).exists
+      || landmark("live-rtc-connected", in: root, timeout: 2).exists
+    {
+      print("LAUNCH_CLASSIFICATION=G_COUNTDOWN_STARTED (already in SoloLiveView)")
     } else {
       let creating = landmark("live-room-creating", in: root, timeout: 4)
       if !creating.exists {
