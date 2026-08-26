@@ -5,6 +5,10 @@ import {
   isAppMediaRef,
 } from './appMediaStore';
 import { safeLiveKind } from './liveRing';
+import {
+  isPaintableMediaUrl,
+  normalizePresentationMediaUrl,
+} from './mediaUrlContract';
 
 const FALLBACK_AVATAR =
   'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=256&h=256&fit=crop&q=85&auto=format';
@@ -89,6 +93,9 @@ export function safeAvatarUrl(value: unknown): string {
     const resolved = resolveAppMediaUrlSync(s);
     return isAppMediaRef(resolved) ? FALLBACK_AVATAR : resolved;
   }
+  if (isPaintableMediaUrl(s)) {
+    return normalizePresentationMediaUrl(s);
+  }
   const url = safeHttpUrl(s);
   if (!url) return FALLBACK_AVATAR;
   return resolveRemoteMediaUrlSync(url) || url;
@@ -105,17 +112,22 @@ export function safeMediaUrl(value: unknown, options?: { fallback?: string }): s
     return resolved;
   }
   if (s.startsWith('data:') || s.startsWith('blob:')) return s;
+  // Root-relative product artwork (/live-tools-v14, /live-gifts, /brand, …)
+  if (isPaintableMediaUrl(s)) {
+    return normalizePresentationMediaUrl(s);
+  }
   const url = safeHttpUrl(s);
   if (!url) return fallback;
   // Prefer full-res on-device blob when we have cached this URL before.
   return resolveRemoteMediaUrlSync(url) || url;
 }
 
-/** Keep app-media/data/blob refs for hooks to hydrate; only validate http(s). */
+/** Keep app-media/data/blob/root-relative refs for hooks to hydrate. */
 export function preserveMediaRef(value: unknown): string {
   const s = safeString(value);
   if (!s) return '';
   if (isAppMediaRef(s) || s.startsWith('data:') || s.startsWith('blob:')) return s;
+  if (isPaintableMediaUrl(s)) return normalizePresentationMediaUrl(s);
   return safeHttpUrl(s);
 }
 

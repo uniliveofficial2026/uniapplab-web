@@ -61,6 +61,8 @@ export function useResolvedMediaUrl(
       return unsub;
     }
 
+    // Root-relative / bare app paths — paint immediately (instantMediaSrc).
+    setResolved(instantMediaSrc(url, fallback));
     return undefined;
   }, [url, fallback]);
 

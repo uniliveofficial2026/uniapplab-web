@@ -128,7 +128,17 @@
     "test:n-user-runtime": "UNILIVE_NUSER_MODE=runtime node scripts/n-user-runtime/test-n-user-runtime.mjs",
     "test:multi-account-rotation": "node scripts/full-app-gates/test-multi-account-rotation.mjs",
     "test:realtime-user-isolation": "node scripts/full-app-gates/test-realtime-user-isolation.mjs",
-    "test:global-input-recovery": "pnpm run test:scan-legacy-keyboard && pnpm run test:all-input-surfaces && pnpm run test:comments-keyboard && pnpm run test:modal-keyboard && pnpm run test:creator-keyboard && pnpm run test:live-keyboard && pnpm run test:live-host-state-machine && pnpm run test:marketplace-keyboard && pnpm run test:seller-keyboard && pnpm run test:n-user-dataflow && pnpm run test:n-user-authorization && pnpm run test:multi-account-rotation && pnpm run test:realtime-user-isolation"
+    "test:global-input-recovery": "pnpm run test:scan-legacy-keyboard && pnpm run test:all-input-surfaces && pnpm run test:comments-keyboard && pnpm run test:modal-keyboard && pnpm run test:creator-keyboard && pnpm run test:live-keyboard && pnpm run test:live-host-state-machine && pnpm run test:marketplace-keyboard && pnpm run test:seller-keyboard && pnpm run test:n-user-dataflow && pnpm run test:n-user-authorization && pnpm run test:multi-account-rotation && pnpm run test:realtime-user-isolation",
+    "test:all-visual-assets": "node scripts/visual-runtime/test-all-visual-assets.mjs",
+    "test:asset-url-resolution": "node scripts/visual-runtime/test-asset-url-resolution.mjs",
+    "test:production-assets": "node scripts/visual-runtime/test-production-assets.mjs",
+    "test:image-decode": "node scripts/visual-runtime/test-image-decode.mjs",
+    "test:animation-runtime": "node scripts/visual-runtime/test-animation-runtime.mjs",
+    "test:ios-animation-contracts": "node scripts/visual-runtime/test-ios-animation-contracts.mjs",
+    "test:asset-cache-integrity": "node scripts/visual-runtime/test-asset-cache-integrity.mjs",
+    "test:dynamic-media-url": "node scripts/visual-runtime/test-dynamic-media-url.mjs",
+    "test:global-visual-runtime": "node scripts/visual-runtime/test-global-visual-runtime.mjs",
+    "visual-runtime:inventory": "node scripts/visual-runtime/generate-inventories.mjs"
   },
   "private": true,
   "devDependencies": {

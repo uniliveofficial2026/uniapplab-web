@@ -1,0 +1,2840 @@
+{
+  "generatedAt": "2026-08-26T18:27:51.923Z",
+  "total": 403,
+  "byExt": {
+    ".png": 283,
+    ".jpg": 13,
+    ".jpeg": 0,
+    ".webp": 38,
+    ".gif": 0,
+    ".svg": 16,
+    ".mp4": 7,
+    ".webm": 0,
+    ".svga": 4,
+    ".json": 42,
+    ".apng": 0
+  },
+  "assets": [
+    {
+      "path": "/.deepar-assets-installed.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 144,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/brand/app-logo.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 2018427,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/brand/app-logo.prev.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1246928,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/KardashianClassic_eyelashes.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 97891,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/StrongPink_eyelashes.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 52836,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/SubtleWhite_eyelashes.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 36851,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/basic1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 36165,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/basic2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 45884,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/basic3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 60621,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/basic4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 42418,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/cateye1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58974,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/cateye2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 79414,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/cateye3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 55283,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/cateye4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 79132,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/cateye5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 110481,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/dense1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 54900,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/dense2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 74574,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/dense3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 99331,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/dense4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 100700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/dense5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 44760,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/dense6.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 64223,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/eylashes_2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 55433,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/eylashes_5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 35074,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/goth.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 53361,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/long.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 100700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/normal1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 37618,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/normal2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 49012,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/normal3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 45159,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/normal4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 51002,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/subtle1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 39424,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/subtle2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 43291,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/subtle3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 51747,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyelashes/subtle4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 46966,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/PorcelainRed_eyeliner.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 19561,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/SpinxsEyes_eyeliner3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 18877,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/SubtleWhite_eyeline.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 12739,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/VididEyeliner_eyeliner.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 36448,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/WingEyes_eyeliner6.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 11527,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/basic.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 24438,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/drama.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 27593,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/eyeliner2_alpha.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 17264,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeliner/smooth.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 20251,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Basic/basic_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 16575,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Basic/cateye.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 31080,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Basic/smokey.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 34430,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Basic/winged_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 64158,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 77776,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 151856,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 141177,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 155142,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 149998,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_6.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 135601,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_7.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 158520,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_8.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 117940,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/EyeshadowGlitterTemplates/glitter_9.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 150681,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Glitter/specmask.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 142709,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/BL_multiply.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 73384,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/Dark_Metal_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 88673,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/Diamond_Eyes_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 104566,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/GreenEyes_eyeshadow3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 111139,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/KardashianClassic_eyeshadow6.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 70018,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/RBW_multiply.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 47718,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/SL05_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 29564,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/SL07_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 107448,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/SL08_eyeshadow10.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 107161,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/SL11_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 86449,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/SL14_eyeshadow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 81584,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/SL15_eyeshadow3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 67076,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/SunsetEyes_sky_eyeshadow7.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 168338,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Eyeshadow/Textured/eyeshadow_rainbow1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 81314,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Blush/blush_heart.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 24073,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Blush/blush_long.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23225,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Blush/blush_oval.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 18545,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Blush/blush_round.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 20993,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Blush/blush_square.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 19276,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Contour/contour1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41238,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Contour/contour2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 65112,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Contour/contour3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 67219,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Contour/contour4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Contour/contour5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 54063,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Highlight/highlight1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 37644,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Highlight/highlight2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 61484,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Highlight/highlight3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 38292,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Highlight/highlight4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 36162,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Face/Highlight/highlight5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 25657,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/black_and_white.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 36944,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/burnt_whites.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 118060,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/cobalt_pink.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 177048,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/crisp_cold.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 123974,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/crisp_warm.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 107154,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/fall.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 169014,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/film_contrast.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 171254,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/fujifilm_filter_1.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 169072,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/fujifilm_filter_2.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 159884,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/fujifilm_filter_3.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 171306,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/fujifilm_filter_4.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 168534,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/fujifilm_filter_5.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 169116,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/green_tea.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 165072,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/kodak_filter_1.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 163208,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/kodak_filter_2.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 146674,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/kodak_filter_3.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 140974,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/low_saturation.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 185082,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/nashvilleLUT.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 100262,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/negative.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 149662,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/negative_blue.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 154256,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/nightfromday.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 135126,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/original-lut.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 320,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/pale_skin.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 89974,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/pastel_tones.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 152544,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/red_skin.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 160064,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/sepia_amber.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 164216,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/sepia_blue.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 158832,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/sepia_candles.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 159082,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/sepia_crimson.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 153852,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/sepia_gold.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 152562,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/sepia_sunset.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 177266,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/sepia_turquoise.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 149866,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/smokey.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 136454,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/soft_gold.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 161032,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/LUTS_webp/warm_soft.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 115214,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/SL02_lips_Color.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 30185,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/SL05_lips.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 56962,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/SL10_lips.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23721,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/SL10_lips_Color.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23721,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/SL12_lips_Color.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 38467,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/SphynxEyes_lips_Color.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 29458,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/StrongPink_lips.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 27219,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/lips2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 49458,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/lips5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 25843,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/lips_pink_thrill2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 37614,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/lipstick1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 46728,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/lipstick2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22976,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_dark_red.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 57085,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_darrk_red.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 54729,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_nude.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 49069,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_peach.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58746,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_pink.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 50396,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_red.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 53414,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_red_violet.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 54997,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Basic/matte_violet.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 56539,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/Diamond_Eyes_lips.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 50829,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/Golden_Sun_lips.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 40994,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/Neon_Colors_lips.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 49926,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/SL01_lips_Color.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 30064,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/SL05_lips.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 56962,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/SubtleWhite_lips_Color.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21206,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 38017,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 43182,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 27332,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips_criminally_coral3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 36012,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips_flame_game.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 36686,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips_nude_scandal.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 37122,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips_outline_1.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 32721,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/DualColor/lips_pink_thrill2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 37614,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 9684,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular10.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 12549,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular11.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 12364,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular12.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 14950,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular13.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 12786,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular14.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 13774,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular15.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 12836,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular2.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 13407,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular3.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 17914,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular4.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 15190,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular5.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 17938,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular6.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 15857,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular7.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 17772,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular8.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 12308,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/Lips/Gloss/lip_gloss_specular9.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 13074,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/background/homeOffice.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 64868,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/background/stadium.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 108659,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/Textures/background/sunnyBeach.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 56326,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-beauty/assets/watermark/watermark_compressed.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 2662,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-resources/default_envmap.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 65532,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-resources/file_sizes.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1111,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/deepar-resources/split_sum.webp",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 9562,
+      "ext": ".webp",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/aviators.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 232683,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/background_blur.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 568785,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/background_replacement.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 284242,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-clear.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1810924,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-gelid.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 54063,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-glow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 11568,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-glowing.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-light-blush.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-light-touchup.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 65112,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-natural.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 203428,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-rosy.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-smooth.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1810924,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/beauty-soft.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 203428,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/burning.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 808075,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/dalmatian.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 749452,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/devil-horns.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23516,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/elephant.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 17662,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/emotion-meter.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 545359,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/emotions.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22327,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/fire.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 2120093,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/flowers.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 255265,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/galaxy.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 4958238,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/hope.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 11568,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/humanoid.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 301913,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/koala.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 526803,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/lion.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 674655,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-after-dark.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-black-hearts.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-caramel-kiss.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 79132,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-cateye-maple.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 81584,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-cute.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-gelid-breeze.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-happy-tears.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 117940,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-kim-classic.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 97891,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-lash-delight.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-midnight-stunner.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 107448,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-misty-enchantment.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58700,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-night-out.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 79414,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-skyline-glamour.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 107161,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-spring-petals.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 86449,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-starry-night.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 142709,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/look-twilight-hues.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 99331,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/makeup-split.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 2147079,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/makeup.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1810924,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/none.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 203428,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/ping-pong.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1244760,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/pixel-hearts.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1076179,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-athletic.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1810924,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-big-eyes.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 11568,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-curvy.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 203428,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-full-face.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 203428,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-glam.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 11568,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-long-legs.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 203428,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-model-waist.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1810924,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-natural.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 203428,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-slim-face.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1810924,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/shape-vline.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1810924,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/snail.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 79953,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/stallone.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 67413,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/vendetta.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 20970,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/viking.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 647816,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/effects/previews/wayfarer.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 385091,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/favicon.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 416,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/firebase-config.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 403,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/games/greedy-slot/icon.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 2605,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/games/greedy-slot/manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 853,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/ar-XB.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 725186,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/ar.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 582871,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/de.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 579473,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/en-XA.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 839968,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/es.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 579674,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/fr.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 580687,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/he.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 582940,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/hi.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 587154,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/ja.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 581663,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/ko.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 580270,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/literals-en.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 577889,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/my.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 592001,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/pt.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 579846,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/th.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 584699,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/zh-Hans.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 579274,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/i18n/zh-Hant.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 579706,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/icons/icon-192-maskable.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 56247,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/icons/icon-192.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 75629,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/icons/icon-512-maskable.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 385040,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/icons/icon-512.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 521748,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/.live-gifts-installed.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 64,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-001_enchanted-rose.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 176433,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-002_royal-crown.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 215268,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-003_crystal-heart.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 189416,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-004_treasure-chest.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 226297,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-005_moon-carriage.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 198792,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-006_crystal-castle.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 202242,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-007_purple-supercar.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 167849,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-008_violet-phoenix.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 222277,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-009_royal-swans.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 229135,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-010_flying-kiss.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 189253,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-011_galaxy-microphone.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 204795,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-012_victory-dragon.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 262717,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/crown.svga",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 160200,
+      "ext": ".svga",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 200,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/mic.svga",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 7942,
+      "ext": ".svga",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/rocket.svga",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 103499,
+      "ext": ".svga",
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/star.svga",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 214571,
+      "ext": ".svga",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/beauty/clear.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 20766,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/beauty/cute.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21880,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/beauty/glamour.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21525,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/beauty/korean.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21743,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/beauty/natural.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21634,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/bubble-shooter.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58243,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/card-battle.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 57340,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/dice-king.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 55278,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/fishing-master.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58751,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/fruit-slash.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 62745,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/lucky-wheel.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 63705,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/treasure-box.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 64300,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/games/whack-a-mole.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 57507,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/crystal-carriage.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 25778,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/diamond-bag.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 29576,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/dream-castle.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23906,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/fortune-egg.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 28011,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/galaxy-whale.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23497,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/golden-egg.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 28466,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/love-airplane.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22119,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/lucky-bill.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 29886,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/lucky-box.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 29434,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/lucky-wheel.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 30166,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/mega-lucky-box.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 31150,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/mystery-box.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 29045,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/mystery-chest.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 30552,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/phoenix.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23701,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/surprise-gift.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 31202,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/angry.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 40910,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/bye-bye.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41232,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/cry.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 38818,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/excited.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41943,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/good-morning.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41642,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/good-night.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41160,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/happy-hearts.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 39025,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/happy.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 40314,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/hello.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 40088,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/hey.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 39088,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/hi.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 39946,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/hug.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 38986,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/kiss.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 38952,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/lol.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 40016,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/love-you.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41384,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/shy.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41615,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/so-cute.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 41217,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/sorry.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 39607,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/thank-you.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 40479,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/stickers/wow.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 40116,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/alien.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21406,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/baby.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22711,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/cave.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 20922,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/chipmunk.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22844,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/deep-male.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 19077,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/devil.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22329,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/elder.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23046,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/ghost.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 20301,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/helium.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 19451,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/lolita.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 24463,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/megaphone.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21201,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/monster.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21975,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/original.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 19447,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/radio.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22973,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/robot.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22084,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/sweet-girl.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 23822,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/telephone.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 21792,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/voices/young-boy.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 22258,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/opengraph.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 53719,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/pwa-icon.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 521748,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/pwa-icon.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 394,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/supabase-config.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 297,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/trtc-webar/.trtc-webar-installed.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 66,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/trtc-webar/backgrounds/video-bg-1.mp4",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 2933261,
+      "ext": ".mp4",
+      "failureClass": null
+    },
+    {
+      "path": "/trtc-webar/manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 900,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/auth/forgot/princess-forgot-bg-extend.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 390,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/auth/forgot/princess-forgot-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 208681,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/auth/forgot/princess-forgot-locked.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 208681,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/auth/welcome/princess-auth-bg-extend.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 389,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/auth/welcome/princess-auth-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 227957,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/auth/welcome/princess-auth-locked.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 227957,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/audience.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1178,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/duration.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 837,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/earnings.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1394,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/engagement.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1133,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/insights.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1019,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/live-data-dashboard-responsive-ref.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 182643,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/live-score.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1310,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/host-dashboard/network.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 1233,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/._princess-boot-splash-locked.mp4",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 4096,
+      "ext": ".mp4",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/._princess-inapp-loading-locked.mp4",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 4096,
+      "ext": ".mp4",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/._princess-loading-refresh-locked.mp4",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 4096,
+      "ext": ".mp4",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-boot-splash-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 165868,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-boot-splash-locked.mp4",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 5689376,
+      "ext": ".mp4",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-inapp-loading-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 235218,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-inapp-loading-locked.mp4",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 5537659,
+      "ext": ".mp4",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-loading-refresh-bg-extend.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 390,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-loading-refresh-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 235218,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-loading-refresh-locked.mp4",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 5537659,
+      "ext": ".mp4",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 522716,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/auth.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 12100,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/badges.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 10506,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/brand.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 8906,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/discovery.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 26773,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/frames.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 2511,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/gifts.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 58482,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/index.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 185104,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/interactions.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 8270,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/legal.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 8343,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/onboarding.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 9943,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/profile-setup.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 13596,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/replacement-map.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 126611,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/rings.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 4141,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/rooms.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 88,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/sharing.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 10886,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/manifests/stickers.manifest.json",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 11595,
+      "ext": ".json",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/connect/princess-onboarding-connect-bg-extend.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 438,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/connect/princess-onboarding-connect-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 236751,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/connect/princess-onboarding-connect-locked.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 236751,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/shine/princess-onboarding-shine-bg-extend.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 438,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/shine/princess-onboarding-shine-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 266644,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/shine/princess-onboarding-shine-locked.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 266644,
+      "ext": ".png",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/welcome/princess-onboarding-welcome-bg-extend.svg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 390,
+      "ext": ".svg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/welcome/princess-onboarding-welcome-locked.jpg",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 233957,
+      "ext": ".jpg",
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/onboarding/welcome/princess-onboarding-welcome-locked.png",
+      "sourceClass": "PUBLIC_ROOT_ASSET",
+      "bytes": 233957,
+      "ext": ".png",
+      "failureClass": null
+    }
+  ]
+}

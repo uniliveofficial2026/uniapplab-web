@@ -1,0 +1,523 @@
+{
+  "generatedAt": "2026-08-26T18:27:51.937Z",
+  "required": 86,
+  "brokenLocal": 0,
+  "rows": [
+    {
+      "path": "/unilives-assets/brand/loading/princess-inapp-loading-locked.mp4",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 5537659
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-inapp-loading-locked.jpg",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 235218
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-loading-refresh-bg-extend.svg",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 390
+    },
+    {
+      "path": "/brand/app-logo.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 2018427
+    },
+    {
+      "path": "/live-tools-v14/beauty/clear.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 20766
+    },
+    {
+      "path": "/live-tools-v14/beauty/cute.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21880
+    },
+    {
+      "path": "/live-tools-v14/beauty/glamour.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21525
+    },
+    {
+      "path": "/live-tools-v14/beauty/korean.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21743
+    },
+    {
+      "path": "/live-tools-v14/beauty/natural.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21634
+    },
+    {
+      "path": "/live-tools-v14/games/bubble-shooter.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 58243
+    },
+    {
+      "path": "/live-tools-v14/games/card-battle.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 57340
+    },
+    {
+      "path": "/live-tools-v14/games/dice-king.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 55278
+    },
+    {
+      "path": "/live-tools-v14/games/fishing-master.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 58751
+    },
+    {
+      "path": "/live-tools-v14/games/fruit-slash.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 62745
+    },
+    {
+      "path": "/live-tools-v14/games/lucky-wheel.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 63705
+    },
+    {
+      "path": "/live-tools-v14/games/treasure-box.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 64300
+    },
+    {
+      "path": "/live-tools-v14/games/whack-a-mole.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 57507
+    },
+    {
+      "path": "/live-tools-v14/gifts/crystal-carriage.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 25778
+    },
+    {
+      "path": "/live-tools-v14/gifts/diamond-bag.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 29576
+    },
+    {
+      "path": "/live-tools-v14/gifts/dream-castle.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 23906
+    },
+    {
+      "path": "/live-tools-v14/gifts/fortune-egg.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 28011
+    },
+    {
+      "path": "/live-tools-v14/gifts/galaxy-whale.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 23497
+    },
+    {
+      "path": "/live-tools-v14/gifts/golden-egg.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 28466
+    },
+    {
+      "path": "/live-tools-v14/gifts/love-airplane.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 22119
+    },
+    {
+      "path": "/live-tools-v14/gifts/lucky-bill.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 29886
+    },
+    {
+      "path": "/live-tools-v14/gifts/lucky-box.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 29434
+    },
+    {
+      "path": "/live-tools-v14/gifts/lucky-wheel.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 30166
+    },
+    {
+      "path": "/live-tools-v14/gifts/mega-lucky-box.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 31150
+    },
+    {
+      "path": "/live-tools-v14/gifts/mystery-box.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 29045
+    },
+    {
+      "path": "/live-tools-v14/gifts/mystery-chest.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 30552
+    },
+    {
+      "path": "/live-tools-v14/gifts/phoenix.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 23701
+    },
+    {
+      "path": "/live-tools-v14/gifts/surprise-gift.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 31202
+    },
+    {
+      "path": "/live-tools-v14/stickers/angry.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 40910
+    },
+    {
+      "path": "/live-tools-v14/stickers/bye-bye.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 41232
+    },
+    {
+      "path": "/live-tools-v14/stickers/cry.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 38818
+    },
+    {
+      "path": "/live-tools-v14/stickers/excited.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 41943
+    },
+    {
+      "path": "/live-tools-v14/stickers/good-morning.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 41642
+    },
+    {
+      "path": "/live-tools-v14/stickers/good-night.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 41160
+    },
+    {
+      "path": "/live-tools-v14/stickers/happy-hearts.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 39025
+    },
+    {
+      "path": "/live-tools-v14/stickers/happy.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 40314
+    },
+    {
+      "path": "/live-tools-v14/stickers/hello.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 40088
+    },
+    {
+      "path": "/live-tools-v14/stickers/hey.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 39088
+    },
+    {
+      "path": "/live-tools-v14/stickers/hi.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 39946
+    },
+    {
+      "path": "/live-tools-v14/stickers/hug.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 38986
+    },
+    {
+      "path": "/live-tools-v14/stickers/kiss.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 38952
+    },
+    {
+      "path": "/live-tools-v14/stickers/lol.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 40016
+    },
+    {
+      "path": "/live-tools-v14/stickers/love-you.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 41384
+    },
+    {
+      "path": "/live-tools-v14/stickers/shy.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 41615
+    },
+    {
+      "path": "/live-tools-v14/stickers/so-cute.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 41217
+    },
+    {
+      "path": "/live-tools-v14/stickers/sorry.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 39607
+    },
+    {
+      "path": "/live-tools-v14/stickers/thank-you.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 40479
+    },
+    {
+      "path": "/live-tools-v14/stickers/wow.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 40116
+    },
+    {
+      "path": "/live-tools-v14/voices/alien.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21406
+    },
+    {
+      "path": "/live-tools-v14/voices/baby.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 22711
+    },
+    {
+      "path": "/live-tools-v14/voices/cave.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 20922
+    },
+    {
+      "path": "/live-tools-v14/voices/chipmunk.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 22844
+    },
+    {
+      "path": "/live-tools-v14/voices/deep-male.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 19077
+    },
+    {
+      "path": "/live-tools-v14/voices/devil.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 22329
+    },
+    {
+      "path": "/live-tools-v14/voices/elder.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 23046
+    },
+    {
+      "path": "/live-tools-v14/voices/ghost.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 20301
+    },
+    {
+      "path": "/live-tools-v14/voices/helium.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 19451
+    },
+    {
+      "path": "/live-tools-v14/voices/lolita.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 24463
+    },
+    {
+      "path": "/live-tools-v14/voices/megaphone.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21201
+    },
+    {
+      "path": "/live-tools-v14/voices/monster.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21975
+    },
+    {
+      "path": "/live-tools-v14/voices/original.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 19447
+    },
+    {
+      "path": "/live-tools-v14/voices/radio.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 22973
+    },
+    {
+      "path": "/live-tools-v14/voices/robot.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 22084
+    },
+    {
+      "path": "/live-tools-v14/voices/sweet-girl.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 23822
+    },
+    {
+      "path": "/live-tools-v14/voices/telephone.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 21792
+    },
+    {
+      "path": "/live-tools-v14/voices/young-boy.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 22258
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-001_enchanted-rose.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 176433
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-002_royal-crown.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 215268
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-003_crystal-heart.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 189416
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-004_treasure-chest.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 226297
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-005_moon-carriage.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 198792
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-006_crystal-castle.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 202242
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-007_purple-supercar.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 167849
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-008_violet-phoenix.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 222277
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-009_royal-swans.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 229135
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-010_flying-kiss.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 189253
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-011_galaxy-microphone.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 204795
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-012_victory-dragon.png",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 262717
+    },
+    {
+      "path": "/live-gifts/mic.svga",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 7942
+    },
+    {
+      "path": "/live-gifts/star.svga",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 214571
+    },
+    {
+      "path": "/live-gifts/crown.svga",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 160200
+    },
+    {
+      "path": "/live-gifts/rocket.svga",
+      "local": "PRESENT",
+      "failureClass": null,
+      "bytes": 103499
+    }
+  ]
+}

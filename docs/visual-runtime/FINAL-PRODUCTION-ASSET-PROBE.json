@@ -1,0 +1,78 @@
+{
+  "origin": "https://app.uniapplab.com",
+  "generatedAt": "2026-08-26T18:21:19.136Z",
+  "rows": [
+    {
+      "path": "/brand/app-logo.png",
+      "status": 200,
+      "contentType": "image/png",
+      "bytes": 2018427,
+      "finalUrl": "https://app.uniapplab.com/brand/app-logo.png",
+      "spaFallback": false,
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-inapp-loading-locked.mp4",
+      "status": 200,
+      "contentType": "video/mp4",
+      "bytes": 5537659,
+      "finalUrl": "https://app.uniapplab.com/unilives-assets/brand/loading/princess-inapp-loading-locked.mp4",
+      "spaFallback": false,
+      "failureClass": null
+    },
+    {
+      "path": "/unilives-assets/brand/loading/princess-inapp-loading-locked.jpg",
+      "status": 200,
+      "contentType": "image/jpeg",
+      "bytes": 235218,
+      "finalUrl": "https://app.uniapplab.com/unilives-assets/brand/loading/princess-inapp-loading-locked.jpg",
+      "spaFallback": false,
+      "failureClass": null
+    },
+    {
+      "path": "/live-gifts/star.svga",
+      "status": 200,
+      "contentType": "binary/octet-stream",
+      "bytes": 214571,
+      "finalUrl": "https://app.uniapplab.com/live-gifts/star.svga",
+      "spaFallback": false,
+      "failureClass": null
+    },
+    {
+      "path": "/live-tools-v14/gifts/lucky-bill.png",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 10,
+      "finalUrl": "https://app.uniapplab.com/live-tools-v14/gifts/lucky-bill.png",
+      "spaFallback": false,
+      "failureClass": "ASSET_404"
+    },
+    {
+      "path": "/live-tools-v14/beauty/natural.png",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 10,
+      "finalUrl": "https://app.uniapplab.com/live-tools-v14/beauty/natural.png",
+      "spaFallback": false,
+      "failureClass": "ASSET_404"
+    },
+    {
+      "path": "/live-tools-v14/stickers/hi.png",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 10,
+      "finalUrl": "https://app.uniapplab.com/live-tools-v14/stickers/hi.png",
+      "spaFallback": false,
+      "failureClass": "ASSET_404"
+    },
+    {
+      "path": "/live-gifts/approved-v12/UG-001_enchanted-rose.png",
+      "status": 404,
+      "contentType": "text/plain; charset=utf-8",
+      "bytes": 10,
+      "finalUrl": "https://app.uniapplab.com/live-gifts/approved-v12/UG-001_enchanted-rose.png",
+      "spaFallback": false,
+      "failureClass": "ASSET_404"
+    }
+  ]
+}

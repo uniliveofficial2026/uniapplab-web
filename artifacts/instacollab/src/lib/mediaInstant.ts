@@ -15,6 +15,11 @@ import {
 import { FALLBACK_MEDIA } from './safe';
 import { isNetworkOnline } from './networkStatus';
 import { fetchWithTimeout, NET_FEED_MS } from './networkPolicy';
+import {
+  isPaintableMediaUrl,
+  normalizePresentationMediaUrl,
+  resolvePresentationMediaUrl,
+} from './mediaUrlContract';
 
 const warming = new Set<string>();
 
@@ -67,7 +72,11 @@ export function instantMediaSrc(
     if (cached) return cached;
     return clear;
   }
-  return fallback;
+  // Root-relative `/live-tools-v14/…` and bare `assets/…` must paint — never Unsplash.
+  if (isPaintableMediaUrl(url)) {
+    return normalizePresentationMediaUrl(url);
+  }
+  return resolvePresentationMediaUrl(url, fallback);
 }
 
 /** Background: hydrate local blobs + download full-res remote media into IDB. */
@@ -77,6 +86,8 @@ export function warmMediaUrl(url: string | null | undefined): void {
     void hydrateAppMediaUrl(url).catch(() => undefined);
     return;
   }
+  // Absolute http(s) only — root-relative assets are served from the SPA origin
+  // and must not be rewritten into IDB blobs that can stale across deploys.
   if (!url.startsWith('http')) return;
 
   const clear = preferClearMediaUrl(url);

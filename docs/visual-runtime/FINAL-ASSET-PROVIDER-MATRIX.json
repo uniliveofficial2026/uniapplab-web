@@ -1,0 +1,12 @@
+{
+  "generatedAt": "2026-08-26T18:27:51.937Z",
+  "productArtworkSSOT": "artifacts/instacollab/public (Vite public/) → deploy/spa-public",
+  "unilivesRegistry": "artifacts/instacollab/src/lib/unilives-assets (getAssetUrl)",
+  "presentationUrlContract": "artifacts/instacollab/src/lib/mediaUrlContract.ts",
+  "legacyGiftSvga": "/live-gifts/{mic,star,crown,rocket}.svga",
+  "v14CatalogArt": "/live-tools-v14/{gifts,stickers,beauty,voices,games}",
+  "approvedV12Covers": "/live-gifts/approved-v12/UG-*.png",
+  "loadingBrand": "/unilives-assets/brand/loading/*",
+  "userUploads": "R2 via API media layer (canonical key preferred over signed URL)",
+  "competingAuthorities": "FORBIDDEN — do not dual-write Firebase+R2 for same product art"
+}

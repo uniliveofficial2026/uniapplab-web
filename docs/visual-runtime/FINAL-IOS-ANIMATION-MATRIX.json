@@ -1,0 +1,89 @@
+{
+  "generatedAt": "2026-08-26T18:27:51.937Z",
+  "entries": [
+    {
+      "id": "loadingAnimation",
+      "impl": "VIDEO_MP4",
+      "source": "UniLivesPrincessLoadingRefreshLayout + AppNativeVideo",
+      "asset": "/unilives-assets/brand/loading/princess-inapp-loading-locked.mp4",
+      "proofRequired": [
+        "element",
+        "naturalSize",
+        "video.currentTime T0/T1"
+      ],
+      "status": "PENDING_PHYSICAL"
+    },
+    {
+      "id": "thoughtBubble",
+      "impl": "CSS_KEYFRAMES",
+      "source": "index.css thought-bubble-float",
+      "proofRequired": [
+        "getAnimations playState",
+        "currentTime T0/T1"
+      ],
+      "status": "PENDING_PHYSICAL"
+    },
+    {
+      "id": "liveRing",
+      "impl": "CSS_KEYFRAMES",
+      "source": "index.css avatar-ring-spin",
+      "proofRequired": [
+        "getAnimations",
+        "geometry nonzero"
+      ],
+      "status": "PENDING_PHYSICAL"
+    },
+    {
+      "id": "storyRing",
+      "impl": "CSS_KEYFRAMES",
+      "source": "index.css avatar-ring-halo",
+      "proofRequired": [
+        "getAnimations",
+        "not clipped"
+      ],
+      "status": "PENDING_PHYSICAL"
+    },
+    {
+      "id": "giftCover",
+      "impl": "STATIC_PNG",
+      "source": "liveToolsV14Artwork /live-tools-v14/gifts/*",
+      "proofRequired": [
+        "HTTP",
+        "decode",
+        "naturalWidth>0"
+      ],
+      "status": "LOCAL_RESTORED_PENDING_DEPLOY"
+    },
+    {
+      "id": "giftEffects",
+      "impl": "CSS_MOTION_ON_IMAGE + LEGACY_SVGA",
+      "source": "live-artwork-motion.css + /live-gifts/*.svga",
+      "proofRequired": [
+        "animation currentTime",
+        "svga render"
+      ],
+      "status": "PENDING_PHYSICAL"
+    },
+    {
+      "id": "beautyPreviewCover",
+      "impl": "STATIC_PNG",
+      "source": "/live-tools-v14/beauty/*.png",
+      "proofRequired": [
+        "HTTP",
+        "decode"
+      ],
+      "status": "LOCAL_RESTORED_PENDING_DEPLOY"
+    },
+    {
+      "id": "stickerCover",
+      "impl": "STATIC_PNG + CSS_MOTION",
+      "source": "/live-tools-v14/stickers/*",
+      "proofRequired": [
+        "HTTP",
+        "decode",
+        "motion T0/T1"
+      ],
+      "status": "LOCAL_RESTORED_PENDING_DEPLOY"
+    }
+  ]
+}

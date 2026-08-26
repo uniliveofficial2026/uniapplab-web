@@ -1,0 +1,22 @@
+{
+  "generatedAt": "2026-08-26T18:27:51.937Z",
+  "fullRealApplication": "FAIL",
+  "iosVisualRuntime": "FAIL",
+  "assetUrls": "LOCAL_PACKAGED",
+  "animations": "FAIL_PENDING_PHYSICAL",
+  "rootCausesFixed": [
+    "mediaUrlContract: root-relative paths no longer replaced by Unsplash fallback",
+    "restored missing live-tools-v14 + approved-v12 packages into public/"
+  ],
+  "stillRequired": [
+    "build + sync deploy/spa-public",
+    "push release branch / Render deploy",
+    "physical iPhone progression proof"
+  ],
+  "totals": {
+    "visualAssetsIndexed": 403,
+    "animationsIndexed": 184,
+    "requiredPaths": 86,
+    "brokenLocal": 0
+  }
+}

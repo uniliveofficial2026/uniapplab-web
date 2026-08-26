@@ -1,0 +1,1017 @@
+{
+  "generatedAt": "2026-08-26T18:27:51.937Z",
+  "total": 184,
+  "animations": [
+    {
+      "id": "upa-agree-nudge",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/auth/brand/princessAuth.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "princessAuth.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/components/auth/brand/princessAuth.css"
+    },
+    {
+      "id": "ulspk-heart",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/live/live-sell-pk-room.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "live-sell-pk-room.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/components/live/live-sell-pk-room.css"
+    },
+    {
+      "id": "u1pk-score-delta-pop",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/live/one-vs-one-pk-room.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "u1pk-nudge-left",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/live/one-vs-one-pk-room.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "u1pk-nudge-right",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/live/one-vs-one-pk-room.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "one-vs-one-pk-room.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/components/live/one-vs-one-pk-room.css"
+    },
+    {
+      "id": "call-wave",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/messages/call-approved-ui.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "call-ring-pulse",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/messages/call-approved-ui.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "call-approved-ui.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/components/messages/call-approved-ui.css"
+    },
+    {
+      "id": "avatar-ring-spin",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-blue",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-red",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "thought-bubble-float",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "thought-shimmer",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "thought-tail-glow",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "thought-type-cursor-blink",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "profile-card-ring-pulse-story",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "profile-card-ring-pulse-multi",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "profile-story-thumb-shimmer",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-green",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-audio-light",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-audio-dark",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-purple",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-party",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-pk",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-commerce",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-orange",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-blue-compact",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-red-compact",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "avatar-glow-pulse-green-compact",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "reel-disc-music-float",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "editor-text-fade-in",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "editor-text-slide-up",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "editor-text-bounce-in",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "editor-text-typewriter",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "editor-text-cursor",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "youtube-mini-spin",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/index.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "index.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/index.css"
+    },
+    {
+      "id": "commerce-live-approved.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/commerce-live-approved.css"
+    },
+    {
+      "id": "ul-commerce-panel-up",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/commerce-live-panel-approved.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "commerce-live-panel-approved.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/commerce-live-panel-approved.css"
+    },
+    {
+      "id": "v14-sticker-hi-wave",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-hello-bounce",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-hey-pop",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-night-float",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-morning-rise",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-love-heartbeat",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-kiss-float",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-hug-squeeze",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-thanks-bow",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-cute-tilt",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-lol-shake",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-wow-zoom",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-hearts-float",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-happy-bounce",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-cry-tremble",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-angry-rumble",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-excited-jump",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-sorry-bow",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-shy-sway",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-sticker-bye-wave",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-bill-flutter",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-mystery-wobble",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-lucky-pop",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-mega-bloom",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-diamond-shine",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-chest-bounce",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-wheel-spin",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-fortune-pulse",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-golden-glow",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-surprise-burst",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-airplane-flight",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-castle-rise",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-carriage-glide",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-whale-swim",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "v14-gift-phoenix-soar",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "live-artwork-motion.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-artwork-motion.css"
+    },
+    {
+      "id": "lt15-apply-icon-spin",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-tools-approved-v15.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "lt15-sheet-up",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-tools-approved-v15.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "live-tools-approved-v15.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/live-tools-approved-v15.css"
+    },
+    {
+      "id": "pkx-sheet-up",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/pk-invite-sheet.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "pkx-spin",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/pk-invite-sheet.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "pk-invite-sheet.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/pk-invite-sheet.css"
+    },
+    {
+      "id": "approved-live-sheet-up",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/solo-shop-live-approved.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "approved-live-heart-float",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/solo-shop-live-approved.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "solo-shop-live-approved.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/solo-shop-live-approved.css"
+    },
+    {
+      "id": "slow-spin-reverse",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "fade-in",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "slide-in-left",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "waving-hand",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "shake",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "marquee",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "heart-rate",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "flatline",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "party-voice-water-ripple",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "party-voice-water-core",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "multi-guest-mic-speak-pulse",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "solo-live-badge-pulse",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "solo-live-badge-blink",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "live-like-float",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css",
+      "proof": "document.getAnimations() currentTime T0/T1"
+    },
+    {
+      "id": "smule-rooms.css",
+      "kind": "CSS_ANIMATION_DECL",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/smule-rooms.css"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/components/admin/AdminCreationStudio.tsx"
+    },
+    {
+      "id": "PRINCESS_INAPP_LOADING",
+      "kind": "VIDEO_LOOP",
+      "sourceFile": "artifacts/instacollab/src/components/brand/index.ts"
+    },
+    {
+      "id": "PRINCESS_INAPP_LOADING",
+      "kind": "VIDEO_LOOP",
+      "sourceFile": "artifacts/instacollab/src/components/brand/princessLoadingRefreshAssets.ts"
+    },
+    {
+      "id": "avatar-ring-spin",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/components/feed/StoryRing.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/components/gifts/brand/UniLivesGiftAnimation.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/components/gifts/brand/UniLivesGiftMediaHost.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/karaoke/RecordingStudio.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/karaoke/SongUpload.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/live/OneVsOnePkSessionContainer.tsx"
+    },
+    {
+      "id": "V14_STICKERS",
+      "kind": "CSS_MOTION_ON_IMAGE",
+      "sourceFile": "artifacts/instacollab/src/components/live/PkStickerSheet.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/live/TeamPkSessionContainer.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/messages/MessagesScreen.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/messages/MusicDiscPlayer.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/messages/VoiceMessagePlayer.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/profile/CreatorLevelBadge.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/components/reels/ReelsScreen.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/components/seat-interactions/brand/UniLivesSeatInteractionAnimation.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/components/seat-interactions/brand/UniLivesSeatInteractionMediaHost.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/components/stickers/brand/UniLivesStickerAnimation.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/components/stickers/brand/UniLivesStickerMediaHost.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/contexts/GreedySessionContext.tsx"
+    },
+    {
+      "id": "lottie",
+      "kind": "LOTTIE",
+      "sourceFile": "artifacts/instacollab/src/domain/ui-config/uiSessionDomain.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/domain/ui-config/uiSessionDomain.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/adminLiveMirrorStream.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/adminMirrorSync.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/ar/useFaceAR.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/bootNativeShell.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/camera/bindMediaStreamToVideo.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/camera/hostMediaFrameStats.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/camera/useLiveTrtcPipeline.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/chat/useChatCallTrtcPipeline.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/giftAssetUpload.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/i18n/I18nContext.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/i18n/embeddedAssets.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/karaokeSearch.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/karaokeVideoCompositor.ts"
+    },
+    {
+      "id": "PRINCESS_INAPP_LOADING",
+      "kind": "VIDEO_LOOP",
+      "sourceFile": "artifacts/instacollab/src/lib/launchVideoMap.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/live/giftEffectCatalogBase.ts"
+    },
+    {
+      "id": "lottie",
+      "kind": "LOTTIE",
+      "sourceFile": "artifacts/instacollab/src/lib/live/giftPlaybackScheduler.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/live/giftPlaybackScheduler.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/live/giftStudioCatalog.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/live/openLiveRoom.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/live/voiceChangerPipeline.ts"
+    },
+    {
+      "id": "avatar-ring-spin",
+      "kind": "CSS_KEYFRAMES",
+      "sourceFile": "artifacts/instacollab/src/lib/liveRing.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/media/r2Upload.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/performance/actionTrace.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/playbackAudio.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/profileSurface.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/reelPlayback.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/reels/useReelDirectVideoPlayback.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/safeArea.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/shareLinks.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/unilives-assets/fallbacks.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/unilives-assets/giftResolve.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/unilives-assets/resolver.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/unilives-assets/seatInteractionResolve.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/unilives-assets/stickerResolve.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/lib/unilives-assets/types.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/useCarouselNativeVideoAdvance.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/useExclusivePlayback.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/webar/tencentWebARStableApply.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/lib/webar/useTencentWebAR.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/GiftPlayOverlay.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/GiftSvgaPlayer.tsx"
+    },
+    {
+      "id": "V14_BEAUTY",
+      "kind": "STATIC_COVER",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/LiveBeautySheet.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/LyricsOverlay.tsx"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/MultiGuestSelfMediaHost.tsx"
+    },
+    {
+      "id": "V14_GIFT_SPECS",
+      "kind": "CSS_MOTION_ON_IMAGE",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/liveToolsV14Artwork.ts"
+    },
+    {
+      "id": "V14_STICKERS",
+      "kind": "CSS_MOTION_ON_IMAGE",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/liveToolsV14Artwork.ts"
+    },
+    {
+      "id": "V14_BEAUTY",
+      "kind": "STATIC_COVER",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/components/liveToolsV14Artwork.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/hooks/useMicVoiceActivity.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/hooks/useSingingSession.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/hooks/useSongPerformanceTimer.ts"
+    },
+    {
+      "id": "requestAnimationFrame",
+      "kind": "RAF",
+      "sourceFile": "artifacts/instacollab/src/smule-rooms/pages/Room.tsx"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/types/ambient.d.ts"
+    },
+    {
+      "id": "lottie",
+      "kind": "LOTTIE",
+      "sourceFile": "artifacts/instacollab/src/ui-access/renderers/animationRendererRegistry.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/ui-access/renderers/animationRendererRegistry.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/ui-access/renderers/giftRendererRegistry.ts"
+    },
+    {
+      "id": "lottie",
+      "kind": "LOTTIE",
+      "sourceFile": "artifacts/instacollab/src/ui-access/runtime/capabilityProfile.ts"
+    },
+    {
+      "id": "svga",
+      "kind": "SVGA",
+      "sourceFile": "artifacts/instacollab/src/ui-access/runtime/capabilityProfile.ts"
+    }
+  ]
+}
