@@ -223,6 +223,9 @@ void import('./lib/auth/identityDedupe').then(async (m) => {
 
 void import('./lib/instantUiBoot').then((m) => m.startInstantUiBoot());
 
+// QA-only: temporal visual/animation probe (localStorage UNILIVE_QA_VISUAL=1 or ?qaVisual=1).
+void import('./lib/qa/visualRuntimeProbe').then((m) => m.startQaVisualProbeLoop());
+
 void import('./lib/cloudSocial/platformAppBrandCloud').then((m) => {
   m.bootstrapPlatformAppBrand();
 });

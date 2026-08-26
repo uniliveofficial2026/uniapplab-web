@@ -79,6 +79,45 @@ function normalizePartyRoomRow(row: PartyRoomRow): PartyRoomRow {
   };
 }
 
+export async function updatePartyRoomParticipantCount(
+  roomId: string,
+  participantCount: number,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase || !roomId) return;
+  const count = Math.max(0, Math.floor(participantCount));
+  const { error } = await supabase
+    .from('party_rooms')
+    .update({ participant_count: count, updated_at: new Date().toISOString() })
+    .eq('id', roomId)
+    .eq('status', 'active');
+  if (error) throw error;
+}
+
+/** Host liveness lease — keeps discoverable Solo rooms fresh while RTC session is alive. */
+export async function touchPartyRoomHeartbeat(roomId: string): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase || !roomId) return;
+  const { error } = await supabase
+    .from('party_rooms')
+    .update({ updated_at: new Date().toISOString() })
+    .eq('id', roomId)
+    .eq('status', 'active');
+  if (error) throw error;
+}
+
+/** Rooms with no host heartbeat beyond this window are treated as stale for discovery. */
+export const PARTY_ROOM_HOST_LEASE_MS = 4 * 60 * 1000;
+
+export function isPartyRoomHostLeaseFresh(
+  row: Pick<PartyRoomRow, 'updated_at' | 'created_at'>,
+  nowMs = Date.now(),
+): boolean {
+  const stamp = Date.parse(row.updated_at || row.created_at || '');
+  if (!Number.isFinite(stamp)) return false;
+  return nowMs - stamp <= PARTY_ROOM_HOST_LEASE_MS;
+}
+
 export async function fetchActivePartyRooms(limit = 40): Promise<PartyRoomRow[]> {
   const supabase = getSupabaseClient();
   if (!supabase) return [];
@@ -87,9 +126,13 @@ export async function fetchActivePartyRooms(limit = 40): Promise<PartyRoomRow[]>
     .select('*')
     .eq('status', 'active')
     .order('updated_at', { ascending: false })
-    .limit(limit);
+    .limit(Math.max(limit * 2, 40));
   if (error) throw error;
-  return (data ?? []).map((row) => normalizePartyRoomRow(row as PartyRoomRow));
+  const now = Date.now();
+  return (data ?? [])
+    .map((row) => normalizePartyRoomRow(row as PartyRoomRow))
+    .filter((row) => isPartyRoomHostLeaseFresh(row, now))
+    .slice(0, limit);
 }
 
 export async function fetchPartyRoomById(roomId: string): Promise<PartyRoomRow | null> {
@@ -117,7 +160,11 @@ export async function fetchOwnerActivePartyRoom(ownerId: string): Promise<PartyR
     .limit(1)
     .maybeSingle();
   if (error) throw error;
-  return data ? normalizePartyRoomRow(data as PartyRoomRow) : null;
+  const row = data ? normalizePartyRoomRow(data as PartyRoomRow) : null;
+  if (!row) return null;
+  // Owner rehydrate must still see their own active row even if lease is stale,
+  // so the host client can reconnect/publish or explicitly end it.
+  return row;
 }
 
 export async function endPartyRoom(roomId: string, ownerId: string): Promise<void> {
@@ -138,21 +185,6 @@ export async function endPartyRoom(roomId: string, ownerId: string): Promise<voi
     byOwnerError = owned.error;
   }
   if (byIdError && byOwnerError) throw byIdError;
-}
-
-export async function updatePartyRoomParticipantCount(
-  roomId: string,
-  participantCount: number,
-): Promise<void> {
-  const supabase = getSupabaseClient();
-  if (!supabase || !roomId) return;
-  const count = Math.max(0, Math.floor(participantCount));
-  const { error } = await supabase
-    .from('party_rooms')
-    .update({ participant_count: count, updated_at: new Date().toISOString() })
-    .eq('id', roomId)
-    .eq('status', 'active');
-  if (error) throw error;
 }
 
 export function isPartyRoomsCloudAvailable(): boolean {

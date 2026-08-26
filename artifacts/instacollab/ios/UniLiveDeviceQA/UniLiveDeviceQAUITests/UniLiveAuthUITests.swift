@@ -606,13 +606,36 @@ final class UniLiveAuthUITests: XCTestCase {
     ensureSignedInShell()
     var root = waitForWebRoot()
 
-    // Already hosting — do not end Live / recreate room.
+    // Already hosting UI is not enough — require RTC connected + camera published.
+    // Stale Solo shell with remotes=0 must end and recreate, not skip publish proof.
     if landmark("solo-live-view", in: root, timeout: 3).exists
       || landmark("live-rtc-connected", in: root, timeout: 2).exists
       || landmark("camera-facing-front", in: root, timeout: 2).exists
       || landmark("camera-facing-rear", in: root, timeout: 2).exists {
-      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE")
-      return root
+      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE_UI")
+      _ = landmark("live-rtc-connected", in: root, timeout: 25)
+      _ = landmark("camera-rtc-published", in: root, timeout: 20)
+      if landmark("live-rtc-connected", in: root, timeout: 2).exists
+        && landmark("camera-rtc-published", in: root, timeout: 2).exists {
+        print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE")
+        print("HOST_RTC=CONNECTED")
+        print("HOST_PUBLICATION=PRESENT")
+        return root
+      }
+      print("CAMERA_ENTRY=STALE_SOLO_NO_PUBLICATION — ending Live to recreate")
+      let endLive = landmark("End Live", in: root, timeout: 4)
+      if endLive.exists {
+        endLive.tap()
+        sleep(2)
+        let confirm = root.buttons["End"].firstMatch
+        if confirm.exists { confirm.tap(); sleep(2) }
+        let leave = landmark("Leave room", in: root, timeout: 3)
+        if leave.exists { leave.tap(); sleep(2) }
+      } else {
+        let leave = landmark("Leave room", in: root, timeout: 3)
+        if leave.exists { leave.tap(); sleep(2) }
+      }
+      root = waitForWebRoot()
     }
 
     var openedLive = false
@@ -631,8 +654,17 @@ final class UniLiveAuthUITests: XCTestCase {
     if landmark("solo-live-view", in: root, timeout: 3).exists
       || landmark("live-rtc-connected", in: root, timeout: 2).exists
       || landmark("live-rtc-connecting", in: root, timeout: 2).exists {
-      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE_AFTER_LIVE_TAB")
-      return root
+      print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE_AFTER_LIVE_TAB_UI")
+      _ = landmark("live-rtc-connected", in: root, timeout: 25)
+      _ = landmark("camera-rtc-published", in: root, timeout: 20)
+      if landmark("live-rtc-connected", in: root, timeout: 2).exists
+        && landmark("camera-rtc-published", in: root, timeout: 2).exists {
+        print("CAMERA_ENTRY=ALREADY_IN_SOLO_LIVE_AFTER_LIVE_TAB")
+        print("HOST_RTC=CONNECTED")
+        print("HOST_PUBLICATION=PRESENT")
+        return root
+      }
+      print("CAMERA_ENTRY=STALE_SOLO_AFTER_LIVE_TAB — continuing to go-live recreate")
     }
 
     var goLive = landmark("go-live-entry", in: root, timeout: 10)

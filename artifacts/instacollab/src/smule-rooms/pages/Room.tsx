@@ -2227,6 +2227,27 @@ export function Room() {
     setHostDashboard((prev) => prev ?? emptyHostDashboard(roomDisplayId, liveStartedAtRef.current));
   }, [isCanonicalLiveHost, liveBroadcastEnded, roomDisplayId]);
 
+  // Host session lease: keep party_rooms.updated_at fresh while Solo host session is active.
+  useEffect(() => {
+    if (!isCanonicalLiveHost || liveBroadcastEnded || !roomDisplayId) return undefined;
+    if (roomMode !== 'SoloLive' && roomMode !== 'ShopLive' && roomMode !== 'AudioLive') {
+      return undefined;
+    }
+    let cancelled = false;
+    const beat = () => {
+      void import('../../lib/party/partyRoomsCloud')
+        .then((m) => m.touchPartyRoomHeartbeat(roomDisplayId, self.id))
+        .catch(() => undefined);
+    };
+    beat();
+    const timer = window.setInterval(beat, 30_000);
+    return () => {
+      cancelled = true;
+      window.clearInterval(timer);
+      void cancelled;
+    };
+  }, [isCanonicalLiveHost, liveBroadcastEnded, roomDisplayId, roomMode, self.id]);
+
   useEffect(() => {
     let cancelled = false;
     void (async () => {
@@ -4400,7 +4421,8 @@ export function Room() {
   }, [usesLivePartyFeed, roomDisplayId, self.id, self.roomName, self.avatarUrl, self]);
 
   useEffect(() => {
-    if (roomMode !== 'SoloLive' || !usesLivePartyFeed || !isRoomOwner(currentUserRole)) return;
+    if (roomMode !== 'SoloLive' || !usesLivePartyFeed) return;
+    if (!isRoomOwner(currentUserRole) && !isCanonicalLiveHost) return;
     setUserCameraOn(true);
     setActiveSeats((prev) => {
       if (prev.host && isRoomSelfGuest(prev.host, self)) return prev;
@@ -4424,6 +4446,7 @@ export function Room() {
     roomMode,
     usesLivePartyFeed,
     currentUserRole,
+    isCanonicalLiveHost,
     roomDisplayId,
     self,
     userMicPrefOn,
@@ -6074,16 +6097,20 @@ export function Room() {
         </>
       )}
 
+      {/* Solo canonical host must publish even if host-seat hydration lags (avoids remotes=0). */}
       {roomMode === 'SoloLive' && (
         <RoomLiveMediaSession
           key={`solo-live:${roomDisplayId}`}
           sessionMode="SoloLive"
           roomId={roomDisplayId}
-          userSeatKey={userSeatKey}
-          userCameraOn={userCameraOn}
-          userMicOn={userMicOn}
+          userSeatKey={userSeatKey ?? (isCanonicalLiveHost ? 'host' : null)}
+          userCameraOn={userCameraOn || isCanonicalLiveHost}
+          userMicOn={userMicOn || (isCanonicalLiveHost && userMicPrefOn)}
           userMicAdminMuted={userMicAdminMuted}
-          publishMic={voiceMicPublishing}
+          publishMic={
+            voiceMicPublishing ||
+            Boolean(isCanonicalLiveHost && userMicPrefOn && !userMicAdminMuted)
+          }
           processedAudioTrack={voiceMicPublishing ? roomVoiceProcessedTrack : null}
           effectSelection={DEEPAR_ENABLED ? multiGuestDeeparSelection : EMPTY_DEEPAR_EFFECT_SELECTION}
           beautyId={liveBeautyEffectId}

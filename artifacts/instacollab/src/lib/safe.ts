@@ -10,10 +10,9 @@ import {
   normalizePresentationMediaUrl,
 } from './mediaUrlContract';
 
-const FALLBACK_AVATAR =
-  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?w=256&h=256&fit=crop&q=85&auto=format';
-const FALLBACK_MEDIA =
-  'https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?w=1080&fit=crop&q=85&auto=format';
+const FALLBACK_AVATAR = '/brand/app-logo.png';
+/** Approved local placeholder — never Unsplash for product media failures. */
+const FALLBACK_MEDIA = '/brand/app-logo.png';
 
 export { FALLBACK_AVATAR, FALLBACK_MEDIA };
 

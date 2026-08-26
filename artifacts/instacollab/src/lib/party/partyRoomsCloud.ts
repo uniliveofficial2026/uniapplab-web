@@ -29,6 +29,7 @@ import {
   fetchPartyRoomById as fetchSupabasePartyRoomById,
   isPartyRoomsCloudAvailable as isSupabasePartyRoomsCloudAvailable,
   updatePartyRoomParticipantCount as updateSupabasePartyRoomParticipantCount,
+  touchPartyRoomHeartbeat as touchSupabasePartyRoomHeartbeat,
   upsertPartyRoom as upsertSupabasePartyRoom,
   type PartyRoomRow,
   type PartyRoomUpsert,
@@ -204,6 +205,21 @@ export async function updatePartyRoomParticipantCount(
     return;
   }
   await updateSupabasePartyRoomParticipantCount(roomId, participantCount);
+}
+
+/** Host session lease heartbeat — discovery drops rooms without a fresh touch. */
+export async function touchPartyRoomHeartbeat(
+  roomId: string,
+  userId?: string,
+): Promise<void> {
+  if (!roomId) return;
+  if (shouldUseFirebaseForPartyCloud(userId) && isFirebasePartyRoomsAvailable()) {
+    const existing = await fetchFirebasePartyRoomById(roomId);
+    if (!existing) return;
+    await upsertFirebasePartyRoom({ ...existing });
+    return;
+  }
+  await touchSupabasePartyRoomHeartbeat(roomId);
 }
 
 export async function fetchPartyRoomMessages(
