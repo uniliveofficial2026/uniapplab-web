@@ -1,22 +1,29 @@
 {
-  "generatedAt": "2026-08-26T18:27:51.937Z",
+  "generatedAt": "2026-08-26T18:42:07Z",
   "fullRealApplication": "FAIL",
-  "iosVisualRuntime": "FAIL",
-  "assetUrls": "LOCAL_PACKAGED",
+  "iosVisualRuntime": "FAIL_PENDING_PHYSICAL",
+  "assetUrls": "PASS_HTTP_LOCAL_AND_PROD_REQUIRED_SET",
   "animations": "FAIL_PENDING_PHYSICAL",
   "rootCausesFixed": [
     "mediaUrlContract: root-relative paths no longer replaced by Unsplash fallback",
     "restored missing live-tools-v14 + approved-v12 packages into public/"
   ],
   "stillRequired": [
-    "build + sync deploy/spa-public",
-    "push release branch / Render deploy",
-    "physical iPhone progression proof"
+    "physical iPhone T0/T1 animation proof",
+    "Host RTC remotes>0 lane continues separately"
   ],
   "totals": {
     "visualAssetsIndexed": 403,
     "animationsIndexed": 184,
     "requiredPaths": 86,
     "brokenLocal": 0
-  }
+  },
+  "production": {
+    "spa": "assets/index-CtgiXxT9.js",
+    "liveVersion": "ada5905eed58",
+    "releaseSha": "4e87812",
+    "renderDeploy": "dep-da7j140u01pc73c0bfj0"
+  },
+  "brokenUrlsBefore": 4,
+  "brokenUrlsAfterProdRequiredSet": 0
 }

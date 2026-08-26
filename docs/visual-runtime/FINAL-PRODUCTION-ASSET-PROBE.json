@@ -1,6 +1,6 @@
 {
   "origin": "https://app.uniapplab.com",
-  "generatedAt": "2026-08-26T18:21:19.136Z",
+  "generatedAt": "2026-08-26T18:42:07.215Z",
   "rows": [
     {
       "path": "/brand/app-logo.png",
@@ -40,39 +40,39 @@
     },
     {
       "path": "/live-tools-v14/gifts/lucky-bill.png",
-      "status": 404,
-      "contentType": "text/plain; charset=utf-8",
-      "bytes": 10,
+      "status": 200,
+      "contentType": "image/png",
+      "bytes": 29886,
       "finalUrl": "https://app.uniapplab.com/live-tools-v14/gifts/lucky-bill.png",
       "spaFallback": false,
-      "failureClass": "ASSET_404"
+      "failureClass": null
     },
     {
       "path": "/live-tools-v14/beauty/natural.png",
-      "status": 404,
-      "contentType": "text/plain; charset=utf-8",
-      "bytes": 10,
+      "status": 200,
+      "contentType": "image/png",
+      "bytes": 21634,
       "finalUrl": "https://app.uniapplab.com/live-tools-v14/beauty/natural.png",
       "spaFallback": false,
-      "failureClass": "ASSET_404"
+      "failureClass": null
     },
     {
       "path": "/live-tools-v14/stickers/hi.png",
-      "status": 404,
-      "contentType": "text/plain; charset=utf-8",
-      "bytes": 10,
+      "status": 200,
+      "contentType": "image/png",
+      "bytes": 39946,
       "finalUrl": "https://app.uniapplab.com/live-tools-v14/stickers/hi.png",
       "spaFallback": false,
-      "failureClass": "ASSET_404"
+      "failureClass": null
     },
     {
       "path": "/live-gifts/approved-v12/UG-001_enchanted-rose.png",
-      "status": 404,
-      "contentType": "text/plain; charset=utf-8",
-      "bytes": 10,
+      "status": 200,
+      "contentType": "image/png",
+      "bytes": 176433,
       "finalUrl": "https://app.uniapplab.com/live-gifts/approved-v12/UG-001_enchanted-rose.png",
       "spaFallback": false,
-      "failureClass": "ASSET_404"
+      "failureClass": null
     }
   ]
 }
