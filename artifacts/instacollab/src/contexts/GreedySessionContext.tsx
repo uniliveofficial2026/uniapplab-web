@@ -10,6 +10,11 @@ import React, {
 import { createPortal } from 'react-dom';
 import type { Tab } from '../types';
 import { resolveGreedyTapAppUrl } from '../lib/greedyTap/config';
+import {
+  postGreedyHostInsets,
+  readGreedyHostInsets,
+  subscribeGreedyHostInsets,
+} from '../lib/greedyTap/hostInsets';
 import { useDB } from '../lib/useDB';
 import { resolveUser, safeAvatarUrl } from '../lib/safe';
 import { getProfileDisplayName, getProfileHandle } from '../lib/profileDisplay';
@@ -103,10 +108,13 @@ export function GreedySessionProvider({
   const adminSessionRef = useRef(false);
   /** Sync flag: block enter-pip across admin enter/leave transitions. */
   const blockPipRef = useRef(false);
-  const [pipPos, setPipPos] = useState(() => ({
-    left: Math.max(12, window.innerWidth - PIP_WIDTH - 16),
-    top: Math.max(64, window.innerHeight - PIP_HEIGHT - 100),
-  }));
+  const [pipPos, setPipPos] = useState(() => {
+    const topInset = readGreedyHostInsets().top;
+    return {
+      left: Math.max(12, window.innerWidth - PIP_WIDTH - 16),
+      top: Math.max(topInset + 56, window.innerHeight - PIP_HEIGHT - 100),
+    };
+  });
   const pipPosRef = useRef(pipPos);
   pipPosRef.current = pipPos;
   const collapsedRef = useRef(pipCollapsed);
@@ -137,10 +145,11 @@ export function GreedySessionProvider({
   const clampDelta = useCallback(
     (originLeft: number, originTop: number, rawDx: number, rawDy: number) => {
       const { width, height } = currentPipSize();
+      const minTop = Math.max(8, readGreedyHostInsets().top + 4);
       const maxLeft = window.innerWidth - width - 8;
-      const maxTop = window.innerHeight - height - 8;
+      const maxTop = window.innerHeight - height - Math.max(8, readGreedyHostInsets().bottom + 4);
       const nextLeft = Math.min(maxLeft, Math.max(8, originLeft + rawDx));
-      const nextTop = Math.min(maxTop, Math.max(8, originTop + rawDy));
+      const nextTop = Math.min(maxTop, Math.max(minTop, originTop + rawDy));
       return { dx: nextLeft - originLeft, dy: nextTop - originTop, left: nextLeft, top: nextTop };
     },
     [currentPipSize],
@@ -231,6 +240,13 @@ export function GreedySessionProvider({
       /* ignore */
     }
   }, []);
+
+  const isFullscreenGreedyHost =
+    currentTab === 'greedy-tap' && presentation === 'fullscreen' && !pipCollapsed;
+
+  const pushHostInsetsToGame = useCallback(() => {
+    postGreedyHostInsets(postToGame, { hostPaddedTop: isFullscreenGreedyHost });
+  }, [isFullscreenGreedyHost, postToGame]);
 
   const pushSessionToGame = useCallback(() => {
     const userId = db.currentUserId;
@@ -469,6 +485,7 @@ export function GreedySessionProvider({
       const tab = ((data as { tab?: string }).tab || 'home') as Tab;
 
       if (type === 'ready') {
+        pushHostInsetsToGame();
         pushSessionToGame();
         // Never push admin into the floating PiP card.
         if (adminSessionRef.current || (adminOpen && presentation === 'fullscreen')) {
@@ -481,7 +498,12 @@ export function GreedySessionProvider({
       }
       if (type === 'wallet-sync-request') {
         // Game UI asked for the canonical UniLive wallet balance.
+        pushHostInsetsToGame();
         pushSessionToGame();
+        return;
+      }
+      if (type === 'request-host-insets') {
+        pushHostInsetsToGame();
         return;
       }
       if (type === 'wallet-spend' || type === 'wallet-credit') {
@@ -649,11 +671,21 @@ export function GreedySessionProvider({
     postToGame,
     presentation,
     pushSessionToGame,
+    pushHostInsetsToGame,
     returnToWorkspace,
     showPipCard,
   ]);
 
   // Keep Greedy identity/balance aligned with UniLive account + wallet.
+  useEffect(() => {
+    if (!active) return;
+    pushHostInsetsToGame();
+    return subscribeGreedyHostInsets(postToGame, () => ({
+      hostPaddedTop:
+        currentTab === 'greedy-tap' && presentation === 'fullscreen' && !pipCollapsed,
+    }));
+  }, [active, currentTab, pipCollapsed, postToGame, presentation, pushHostInsetsToGame]);
+
   useEffect(() => {
     if (!active) return;
     pushSessionToGame();
@@ -788,7 +820,14 @@ export function GreedySessionProvider({
                         backfaceVisibility: 'hidden',
                       }
                     : fullscreenHost
-                      ? { inset: 0 }
+                      ? {
+                          inset: 0,
+                          paddingTop: 'var(--app-safe-top, env(safe-area-inset-top, 0px))',
+                          paddingBottom: 'var(--app-safe-bottom, env(safe-area-inset-bottom, 0px))',
+                          paddingLeft: 'var(--app-safe-left, env(safe-area-inset-left, 0px))',
+                          paddingRight: 'var(--app-safe-right, env(safe-area-inset-right, 0px))',
+                          boxSizing: 'border-box',
+                        }
                       : { left: 0, top: 0 }
                 }
               >
@@ -801,6 +840,7 @@ export function GreedySessionProvider({
                   allow="fullscreen; gamepad; autoplay; clipboard-read; clipboard-write; picture-in-picture"
                   loading="eager"
                   onLoad={() => {
+                    pushHostInsetsToGame();
                     pushSessionToGame();
                     if (adminSessionRef.current || (adminOpen && presentation === 'fullscreen')) {
                       postToGame({ type: 'open-admin' });
@@ -820,7 +860,8 @@ export function GreedySessionProvider({
                 <button
                   type="button"
                   onClick={() => returnToWorkspace()}
-                  className="fixed left-3 top-3 z-[260] rounded-full border border-white/25 bg-black/70 px-3 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur-md hover:bg-black/85"
+                  className="fixed left-3 z-[260] rounded-full border border-white/25 bg-black/70 px-3 py-1.5 text-xs font-semibold text-white shadow-lg backdrop-blur-md hover:bg-black/85"
+                  style={{ top: 'max(12px, var(--app-safe-top, env(safe-area-inset-top, 0px)))' }}
                 >
                   ← Workspace
                 </button>

@@ -195,7 +195,10 @@ function nativeShellFallbacks(
 ): { top: number; bottom: number } {
   const runtime = getPlatformRuntime();
   const needsFallback =
-    runtime.shell === 'native' || runtime.shell === 'standalone_pwa';
+    runtime.shell === 'native' ||
+    runtime.shell === 'standalone_pwa' ||
+    (runtime.os === 'ios' && runtime.form === 'phone') ||
+    (runtime.os === 'android' && runtime.form === 'phone');
   if (!needsFallback) return { top: 0, bottom: 0 };
 
   let top = 0;
@@ -203,7 +206,7 @@ function nativeShellFallbacks(
 
   if (envTop <= 0) {
     if (runtime.os === 'android') top = 28;
-    else if (runtime.os === 'ios') top = 47;
+    else if (runtime.os === 'ios') top = runtime.form === 'phone' ? 59 : 47;
   }
 
   if (envBottom <= 0) {

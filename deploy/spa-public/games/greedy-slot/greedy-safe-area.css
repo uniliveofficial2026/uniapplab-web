@@ -1,0 +1,62 @@
+/**
+ * Greedy Tap — notch / Dynamic Island / home-indicator safe layout.
+ * Applied after vendor sync on every build.
+ *
+ * When embedded in UniLive, the host shell pads the iframe; --greedy-safe-top
+ * stays minimal. Standalone / PiP uses host-insets postMessage for real values.
+ */
+:root {
+  --greedy-safe-top: max(8px, env(safe-area-inset-top, 0px));
+  --greedy-safe-bottom: max(8px, env(safe-area-inset-bottom, 0px));
+  --greedy-safe-left: max(8px, env(safe-area-inset-left, 0px));
+  --greedy-safe-right: max(8px, env(safe-area-inset-right, 0px));
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+
+/* Primary game chrome (menu, PiP, home, live badge, close) */
+header.flex.shrink-0.items-center.justify-between.z-10.w-full,
+header.flex.shrink-0.items-center.justify-between {
+  padding-top: max(8px, var(--greedy-safe-top)) !important;
+  padding-left: max(8px, var(--greedy-safe-left));
+  padding-right: max(8px, var(--greedy-safe-right));
+}
+
+/* Win / coin toast pill */
+[class*="left-1/2"][class*="-translate-x-1/2"][class*="z-[100]"] {
+  top: max(8px, var(--greedy-safe-top)) !important;
+}
+
+/* Live strip / timer bar under header */
+[class*="top-4"][class*="inset-x-0"][class*="h-7"][class*="bg-black"],
+[class*="top-4"][class*="inset-x-0"][class*="h-7"] {
+  top: max(1rem, calc(var(--greedy-safe-top) + 0.25rem)) !important;
+}
+
+.absolute.top-4.right-4,
+[class*="top-4"][class*="right-4"] {
+  top: max(1rem, calc(var(--greedy-safe-top) + 0.25rem)) !important;
+}
+
+[class*="top-2"][class*="left-4"],
+[class*="top-2"][class*="right-4"] {
+  top: max(0.5rem, calc(var(--greedy-safe-top) + 0.25rem)) !important;
+}
+
+[class*="top-1"][class*="left-1/2"][class*="-translate-x-1/2"] {
+  top: max(0.25rem, var(--greedy-safe-top)) !important;
+}
+
+/* Floating admin / chat controls */
+[class*="fixed"][class*="z-[99999]"][class*="bottom-24"] {
+  bottom: calc(6rem + var(--greedy-safe-bottom)) !important;
+  right: max(1rem, var(--greedy-safe-right)) !important;
+}
+
+[class*="h-9"][class*="bg-gray-800/90"][class*="backdrop-blur-sm"] {
+  margin-top: var(--greedy-safe-top);
+}

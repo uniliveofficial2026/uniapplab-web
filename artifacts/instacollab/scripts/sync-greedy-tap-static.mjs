@@ -21,6 +21,8 @@ const localOk = fs.existsSync(path.join(localDir, 'index.html'));
 const publicOk = fs.existsSync(path.join(outDir, 'index.html'));
 const prodDir = vendorOk ? vendorDir : localOk ? localDir : null;
 
+const overlayDir = path.join(appRoot, 'greedy-slot-overlays');
+
 function rewriteIndexHtml(indexPath) {
   if (!fs.existsSync(indexPath)) return;
   let html = fs.readFileSync(indexPath, 'utf8');
@@ -35,6 +37,41 @@ function rewriteIndexHtml(indexPath) {
     .replace(/"\.\/manifest\.json"/g, '"/games/greedy-slot/manifest.json"')
     .replace(/"\/manifest\.json"/g, '"/games/greedy-slot/manifest.json"');
   fs.writeFileSync(indexPath, html);
+}
+
+/** Notch / Dynamic Island safe-area overlays (survive vendor resync). */
+function applyGreedySafeAreaOverlays() {
+  if (!fs.existsSync(overlayDir)) return;
+
+  for (const name of ['greedy-safe-area.css', 'greedy-host-insets.js']) {
+    const from = path.join(overlayDir, name);
+    if (fs.existsSync(from)) {
+      fs.copyFileSync(from, path.join(outDir, name));
+    }
+  }
+
+  const indexPath = path.join(outDir, 'index.html');
+  if (!fs.existsSync(indexPath)) return;
+  let html = fs.readFileSync(indexPath, 'utf8');
+  if (!html.includes('greedy-safe-area.css')) {
+    html = html.replace(
+      '</head>',
+      '    <link rel="stylesheet" href="/games/greedy-slot/greedy-safe-area.css" />\n    <script src="/games/greedy-slot/greedy-host-insets.js"></script>\n  </head>',
+    );
+  }
+  fs.writeFileSync(indexPath, html);
+
+  const assetsDir = path.join(outDir, 'assets');
+  if (!fs.existsSync(assetsDir)) return;
+  for (const file of fs.readdirSync(assetsDir)) {
+    if (!file.endsWith('.js')) continue;
+    const jsPath = path.join(assetsDir, file);
+    let js = fs.readFileSync(jsPath, 'utf8');
+    const next = js
+      .replaceAll('style:{paddingTop:"8px"}', 'style:{paddingTop:"max(8px,var(--greedy-safe-top,env(safe-area-inset-top,0px)))"}')
+      .replaceAll('style:{top:"8px"}', 'style:{top:"max(8px,var(--greedy-safe-top,env(safe-area-inset-top,0px)))"}');
+    if (next !== js) fs.writeFileSync(jsPath, next);
+  }
 }
 
 if (prodDir) {
@@ -53,11 +90,13 @@ if (prodDir) {
   }
 
   rewriteIndexHtml(path.join(outDir, 'index.html'));
+  applyGreedySafeAreaOverlays();
   console.log(
     `[sync-greedy-tap-static] ✓ ${path.relative(appRoot, outDir)} ← ${path.relative(appRoot, prodDir)}`,
   );
 } else if (publicOk) {
   rewriteIndexHtml(path.join(outDir, 'index.html'));
+  applyGreedySafeAreaOverlays();
   console.log(
     '[sync-greedy-tap-static] ✓ keeping committed public/games/greedy-slot (vendor not in deploy upload)',
   );
