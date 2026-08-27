@@ -23,6 +23,12 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
+import { KeyboardAwareForm } from '../common/KeyboardAwareForm';
+import {
+  keyboardInputClassName,
+  keyboardSurfaceDataAttr,
+  walletAmountInputClassName,
+} from '../common/keyboardLayout';
 
 interface CryptoTabProps {
   cryptoPrices: { BTC: number; ETH: number; SOL: number };
@@ -268,7 +274,11 @@ export function CryptoTab({ cryptoPrices, onPricesChange }: CryptoTabProps) {
           <p className="text-xs text-muted-foreground font-semibold mt-1">Configure buying and selling metrics. Instant execution over commercial network nodes.</p>
         </div>
 
-        <form onSubmit={handleExecuteTrade} className="bg-card border border-border rounded-[32px] p-6 space-y-5 shadow-sm">
+        <KeyboardAwareForm
+          onSubmit={handleExecuteTrade}
+          className="bg-card border border-border rounded-[32px] p-6 space-y-5 shadow-sm min-w-0"
+          {...keyboardSurfaceDataAttr}
+        >
           
           {/* Action toggle */}
           <div className="flex gap-2.5 bg-secondary/40 p-1 rounded-xl border border-border">
@@ -312,7 +322,7 @@ export function CryptoTab({ cryptoPrices, onPricesChange }: CryptoTabProps) {
                     onChange={e => setTradeAmount(e.target.value)}
                     placeholder="0.00"
                     step="0.01"
-                    className="bg-transparent border-0 text-xl font-black text-foreground focus:ring-0 focus:outline-none p-0 w-full min-w-0"
+                    className={walletAmountInputClassName}
                   />
                 </div>
                 
@@ -376,7 +386,7 @@ export function CryptoTab({ cryptoPrices, onPricesChange }: CryptoTabProps) {
             </div>
           )}
 
-        </form>
+        </KeyboardAwareForm>
       </div>
 
     </div>

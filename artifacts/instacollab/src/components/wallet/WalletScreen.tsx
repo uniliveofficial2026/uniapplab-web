@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
 import { 
   Wallet, 
-  LayoutDashboard, 
-  DollarSign, 
-  TrendingUp, 
-  Gamepad2, 
-  ShoppingBag 
 } from 'lucide-react';
 import { OverviewTab } from './OverviewTab';
 import { BuyExchangeTab } from './BuyExchangeTab';
@@ -43,39 +38,34 @@ export function WalletScreen() {
     setCryptoPrices(newPrices);
   };
 
-  const currentTabStyles = (tab: WalletTab) => 
-    `flex items-center gap-2 p-2.5 px-4 rounded-xl font-bold text-xs transition-all border ${
-      activeTab === tab 
-        ? 'bg-primary text-primary-foreground border-primary shadow-sm shadow-primary/20' 
-        : 'hover:bg-secondary text-muted-foreground border-transparent bg-transparent'
-    }`;
-
   return (
-    <div className="w-full min-h-0 flex-1 flex flex-col bg-background">
-    <div className="app-screen-scroll p-4 sm:p-8 max-w-7xl mx-auto space-y-6 flex flex-col overflow-x-hidden w-full min-w-0 app-content-gutter">
+    <div
+      className="w-full flex flex-col flex-1 min-h-0 min-w-0 max-w-7xl mx-auto pt-4 sm:pt-8 pb-6 space-y-6 overflow-x-hidden app-content-gutter px-4 sm:px-8"
+      data-testid="wallet-screen"
+    >
       
       {/* 1. Universal Top Header bar */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5">
-        <div className="flex items-center gap-3">
-          <div className="p-3 bg-primary/10 rounded-2xl text-primary">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-border/80 pb-5 min-w-0">
+        <div className="flex items-center gap-3 min-w-0">
+          <div className="p-3 bg-primary/10 rounded-2xl text-primary shrink-0">
             <Wallet className="w-6 h-6" />
           </div>
-          <div>
-            <h2 className="text-xl font-black text-foreground tracking-tight">Venture Finance Wallet</h2>
-            <p className="text-[11px] text-muted-foreground font-semibold mt-0.5">Unified ledger for coins, cashout clearing, crypto indices & game store assets</p>
+          <div className="min-w-0">
+            <h2 className="text-xl font-black text-foreground tracking-tight truncate">Venture Finance Wallet</h2>
+            <p className="text-[11px] text-muted-foreground font-semibold mt-0.5 line-clamp-2 sm:line-clamp-none">Unified ledger for coins, cashout clearing, crypto indices & game store assets</p>
           </div>
         </div>
 
         {/* Global verified account stats */}
-        <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 bg-secondary/35 p-3 sm:p-2 sm:px-3 border border-border/70 rounded-2xl select-none font-semibold w-full sm:w-auto overflow-hidden">
-          <div className="text-left sm:text-right flex-1 sm:flex-none">
+        <div className="flex flex-wrap sm:flex-nowrap items-center gap-4 bg-secondary/35 p-3 sm:p-2 sm:px-3 border border-border/70 rounded-2xl select-none font-semibold w-full sm:w-auto min-w-0 overflow-hidden">
+          <div className="text-left sm:text-right flex-1 sm:flex-none min-w-0">
             <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Trading License</p>
             <p className="text-[10px] text-emerald-400 font-extrabold flex items-center justify-start sm:justify-end gap-1">● VERIFIED</p>
           </div>
           <div className="h-px w-full sm:h-6 sm:w-px bg-border/80" />
-          <div className="text-left sm:text-right flex-1 sm:flex-none">
+          <div className="text-left sm:text-right flex-1 sm:flex-none min-w-0">
             <p className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold">Node Address</p>
-            <p className="text-[10px] font-mono font-bold text-foreground">0x91a...e4d9</p>
+            <p className="text-[10px] font-mono font-bold text-foreground truncate">0x91a...e4d9</p>
           </div>
         </div>
       </div>
@@ -90,8 +80,8 @@ export function WalletScreen() {
         </button>
       )}
 
-      {/* 3. Render matched panel route */}
-      <div className="flex-1 min-h-[350px]">
+      {/* 3. Render matched panel route — shell main owns vertical scroll */}
+      <div className="flex-1 min-h-0 min-w-0 w-full">
         {activeTab === 'overview' && (
           <OverviewTab cryptoPrices={cryptoPrices} onNavigate={(tab) => setActiveTab(tab as WalletTab)} />
         )}
@@ -118,7 +108,6 @@ export function WalletScreen() {
         )}
       </div>
 
-    </div>
     </div>
   );
 }

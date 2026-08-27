@@ -1,5 +1,12 @@
 import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
+import { KeyboardAwareForm } from '../common/KeyboardAwareForm';
+import {
+  keyboardInputClassName,
+  keyboardSurfaceDataAttr,
+  walletAmountInputClassName,
+  walletFieldInputClassName,
+} from '../common/keyboardLayout';
 import { 
   DollarSign, 
   ArrowUpRight, 
@@ -77,7 +84,7 @@ export function WithdrawTab() {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left animate-in fade-in duration-300">
+    <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 text-left animate-in fade-in duration-300 min-w-0 w-full">
       
       {/* 1. Withdrawal Form Workspace */}
       <div className="space-y-6">
@@ -86,7 +93,11 @@ export function WithdrawTab() {
           <p className="text-xs text-muted-foreground font-semibold mt-1">Siphon clear fiat earnings safely to verified commercial bank routing accounts or verified online PayPal addresses.</p>
         </div>
 
-        <form onSubmit={handleWithdrawInitiated} className="bg-card border border-border rounded-[32px] p-6 space-y-5 shadow-sm">
+        <KeyboardAwareForm
+          onSubmit={handleWithdrawInitiated}
+          className="bg-card border border-border rounded-[32px] p-6 space-y-5 shadow-sm min-w-0"
+          {...keyboardSurfaceDataAttr}
+        >
           {/* Output Mode Selector */}
           <div className="flex gap-2.5 bg-secondary/40 p-1 rounded-xl border border-border">
             <button
@@ -118,16 +129,16 @@ export function WithdrawTab() {
             <label className="text-[10px] uppercase font-black text-muted-foreground block mb-1">
               Amount to Cash Out
             </label>
-            <div className="flex items-center justify-between gap-4">
-              <div className="flex items-center">
-                <span className="text-2xl font-black text-foreground mr-1">$</span>
+            <div className="flex items-center justify-between gap-4 min-w-0">
+              <div className="flex items-center min-w-0 flex-1">
+                <span className="text-2xl font-black text-foreground mr-1 shrink-0">$</span>
                 <input
                   type="number"
                   value={withdrawAmount}
                   onChange={e => setWithdrawAmount(e.target.value)}
                   placeholder="0.00"
                   step="0.01"
-                  className="bg-transparent border-0 text-2xl font-black text-foreground focus:ring-0 focus:outline-none p-0 w-44"
+                  className={walletAmountInputClassName}
                 />
               </div>
               <button 
@@ -149,7 +160,7 @@ export function WithdrawTab() {
                   type="text"
                   value={bankName}
                   onChange={e => setBankName(e.target.value)}
-                  className="w-full bg-secondary/35 border border-border rounded-xl p-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45"
+                  className={`mt-1 ${walletFieldInputClassName} ${keyboardInputClassName}`}
                   placeholder="Chase, Bank of America, etc."
                 />
               </div>
@@ -160,7 +171,7 @@ export function WithdrawTab() {
                     type="text"
                     value={routingNumber}
                     onChange={e => setRoutingNumber(e.target.value)}
-                    className="w-full bg-secondary/35 border border-border rounded-xl p-2.5 text-xs font-black text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45 font-mono"
+                    className={`mt-1 ${walletFieldInputClassName} font-black font-mono ${keyboardInputClassName}`}
                     maxLength={9}
                   />
                 </div>
@@ -170,7 +181,7 @@ export function WithdrawTab() {
                     type="text"
                     value={accountNumber}
                     onChange={e => setAccountNumber(e.target.value)}
-                    className="w-full bg-secondary/35 border border-border rounded-xl p-2.5 text-xs font-black text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45 font-mono"
+                    className={`mt-1 ${walletFieldInputClassName} font-black font-mono ${keyboardInputClassName}`}
                   />
                 </div>
               </div>
@@ -182,7 +193,7 @@ export function WithdrawTab() {
                 type="email"
                 value={paypalEmail}
                 onChange={e => setPaypalEmail(e.target.value)}
-                className="w-full bg-secondary/35 border border-border rounded-xl p-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45"
+                className={`mt-1 ${walletFieldInputClassName} ${keyboardInputClassName}`}
                 placeholder="e.g. payout@streamwallet.com"
                 required={payoutMethod === 'PayPal'}
               />
@@ -224,7 +235,7 @@ export function WithdrawTab() {
               {successMsg}
             </div>
           )}
-        </form>
+        </KeyboardAwareForm>
       </div>
 
       {/* 2. Side Panel details Security & Verification */}

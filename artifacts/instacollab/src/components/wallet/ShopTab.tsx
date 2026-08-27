@@ -27,6 +27,12 @@ import {
   ResponsiveContainer 
 } from 'recharts';
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
+import { KeyboardAwareForm } from '../common/KeyboardAwareForm';
+import {
+  keyboardInputClassName,
+  keyboardSurfaceDataAttr,
+  walletFieldInputClassName,
+} from '../common/keyboardLayout';
 
 export function ShopTab() {
   const db = useDB();
@@ -316,7 +322,11 @@ export function ShopTab() {
             </div>
 
             {/* Posting Form */}
-            <form onSubmit={handleAddNewProduct} className="bg-card border border-border rounded-[28px] p-5 shadow-sm space-y-4">
+            <KeyboardAwareForm
+              onSubmit={handleAddNewProduct}
+              className="bg-card border border-border rounded-[28px] p-5 shadow-sm space-y-4 min-w-0"
+              {...keyboardSurfaceDataAttr}
+            >
               <h4 className="text-xs uppercase font-black text-foreground tracking-wider mb-2.5">Add Product Listing</h4>
               
               <div>
@@ -325,7 +335,7 @@ export function ShopTab() {
                   type="text"
                   value={newProductName}
                   onChange={e => setNewProductName(e.target.value)}
-                  className="w-full mt-1 bg-secondary/35 border border-border rounded-xl p-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45"
+                  className={`mt-1 ${walletFieldInputClassName} ${keyboardInputClassName}`}
                   placeholder="e.g. Creator Soundboard Pro"
                   required
                 />
@@ -338,7 +348,7 @@ export function ShopTab() {
                     type="number"
                     value={newProductPrice}
                     onChange={e => setNewProductPrice(e.target.value)}
-                    className="w-full mt-1 bg-secondary/35 border border-border rounded-xl p-2.5 text-xs font-black text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45"
+                    className={`mt-1 ${walletFieldInputClassName} font-black ${keyboardInputClassName}`}
                     step="0.01"
                     required
                   />
@@ -362,7 +372,7 @@ export function ShopTab() {
                   type="number"
                   value={newProductStock}
                   onChange={e => setNewProductStock(e.target.value)}
-                  className="w-full mt-1 bg-secondary/35 border border-border rounded-xl p-2.5 text-xs font-black text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45"
+                  className={`mt-1 ${walletFieldInputClassName} font-black ${keyboardInputClassName}`}
                   required
                 />
               </div>
@@ -377,7 +387,7 @@ export function ShopTab() {
               {sellSuccess && (
                 <p className="text-[10px] font-extrabold text-emerald-500 text-center mt-2 bg-emerald-500/10 p-2 border border-emerald-500/20 rounded-xl">{sellSuccess}</p>
               )}
-            </form>
+            </KeyboardAwareForm>
 
           </div>
 

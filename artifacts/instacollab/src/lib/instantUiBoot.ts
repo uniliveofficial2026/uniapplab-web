@@ -83,11 +83,8 @@ function warmHeavyAppChunksDeferred(): void {
   if (connectionSaveData()) return;
   heavyWarmed = true;
 
-  // Tabs only — never AR / RecordingStudio / ensureArStack here.
-  preloadAll([
-    () => import('../components/wallet/WalletScreen'),
-    () => import('../pages/YouTube'),
-  ]);
+  // YouTube only — wallet preloads with warmEntireAppChunks.
+  preloadAll([() => import('../pages/YouTube')]);
 }
 
 /** Entire app — hot tabs only; live/karaoke/AR load on navigation or explicit intent. */
@@ -99,6 +96,7 @@ export function warmEntireAppChunks(): void {
   preloadAll([
     () => import('../components/search/SearchScreen'),
     () => import('../components/feed/StoryRing'),
+    () => import('../components/wallet/WalletScreen'),
   ]);
 
   scheduleIdle(() => {

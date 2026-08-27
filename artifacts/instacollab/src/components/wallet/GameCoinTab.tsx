@@ -13,6 +13,14 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CoinIcon } from '../common/CoinIcon';
+import { KeyboardAwareForm } from '../common/KeyboardAwareForm';
+import {
+  keyboardInputClassName,
+  keyboardSurfaceDataAttr,
+  walletFieldInputClassName,
+  walletModalOverlayClassName,
+  walletModalPanelClassName,
+} from '../common/keyboardLayout';
 
 export function GameCoinTab() {
   const db = useDB();
@@ -253,13 +261,13 @@ export function GameCoinTab() {
 
       {/* REDEMPTION ACTION MODAL/FORM OVERLAY */}
       {selectedPack && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+        <div className={walletModalOverlayClassName}>
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setSelectedPack(null)}
           />
 
-          <div className="w-full max-w-sm bg-card border border-border rounded-[32px] overflow-hidden shadow-2xl relative z-10 p-6 flex flex-col gap-4 animate-in zoom-in-95 duration-200">
+          <div className={`${walletModalPanelClassName} max-w-sm gap-4`} {...keyboardSurfaceDataAttr}>
             {/* Header */}
             <div className="flex items-center justify-between pb-2.5 border-b border-border">
               <div className="flex items-center gap-2">
@@ -275,7 +283,7 @@ export function GameCoinTab() {
             </div>
 
             {step === 'input' && (
-              <form onSubmit={handleRunValidation} className="space-y-4">
+              <KeyboardAwareForm onSubmit={handleRunValidation} className="space-y-4" {...keyboardSurfaceDataAttr}>
                 <div className="p-3.5 bg-secondary/35 border border-border rounded-xl">
                   <p className="text-[10px] text-muted-foreground font-semibold">Redemption Package</p>
                   <h4 className="text-sm font-black text-foreground my-0.5">{selectedPack.name} ({selectedGame.name})</h4>
@@ -293,7 +301,7 @@ export function GameCoinTab() {
                       value={playerId}
                       onChange={e => setPlayerId(e.target.value)}
                       placeholder="e.g. 58291048 or character_key"
-                      className="w-full bg-secondary/35 border border-border rounded-xl pl-9 p-2.5 text-xs font-black text-foreground focus:outline-none focus:ring-1 focus:ring-primary/45"
+                      className={`w-full pl-9 ${walletFieldInputClassName} font-black ${keyboardInputClassName}`}
                       required
                     />
                   </div>
@@ -309,7 +317,7 @@ export function GameCoinTab() {
                 >
                   Verify Gamer Account ID
                 </button>
-              </form>
+              </KeyboardAwareForm>
             )}
 
             {step === 'validating' && (

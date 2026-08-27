@@ -22,6 +22,15 @@ import {
   Sparkles
 } from 'lucide-react';
 import { CoinIcon } from '../common/CoinIcon';
+import { KeyboardAwareForm } from '../common/KeyboardAwareForm';
+import {
+  keyboardInputClassName,
+  keyboardSurfaceDataAttr,
+  walletAmountInputClassName,
+  walletFieldInputClassName,
+  walletModalOverlayClassName,
+  walletModalPanelClassName,
+} from '../common/keyboardLayout';
 import {
   COIN_RATE_LABEL,
   DEFAULT_RECHARGE_PACKS,
@@ -290,7 +299,11 @@ export function BuyExchangeTab() {
           <p className="text-xs text-muted-foreground font-semibold mt-1">Swap between instant streaming coins and withdrawable cash USD holdings instantly.</p>
         </div>
 
-        <form onSubmit={handleExecuteExchange} className="bg-card border border-border rounded-[32px] p-6 space-y-5 shadow-sm">
+        <KeyboardAwareForm
+          onSubmit={handleExecuteExchange}
+          className="bg-card border border-border rounded-[32px] p-6 space-y-5 shadow-sm min-w-0"
+          {...keyboardSurfaceDataAttr}
+        >
           {/* Toggle Type */}
           <div className="bg-secondary/40 p-1 rounded-xl border border-border flex">
             <button
@@ -330,7 +343,7 @@ export function BuyExchangeTab() {
                   onChange={e => setExchangeAmount(e.target.value)}
                   placeholder="0.00"
                   step={exchangeType === 'cash_to_coins' ? '0.01' : '1'}
-                  className="bg-transparent border-0 text-2xl font-black text-foreground focus:ring-0 focus:outline-none p-0 min-w-0 flex-1"
+                  className={walletAmountInputClassName}
                 />
                 <div className="flex items-center gap-1.5 shrink-0 select-none">
                   {exchangeType === 'cash_to_coins' ? (
@@ -403,18 +416,18 @@ export function BuyExchangeTab() {
               {exchangeSuccess}
             </div>
           )}
-        </form>
+        </KeyboardAwareForm>
       </div>
 
       {/* 3. Secure Stripe Credit Card Checkout Modal */}
       {selectedBundle && (
-        <div className="fixed inset-0 z-[3000] flex items-center justify-center p-4">
+        <div className={walletModalOverlayClassName}>
           <div 
             className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-in fade-in duration-200"
             onClick={() => setSelectedBundle(null)}
           />
           
-          <div className="w-full max-w-md bg-card border border-border rounded-[32px] overflow-hidden shadow-2xl relative z-10 p-6 flex flex-col gap-5 animate-in zoom-in-95 duration-200">
+          <div className={walletModalPanelClassName} {...keyboardSurfaceDataAttr}>
             
             {/* Header */}
             <div className="flex items-center justify-between pb-3 border-b border-border">
@@ -447,7 +460,7 @@ export function BuyExchangeTab() {
                       type="text"
                       value={cardName}
                       onChange={e => setCardName(e.target.value)}
-                      className="w-full mt-1 bg-secondary/40 border border-border rounded-xl p-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className={`w-full mt-1 ${walletFieldInputClassName} ${keyboardInputClassName}`}
                       placeholder="Jane Doe"
                     />
                   </div>
@@ -458,7 +471,7 @@ export function BuyExchangeTab() {
                       type="text"
                       value={cardNumber}
                       onChange={e => setCardNumber(e.target.value)}
-                      className="w-full mt-1 bg-secondary/40 border border-border rounded-xl p-2.5 text-xs font-bold font-mono text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                      className={`w-full mt-1 ${walletFieldInputClassName} font-mono ${keyboardInputClassName}`}
                       placeholder="4111 2222 3333 4444"
                     />
                   </div>
@@ -470,7 +483,7 @@ export function BuyExchangeTab() {
                         type="text"
                         value={cardExpiry}
                         onChange={e => setCardExpiry(e.target.value)}
-                        className="w-full mt-1 bg-secondary/40 border border-border rounded-xl p-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className={`w-full mt-1 ${walletFieldInputClassName} ${keyboardInputClassName}`}
                         placeholder="MM/YY"
                       />
                     </div>
@@ -480,7 +493,7 @@ export function BuyExchangeTab() {
                         type="password"
                         value={cardCvc}
                         onChange={e => setCardCvc(e.target.value)}
-                        className="w-full mt-1 bg-secondary/40 border border-border rounded-xl p-2.5 text-xs font-bold text-foreground focus:outline-none focus:ring-1 focus:ring-indigo-500"
+                        className={`w-full mt-1 ${walletFieldInputClassName} ${keyboardInputClassName}`}
                         placeholder="3-digit"
                       />
                     </div>
