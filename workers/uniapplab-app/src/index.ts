@@ -51,6 +51,20 @@ function looksLikeStaticAsset(pathname: string): boolean {
   return last.includes(".") && !pathname.endsWith(".html");
 }
 
+/** Greedy Tap static shell lives in the SPA bundle; realtime/API stays on GAME_ORIGIN. */
+function isGreedyTapStaticPath(pathname: string): boolean {
+  if (!pathname.startsWith("/games/greedy-slot")) return false;
+  if (
+    pathname === "/games/greedy-slot/healthz" ||
+    pathname === "/games/greedy-slot/api/health" ||
+    pathname === "/games/greedy-slot/health"
+  ) {
+    return false;
+  }
+  if (pathname.startsWith("/games/greedy-slot/api/")) return false;
+  return true;
+}
+
 async function spaProxy(request: Request, env: Env): Promise<Response> {
   const url = new URL(request.url);
   // Never serve a static marketing/oauth brand page as the consumer /home shell.
@@ -120,7 +134,15 @@ export default {
       return proxy(request, env.GAME_ORIGIN, "/api/health");
     }
 
-    if (path.startsWith("/games/greedy-slot") || path.startsWith("/socket.io")) {
+    if (path.startsWith("/socket.io")) {
+      return proxy(request, env.GAME_ORIGIN);
+    }
+
+    if (isGreedyTapStaticPath(path)) {
+      return proxy(request, env.SPA_ORIGIN);
+    }
+
+    if (path.startsWith("/games/greedy-slot")) {
       return proxy(request, env.GAME_ORIGIN);
     }
 

@@ -128,6 +128,7 @@
     "test:marketplace-keyboard": "node scripts/ui-device-recovery/test-marketplace-keyboard.mjs",
     "test:wallet-keyboard": "node scripts/ui-device-recovery/test-wallet-keyboard.mjs",
     "test:greedy-safe-area": "node scripts/ui-device-recovery/test-greedy-safe-area.mjs",
+    "test:greedy-worker-routing": "node scripts/ui-device-recovery/test-greedy-worker-routing.mjs",
     "test:seller-keyboard": "node scripts/ui-device-recovery/test-seller-keyboard.mjs",
     "test:scan-legacy-keyboard": "node scripts/ui-device-recovery/scan-legacy-keyboard.mjs",
     "test:n-user-dataflow": "node scripts/full-app-gates/test-n-user-dataflow.mjs",
