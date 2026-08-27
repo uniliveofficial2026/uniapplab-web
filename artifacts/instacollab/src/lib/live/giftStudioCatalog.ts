@@ -153,12 +153,12 @@ export function listStudioExtraGiftDefinitions(): GiftEffectDefinition[] {
   return STUDIO_EXTRA_GIFTS.map(({ isSeasonal: _s, season: _se, isVipExclusive: _v, description: _d, ...gift }) => gift);
 }
 
+/** Fallback IDs must match `recharge_packages` / GET /api/payments/recharge/packages. */
 export const RECHARGE_PACKAGES_FALLBACK = [
-  { id: 'starter', coins: 50, priceUsd: 5, bonusCoins: 0 },
-  { id: 'all_coins', coins: 100, priceUsd: 10, bonusCoins: 0, isPopular: true },
-  { id: 'plus', coins: 250, priceUsd: 25, bonusCoins: 0 },
-  { id: 'pro', coins: 500, priceUsd: 50, bonusCoins: 0 },
-  { id: 'mega', coins: 1000, priceUsd: 100, bonusCoins: 0 },
+  { id: 'starter', coins: 500, priceUsd: 4.99, bonusCoins: 0, isPopular: true },
+  { id: 'super', coins: 1000, priceUsd: 9.99, bonusCoins: 200 },
+  { id: 'elite', coins: 2500, priceUsd: 24.99, bonusCoins: 500 },
+  { id: 'whale', coins: 5000, priceUsd: 49.99, bonusCoins: 1500 },
 ] as const;
 
 // Re-export canonical pricing so live + wallet stay in sync (100 coins = $10).

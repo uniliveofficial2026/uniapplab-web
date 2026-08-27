@@ -331,7 +331,11 @@ function runLiveCloudSurfaceRefresh(target: LiveCloudSurface): void {
     case 'wallet':
       // Wallet realtime is started once in startLiveCloudSurfaces (idempotent).
       scheduleLiveSessionSync(meId);
-      tasks.push(syncServerWalletBalance(meId).then(() => onUserSessionActive(meId)));
+      tasks.push(
+        import('./walletCloud')
+          .then(({ hydrateWalletFromServer }) => hydrateWalletFromServer(meId))
+          .then(() => onUserSessionActive(meId)),
+      );
       tasks.push(flushCloudAppStateSync().catch(() => undefined));
       break;
     case 'dating':

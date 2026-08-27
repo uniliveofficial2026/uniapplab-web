@@ -44,47 +44,42 @@ export type CoinRechargePack = {
 };
 
 /**
- * Default recharge packs — all priced at the 100 coins / $10 rate (no bonus dilution).
- * Flagship “All Coins” pack is exactly 100 for $10.
+ * Default recharge packs — IDs must match `recharge_packages` rows (Stripe checkout).
+ * Server SSOT: GET /api/payments/recharge/packages
  */
 export const DEFAULT_RECHARGE_PACKS: CoinRechargePack[] = [
   {
     id: 'starter',
     title: 'Starter Bundle',
-    coins: 50,
+    coins: 500,
     bonusCoins: 0,
-    priceUsd: 5,
-  },
-  {
-    id: 'all_coins',
-    title: 'All Coins',
-    coins: COIN_REFERENCE_COINS,
-    bonusCoins: 0,
-    priceUsd: COIN_REFERENCE_USD,
+    priceUsd: 4.99,
     badge: 'Popular',
     isPopular: true,
   },
   {
-    id: 'plus',
-    title: 'Plus Pack',
-    coins: 250,
-    bonusCoins: 0,
-    priceUsd: 25,
+    id: 'super',
+    title: 'Super Pack',
+    coins: 1000,
+    bonusCoins: 200,
+    priceUsd: 9.99,
+    badge: 'Bonus +20%',
   },
   {
-    id: 'pro',
-    title: 'Pro Vault',
-    coins: 500,
-    bonusCoins: 0,
-    priceUsd: 50,
+    id: 'elite',
+    title: 'Elite Vault',
+    coins: 2500,
+    bonusCoins: 500,
+    priceUsd: 24.99,
     badge: 'Best Value',
   },
   {
-    id: 'mega',
-    title: 'Mega Cache',
-    coins: 1000,
-    bonusCoins: 0,
-    priceUsd: 100,
+    id: 'whale',
+    title: 'Whale Cache',
+    coins: 5000,
+    bonusCoins: 1500,
+    priceUsd: 49.99,
+    badge: 'Super Saver',
   },
 ];
 

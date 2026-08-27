@@ -55,27 +55,38 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   }>>([]);
 
   useEffect(() => {
-    if (!isPlatformApiAvailable() || !isCloudAuthUserId(appUser.id)) {
-      setTransactions(isLocalWalletLedgerAllowed(appUser.id) ? db.load('wallet_transactions', []) : []);
-      return;
-    }
     let cancelled = false;
-    void fetchWallet()
-      .then((wallet) => {
-        if (cancelled) return;
-        if (typeof wallet.commerceCoinEarnings === 'number') {
-          db.save('commerce_host_coin_earnings', {
-            [appUser.id]: Math.max(0, Math.floor(wallet.commerceCoinEarnings)),
-          });
-        }
-        const rows = Array.isArray(wallet.transactions) ? wallet.transactions : [];
-        setTransactions(mapServerTransactions(appUser.id, rows));
-      })
-      .catch(() => {
-        if (!cancelled) setTransactions([]);
-      });
+
+    const refreshTransactions = () => {
+      if (!isPlatformApiAvailable() || !isCloudAuthUserId(appUser.id)) {
+        setTransactions(
+          isLocalWalletLedgerAllowed(appUser.id) ? db.load('wallet_transactions', []) : [],
+        );
+        return;
+      }
+      void fetchWallet()
+        .then((wallet) => {
+          if (cancelled) return;
+          if (typeof wallet.commerceCoinEarnings === 'number') {
+            db.save('commerce_host_coin_earnings', {
+              [appUser.id]: Math.max(0, Math.floor(wallet.commerceCoinEarnings)),
+            });
+          }
+          const rows = Array.isArray(wallet.transactions) ? wallet.transactions : [];
+          setTransactions(mapServerTransactions(appUser.id, rows));
+        })
+        .catch(() => {
+          if (!cancelled) setTransactions([]);
+        });
+    };
+
+    refreshTransactions();
+    const onWalletUpdated = () => refreshTransactions();
+    window.addEventListener('wallet-coins-updated', onWalletUpdated);
+
     return () => {
       cancelled = true;
+      window.removeEventListener('wallet-coins-updated', onWalletUpdated);
     };
   }, [appUser.id, coinsBalance]);
 

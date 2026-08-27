@@ -67,7 +67,9 @@ export function CryptoTab({ cryptoPrices, onPricesChange }: CryptoTabProps) {
   const handleExecuteTrade = (e: React.FormEvent) => {
     e.preventDefault();
     if (!isLocalWalletLedgerAllowed(appUser.id)) {
-      alert('Crypto trades require server checkout for this account.');
+      alert(
+        'Crypto trading is demo-only on local accounts. Cloud wallets use coin recharge, shop, and commerce payouts.',
+      );
       return;
     }
     const usdAmount = parseFloat(tradeAmount);

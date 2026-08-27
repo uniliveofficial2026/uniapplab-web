@@ -37,6 +37,7 @@ import {
   coinsFromUsd,
   usdFromCoins,
 } from '../../lib/coinPricing';
+import { getWalletCashBalance } from '../../lib/walletCloud';
 
 type CoinBundle = {
   id?: string;
@@ -61,8 +62,9 @@ export function BuyExchangeTab() {
   const appUser = useCurrentUser();
   
   const coinsBalance = useLiveCoinsBalance(appUser.id);
-  const cashBalance = db.load('cash_balance', 0);
-  const transactions = db.load('wallet_transactions', []);
+  const cashBalance = getWalletCashBalance(appUser.id);
+  const isCloudLedger =
+    isPlatformApiAvailable() && isCloudAuthUserId(appUser.id) && !isLocalWalletLedgerAllowed(appUser.id);
 
   // Exchange fields state
   const [exchangeType, setExchangeType] = useState<'cash_to_coins' | 'coins_to_cash'>('cash_to_coins');
@@ -170,7 +172,30 @@ export function BuyExchangeTab() {
           setPaymentStep('input');
           return;
         } catch (err) {
-          setCheckoutError(err instanceof Error ? err.message : 'Checkout failed');
+          const message = err instanceof Error ? err.message : 'Checkout failed';
+          // Stale client pack IDs (pre-server sync) — refresh catalog and ask user to retry.
+          if (/package|not found|unknown|invalid/i.test(message)) {
+            try {
+              const { packages } = await fetchRechargePackages();
+              if (packages?.length) {
+                setBundles(
+                  packages.map((pkg) => ({
+                    id: pkg.id,
+                    coins: pkg.coins,
+                    bonusCoins: pkg.bonusCoins,
+                    price: pkg.priceUsdCents / 100,
+                    label: pkg.title,
+                    badge: pkg.badge ?? undefined,
+                  })),
+                );
+              }
+            } catch {
+              /* keep current */
+            }
+            setCheckoutError('Coin packages updated. Select a bundle again to checkout.');
+          } else {
+            setCheckoutError(message);
+          }
           setPaymentStep('input');
           return;
         }
@@ -213,8 +238,12 @@ export function BuyExchangeTab() {
     if (amtNum <= 0) return;
 
     if (exchangeType === 'cash_to_coins') {
-      if (!isLocalWalletLedgerAllowed(appUser.id)) {
-        alert('Cash-to-coin exchange requires server checkout for this account.');
+      if (isCloudLedger) {
+        // Cloud coins only credit via Stripe recharge packages (left column) — never mint locally.
+        setExchangeSuccess(null);
+        alert(
+          'Buy coins with a Stream Coin Bundle (Stripe checkout) on the left. Local cash→coins minting is disabled for cloud accounts.',
+        );
         return;
       }
       if (cashBalance < amtNum) {
@@ -240,8 +269,12 @@ export function BuyExchangeTab() {
       setExchangeSuccess(`Exchanged $${amtNum.toFixed(2)} USD for ${Math.floor(computedReturn)} Coins!`);
       setExchangeAmount('');
       setTimeout(() => setExchangeSuccess(null), 4000);
+    } else if (isCloudLedger) {
+      setExchangeSuccess(null);
+      alert(
+        'Coin → cash conversion is not available on cloud accounts. Seller USD proceeds withdraw through live commerce Stripe payouts.',
+      );
     } else {
-      // Coins → cash minting is disabled until a server ledger exists.
       setExchangeSuccess(null);
       alert('Coin to cash exchange is temporarily unavailable.');
     }
@@ -304,6 +337,11 @@ export function BuyExchangeTab() {
           className="bg-card border border-border rounded-[32px] p-6 space-y-5 shadow-sm min-w-0"
           {...keyboardSurfaceDataAttr}
         >
+          {isCloudLedger && (
+            <div className="rounded-xl border border-amber-500/30 bg-amber-500/10 px-3 py-2 text-[11px] font-semibold text-amber-200/95 leading-snug">
+              Cloud accounts buy coins with Stripe bundles on the left. Cash conversion and ACH withdraw stay on seller commerce payouts.
+            </div>
+          )}
           {/* Toggle Type */}
           <div className="bg-secondary/40 p-1 rounded-xl border border-border flex">
             <button

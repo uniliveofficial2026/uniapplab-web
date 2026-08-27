@@ -86,3 +86,21 @@ test('wallet: Firebase gift wallet never seeds from client local balance', () =>
   assert.ok(src.includes('Never lift cloud balance from client-supplied'));
   assert.equal(src.includes('lift empty cloud wallet up to local'), false);
 });
+
+test('wallet: recharge fallback pack IDs match Stripe catalog', () => {
+  const pricing = readFileSync(join(insta, 'lib/coinPricing.ts'), 'utf8');
+  const gift = readFileSync(join(insta, 'lib/live/giftStudioCatalog.ts'), 'utf8');
+  for (const id of ['starter', 'super', 'elite', 'whale']) {
+    assert.ok(pricing.includes(`id: '${id}'`), `pricing missing ${id}`);
+    assert.ok(gift.includes(`id: '${id}'`), `gift catalog missing ${id}`);
+  }
+  assert.equal(pricing.includes("id: 'all_coins'"), false);
+  assert.equal(gift.includes("id: 'all_coins'"), false);
+});
+
+test('wallet: hydration waits for authReady and retries', () => {
+  const src = readFileSync(join(insta, 'hooks/useWalletServerHydration.ts'), 'utf8');
+  assert.ok(src.includes('authReady'));
+  assert.ok(src.includes('useCloudAuth'));
+  assert.ok(src.includes('800'));
+});
