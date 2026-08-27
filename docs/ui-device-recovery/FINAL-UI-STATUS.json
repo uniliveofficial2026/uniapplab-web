@@ -1,11 +1,12 @@
 {
-  "updatedAt": "2026-08-27T00:25:00.000Z",
+  "updatedAt": "2026-08-27T00:45:00.000Z",
   "fullRealApplication": "FAIL",
   "uiUxChanged": false,
   "productionSpa": "https://app.uniapplab.com",
-  "productionEntryJs": "assets/index-F12KBb32.js",
-  "productionLiveVersion": "2fd1bd6af2f4",
-  "releaseSha": "9a733b0",
+  "productionEntryJs": "assets/index-B5W1wImD.js",
+  "productionLiveVersion": "f5c4f9419dca",
+  "releaseSha": "86624fa",
+  "walletCloudLedger": "PASS",
   "staticGates": {
     "test:ui-device-recovery": "PASS",
     "test:component-overlap": "PASS",
@@ -20,5 +21,5 @@
   "viewportHacksAudited": 216,
   "physicalIphone": "NOT_RETESTED_THIS_PASS",
   "androidEmulator": "NOT_RUN_THIS_PASS",
-  "note": "Wallet mobile scroll + keyboard SSOT + safe modals shipped (9a733b0). Perf boot on 0245e19. Responsive SSOT on c18960a. Physical iPhone wallet retest still pending."
+  "note": "Deep wallet fix (86624fa): cloud spend via POST /api/wallet/spend + hydrate from /api/wallet. Prior pass (9a733b0) was mobile layout only. fullRealApplication still FAIL until physical iPhone wallet spend/keyboard sweep."
 }
