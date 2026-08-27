@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { useDB } from '../../lib/useDB';
+import { useCurrentUser } from '../../lib/useCurrentUser';
 import { KeyboardAwareForm } from '../common/KeyboardAwareForm';
 import {
   keyboardInputClassName,
@@ -7,6 +8,10 @@ import {
   walletAmountInputClassName,
   walletFieldInputClassName,
 } from '../common/keyboardLayout';
+import { isLocalWalletLedgerAllowed } from '../../lib/walletKstarSync';
+import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
+import { isPlatformApiAvailable } from '../../lib/platformApi';
+import { getWalletCashBalance } from '../../lib/walletCloud';
 import { 
   DollarSign, 
   ArrowUpRight, 
@@ -22,7 +27,8 @@ import {
 
 export function WithdrawTab() {
   const db = useDB();
-  const cashBalance = db.load('cash_balance', 0);
+  const appUser = useCurrentUser();
+  const cashBalance = getWalletCashBalance(appUser.id);
 
   // Form Fields
   const [withdrawAmount, setWithdrawAmount] = useState<string>('');
@@ -44,6 +50,14 @@ export function WithdrawTab() {
   const handleWithdrawInitiated = (e: React.FormEvent) => {
     e.preventDefault();
     if (withdrawAmountVal <= 0) return;
+
+    if (isPlatformApiAvailable() && isCloudAuthUserId(appUser.id) && !isLocalWalletLedgerAllowed(appUser.id)) {
+      alert(
+        'USD withdrawals from seller proceeds are processed through live commerce Stripe payouts. Coin balances recharge via Buy & Exchange.',
+      );
+      return;
+    }
+
     if (withdrawAmountVal > cashBalance) {
       alert('Withdrawal value exceeds current Cash balance.');
       return;

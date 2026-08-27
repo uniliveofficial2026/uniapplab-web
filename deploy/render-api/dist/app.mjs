@@ -164147,6 +164147,30 @@ router4.post("/commerce-settle", auth, requireNotBanned, async (req, res, next2)
     next2(err4);
   }
 });
+router4.post("/spend", auth, requireNotBanned, async (req, res, next2) => {
+  try {
+    const userId = req.authUser.id;
+    const { amount, txType, metadata, clientRequestId } = req.body;
+    if (!amount || amount <= 0) {
+      res.status(400).json({ error: "positive amount required" });
+      return;
+    }
+    const { data, error: error45 } = await getSupabaseService().rpc("spend_wallet_coins", {
+      p_user: userId,
+      p_amount: Math.floor(amount),
+      p_tx_type: txType ?? "purchase",
+      p_metadata: metadata ?? {},
+      p_client_request_id: clientRequestId ?? null
+    });
+    if (error45) {
+      res.status(400).json({ error: error45.message });
+      return;
+    }
+    res.json(data);
+  } catch (err4) {
+    next2(err4);
+  }
+});
 router4.post("/credit", auth, requireAdmin, async (req, res, next2) => {
   try {
     const { userId, amount, txType, metadata, currency } = req.body;
@@ -165153,20 +165177,42 @@ router10.post("/:roomId/ensure", auth, requireNotBanned, async (req, res, next2)
       return;
     }
     const body = req.body;
+    const hostUserId = actor(req).userId;
     const service = getLiveLifecycleService();
     const room = service.ensureRoom({
       roomId,
       roomType: roomTypeFromBody(body.roomType),
-      hostUserId: actor(req).userId,
+      hostUserId,
       hasCanonicalCohostTransfer: Boolean(body.hasCanonicalCohostTransfer)
     });
+    const roomType = room.roomType;
+    const roomMode = typeof body.roomMode === "string" && body.roomMode.trim() ? body.roomMode.trim() : roomType === "commerce" ? "Commerce-Live" : roomType === "video_multi" || roomType === "audio_party" ? "Multi-Guest" : roomType === "solo_audio" ? "Chat" : "Solo-Live";
+    const now3 = (/* @__PURE__ */ new Date()).toISOString();
+    const { error: partyErr } = await getSupabaseService().from("party_rooms").upsert(
+      {
+        id: roomId,
+        owner_id: hostUserId,
+        room_name: typeof body.roomName === "string" && body.roomName.trim() ? body.roomName.trim() : `Room ${roomId}`,
+        room_mode: roomMode,
+        privacy: typeof body.privacy === "string" && body.privacy.trim() ? body.privacy.trim() : "Public",
+        join_policy: "Anyone",
+        status: "active",
+        tags: [roomMode],
+        updated_at: now3
+      },
+      { onConflict: "id" }
+    );
+    if (partyErr) {
+      console.warn("[live/rooms/ensure] party_rooms upsert failed", partyErr.message);
+    }
     res.json({
       roomId: room.roomId,
       roomType: room.roomType,
       roomState: room.state,
       roomVersion: room.version,
       startedAt: room.startedAt,
-      hostUserId: room.hostUserId
+      hostUserId: room.hostUserId,
+      partyRoomRegistered: !partyErr
     });
   } catch (err4) {
     if (!handleDomainError(res, err4)) next2(err4);
@@ -166271,13 +166317,15 @@ router13.post("/livekit/party/token", auth, requireNotBanned, async (req, res, n
       res.status(400).json({ error: "roomId required" });
       return;
     }
-    const { data: partyRoom, error: error45 } = await getSupabaseService().from("party_rooms").select("id, status, owner_id").eq("id", trimmedRoomId).maybeSingle();
+    const sb = getSupabaseService();
+    const { data: partyRoom, error: error45 } = await sb.from("party_rooms").select("id, status, owner_id, room_mode").eq("id", trimmedRoomId).maybeSingle();
     if (error45) {
       res.status(400).json({ error: error45.message });
       return;
     }
     let roomStatus = partyRoom?.status;
     let ownerId = partyRoom?.owner_id;
+    const userId = req.authUser.id;
     if (!partyRoom) {
       const firestoreRoom = await fetchFirestorePartyRoom(trimmedRoomId);
       if (!firestoreRoom) {
@@ -166285,13 +166333,32 @@ router13.post("/livekit/party/token", auth, requireNotBanned, async (req, res, n
         return;
       }
       roomStatus = firestoreRoom.status;
-      ownerId = firestoreRoom.owner_id ?? firestoreRoom.ownerId;
+      ownerId = firestoreRoom.owner_id || firestoreRoom.ownerId || void 0;
+      if (ownerId && roomStatus === "active") {
+        const now3 = (/* @__PURE__ */ new Date()).toISOString();
+        const { error: upsertErr } = await sb.from("party_rooms").upsert(
+          {
+            id: trimmedRoomId,
+            owner_id: ownerId,
+            room_name: `Room ${trimmedRoomId}`,
+            room_mode: "Solo-Live",
+            privacy: firestoreRoom.privacy || "Public",
+            join_policy: "Anyone",
+            status: "active",
+            tags: ["Solo-Live"],
+            updated_at: now3
+          },
+          { onConflict: "id" }
+        );
+        if (upsertErr) {
+          console.warn("[livekit/party/token] supabase rehydrate failed", upsertErr.message);
+        }
+      }
     }
     if (roomStatus && roomStatus !== "active") {
       res.status(400).json({ error: "party_room_ended" });
       return;
     }
-    const userId = req.authUser.id;
     const roomName = partyRoomName(trimmedRoomId);
     await ensureLiveKitRoom(roomName);
     const wantHidden = Boolean(hidden) && req.profile?.role === "admin";

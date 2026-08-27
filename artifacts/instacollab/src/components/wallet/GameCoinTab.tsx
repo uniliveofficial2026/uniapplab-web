@@ -3,6 +3,9 @@ import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 import { isLocalWalletLedgerAllowed, saveGameInHouseCoins, spendWalletCoins } from '../../lib/walletKstarSync';
+import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
+import { isPlatformApiAvailable } from '../../lib/platformApi';
+import { spendWalletCoinsCloud } from '../../lib/walletCloud';
 import { 
   Gamepad2, 
   Check, 
@@ -104,26 +107,43 @@ export function GameCoinTab() {
   const handleRunValidation = (e: React.FormEvent) => {
     e.preventDefault();
     if (!playerId.trim()) return;
-    if (!isLocalWalletLedgerAllowed(appUser.id)) {
-      alert('Game coin redemption requires server checkout for this account.');
-      return;
-    }
 
     setStep('validating');
     
     setTimeout(() => {
-      // Simulate player lookup name
       const usernames = ['ApexGamer99', 'GhostStriker', 'KawaiiMimi', 'ProNoob_1', 'LeetStreamer'];
       const randomUsername = usernames[Math.floor(Math.random() * usernames.length)] + `#${Math.floor(1000 + Math.random() * 9000)}`;
       setValidatedName(randomUsername);
       setStep('processing');
 
-      // Actually deliver game coin trigger
-      setTimeout(() => {
+      void (async () => {
         if (!selectedPack) return;
 
-        // Deduct Coins
-        if (!spendWalletCoins(appUser.id, selectedPack.cost)) return;
+        if (isPlatformApiAvailable() && isCloudAuthUserId(appUser.id)) {
+          const result = await spendWalletCoinsCloud(appUser.id, selectedPack.cost, {
+            lane: 'wallet_game_redeem',
+            gameId: selectedGame.id,
+            packId: selectedPack.id,
+            playerId,
+          });
+          if (!result.ok) {
+            alert(
+              result.reason === 'insufficient_coins'
+                ? 'Insufficient streaming Coins for this redemption.'
+                : 'Redemption could not be completed. Try again.',
+            );
+            setStep('input');
+            return;
+          }
+        } else if (!isLocalWalletLedgerAllowed(appUser.id)) {
+          alert('Game coin redemption requires server checkout for this account.');
+          setStep('input');
+          return;
+        } else if (!spendWalletCoins(appUser.id, selectedPack.cost)) {
+          alert('Insufficient streaming Coins for this redemption.');
+          setStep('input');
+          return;
+        }
 
         const currentInventory = db.load('game_coins', { pubg: 0, roblox: 0, mobile_legends: 0, in_house: 0, slot_game: 0 });
         const key = selectedGame.id as keyof typeof currentInventory;
@@ -134,20 +154,20 @@ export function GameCoinTab() {
           db.save('game_coins', { ...currentInventory, [key]: nextAmount });
         }
 
-        // Append to general transaction receipts
-        const trans = db.load('wallet_transactions', []);
-        db.save('wallet_transactions', [{
-          id: `t_${Date.now()}`,
-          type: `${selectedGame.name} Redeemed`,
-          amount: `-${selectedPack.cost} Coins`,
-          status: 'Completed',
-          date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-          cost: `Delivered +${selectedPack.amount} to ID: ${playerId} (${randomUsername})`
-        }, ...trans]);
+        if (isLocalWalletLedgerAllowed(appUser.id)) {
+          const trans = db.load('wallet_transactions', []);
+          db.save('wallet_transactions', [{
+            id: `t_${Date.now()}`,
+            type: `${selectedGame.name} Redeemed`,
+            amount: `-${selectedPack.cost} Coins`,
+            status: 'Completed',
+            date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+            cost: `Delivered +${selectedPack.amount} to ID: ${playerId} (${randomUsername})`,
+          }, ...trans]);
+        }
 
         setStep('success');
-      }, 1200);
-
+      })();
     }, 1000);
   };
 

@@ -3,6 +3,10 @@ import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 import { isLocalWalletLedgerAllowed, spendWalletCoins } from '../../lib/walletKstarSync';
+import { settleCommerceCoinSale } from '../../lib/commercePayments';
+import { isCloudAuthUserId } from '../../lib/auth/cloudProfile';
+import { isPlatformApiAvailable } from '../../lib/platformApi';
+import { spendWalletCoinsCloud, getWalletCashBalance } from '../../lib/walletCloud';
 import { CoinIcon } from '../common/CoinIcon';
 import { 
   ShoppingBag, 
@@ -41,7 +45,7 @@ export function ShopTab() {
 
   // Load balances
   const coinsBalance = useLiveCoinsBalance(appUser.id);
-  const cashBalance = db.load('cash_balance', 0);
+  const cashBalance = getWalletCashBalance(appUser.id);
 
   // Sub-sections toggling
   const [shopMode, setShopMode] = useState<'buy' | 'sell'>('buy');
@@ -105,54 +109,83 @@ export function ShopTab() {
 
   // Buying logic
   const handleBuyProduct = (product: typeof products[0]) => {
-    if (product.stock <= 0) {
-      alert('This product is currently out of stock!');
-      return;
-    }
-
-    if (!isLocalWalletLedgerAllowed(appUser.id)) {
-      alert('Shop purchases require server checkout for this account.');
-      return;
-    }
-
-    if (product.priceType === 'coins') {
-      if (!spendWalletCoins(appUser.id, product.price)) {
-        alert('Insufficient streaming Coins to purchase this item.');
-        return;
-      }
-    } else {
-      if (cashBalance < product.price) {
-        alert('Insufficient cash USD balance to purchase this item.');
+    void (async () => {
+      if (product.stock <= 0) {
+        alert('This product is currently out of stock!');
         return;
       }
 
-      // Deduct cash
-      db.save('cash_balance', cashBalance - product.price);
-    }
-
-    // Decrement stock & increment sales
-    const updatedProducts = products.map((p: any) => {
-      if (p.id === product.id) {
-        return { ...p, stock: p.stock - 1, sales: p.sales + 1 };
+      if (product.priceType === 'coins') {
+        if (isPlatformApiAvailable() && isCloudAuthUserId(appUser.id)) {
+          const sellerId = String(product.sellerId ?? '').trim();
+          if (isCloudAuthUserId(sellerId)) {
+            const result = await settleCommerceCoinSale(appUser.id, sellerId, product.price);
+            if (!result.ok) {
+              alert(
+                result.reason === 'insufficient_coins' || result.reason?.includes('insufficient')
+                  ? 'Insufficient streaming Coins to purchase this item.'
+                  : 'Purchase could not be completed. Try again.',
+              );
+              return;
+            }
+          } else {
+            const result = await spendWalletCoinsCloud(appUser.id, product.price, {
+              lane: 'wallet_shop',
+              productId: product.id,
+              productName: product.name,
+            });
+            if (!result.ok) {
+              alert(
+                result.reason === 'insufficient_coins'
+                  ? 'Insufficient streaming Coins to purchase this item.'
+                  : 'Purchase could not be completed. Try again.',
+              );
+              return;
+            }
+          }
+        } else if (!isLocalWalletLedgerAllowed(appUser.id)) {
+          alert('Shop purchases require server checkout for this account.');
+          return;
+        } else if (!spendWalletCoins(appUser.id, product.price)) {
+          alert('Insufficient streaming Coins to purchase this item.');
+          return;
+        }
+      } else {
+        if (!isLocalWalletLedgerAllowed(appUser.id)) {
+          alert('Cash shop purchases use live commerce checkout. Buy coin-priced items or use Creator Marketplace.');
+          return;
+        }
+        if (cashBalance < product.price) {
+          alert('Insufficient cash USD balance to purchase this item.');
+          return;
+        }
+        db.save('cash_balance', cashBalance - product.price);
       }
-      return p;
-    });
-    db.save('shop_products', updatedProducts);
 
-    // Save transaction
-    const currentTrans = db.load('wallet_transactions', []);
-    const costRep = product.priceType === 'coins' ? `${product.price} Coins` : `$${product.price.toFixed(2)} USD`;
-    db.save('wallet_transactions', [{
-      id: `t_${Date.now()}`,
-      type: 'Product Purchased',
-      amount: `-${costRep}`,
-      status: 'Completed',
-      date: new Date().toISOString().replace('T', ' ').substring(0, 16),
-      cost: `Bought "${product.name}"`
-    }, ...currentTrans]);
+      const updatedProducts = products.map((p: any) => {
+        if (p.id === product.id) {
+          return { ...p, stock: p.stock - 1, sales: p.sales + 1 };
+        }
+        return p;
+      });
+      db.save('shop_products', updatedProducts);
 
-    setBuySuccess(`Successfully purchased "${product.name}"! Receipt appended to ledger.`);
-    setTimeout(() => setBuySuccess(null), 4000);
+      if (isLocalWalletLedgerAllowed(appUser.id)) {
+        const currentTrans = db.load('wallet_transactions', []);
+        const costRep = product.priceType === 'coins' ? `${product.price} Coins` : `$${product.price.toFixed(2)} USD`;
+        db.save('wallet_transactions', [{
+          id: `t_${Date.now()}`,
+          type: 'Product Purchased',
+          amount: `-${costRep}`,
+          status: 'Completed',
+          date: new Date().toISOString().replace('T', ' ').substring(0, 16),
+          cost: `Bought "${product.name}"`,
+        }, ...currentTrans]);
+      }
+
+      setBuySuccess(`Successfully purchased "${product.name}"! Receipt appended to ledger.`);
+      setTimeout(() => setBuySuccess(null), 4000);
+    })();
   };
 
   // Add Product logic

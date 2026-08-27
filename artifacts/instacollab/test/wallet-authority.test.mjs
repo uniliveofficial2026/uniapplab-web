@@ -23,6 +23,17 @@ test('wallet: OverviewTab reads server transactions for cloud users', () => {
   assert.equal(src.includes('MLBB Redeemed'), false);
 });
 
+test('wallet: shop/game use server spend for cloud accounts', () => {
+  const shop = readFileSync(join(insta, 'components/wallet/ShopTab.tsx'), 'utf8');
+  const game = readFileSync(join(insta, 'components/wallet/GameCoinTab.tsx'), 'utf8');
+  const cloud = readFileSync(join(insta, 'lib/walletCloud.ts'), 'utf8');
+  assert.ok(shop.includes('settleCommerceCoinSale'));
+  assert.ok(shop.includes('spendWalletCoinsCloud'));
+  assert.ok(game.includes('spendWalletCoinsCloud'));
+  assert.ok(cloud.includes('spendWalletCoinsApi'));
+  assert.ok(cloud.includes('hydrateWalletFromServer'));
+});
+
 test('wallet: shop/exchange/game/crypto/greedy refuse local settlement for cloud', () => {
   const shop = readFileSync(join(insta, 'components/wallet/ShopTab.tsx'), 'utf8');
   const buy = readFileSync(join(insta, 'components/wallet/BuyExchangeTab.tsx'), 'utf8');
@@ -59,6 +70,15 @@ test('wallet: party gift settle refuses local mint for cloud users', () => {
   assert.ok(src.includes('isLocalWalletLedgerAllowed'));
   assert.equal(src.includes('/* fall through to local */'), false);
   assert.equal(src.includes('/* local fallback */'), false);
+});
+
+test('wallet: API exposes authoritative spend route', () => {
+  const api = readFileSync(
+    join(dirname(fileURLToPath(import.meta.url)), '../../api-server/src/routes/wallet.ts'),
+    'utf8',
+  );
+  assert.ok(api.includes('router.post("/spend"'));
+  assert.ok(api.includes('spend_wallet_coins'));
 });
 
 test('wallet: Firebase gift wallet never seeds from client local balance', () => {

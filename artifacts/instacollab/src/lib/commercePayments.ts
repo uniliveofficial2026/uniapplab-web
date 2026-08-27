@@ -8,6 +8,7 @@ import {
   verifyCommerceCheckoutSession,
 } from './platformApi';
 import { syncServerWalletBalance } from './walletServerSync';
+import { hydrateWalletFromServer } from './walletCloud';
 import { spendWalletCoins } from './walletKstarSync';
 
 export const COMMERCE_PENDING_ORDER_KEY = 'commerce_live_pending_order';
@@ -68,6 +69,7 @@ export async function settleCommerceCoinSale(
         metadata: { lane: 'commerce' },
       });
       await syncServerWalletBalance(buyerId);
+      await hydrateWalletFromServer(buyerId);
       creditHostCommerceCoinEarnings(hostId, cost);
       if (hostId === db.currentUserId?.trim()) {
         await syncServerWalletBalance(hostId);

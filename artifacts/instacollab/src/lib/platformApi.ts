@@ -316,10 +316,23 @@ export async function fetchWallet(): Promise<{
   bonusCoins?: number;
   promoCredits?: number;
   vipTokens?: number;
+  commerceCoinEarnings?: number;
   limits?: unknown;
   transactions: unknown[];
 }> {
   return apiFetch('/api/wallet');
+}
+
+export async function spendWalletCoinsApi(input: {
+  amount: number;
+  txType?: string;
+  metadata?: Record<string, unknown>;
+  clientRequestId?: string;
+}): Promise<{ ok?: boolean; duplicate?: boolean; transactionId?: string; error?: string }> {
+  return apiFetch('/api/wallet/spend', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 export async function transferCoins(toUser: string, amount: number): Promise<unknown> {

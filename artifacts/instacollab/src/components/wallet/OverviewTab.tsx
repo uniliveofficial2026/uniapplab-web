@@ -30,6 +30,7 @@ import {
 import { rechartsTooltipProps, useRechartsTheme } from '../../lib/useRechartsTheme';
 import { useLiveCoinsBalance } from '../../hooks/useLiveCoinsBalance';
 import { usdFromCoins } from '../../lib/coinPricing';
+import { getWalletCashBalance, getWalletCommerceCoinEarnings, mapServerTransactions } from '../../lib/walletCloud';
 
 interface OverviewTabProps {
   cryptoPrices: { BTC: number; ETH: number; SOL: number };
@@ -41,7 +42,8 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
   const appUser = useCurrentUser();
   const chartTheme = useRechartsTheme();
   const coinsBalance = useLiveCoinsBalance(appUser.id);
-  const cashBalance = db.load('cash_balance', 0);
+  const cashBalance = getWalletCashBalance(appUser.id);
+  const commerceCoinEarnings = getWalletCommerceCoinEarnings(appUser.id);
   const cryptoPortfolio = db.load('crypto_portfolio', { BTC: 0.0045, ETH: 0.082, SOL: 1.5 });
   const [transactions, setTransactions] = useState<Array<{
     id: string;
@@ -61,22 +63,13 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
     void fetchWallet()
       .then((wallet) => {
         if (cancelled) return;
+        if (typeof wallet.commerceCoinEarnings === 'number') {
+          db.save('commerce_host_coin_earnings', {
+            [appUser.id]: Math.max(0, Math.floor(wallet.commerceCoinEarnings)),
+          });
+        }
         const rows = Array.isArray(wallet.transactions) ? wallet.transactions : [];
-        setTransactions(
-          rows.map((raw) => {
-            const t = (raw ?? {}) as Record<string, unknown>;
-            const amountNum = Number(t.amount ?? 0);
-            const signed = t.to_user === appUser.id || t.toUser === appUser.id ? Math.abs(amountNum) : -Math.abs(amountNum);
-            return {
-              id: String(t.id ?? ''),
-              type: String(t.tx_type ?? t.type ?? 'Transaction'),
-              amount: `${signed >= 0 ? '+' : ''}${signed} Coins`,
-              status: 'Completed',
-              date: String(t.created_at ?? '').replace('T', ' ').slice(0, 16),
-              cost: t.currency ? String(t.currency) : undefined,
-            };
-          }).filter((row) => row.id),
-        );
+        setTransactions(mapServerTransactions(appUser.id, rows));
       })
       .catch(() => {
         if (!cancelled) setTransactions([]);
@@ -189,7 +182,10 @@ export function OverviewTab({ cryptoPrices, onNavigate }: OverviewTabProps) {
           <h3 className="text-3xl font-black text-white tracking-tight" id="balance-cash">
             ${cashBalance.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} <span className="text-xs text-emerald-400 font-bold">USD</span>
           </h3>
-          <p className="text-[11px] text-emerald-200/50 mt-1 font-semibold">Available for direct withdrawal</p>
+          <p className="text-[11px] text-emerald-200/50 mt-1 font-semibold">
+            Available for direct withdrawal
+            {commerceCoinEarnings > 0 ? ` · ${commerceCoinEarnings.toLocaleString()} seller coins pending lane` : ''}
+          </p>
           <div className="mt-4 pt-3 border-t border-emerald-500/15 flex items-center justify-between text-xs font-bold text-emerald-300">
             <span>Seller Proceeds Pool</span>
             <span className="text-emerald-400 font-black">Cleared</span>

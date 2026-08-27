@@ -148,6 +148,37 @@ router.post("/commerce-settle", auth, requireNotBanned, async (req, res, next) =
   }
 });
 
+/** In-app coin spend — shop packs, game redemption, wallet utilities (server ledger). */
+router.post("/spend", auth, requireNotBanned, async (req, res, next) => {
+  try {
+    const userId = req.authUser!.id;
+    const { amount, txType, metadata, clientRequestId } = req.body as {
+      amount?: number;
+      txType?: string;
+      metadata?: Record<string, unknown>;
+      clientRequestId?: string;
+    };
+    if (!amount || amount <= 0) {
+      res.status(400).json({ error: "positive amount required" });
+      return;
+    }
+    const { data, error } = await getSupabaseService().rpc("spend_wallet_coins", {
+      p_user: userId,
+      p_amount: Math.floor(amount),
+      p_tx_type: txType ?? "purchase",
+      p_metadata: metadata ?? {},
+      p_client_request_id: clientRequestId ?? null,
+    });
+    if (error) {
+      res.status(400).json({ error: error.message });
+      return;
+    }
+    res.json(data);
+  } catch (err) {
+    next(err);
+  }
+});
+
 router.post("/credit", auth, requireAdmin, async (req, res, next) => {
   try {
     const { userId, amount, txType, metadata, currency } = req.body as {

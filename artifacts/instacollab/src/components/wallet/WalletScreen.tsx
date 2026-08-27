@@ -13,6 +13,7 @@ import { useDB } from '../../lib/useDB';
 import { useCurrentUser } from '../../lib/useCurrentUser';
 import { syncLiveSessionData } from '../../lib/liveSessionSync';
 import { useLiveCloudSurface } from '../../hooks/useLiveCloudSurface';
+import { useWalletServerHydration } from '../../hooks/useWalletServerHydration';
 
 type WalletTab = 'overview' | 'buy_exchange' | 'withdraw' | 'crypto' | 'game' | 'shop' | 'orders' | 'my-orders';
 
@@ -26,6 +27,8 @@ export function WalletScreen() {
       void syncLiveSessionData(appUser.id);
     }
   });
+
+  useWalletServerHydration(true);
 
   // Unified global simulated crypto price state passed down to ensure coordination
   const [cryptoPrices, setCryptoPrices] = useState({
