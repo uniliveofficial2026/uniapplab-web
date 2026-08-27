@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import { resolveGreedyTapAppUrl } from '../../lib/greedyTap/config';
+import { wakeGreedyRealtimeInBackground } from '../../lib/greedyTap/keepAlive';
 
 /**
  * Greedy tab slot — the live iframe is owned by GreedySessionProvider
@@ -7,6 +8,7 @@ import { resolveGreedyTapAppUrl } from '../../lib/greedyTap/config';
  */
 export function GreedyTapScreen() {
   useEffect(() => {
+    wakeGreedyRealtimeInBackground();
     window.dispatchEvent(
       new CustomEvent('uniapplab-greedy-session', { detail: { action: 'open-fullscreen' } }),
     );
@@ -16,9 +18,10 @@ export function GreedyTapScreen() {
   return <div className="relative h-full min-h-0 w-full flex-1 bg-black" aria-hidden />;
 }
 
-/** Prefetch Greedy so the browser starts loading before the tab is opened. */
+/** Prefetch Greedy shell + wake Render realtime in the background. */
 export function prefetchGreedyTap(): void {
   if (typeof document === 'undefined') return;
+  wakeGreedyRealtimeInBackground();
   const href = resolveGreedyTapAppUrl();
   if (document.querySelector(`link[data-greedy-prefetch="${href}"]`)) return;
   const link = document.createElement('link');

@@ -82,9 +82,9 @@ export function resolveGreedyTapAppUrl(): string {
 }
 
 /**
- * Readiness probe.
- * - Dev: Greedy Express `/api/health` (proxied via Vite or direct :3000).
- * - Prod: Greedy `/api/items` proxied on UniLive (UniLive's own `/api/health` is different).
+ * Readiness / wake probe for the Greedy realtime Render service.
+ * - Dev: Greedy Express `/api/health` (Vite proxy or :3000).
+ * - Prod: same-origin `/games/greedy-slot/healthz` (edge → GAME_ORIGIN), not UniLive `/api/health`.
  */
 export function greedyTapHealthUrl(): string {
   const override = (import.meta.env.VITE_GREEDY_TAP_APP_URL as string | undefined)?.trim();
@@ -96,7 +96,10 @@ export function greedyTapHealthUrl(): string {
     if (import.meta.env.DEV) {
       return `${window.location.origin}${joinAppPath('/api/health')}`.replace(/([^:]\/)\/+/g, '$1');
     }
-    return `${window.location.origin}${joinAppPath('/api/items')}`.replace(/([^:]\/)\/+/g, '$1');
+    return `${window.location.origin}${joinAppPath('/games/greedy-slot/healthz')}`.replace(
+      /([^:]\/)\/+/g,
+      '$1',
+    );
   }
 
   if (import.meta.env.DEV) {
@@ -104,7 +107,7 @@ export function greedyTapHealthUrl(): string {
   }
 
   const origin = (import.meta.env.VITE_APP_ORIGIN || 'https://app.uniapplab.com').replace(/\/$/, '');
-  return `${origin}/api/items`;
+  return `${origin}/games/greedy-slot/healthz`;
 }
 
 export function isGreedyTapReadyPayload(body: unknown, url: string): boolean {
@@ -114,5 +117,6 @@ export function isGreedyTapReadyPayload(body: unknown, url: string): boolean {
   }
   if (typeof body !== 'object') return false;
   const record = body as Record<string, unknown>;
-  return record.status === 'ok' && typeof record.time === 'string' && typeof record.mode === 'string';
+  if (record.status === 'ok') return true;
+  return typeof record.time === 'string' && typeof record.mode === 'string';
 }

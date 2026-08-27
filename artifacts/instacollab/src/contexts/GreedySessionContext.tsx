@@ -15,6 +15,7 @@ import {
   readGreedyHostInsets,
   subscribeGreedyHostInsets,
 } from '../lib/greedyTap/hostInsets';
+import { startGreedyRealtimeKeepAlive, wakeGreedyRealtimeInBackground } from '../lib/greedyTap/keepAlive';
 import { useDB } from '../lib/useDB';
 import { resolveUser, safeAvatarUrl } from '../lib/safe';
 import { getProfileDisplayName, getProfileHandle } from '../lib/profileDisplay';
@@ -304,6 +305,8 @@ export function GreedySessionProvider({
     blockPipRef.current = false;
     adminSessionRef.current = false;
     setAdminOpen(false);
+    // Wake Render realtime in the background while the iframe boots.
+    wakeGreedyRealtimeInBackground();
     setActive((was) => {
       if (!was) setSessionKey((k) => k + 1);
       return true;
@@ -323,6 +326,7 @@ export function GreedySessionProvider({
     blockPipRef.current = true;
     adminSessionRef.current = true;
     setAdminOpen(true);
+    wakeGreedyRealtimeInBackground();
     setActive((was) => {
       if (!was) setSessionKey((k) => k + 1);
       return true;
@@ -429,6 +433,7 @@ export function GreedySessionProvider({
 
     // Opening the Greedy tab always brings the live host back (after Close too).
     if (currentTab === 'greedy-tap') {
+      wakeGreedyRealtimeInBackground();
       setActive((was) => {
         if (!was) setSessionKey((k) => k + 1);
         return true;
@@ -675,6 +680,12 @@ export function GreedySessionProvider({
     returnToWorkspace,
     showPipCard,
   ]);
+
+  // Keep Render realtime warm while Greedy is open (fullscreen or floating PiP).
+  useEffect(() => {
+    if (!active) return;
+    return startGreedyRealtimeKeepAlive();
+  }, [active]);
 
   // Keep Greedy identity/balance aligned with UniLive account + wallet.
   useEffect(() => {
