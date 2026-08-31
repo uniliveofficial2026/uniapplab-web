@@ -97,8 +97,8 @@ export function PkStickerSheet({
                 stickerId={row.id}
                 src={row.artwork}
                 alt={row.label}
-                className="h-full w-full"
-                imgClassName="h-full w-full object-cover"
+                className="lt15-sticker-art"
+                imgClassName="lt15-sticker-art__img"
                 animate
                 playKey={row.id}
               />

@@ -5458,6 +5458,8 @@
     "lt15-sliders ${tab === 'Face' ? 'is-face' : ''}": "‮‹‹lt15-sliders ${tab === 'Face' ? 'is-face' : ''}››‬",
     "lt15-soft-btn": "‮‹‹lt15-soft-btn››‬",
     "lt15-soft-btn ${monitorEnabled ? 'is-on' : ''}": "‮‹‹lt15-soft-btn ${monitorEnabled ? 'is-on' : ''}››‬",
+    "lt15-sticker-art": "‮‹‹lt15-sticker-art››‬",
+    "lt15-sticker-art__img": "‮‹‹lt15-sticker-art__img››‬",
     "lt15-sticker-card": "‮‹‹lt15-sticker-card››‬",
     "lt15-sticker-grid": "‮‹‹lt15-sticker-grid››‬",
     "lt15-sub": "‮‹‹lt15-sub››‬",

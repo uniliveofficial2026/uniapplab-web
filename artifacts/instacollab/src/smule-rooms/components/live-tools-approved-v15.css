@@ -695,30 +695,39 @@ body > .lt15-overlay {
   display: none;
 }
 
-/* Stickers — exact five by four artwork grid. */
+/* Stickers — square preview tiles so artwork stays fully visible. */
 .lt15-stickers {
-  height: 40%;
-  max-height: 40%;
+  height: min(52%, 440px);
+  max-height: min(58vh, 520px);
+  min-height: min(320px, 55vh);
 }
 
 .lt15-sticker-grid {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  grid-template-rows: repeat(4, minmax(0, 1fr));
+  grid-auto-rows: auto;
+  align-content: start;
   flex: 1 1 auto;
-  gap: 5px;
+  gap: 6px;
   min-height: 0;
+  padding: 2px 1px 6px;
   overflow: auto;
   scrollbar-width: none;
 }
 
 .lt15-sticker-card {
+  position: relative;
+  box-sizing: border-box;
+  aspect-ratio: 1 / 1;
+  width: 100%;
   min-width: 0;
   min-height: 0;
-  padding: 0;
+  display: grid;
+  place-items: center;
+  padding: 4px;
   overflow: hidden;
   border: 1px solid rgba(234, 73, 255, 0.28);
-  border-radius: 8px;
+  border-radius: 10px;
   background: #09060e;
 }
 
@@ -727,12 +736,37 @@ body > .lt15-overlay {
   box-shadow: 0 0 12px rgba(244, 53, 255, 0.44);
 }
 
-.lt15-sticker-card img {
+.lt15-sticker-card .v14-animated-artwork,
+.lt15-sticker-card .v14-animated-artwork--sticker {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
+}
+
+.lt15-sticker-card img,
+.lt15-sticker-card .v14-animated-artwork__image,
+.lt15-sticker-card .lt15-sticker-art__img {
   display: block;
   width: 100%;
   height: 100%;
-  object-fit: cover;
+  max-width: 100%;
+  max-height: 100%;
+  object-fit: contain;
   object-position: center;
+}
+
+.lt15-sticker-card .lt15-sticker-art {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  align-items: center;
+  justify-content: center;
 }
 
 .lt15-sticker-footer .lt15-primary {
@@ -1995,6 +2029,16 @@ body > .lt15-overlay {
   .lt15-primary {
     padding-inline: 12px;
     font-size: 11px;
+  }
+
+  .lt15-sticker-grid {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 5px;
+  }
+
+  .lt15-sticker-card {
+    padding: 3px;
+    border-radius: 8px;
   }
 
   .lt15-recipient b {
