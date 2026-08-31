@@ -1,1 +1,0 @@
-import{jX as r}from"./index-CqSdeYDo.js";import"./vendor-react-Cp0aZ57f.js";import"./vendor-utils-Ce1ZTWB2.js";import"./firebase-config-pMSoPyQw.js";import"./vendor-supabase-CXjp-iK5.js";import"./vendor-motion-S1BKFH4T.js";import"./vendor-icons-Cj0C5QKq.js";import"./vendor-firebase-B2Sn7mMB.js";class u extends r{async show(o){}async hide(o){}}export{u as SplashScreenWeb};

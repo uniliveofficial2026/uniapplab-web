@@ -193,22 +193,22 @@ export function V15LiveRoomChrome({
                         <span>{liveDuration}</span>
                       </span>
                     )}
-
-                    {roomId ? (
-                      <button
-                        type="button"
-                        className="v15-live-room-id"
-                        onClick={onCopyRoomId}
-                        disabled={!onCopyRoomId}
-                        aria-label={roomIdCopied ? 'Room ID copied' : `Copy room ID ${roomId}`}
-                      >
-                        <span>Room ID {roomId}</span>
-                        {roomIdCopied ? <Check /> : <Copy />}
-                      </button>
-                    ) : null}
                   </div>
                 </div>
               </div>
+
+              {roomId ? (
+                <button
+                  type="button"
+                  className="v15-live-room-id"
+                  onClick={onCopyRoomId}
+                  disabled={!onCopyRoomId}
+                  aria-label={roomIdCopied ? 'Room ID copied' : `Copy room ID ${roomId}`}
+                >
+                  <span>Room ID {roomId}</span>
+                  {roomIdCopied ? <Check /> : <Copy />}
+                </button>
+              ) : null}
             </div>
 
             {showFollow ? (

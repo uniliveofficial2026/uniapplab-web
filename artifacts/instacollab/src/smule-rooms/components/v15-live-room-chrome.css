@@ -59,6 +59,7 @@
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  gap: 4px;
 }
 
 .v15-live-host__profile {
@@ -105,11 +106,18 @@
   max-width: 100%;
 }
 
-.v15-live-host__identity .v15-live-indicator,
-.v15-live-host__identity .v15-live-room-id {
+.v15-live-host__identity .v15-live-indicator {
   flex: 0 0 auto;
   width: max-content;
   max-width: 100%;
+}
+
+.v15-live-host__primary > .v15-live-room-id {
+  flex: 0 0 auto;
+  width: max-content;
+  max-width: 100%;
+  /* Sit under the identity column (name + Live), not beside Live. */
+  margin-inline-start: calc(52px + clamp(6px, 1.1cqi, 10px));
 }
 
 .v15-live-host__name-row {
@@ -1095,6 +1103,10 @@ button.v15-live-indicator:focus-visible {
     max-height: 36px;
   }
 
+  .v15-live-host__primary > .v15-live-room-id {
+    margin-inline-start: calc(36px + 6px);
+  }
+
   .v15-live-host__avatar-frame {
     padding: 1px;
     border-width: 1.5px;
@@ -1304,6 +1316,10 @@ button.v15-live-indicator:focus-visible {
     max-width: 32px;
     max-height: 32px;
   }
+
+  .v15-live-host__primary > .v15-live-room-id {
+    margin-inline-start: calc(32px + 6px);
+  }
   .v15-live-host__follow { padding-inline: 6px; }
   .v15-live-viewers { padding-right: 5px; }
   .v15-live-viewer-actions { gap: 2px; }
@@ -1329,6 +1345,10 @@ button.v15-live-indicator:focus-visible {
     height: 36px;
     max-width: 36px;
     max-height: 36px;
+  }
+
+  .v15-live-host__primary > .v15-live-room-id {
+    margin-inline-start: calc(36px + 6px);
   }
 
   .v15-live-host__name-row strong {
@@ -1387,6 +1407,10 @@ button.v15-live-indicator:focus-visible {
     height: 32px;
     max-width: 32px;
     max-height: 32px;
+  }
+
+  .v15-live-host__primary > .v15-live-room-id {
+    margin-inline-start: calc(32px + 6px);
   }
 }
 
