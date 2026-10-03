@@ -64,9 +64,6 @@ router.post("/users/:id/unban", async (req, res, next) => {
       res.status(400).json({ error: error.message });
       return;
     }
-    if (isLiveKitConfigured()) {
-      await deleteLiveKitRoom(streamRoomName(req.params.id));
-    }
     res.json(data);
   } catch (err) {
     next(err);
@@ -128,6 +125,9 @@ router.post("/streams/:id/stop", async (req, res, next) => {
     if (error) {
       res.status(400).json({ error: error.message });
       return;
+    }
+    if (isLiveKitConfigured()) {
+      await deleteLiveKitRoom(streamRoomName(req.params.id));
     }
     res.json(data);
   } catch (err) {
