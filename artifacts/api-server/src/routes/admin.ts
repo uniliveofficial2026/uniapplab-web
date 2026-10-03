@@ -1,6 +1,7 @@
 import { Router, type IRouter } from "express";
 import { auth } from "../middlewares/auth";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import { deleteLiveKitRoom, isLiveKitConfigured, streamRoomName } from "../lib/livekit";
 import { getSupabaseService } from "../lib/supabase";
 
 const router: IRouter = Router();
@@ -44,6 +45,9 @@ router.post("/users/:id/ban", async (req, res, next) => {
     if (error) {
       res.status(400).json({ error: error.message });
       return;
+    }
+    if (isLiveKitConfigured()) {
+      await deleteLiveKitRoom(streamRoomName(req.params.id));
     }
     res.json(data);
   } catch (err) {
