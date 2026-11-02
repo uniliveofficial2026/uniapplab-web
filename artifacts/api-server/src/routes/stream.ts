@@ -15,6 +15,8 @@ function canGoLive(role: string | undefined): boolean {
   return role === "streamer" || role === "admin";
 }
 
+const STREAM_SIGNAL_TYPES = new Set(["offer", "answer", "ice"]);
+
 const router: IRouter = Router();
 
 router.get("/live", async (_req, res, next) => {
@@ -155,17 +157,43 @@ router.post("/:id/signal", auth, requireNotBanned, async (req, res, next) => {
       signalType?: string;
       payload?: Record<string, unknown>;
     };
-    if (!signalType || !payload) {
+    const normalizedSignalType = typeof signalType === "string" ? signalType.trim() : "";
+    if (
+      !STREAM_SIGNAL_TYPES.has(normalizedSignalType) ||
+      !payload ||
+      typeof payload !== "object" ||
+      Array.isArray(payload)
+    ) {
       res.status(400).json({ error: "signalType and payload required" });
       return;
     }
+
+    const { data: stream, error: streamError } = await getSupabaseService()
+      .from("streams")
+      .select("user_id, status")
+      .eq("id", streamId)
+      .maybeSingle();
+    if (streamError) {
+      res.status(400).json({ error: streamError.message });
+      return;
+    }
+    if (!stream || stream.status !== "live") {
+      res.status(404).json({ error: "stream_not_live" });
+      return;
+    }
+    if (stream.user_id !== req.authUser!.id) {
+      res.status(403).json({ error: "stream_owner_required" });
+      return;
+    }
+
+    const normalizedToUser = typeof toUser === "string" && toUser.trim() ? toUser.trim() : null;
     const { data, error } = await getSupabaseService()
       .from("stream_signals")
       .insert({
         stream_id: streamId,
         from_user: req.authUser!.id,
-        to_user: toUser ?? null,
-        signal_type: signalType,
+        to_user: normalizedToUser,
+        signal_type: normalizedSignalType,
         payload,
       })
       .select("id, stream_id, from_user, to_user, signal_type, created_at")
