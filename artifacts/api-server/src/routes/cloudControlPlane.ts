@@ -1,9 +1,10 @@
 import { Router, type IRouter, type Request, type Response } from "express";
 import { getUniLiveCloud } from "../lib/uniliveCloud";
+import { requireInternalSecret } from "../middlewares/requireInternalSecret";
 
 /**
  * UniLive Cloud control-plane HTTP surface (durable in production).
- * Actor is taken from trusted headers / body for Studio/CLI/MCP bridge.
+ * Actor is taken from trusted internal Studio/CLI/MCP bridge headers / body.
  * Never returns plaintext secrets — only secretRef metadata.
  */
 const router: IRouter = Router();
@@ -47,6 +48,8 @@ router.get("/v1/cloud/health", async (_req: Request, res: Response) => {
     productionMediaProvider: "LiveKit",
   });
 });
+
+router.use("/v1/cloud", requireInternalSecret);
 
 router.post("/v1/cloud/organizations", async (req: Request, res: Response) => {
   try {

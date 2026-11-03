@@ -6,6 +6,7 @@ import {
   createRtcUsageMeter,
 } from "@unilives/platform-core";
 import { createRtcGrant, mintProviderTokenFromGrant, normalizeProviderWebhook } from "@unilives/rtc-server";
+import { requireInternalSecret } from "../middlewares/requireInternalSecret";
 
 /**
  * UniLive Platform API v1 — provider-neutral public contracts.
@@ -92,7 +93,7 @@ router.post("/v1/rtc/rooms", (req: Request, res: Response) => {
   });
 });
 
-router.post("/v1/rtc/tokens", async (req: Request, res: Response) => {
+router.post("/v1/rtc/tokens", requireInternalSecret, async (req: Request, res: Response) => {
   try {
     const canonicalUserId = String(req.body?.canonicalUserId || "").trim();
     const roomId = String(req.body?.roomId || "").trim();
