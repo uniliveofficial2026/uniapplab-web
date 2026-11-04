@@ -1,11 +1,61 @@
 import { Router, type IRouter } from "express";
 import { auth } from "../middlewares/auth";
 import { requireAdmin } from "../middlewares/requireAdmin";
+import {
+  deleteLiveKitRoom,
+  isLiveKitConfigured,
+  removeLiveKitParticipantFromAllRooms,
+  streamRoomName,
+} from "../lib/livekit";
+import { logger } from "../lib/logger";
 import { getSupabaseService } from "../lib/supabase";
 
 const router: IRouter = Router();
 
 router.use(auth, requireAdmin);
+
+async function revokeBannedUserLiveAccess(userId: string) {
+  const result = {
+    endedStreams: 0,
+    deletedStreamRooms: 0,
+    removedParticipants: 0,
+    cleanupFailures: [] as string[],
+  };
+  const supabase = getSupabaseService();
+  const endedAt = new Date().toISOString();
+
+  const { data: streams, error } = await supabase
+    .from("streams")
+    .update({ status: "ended", ended_at: endedAt })
+    .eq("user_id", userId)
+    .eq("status", "live")
+    .select("id");
+
+  if (error) {
+    result.cleanupFailures.push(`streams:${error.message}`);
+    logger.warn({ err: error, userId }, "Failed to end banned user's live streams");
+  }
+
+  const streamIds = ((streams ?? []) as Array<{ id: string }>).map((stream) => stream.id);
+  result.endedStreams = streamIds.length;
+
+  if (!isLiveKitConfigured()) return result;
+
+  for (const streamId of streamIds) {
+    const deleted = await deleteLiveKitRoom(streamRoomName(streamId));
+    if (deleted) result.deletedStreamRooms += 1;
+    else result.cleanupFailures.push(`room:${streamId}`);
+  }
+
+  const participants = await removeLiveKitParticipantFromAllRooms(userId);
+  result.removedParticipants = participants.participantsRemoved;
+  result.cleanupFailures.push(...participants.failures.map((room) => `participant:${room}`));
+  if (result.cleanupFailures.length) {
+    logger.warn({ userId, cleanupFailures: result.cleanupFailures }, "Incomplete LiveKit ban cleanup");
+  }
+
+  return result;
+}
 
 router.get("/users", async (req, res, next) => {
   try {
@@ -45,7 +95,8 @@ router.post("/users/:id/ban", async (req, res, next) => {
       res.status(400).json({ error: error.message });
       return;
     }
-    res.json(data);
+    const liveAccessRevoked = await revokeBannedUserLiveAccess(req.params.id);
+    res.json({ ...data, live_access_revoked: liveAccessRevoked });
   } catch (err) {
     next(err);
   }

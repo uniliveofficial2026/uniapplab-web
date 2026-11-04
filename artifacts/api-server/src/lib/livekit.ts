@@ -6,6 +6,8 @@ export {
   createLiveKitToken,
   ensureLiveKitRoom,
   deleteLiveKitRoom,
+  removeLiveKitParticipant,
+  removeLiveKitParticipantFromAllRooms,
   pingLiveKit,
   partyRoomName,
 } from "@workspace/livekit";

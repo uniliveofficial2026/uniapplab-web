@@ -13,6 +13,12 @@ declare module "@workspace/livekit" {
   }): Promise<string>;
   export function ensureLiveKitRoom(roomName: string): Promise<boolean>;
   export function deleteLiveKitRoom(roomName: string): Promise<boolean>;
+  export function removeLiveKitParticipant(roomName: string, identity: string): Promise<boolean>;
+  export function removeLiveKitParticipantFromAllRooms(identity: string): Promise<{
+    roomsChecked: number;
+    participantsRemoved: number;
+    failures: string[];
+  }>;
   export function pingLiveKit(): Promise<{
     ok: boolean;
     url?: string;

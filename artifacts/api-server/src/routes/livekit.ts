@@ -10,6 +10,7 @@ import {
   getLiveKitUrl,
   isLiveKitConfigured,
   pingLiveKit,
+  removeLiveKitParticipant,
   streamRoomName,
   partyRoomName,
 } from "../lib/livekit";
@@ -169,11 +170,33 @@ router.post("/livekit/webhook", async (req, res) => {
         .eq("status", "live");
     }
 
+    if (event.event === "participant_joined" && event.room?.name && event.participant?.identity) {
+      const identity = event.participant.identity;
+      const { data: profile } = await getSupabaseService()
+        .from("profiles")
+        .select("banned_at")
+        .eq("id", identity)
+        .maybeSingle();
+
+      if (profile?.banned_at) {
+        await removeLiveKitParticipant(event.room.name, identity);
+        if (event.room.name.startsWith("ic-stream-")) {
+          const streamId = event.room.name.replace(/^ic-stream-/, "");
+          await getSupabaseService()
+            .from("streams")
+            .update({ status: "ended", ended_at: new Date().toISOString() })
+            .eq("id", streamId)
+            .eq("user_id", identity)
+            .eq("status", "live");
+        }
+      }
+    }
+
     res.json({ ok: true });
   } catch {
     res.status(401).json({ error: "invalid webhook" });
   }
 });
 
-export { deleteLiveKitRoom, streamRoomName };
+export { deleteLiveKitRoom, removeLiveKitParticipant, streamRoomName };
 export default router;
