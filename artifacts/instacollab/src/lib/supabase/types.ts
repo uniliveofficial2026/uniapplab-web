@@ -14,6 +14,7 @@ export type ProfileRow = {
   banned_at?: string | null;
   ban_reason?: string | null;
   muted_until?: string | null;
+  is_private?: boolean | null;
   /** Avatar thought bubble text (empty string = no thought). */
   note?: string | null;
   note_updated_at?: string | null;

@@ -234,6 +234,7 @@ export async function pushCloudProfile(
     profile_setup_complete: profileSetupComplete,
     public_user_id: publicUserId,
     public_user_id_changed_at: new Date(changedAtMs).toISOString(),
+    is_private: !!user.isPrivate,
     note: thought,
     note_updated_at: thought
       ? new Date(user.noteUpdatedAt ?? Date.now()).toISOString()
