@@ -94,6 +94,7 @@ export function userFromFirebaseUser(firebaseUser: FirebaseUser, profile: Profil
       followers: 0,
       following: 0,
       status: 'none',
+      isPrivate: !!profile.is_private,
       ...(trimmedNote
         ? {
             note: trimmedNote,

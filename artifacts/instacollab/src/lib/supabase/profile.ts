@@ -37,6 +37,7 @@ export function profileRowToUser(row: ProfileRow, _email?: string | null): User 
     bannedAt: row.banned_at ? Date.parse(row.banned_at) : undefined,
     banReason: row.ban_reason ?? undefined,
     mutedUntil: row.muted_until ? Date.parse(row.muted_until) : undefined,
+    isPrivate: !!row.is_private,
     ...profileRowThoughtNote(row),
   };
 }
@@ -53,6 +54,9 @@ export function userToProfilePatch(user: Partial<User>): Partial<ProfileRow> {
   }
   if (user.publicUserIdChangedAt !== undefined) {
     patch.public_user_id_changed_at = new Date(user.publicUserIdChangedAt).toISOString();
+  }
+  if (user.isPrivate !== undefined) {
+    patch.is_private = !!user.isPrivate;
   }
   return patch;
 }
@@ -168,6 +172,7 @@ export async function ensureProfileFromSession(
     profile_setup_complete: existing?.profile_setup_complete ?? false,
     public_user_id: publicUserId,
     public_user_id_changed_at: existing?.public_user_id_changed_at ?? now,
+    is_private: existing?.is_private ?? false,
   };
 
   if (
@@ -200,6 +205,7 @@ export async function upsertProfile(row: ProfileRow): Promise<ProfileRow> {
     profile_setup_complete: row.profile_setup_complete,
     public_user_id: row.public_user_id ?? null,
     public_user_id_changed_at: row.public_user_id_changed_at ?? null,
+    is_private: !!row.is_private,
     note: thought,
     note_updated_at: thought ? row.note_updated_at ?? new Date().toISOString() : null,
     updated_at: new Date().toISOString(),
