@@ -51,7 +51,6 @@ function writeSignalFingerprints(map) {
 function corroborateSignal(signal) {
   const detail = String(signal.detail || '');
   if (isNoiseDetail(detail)) return false;
-  if (signal.meta?.immediate) return true;
   if (/posts|cloud|supabase|sync|relation.*posts/i.test(detail)) return true;
   const fp = `${signal.type}:${detail.slice(0, 120).replace(/\d{4,}/g, '#')}`;
   const map = readSignalFingerprints();
@@ -484,10 +483,10 @@ async function drainUxSignalsAsync() {
   } else {
     const signalsPath = path.join(ROOT, '.local/ux-signals.jsonl');
     if (!fs.existsSync(signalsPath)) return 0;
-    lines = fs
-      .readFileSync(signalsPath, 'utf8')
-      .split('\n')
-      .filter(Boolean)
+    const rawLines = fs.readFileSync(signalsPath, 'utf8').split('\n').filter(Boolean);
+    const consumed = rawLines.slice(0, 500);
+    const remaining = rawLines.slice(500);
+    lines = consumed
       .map((line) => {
         try {
           return JSON.parse(line);
@@ -496,15 +495,7 @@ async function drainUxSignalsAsync() {
         }
       })
       .filter(Boolean);
-    if (lines.length > 500) {
-      fs.writeFileSync(
-        signalsPath,
-        `${lines
-          .slice(-200)
-          .map((s) => JSON.stringify(s))
-          .join('\n')}\n`,
-      );
-    }
+    fs.writeFileSync(signalsPath, remaining.length ? `${remaining.join('\n')}\n` : '');
   }
   let n = 0;
   for (const signal of lines) {
